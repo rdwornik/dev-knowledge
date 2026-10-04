@@ -1091,7 +1091,7 @@ _BOOT_DATA_ERA = "2026-09-25"
 #: A ruled row is owed only by a bundle cut on/after the row's era: a committed bundle is immutable,
 #: so a row added later cannot be asked of it. Rows absent here predate `_BOOT_DATA_ERA`.
 _ROW_ERA = {"Landed": "2026-10-03", "Decisions": "2026-10-03", "Dates": "2026-10-03",
-            "Models": "2026-10-03"}
+            "Models": "2026-10-03", "Plan": "2026-10-04"}
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -1450,7 +1450,10 @@ _STATE_ROW_FNS = {
     "Seats": lambda hs, ctx: hs.row_seats(),
     "Substrates": lambda hs, ctx: hs.row_substrates(ctx.repo_root),
     "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
-    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date),
+    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date,
+                                              repo_root=ctx.repo_root),
+    # B2-W1 W1-9: the master plan the boot points at, anchored to the bundle's own cut date.
+    "Plan": lambda hs, ctx: hs.row_plan(_transport_for(ctx), as_of=ctx.cut_date),
     "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx), as_of=ctx.cut_date),
     # batch FOUNDATION lane 3: the volatile onboarding facts (Landed, Decisions, Dates, Models).
     # Dates is a function of the date it is asked at, so a committed bundle is asked at its own
@@ -1464,7 +1467,8 @@ _STATE_ROW_FNS = {
 
 #: The rows judged by `_rule_committed_state` (FAIL -> WARN on a COMMITTED bundle, see its
 #: docstring); every other `_STATE_ROW_FNS` key except Seats keeps the plain `_rule_state`.
-_COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models")
+_COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models",
+                         "Plan")
 
 
 # [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole

@@ -376,7 +376,7 @@ def test_row_transport_counts_registered_kinds(tmp_path):
 def test_row_rulings_picks_the_newest_non_superseded_file(tmp_path):
     t = _transport(tmp_path)
     row = hs.row_rulings(t)
-    assert "R1" in row.value and "R3" in row.value and "3 ruling(s)" in row.value
+    assert "R1" in row.value and "R3" in row.value and "3 ruling id(s) in force" in row.value
     assert "RATIFICATION-2026-09-25.md" in row.value
     assert "superseded" not in row.value
 
@@ -400,7 +400,7 @@ def test_row_rulings_as_of_excludes_a_file_dated_after_it(tmp_path):
 
     anchored = hs.row_rulings(t, as_of="2026-09-20")
     assert "RATIFICATION-2026-09-20.md" in anchored.value
-    assert "1 ruling(s)" in anchored.value
+    assert "1 ruling(s)" in anchored.value             # cut before ROWS_V2_ERA: the legacy shape
 
 
 def test_row_capabilities_picks_the_newest_dated_file_and_counts_works(tmp_path):
@@ -532,7 +532,7 @@ def test_state_rows_returns_all_keys_in_declared_order(tmp_path):
     t = _transport(tmp_path)
     rows = hs.state_rows(repo, t)
     assert tuple(r.key for r in rows) == hs.STATE_ROW_KEYS == (
-        "CI", "Batches", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
+        "CI", "Batches", "Plan", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
         "Landed", "Decisions", "Dates", "Models")
 
 
@@ -822,3 +822,138 @@ def test_a_bundle_cut_in_or_after_a_rows_era_is_failed_for_omitting_it(tmp_path)
     (bundle / "HANDOFF_BOOT.md").write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
     omitted = {r.probe_id for r in vhp.verify_boot(bundle, repo) if "omits this ruled row" in r.detail}
     assert omitted == {"BD-landed", "BD-decisions", "BD-dates", "BD-models"}, omitted
+
+
+# --- B2-W1 lane W1-9 (b2-handoff-hardening) items 1 and 4 -------------------------------------
+# RED-first at e67f27ac: `handoff_state.row_plan` did not exist and `row_rulings` printed a range
+# plus a count (`R1–R73 (6 ruling(s))`), which hid WHICH six it parsed.
+
+_MASTER_HEAD = ("carried-by: OPEN\nlands-via: B2 waves\ndate: 2026-10-04\nfrom: a seat\n"
+                "kind: PLAN v12 — supersedes `-v11-superseded`. **The one place to read.**\n\n"
+                "# PLAN-HARNESS-2026-10-04 (v12)\n")
+_COMPANION_HEAD = ("carried-by: OPEN\nlands-via: the real handoff\ndate: 2026-10-04\nfrom: a seat\n"
+                   "kind: PLAN — this seat's close-out. It complements `to-cc/PLAN-HARNESS-2026-10-04.md` "
+                   "v12, which holds the harness plan.\n\n# PLAN-HANDOFF-2026-10-04\n")
+
+
+def _plan_transport(tmp_path: Path) -> Path:
+    """The live transport's shape: a v12 master written FIRST, a companion plan of the SAME date
+    written LATER (so a newest-by-date-then-mtime pick lands on the companion), a superseded v11
+    and an older master."""
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-cc" / "PLAN-HARNESS-2026-10-04-v11-superseded.md").write_text(
+        _MASTER_HEAD.replace("v12", "v11"), encoding="utf-8")
+    (t / "to-cc" / "PLAN-WAVE5-2026-09-23.md").write_text(
+        "carried-by: OPEN\ndate: 2026-09-23\nstatus: MASTER PLAN — the single source for waves\n\n# PLAN\n",
+        encoding="utf-8")
+    (t / "to-cc" / "PLAN-HARNESS-2026-10-04.md").write_text(_MASTER_HEAD, encoding="utf-8")
+    (t / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").write_text(_COMPANION_HEAD, encoding="utf-8")
+    return t
+
+
+def test_row_plan_names_the_master_not_the_newer_companion_plan(tmp_path):
+    t = _plan_transport(tmp_path)
+    row = hs.row_plan(t)
+    assert row.key == "Plan" and row.freshness == "SLOW"
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in row.value, row.value
+    assert "PLAN-HANDOFF" not in row.value and "superseded" not in row.value, row.value
+    assert "evidence: to-cc/PLAN-*.md" in row.rendered(), row.rendered()
+
+
+def test_row_plan_as_of_names_the_master_that_existed_at_the_cut(tmp_path):
+    t = _plan_transport(tmp_path)
+    assert "PLAN-WAVE5-2026-09-23.md" in hs.row_plan(t, as_of="2026-09-30").value
+
+
+def test_row_plan_degrades_visibly_without_a_transport_or_a_master(tmp_path):
+    assert "no master plan" in hs.row_plan(None).value
+    (tmp_path / "t" / "to-cc").mkdir(parents=True)
+    (tmp_path / "t" / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").write_text(_COMPANION_HEAD, encoding="utf-8")
+    assert "no master plan" in hs.row_plan(tmp_path / "t").value
+
+
+def _rulings_fixture(tmp_path: Path):
+    """Two live RATIFICATION files carrying disjoint ids (as the transport does: each file holds
+    the rulings of its own window), a superseded and a withdrawn one whose ids are NOT in force, and
+    a register that bullets only some of the live ids."""
+    repo = _repo_with_registries(tmp_path)
+    (repo / "protocols").mkdir(exist_ok=True)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "- **R1** a\n- **R2** b\n- **R3** c\n- **R7** d\nprose R9 is not a bullet\n", encoding="utf-8")
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "RATIFICATION-2026-09-25.md").write_text(
+        "- **R1** one.\n- **R2** two.\n## R3 — three\n", encoding="utf-8")
+    (t / "to-browser" / "RATIFICATION-2026-10-03.md").write_text(
+        "## R5 — five\n## R6 — six\n- **R7** seven.\n", encoding="utf-8")
+    (t / "to-browser" / "RATIFICATION-2026-10-03-v1-superseded.md").write_text(
+        "## R4 — only in a superseded file\n", encoding="utf-8")
+    (t / "to-browser" / "RATIFICATION-2026-09-28-v6-withdrawn.md").write_text(
+        "## R8 — withdrawn\n", encoding="utf-8")
+    return repo, t
+
+
+def test_row_rulings_prints_the_ids_in_force_and_the_exact_not_landed_set(tmp_path):
+    repo, t = _rulings_fixture(tmp_path)
+    row = hs.row_rulings(t, repo_root=repo)
+    # the exact ids, as runs that hide none: R1-R3 (09-25) + R5-R7 (10-03); R4 and R8 are not in force
+    assert row.value.startswith("R1–R3, R5–R7 (6 ruling id(s) in force"), row.value
+    assert "R4" not in row.value.split("not landed:")[0] and "R8" not in row.value, row.value
+    # in force minus Landed (R1, R2, R3, R7 are bulleted) = R5, R6
+    assert row.value.endswith("not landed: R5, R6") or "not landed: R5, R6" in row.value, row.value
+    assert "`RATIFICATION-2026-10-03.md`" in row.value, row.value      # the newest file is named
+
+
+def test_row_rulings_not_landed_is_none_when_every_id_is_bulleted(tmp_path):
+    repo, t = _rulings_fixture(tmp_path)
+    reg = repo / "protocols" / "STANDING_RULINGS.md"
+    reg.write_text(reg.read_text(encoding="utf-8") + "- **R5** e\n- **R6** f\n", encoding="utf-8")
+    assert "not landed: none" in hs.row_rulings(t, repo_root=repo).value
+
+
+def test_row_rulings_not_landed_agrees_with_the_landed_row(tmp_path):
+    repo, t = _rulings_fixture(tmp_path)
+    landed = hs.row_landed(repo)
+    assert "through R7 (4 ruling id(s) bulleted)" in landed.value, landed.value
+    assert "not landed: R5, R6" in hs.row_rulings(t, repo_root=repo).value
+
+
+def test_row_rulings_without_a_register_says_it_could_not_compute_not_landed(tmp_path):
+    repo, t = _rulings_fixture(tmp_path)
+    assert "not landed: not computed" in hs.row_rulings(t).value
+
+
+def test_the_plan_row_is_owed_only_by_a_bundle_cut_on_or_after_its_era(tmp_path):
+    """B2-W1 W1-9 item 1: `Plan` has a BOOT_DATA rule (rows == rules, both ways) and an era, so the
+    committed 2026-10-02 bundle is not asked for it while a 2026-10-04+ bundle without it FAILs."""
+    assert "Plan" in vhp.BOOT_DATA_RULES and "Plan" in hs.STATE_ROW_KEYS
+    assert vhp._ROW_ERA["Plan"] == hs.ROWS_V2_ERA == "2026-10-04"
+    repo = Path(__file__).resolve().parents[1]
+    old = repo / "docs" / "handoffs" / "2026-10-02-dev-knowledge-architect" / "HANDOFF_BOOT.md"
+    new = tmp_path / "2026-10-04-dev-knowledge-architect"
+    new.mkdir()
+    (new / "HANDOFF_BOOT.md").write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
+    omitted = {r.probe_id for r in vhp.verify_boot(new, repo) if "omits this ruled row" in r.detail}
+    assert "BD-plan" in omitted, omitted
+    assert not [r for r in vhp.verify_boot(old.parent, repo) if r.probe_id == "BD-plan"]
+
+
+def test_bd_plan_passes_on_the_master_and_fails_when_the_companion_is_named(tmp_path, monkeypatch):
+    t = _plan_transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    boot = (bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in boot
+    assert [r.status for r in vhp.verify_boot(bundle_dir, repo) if r.probe_id == "BD-plan"] == ["pass"]
+    (bundle_dir / "HANDOFF_BOOT.md").write_text(
+        boot.replace("PLAN-HARNESS-2026-10-04.md", "PLAN-HANDOFF-2026-10-04.md"), encoding="utf-8")
+    assert [r.status for r in vhp.verify_boot(bundle_dir, repo) if r.probe_id == "BD-plan"] == ["fail"]
+
+
+def test_row_rulings_keeps_the_legacy_shape_for_a_bundle_cut_before_the_era(tmp_path):
+    """A committed bundle is immutable: one cut before 2026-10-04 recorded `R1–Rn (k ruling(s))`
+    and must still re-derive to that string (else BD-rulings turns WARN on every old bundle)."""
+    repo, t = _rulings_fixture(tmp_path)
+    old = hs.row_rulings(t, as_of="2026-10-02", repo_root=repo)
+    assert old.value == "R1–R3 (3 ruling(s)) — `RATIFICATION-2026-09-25.md`", old.value

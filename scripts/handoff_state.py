@@ -256,14 +256,48 @@ def row_transport(repo_root: "Path | str") -> StateRow:
 #: file copied or re-synced by Drive still resolves to the date it was WRITTEN for.
 _DATED_STEM_RE = re.compile(r"-(\d{4}-\d{2}-\d{2})(?:-v\d+(?:-superseded)?)?\.md$")
 _SUPERSEDED_RE = re.compile(r"-v\d+-superseded\.md$")
+#: A withdrawn revision (`RATIFICATION-2026-09-28-v6-withdrawn.md`) is not in force either.
+_WITHDRAWN_RE = re.compile(r"-withdrawn\.md$")
+
+
+def _live_transport_docs(
+    transport: "Path | None", prefix: str, *, as_of: "str | None" = None,
+    subdir: str = "to-browser", accept: "object | None" = None,
+) -> "list[Path]":
+    """Every non-superseded, non-withdrawn `<prefix>-*.md` under `transport/<subdir>/`, oldest
+    first by the date token in its own filename (ties broken by mtime). The ONE transport reader:
+    `_newest_transport_doc` is the last of this list and the Rulings row reads all of it.
+    `accept`, when given, is a `Path -> bool` filter (the Plan row's master-plan predicate).
+    Empty when `transport` is unresolved."""
+    if transport is None:
+        return []
+    candidates: list[tuple[str, float, Path]] = []
+    for p in Path(transport).glob(f"{subdir}/{prefix}-*.md"):
+        if not p.is_file() or _SUPERSEDED_RE.search(p.name) or _WITHDRAWN_RE.search(p.name):
+            continue
+        m = _DATED_STEM_RE.search(p.name)
+        date = m.group(1) if m else ""
+        if as_of is not None and date and date > as_of:
+            continue
+        if accept is not None and not accept(p):
+            continue
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        candidates.append((date, mtime, p))
+    candidates.sort()
+    return [c[2] for c in candidates]
 
 
 def _newest_transport_doc(
-    transport: "Path | None", prefix: str, *, as_of: "str | None" = None
+    transport: "Path | None", prefix: str, *, as_of: "str | None" = None,
+    subdir: str = "to-browser", accept: "object | None" = None,
 ) -> "Path | None":
-    """The newest non-superseded `<prefix>-*.md` under `transport/to-browser/`, by the date
-    token in its own filename (ties broken by mtime) -- or None when `transport` is
-    unresolved or nothing matches. See the module docstring's honest limit on this resolution.
+    """The newest non-superseded `<prefix>-*.md` under `transport/<subdir>/` (default
+    `to-browser/`), by the date token in its own filename (ties broken by mtime) -- or None when
+    `transport` is unresolved or nothing matches. See the module docstring's honest limit on this
+    resolution.
 
     `as_of` ([#1330]): an ISO date string (`YYYY-MM-DD`) excludes any candidate dated AFTER
     it before ranking -- reconstructing "newest as of the bundle's own cut date" rather than
@@ -273,45 +307,111 @@ def _newest_transport_doc(
     that date, necessarily reproduces the value it selected at cut time. `None` (the default)
     keeps the prior unrestricted-live behavior.
     """
-    if transport is None:
-        return None
-    candidates: list[tuple[str, float, Path]] = []
-    for p in Path(transport).glob(f"to-browser/{prefix}-*.md"):
-        if not p.is_file() or _SUPERSEDED_RE.search(p.name):
-            continue
-        m = _DATED_STEM_RE.search(p.name)
-        date = m.group(1) if m else ""
-        if as_of is not None and date and date > as_of:
-            continue
-        try:
-            mtime = p.stat().st_mtime
-        except OSError:
-            mtime = 0.0
-        candidates.append((date, mtime, p))
-    if not candidates:
-        return None
-    candidates.sort()
-    return candidates[-1][2]
+    docs = _live_transport_docs(transport, prefix, as_of=as_of, subdir=subdir, accept=accept)
+    return docs[-1] if docs else None
 
 
 #: A ruling id, either as a bulleted restatement (`- **R1** ...`) or a new ruling's own heading
 #: (`## R22 — ...`) -- the two shapes `RATIFICATION-2026-09-25.md` itself carries.
 _RULING_ID_RE = re.compile(r"(?m)^(?:-\s+\*\*R(\d+)\*\*|#{1,6}\s+R(\d+)\b)")
 
+#: The first cut date that renders the Rulings row as explicit ids plus `not landed:` (and owes
+#: the Plan row). A committed bundle is immutable, so one cut before this re-derives to the shape
+#: it recorded -- `row_rulings(as_of=<its cut date>)` keeps the legacy string for it.
+ROWS_V2_ERA = "2026-10-04"
 
-def row_rulings(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
-    locator = "to-browser/RATIFICATION-*.md (newest, non-superseded)"
-    doc = _newest_transport_doc(transport, "RATIFICATION", as_of=as_of)
-    if doc is None:
+
+def _id_runs(ids: "list[int] | set[int]") -> str:
+    """`[1,2,3,5,7,8,9]` -> `R1–R3, R5, R7–R9`: contiguous ids collapse, and a gap stays visible,
+    so the string names EVERY id (the old `R1–R73` named the span and hid which were parsed)."""
+    out: list[str] = []
+    ordered = sorted(ids)
+    i = 0
+    while i < len(ordered):
+        j = i
+        while j + 1 < len(ordered) and ordered[j + 1] == ordered[j] + 1:
+            j += 1
+        if j - i >= 2:                                    # a run of three or more collapses
+            out.append(f"R{ordered[i]}–R{ordered[j]}")
+        else:
+            out.extend(f"R{n}" for n in ordered[i:j + 1])
+        i = j + 1
+    return ", ".join(out)
+
+
+def row_rulings(transport: "Path | None", *, as_of: "str | None" = None,
+                repo_root: "Path | str | None" = None) -> StateRow:
+    """The rulings IN FORCE: the union of the ids of every non-superseded, non-withdrawn
+    RATIFICATION file (each window's file carries its own rulings, so the newest file alone
+    names six of seventy-three), printed id by id, then `not landed:` = in force minus the ids
+    the register (`protocols/STANDING_RULINGS.md`) bullets -- the same ids the `Landed` row reads.
+    A bundle cut before `ROWS_V2_ERA` re-derives to its legacy shape (newest file, range + count)."""
+    locator = "to-browser/RATIFICATION-*.md (non-superseded, non-withdrawn)"
+    docs = _live_transport_docs(transport, "RATIFICATION", as_of=as_of)
+    if not docs:
         return StateRow("Rulings", "no RATIFICATION file found on the transport", "SLOW", locator)
+    doc = docs[-1]
+    legacy = as_of is not None and as_of < ROWS_V2_ERA
     try:
-        text = doc.read_text(encoding="utf-8", errors="replace")
-        nums = sorted({int(a or b) for a, b in _RULING_ID_RE.findall(text)})
+        if legacy:
+            text = doc.read_text(encoding="utf-8", errors="replace")
+            nums = sorted({int(a or b) for a, b in _RULING_ID_RE.findall(text)})
+            value = (f"0 rulings parsed from `{doc.name}`" if not nums else
+                     f"R1–R{nums[-1]} ({len(nums)} ruling(s)) — `{doc.name}`")
+            return StateRow("Rulings", value, "SLOW",
+                            "to-browser/RATIFICATION-*.md (newest, non-superseded)")
+        in_force: set[int] = set()
+        for d in docs:
+            text = d.read_text(encoding="utf-8", errors="replace")
+            in_force |= {int(a or b) for a, b in _RULING_ID_RE.findall(text)}
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Rulings", f"{locator} (`{doc.name}`)", "SLOW", exc)
-    value = (f"0 rulings parsed from `{doc.name}`" if not nums else
-             f"R1–R{nums[-1]} ({len(nums)} ruling(s)) — `{doc.name}`")
+    if not in_force:
+        return StateRow("Rulings", f"0 ruling ids parsed from {len(docs)} file(s), newest "
+                        f"`{doc.name}`", "SLOW", locator)
+    if repo_root is None:
+        not_landed = "not computed (no repo root given)"
+    else:
+        try:
+            landed = _landed_ids(repo_root)
+            gone = sorted(in_force - landed)
+            not_landed = _id_runs(gone) if gone else "none"
+        except Exception as exc:                      # noqa: BLE001
+            not_landed = f"not computed ({type(exc).__name__}: the register is unreadable)"
+    value = (f"{_id_runs(in_force)} ({len(in_force)} ruling id(s) in force, from {len(docs)} "
+             f"file(s); newest `{doc.name}`) · not landed: {not_landed}")
     return StateRow("Rulings", value, "SLOW", locator)
+
+
+# --- Plan: the newest non-superseded MASTER plan on the transport -------------------------------
+
+#: A master plan declares itself in its own head: a versioned `kind: PLAN v<n>` line, or
+#: `status: MASTER PLAN`. A companion plan says `kind: PLAN — … It complements …` (no version), so
+#: it is not a master even when it is newer -- on 2026-10-04 `PLAN-HANDOFF-…` (written 14:37)
+#: complements `PLAN-HARNESS-…` v12 (written 13:09), and newest-by-date alone picks the wrong one.
+_MASTER_PLAN_RE = re.compile(r"(?im)^(?:kind:\s*PLAN\s+v\d+\b|status:\s*MASTER\s+PLAN\b)")
+_HEAD_LINES = 12
+
+
+def _is_master_plan(path: Path) -> bool:
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            head = "".join(line for _, line in zip(range(_HEAD_LINES), fh))
+    except OSError:
+        return False
+    return _MASTER_PLAN_RE.search(head) is not None
+
+
+def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
+    """The master plan the next seat reads: the newest non-superseded `to-cc/PLAN-*.md` whose own
+    head declares it a master (`_is_master_plan`). The boot points here instead of hand-typing a
+    path that goes stale the day a newer plan lands."""
+    locator = "to-cc/PLAN-*.md (newest non-superseded master plan)"
+    doc = _newest_transport_doc(transport, "PLAN", as_of=as_of, subdir="to-cc",
+                                accept=_is_master_plan)
+    if doc is None:
+        return StateRow("Plan", "no master plan found on the transport", "SLOW", locator)
+    return StateRow("Plan", f"`to-cc/{doc.name}`", "SLOW", locator)
 
 
 #: The digest's own table heading, e.g. "## Table (at 1f3f318c)" -- any heading level, any
@@ -451,11 +551,17 @@ def row_capabilities(transport: "Path | None", *, as_of: "str | None" = None) ->
 _LANDED_RE = re.compile(r"(?m)^- \*\*R(\d+)\b")
 
 
+def _landed_ids(repo_root: "Path | str") -> "set[int]":
+    """The ruling ids the register bullets -- the one read behind `Landed` and the Rulings row's
+    `not landed:`. Raises when the register is unreadable (each caller degrades its own way)."""
+    path = Path(repo_root) / "protocols" / "STANDING_RULINGS.md"
+    return {int(n) for n in _LANDED_RE.findall(path.read_text(encoding="utf-8"))}
+
+
 def row_landed(repo_root: "Path | str") -> StateRow:
     evidence = "protocols/STANDING_RULINGS.md bullets `- **R<n>`"
-    path = Path(repo_root) / "protocols" / "STANDING_RULINGS.md"
     try:
-        ids = sorted({int(n) for n in _LANDED_RE.findall(path.read_text(encoding="utf-8"))})
+        ids = sorted(_landed_ids(repo_root))
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Landed", evidence, "SLOW", exc)
     value = (f"through R{ids[-1]} ({len(ids)} ruling id(s) bulleted)" if ids
@@ -559,7 +665,7 @@ def row_models(repo_root: "Path | str") -> StateRow:
 #: `verify_handoff_probes.BOOT_DATA_RULES` (equal both ways, the `seat_state.py`-style
 #: coupling test).
 STATE_ROW_KEYS: tuple[str, ...] = (
-    "CI", "Batches", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
+    "CI", "Batches", "Plan", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
     "Landed", "Decisions", "Dates", "Models",
 )
 
@@ -572,10 +678,11 @@ def state_rows(repo_root: "Path | str", transport: "Path | None") -> list[StateR
     return [
         row_ci(repo_root),
         row_batches(repo_root),
+        row_plan(transport),
         row_seats(),
         row_substrates(repo_root),
         row_transport(repo_root),
-        row_rulings(transport),
+        row_rulings(transport, repo_root=repo_root),
         row_capabilities(transport),
         row_landed(repo_root),
         row_decisions(transport, repo_root),

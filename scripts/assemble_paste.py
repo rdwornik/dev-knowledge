@@ -12,7 +12,9 @@ Manifest (in order):
      HANDOFF_PROCESS v6.3.0 / census R1. See _role_pin below.)
   2. <bundle>/RESIDUAL.md       (required — SHED to drift-flags + the OPEN list + a pointer
      to the rest and to the live ledger, see shed_residual)
-  3. <bundle>/PROBES.md         (required — orientation + teeth probes)
+  3. <bundle>/PROBES.md         (required in the bundle — orientation + teeth probes; folded
+     outside architect mode only: an architect seat boots on the ROLE PIN alone (R30), so its
+     paste carries no probe table)
   4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — when its ANSWERS region is
      filled, a POINTER section names it; the answers themselves are pulled JIT, not inlined)
 
@@ -270,7 +272,10 @@ def supplement_pointer(supplement_ref: str) -> str:
 # That is why the third line is not decoration — without it, residency degrades silently
 # when the resident copy drifts, and a silent mismatch is strictly worse than a heavy
 # paste. A pin without teeth would be a size optimisation bought with a correctness hole.
-_ROLE_REFUSAL = ("If your project instructions do not carry this contract at this "
+#
+# B2-W1 W1-9 item 5: the live Project holds the role as its ONE knowledge file (OPERATOR-INTERFACE
+# §5/§6), so the refusal names that file, not the project instructions.
+_ROLE_REFUSAL = ("If the HANDOFF_BOOT.md in your project knowledge is not at this "
                  "version+sha, say so before answering.")
 
 
@@ -642,10 +647,13 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
                      _role_pin(role_path, _spec_version(repo_root))))
     click.echo(f"[pin] role file NOT inlined: {boot_bytes} bytes replaced by a 3-line pin "
                "(v6.3.0 residency; install protocols/HANDOFF_BOOT.md as the browser project's "
-               "instructions once — protocols/OPERATOR-INTERFACE.md)", err=True)
+               "knowledge file once — protocols/OPERATOR-INTERFACE.md)", err=True)
 
-    # 2-3. Required sources. PROBES.md is inlined verbatim (the file-less browser must RECEIVE
-    #      its rows); RESIDUAL.md is SHED — drift-flags + the OPEN list + a pointer (LANE-5A-9).
+    # 2-3. Required sources. PROBES.md must EXIST in every bundle (CC's probe gate reads it,
+    #      HANDOFF_PROCESS §5) and is inlined verbatim outside architect mode (the file-less
+    #      browser must RECEIVE its rows). In architect mode the seat boots on the ROLE PIN alone
+    #      (R30): it runs no probe, so the paste carries no probe table (B2-W1 W1-9 item 6).
+    #      RESIDUAL.md is SHED — drift-flags + the OPEN list + a pointer (LANE-5A-9).
     required: list[tuple[str, Path]] = [
         ("RESIDUAL.md", bundle_dir / "RESIDUAL.md"),
         ("PROBES.md", bundle_dir / "PROBES.md"),
@@ -654,6 +662,11 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
         if not path.exists():
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
+        if label == "PROBES.md" and mode == "architect":
+            click.echo("[skip] PROBES.md not folded in architect mode — the seat boots on the "
+                       "ROLE PIN alone (R30); CC's probe gate still reads the bundle's file",
+                       err=True)
+            continue
         text = path.read_text(encoding="utf-8")
         if label == "RESIDUAL.md":
             text = shed_residual(text, open_list(bundle_dir, repo_root, text),

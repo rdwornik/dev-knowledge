@@ -130,11 +130,42 @@ def _fixture_transport(tmp_path: Path, today: str) -> Path:
     return t
 
 
-@pytest.fixture(scope="module")
-def trial_cut(tmp_path_factory):
-    """ONE fresh trial cut of this branch; yields (boot text, BOOT-DATA rows dict)."""
+#: The hand-authored FILL-IN regions a WARM bundle carries (B2-W1 W1-9 item 8): the boot's Purpose
+#: and the three Destination prose fields, and the residual's drift-flags (+ its two other
+#: regions, so the completeness gate has nothing left to refuse).
+_WARM_FILLS = {
+    "HANDOFF_BOOT.md": {
+        "purpose": "Warm fixture: prove the onboarding predicate on a filled bundle.",
+        "dest-worktree": "none (primary tree)",
+        "dest-scope": "a dry cut under the test tmp dir only",
+        "dest-mode-basis": "a planning session, so architect mode (ADR-87 item 5)",
+    },
+    "RESIDUAL.md": {
+        "driftflags": "None of the NEW organs is a decision; all are defects to dispose.",
+        "shipped": "#1 fixture row, ADR-1.",
+        "frontier": "Whether the warm predicate also gates the paste.",
+    },
+}
+
+
+def _fill_regions(bundle_dir: Path) -> None:
+    """Write real text into each FILL-IN region, in place (what CC and the seat do by hand)."""
+    for fname, fills in _WARM_FILLS.items():
+        path = bundle_dir / fname
+        text = path.read_text(encoding="utf-8")
+
+        def _repl(m: "re.Match", fills=fills) -> str:
+            body = fills.get(m.group("name"))
+            return m.group(0) if body is None else m.group("open") + body + m.group("close")
+        path.write_text(gh.FILL_IN_RE.sub(_repl, text), encoding="utf-8", newline="\n")
+
+
+def _cut_architect_bundle(tmp_path_factory, name: str, *, warm: bool):
+    """ONE fresh architect dry cut of this branch (a generator: the monkeypatches live for the
+    caller's whole use); yields the bundle dir. `warm=True` fills every FILL-IN region and
+    re-cuts, so the splice (RF-6) carries the fills through the re-render."""
     mp = pytest.MonkeyPatch()
-    tmp_path = tmp_path_factory.mktemp("onboarding")
+    tmp_path = tmp_path_factory.mktemp(name)
     today = date.today().isoformat()
     mp.setenv("CLAUDE_PROMPTS_DIR", str(_fixture_transport(tmp_path, today)))
     mp.setattr(gh, "_linked_worktrees", lambda repo_root: [])
@@ -143,16 +174,42 @@ def trial_cut(tmp_path_factory):
                lambda names, **kw: [dd.Resolution(n, True, "fixture: resolved") for n in names])
     memory = tmp_path / "MEMORY.md"
     memory.write_text("# memory fixture\n", encoding="utf-8")
-    try:
-        result = gh.generate(
+
+    def _cut():
+        return gh.generate(
             gh._REPO_ROOT, mode="architect", slug="onboarding-trial", repo=".dev-knowledge",
             date=today, bundle_root=tmp_path / "dry-cut-out", assemble=True, dry_cut=True,
             memory_path=memory, sessions_root=tmp_path / "no-sessions-store")
-        text = (result.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
-        rows, _prose = vhp.parse_boot_blocks(text)
-        yield _BOOT.read_text(encoding="utf-8"), dict(rows or [])
+    try:
+        result = _cut()
+        if warm:
+            _fill_regions(result.bundle_dir)
+            result = _cut()
+        yield result.bundle_dir
     finally:
         mp.undo()
+
+
+def _boot_and_rows(bundle_dir: Path):
+    text = (bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    rows, _prose = vhp.parse_boot_blocks(text)
+    return _BOOT.read_text(encoding="utf-8"), dict(rows or [])
+
+
+@pytest.fixture(scope="module")
+def cold_bundle(tmp_path_factory):
+    yield from _cut_architect_bundle(tmp_path_factory, "onboarding-cold", warm=False)
+
+
+@pytest.fixture(scope="module")
+def warm_bundle(tmp_path_factory):
+    yield from _cut_architect_bundle(tmp_path_factory, "onboarding-warm", warm=True)
+
+
+@pytest.fixture(scope="module")
+def trial_cut(cold_bundle):
+    """ONE fresh trial cut of this branch; yields (boot text, BOOT-DATA rows dict)."""
+    return _boot_and_rows(cold_bundle)
 
 
 def test_a_fresh_seat_finds_all_13_onboarding_items(trial_cut):
@@ -161,6 +218,35 @@ def test_a_fresh_seat_finds_all_13_onboarding_items(trial_cut):
     n = sum(1 for ok, _ in found.values() if ok)
     print("\n" + report(found))                       # shown with -s and in the failure report
     assert n == len(ITEMS), report(found)
+
+
+# --- item 8: the same predicate on a WARM bundle (Purpose, Destination, drift-flags filled) ------
+# RED-first: this test is new at e67f27ac, where no test cut a warm bundle at all (the one cut
+# was cold, so a bundle whose fills had gone through the RF-6 splice was never judged).
+
+def test_a_warm_bundle_is_filled_and_the_seat_still_finds_all_13_items(warm_bundle, cold_bundle):
+    import validate_residual_completeness as vrc
+    assert vrc.scan_bundle_dir(cold_bundle), "the cold cut must still carry unfilled regions"
+    assert vrc.scan_bundle_dir(warm_bundle) == [], vrc.scan_bundle_dir(warm_bundle)
+    boot_file = (warm_bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    residual = (warm_bundle / "RESIDUAL.md").read_text(encoding="utf-8")
+    assert _WARM_FILLS["HANDOFF_BOOT.md"]["purpose"] in boot_file          # the splice kept the fills
+    assert _WARM_FILLS["RESIDUAL.md"]["driftflags"] in residual
+    boot, rows = _boot_and_rows(warm_bundle)
+    found = evaluate(boot, rows)
+    assert all(ok for ok, _ in found.values()), report(found)
+    assert {"Plan", "Rulings", "Landed"} <= set(rows)                       # the rows survive a warm cut
+
+
+# --- item 6: no probe table in an architect-mode paste -----------------------------------------
+
+def test_an_architect_paste_carries_no_probe_table_and_the_bundle_keeps_its_file(cold_bundle):
+    paste = (cold_bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "=== PROBES.md ===" not in paste
+    assert vhp.parse_probes(paste) == [], "the paste still carries probe rows"
+    # the cut's own probe gate (HANDOFF_PROCESS §5) is CC's and still reads the bundle's file
+    assert vhp.parse_probes((cold_bundle / "PROBES.md").read_text(encoding="utf-8"))
+    print(f"\nPASTE {len(paste.encode('utf-8'))} bytes; last line: {paste.rstrip().splitlines()[-1]}")
 
 
 # --- the predicates are not vacuous (every leg, no cut) --------------------------------------
@@ -210,3 +296,182 @@ def test_removing_the_evidence_for_an_item_fails_that_item(item, mutate):
     boot, rows = mutate(_FULL_BOOT, dict(_FULL_ROWS))
     found = evaluate(boot, rows)
     assert not found[item][0], f"item {item} still passes with its evidence removed"
+
+
+# =============================================================================================
+# B2-W1 lane W1-9 (b2-handoff-hardening) -- the boot's own defects, found by the boot test. Every
+# test below was written RED at e67f27ac (the base this lane merged at step 0): each failed there
+# on the text/plumbing it names (no `boot_version`, a first move in three places, a hand-typed
+# plan path, §5 and §6 naming different install targets, no fill-in author statement).
+# =============================================================================================
+
+import hashlib  # noqa: E402
+
+import assemble_paste as ap  # noqa: E402
+
+_TMPL_DIR = _REPO / "templates" / "handoff" / "v5"
+_OI = _REPO / "protocols" / "OPERATOR-INTERFACE.md"
+_HP = _REPO / "protocols" / "HANDOFF_PROCESS.md"
+
+
+def _plain(text: str) -> str:
+    """Markdown emphasis and code ticks removed, whitespace collapsed -- a phrase fence must not
+    break on a `**bold**` span (the structural-fence gotcha)."""
+    text = re.sub(r"(?m)^\s*>[ \t]?", "", text)                  # blockquote markers
+    return re.sub(r"\s+", " ", text.replace("*", "").replace("`", "")).strip()
+
+
+# --- item 3: one first move, in core item 3 -------------------------------------------------
+
+_FIRST_MOVE = ("booted as the layer-1 browser under handoff_process",
+               "the role pin is the whole onboarding check",
+               "read cc's handoff and nothing else until it arrives")
+
+
+def _core_item_3(boot: str) -> str:
+    m = re.search(r"(?ms)^3\. \*\*First move\.\*\*.*?(?=^\d+\. \*\*|^## )", boot)
+    assert m is not None, "core item 3 (First move) not found"
+    return m.group(0)
+
+
+def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
+    boot = _BOOT.read_text(encoding="utf-8")
+    item3 = _core_item_3(boot)
+    rest = boot.replace(item3, "")
+    for phrase in _FIRST_MOVE:
+        assert _plain(item3).lower().count(phrase) == 1, f"core item 3 lacks: {phrase}"
+        assert _plain(rest).lower().count(phrase) == 0, f"a second copy of: {phrase}"
+    for tmpl in sorted(_TMPL_DIR.glob("*.tmpl")):
+        text = _plain(tmpl.read_text(encoding="utf-8")).lower()
+        for phrase in _FIRST_MOVE:
+            assert phrase not in text, f"{tmpl.name} carries a second copy of: {phrase}"
+
+
+# --- item 2: a version that moves, and a first line that shows which boot the seat holds ------
+
+#: version -> sha256 of the boot BODY (everything after the front matter, LF-normalised). The pair
+#: lives HERE, outside the file, because a file cannot carry its own hash: bump `boot_version` in
+#: the front matter AND add the new pair when the body changes. Old pairs stay (the history).
+_BOOT_BODY_SHA256 = {1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb"}
+
+
+def _split_boot(text: str) -> "tuple[str, str]":
+    m = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n(.*)\Z", text, re.DOTALL)
+    assert m is not None, "HANDOFF_BOOT.md has no front matter"
+    return m.group(1), m.group(2)
+
+
+def _boot_version_problem(text: str) -> "str | None":
+    """None when the version line and the body agree; else why not. The front matter (the version
+    line, `last_reviewed`, `reconciled_with`) is metadata and outside the hash, so a re-stamp is
+    not a content change while any edit to the body is."""
+    front, body = _split_boot(text)
+    m = re.search(r"(?m)^boot_version:\s*(\d+)\s*$", front)
+    if m is None:
+        return "no boot_version line in the front matter"
+    version = int(m.group(1))
+    want = _BOOT_BODY_SHA256.get(version)
+    if want is None:
+        return f"boot_version {version} has no recorded body hash -- record the pair"
+    got = hashlib.sha256(body.replace("\r\n", "\n").encode("utf-8")).hexdigest()
+    if got != want:
+        return (f"the body changed (sha256 {got[:12]}) but boot_version is still {version} "
+                f"(recorded {want[:12]}) -- bump the version and record the new pair")
+    return None
+
+
+def test_the_boot_version_matches_its_recorded_body_hash():
+    assert _boot_version_problem(_BOOT.read_text(encoding="utf-8")) is None
+
+
+def test_a_content_change_with_the_version_kept_is_caught():
+    text = _BOOT.read_text(encoding="utf-8")
+    front, body = _split_boot(text)
+    assert _boot_version_problem(f"---\n{front}\n---\n{body}\nA new rule.\n") is not None
+    assert _boot_version_problem(f"---\n{front}\n---\n{body.replace('You are', 'You were', 1)}") is not None
+    restamped = re.sub(r"(?m)^last_reviewed: .*$", "last_reviewed: 2099-01-01", front)
+    assert _boot_version_problem(f"---\n{restamped}\n---\n{body}") is None      # a re-stamp is not content
+    bumped = re.sub(r"(?m)^boot_version: \d+$", "boot_version: 99", front)
+    assert "no recorded body hash" in _boot_version_problem(f"---\n{bumped}\n---\n{body}")
+
+
+def test_the_on_load_line_carries_the_boot_version_and_the_pin_sha8():
+    boot = _BOOT.read_text(encoding="utf-8")
+    m = re.search(r"(?m)^\s*`(Booted as [^`\n]+)`\s*$", boot)
+    assert m is not None, "the on-load line is not on one line of its own"
+    line = m.group(1)
+    assert line == ("Booted as the Layer-1 browser under HANDOFF_PROCESS v7, boot v{boot_version} "
+                    "@ {sha8}. Ready for CC's handoff. ({n} sections received.)")
+    # the placeholders are fed by what the paste and the file really carry
+    pin = ap._role_pin(_BOOT, "7.1.0")
+    sha8 = pin.splitlines()[1].split(": ", 1)[1][:8]
+    assert sha8 == hashlib.sha256(_BOOT.read_bytes()).hexdigest()[:8]
+    front, _body = _split_boot(boot)
+    version = re.search(r"(?m)^boot_version:\s*(\d+)", front).group(1)
+    shown = line.replace("{boot_version}", version).replace("{sha8}", sha8).replace("{n}", "5")
+    assert f"boot v{version} @ {sha8}." in shown
+    # ...and the item says where each comes from
+    item3 = _plain(_core_item_3(boot))
+    assert "boot_version" in item3 and "sha256: line of the paste's ROLE PIN" in item3
+    assert "END OF PASTE" in item3
+
+
+def test_the_boot_stays_within_its_byte_budget():
+    assert len(_BOOT.read_bytes()) <= ap.HANDOFF_BOOT_BYTE_BUDGET
+
+
+# --- item 1: no hand-typed plan path; the Plan row is where the boot points ------------------
+
+def test_the_boot_types_no_plan_path_and_points_at_the_plan_row():
+    boot = _BOOT.read_text(encoding="utf-8")
+    assert re.findall(r"PLAN-[A-Za-z0-9._*-]+", boot) == []
+    assert "to-cc/PLAN" not in boot
+    assert boot.count("`Plan` row") >= 2          # the where-things-live bullet and the freeze bullet
+
+
+# --- item 5: one install mode, the live Project's --------------------------------------------
+
+def _oi_section(n: int) -> str:
+    text = _OI.read_text(encoding="utf-8")
+    m = re.search(rf"(?ms)^## {n}\. .*?(?=^## \d+\. |\Z)", text)
+    assert m is not None, f"OPERATOR-INTERFACE section {n} not found"
+    return m.group(0)
+
+
+def test_operator_interface_names_one_install_mode_in_5_and_6():
+    s5, s6 = _plain(_oi_section(5)).lower(), _plain(_oi_section(6)).lower()
+    assert "project knowledge holds exactly one file" in s6              # the live Project (§6, LIVE)
+    assert re.search(r"install protocols/handoff_boot\.md as the project's one knowledge file", s5), s5[:600]
+    assert "one-line pointer in the project instructions" in s5
+    assert not re.search(r"install[^.]{0,160}(as|into) the (browser )?project's own project instructions", s5)
+    assert "project knowledge holds exactly one file" in s5               # §5 quotes §6, not a second mode
+    assert "re-install the current protocols/handoff_boot.md as the project's knowledge file" in s5
+
+
+def test_the_role_pin_refusal_and_the_boot_say_the_same_install_mode():
+    refusal = ap._ROLE_REFUSAL
+    assert "project knowledge" in refusal and "instructions" not in refusal
+    assert _plain(refusal) in _plain(_oi_section(5))                      # §5 quotes the refusal verbatim
+    assert "your project knowledge" in _plain(_core_item_3(_BOOT.read_text(encoding="utf-8")))
+
+
+# --- item 7: who fills the residual's fill-ins -- derived, quoted, and honest about silence -------
+
+_HOME_QUOTES = ("CC's handoff is only the residual", "plus CC's state read")
+
+
+def test_the_boot_and_the_templates_state_who_fills_the_fill_ins_and_quote_their_home():
+    hp = _plain(_HP.read_text(encoding="utf-8"))
+    for quote in _HOME_QUOTES:
+        assert quote in hp, f"the quoted home text is not in HANDOFF_PROCESS.md: {quote}"
+    boot = _plain(_BOOT.read_text(encoding="utf-8"))
+    assert "Who wrote the fill-ins. Drift-flags: CC" in boot
+    assert all(q in boot for q in _HOME_QUOTES)
+    # Purpose and Destination: the homes name no actor, so the boot says so and picks none
+    assert "Purpose and the Destination prose: no home names the author" in boot
+    assert "authored before the bundle is committed" in hp and "The three prose fields are FILL-IN regions" in hp
+    for name in ("HANDOFF_BOOT.md.tmpl", "RESIDUAL.md.tmpl"):
+        tmpl = _plain((_TMPL_DIR / name).read_text(encoding="utf-8"))
+        assert "FILL-IN AUTHORS" in tmpl, name
+        assert all(q in tmpl for q in _HOME_QUOTES), name
+    assert "NO HOME NAMES THE AUTHOR" in _plain((_TMPL_DIR / "HANDOFF_BOOT.md.tmpl").read_text(encoding="utf-8"))
