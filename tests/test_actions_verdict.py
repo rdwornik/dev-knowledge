@@ -496,7 +496,9 @@ def test_G4_the_same_failures_with_the_same_signatures_are_PRE_EXISTING_and_COMP
     assert verdict.ok is False, "PRE-EXISTING is never a pass"
 
 
-def test_G4_a_known_id_failing_with_a_CHANGED_signature_is_REGRESSED():
+def test_G4_a_known_id_failing_with_a_CHANGED_signature_is_FLAGGED_not_refused():
+    """Red on both sides, failing differently now. b2-merge-gate (R64): FLAGGED by name -- it was
+    REGRESSED at foundation-4, which made the gate refuse a clean merge on a red main."""
     fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
                  "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
     logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "KeyError: 'x'"}),
@@ -505,13 +507,16 @@ def test_G4_a_known_id_failing_with_a_CHANGED_signature_is_REGRESSED():
     verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
                              registry_loader=_registry_loader(_registry(_KNOWN)))
 
-    assert verdict.state == av.STATE_REGRESSED
+    assert verdict.state == av.STATE_PRE_EXISTING
     assert any(_KNOWN in t for t in verdict.signature_changed)
+    assert any(kr.BUCKET_SIGNATURE_CHANGED in f and _KNOWN in f for f in verdict.flagged)
+    assert verdict.new_tests == ()
 
 
-def test_G4_a_base_failure_ABSENT_from_the_registry_is_not_a_silent_baseline():
+def test_G4_a_base_failure_ABSENT_from_the_registry_is_flagged_never_a_silent_baseline():
     """Red on both sides but nobody registered it: a regression that reached main must not become
-    the baseline just because it is red there (D5(b))."""
+    the baseline just because it is red there (D5(b)) -- it is NAMED in the verdict and owes a
+    registry entry or a row, but it does not refuse a merge that did not introduce it (R64)."""
     fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
                  "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
     both = _gh_log(_LEG_U, {_NEW: "KeyError"})
@@ -520,8 +525,10 @@ def test_G4_a_base_failure_ABSENT_from_the_registry_is_not_a_silent_baseline():
     verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
                              registry_loader=_registry_loader(_registry(_KNOWN)))
 
-    assert verdict.state == av.STATE_REGRESSED
-    assert any(_NEW in t for t in verdict.new_tests)
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.new_tests == ()
+    assert any(_NEW in f and kr.BUCKET_UNREGISTERED in f for f in verdict.flagged)
+    assert verdict.ok is False, "flagged is landable, never green"
 
 
 def test_G4_each_OS_leg_is_compared_against_ITS_OWN_base_leg():
@@ -791,3 +798,154 @@ def test_repair2_the_truncated_shape_alone_is_still_read_as_no_node_id_so_the_fi
                              registry_loader=_registry_loader(_registry(_KNOWN)))
 
     assert verdict.state != av.STATE_PRE_EXISTING and verdict.state != av.STATE_PASS
+
+
+# =====================================================================================
+# b2-merge-gate (R64; architect seat rulings of 2026-10-04): the gate REFUSES only what a merge
+# introduces -- a test red on the merge and green on the base -- and every non-pass state of a
+# required check. A red on BOTH sides is FLAGGED into the verdict (and so the receipt) by bucket.
+# RED-first: at `2dd2067d` every case in the first block below read REGRESSED, and the
+# `required_contexts` block had no state of its own for `skipped` / `timed_out`.
+# =====================================================================================
+
+def test_b2_only_red_on_both_sides_reads_PRE_EXISTING_and_prints_its_flagged_buckets():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", _LEG_W: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure", _LEG_W: "failure"})})
+    both = _gh_log(_LEG_U, {_KNOWN: "AssertionError: k", _NEW: "KeyError"})
+    both_w = _gh_log(_LEG_W, {_KNOWN: "AssertionError: k", _NEW: "KeyError"})
+    logs = _logs({("tip", _LEG_U): both, ("base", _LEG_U): both,
+                  ("tip", _LEG_W): both_w, ("base", _LEG_W): both_w})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_PRE_EXISTING, verdict.render()
+    assert verdict.new_tests == () and verdict.ok is False
+    assert len(verdict.flagged) == 2, "one flagged line per leg"
+    text = verdict.render()
+    assert "FLAGGED" in text and f"[{kr.BUCKET_UNREGISTERED}]" in text and _NEW in text
+    assert kr.UNREGISTERED_OWES in text
+    assert verdict.to_dict()["flagged"] == list(verdict.flagged)
+
+
+def test_b2_a_NEW_red_still_refuses_and_only_the_new_one_is_named_as_new():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    unreg = "tests/other.py::t_unregistered"
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k", unreg: "E",
+                                                    _NEW: "KeyError"}),
+                  ("base", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k", unreg: "E"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert [t for t in verdict.new_tests] == [f"{_LEG_U}: {_NEW}"]
+    assert any(unreg in f for f in verdict.flagged)
+
+
+def test_b2_the_registered_flaky_sibling_swap_is_flagged_on_its_own_leg():
+    """Windows base failed flaky test A; the tip fails flaky test B of the same file instead."""
+    flaky_a = "tests/test_graph_spine.py::test_an_expired_lock_is_broken"
+    flaky_b = "tests/test_graph_spine.py::test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock"
+    registry = _registry(_KNOWN, by_os={"windows-latest": {
+        n: {"attribution": kr.FLAKY} for n in (flaky_a, flaky_b)}})
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_W: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_W: "failure"})})
+    logs = _logs({("tip", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k", flaky_b: "E"}),
+                  ("base", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k", flaky_a: "E"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(registry))
+
+    assert verdict.state == av.STATE_PRE_EXISTING, verdict.render()
+    assert any(kr.BUCKET_FLAKY_SWAP in f and flaky_b in f for f in verdict.flagged)
+    assert verdict.new_tests == ()
+
+
+def test_b2_a_per_merge_value_in_a_signature_is_not_a_changed_signature():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    logs = _logs({
+        ("tip", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: assert {'2026-10-04-...erge-gate.md'} == set()"}),
+        ("base", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: assert {'2026-10-04-...-approved.md'} == set()"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.signature_changed == () and verdict.flagged == ()
+
+
+# --- every non-pass state of a REQUIRED check is its own refusing state ----------------------
+
+def _six(**over):
+    jobs = {c: "success" for c in av.REQUIRED_CONTEXTS}
+    jobs.update(over)
+    return jobs
+
+
+@pytest.mark.parametrize("conclusion,state", [
+    ("skipped", av.STATE_SKIPPED), ("timed_out", av.STATE_TIMED_OUT),
+    ("cancelled", av.STATE_CANCELLED), (None, av.STATE_IN_PROGRESS)])
+def test_b2_each_non_pass_required_context_is_its_OWN_refusing_state(conclusion, state):
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", _six(**{"ruff": conclusion}))})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             required_contexts=av.REQUIRED_CONTEXTS)
+
+    assert verdict.state == state and verdict.ok is False
+    assert verdict.non_pass == (f"ruff: {conclusion or 'in-progress'}",)
+    assert av.REMEDIES[state]
+    assert "ruff" in verdict.render()
+
+
+def test_b2_a_required_context_that_never_ran_is_NO_RUN_and_names_the_context():
+    jobs = _six()
+    del jobs["spine"]
+    fetch = _gh({"tip": _run_with_logs("tip", "success", jobs)})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             required_contexts=av.REQUIRED_CONTEXTS)
+
+    assert verdict.state == av.STATE_NO_RUN and verdict.ok is False
+    assert verdict.non_pass == ("spine: not-run",)
+
+
+def test_b2_the_non_pass_states_are_distinct_from_each_other_and_from_a_pass():
+    states = {av.STATE_SKIPPED, av.STATE_TIMED_OUT, av.STATE_CANCELLED, av.STATE_IN_PROGRESS,
+              av.STATE_NO_RUN}
+    assert len(states) == 5 and av.STATE_PASS not in states
+
+
+def test_b2_a_required_context_timed_out_on_BOTH_sides_is_not_laundered_into_PRE_EXISTING():
+    """The job-level differential read a non-pytest job that failed at both ends as PRE-EXISTING;
+    `timed_out` is not a failure of a test, it is a check that did not finish."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", _six(ruff="timed_out")),
+                 "base": _run_with_logs("base", "failure", _six(ruff="timed_out"))})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             required_contexts=av.REQUIRED_CONTEXTS)
+
+    assert verdict.state == av.STATE_TIMED_OUT
+
+
+def test_b2_a_required_context_that_FAILED_is_judged_by_the_differential_not_refused_here():
+    """`failure` is the one non-success a required context may show and still be landable: it is
+    judged test by test (pytest legs) or job by job (the rest) against the base."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", _six(ruff="failure")),
+                 "base": _run_with_logs("base", "failure", _six(ruff="failure"))})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             required_contexts=av.REQUIRED_CONTEXTS)
+
+    assert verdict.state == av.STATE_PRE_EXISTING and verdict.non_pass == ()
+
+
+def test_b2_a_run_that_TIMED_OUT_at_the_run_level_is_its_own_state():
+    fetch = _gh({"tip": _run_with_logs("tip", "timed_out", _six())})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             required_contexts=av.REQUIRED_CONTEXTS)
+
+    assert verdict.state == av.STATE_TIMED_OUT and verdict.ok is False

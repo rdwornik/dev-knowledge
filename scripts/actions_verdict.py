@@ -124,6 +124,14 @@ STATE_JOBS_UNREADABLE = "JOBS-UNREADABLE"
 #: jobs may read success/skipped; it is still not a verdict on the sha. Its own state because the
 #: next action (wait for the newer run, or re-run) is not "investigate a failure" (G7).
 STATE_CANCELLED = "CANCELLED"
+#: b2-merge-gate (R64; architect seat ruling 3 of 2026-10-04): a required check that TIMED OUT, and
+#: one that was SKIPPED. Each is a non-pass state of a required check -- a check that did not
+#: finish, or did not run, is not a check that passed -- so each refuses, and each is its OWN state
+#: because its next action differs (re-run vs find why the job's `if:` cut it). Before this lane a
+#: `skipped` job was read as a pass by the job map below and a `timed_out` non-pytest job that was
+#: also `timed_out` at the base read PRE-EXISTING (landable).
+STATE_TIMED_OUT = "TIMED-OUT"
+STATE_SKIPPED = "SKIPPED"
 
 #: Every not-green state names its next action. A verdict that names no way forward gets worked
 #: around rather than acted on -- `SeatRefusal`'s rule, one organ over.
@@ -154,6 +162,12 @@ REMEDIES: dict[str, str] = {
     STATE_CANCELLED: ("the run was CANCELLED, so it says nothing about this sha. A newer push "
                       "to the same ref cancels an older run (`cancel-in-progress`): read the "
                       "newer run, or re-run this one. Never land on it"),
+    STATE_TIMED_OUT: ("a required check TIMED OUT, so it never reached a verdict. Re-run the "
+                      "job (a timeout is not a failure of a test and not a pass); if it times "
+                      "out again the check is too slow for its limit -- file that, do not land"),
+    STATE_SKIPPED: ("a required check was SKIPPED -- its job's `if:` cut it, so nothing ran "
+                    "where the ruleset expects a `success`. Find why it was skipped; a skipped "
+                    "required check is not a pass and the ruleset would not count it either"),
 }
 
 
@@ -184,6 +198,13 @@ class Verdict:
     reason: str = ""
     #: The registry the test-level read used (its baseline id), when it read one.
     registry_baseline_id: Optional[str] = None
+    #: b2-merge-gate: what is red on BOTH sides and so is FLAGGED, not refused. Each entry reads
+    #: `"<leg>: [<bucket>] <node id> -- <note>"` (`known_reds.FLAG_BUCKETS`); the receipt records
+    #: them and the integrator carries an unregistered one as `ROWS-OWED`.
+    flagged: tuple[str, ...] = ()
+    #: Required checks that were not `success`, `failure` or absent-by-design: each entry reads
+    #: `"<context>: <skipped|timed_out|cancelled|in-progress|not-run|...>"`. Any entry refuses.
+    non_pass: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -207,9 +228,10 @@ class Verdict:
             lines.append(f"  {mark} {name}: {conclusion}")
         if self.newly_failing:
             lines.append(f"  BROKEN BY THIS MERGE: {', '.join(self.newly_failing)}")
-        for label, items in (("NEW RED TEST", self.new_tests),
-                             ("CHANGED-SIGNATURE TEST", self.signature_changed),
-                             ("NON-TEST FAILURE", self.non_test)):
+        for label, items in (("NON-PASS REQUIRED CHECK (refuses)", self.non_pass),
+                             ("NEW RED TEST (refuses)", self.new_tests),
+                             ("NON-TEST FAILURE (refuses)", self.non_test),
+                             ("FLAGGED (red on both sides, NOT a refusal)", self.flagged)):
             for item in items:
                 lines.append(f"  {label}: {item}")
         if self.reason:
@@ -240,6 +262,7 @@ class Verdict:
                 "signature_changed": list(self.signature_changed),
                 "non_test": list(self.non_test), "reason": self.reason,
                 "registry_baseline_id": self.registry_baseline_id,
+                "flagged": list(self.flagged), "non_pass": list(self.non_pass),
                 "covers_index_regeneration": self.covers_index_regeneration}
 
 
@@ -303,6 +326,46 @@ def _jobs_were_read(run: dict) -> bool:
 
 def _job_map(run: dict) -> dict[str, Optional[str]]:
     return {j["name"]: j.get("conclusion") for j in run.get("jobs", []) or []}
+
+
+#: b2-merge-gate (R64 section 1; architect seat ruling 3 of 2026-10-04): the non-pass label each
+#: refusing conclusion carries, and the state it reads as. `failure` is NOT here: it is the one
+#: non-success a required check may show and still be judged -- test by test for a pytest leg,
+#: job by job for the rest -- against the base. Everything else that is not `success` refuses.
+_NON_PASS_STATE = {"cancelled": STATE_CANCELLED, "timed_out": STATE_TIMED_OUT,
+                   "in-progress": STATE_IN_PROGRESS, "skipped": STATE_SKIPPED,
+                   "not-run": STATE_NO_RUN, "startup_failure": STATE_NO_RUN}
+#: When several required checks are non-pass at once, the run reads as the first of these, and
+#: every one is still listed in `Verdict.non_pass`.
+_NON_PASS_PRIORITY = (STATE_CANCELLED, STATE_TIMED_OUT, STATE_IN_PROGRESS, STATE_SKIPPED,
+                      STATE_NO_RUN, STATE_UNATTRIBUTED)
+
+
+def non_pass_contexts(jobs: dict, required: tuple) -> dict:
+    """`{context: label}` for every REQUIRED context that is not `success` and not `failure`:
+    `skipped`, `timed_out`, `cancelled`, `in-progress` (no conclusion yet) or `not-run` (absent
+    from the run), plus any other conclusion GitHub reports (`startup_failure`,
+    `action_required`, `neutral`, `stale`), which are refusals too. `jobs` is `{name: conclusion}`.
+
+    A required check that did not finish, or did not run, is not a check that passed -- the
+    ruleset would not count it, so neither does this verdict (R64 section 1 bullet 2)."""
+    out: dict = {}
+    for context in required:
+        if context not in jobs:
+            out[context] = "not-run"
+            continue
+        conclusion = jobs[context]
+        if conclusion in ("success", "failure"):
+            continue
+        out[context] = "in-progress" if conclusion is None else str(conclusion)
+    return out
+
+
+def state_for_non_pass(non_pass: dict) -> str:
+    """The ONE state a set of non-pass required checks reads as (see `_NON_PASS_PRIORITY`). A
+    conclusion this module has no name for reads UNATTRIBUTED -- refusing, never a pass."""
+    states = {_NON_PASS_STATE.get(label, STATE_UNATTRIBUTED) for label in non_pass.values()}
+    return next(s for s in _NON_PASS_PRIORITY if s in states)
 
 
 def is_pytest_job(name: str) -> bool:
@@ -409,7 +472,8 @@ def _judge_pytest_legs(failing_legs: list, tip_run: dict, base_run: dict, *, reg
         from scripts import known_reds as _kr
     except ImportError:                                           # pragma: no cover -- shim
         import known_reds as _kr
-    found = {"new_tests": [], "signature_changed": [], "non_test": [], "unattributed": []}
+    found = {"new_tests": [], "signature_changed": [], "non_test": [], "unattributed": [],
+             "flagged": []}
     base_jobs = {j.get("name"): j for j in base_run.get("jobs") or []}
     for job in failing_legs:
         leg, conclusion = job["name"], job.get("conclusion")
@@ -442,9 +506,14 @@ def _judge_pytest_legs(failing_legs: list, tip_run: dict, base_run: dict, *, reg
             tip["ids"], base_failed, registry, workers=registry.workers,
             os_key=_leg_os_key(leg), tip_signatures=tip["signatures"],
             base_signatures=base_sigs)
-        found["new_tests"] += [f"{leg}: {n}" for n in (result["new"] + result["base_unregistered"]
-                                                       + result["registry_regressions"])]
+        # b2-merge-gate (R64): ONLY a test red on the merge and green on the base refuses. What is
+        # red on both sides (unregistered, stale registry signature, changed signature, a
+        # registered-flaky sibling swap) is FLAGGED with its bucket, and `signature_changed`
+        # stays as the information it always was.
+        found["new_tests"] += [f"{leg}: {n}" for n in result["new"]]
         found["signature_changed"] += [f"{leg}: {n}" for n in result["signature_changed"]]
+        found["flagged"] += [f"{leg}: [{f['bucket']}] {f['id']} -- {f['note']}"
+                             for f in result["flagged"]]
     return {k: tuple(v) for k, v in found.items()}
 
 
@@ -452,13 +521,21 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                 fetch: Optional[Callable[..., Optional[dict]]] = None,
                 repo_root: Optional[Path] = None,
                 fetch_logs: Optional[Callable] = None,
-                registry_loader: Optional[Callable] = None) -> Verdict:
+                registry_loader: Optional[Callable] = None,
+                required_contexts: tuple = ()) -> Verdict:
     """Read the Actions result for `sha`, attributed against `baseline` when one is given.
 
     foundation-4-merge-gate: a failing PYTEST leg is judged at test level (node id, per OS leg,
     signature, registry at the baseline sha), every other job at job level. A cancelled run is
     CANCELLED, an in-progress one IN-PROGRESS, and a `success` run that never showed a pytest leg
     is not a PASS -- none of those is ever `ok`.
+
+    b2-merge-gate (R64): the gate REFUSES only (1) a test red on the merge and green on the base
+    and (2) a non-pass state of a REQUIRED check -- `required_contexts`, when given, makes every
+    context that is not `success` or `failure` refuse as its own state (`skipped` SKIPPED,
+    `timed_out` TIMED-OUT, `cancelled` CANCELLED, no conclusion IN-PROGRESS, absent NO-RUN).
+    A red present on both sides is FLAGGED (`Verdict.flagged`) and the state is PRE-EXISTING.
+    `required_contexts=()` (the default) keeps the pre-b2 reading for a caller with no ruleset.
     """
     fetch = fetch or fetch_run
     fetch_logs = fetch_logs or _default_fetch_logs
@@ -476,6 +553,12 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                        title=run.get("displayTitle", ""), baseline=baseline,
                        jobs=_job_map(run) if _jobs_were_read(run) else {},
                        reason="the run's own conclusion is cancelled")
+    if run.get("status") == "completed" and run.get("conclusion") == "timed_out":
+        # The run-level twin of the cancelled case above, and its own state for the same reason.
+        return Verdict(sha=sha, state=STATE_TIMED_OUT, run_id=run.get("databaseId"),
+                       title=run.get("displayTitle", ""), baseline=baseline,
+                       jobs=_job_map(run) if _jobs_were_read(run) else {},
+                       reason="the run's own conclusion is timed_out")
     if not _jobs_were_read(run):
         # BEFORE the status check, and that ordering is the decision. "I could not read the
         # jobs" is a fact about the READ, not about the run, and it is the one fact that must
@@ -490,6 +573,15 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                   jobs=jobs, baseline=baseline)
     if run.get("status") != "completed":
         return Verdict(sha=sha, state=STATE_IN_PROGRESS, **common)
+
+    refused_contexts = non_pass_contexts(jobs, tuple(required_contexts))
+    if refused_contexts:
+        # BEFORE the differential, and that ordering is the decision: a required check that
+        # timed out or was skipped at BOTH ends is not a pre-existing RED, it is a check that
+        # never gave a verdict, and the job-level compare below would read it as PRE-EXISTING.
+        listed = tuple(f"{context}: {label}" for context, label in refused_contexts.items())
+        return Verdict(sha=sha, state=state_for_non_pass(refused_contexts), non_pass=listed,
+                       reason=f"required check(s) not `success`: {', '.join(listed)}", **common)
 
     failing = {name for name, c in jobs.items() if c not in ("success", "skipped", None)}
 
@@ -531,7 +623,8 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
     # (a startup failure, an empty job list): GitHub's run-level and job-level books are separate.
     workflow_level = (not failing and run_conclusion not in ("success", "skipped", None))
 
-    findings = {"new_tests": (), "signature_changed": (), "non_test": (), "unattributed": ()}
+    findings = {"new_tests": (), "signature_changed": (), "non_test": (), "unattributed": (),
+                "flagged": ()}
     registry_baseline_id: Optional[str] = None
     reasons: list[str] = []
     if failing_legs and base_read and base_run is not None:
@@ -565,10 +658,10 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                            f"({', '.join(j['name'] + '=' + str(j.get('conclusion')) for j in pytest_legs)})")
         else:
             state = STATE_PASS
-    elif (newly_failing or findings["new_tests"] or findings["signature_changed"] or non_test):
+    elif newly_failing or findings["new_tests"] or non_test:
+        # `signature_changed` is NOT here (b2-merge-gate): a test red on both sides is flagged.
         state = STATE_REGRESSED
         reasons.insert(0, f"{len(findings['new_tests'])} new red test(s), "
-                          f"{len(findings['signature_changed'])} changed signature(s), "
                           f"{len(non_test)} non-test failure(s), {len(newly_failing)} job(s) broken")
     elif not base_read or reasons:
         state = STATE_UNATTRIBUTED
@@ -579,7 +672,8 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                    pre_existing=pre_existing, newly_passing=newly_passing,
                    new_tests=findings["new_tests"], signature_changed=findings["signature_changed"],
                    non_test=non_test, reason="; ".join(reasons),
-                   registry_baseline_id=registry_baseline_id, **common)
+                   registry_baseline_id=registry_baseline_id, flagged=findings["flagged"],
+                   **common)
 
 
 @click.command()

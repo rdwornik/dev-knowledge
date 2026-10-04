@@ -1289,24 +1289,29 @@ def test_table_a_new_node_id_inside_an_already_red_leg_is_a_regression(kr):
     assert result["known"] == [_KNOWN_A]
 
 
-def test_table_the_same_id_with_a_changed_signature_is_a_regression(kr):
-    """A registered test that fails WORSE: same node id on both sides, a different failure."""
+def test_table_the_same_id_with_a_changed_signature_is_flagged_by_name(kr):
+    """A registered test that fails WORSE: same node id on both sides, a different failure.
+    b2-merge-gate (R64): red on both sides, so FLAGGED with its bucket, never refused -- it was
+    a `fail` at foundation-4."""
     result = kr.compare_to_base(
         frozenset({_KNOWN_B}), frozenset({_KNOWN_B}), _table_registry(kr), workers=4,
         tip_signatures={_KNOWN_B: "KeyError: 'b'"}, base_signatures={_KNOWN_B: "AssertionError: b"})
     assert result["signature_changed"] == [_KNOWN_B]
-    assert result["verdict"] == "fail"
+    assert [f["bucket"] for f in result["flagged"]] == [kr.BUCKET_SIGNATURE_CHANGED]
+    assert result["verdict"] == "pass"
 
 
 def test_table_a_tip_reason_the_base_never_carried_is_not_silently_known(kr):
     """Review finding (grok-4.7, High): an id with NO registered signature whose base log line is a
     bare `FAILED id` and whose tip line carries a reason has nothing to compare against -- it must
-    not read as the same failure. With no evidence of sameness it fails closed."""
+    not read as the same failure. It is named, never `known` (b2-merge-gate: red on both sides,
+    so flagged rather than refused)."""
     result = kr.compare_to_base(
         frozenset({_KNOWN_A}), frozenset({_KNOWN_A}), _table_registry(kr), workers=4,
         tip_signatures={_KNOWN_A: "KeyError: 'a'"}, base_signatures={})
-    assert result["signature_changed"] == [_KNOWN_A]
-    assert result["verdict"] == "fail" and result["complete"] is False
+    assert result["signature_changed"] == [_KNOWN_A] and result["known"] == []
+    assert [f["bucket"] for f in result["flagged"]] == [kr.BUCKET_SIGNATURE_CHANGED]
+    assert result["verdict"] == "pass"
 
 
 def test_table_a_bare_line_on_both_sides_stays_known_when_the_registry_has_no_signature(kr):
@@ -1347,7 +1352,9 @@ def test_table_a_base_failure_absent_from_the_registry_is_flagged_not_a_silent_b
         frozenset({"tests/c.py::t_c"}), frozenset({"tests/c.py::t_c"}), _table_registry(kr),
         workers=4)
     assert result["base_unregistered"] == ["tests/c.py::t_c"]
-    assert result["verdict"] == "fail" and result["complete"] is False
+    assert [f["bucket"] for f in result["flagged"]] == [kr.BUCKET_UNREGISTERED]
+    assert result["known"] == [], "flagged is never folded into the accounted-for set"
+    assert result["verdict"] == "pass" and result["complete"] is True
 
 
 def test_table_the_os_overlay_registers_a_leg_specific_red(kr):
@@ -1371,7 +1378,8 @@ def test_table_a_known_member_that_grew_past_its_ceiling_is_a_registry_regressio
         tip_signatures={"tests/boot.py::t": "AssertionError: 41,000 B exceeds"},
         base_signatures={"tests/boot.py::t": "AssertionError: 41,000 B exceeds"})
     assert result["registry_regressions"] == ["tests/boot.py::t"]
-    assert result["verdict"] == "fail"
+    assert [f["bucket"] for f in result["flagged"]] == [kr.BUCKET_CEILING_EXCEEDED]
+    assert result["verdict"] == "pass"
 
 
 def test_table_a_base_failure_that_the_tip_fixed_is_reported_not_silent(kr):
@@ -1394,3 +1402,168 @@ def test_table_renders_flat_lines_with_every_row_named(kr):
     text = kr.render_compare_to_base(result)
     assert "NEW" in text and "tests/new.py::t_new" in text
     assert "|" not in text, "flat lines, never a pipe table (CLAUDE.md section 4)"
+
+
+# --- b2-merge-gate: the gate REFUSES only what a merge introduces; the rest is FLAGGED -------
+#
+# RED-FIRST (R45, R64, architect seat ruling of 2026-10-04 08:40Z). Lane foundation-4 built
+# `compare_to_base` so that a failure red on BOTH sides but absent from / refused by the registry
+# was a REGRESSION: `merge_path.land` then refused every clean merge on a red `main` (run
+# 37167537040 vs base 37165248147: four buckets). The REFUSE set is exactly two classes -- a test
+# red on the merge and green on the base (NEW), and a non-pass state of a required check (that
+# half is `ci_verdict`'s). A red present on both sides is FLAGGED into the receipt with its
+# bucket, never refused; a per-merge value embedded in a signature is a DEFECT, normalised away.
+
+_FLAKY_TIP = "tests/test_graph_spine.py::test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock"
+_FLAKY_BASE = ("tests/test_graph_spine.py::"
+               "test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store")
+_UNREG = "tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH"
+_STALE = "tests/test_prompts_guard_hook_wiring.py::test_one"
+_LANDING = "tests/test_consumer_at_landing.py::test_the_live_corpus_measures_and_the_baseline_matches_it"
+
+
+def _flag_registry(kr):
+    return kr.Registry(
+        schema=kr.SCHEMA, baseline_id="2026-10-03-7aad52fb218b", measured_at_sha="s",
+        measured_via="ci", workers=4,
+        members={_STALE: {"attribution": "pre-freeze", "signature": "KeyError: 'PreToolUse'"},
+                 _LANDING: {"attribution": "pre-freeze"}},
+        members_by_os={"windows-latest": {
+            _FLAKY_TIP: {"attribution": "flaky"}, _FLAKY_BASE: {"attribution": "flaky"}}})
+
+
+def _buckets(result):
+    return {f["id"]: f["bucket"] for f in result["flagged"]}
+
+
+def test_b2_red_on_both_sides_is_FLAGGED_with_its_bucket_and_never_refused(kr):
+    """The four buckets of the real merge, in one fixture: only red-on-both-sides failures (plus
+    the registered-flaky sibling swap) -> the verdict is `pass`, every one is named with a bucket."""
+    both = {_UNREG: "AssertionError: a",
+            _STALE: "AssertionError: expected exactly one prompts-guard hook, found 0",
+            _LANDING: "AssertionError: assert {'2026-10-04-...-approved.md'} == set()"}
+    tip = dict(both, **{_FLAKY_TIP: "AssertionError: x"})
+    tip[_LANDING] = "AssertionError: assert {'2026-10-04-...erge-gate.md'} == set()"
+    base = dict(both, **{_FLAKY_BASE: "AssertionError: the breaker did not take the lock"})
+    result = kr.compare_to_base(
+        frozenset(tip), frozenset(base), _flag_registry(kr), workers=4, os_key="windows-latest",
+        tip_signatures=tip, base_signatures=base)
+    assert result["verdict"] == "pass" and result["complete"] is True, result["reason"]
+    assert result["new"] == []
+    buckets = _buckets(result)
+    assert buckets[_FLAKY_TIP] == kr.BUCKET_FLAKY_SWAP
+    assert buckets[_UNREG] == kr.BUCKET_UNREGISTERED
+    assert buckets[_STALE] == kr.BUCKET_STALE_SIGNATURE
+    assert _LANDING not in buckets, "the per-merge value is normalised out, so it is not even flagged"
+
+
+def test_b2_a_NEW_red_still_refuses_beside_the_flagged_ones(kr):
+    base = {_UNREG: "AssertionError: a"}
+    tip = dict(base, **{"tests/new.py::t_new": "KeyError"})
+    result = kr.compare_to_base(frozenset(tip), frozenset(base), _flag_registry(kr), workers=4,
+                                os_key="windows-latest", tip_signatures=tip, base_signatures=base)
+    assert result["verdict"] == "fail" and result["complete"] is False
+    assert result["new"] == ["tests/new.py::t_new"]
+    assert _buckets(result)[_UNREG] == kr.BUCKET_UNREGISTERED
+
+
+def test_b2_an_unregistered_red_is_flagged_as_owing_a_registry_entry_or_a_row(kr):
+    result = kr.compare_to_base(frozenset({_UNREG}), frozenset({_UNREG}), _flag_registry(kr),
+                                workers=4)
+    (flag,) = result["flagged"]
+    assert flag["bucket"] == kr.BUCKET_UNREGISTERED
+    assert "needs a registry entry (task, owner, expiry) or a row" in flag["note"]
+    assert result["verdict"] == "pass"
+
+
+def test_b2_a_stale_registry_signature_is_flagged_not_refused(kr):
+    sig = {_STALE: "AssertionError: expected exactly one prompts-guard hook, found 0"}
+    result = kr.compare_to_base(frozenset({_STALE}), frozenset({_STALE}), _flag_registry(kr),
+                                workers=4, tip_signatures=sig, base_signatures=sig)
+    assert _buckets(result) == {_STALE: kr.BUCKET_STALE_SIGNATURE}
+    assert result["verdict"] == "pass"
+
+
+def test_b2_a_changed_signature_on_both_sides_is_flagged_not_refused(kr):
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_B}), frozenset({_KNOWN_B}), _table_registry(kr), workers=4,
+        tip_signatures={_KNOWN_B: "KeyError: 'b'"}, base_signatures={_KNOWN_B: "AssertionError: b"})
+    assert _buckets(result) == {_KNOWN_B: kr.BUCKET_SIGNATURE_CHANGED}
+    assert result["signature_changed"] == [_KNOWN_B]
+    assert result["verdict"] == "pass"
+
+
+def test_b2_a_registered_flaky_NEW_with_no_swapped_sibling_still_refuses(kr):
+    """Only a SWAP is flagged: the base failed no registered-flaky sibling the tip fixed, so the
+    flaky id turning red is a test red on the merge and green on the base -- NEW."""
+    result = kr.compare_to_base(frozenset({_FLAKY_TIP}), frozenset(), _flag_registry(kr),
+                                workers=4, os_key="windows-latest")
+    assert result["new"] == [_FLAKY_TIP] and result["verdict"] == "fail"
+
+
+def test_b2_one_swapped_sibling_vouches_for_exactly_one_flaky_new(kr):
+    """Pairing is one-to-one, so a flaky red cannot launder a second one: base failed one flaky
+    id, the tip fails two other registered-flaky ids in the same file -> one swap, one NEW."""
+    other = "tests/test_graph_spine.py::test_another_flaky_one"
+    registry = _flag_registry(kr)
+    registry.members_by_os["windows-latest"][other] = {"attribution": "flaky"}
+    result = kr.compare_to_base(frozenset({_FLAKY_TIP, other}), frozenset({_FLAKY_BASE}), registry,
+                                workers=4, os_key="windows-latest")
+    assert len(result["new"]) == 1 and result["verdict"] == "fail"
+    assert [f for f in result["flagged"] if f["bucket"] == kr.BUCKET_FLAKY_SWAP]
+
+
+def test_b2_a_flaky_sibling_in_ANOTHER_file_is_not_a_swap(kr):
+    other_file = "tests/test_other.py::test_flaky_elsewhere"
+    registry = _flag_registry(kr)
+    registry.members_by_os["windows-latest"][other_file] = {"attribution": "flaky"}
+    result = kr.compare_to_base(frozenset({_FLAKY_TIP}), frozenset({other_file}), registry,
+                                workers=4, os_key="windows-latest")
+    assert result["new"] == [_FLAKY_TIP] and result["verdict"] == "fail"
+
+
+def test_b2_a_ceiling_exceeded_on_both_sides_is_flagged_with_its_own_bucket(kr):
+    registry = _registry(kr, {"tests/boot.py::t": {
+        "attribution": "pre-freeze", "signature": "AssertionError: 40,000 B exceeds",
+        "ceiling": {"pattern": r"(?P<n>[\d,]+) B", "max": 40000}}})
+    sig = {"tests/boot.py::t": "AssertionError: 41,000 B exceeds"}
+    result = kr.compare_to_base(frozenset(sig), frozenset(sig), registry, workers=4,
+                                tip_signatures=sig, base_signatures=sig)
+    assert _buckets(result) == {"tests/boot.py::t": kr.BUCKET_CEILING_EXCEEDED}
+    assert result["verdict"] == "pass"
+
+
+def test_b2_the_flagged_buckets_render_by_name(kr):
+    result = kr.compare_to_base(frozenset({_UNREG}), frozenset({_UNREG}), _flag_registry(kr),
+                                workers=4)
+    text = kr.render_compare_to_base(result)
+    assert "FLAGGED" in text and kr.BUCKET_UNREGISTERED in text and _UNREG in text
+    assert "|" not in text
+
+
+# --- item 3: a per-merge value in a signature is normalised, not flagged -----------------------
+
+_SET_TIP = "AssertionError: assert {'2026-10-04-...erge-gate.md'} == set()"
+_SET_BASE = "AssertionError: assert {'2026-10-04-...-approved.md'} == set()"
+
+
+def test_b2_a_set_of_file_names_in_a_signature_compares_as_a_shape_not_as_the_literal_names(kr):
+    assert kr.normalize_signature(_SET_TIP) == kr.normalize_signature(_SET_BASE)
+    result = kr.compare_to_base(
+        frozenset({_LANDING}), frozenset({_LANDING}), _flag_registry(kr), workers=4,
+        tip_signatures={_LANDING: _SET_TIP}, base_signatures={_LANDING: _SET_BASE})
+    assert result["signature_changed"] == [] and result["flagged"] == []
+    assert result["known"] == [_LANDING]
+
+
+def test_b2_a_genuinely_changed_assertion_still_compares_changed(kr):
+    assert kr.normalize_signature(_SET_TIP) != kr.normalize_signature(
+        "AssertionError: assert 3 == 0")
+    assert kr.normalize_signature(_SET_TIP) != kr.normalize_signature(
+        "AssertionError: assert {'a.md'} == {'b.md'}")
+    assert kr.normalize_signature("AssertionError: assert {'k': 1} == {}") == \
+        "AssertionError: assert {'k': 1} == {}", "a dict repr is not a set of names"
+    result = kr.compare_to_base(
+        frozenset({_LANDING}), frozenset({_LANDING}), _flag_registry(kr), workers=4,
+        tip_signatures={_LANDING: "KeyError: 'x'"}, base_signatures={_LANDING: _SET_BASE})
+    assert _buckets(result) == {_LANDING: kr.BUCKET_SIGNATURE_CHANGED}
