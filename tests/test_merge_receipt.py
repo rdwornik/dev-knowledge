@@ -1529,3 +1529,116 @@ def test_G5_a_pre_split_receipt_still_round_trips_and_keeps_its_four_required_st
 
     assert receipt.integration_branch is None and receipt.pushed_sha is None
     assert receipt.missing_required() == list(mr.REQUIRED_STEPS)
+
+
+# =====================================================================================
+# b2-merge-gate (R64): the flagged buckets are WRITTEN TO THE RECEIPT, with the merge sha and the
+# timed steps beside them ([#976]). RED-first at `2dd2067d`: a step carried no `flagged` field, so
+# a red present on both sides reached the integrator only as the word PRE-EXISTING.
+# =====================================================================================
+
+_FLAG_UNREG = ("pytest (windows-latest): [unregistered] tests/test_worktree_seed.py::test_x -- "
+               "red on both sides and absent from the registry: needs a registry entry (task, "
+               "owner, expiry) or a row")
+_FLAG_STALE = ("pytest (windows-latest): [stale-registry-signature] "
+               "tests/test_prompts_guard_hook_wiring.py::test_one -- the registry entry is stale")
+
+
+def _flagged_verdict(*flagged, state=av.STATE_PRE_EXISTING):
+    return av.Verdict(sha="tip", state=state, baseline="base", flagged=tuple(flagged))
+
+
+def test_b2_the_suite_step_RECORDS_the_flagged_buckets_it_read_and_they_survive_the_trip(
+        tmp_path, monkeypatch):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    monkeypatch.setattr(mr._av, "verdict_for",
+                        lambda *a, **k: _flagged_verdict(_FLAG_UNREG, _FLAG_STALE))
+
+    receipt, _verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
+                                                  first_parent=_parent({"tip": "base"}))
+
+    assert receipt.steps[-1].flagged == (_FLAG_UNREG, _FLAG_STALE)
+    assert receipt.merge_sha == "tip", "the merge sha is bound beside them ([#976])"
+    reread = mr.load_receipt(tmp_path, "m")
+    assert reread.steps[-1].flagged == (_FLAG_UNREG, _FLAG_STALE)
+    assert reread.to_dict()["steps"][-1]["flagged"] == [_FLAG_UNREG, _FLAG_STALE]
+    assert reread.to_dict()["flagged_reds"] == [_FLAG_UNREG, _FLAG_STALE]
+
+
+def test_b2_a_receipt_written_before_the_field_existed_reads_with_no_flagged():
+    legacy = {"slug": "old", "opened": _stamp(),
+              "steps": [{"step": "suite", "step_class": "tests", "seconds": 1.0, "ok": True,
+                         "verdict_state": "PRE-EXISTING"}]}
+
+    receipt = mr.Receipt.from_dict(legacy)
+
+    assert receipt.steps[0].flagged == () and receipt.flagged_reds() == ()
+
+
+def test_b2_the_receipt_reports_the_LATEST_suite_reads_flags_not_a_superseded_ones():
+    receipt = _split_era_complete()
+    receipt.steps.insert(3, mr.StepTiming("suite", mr.CLASS_TESTS, 1.0, True, 0, "-", _stamp(105.0),
+                                          verdict_state=av.STATE_PRE_EXISTING,
+                                          flagged=(_FLAG_STALE,)))
+    suite = receipt.steps[-3]
+    assert suite.step == "suite"
+    receipt.steps[-3] = mr.StepTiming(**{**suite.__dict__, "flagged": (_FLAG_UNREG,)})
+
+    assert receipt.flagged_reds() == (_FLAG_UNREG,)
+
+
+def test_b2_the_summary_prints_every_flagged_bucket_and_the_rows_owed():
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__,
+                                        "verdict_state": av.STATE_PRE_EXISTING,
+                                        "flagged": (_FLAG_UNREG, _FLAG_STALE)})
+
+    text = mr.render_summary(receipt)
+
+    assert "FLAGGED" in text and "[unregistered]" in text and "[stale-registry-signature]" in text
+    owed = [ln for ln in text.splitlines() if "ROWS-OWED" in ln]
+    assert len(owed) == 1, "only the unregistered one owes a row; a stale entry is lane 1's registry"
+    assert "tests/test_worktree_seed.py::test_x" in owed[0]
+
+
+def test_b2_rows_owed_names_title_provenance_and_a_runnable_check():
+    (line,) = mr.rows_owed((_FLAG_UNREG, _FLAG_STALE))
+
+    assert line.startswith("ROWS-OWED: ")
+    assert "logs/KNOWN-REDS-REGISTRY.json" in line, "in-repo provenance"
+    assert "uv run --locked pytest" in line and "tests/test_worktree_seed.py::test_x" in line
+    assert line.count(" — ") == 2, "title — provenance — runnable check"
+
+
+def test_b2_a_flagged_PRE_EXISTING_receipt_is_still_COMPLETE_and_not_green():
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__,
+                                        "verdict_state": av.STATE_PRE_EXISTING,
+                                        "flagged": (_FLAG_UNREG,)})
+
+    assert receipt.incompleteness_reason() is None
+    assert receipt.suite_verdict() == av.STATE_PRE_EXISTING
+
+
+@pytest.mark.parametrize("state", [av.STATE_SKIPPED, av.STATE_TIMED_OUT])
+def test_b2_a_skipped_or_timed_out_required_check_makes_the_receipt_INCOMPLETE(state):
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__, "verdict_state": state})
+
+    assert receipt.incompleteness_reason() is not None
+
+
+def test_b2_the_suite_read_is_asked_for_the_required_contexts_it_is_handed(tmp_path, monkeypatch):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        return _flagged_verdict()
+
+    monkeypatch.setattr(mr._av, "verdict_for", fake)
+
+    mr.record_actions_verdict(tmp_path, slug="m", sha="tip", first_parent=_parent({"tip": "base"}),
+                              required_contexts=("ruff", "seal"))
+
+    assert seen["required_contexts"] == ("ruff", "seal")

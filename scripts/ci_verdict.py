@@ -357,19 +357,33 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
                  timeout_s: int = POLL_TIMEOUT_S, interval_s: int = POLL_INTERVAL_S,
                  list_fn: Callable = list_runs, view_fn: Callable = fetch_run_status,
                  sleep_fn: Callable = time.sleep,
-                 clock_fn: Callable = time.monotonic) -> tuple:
+                 clock_fn: Callable = time.monotonic,
+                 pinned_run_id: Optional[int] = None) -> tuple:
     """Poll IN-PROCESS until a run matching `sha` reaches `completed`, or `timeout_s` elapses.
 
     Returns `(run_or_None, reason)`. `reason` is only ever non-empty when the wait did NOT end
     in a completed run -- a completed run's reason is decided by its verdict, not by the wait.
+
+    `pinned_run_id` (b2-merge-gate) reads THAT run instead of the newest push run for `sha`: the
+    replay acceptance has to offer one particular run (a `cancelled` one) ALONE. A pinned run that
+    is not a push run, or is for another sha, is `None` with its reason -- never a verdict on `sha`.
     """
     deadline = clock_fn() + timeout_s
     run: Optional[dict] = None
     while True:
         previously_known = run
         try:
-            run = view_fn(run["databaseId"], repo_root=repo_root) if run is not None \
-                else find_run(sha, repo_root=repo_root, workflow=workflow, list_fn=list_fn)
+            if run is not None:
+                run = view_fn(run["databaseId"], repo_root=repo_root)
+            elif pinned_run_id is not None:
+                run = view_fn(pinned_run_id, repo_root=repo_root)
+                if run is not None and (run.get("event") != "push"
+                                        or not str(run.get("headSha", "")).startswith(sha)):
+                    return None, (f"pinned run {pinned_run_id} is {run.get('event')!r} for "
+                                  f"{str(run.get('headSha', ''))[:12] or 'no sha'}, not a push run "
+                                  f"for {sha[:12]} -- another run's result is not a verdict on this sha")
+            else:
+                run = find_run(sha, repo_root=repo_root, workflow=workflow, list_fn=list_fn)
         except GhUnavailable as exc:
             # A run already FOUND is not un-found by a later poll's transient failure -- the
             # caller still gets its id and url, with the honest reason that the LATEST read
@@ -396,8 +410,11 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                 clock_fn: Callable = time.monotonic,
                 baseline: Optional[str] = None, required_contexts: tuple = (),
                 fetch_base: Optional[Callable] = None,
-                registry_loader: Optional[Callable] = None) -> CiVerdict:
+                registry_loader: Optional[Callable] = None,
+                run_id: Optional[int] = None) -> CiVerdict:
     """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
+
+    `run_id` pins the read to ONE run (see `wait_for_run`); omitted, the newest push run wins.
 
     THE ONE "CI VERDICT FOR A SHA" FUNCTION (foundation-4-merge-gate item 11, N2): the merge path
     and BD-ci (`handoff_state.row_ci`) both call this and nothing else. PUSH RUNS ONLY, COMPLETED
@@ -430,9 +447,11 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     jobs_fn = jobs_fn or fetch_jobs
     log_fn = log_fn or fetch_job_log
     sha = resolve_sha(ref, repo_root=root)
+    pinned_run_id = run_id        # `run_id` is re-bound below to the run actually read
     run, wait_reason = wait_for_run(sha, repo_root=root, workflow=workflow, timeout_s=timeout_s,
                                     interval_s=interval_s, list_fn=list_fn, view_fn=view_fn,
-                                    sleep_fn=sleep_fn, clock_fn=clock_fn)
+                                    sleep_fn=sleep_fn, clock_fn=clock_fn,
+                                    pinned_run_id=pinned_run_id)
     if run is None:
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, reason=wait_reason,
                          state=("GH-UNAVAILABLE" if wait_reason.startswith("gh unavailable")

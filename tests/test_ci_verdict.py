@@ -582,6 +582,47 @@ def test_b2_a_required_pytest_leg_that_is_RED_ON_BOTH_SIDES_is_PRE_EXISTING_with
     assert verdict.to_dict()["flagged"] == list(verdict.flagged)
 
 
+def test_b2_a_PINNED_run_id_reads_that_run_alone_even_when_a_newer_green_one_exists():
+    """Item 4's second half: the cancelled `main` push run (37176995845), offered ALONE, reads as a
+    non-pass. Without a pin the newest push run for the sha wins, which is the right default and
+    the wrong way to ask about one particular run."""
+    cancelled = _run("abc", run_id=11, conclusion="cancelled")
+    newer = _run("abc", run_id=12, conclusion="success")
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([newer, cancelled]),
+        view_fn=lambda rid, *, repo_root: {11: cancelled, 12: newer}[rid], run_id=11,
+        jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.state == "CANCELLED" and verdict.run_id == 11
+    assert verdict.verdict == cv.STATE_RED or verdict.verdict == cv.STATE_NOT_RUN
+    assert verdict.verdict != cv.STATE_GREEN
+
+
+def test_b2_a_pinned_run_id_whose_run_is_for_ANOTHER_sha_is_NO_RUN_never_a_verdict_on_this_one():
+    other = _run("zzz", run_id=11, conclusion="success")
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([]), view_fn=lambda rid, *, repo_root: other,
+        run_id=11, jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.state == "NO-RUN" and verdict.verdict == cv.STATE_NOT_RUN
+    assert "zzz" in verdict.reason or "another" in verdict.reason
+
+
+def test_b2_a_pinned_run_id_of_a_non_push_run_is_NO_RUN():
+    pr = {**_run("abc", run_id=11), "event": "pull_request"}
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([]), view_fn=lambda rid, *, repo_root: pr,
+        run_id=11, jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.state == "NO-RUN"
+
+
 def test_b2_a_NEW_red_on_a_required_pytest_leg_still_refuses():
     ids = ["tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH"]
 

@@ -97,6 +97,7 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import re
 import statistics
 import subprocess
 import time
@@ -282,6 +283,13 @@ class StepTiming:
     #: baseline was derived -- which is honest, because those readings took a baseline that was
     #: typed and is no longer recoverable.
     baseline_sha: Optional[str] = None
+    #: THE REDS THAT WERE PRESENT ON BOTH SIDES, FLAGGED RATHER THAN REFUSED (b2-merge-gate, R64),
+    #: each `"<leg>: [<bucket>] <node id> -- <note>"` as `actions_verdict.Verdict.flagged` reads it.
+    #: Written to the receipt because a merge that lands on a red `main` must say WHICH reds it
+    #: landed beside: `PRE-EXISTING` alone is a claim, the named buckets are the reading. `()` on a
+    #: step that read no verdict and on every row written before this field -- honest, those rows
+    #: were never judged flag-or-refuse.
+    flagged: tuple[str, ...] = ()
 
     @property
     def minutes(self) -> float:
@@ -457,6 +465,13 @@ class Receipt:
         """
         states = [s.verdict_state for s in self.steps if s.verdict_state]
         return states[-1] if states else None
+
+    def flagged_reds(self) -> tuple[str, ...]:
+        """The reds the LATEST suite reading flagged (red on both sides, not refused) -- the same
+        step `suite_verdict` takes, for the same reason: a retried read supersedes the first, and
+        a superseded reading's flags must not read as the merge's."""
+        steps = [s for s in self.steps if s.verdict_state]
+        return steps[-1].flagged if steps else ()
 
     def by_class(self) -> dict[str, float]:
         """Seconds per class. Raced steps count in FULL here, deliberately: the question a class
@@ -672,7 +687,8 @@ class Receipt:
             # just above: `ended` is `started` + `seconds`, computed fresh on every read, and
             # this key exists so a ledger row is greppable for it rather than requiring the
             # arithmetic back from a reader.
-            {**asdict(s), "raced_with": list(s.raced_with), "ended": s.ended} for s in self.steps]
+            {**asdict(s), "raced_with": list(s.raced_with), "flagged": list(s.flagged),
+             "ended": s.ended} for s in self.steps]
         data["wall_seconds"] = round(self.wall_seconds(), 3)
         data["recorded_seconds"] = round(self.recorded_seconds(), 3)
         data["unrecorded_seconds"] = round(self.unrecorded_seconds(), 3)
@@ -681,6 +697,7 @@ class Receipt:
         # exists so a ledger row is greppable -- "recorded BY NAME on the receipt" is what
         # ruling AY1-1 asks for, and a median a reader cannot audit is a claim.
         data["suite_verdict"] = self.suite_verdict()
+        data["flagged_reds"] = list(self.flagged_reds())
         tests_min, residual_min = self.baseline_split()
         data["baseline_split_minutes"] = {"tests": round(tests_min, 2),
                                           "residual_ceremony": round(residual_min, 2)}
@@ -694,7 +711,8 @@ class Receipt:
                             command=s.get("command", ""), started=s.get("started", ""),
                             raced_with=tuple(s.get("raced_with", ())),
                             verdict_state=s.get("verdict_state"),
-                            baseline_sha=s.get("baseline_sha"))
+                            baseline_sha=s.get("baseline_sha"),
+                            flagged=tuple(s.get("flagged", ())))
                  for s in data.get("steps", [])]
         # A row written before `kind` existed is a MERGE receipt — that is what the ledger held
         # when the field was absent, so the default reads the history correctly rather than
@@ -914,7 +932,8 @@ def record_push(repo_root: Path, *, slug: str, target: str, branch: str, sha: st
 
 def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
                            baseline: Optional[str] = None, step: Optional[str] = None,
-                           fetch=None, first_parent=None) -> tuple[Receipt, "_av.Verdict"]:
+                           fetch=None, first_parent=None,
+                           required_contexts: tuple = ()) -> tuple[Receipt, "_av.Verdict"]:
     """Read this merge's Actions verdict, record its STATE on the receipt, bind the merge SHA.
 
     RULING AY1-1'S CARRIER. Until `[#750]` this was a `time --step actions -- actions_verdict.py
@@ -955,6 +974,11 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
     `fetch` is `actions_verdict`'s own injection seam, passed straight through so a test drives
     the real state machine rather than asserting a state it typed itself. `first_parent` is the
     same shape for the git resolution, so the refusal is testable without a repository fixture.
+
+    b2-merge-gate (R64): `required_contexts` (the merge path hands it the ruleset's six) makes this
+    read judge the SAME required checks the landing decision judged, so the receipt cannot complete
+    on a state `merge_path.land` refused; the verdict's FLAGGED buckets (red on both sides, not
+    refused) are recorded on the step beside its state.
     """
     receipt = load_receipt(repo_root, slug)
     if receipt.pushed_sha:
@@ -979,13 +1003,15 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
             f"there is deliberately no flag that accepts a different one")
     started = _now()
     clock = time.perf_counter()
-    verdict = _av.verdict_for(sha, baseline=derived, fetch=fetch, repo_root=repo_root)
+    verdict = _av.verdict_for(sha, baseline=derived, fetch=fetch, repo_root=repo_root,
+                              required_contexts=tuple(required_contexts))
     elapsed = time.perf_counter() - clock
     receipt.steps.append(StepTiming(
         step=step, step_class=CLASS_TESTS, seconds=round(elapsed, 3), ok=verdict.ok,
         returncode=0 if verdict.ok else 1,
         command=f"actions_verdict.verdict_for(sha={sha}, baseline={derived})",
-        started=started, verdict_state=verdict.state, baseline_sha=derived))
+        started=started, verdict_state=verdict.state, baseline_sha=derived,
+        flagged=tuple(verdict.flagged)))
     receipt.merge_sha = sha
     save_receipt(repo_root, receipt)
     return receipt, verdict
@@ -1338,6 +1364,28 @@ def median_report(receipts: Sequence[Receipt], kind: str = KIND_MERGE) -> Median
                         per_merge=tuple(minutes), **common)
 
 
+_UNREGISTERED_FLAG_RE = re.compile(r"^(?P<leg>.+?): \[unregistered\] (?P<id>\S+) -- ")
+
+
+def rows_owed(flagged) -> list[str]:
+    """One `ROWS-OWED: <title> — <in-repo provenance> — <runnable check>` line per flagged red that
+    is `unregistered` (red on both sides, absent from the known-reds registry): the receipt names
+    the debt and the integrator carries it into the digest. This organ writes no registry entry --
+    the registry is lane 1's, so the debt is a registry entry (task, owner, expiry) or a row, and
+    only the integrator files either. Other buckets owe nothing here: a stale signature or a
+    ceiling is an entry the registry already has, and a flaky swap is the registry doing its job."""
+    out: list[str] = []
+    for item in flagged:
+        m = _UNREGISTERED_FLAG_RE.match(item)
+        if m:
+            node_id, leg = m.group("id"), m.group("leg")
+            out.append(f"ROWS-OWED: register or file a row for {node_id} (red on both sides on "
+                       f"{leg}, absent from the known-reds registry) — logs/KNOWN-REDS-REGISTRY.json"
+                       f" (an entry needs task, owner, expiry) — "
+                       f"uv run --locked pytest \"{node_id}\" -q")
+    return out
+
+
 def render_summary(receipt: Receipt) -> str:
     """The itemised view -- target 3.1's deliverable. Per-step minutes, then both splits."""
     lines = [f"receipt {receipt.slug}  kind={receipt.kind}  batch={receipt.batch or '-'}  "
@@ -1384,6 +1432,11 @@ def render_summary(receipt: Receipt) -> str:
                      + ("COMPLETE on this leg (ruling AY1-1), and NOT a statement that the run "
                         "was green" if state in COMPLETE_SUITE_STATES else
                         "INCOMPLETE: this receipt cannot discharge its merge"))
+    flagged = receipt.flagged_reds()
+    for item in flagged:
+        lines.append(f"  FLAGGED (red on both sides, NOT a refusal): {item}")
+    for owed in rows_owed(flagged):
+        lines.append(f"  {owed}")
     # THE MODEL LINE ALWAYS PRINTS, including when there is nothing to print -- `[#752]`. An
     # absence a reader cannot SEE reads as a clean bill, and this module exists because a
     # plausible answer was returned where the discriminating field was simply not there. So the
@@ -1604,6 +1657,8 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
     # PRINTED ON SUCCESS TOO, inherited from the tool this replaced: a gate silent on success
     # has not been read, it has been assumed -- and target 3.2 is about the integrator READING.
     click.echo(verdict.render())
+    for owed in rows_owed(verdict.flagged):
+        click.echo(f"  {owed}")
     logger.info("recorded suite verdict %s of receipt %s (merge %s)",
                 verdict.state, slug, sha[:12])
     raise SystemExit(0 if verdict.ok else 1)

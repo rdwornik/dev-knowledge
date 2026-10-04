@@ -347,6 +347,110 @@ def test_land_never_uses_force():
     assert not any(a in ("-f", "--force", "--force-with-lease") for c in rig.pushes() for a in c)
 
 
+# --- b2-merge-gate: the NO-PUSH mode (item 4), and the flagged buckets reaching the receipt -------
+#
+# RED-first at `2dd2067d`: `land` had no no-push mode, so the live acceptance of item 4 (a replay of
+# a merge already on main) could not be asked of it without pushing to `main`.
+
+def test_b2_land_in_NO_PUSH_mode_reads_the_verdict_and_pushes_nothing_anywhere():
+    rig = Rig(verdict=FakeVerdict("PRE-EXISTING", reason="flagged only"))
+
+    result = _land(rig, no_push=True)
+
+    assert result.state == "PRE-EXISTING" and result.would_land is True
+    assert not result.landed, "no-push mode never lands"
+    assert rig.pushes() == [], "no push of ANY kind -- the replay's sha is already pushed by hand"
+    assert [r[0] for r in rig.recorded] == ["verdict"], "no receipt step, no push record"
+
+
+def test_b2_no_push_mode_does_not_ask_origin_main_whether_it_is_still_the_base():
+    """The replay is of a merge already on main, so origin/main is NOT its base any more."""
+    rig = Rig(origin_main="e" * 40, verdict=FakeVerdict("PRE-EXISTING"))
+
+    result = _land(rig, no_push=True)
+
+    assert result.state == "PRE-EXISTING" and rig.ls_remote_reads == 0
+
+
+@pytest.mark.parametrize("state", ["IN-PROGRESS", "CANCELLED", "TIMED-OUT", "SKIPPED", "NO-RUN",
+                                   "REGRESSED", "UNATTRIBUTED"])
+def test_b2_no_push_mode_reports_a_non_landable_state_as_one(state):
+    rig = Rig(verdict=FakeVerdict(state, reason="no"))
+
+    result = _land(rig, no_push=True)
+
+    assert result.state == state and result.would_land is False and not result.landed
+
+
+def test_b2_no_push_mode_still_refuses_a_sha_that_is_not_a_merge_on_the_base():
+    rig = Rig(parents=f"{TIP} {'d' * 40} {'c' * 40}")
+
+    result = _land(rig, no_push=True)
+
+    assert result.state == "NOT-A-MERGE-ON-BASE" and rig.recorded == []
+
+
+def test_b2_a_pinned_run_id_reaches_the_verdict_and_an_unpinned_read_carries_none():
+    pinned, plain = Rig(verdict=FakeVerdict("CANCELLED")), Rig()
+
+    _land(pinned, no_push=True, run_id=37176995845)
+    _land(plain)
+
+    assert next(r for r in pinned.recorded if r[0] == "verdict")[2]["run_id"] == 37176995845
+    assert "run_id" not in next(r for r in plain.recorded if r[0] == "verdict")[2]
+
+
+def test_b2_land_hands_the_receipt_read_the_six_required_contexts():
+    """The receipt's suite step is a SECOND read of the same run; it must judge the same required
+    checks the landing decision judged, or it could complete on a state `land` refused."""
+    rig = Rig()
+    seen = {}
+    rig.record_suite = lambda root, **kw: seen.update(kw)
+
+    _land(rig)
+
+    assert seen["required_contexts"] == ("pytest (ubuntu-latest)", "pytest (windows-latest)",
+                                         "ruff", "seal", "spine", "anchor")
+
+
+@dataclass
+class _FlaggedVerdict(FakeVerdict):
+    flagged: tuple = ()
+    run_id: int = 7
+
+
+def test_b2_the_land_verb_prints_every_flagged_bucket_and_the_rows_it_owes(monkeypatch, events):
+    flag = ("pytest (windows-latest): [unregistered] tests/test_worktree_seed.py::test_x -- red on "
+            "both sides and absent from the registry: needs a registry entry (task, owner, expiry) "
+            "or a row")
+    monkeypatch.setattr(mp, "land", lambda *a, **k: mp.LandResult(
+        False, "PRE-EXISTING", "flagged only", sha=TIP, branch="b", would_land=True,
+        verdict=_FlaggedVerdict("PRE-EXISTING", flagged=(flag,))))
+
+    result = CliRunner().invoke(mp.cli, ["land", "--slug", "m", "--batch", "b", "--sha", TIP,
+                                         "--base", BASE, "--no-push"])
+
+    assert result.exit_code == 0, result.output
+    assert "NO-PUSH" in result.output and "PRE-EXISTING" in result.output
+    assert "FLAGGED" in result.output and "[unregistered]" in result.output
+    assert "ROWS-OWED" in result.output and "test_worktree_seed.py::test_x" in result.output
+
+
+def test_b2_the_verdict_verb_takes_a_run_id_and_prints_flagged(monkeypatch, events):
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        return _FlaggedVerdict("CANCELLED")
+
+    monkeypatch.setattr(mp, "read_verdict", fake)
+
+    result = CliRunner().invoke(mp.cli, ["verdict", "--sha", TIP, "--base", BASE,
+                                         "--run-id", "37176995845"])
+
+    assert result.exit_code == 1 and seen["run_id"] == 37176995845
+
+
 # --- the ruleset (items 7, 13, 14) ------------------------------------------------------------
 
 _RULESET = Path(__file__).resolve().parents[1] / mp.RULESET_RELPATH
@@ -402,26 +506,136 @@ def test_apply_is_a_DRY_RUN_by_default_and_sends_nothing(monkeypatch):
     assert "DRY RUN" in result.output and "enforcement disabled -> active" in result.output
 
 
-def test_G1_apply_preconditions_need_the_GO_and_a_green_rehearsal():
-    green = lambda sha, **kw: FakeVerdict("PASS")                    # noqa: E731
-    red = lambda sha, **kw: FakeVerdict("REGRESSED", reason="windows leg red")   # noqa: E731
+def _rehearsal(**over):
+    """A rehearsal record as `ruleset rehearse` writes it: every required context `success`."""
+    record = {"schema": mp.REHEARSAL_SCHEMA, "sha": TIP, "run_id": 5, "run_url": "https://x/runs/5",
+              "event": "push", "recorded_at": "2026-10-04T12:00:00+00:00",
+              "contexts": {c: "success" for c in mp.required_contexts()}}
+    record.update(over)
+    return record
 
-    assert mp.apply_preconditions(TIP, root=Path("."), go="recorded GO 2026-10-04",
-                                  verdict_fn=green) == []
-    unmet = mp.apply_preconditions(TIP, root=Path("."), go="", verdict_fn=red)
-    assert any("GO" in u for u in unmet) and any("rehearsal" in u for u in unmet)
+
+def _write_record(tmp_path, record) -> Path:
+    path = tmp_path / "rehearsal.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return path
 
 
-def test_G1_the_rehearsal_asks_for_BOTH_pytest_legs():
-    seen = {}
+# b2-merge-gate item 5 (R64): the ruleset is armed only after a rehearsal that comes first. The
+# tracked apply refuses unless a RECORD for a named sha shows both pytest legs and every required
+# context `success`. RED-first at `2dd2067d`: `apply_preconditions` read CI live for the two pytest
+# legs only and took no record, so "every required context" was never asked and nothing recorded.
 
-    def spy(sha, **kw):
-        seen.update(kw)
-        return FakeVerdict("PASS")
+def test_b2_apply_refuses_to_arm_WITHOUT_a_rehearsal_record(tmp_path):
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="recorded GO 2026-10-04")
 
-    mp.apply_preconditions(TIP, root=Path("."), go="x", verdict_fn=spy)
+    assert any("rehearsal record" in u for u in unmet), unmet
 
-    assert seen["required_contexts"] == ("pytest (ubuntu-latest)", "pytest (windows-latest)")
+
+def test_b2_apply_refuses_a_rehearsal_record_that_does_not_exist_or_does_not_parse(tmp_path):
+    missing = mp.apply_preconditions(TIP, root=Path("."), go="x",
+                                     rehearsal_path=tmp_path / "nope.json")
+    broken = tmp_path / "broken.json"
+    broken.write_text("{not json", encoding="utf-8")
+    unreadable = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=broken)
+
+    assert any("rehearsal record" in u and "cannot be read" in u for u in missing + unreadable)
+    assert len(missing) == 1 and len(unreadable) == 1
+
+
+def test_b2_apply_accepts_a_record_with_every_required_context_success(tmp_path):
+    path = _write_record(tmp_path, _rehearsal())
+
+    assert mp.apply_preconditions(TIP, root=Path("."), go="recorded GO", rehearsal_path=path) == []
+
+
+def test_b2_apply_still_needs_the_operators_GO_beside_a_good_record(tmp_path):
+    path = _write_record(tmp_path, _rehearsal())
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="", rehearsal_path=path)
+
+    assert len(unmet) == 1 and "GO" in unmet[0]
+
+
+@pytest.mark.parametrize("context", ["pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff",
+                                     "seal", "spine", "anchor"])
+@pytest.mark.parametrize("conclusion", ["failure", "skipped", "cancelled", "timed_out", None])
+def test_b2_apply_refuses_a_record_where_ANY_required_context_is_not_success(
+        tmp_path, context, conclusion):
+    contexts = {c: "success" for c in mp.required_contexts()}
+    contexts[context] = conclusion
+    path = _write_record(tmp_path, _rehearsal(contexts=contexts))
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path)
+
+    assert len(unmet) == 1 and context in unmet[0]
+
+
+def test_b2_apply_refuses_a_record_that_omits_a_required_context(tmp_path):
+    contexts = {c: "success" for c in mp.required_contexts() if c != "spine"}
+    path = _write_record(tmp_path, _rehearsal(contexts=contexts))
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path)
+
+    assert len(unmet) == 1 and "spine" in unmet[0]
+
+
+def test_b2_apply_refuses_a_record_for_a_DIFFERENT_sha_than_the_one_named(tmp_path):
+    path = _write_record(tmp_path, _rehearsal(sha=BASE))
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path)
+
+    assert len(unmet) == 1 and "named" in unmet[0] and TIP[:12] in unmet[0]
+
+
+def test_b2_apply_refuses_a_record_of_a_non_push_run_or_another_schema(tmp_path):
+    other_event = _write_record(tmp_path, _rehearsal(event="workflow_dispatch"))
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=other_event)
+    assert len(unmet) == 1 and "push" in unmet[0]
+
+    other_schema = _write_record(tmp_path, _rehearsal(schema="something/9"))
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=other_schema)
+    assert len(unmet) == 1 and "schema" in unmet[0]
+
+
+def test_b2_the_record_is_written_by_rehearse_from_the_runs_own_jobs(tmp_path):
+    jobs = [{"name": c, "conclusion": "success"} for c in mp.required_contexts()]
+    jobs.append({"name": "terra", "conclusion": "failure"})          # not a required context
+    run = {"databaseId": 5, "headSha": TIP, "event": "push", "status": "completed",
+           "conclusion": "success", "url": "https://x/runs/5"}
+
+    record = mp.read_rehearsal(TIP, root=Path("."), run_fn=lambda sha, **k: run,
+                               jobs_fn=lambda run_id, **k: jobs)
+
+    assert record["sha"] == TIP and record["run_id"] == 5 and record["event"] == "push"
+    assert record["contexts"] == {c: "success" for c in mp.required_contexts()}
+    assert mp.rehearsal_problems(record, TIP) == []
+
+
+def test_b2_rehearse_of_a_sha_with_no_push_run_records_every_context_as_not_run():
+    record = mp.read_rehearsal(TIP, root=Path("."), run_fn=lambda sha, **k: None,
+                               jobs_fn=lambda run_id, **k: [])
+
+    assert record["run_id"] is None
+    assert all(v == "not-run" for v in record["contexts"].values())
+    assert mp.rehearsal_problems(record, TIP)
+
+
+def test_b2_the_rehearse_verb_writes_the_record_and_exits_zero_only_when_every_context_is_success(
+        monkeypatch, tmp_path, events):
+    out = tmp_path / "r.json"
+    monkeypatch.setattr(mp, "read_rehearsal", lambda *a, **k: _rehearsal())
+    good = CliRunner().invoke(mp.cli, ["ruleset", "rehearse", "--sha", TIP, "--out", str(out)])
+    assert good.exit_code == 0, good.output
+    assert json.loads(out.read_text(encoding="utf-8"))["sha"] == TIP
+
+    contexts = {c: "success" for c in mp.required_contexts()}
+    contexts["ruff"] = "failure"
+    monkeypatch.setattr(mp, "read_rehearsal", lambda *a, **k: _rehearsal(contexts=contexts))
+    bad = CliRunner().invoke(mp.cli, ["ruleset", "rehearse", "--sha", TIP, "--out", str(out)])
+    assert bad.exit_code == 1 and "ruff" in bad.output
+    assert json.loads(out.read_text(encoding="utf-8"))["contexts"]["ruff"] == "failure", \
+        "an unsuccessful rehearsal is still recorded -- honestly, and `apply` refuses it"
 
 
 def test_apply_execute_refuses_without_preconditions_and_sends_nothing(monkeypatch):
@@ -434,6 +648,46 @@ def test_apply_execute_refuses_without_preconditions_and_sends_nothing(monkeypat
 
     assert result.exit_code == 1 and "UNMET" in result.output
     assert calls == []
+
+
+def test_b2_apply_execute_without_a_rehearsal_flag_refuses_through_the_REAL_check(
+        monkeypatch, tmp_path):
+    """No monkeypatched preconditions: the CLI path itself, a GO named, NO record -- refused, and
+    no subprocess (so no `gh api`) is started."""
+    calls = []
+    monkeypatch.setattr(mp.subprocess, "run", lambda *a, **k: calls.append(a) or None)
+
+    result = CliRunner().invoke(mp.cli, ["ruleset", "apply", "--repo", "o/r", "--sha", TIP,
+                                         "--go", "recorded GO", "--execute"])
+
+    assert result.exit_code == 1, result.output
+    assert "UNMET" in result.output and "rehearsal record" in result.output
+    assert calls == []
+
+
+def test_b2_apply_execute_with_a_failing_record_refuses_and_names_the_context(
+        monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(mp.subprocess, "run", lambda *a, **k: calls.append(a) or None)
+    contexts = {c: "success" for c in mp.required_contexts()}
+    contexts["pytest (windows-latest)"] = "failure"
+    path = _write_record(tmp_path, _rehearsal(contexts=contexts))
+
+    result = CliRunner().invoke(mp.cli, ["ruleset", "apply", "--repo", "o/r", "--sha", TIP,
+                                         "--go", "recorded GO", "--rehearsal", str(path),
+                                         "--execute"])
+
+    assert result.exit_code == 1 and "pytest (windows-latest)" in result.output
+    assert calls == []
+
+
+def test_b2_a_dry_run_says_what_would_refuse_the_execute(monkeypatch):
+    monkeypatch.setattr(mp.subprocess, "run",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("dry run")))
+
+    result = CliRunner().invoke(mp.cli, ["ruleset", "apply", "--repo", "o/r", "--sha", TIP])
+
+    assert result.exit_code == 0 and "rehearsal record" in result.output
 
 
 # --- verbs ------------------------------------------------------------------------------------
