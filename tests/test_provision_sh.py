@@ -198,6 +198,8 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
     assert steps == [
         "leg1_uv", "leg2_unshallow", "refresh_source_tree", "sync_environment",
         "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_pc_login_path", "leg_f1_claude",
+        # foundation-13: the lane's toolset, pinned and asserted, after the agent feature's own assert
+        "leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone", "leg_f5_agy",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
         # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
         # is LIVE, so every tool it names must already be installed when it is written. Anywhere
@@ -392,3 +394,81 @@ def test_self_digest_actually_distinguishes_a_replaced_script(tmp_path: Path):
     assert digest() == before, "the digest is not stable across two reads of one file"
     target.write_text("#!/usr/bin/env bash\n# replaced by a fast-forward\n", encoding="utf-8")
     assert digest() != before
+
+
+# --- foundation-13-codespace-toolset (R63 step 1): the five tool legs ------------------------
+#
+# RED on origin/main 864b0b9f: provision.sh has no leg for `gh`, `codex`, `rclone`, `agy`, and
+# nothing pins `claude`. The container that carried 2.1.272 against the workstation's 2.1.288, and
+# no gh/codex/agy/rclone, is `docs/audits/2026-10-03-technical-codespace-parity-run.md` condition 1.
+
+#: leg -> (tool, the install command the tool's OWN documentation names, as it appears in the leg)
+_TOOLSET_LEGS = {
+    "leg_f5_claude_pin": ("claude", "claude.ai/install.sh"),
+    "leg_f5_gh": ("gh", "github.com/cli/cli/releases/download/v${want}"),
+    "leg_f5_codex": ("codex", "@openai/codex@${want}"),
+    "leg_f5_rclone": ("rclone", "downloads.rclone.org/v${want}"),
+    "leg_f5_agy": ("agy", "antigravity.google/cli/install.sh"),
+}
+_VERSION_LITERAL = re.compile(r"(?<![\w.$-])\d+\.\d+\.\d+(?![\w.])")
+
+
+@pytest.mark.parametrize("leg", sorted(_TOOLSET_LEGS))
+def test_each_tool_has_its_own_leg_that_refuses_when_the_tool_is_absent(leg: str):
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    assert f"{leg}()" in code, f"provision.sh has no {leg}"
+    body = _bash_function(code, leg)
+    tool, method = _TOOLSET_LEGS[leg]
+    assert method in body, f"{leg} installs {tool} by something other than its documented method"
+    assert "die " in body, f"{leg} must refuse, not log"
+    # the ASSERT is the leg: through the LOGIN shell the parity check and admission test use
+    assert f"tools check --only {tool} --login" in body, leg
+
+
+@pytest.mark.parametrize("leg", sorted(_TOOLSET_LEGS))
+def test_no_tool_leg_types_a_version(leg: str):
+    """N2: the pin is data, written once, never typed twice. A version literal in a leg body is
+    a second copy that drifts from `provisioning.yaml`."""
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
+    assert not _VERSION_LITERAL.findall(body), (leg, _VERSION_LITERAL.findall(body))
+
+
+@pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone"])
+def test_a_pinned_leg_reads_its_pin_from_the_declaration(leg: str):
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
+    tool = _TOOLSET_LEGS[leg][0]
+    assert f"provision_legs.py tools get {tool}" in body, leg
+
+
+def test_the_claude_pin_leg_stops_the_container_updating_itself_away_from_the_pin():
+    """The pin is worthless if the native updater moves the binary an hour later. The documented
+    switch (code.claude.com/docs/en/setup, "Disable auto-updates") is `DISABLE_AUTOUPDATER` in
+    settings.json `env`."""
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")),
+                          "leg_f5_claude_pin")
+    assert "DISABLE_AUTOUPDATER" in body
+    assert 'bash -s "${want}"' in body, "the documented form: `curl ... | bash -s <version>`"
+
+
+def test_agy_is_asserted_present_but_never_given_a_version_the_installer_cannot_honour():
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), "leg_f5_agy")
+    assert "tools get agy" not in body, "agy has no pin to read"
+
+
+def test_tool_legs_follow_the_claude_assert_and_precede_the_provenance_marker():
+    """A tool leg that ran before `leg_f1_claude` would install over a feature that has not
+    delivered; one that ran after `leg_l1_provenance` would leave the marker under-reporting."""
+    body = _uncommented(_bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "main"))
+    order = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("leg")]
+    legs = list(_TOOLSET_LEGS)
+    assert [o for o in order if o in legs] == legs
+    assert order.index("leg_f1_claude") < order.index(legs[0])
+    assert order.index(legs[-1]) < order.index("leg_l1_provenance")
+
+
+def test_the_toolset_legs_each_carry_a_library_first_verdict():
+    import yaml
+    declared = yaml.safe_load(
+        (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))["features"]
+    for leg in _TOOLSET_LEGS:
+        assert leg in declared, f"{leg}: no library-first verdict in provisioning.yaml"

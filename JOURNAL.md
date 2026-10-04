@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-04 (d) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-13-codespace-toolset merges -- a Codespace carries the lane toolset, claude pinned to the workstation version
+
+**Anchors:** `56bfcc09`, `aec1d23a`, `a550f05b`, `93cbc749`, `66a18389`, `b0db608d`, `207c0214`, `07fe685b` -- `worktree-foundation-13-codespace-toolset`, merged `--no-ff` through `epic/foundation-int-foundation-13-codespace-toolset-r2` after one repair.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane (R63 step 1). `.devcontainer/provisioning.yaml` declares the `tools:` pins and `provision.sh` installs them through `scripts/provision_legs.py tools`; `scripts/codespace_parity.py` gains the C4 write probe and the C1 named auth items. One fresh Codespace read C1 PASS except named auth items (codex, agy) and C4 PASS on both legs; teardown verified. The codex and agy logins are OPERATOR-ACTIONs, not worked around.
+- Repair 1 of 2: the Actions commit-gate's edge-class ratchet refused `scripts/provision_legs.py` (two version-string regexes gave it the five-kind shape); the lane answered with one `_not_an_edge` row in `scripts/graph_queries.py` `EDGE_COMPUTATIONS`, RED then GREEN under the conductor's soft-reset sequence, the module not reshaped.
+- `[#1335]` cites the lane's run record as its governance consumer; regenerated `ecosystem/doc-counts.md` and `docs/audits/README.md`; carried lane foundation-8-test-isolation's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `.devcontainer/{provision.sh,provisioning.yaml}`, `scripts/{codespace_parity,provision_legs,graph_queries}.py`, `tests/test_{codespace_parity,provision_legs,provision_sh}.py`, two audits, `tasks/1335` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4 waits on the compare_to_base ruling; lane 9's repair 1 of 2; lanes 7 and 12 held behind lane 4.
+
 ### 2026-10-04 (c) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-8-test-isolation merges -- the deny_and_point fail-closed pair owns its store; three Windows flakes quarantined with their shown cause
 
 **Anchors:** `cd5ec6cc`, `66c5fc08`, `dcff4a70`, `7dc45a8f`, `209bd725`, `79ee0f10` -- `worktree-foundation-8-test-isolation`, merged `--no-ff` through `epic/foundation-int-foundation-8-test-isolation`.
