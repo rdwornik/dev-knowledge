@@ -1071,10 +1071,10 @@ def test_as_of_rejects_an_undated_lineage_predecessor(tmp_path):
     """Candidates with no date token stay eligible (the existing reader's rule); a LINEAGE target
     with none cannot be placed before the cut, so under an `as_of` it vouches for nothing."""
     t = _v13_transport(tmp_path)
-    (t / "to-cc" / "PLAN-LINEAGE-ROOT.md").write_text(_V12_SUPERSEDED, encoding="utf-8")
+    (t / "to-cc" / "PLAN-LINEAGE-ROOT-v1-superseded.md").write_text(_V12_SUPERSEDED, encoding="utf-8")
     (t / "to-cc" / "PLAN-HARNESS-2026-10-03.md").write_text(
         _V13_HEAD.replace("date: 2026-10-04", "date: 2026-10-03")
-        .replace("PLAN-HARNESS-2026-10-04-v12-superseded.md", "PLAN-LINEAGE-ROOT.md"), encoding="utf-8")
+        .replace("PLAN-HARNESS-2026-10-04-v12-superseded.md", "PLAN-LINEAGE-ROOT-v1-superseded.md"), encoding="utf-8")
     row = hs.row_plan(t, as_of="2026-10-03")
     assert row.value.startswith("no master plan declared among the newest"), row.value
 
@@ -1091,3 +1091,27 @@ def test_a_symlinked_supersedes_target_cannot_escape_the_plan_directory(tmp_path
         pytest.skip("this account cannot create symlinks")
     row = hs.row_plan(t)
     assert row.value.startswith("no master plan declared among the newest"), row.value
+
+
+def test_an_undated_newer_undeclared_plan_refuses_and_an_undated_older_one_does_not(tmp_path):
+    """`_live_transport_docs` ranks an undated filename (date "") before every dated one; the Plan
+    row ranks it by its file's own mtime date instead, so a newer undeclared `PLAN-NEW.md` cannot
+    hide behind an older dated master (review P1) and an old undated plan cannot block a new one."""
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    master = t / "to-cc" / "PLAN-MASTER-2026-10-04.md"
+    master.write_text(_WAVE5.replace("2026-09-23", "2026-10-04"), encoding="utf-8")
+    old = t / "to-cc" / "PLAN-OLD.md"
+    old.write_text("# PLAN — no head\n", encoding="utf-8")
+    new = t / "to-cc" / "PLAN-NEW.md"
+    new.write_text("kind: PLAN\n\n# PLAN — newer, declares nothing\n", encoding="utf-8")
+    day = 24 * 3600
+    base = datetime(2026, 10, 4, 12, 0).timestamp()
+    os.utime(old, (base - 30 * day, base - 30 * day))
+    os.utime(new, (base - 40 * day, base - 40 * day))
+    os.utime(master, (base, base))
+    assert "`to-cc/PLAN-MASTER-2026-10-04.md`" in hs.row_plan(t).value       # old undated: no block
+    os.utime(new, (base + 3600 * 30, base + 3600 * 30))
+    row = hs.row_plan(t)
+    assert row.value.startswith("no master plan declared among the newest"), row.value
+    assert "PLAN-NEW.md" in row.value, row.value

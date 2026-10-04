@@ -442,6 +442,18 @@ def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
     return "undeclared"
 
 
+def _plan_rank(path: Path) -> "tuple[str, float]":
+    """Newest-last key for a plan: the date token in its name, else the date of its own mtime (the
+    shared reader ranks a name with no token before every dated file, which would hide a newer
+    undated plan behind an older dated master), then mtime."""
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    m = _DATED_STEM_RE.search(path.name)
+    return (m.group(1) if m else _dt.datetime.fromtimestamp(mtime).date().isoformat(), mtime)
+
+
 def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
     """The master plan the next seat reads: the newest non-superseded `to-cc/PLAN-*.md` whose role
     is `master` (`_plan_role`). Never a silent fall-back: a plan NEWER than that master whose role
@@ -449,8 +461,9 @@ def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRo
     master while a newer plan may be the real one (the plan files' heads are the architect's; the
     reader asks for a head line, it does not edit them). Companions are skipped by role, not date."""
     locator = "to-cc/PLAN-*.md (newest non-superseded master plan)"
-    plans = _live_transport_docs(transport, "PLAN", as_of=as_of, subdir="to-cc")
-    roles = [(p, _plan_role(p, as_of)) for p in plans]
+    plans = sorted(_live_transport_docs(transport, "PLAN", as_of=as_of, subdir="to-cc"),
+                   key=_plan_rank)
+    roles =[(p, _plan_role(p, as_of)) for p in plans]
     masters = [i for i, (_p, r) in enumerate(roles) if r == "master"]
     start = masters[-1] if masters else -1
     undeclared = [p.name for p, r in roles[start + 1:] if r == "undeclared"]
