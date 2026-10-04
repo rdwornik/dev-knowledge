@@ -26,10 +26,10 @@ failing check is a refusal (exit 1) that leaves every row file and the manifest 
 A LANE CANNOT CLOSE ITS OWN ROW. The step refuses when run from inside the lane's own worktree
 (`.claude/worktrees/<slug>` or branch `worktree-<slug>`), when the caller's session (the first 8
 characters of `$CLAUDE_CODE_SESSION_ID`, the convention `claim.py` writes) equals the implementing
-session (the suffix of the contract's claim marker; `--lane-session` serves only when no marker is
-readable, and a flag that disagrees with the marker is refused), and when either is unknown -- a
-caller that cannot prove it is not the lane is refused. Limit, stated: with no marker the flag is
-the caller's word.
+session (the suffix of `to-cc/<contract stem>.CLAIMED-*`, the only source -- there is no flag that
+names it), and when either is unknown, no marker included: a caller that cannot prove it is not the
+lane is refused. Limit, stated: the caller's session is `$CLAUDE_CODE_SESSION_ID`, which a process
+that controls its own environment can set; the claim marker is the trusted half.
 
 ALL ROWS OR NONE. Every named row is planned against the untouched tree first; one that is not
 open refuses the whole batch. The writes then go through `gen_task_tree._cmd_close_row` -- the
@@ -82,7 +82,7 @@ INTERNAL_ERROR = 2
 _ACCEPTED_CONCLUSIONS = ("success", "failure")
 _ROWS_LINE_RE = re.compile(r"^\*\*Rows:\*\*(?P<rest>.*)$", re.MULTILINE)
 _ROW_ID_RE = re.compile(r"\[#(\d+)\]")
-_RELATED_SPLIT_RE = re.compile(r";\s*related\b", re.IGNORECASE)
+_RELATED_OPEN_RE = re.compile(r"^\s*related\b", re.IGNORECASE)
 #: The clause must open with `closes` and a dash or colon; ids anywhere else are not closable.
 _CLOSES_OPEN_RE = re.compile(r"^\s*closes\s*(?:—|--|-|:)")
 _SESSION_PREFIX = 8
@@ -112,9 +112,12 @@ def parse_rows_line(contract_text: str) -> ParsedRows:
     if _CLOSES_OPEN_RE.match(rest) is None:
         return ParsedRows((), (), "the **Rows:** line does not open with `closes —` -- no id "
                                   "is closable from it")
-    parts = _RELATED_SPLIT_RE.split(rest, maxsplit=1)
-    closes = tuple(int(i) for i in _ROW_ID_RE.findall(parts[0]))
-    related = tuple(int(i) for i in _ROW_ID_RE.findall(parts[1])) if len(parts) > 1 else ()
+    head, semicolon, tail = rest.partition(";")
+    if semicolon and tail.strip() and not _RELATED_OPEN_RE.match(tail):
+        return ParsedRows((), (), "the **Rows:** line has text after the closes clause that is "
+                                  "not a `related` clause -- no id is closable from it")
+    closes = tuple(int(i) for i in _ROW_ID_RE.findall(head))
+    related = tuple(int(i) for i in _ROW_ID_RE.findall(tail))
     return ParsedRows(closes, related)
 
 
@@ -243,16 +246,13 @@ def verify_tests(repo_root: Path, merge_sha: str, tests: Sequence[str]) -> None:
             tree = ast.parse(shown.stdout)
         except SyntaxError as exc:
             raise RowCloseRefusal(f"refused: {path} at {merge_sha} does not parse ({exc})") from exc
-        param = re.search(r"\[.*\]$", names[-1])
-        if param:
-            names[-1] = names[-1][:param.start()]
-        found = _defined_at(tree.body, names)
-        if found is None:
+        if "[" in names[-1]:
+            raise RowCloseRefusal(
+                f"refused: {node_id!r}: a parameter selector cannot be proven without collecting "
+                f"the test -- name the function, not a case")
+        if _defined_at(tree.body, names) is None:
             raise RowCloseRefusal(f"refused: {node_id!r}: {'::'.join(names)} is not defined in "
                                   f"{path} at {merge_sha} (exact class nesting)")
-        if param and not _is_parametrized(found):
-            raise RowCloseRefusal(f"refused: {node_id!r}: {names[-1]} is not parametrized, so "
-                                  f"it takes no parameter selector")
 
 
 def _defined_at(body: list, names: list[str]) -> Optional[ast.AST]:
@@ -266,10 +266,6 @@ def _defined_at(body: list, names: list[str]) -> Optional[ast.AST]:
             return None
         body = node.body
     return node
-
-
-def _is_parametrized(node: ast.AST) -> bool:
-    return any("parametrize" in ast.unparse(d) for d in getattr(node, "decorator_list", ()))
 
 
 def close_for_merge(repo_root: Path, *, contract_text: str, slug: str, ci_run: Optional[str],
@@ -337,8 +333,6 @@ def main(argv: Optional[Sequence[str]] = None, *, gh: Optional[GhRunner] = None)
     close.add_argument("--repo-root", type=Path, default=Path.cwd())
     close.add_argument("--contract", type=Path, required=True, help="the lane contract file")
     close.add_argument("--slug", required=True, help="the lane slug = its merge receipt's slug")
-    close.add_argument("--lane-session", default=None,
-                       help="the implementing session (default: the contract's claim marker)")
     close.add_argument("--ci-run", default=None, help="the CI push run id of the merge sha")
     close.add_argument("--test", action="append", default=[], dest="tests",
                        help="a test node id, repeatable")
@@ -347,12 +341,9 @@ def main(argv: Optional[Sequence[str]] = None, *, gh: Optional[GhRunner] = None)
 
     try:
         text = args.contract.read_text(encoding="utf-8")
-        marker = _lane_session_from_marker(args.contract)
-        if marker and args.lane_session and _session_key(marker) != _session_key(args.lane_session):
-            raise RowCloseRefusal(
-                f"refused: --lane-session {args.lane_session} disagrees with the contract's "
-                f"claim marker ({marker}) -- the marker names the implementing session")
-        lane_session = marker or args.lane_session
+        # The implementing session comes from the contract's claim marker ALONE: no flag can
+        # name it, so a lane cannot pass a session that is not its own.
+        lane_session = _lane_session_from_marker(args.contract)
         closed = close_for_merge(
             args.repo_root, contract_text=text, slug=args.slug, ci_run=args.ci_run,
             tests=args.tests, caller_session=os.environ.get("CLAUDE_CODE_SESSION_ID"),

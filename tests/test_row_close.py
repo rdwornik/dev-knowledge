@@ -273,9 +273,15 @@ def test_refuses_a_test_function_absent_at_the_merge_sha(fx):
     _refuses(fx, tests=["tests/test_widget.py::test_missing"])
 
 
-def test_a_class_nested_and_parametrised_test_id_resolves(fx):
+def test_a_class_nested_and_a_parametrised_function_id_resolves(fx):
     assert fx.close(tests=["tests/test_widget.py::TestGroup::test_nested",
-                           "tests/test_widget.py::test_param[1]"]) == [1]
+                           "tests/test_widget.py::test_param"]) == [1]
+
+
+def test_refuses_any_parameter_selector_even_on_a_parametrised_test(fx):
+    """A case id cannot be proven without collecting; the function id is what is recorded."""
+    _refuses(fx, tests=["tests/test_widget.py::test_param[nonexistent]"])
+    _refuses(fx, tests=["tests/test_widget.py::test_param[1]"])
 
 
 def test_refuses_a_row_that_is_not_open_and_writes_none_of_the_batch(fx):
@@ -310,8 +316,12 @@ def test_cli_closes_and_exits_zero_then_refuses_a_second_close_non_zero(fx, tmp_
     contract.write_text(CONTRACT, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", INTEGRATOR_SESSION + "-rest")
     monkeypatch.chdir(fx.repo)  # the integrator runs from the primary checkout, not a lane worktree
+    root = tmp_path / "prompts"
+    (root / "to-cc").mkdir(parents=True)
+    (root / "to-cc" / f"LANE-X.CLAIMED-{LANE_SESSION}").write_text("", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(root))
     argv = ["close", "--repo-root", str(fx.repo), "--contract", str(contract), "--slug", SLUG,
-            "--lane-session", LANE_SESSION, "--ci-run", "123456", "--test", TEST_ID]
+            "--ci-run", "123456", "--test", TEST_ID]
     assert rc.main(argv, gh=fx.gh()) == 0
     before = fx.snapshot()
     assert rc.main(argv, gh=fx.gh()) != 0
@@ -366,13 +376,30 @@ def test_the_claim_marker_names_the_lane_when_no_flag_is_given(fx, tmp_path, mon
     assert fx.snapshot() == before
 
 
-def test_a_lane_session_flag_cannot_override_the_claim_marker(fx, tmp_path, monkeypatch):
-    """A lane run from elsewhere cannot pass a different --lane-session to look like someone
-    else: a flag that disagrees with the marker is refused."""
+def test_there_is_no_lane_session_flag_to_forge(fx, tmp_path, monkeypatch):
+    """The implementing session comes from the contract's claim marker alone."""
     _marker_env(tmp_path, monkeypatch, LANE_SESSION)
+    with pytest.raises(SystemExit):
+        _cli(fx, tmp_path, monkeypatch, INTEGRATOR_SESSION, "--lane-session", "feedface")
+
+
+def test_no_claim_marker_means_no_close(fx, tmp_path, monkeypatch):
+    """With no marker the implementing session is unknown, so the caller cannot prove it is
+    not the lane: refused, nothing written."""
+    root = tmp_path / "prompts"
+    (root / "to-cc").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(root))
     before = fx.snapshot()
-    assert _cli(fx, tmp_path, monkeypatch, LANE_SESSION, "--lane-session", "feedface") != 0
+    assert _cli(fx, tmp_path, monkeypatch, INTEGRATOR_SESSION) != 0
     assert fx.snapshot() == before
+
+
+def test_the_rows_line_refuses_a_suffix_that_is_not_a_related_clause():
+    for line in ("**Rows:** closes — [#1]; notes [#2]\n", "**Rows:** closes - [#1]; [#2]\n"):
+        parsed = rc.parse_rows_line(line)
+        assert parsed.closes == () and parsed.refusal, line
+    ok = rc.parse_rows_line("**Rows:** closes — [#1];\n")
+    assert ok.refusal is None and ok.closes == (1,)
 
 
 def test_the_integrator_closes_when_the_marker_names_a_different_session(fx, tmp_path,
