@@ -61,6 +61,7 @@ FEATURE_COMMIT = f"feat: {SUBJECT} -- the toy change"
 INTEGRATOR_SESSION = "toy-integrator"
 NEGATIVE_SLUG = "lane-20260921-wire-toy-negative"
 STOP_TIMEOUT_S = 1800
+LANE_END_WAIT_S = 300    # the bound on waiting for a CLAIMED lane end's worker; a wait with no terminal signal ends here
 
 #: Done-contract 4/5: this module's tests are NOT independently parallelizable -- exactly one heavy
 #: operation (the shared walk, or a negative-path test) may hold the host's uv/git/doit subprocess
@@ -83,11 +84,16 @@ STOP_TIMEOUT_S = 1800
 #: tests/test_connection_loop.py --durations=0` shows TWO separate multi-hundred-second `setup`
 #: costs for the module-scoped `walk` fixture in the same run -- one per worker that drew a
 #: walk-consuming test -- which is only possible if the module was split across both workers. The
-#: marker is kept anyway (harmless today, and it becomes real the day some invocation adds
-#: `--dist=loadgroup`; adding that flag repo-wide is a cross-cutting pytest-config decision this
-#: lane does not own). It did NOT fix the launch-step trio: `core.longpaths` in the toy repo's own
-#: git config (`c9529fa4`) is the actual, verified fix -- proven by 3/3 green `-n 2` runs measured
-#: after this correction, with the marker still inert.
+#: marker is kept anyway (it becomes real the day some invocation adds `--dist=loadgroup`; adding
+#: that flag repo-wide is a cross-cutting pytest-config decision this lane does not own). It did
+#: NOT fix the launch-step trio: `core.longpaths` in the toy repo's own git config (`c9529fa4`) is
+#: the actual, verified fix -- proven by 3/3 green `-n 2` runs measured after this correction, with
+#: the marker still inert.
+#:
+#: UPDATE (b2-ci-poll, 2026-10-04): that day has come for CI -- the `pytest` job in
+#: `.github/workflows/conductor.yml` runs `-n 4 --dist loadgroup` (lane foundation-6-ci-speed), so
+#: there the marker is live and this module runs on one worker. The marker is still inert under a
+#: bare `-n` / `-n auto` run with the default `--dist load`.
 pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
 #: The stops the walk recorded when W3-F ran (2026-09-21), re-pinned by repair U4 of
@@ -455,7 +461,12 @@ class World:
         assert shell, "no POSIX shell to run the declared Stop command"
         self.run([shell, "-c", commands[0]], cwd=worktree, CLAUDE_PROJECT_DIR=worktree.as_posix())
         receipt = worktree / "logs" / "receipts" / "MOMENT-LANE-END-HOOK.json"
-        deadline = time.monotonic() + 300
+        if not receipt.exists():
+            # The guard has RETURNED (`self.run` is synchronous; the Stop command is not backgrounded) and it writes its
+            # `running` claim before it spawns the worker, so no receipt now means no claim was taken and no worker
+            # exists: the lane end is not run (a session file with no HANDBACK line). Nothing can appear later.
+            return
+        deadline = time.monotonic() + LANE_END_WAIT_S
         while time.monotonic() < deadline:
             body = _read_receipt(receipt)
             if body and body.get("status") != "running":
