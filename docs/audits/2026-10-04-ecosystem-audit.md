@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-04  
-**Generated:** 2026-10-04T13:57:15  
+**Generated:** 2026-10-04T15:59:48  
 **Repos audited:** 6  
-**Checks:** 826 total — 157 pass, 14 fail, 464 warn, 0 unavailable, 191 n/a
+**Checks:** 826 total — 158 pass, 13 fail, 464 warn, 0 unavailable, 191 n/a
 
 ---
 
-## .dev-knowledge — FAIL
+## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-zdahobn1\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-_kie6x2d\wt`  
 **Last audit:** 2026-10-04
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 29d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-04; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-04, newest input docs/audits committed 2026-10-04 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 11 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 9 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -43,7 +43,7 @@
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-02-dev-knowledge-architect: Seats: 1 seat(s) are wedged/starved now that the cut did not name: aa630660 |
+| `handoff_probes` | PASS | 37 probe(s) bind to live state (2026-10-02-dev-knowledge-architect) |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 18 reconciled_with edge(s) match live spec version(s) |
@@ -910,8 +910,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 157/826 checks passed
-- **14 failure(s)** — route findings to repo owners
+- 158/826 checks passed
+- **13 failure(s)** — route findings to repo owners
 - 464 warning(s)
 - 191 n/a (check not applicable to that repo)
 
