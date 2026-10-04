@@ -1318,15 +1318,12 @@ def test_default_run_gives_the_child_no_stdin_so_codex_exec_cannot_hang_on_it():
     it would block until `default_run`'s timeout (124)."""
     import subprocess
 
-    code = ("import sys
-"
-            "from scripts import codespace_parity as cp
-"
-            "r = cp.default_run([sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'],"
-            " timeout=8)
-"
-            "print(r.returncode, r.stdout.strip())
-")
+    code = "; ".join([
+        "import sys",
+        "from scripts import codespace_parity as cp",
+        "r = cp.default_run([sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'], timeout=8)",
+        "print(r.returncode, r.stdout.strip())",
+    ])
     proc = subprocess.Popen([sys.executable, "-c", code], cwd=str(REPO_ROOT), text=True,
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
