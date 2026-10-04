@@ -453,7 +453,8 @@ def test_the_claude_pin_leg_stops_the_container_updating_itself_away_from_the_pi
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")),
                           "leg_f5_claude_pin")
     assert "DISABLE_AUTOUPDATER" in body
-    assert 'bash -s "${want}"' in body, "the documented form: `curl ... | bash -s <version>`"
+    assert 'bash "${installer}" "${want}"' in body, \
+        "the documented `bash -s <version>` form, run from a script `fetch_installer` has checked"
 
 
 def test_agy_is_pinned_and_the_leg_asserts_the_pin_its_installer_cannot_honour():
@@ -494,8 +495,11 @@ def test_a_vendor_installer_is_fetched_checked_to_be_a_script_and_never_piped_in
     assert "--retry" in helper
     assert "#!" in helper, "refuse a payload that is not a script"
     assert "first bytes" in helper, "say what was received"
+    # the claude leg is in the list on the reviewer's finding (codex terra, 2026-10-04): it still
+    # piped `curl | bash -s <version>` straight into a shell, past the check the others now have
     for leg, url in (("leg_f5_agy", "antigravity.google/cli/install.sh"),
-                     ("leg_f5_grok", "x.ai/cli/install.sh")):
+                     ("leg_f5_grok", "x.ai/cli/install.sh"),
+                     ("leg_f5_claude_pin", "claude.ai/install.sh")):
         body = _bash_function(code, leg)
         assert 'fetch_installer "https://' + url in body, leg
         assert "| bash" not in body, f"{leg} pipes a download into bash unchecked"

@@ -1048,7 +1048,9 @@ _CLAUDE_STREAM = "\n".join([
     json.dumps({"type": "result", "subtype": "success", "result": _NONCE}),
 ])
 
-_CODEX_OUT = f"""Reading additional input from stdin...
+# `codex exec` prints its run header, the echoed prompt and the transcript on STDERR and only the
+# final message on STDOUT (measured 2026-10-04).
+_CODEX_STDERR = f"""Reading additional input from stdin...
 OpenAI Codex v0.155.0
 --------
 workdir: /tmp/probe
@@ -1061,8 +1063,8 @@ codex
 {_NONCE}
 tokens used
 9,926
-{_NONCE}
 """
+_CODEX_STDOUT = _NONCE + "\n"
 
 
 def test_claude_reader_takes_the_id_from_the_transcripts_assistant_message():
@@ -1085,12 +1087,11 @@ def test_claude_reader_survives_a_non_json_line():
     assert cp.read_claude("warning: something\n" + _CLAUDE_STREAM, _NONCE) == ("claude-sonnet-5", True)
 
 
-def test_codex_reader_takes_the_id_from_the_run_header_and_ignores_the_echoed_prompt():
-    assert cp.read_codex(_CODEX_OUT, _NONCE) == ("gpt-5.6-terra", True)
-    echoed_only = _CODEX_OUT.split("codex\n", 1)[0]
-    assert cp.read_codex(echoed_only, _NONCE) == ("gpt-5.6-terra", False), \
-        "the nonce in the echoed prompt is not an answer"
-    assert cp.read_codex("no header here\n", _NONCE) == (None, False)
+def test_codex_reader_takes_the_id_from_the_run_header_and_the_answer_from_stdout():
+    assert cp.read_codex(_CODEX_STDERR, _CODEX_STDOUT, _NONCE) == ("gpt-5.6-terra", True)
+    assert cp.read_codex(_CODEX_STDERR, "", _NONCE) == ("gpt-5.6-terra", False), \
+        "the nonce in the echoed prompt on stderr is not an answer"
+    assert cp.read_codex("no header here\n", _CODEX_STDOUT, _NONCE) == (None, True)
 
 
 def test_codex_reader_reads_a_colour_coded_header_as_a_terminal_prints_it():
@@ -1098,25 +1099,32 @@ def test_codex_reader_reads_a_colour_coded_header_as_a_terminal_prints_it():
     (`ESC[1mmodel:ESC[0m gpt-5.6-terra`), so the plain-text id regex found nothing and the probe
     reported no served id for a CLI that had answered."""
     esc = chr(27)
-    coloured = _CODEX_OUT.replace("model:", f"{esc}[1mmodel:{esc}[0m")
-    assert cp.read_codex(coloured, _NONCE) == ("gpt-5.6-terra", True)
+    coloured = _CODEX_STDERR.replace("model:", f"{esc}[1mmodel:{esc}[0m")
+    assert cp.read_codex(coloured, _CODEX_STDOUT, _NONCE) == ("gpt-5.6-terra", True)
 
 
-def test_the_codex_call_asks_for_no_colour_and_is_given_header_and_answer_from_both_streams(tmp_path):
+def test_codex_reader_cannot_be_given_its_served_id_by_the_models_own_output():
+    """Review P1 (codex terra, 2026-10-04): the id was parsed from stdout and stderr together, so a
+    model that printed `model: <the registry's id>` on stdout passed C1 while a different model
+    served. Only the run header -- the block between the first two rules of STDERR -- is the
+    tool's own record."""
+    forged_stdout = f"model: gpt-5.6-terra\n{_NONCE}\n"
+    real_header = _CODEX_STDERR.replace("model: gpt-5.6-terra", "model: gpt-5.5")
+    assert cp.read_codex(real_header, forged_stdout, _NONCE) == ("gpt-5.5", True)
+    assert cp.read_codex("no header\n", forged_stdout, _NONCE) == (None, True)
+    # a `model:` line the transcript echoes AFTER the header is not the header either
+    echoed = real_header.replace("user\n", "user\nmodel: gpt-5.6-terra\n", 1)
+    assert cp.read_codex(echoed, _CODEX_STDOUT, _NONCE) == ("gpt-5.5", True)
+    headerless = "user\nmodel: gpt-5.6-terra\ncodex\nanswer\n"
+    assert cp.read_codex(headerless, _CODEX_STDOUT, _NONCE) == (None, True)
+
+
+def test_the_codex_call_asks_for_no_colour_and_reads_header_and_answer_from_their_own_streams(tmp_path):
     argv = cp.model_probe_argv("codex", _NONCE, "gpt-5.6-terra", "x")
     assert argv[argv.index("--color") + 1] == "never"
-    # what the real CLI does: the answer on stdout, the run header (and echoed prompt) on stderr
-    stderr_part = _CODEX_OUT.split("\ncodex\n", 1)[0]
-
-    class _Split(_ModelRun):
-        def __call__(self, argv, **kw):
-            res = super().__call__(argv, **kw)
-            if "codex" in " ".join(argv):
-                return cp.CmdResult(0, _NONCE + "\n", stderr_part)
-            return res
-
     _grok_usage(tmp_path, "sess-run")
-    out = cp.collect_models(_Split(tmp_path), _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    out = cp.collect_models(_ModelRun(tmp_path), _tools(), {}, _expected(), home=tmp_path,
+                            nonce=_NONCE)
     assert out["codex"]["state"] == "served" and out["codex"]["served_id"] == "gpt-5.6-terra"
 
 
@@ -1166,11 +1174,12 @@ def test_agy_reader_takes_the_id_from_the_run_logs_model_label_as_a_slug():
 class _ModelRun:
     """A fake `run` seam answering each CLI's probe call the way the real one did on 2026-10-04."""
 
-    def __init__(self, tmp_path, outputs=None, rc=None):
+    def __init__(self, tmp_path, outputs=None, rc=None, stderr=None):
         self.tmp_path = tmp_path
         self.calls: list[tuple[list[str], str | None]] = []
         self.outputs = outputs or {}
         self.rc = rc or {}
+        self.stderr = {"codex": _CODEX_STDERR, **(stderr or {})}
 
     def __call__(self, argv, cwd=None, **_kw):
         import shlex
@@ -1183,9 +1192,9 @@ class _ModelRun:
         if cli == "agy" and "--log-file" in argv:
             Path(argv[argv.index("--log-file") + 1]).write_text(_AGY_LOG, encoding="utf-8")
         out = self.outputs.get(cli, {
-            "claude": _CLAUDE_STREAM, "codex": _CODEX_OUT, "agy": _AGY_JSON,
+            "claude": _CLAUDE_STREAM, "codex": _CODEX_STDOUT, "agy": _AGY_JSON,
             "grok": _grok_json("sess-run")}[cli])
-        return cp.CmdResult(self.rc.get(cli, 0), out, "")
+        return cp.CmdResult(self.rc.get(cli, 0), out, self.stderr.get(cli, ""))
 
 
 def _tools(**absent):
@@ -1251,6 +1260,28 @@ def test_a_call_that_timed_out_or_would_not_start_is_a_probe_error(tmp_path):
     run = _ModelRun(tmp_path, rc={"codex": 124, "agy": 127})
     out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
     assert out["codex"]["state"] == "probe-error" and out["agy"]["state"] == "probe-error"
+
+
+@pytest.mark.parametrize("rc", [124, 127])
+def test_a_probe_error_records_a_fixed_category_never_the_clis_stderr(tmp_path, rc):
+    """Review P1 (codex terra, 2026-10-04): the first 80 characters of stderr went into the record.
+    A CLI's stderr is untrusted -- it can carry a token, a URL with a code challenge or model
+    output -- and the record's contract is that none of that is stored."""
+    secret = "sk-SECRET-0123456789 https://accounts.example/o/oauth2/auth?code_challenge=XYZ"
+    run = _ModelRun(tmp_path, rc={"codex": rc, "agy": rc}, stderr={"codex": secret, "agy": secret})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "probe-error" and out["agy"]["state"] == "probe-error"
+    assert "SECRET" not in json.dumps(out) and "oauth2" not in json.dumps(out)
+    assert str(rc) in out["codex"]["detail"]
+
+
+def test_no_detail_the_probe_records_can_carry_the_text_a_cli_printed(tmp_path):
+    secret = "tok-ABC123-should-never-be-stored"
+    for rc, text in ((1, f"Not signed in {secret}"), (1, f"model gpt-5.6-terra unavailable {secret}"),
+                     (0, "")):
+        run = _ModelRun(tmp_path, outputs={"codex": text}, rc={"codex": rc}, stderr={"codex": secret})
+        out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+        assert secret not in json.dumps(out), out["codex"]
 
 
 @pytest.mark.parametrize("text", [
