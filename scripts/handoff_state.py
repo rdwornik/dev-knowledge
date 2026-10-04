@@ -409,11 +409,13 @@ def _plan_head(path: Path) -> str:
         return ""
 
 
-def _plan_role(path: Path, _depth: int = 0) -> str:
+def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
     """`master` | `companion` | `undeclared`, from the plan's own head. A bare head inherits the role
-    of the file its `supersedes:` names in the same directory (a superseded predecessor stays on
-    the transport, e.g. `-v12-superseded`); a missing or unreadable predecessor leaves it
-    `undeclared`, which `row_plan` refuses on rather than guessing."""
+    of the file its `supersedes:` names (a superseded predecessor stays on the transport, e.g.
+    `-v12-superseded`). The name must be a bare `PLAN-*.md` basename resolved in the plan's own
+    directory (no `../`, no absolute path), and `as_of` binds the lineage too: a predecessor dated
+    after the cut cannot vouch for a bundle cut before it. A missing, unreadable or out-of-bounds
+    predecessor leaves the plan `undeclared`, which `row_plan` refuses on rather than guessing."""
     head = _plan_head(path)
     if _MASTER_PLAN_RE.search(head):
         return "master"
@@ -421,9 +423,15 @@ def _plan_role(path: Path, _depth: int = 0) -> str:
         return "companion"
     m = _SUPERSEDES_RE.search(head)
     if m is not None and _depth < _LINEAGE_DEPTH:
-        prior = path.parent / m.group(1)
+        ref = m.group(1)
+        if Path(ref).name != ref or not ref.startswith("PLAN-"):
+            return "undeclared"
+        prior = path.parent / ref
+        dated = _DATED_STEM_RE.search(ref)
+        if as_of is not None and dated and dated.group(1) > as_of:
+            return "undeclared"
         if prior != path and prior.is_file():
-            return _plan_role(prior, _depth + 1)
+            return _plan_role(prior, as_of, _depth + 1)
     return "undeclared"
 
 
@@ -435,7 +443,7 @@ def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRo
     reader asks for a head line, it does not edit them). Companions are skipped by role, not date."""
     locator = "to-cc/PLAN-*.md (newest non-superseded master plan)"
     plans = _live_transport_docs(transport, "PLAN", as_of=as_of, subdir="to-cc")
-    roles = [(p, _plan_role(p)) for p in plans]
+    roles = [(p, _plan_role(p, as_of)) for p in plans]
     masters = [i for i, (_p, r) in enumerate(roles) if r == "master"]
     start = masters[-1] if masters else -1
     undeclared = [p.name for p, r in roles[start + 1:] if r == "undeclared"]
