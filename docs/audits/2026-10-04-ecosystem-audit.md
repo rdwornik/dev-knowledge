@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-04  
-**Generated:** 2026-10-04T13:56:47  
+**Generated:** 2026-10-04T13:57:15  
 **Repos audited:** 6  
 **Checks:** 826 total — 157 pass, 14 fail, 464 warn, 0 unavailable, 191 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-zpfldt4b\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-zdahobn1\wt`  
 **Last audit:** 2026-10-04
 
 | Check | Status | Evidence |
@@ -43,7 +43,7 @@
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-02-dev-knowledge-architect: Seats: 1 seat(s) are wedged/starved now that the cut did not name: f7f0b13b |
+| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-02-dev-knowledge-architect: Seats: 1 seat(s) are wedged/starved now that the cut did not name: aa630660 |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 18 reconciled_with edge(s) match live spec version(s) |
