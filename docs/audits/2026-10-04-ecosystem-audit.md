@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-04  
-**Generated:** 2026-10-04T02:13:13  
+**Generated:** 2026-10-04T03:00:43  
 **Repos audited:** 6  
 **Checks:** 807 total — 157 pass, 13 fail, 451 warn, 0 unavailable, 186 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-91sblzg8\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-zgsmkr70\wt`  
 **Last audit:** 2026-10-04
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 27d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-02; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-02, newest input docs/audits committed 2026-10-02 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 13 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 12 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -835,7 +835,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 6 of 6 linked worktree(s) look unclosed (horizon 7d): fix/cloud-models-fail-fast [last commit 38d ago]; feat/cloud-models [last commit 38d ago]; feat/codespace-name-from-stdout [last commit 18d ago]; fix/sanitise-external-text [last commit 38d ago]; fix/check-advisory-unowned-path [last commit 38d ago]; worktree-lane-ab-810-substrate-repair [last commit 17d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 6 of 6 linked worktree(s) look unclosed (horizon 7d): fix/cloud-models-fail-fast [last commit 38d ago]; feat/cloud-models [last commit 38d ago]; feat/codespace-name-from-stdout [last commit 18d ago]; fix/sanitise-external-text [last commit 38d ago]; fix/check-advisory-unowned-path [last commit 39d ago]; worktree-lane-ab-810-substrate-repair [last commit 17d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
