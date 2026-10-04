@@ -1115,3 +1115,16 @@ def test_an_undated_newer_undeclared_plan_refuses_and_an_undated_older_one_does_
     row = hs.row_plan(t)
     assert row.value.startswith("no master plan declared among the newest"), row.value
     assert "PLAN-NEW.md" in row.value, row.value
+
+
+def test_a_versioned_companion_is_not_a_master(tmp_path):
+    """Review P1: `kind: PLAN v2 — … complements …` matches the master shape too; the companion
+    declaration wins, so a newer versioned companion cannot be named as the master."""
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    master = t / "to-cc" / "PLAN-MASTER-2026-10-04.md"
+    master.write_text(_MASTER_HEAD, encoding="utf-8")
+    comp = t / "to-cc" / "PLAN-COMPANION-2026-10-04.md"
+    comp.write_text(_COMPANION_HEAD.replace("kind: PLAN —", "kind: PLAN v2 —"), encoding="utf-8")
+    os.utime(master, (1_000_000_000, 1_000_000_000))
+    assert "`to-cc/PLAN-MASTER-2026-10-04.md`" in hs.row_plan(t).value

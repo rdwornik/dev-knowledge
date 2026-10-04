@@ -420,10 +420,10 @@ def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
     after the cut, or carrying no date at all, cannot vouch for a bundle cut before it. A missing, unreadable or out-of-bounds
     predecessor leaves the plan `undeclared`, which `row_plan` refuses on rather than guessing."""
     head = _plan_head(path)
+    if _COMPANION_PLAN_RE.search(head):          # first: `kind: PLAN v2 -- ... complements ...`
+        return "companion"                       # also matches the master shape
     if _MASTER_PLAN_RE.search(head):
         return "master"
-    if _COMPANION_PLAN_RE.search(head):
-        return "companion"
     m = _SUPERSEDES_RE.search(head)
     if m is not None and _depth < _LINEAGE_DEPTH:
         ref = m.group(1)
