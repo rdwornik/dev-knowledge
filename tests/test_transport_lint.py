@@ -215,10 +215,29 @@ def test_append_lints_the_resulting_file(t, world, registry):
 
 def test_emit_lints_a_transport_destination_and_leaves_other_paths_alone(t, world, tmp_path, registry):
     with pytest.raises(t.TransportWriteRefused):
-        t.emit("operator", world["cc"] / "AMEND-5-GREEN-2026-10-03.md", SIGNAL_FIXTURE)
+        t.emit("operator", world["cc"] / "AMEND-5-GREEN-2026-10-03.md", SIGNAL_FIXTURE,
+               transport_root=world["root"])
     outside = tmp_path / "elsewhere" / "report.md"
-    t.emit("gen_ledger", outside, "plain\n")
+    t.emit("gen_ledger", outside, "plain\n", transport_root=world["root"])
     assert outside.read_text(encoding="utf-8") == "plain\n"
+
+
+def test_a_scratch_directory_sharing_the_basename_is_not_the_transport(t, world, tmp_path):
+    """Codex terra HIGH: `--out <scratch>/to-browser/x.md` is not a transport write, and must
+    not be refused for being an unregistered kind."""
+    scratch = tmp_path / "scratch" / "to-browser" / "my-report.md"
+    assert t.is_transport_dest(scratch, world["root"]) is False
+    t.emit("gen_ledger", scratch, "plain\n", transport_root=world["root"])
+    assert scratch.read_text(encoding="utf-8") == "plain\n"
+    assert t.is_transport_dest(world["browser"] / "x.md", world["root"]) is True
+    assert t.is_transport_dest(world["root"] / "LANE-x.md", world["root"]) is True
+
+
+def test_a_differently_cased_folder_name_is_still_the_transport(t, world):
+    """Codex terra HIGH: a Windows path may spell the folder `TO-BROWSER`; it must not bypass
+    the gate (the real folder is the same one)."""
+    assert t.is_transport_dest(world["root"] / "TO-BROWSER" / "x.md", world["root"]) is True
+    assert t._folder_of(world["root"] / "TO-CC" / "x.md") == "to-cc"
 
 
 #: The registry's `writers:` entries that are SCRIPT modules (a file in scripts/), by how this
@@ -418,6 +437,19 @@ def test_a_lane_contract_without_the_r59_proof_is_refused(lint):
 def test_a_lane_contract_naming_only_the_model_id_is_refused(lint):
     text = "# LANE x\n\nclose-out: record the served model id.\n"
     assert "lane-contract-no-r59-proof" in [f.code for f in lint.lint_text("LANE-x.md", "root", text)]
+
+
+def test_r59_words_in_unrelated_prose_do_not_satisfy_the_close_out_gate(lint):
+    """Codex terra HIGH: the proof counts in the close-out item, not anywhere in the file."""
+    text = ("# LANE x\n\nWe recorded the served model id and a nonce in an earlier lane.\n\n"
+            "## Done-contract (immutable)\n\n1. a thing\n"
+            "2. **Close-out:** tests and a handback.\n\n## Do not\n\n- record a nonce here\n")
+    assert [f.code for f in lint.lint_text("LANE-x.md", "root", text)] == ["lane-contract-no-r59-proof"]
+
+
+def test_a_lane_contract_with_no_close_out_item_is_refused(lint):
+    text = "# LANE x\n\nthe served model id and a nonce\n"
+    assert [f.code for f in lint.lint_text("LANE-x.md", "root", text)] == ["lane-contract-no-r59-proof"]
 
 
 def test_the_lane_contract_template_still_names_the_proof_at_the_line_the_contract_cites():

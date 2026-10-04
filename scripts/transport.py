@@ -142,7 +142,7 @@ def _folder_of(dest: Path) -> str:
     """`dest`'s own folder name, as `scan()`'s convention reads it: `to-cc`/`to-browser` when
     the immediate parent is named that, else `root` (a `LANE-*.md` contract, sitting directly
     under the transport root rather than either subfolder)."""
-    parent_name = dest.parent.name
+    parent_name = dest.parent.name.lower()   # a Windows path may spell it `TO-BROWSER`
     return parent_name if parent_name in ("to-cc", "to-browser") else "root"
 
 
@@ -193,24 +193,37 @@ def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] 
     return dest
 
 
-def is_transport_dest(dest: Path) -> bool:
-    """True when `dest` sits in a transport folder: a `to-cc/` or `to-browser/` parent, or the
-    configured `CLAUDE_PROMPTS_DIR` itself (the root, where `LANE-*.md` contracts live)."""
-    if dest.parent.name in ("to-cc", "to-browser"):
-        return True
-    raw = _tr.windows_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get("CLAUDE_PROMPTS_DIR")
+def _same(a: Path, b: Path) -> bool:
+    return os.path.normcase(str(a)) == os.path.normcase(str(b))
+
+
+def is_transport_dest(dest: Path, transport_root: Optional[Path] = None) -> bool:
+    """True when `dest` sits in the transport: the root itself (where `LANE-*.md` contracts
+    live) or an immediate `to-cc/` / `to-browser/` child of it. The root is `transport_root`,
+    else the configured `CLAUDE_PROMPTS_DIR`; paths are resolved and compared case-insensitively
+    on Windows, so a scratch directory that merely shares the basename `to-browser` is not the
+    transport, and `TO-BROWSER` is. With no root known at all the folder name decides."""
+    parent = dest.parent
+    raw = transport_root or _tr.windows_user_env("CLAUDE_PROMPTS_DIR") \
+        or os.environ.get("CLAUDE_PROMPTS_DIR")
+    if not raw:
+        return parent.name.lower() in ("to-cc", "to-browser")
     try:
-        return bool(raw) and dest.parent.resolve() == Path(raw).resolve()
+        root, real = Path(raw).resolve(), parent.resolve()
     except OSError:
         return False
+    if _same(real, root):
+        return True
+    return real.name.lower() in ("to-cc", "to-browser") and _same(real.parent, root)
 
 
-def emit(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
+def emit(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None,
+         transport_root: Optional[Path] = None) -> Path:
     """A generator's single write call: a destination inside the transport goes through
     `write()` (registered kind, registered writer, linted content); any other path -- an
     operator's explicit `--out` into a scratch directory -- is a plain atomic write, since it is
     not a transport write."""
-    if is_transport_dest(dest):
+    if is_transport_dest(dest, transport_root):
         return write(writer, dest, data, registry=registry)
     dest.parent.mkdir(parents=True, exist_ok=True)
     _tr.deliver(dest, data.encode("utf-8"))

@@ -133,12 +133,28 @@ def lint_entry(name: str, folder: str, read_text: Callable[[], str],
     if is_decision(name, reg):
         findings.extend(_carriage_findings(name, read_text()))
     elif kind is not None and kind.name in LANE_CONTRACT_KINDS:
-        text = read_text()
-        if not (_SERVED_MODEL_RE.search(text) and _PROOF_RE.search(text)):
+        closeout = _closeout_region(read_text())
+        if not (_SERVED_MODEL_RE.search(closeout) and _PROOF_RE.search(closeout)):
             findings.append(Finding(name, "lane-contract-no-r59-proof",
                 "the close-out names no served model id and no nonce or content-hash proof of "
                 "read (R59): a review record without both reads as a failed read"))
     return findings
+
+
+_CLOSEOUT_RE = re.compile(r"close-?out", re.I)
+_HEADING_RE = re.compile(r"^#{1,6}\s", re.M)
+
+
+def _closeout_region(text: str) -> str:
+    """The close-out item of a lane contract: from the first `Close-out` mention to the next
+    heading (or the end of the file). The R59 words count only there -- the same words in
+    unrelated prose do not satisfy the gate. Empty when the contract has no close-out."""
+    m = _CLOSEOUT_RE.search(text)
+    if m is None:
+        return ""
+    rest = text[m.start():]
+    h = _HEADING_RE.search(rest, 1)
+    return rest[:h.start()] if h else rest
 
 
 def _carriage_findings(name: str, text: str) -> list[Finding]:
