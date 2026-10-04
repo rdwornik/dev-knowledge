@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (b) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-11-retire-approved merges -- the seven DEAD templates are retired under R66 and ADR-116 is withdrawn
+
+**Anchors:** `ed9180d0`, `055bf91d`, `35e06455`, `716a85b3`, `d6d1f7f5`, `555f98cd`, `78f11e06` -- `worktree-foundation-11-retire-approved`, merged `--no-ff` through `epic/foundation-int-foundation-11-retire-approved`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. Retired only the items whose dynamic-use verdict reads DEAD (v4 handoff templates 01, 03-06; `workspace-L`, `workspace-M`), each with its evidence in the removal ledger; every other item is listed untouched. ADR-116 takes `Explored, not adopted` (no open row cites it); ADR-117 and ADR-118 are kept with their citing rows.
+- The integrator re-ran the reacher search on the merged tree: the remaining hits name generated bundle outputs (`docs/handoffs/*/0N_*.md`) or the lane's absence tests; no generator opens the removed templates.
+- Done item 3's literal clause read UNMET on the lane's branch run: two `test_gen_audit_index` ids from the index the contract told the lane to leave stale, plus the branch-context `worktree_seed` red. Judged on this merge's run instead, where the index is regenerated.
+- `ecosystem/doc-counts.md` regenerated on the conflict (8912 collected, `--check` match); `docs/audits/README.md` regenerated; lane foundation-10-model-currency's closed merge receipt carried in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** seven template files removed; reference lines in `templates/handoff/{02_METHODOLOGY,07_ASK_BACK,README}.md.tmpl` and `.claude/commands/handoff.md`; ADR-116 status line and its `docs/decisions/README.md` entry; two test files; two audits; `logs/MERGE-RECEIPTS.jsonl`; generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** the lane's three ROWS-OWED (PLAYBOOK `:1147`/`:1150` still name the removed workspaces; a removal-ledger home; the stale conformance dashboard) go to the batch digest.
+
 ### 2026-10-04 (a) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-10-model-currency merges -- the harness checks model currency from served evidence (R61)
 
 **Anchors:** `91ed36c3`, `7ea72394`, `7fd1327d` -- `worktree-foundation-10-model-currency`, merged `--no-ff` through `epic/foundation-int-foundation-10-model-currency`.
