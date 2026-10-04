@@ -944,6 +944,7 @@ def test_a_served_id_the_registry_does_not_route_to_fails_c1_naming_both_ids(cli
     assert verdict.status == "FAIL"
     assert cli in verdict.reason and served in verdict.reason
     assert _EXPECTED_IDS[cli] in verdict.reason, "the registry's id is named beside the served one"
+    assert "registry routes" in verdict.reason, "the FAIL is the registry comparison, not a diff of records"
 
 
 def test_a_mismatch_on_the_local_side_fails_too():
@@ -951,7 +952,7 @@ def test_a_mismatch_on_the_local_side_fails_too():
     local["environment"]["models"] = _served(claude="claude-sonnet-5-5")
     verdict = cp.compare_environment(local, _record("codespace"))
     assert verdict.status == "FAIL" and "claude-sonnet-5-5" in verdict.reason
-    assert "local" in verdict.reason
+    assert "local" in verdict.reason and "registry routes" in verdict.reason
 
 
 @pytest.mark.parametrize("state", ["no-answer", "probe-error", "no-expected"])
@@ -1034,6 +1035,7 @@ def test_the_local_side_must_have_answered_every_cli_itself():
                                                "detail": "login missing"}
     verdict = cp.compare_environment(local, _record("codespace"))
     assert verdict.status == "FAIL" and "codex" in verdict.reason and "local" in verdict.reason
+    assert "no served model id" in verdict.reason
 
 
 # ----------------------------------------------------- the readers: the tool's own record, not its words
@@ -1312,10 +1314,29 @@ def test_collect_environment_marks_the_auth_the_model_call_found_missing(tmp_pat
 def test_default_run_gives_the_child_no_stdin_so_codex_exec_cannot_hang_on_it():
     """`codex exec` prints 'Reading additional input from stdin...' and waits forever when stdin is
     an open pipe (found while building the probe, 2026-10-04). The one place a subprocess starts
-    closes it."""
-    res = cp.default_run([sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"],
-                         timeout=30)
-    assert res.returncode == 0 and res.stdout.strip() == "''", res
+    closes it. Witnessed with a parent that holds its own stdin pipe OPEN: a child that inherited
+    it would block until `default_run`'s timeout (124)."""
+    import subprocess
+
+    code = ("import sys
+"
+            "from scripts import codespace_parity as cp
+"
+            "r = cp.default_run([sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'],"
+            " timeout=8)
+"
+            "print(r.returncode, r.stdout.strip())
+")
+    proc = subprocess.Popen([sys.executable, "-c", code], cwd=str(REPO_ROOT), text=True,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        proc.wait(timeout=60)
+        out = proc.stdout.read()
+    finally:
+        proc.kill()
+        for stream in (proc.stdin, proc.stdout, proc.stderr):
+            stream.close()
+    assert out.strip() == "0 ''", out
 
 
 def test_the_probe_prompt_is_one_nonce_and_asks_for_nothing_else():
