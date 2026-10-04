@@ -51,7 +51,7 @@ class Fixture:
         (self.repo / "tests").mkdir()
         (self.repo / "tests" / "test_widget.py").write_text(
             "class TestGroup:\n    def test_nested(self):\n        pass\n\n\n"
-            "def helper():\n    return 1\n\n\nclass Helpers:\n    def test_hidden(self):\n        pass\n\n\ndef test_widget_works():\n    assert True\n\n\n"
+            "def helper():\n    return 1\n\n\nclass TestOff:\n    __test__ = False\n\n    def test_x(self):\n        pass\n\n\nclass TestInit:\n    def __init__(self):\n        pass\n\n    def test_y(self):\n        pass\n\n\ndef test_off():\n    pass\n\n\ntest_off.__test__ = False\n\n\nclass Helpers:\n    def test_hidden(self):\n        pass\n\n\ndef test_widget_works():\n    assert True\n\n\n"
             "@pytest.mark.parametrize(\"x\", [1])\ndef test_param(x):\n    assert x\n", encoding="utf-8")
         self.source = self.repo / "BACKLOG.md"
         self.source.write_bytes(_TWO_THEMES.encode("utf-8"))
@@ -421,3 +421,20 @@ def test_refuses_ids_pytest_would_not_collect(fx):
     _refuses(fx, tests=["tests/test_widget.py::helper"])
     _refuses(fx, tests=["tests/test_widget.py::Helpers::test_hidden"])
     _refuses(fx, tests=["tests/widget.py::test_widget_works"])
+
+
+def test_refuses_nodes_pytest_disables_or_cannot_instantiate(fx):
+    _refuses(fx, tests=["tests/test_widget.py::TestOff::test_x"])
+    _refuses(fx, tests=["tests/test_widget.py::TestInit::test_y"])
+    _refuses(fx, tests=["tests/test_widget.py::test_off"])
+
+
+def test_refuses_when_repo_root_is_the_lanes_own_worktree_whatever_the_cwd(fx, tmp_path):
+    wt = fx.repo / ".claude" / "worktrees" / SLUG
+    wt.mkdir(parents=True)
+    before = fx.snapshot()
+    with pytest.raises(rc.RowCloseRefusal):
+        rc.close_for_merge(wt, contract_text=CONTRACT, slug=SLUG, ci_run="123456",
+                           tests=[TEST_ID], caller_session=INTEGRATOR_SESSION,
+                           lane_session=LANE_SESSION, cwd=fx.repo, gh=fx.gh())
+    assert fx.snapshot() == before

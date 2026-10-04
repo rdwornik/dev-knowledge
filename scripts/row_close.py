@@ -40,7 +40,10 @@ Prior-art check (library-first): the row writer, its evidence clause and its ref
 reader is `merge_receipt.read_ledger`. Everything else is stdlib (`subprocess` for `git` and
 `gh`, `re`, `json`). No new dependency.
 
-HONEST LIMITS. `gen_task_tree._cmd_close_row` leaves `BACKLOG.md` alone; the integrator regenerates
+HONEST LIMITS. Test-node existence is a static `ast` check (exact class nesting, default pytest
+naming, `__test__ = False`, `__init__`/`__new__`), not a pytest collection: conftest hooks,
+plugins, `python_*` overrides and skip markers are not read, and a `[param]` case is refused
+rather than collected. `gen_task_tree._cmd_close_row` leaves `BACKLOG.md` alone; the integrator regenerates
 it (`gen_task_tree.py --emit-source`) on the merged tree. The step reads the CI run's workflow
 conclusion, not each test's own result -- the per-leg verdict stays the merge receipt's. Folding
 this call inside `merge_receipt.py close` is not this wave's (that file is lane W1-2's).
@@ -261,9 +264,52 @@ def verify_tests(repo_root: Path, merge_sha: str, tests: Sequence[str]) -> None:
             raise RowCloseRefusal(
                 f"refused: {node_id!r} is not a node id pytest collects by default "
                 f"(test_*.py / *_test.py file, Test* classes, test* function)")
+        if _collection_blocked(tree, names):
+            raise RowCloseRefusal(f"refused: {node_id!r}: pytest does not collect it "
+                                  f"(`__test__ = False`, or a class with __init__/__new__)")
         if _defined_at(tree.body, names) is None:
             raise RowCloseRefusal(f"refused: {node_id!r}: {'::'.join(names)} is not defined in "
                                   f"{path} at {merge_sha} (exact class nesting)")
+
+
+def _sets_test_false(stmt: ast.stmt, owner: Optional[str]) -> bool:
+    """`__test__ = False` in a body (owner None), or `<owner>.__test__ = False` at module level."""
+    if not isinstance(stmt, ast.Assign) or not (
+            isinstance(stmt.value, ast.Constant) and stmt.value.value is False):
+        return False
+    for target in stmt.targets:
+        if owner is None and isinstance(target, ast.Name) and target.id == "__test__":
+            return True
+        if (owner is not None and isinstance(target, ast.Attribute) and target.attr == "__test__"
+                and isinstance(target.value, ast.Name) and target.value.id == owner):
+            return True
+    return False
+
+
+def _collection_blocked(tree: ast.Module, names: list[str]) -> bool:
+    """A static approximation of pytest's refusals: `__test__ = False` on the module, a class or
+    the function, and a class that defines `__init__`/`__new__`. NOT real collection -- conftest
+    hooks, plugins and markers are not read (see the module docstring's limits)."""
+    if any(_sets_test_false(s, None) for s in tree.body):
+        return True
+    body = tree.body
+    for index, name in enumerate(names):
+        last = index == len(names) - 1
+        if any(_sets_test_false(s, name) for s in tree.body):
+            return True
+        node = next((n for n in body if isinstance(n, (ast.ClassDef, ast.FunctionDef,
+                                                       ast.AsyncFunctionDef))
+                     and n.name == name), None)
+        if node is None:
+            return False  # absent: _defined_at reports it
+        if not last:
+            if any(_sets_test_false(s, None) for s in node.body):
+                return True
+            if any(isinstance(s, ast.FunctionDef) and s.name in ("__init__", "__new__")
+                   for s in node.body):
+                return True
+            body = node.body
+    return False
 
 
 def _defined_at(body: list, names: list[str]) -> Optional[ast.AST]:
@@ -291,7 +337,10 @@ def close_for_merge(repo_root: Path, *, contract_text: str, slug: str, ci_run: O
     parsed = parse_rows_line(contract_text)
     if parsed.refusal:
         raise RowCloseRefusal(f"refused: {parsed.refusal}")
+    # Both places a close could be aimed from: where the process runs and the repo it writes.
     check_caller_is_not_the_lane(slug, Path(cwd), caller_session, lane_session)
+    if Path(repo_root).resolve() != Path(cwd).resolve():
+        check_caller_is_not_the_lane(slug, repo_root, caller_session, lane_session)
     if not parsed.closes:
         return []
     out_dir = Path(tasks_dir) if tasks_dir else repo_root / "tasks"
