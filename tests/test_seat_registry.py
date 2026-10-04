@@ -382,3 +382,162 @@ def test_named_bad_seats_is_unaffected_by_a_trailing_no_live_integrator_clause()
             "`seat_registry.py bind --role integrator --batch <B>`")
     named = reg.named_bad_seats(line)
     assert named["wedged"] == {"aaaaaaaa"}
+
+
+# --- unbind: a seat that handed over is not a wedged seat ([foundation-9-hygiene] item 1) ---------
+
+def test_a_bound_then_unbound_seat_is_not_wedged_after_the_threshold(tmp_path):
+    """A cycled seat wrote nothing more and aged to `wedged`; `unbind` is its terminal handover
+    event, so the READ state is `absent`, as for a SessionEnd -- never `wedged`."""
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "old", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="old", path=path, now=T0)
+    reg.unbind(session_id="old", path=path, now=T0 + timedelta(minutes=5))
+    later = T0 + timedelta(minutes=reg.WEDGED_AFTER_MIN + 30)
+    assert _seats(path, now=later)["old"].state == "absent"
+
+
+def test_an_unbound_seat_stays_absent_when_a_stop_event_follows(tmp_path):
+    """The seat's own Stop hook fires AFTER the turn that ran `unbind`; it must not revive it."""
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "old", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="old", path=path, now=T0)
+    reg.unbind(session_id="old", path=path, now=T0 + timedelta(minutes=5))
+    _event(path, "Stop", "old", at=T0 + timedelta(minutes=6))
+    assert _seats(path, now=T0 + timedelta(minutes=7))["old"].state == "absent"
+
+
+def test_a_rebind_after_an_unbind_makes_the_seat_live_again(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "s1", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0)
+    reg.unbind(session_id="s1", path=path, now=T0 + timedelta(minutes=1))
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0 + timedelta(minutes=2))
+    assert _seats(path, now=T0 + timedelta(minutes=3))["s1"].state == "live"
+
+
+def test_unbind_keeps_the_role_and_writes_no_state(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0)
+    row = reg.unbind(session_id="s1", path=path, now=T0)
+    assert row["kind"] == "unbind" and "state" not in row
+    seat = _seats(path, now=T0)["s1"]
+    assert (seat.role, seat.batch) == ("dispatcher", "FOUNDATION")
+    with pytest.raises(SeatRefusal, match="unknown-role"):
+        reg.unbind(session_id="", path=path, now=T0)
+
+
+def test_a_hand_appended_unbind_row_carrying_a_state_is_discarded(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "s1", at=T0)
+    forged = {"schema": reg.SCHEMA, "kind": "unbind", "session_id": "s1",
+              "ts": (T0 + timedelta(minutes=1)).isoformat(), "state": "absent"}
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(forged) + "\n")
+    assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "live"
+    # ...while the same row WITHOUT a state is the accepted protocol (before `unbind` existed every
+    # unbind row was discarded, so this half is what separates the new reader from the old one).
+    del forged["state"]
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(forged) + "\n")
+    assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "absent"
+
+
+def test_unbind_without_a_runtime_session_id_is_refused(monkeypatch):
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+    result = CliRunner().invoke(reg.cli, ["unbind"])
+    assert result.exit_code == 1
+    assert "CLAUDE_CODE_SESSION_ID" in result.output
+
+
+def test_unbind_cli_binds_the_runtime_session_and_offers_no_session_flag(tmp_path, monkeypatch):
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "runtime-sid")
+    runner = CliRunner()
+    assert runner.invoke(reg.cli, ["unbind", "--session", "other"]).exit_code != 0
+    result = runner.invoke(reg.cli, ["unbind"])
+    assert result.exit_code == 0, result.output
+    assert [r["session_id"] for r in reg.read_rows(path) if r["kind"] == "unbind"] == ["runtime-sid"]
+
+
+def test_the_dispatcher_order_cycle_section_calls_unbind_before_the_new_seat_starts():
+    template = (Path(__file__).resolve().parent.parent / "templates"
+                / "dispatcher-order-template.md").read_text(encoding="utf-8")
+    cycle = template.split("## Cycle", 1)[1]
+    assert "seat_registry.py unbind" in cycle
+
+
+def test_a_simulated_cycle_leaves_the_health_readers_clean(tmp_path, monkeypatch):
+    """The readers `[seats]` (fleet_health, SessionStart) and the BD-seats row (handoff_state) name
+    no WEDGED seat after a handover; `audit.py health` carries no seat reader of its own, so the
+    two organs it composes are what a cycle can disturb."""
+    import os
+
+    import fleet_health
+    import handoff_state
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    env = {"CLAUDE_PID": str(os.getpid())}
+    reg.record_event({"hook_event_name": "SessionStart", "session_id": "out-sid",
+                      "cwd": str(tmp_path)}, now=then, env=env)
+    reg.bind("dispatcher", "FOUNDATION", session_id="out-sid", now=then)
+    assert "WEDGED" in (fleet_health.seat_health_line(tmp_path) or "")   # the false alarm, pre-fix
+    reg.unbind(session_id="out-sid", now=then + timedelta(minutes=1))
+    assert "WEDGED" not in (fleet_health.seat_health_line(tmp_path) or "")
+    assert "WEDGED" not in handoff_state.row_seats(path=path).value
+
+
+def _health_findings(done_stdout):
+    """The `[!!]` check names in an `audit.py health` stdout (detail text can carry a clock)."""
+    return {line.split("]", 1)[1].split(":", 1)[0].strip()
+            for line in done_stdout.splitlines() if line.lstrip().startswith("[!!]")}
+
+
+@pytest.mark.parametrize("foreign", [False, True], ids=["clean-box", "foreign-DEGRADED"])
+def test_audit_health_gains_no_finding_after_a_simulated_cycle(tmp_path, monkeypatch, foreign):
+    """Done-contract item 1, repaired (integrator repair 1): `audit.py health` STAYS as it was
+    across a cycle. A PAIRED reading: the real command runs BEFORE the cycle (the dispatcher is
+    bound and silent past `WEDGED_AFTER_MIN`) and AFTER it (`unbind`), against one HOME, and the
+    AFTER run adds no `[!!]` finding the BEFORE run lacked -- a foreign DEGRADED (the CI runner's
+    registered environmental checks) is in both and cancels. `audit.py` carries no seat reader of
+    its own, so the seat readers the cycle CAN disturb (`handoff_state.row_seats`, the `[seats]`
+    line) are asserted in the same test: the isolated seat-reading check reads clean AFTER and is
+    the leg that goes red when the cycle leaves a wedged seat. `foreign=True` forces a foreign
+    `[!!]` onto both real runs, the condition on CI."""
+    import os
+    import subprocess
+    import sys
+
+    import handoff_state
+    home = tmp_path / "home"
+    registry = home / ".claude" / "seat-registry.jsonl"
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    reg.record_event({"hook_event_name": "SessionStart", "session_id": "out-sid",
+                      "cwd": str(tmp_path)}, path=registry, now=then,
+                     env={"CLAUDE_PID": str(os.getpid())})
+    reg.bind("dispatcher", "FOUNDATION", session_id="out-sid", path=registry, now=then)
+    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home), "PYTHONUTF8": "1"}
+    repo = Path(__file__).resolve().parent.parent
+    real_run = subprocess.run
+
+    def health():
+        done = real_run([sys.executable, str(repo / "scripts" / "audit.py"), "health"],
+                        cwd=repo, env=env, capture_output=True, text=True, encoding="utf-8",
+                        errors="replace", timeout=600)
+        out = done.stdout       # the `[!!]` lines; the verdict line is on stderr when DEGRADED
+        if foreign:
+            out += "  [!!] dispatch_drift: forced foreign finding (the CI runner)\n"
+        assert "health:" in done.stdout + done.stderr, out[-2000:] + done.stderr[-2000:]   # it ran
+        return out
+
+    before = health()
+    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state == "wedged"
+    reg.unbind(session_id="out-sid", path=registry, now=then + timedelta(minutes=1))   # the cycle
+    after = health()
+    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state != "wedged"
+    assert "WEDGED" not in handoff_state.row_seats(path=registry).value
+    assert not any("seat" in name.lower() for name in _health_findings(after))
+    gained = _health_findings(after) - _health_findings(before)
+    assert not gained, f"the cycle added health finding(s): {sorted(gained)}"
