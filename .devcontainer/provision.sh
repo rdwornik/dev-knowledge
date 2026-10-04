@@ -739,7 +739,7 @@ fetch_installer() {
 # The `claude-code` devcontainer feature stays declared — it delivers node and the first binary —
 # but installs the LATEST release, which then auto-updates; this leg applies the pin over it.
 leg_f5_claude_pin() {
-  local want ok=1 settings="${HOME}/.claude/settings.json"
+  local want ok=1 installer settings="${HOME}/.claude/settings.json"
   want="$(uv run --no-sync python scripts/provision_legs.py tools get claude)" \
     || die "L-F5 cannot read the claude pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no claude pin"
@@ -764,8 +764,11 @@ PY
     noop "L-F5 claude already at the pinned ${want}"
   else
     say "L-F5 installing claude ${want} over whatever the feature delivered"
-    curl -fsSL https://claude.ai/install.sh | bash -s "${want}" >/dev/null \
+    installer="$(fetch_installer "https://claude.ai/install.sh")" \
+      || die "L-F5 could not fetch a usable Claude installer script"
+    bash "${installer}" "${want}" >/dev/null \
       || die "L-F5 the native Claude installer failed for ${want}"
+    rm -f "${installer}"
     CHANGED=$((CHANGED + 1))
   fi
   ensure_login_resolvable claude

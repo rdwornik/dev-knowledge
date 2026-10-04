@@ -465,13 +465,16 @@ def read_claude(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
 _ANSI = re.compile("\x1b\\[[0-9;]*m")
 
 
-def read_codex(text: str, nonce: str) -> tuple[Optional[str], bool]:
-    """(served id, answered). The id is the `model:` line of Codex's own run header (printed on
-    stderr, and colour-coded when a terminal is attached -- measured 2026-10-04); the answer is any
-    appearance of the nonce once the echoed prompt, which carries it too, is taken out."""
-    plain = _ANSI.sub("", text or "")
-    match = re.search(r"^model:\s*(\S+)", plain, re.MULTILINE)
-    return (match.group(1) if match else None), nonce in plain.replace(probe_prompt(nonce), "")
+def read_codex(stderr: str, stdout: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is the `model:` line of Codex's own run header -- the block
+    between the first two rules of STDERR (colour-coded when a terminal is attached, measured
+    2026-10-04). Nothing the model prints can reach it: STDOUT is never searched for the id, and a
+    `model:` line the transcript echoes after the header is outside the block. The answer is the
+    nonce on STDOUT, the final message; the prompt echoed on stderr carries it too and is not one."""
+    parts = re.split(r"^-{8}\s*$", _ANSI.sub("", stderr or ""), maxsplit=2, flags=re.MULTILINE)
+    header = parts[1] if len(parts) >= 3 else ""
+    match = re.search(r"^model:\s*(\S+)", header, re.MULTILINE)
+    return (match.group(1) if match else None), nonce in _ANSI.sub("", stdout or "")
 
 
 def read_grok(stdout: str, nonce: str, home: Path) -> tuple[Optional[str], bool]:
@@ -519,13 +522,14 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
     res = run(_status_probe(model_probe_argv(cli, nonce, expected.id, str(log_file))),
               cwd=workdir, timeout=timeout)
     if res.returncode in (124, 127):
+        how = "timed out" if res.returncode == 124 else "could not start"
         return {"state": "probe-error", "served_id": None,
-                "detail": f"the call did not run (exit {res.returncode}): {(res.stderr or '')[:80]}"}
+                "detail": f"the call did not run (exit {res.returncode}: {how})"}
     out = res.stdout or ""
     if cli == "claude":
         served, answered = read_claude(out, nonce)
     elif cli == "codex":
-        served, answered = read_codex(out + "\n" + (res.stderr or ""), nonce)
+        served, answered = read_codex(res.stderr or "", out, nonce)
     elif cli == "grok":
         served, answered = read_grok(out, nonce, home)
     else:
