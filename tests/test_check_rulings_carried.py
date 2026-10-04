@@ -51,7 +51,7 @@ def _repo(tmp_path: Path, *entries: str, row: bool = True) -> Path:
            "# Register\n\n## AR. fixture\n\n" + "".join(entries) + "## Editing note\n\nx\n")
     if row:
         _write(root / "tasks" / "1500-fixture.md",
-               "---\nid: \"[#1500]\"\nstatus: open\n---\n\n- [#1500] fixture carrying R70 · Done when: x\n")
+               "---\nid: \"[#1500]\"\nstatus: open\n---\n\n- [#1500] fixture carrying R70 · Done when: x · owner: the fixture lane\n")
     return root
 
 

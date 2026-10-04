@@ -5602,7 +5602,7 @@ Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-20
 
 - **R57 — the rclone Drive token** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:106` (v8)). In force as: the OAuth app stays in Testing, the token is refreshed every 7 days when it expires, and the harness tracks the expiry as it tracks quotas. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** [#1334]
+  **Carried by:** [#1334], [#1379]
 
   ```verbatim to-browser/RATIFICATION-2026-10-03.md:106-111
   ## R57 — the rclone Drive token

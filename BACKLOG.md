@@ -762,6 +762,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1376] [P2][M] Codespace model credentials for codex, grok and agy are loaded from the secrets folder, and the agy sign-in gap is closed or recorded · tasks/1376-codespace-model-credentials-for-codex-grok-and-agy.md
 - [#1377] [P1][L] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness · tasks/1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md
 - [#1378] [P1][S] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded · tasks/1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md
+- [#1379] [P2][S] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds · tasks/1379-the-rclone-drive-token-expiry-row-has-a-named-owne.md
 
 ---
 

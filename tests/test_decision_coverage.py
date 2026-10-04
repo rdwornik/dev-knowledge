@@ -871,13 +871,14 @@ def _register(root: Path, *entries: str) -> None:
 
 
 def _ruling_row(root: Path, task_id: int, status: str, cites: str | None,
-                done_when: bool = True) -> None:
+                done_when: bool = True, owner: bool = True) -> None:
     body = f"carries {cites}. " if cites else "carries nothing in particular. "
     _write(root / "tasks" / f"{task_id}-fixture.md",
            "\n".join(["---", f'id: "[#{task_id}]"', f'title: "fixture row {task_id}"',
                       f"status: {status}", "generates: BACKLOG.md", "---", "",
                       f"- [#{task_id}] [P2][M] **fixture row {task_id}** - {body}"
                       + ("· Done when: the fixture holds " if done_when else "")
+                      + ("· owner: the fixture lane " if owner else "")
                       + "· refs none", ""]))
 
 
@@ -957,6 +958,16 @@ def test_a_row_with_no_done_when_does_not_carry(tmp_path: Path):
     _register(root, _entry(70, "[#1500]"))
     _ruling_row(root, 1500, "open", "R70", done_when=False)
     assert _names(dc.uncarried_rulings(root)) == ["R70"]
+
+
+def test_a_row_with_no_owner_does_not_carry(tmp_path: Path):
+    """Codex P1 (b2-rulings-landing review): the contract asks every carrying row for an owner
+    (wave or lane); a row with a Done-when and no owner left the ruling nobody's."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R70", owner=False)
+    got = dc.uncarried_rulings(root)
+    assert _names(got) == ["R70"] and "owner" in got[0].evidence
 
 
 @pytest.mark.parametrize("text", [
@@ -1151,11 +1162,61 @@ def test_hazard_d_a_carried_by_naming_the_register_does_not_land_a_ruling(tmp_pa
     assert _names(dc.unlanded_rulings(root, transport)) == ["R99"]
 
 
-def test_a_ruling_with_no_computable_date_is_not_refused_on_a_guess(tmp_path: Path):
+def test_an_undated_unlanded_ruling_is_REFUSED_not_forgotten(tmp_path: Path):
+    """Codex P1: 'never refused on a guess' made an undated ruling exempt FOREVER. Not knowing
+    when a ruling was made cannot excuse leaving it unlanded; the refusal says what is missing."""
     root = tmp_path / "r"
     _register(root, _entry(70, NO_IMPL))
     transport = _transport(tmp_path, {"RATIFICATION-undated.md": "## R99 — undated\n"}, _TWO_CLOSED)
+    got = dc.unlanded_rulings(root, transport)
+    assert _names(got) == ["R99"] and "date" in got[0].evidence
+
+
+def test_an_undated_ruling_that_is_landed_is_not_refused(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(99, NO_IMPL))
+    transport = _transport(tmp_path, {"RATIFICATION-undated.md": "## R99 — undated\n"}, _TWO_CLOSED)
     assert dc.unlanded_rulings(root, transport) == []
+
+
+def test_a_malformed_header_date_reads_as_undated_and_does_not_crash(tmp_path: Path):
+    """Codex P1: `date: 2026-99-01` raised ValueError out of the ship gate."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-99-01", "R99")},
+                           _TWO_CLOSED)
+    assert _names(dc.unlanded_rulings(root, transport)) == ["R99"]
+
+
+def test_a_malformed_CLOSED_date_makes_the_batch_clock_unreadable_not_a_crash(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")},
+        {"STATE-BATCH-ONE.md": "CLOSED 2026-99-01T00:00Z\n"})
+    with pytest.raises(dc.TransportUnreadable):
+        dc.closed_batch_dates(transport)
+    report = dc.rulings_report(root, transport=transport)
+    assert report.unlanded is None and "not measured" in report.render()
+
+
+def test_an_unreadable_ratification_file_is_not_an_empty_one(tmp_path: Path, monkeypatch):
+    """Codex P1: `file_rulings` swallowed OSError into `[]`, so a read failure looked like a file
+    with no rulings and the unlanded leg passed."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")}, _TWO_CLOSED)
+    real = Path.read_text
+
+    def deny(self, *a, **k):
+        if self.name == "RATIFICATION-2026-09-01.md":
+            raise PermissionError("access denied")
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", deny)
+    report = dc.rulings_report(root, transport=transport)
+    assert report.unlanded is None and "RATIFICATION-2026-09-01.md" in report.unmeasured_reason
 
 
 # --- the transport boundary ----------------------------------------------------------------

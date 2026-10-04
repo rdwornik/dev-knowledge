@@ -1115,6 +1115,8 @@ def _entry_defect(root: Path, entry: RegisterEntry) -> str | None:
             problems.append(f"[#{task_id}] never names {ruling}")
         elif not re.search(r"done[ -]when", text, re.I):
             problems.append(f"[#{task_id}] states no Done-when")
+        elif not re.search(r"\bowner:[ \t]*\S", text, re.I):
+            problems.append(f"[#{task_id}] names no `owner:` (a wave or a lane)")
         else:
             return None
     return "no named row carries it: " + "; ".join(problems)
@@ -1193,17 +1195,24 @@ def ratification_files(transport) -> list[Path]:
                   and not p.name.startswith("RATIFICATION-DIGEST"))
 
 
+def _parse_day(text: str) -> _dt.date | None:
+    """A `YYYY-MM-DD` that is a real day, else None -- `2026-99-01` matches the shape, not a date."""
+    try:
+        return _dt.date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
 def file_rulings(path: Path) -> list[FileRuling]:
     path = Path(path)
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
+    except OSError as exc:
+        # NOT `[]`: a file that cannot be read is not a file with no rulings.
+        raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
     header = _HEADER_DATE_RE.search(_head(path))
-    date = None
-    if header:
-        date = _dt.date.fromisoformat(header.group(1))
-    else:
+    date = _parse_day(header.group(1)) if header else None
+    if date is None:
         date = _filename_date(path.name)
     seen: set[int] = set()
     out: list[FileRuling] = []
@@ -1225,7 +1234,12 @@ def closed_batch_dates(transport) -> list[_dt.date]:
     for path in sorted(folder.glob("STATE-BATCH-*.md")):
         match = _CLOSED_RE.search(_head(path))
         if match:
-            days.append(_dt.date.fromisoformat(match.group(1)))
+            day = _parse_day(match.group(1))
+            if day is None:
+                raise TransportUnreadable(
+                    f"{path.name} reads CLOSED {match.group(1)}, which is not a date -- the "
+                    "batch clock cannot be trusted")
+            days.append(day)
     return days
 
 
@@ -1248,8 +1262,18 @@ def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
     if population is None:
         population = ratification_population(transport)[1]
     for ruling in population:
-        if ruling.number in landed or ruling.date is None:
-            continue          # landed, or an unknown date: never refuse on a guess
+        if ruling.number in landed:
+            continue
+        if ruling.date is None:
+            # An unknown date cannot excuse an unlanded ruling (exempt forever = forgotten).
+            out.append(Finding(
+                subject=f"R{ruling.number}",
+                evidence=(f"{ruling.file} holds R{ruling.number}, which is not landed in "
+                          f"{RULINGS_REL}, and the file has no computable date (a `date: YYYY-MM-DD` "
+                          f"header or a dated file name), so its age cannot be shown to be within "
+                          f"the grace period. Land it as an entry (`- **R{ruling.number} — "
+                          f"<title>**`) with a `Carried by:` line, or date the file.")))
+            continue
         passed = sum(1 for day in closed if day > ruling.date)
         if passed > grace:
             out.append(Finding(
