@@ -1316,3 +1316,16 @@ kinds:
       works (a hand-made marker counts the same, per that module). Written by the seat's own
       session through `claim.py`, so the writer is a role; it is an empty file, so the lint
       checks its name and folder only.
+
+  - kind: SEAT_STATE
+    prefix: "STATE-"
+    pattern: '^STATE-(?!BATCH-|OF-THE-HARNESS-)[A-Za-z0-9._-]+\.json$'
+    folder: to-browser
+    class: non-decision
+    writers: [seat_state]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `STATE-<batch-slug>[-dispatcher].json`, the seat state file `scripts/seat_state.py write`
+      keeps (schema `dev-knowledge-seat-state/1`). The `.json` twin of the bare STATE kind, which
+      is `.md` only; without it a wake's sweep flags the live state files every time.

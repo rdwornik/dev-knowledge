@@ -109,6 +109,13 @@ def test_claim_markers_are_a_registered_kind(t, registry):
     assert kind is not None and kind.name == "CLAIM_MARKER" and kind.decision is False
 
 
+def test_the_seat_state_json_files_are_registered_so_a_wake_does_not_flag_them(t, registry):
+    for name, kind in (("STATE-b2-w1-dispatcher.json", "SEAT_STATE"), ("STATE-b2-w1.json", "SEAT_STATE"),
+                       ("STATE-b2-w1.md", "STATE")):
+        got = t.classify(name, registry)
+        assert got is not None and got.name == kind, name
+
+
 def test_the_lint_refuses_a_signal_shaped_file_under_a_decision_prefix(lint):
     findings = lint.lint_text("AMEND-5-GREEN-2026-10-03.md", "to-cc", SIGNAL_FIXTURE)
     assert [f.code for f in findings] == ["signal-under-decision-prefix"]
@@ -228,6 +235,8 @@ NOT_TRANSPORT = {      # confirmed by code: writes a repo handoff bundle, not th
 }
 OWNED_ELSEWHERE = {    # another lane of batch B2-W1 owns the call site
     "gen_lane_contract": "lane W1-4 (item 5, after this lane merges)",
+    "seat_state": "no lane of B2-W1 owns it: ROWS-OWED, route its `--path` write through "
+                  "transport.emit",
 }
 ROLES = {"operator", "lane", "integrator"}
 
