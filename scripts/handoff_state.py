@@ -433,7 +433,11 @@ def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
         dated = _DATED_STEM_RE.search(ref)
         if as_of is not None and (dated is None or dated.group(1) > as_of):
             return "undeclared"      # an undated target cannot be placed before the cut
-        if prior != path and prior.is_file():
+        try:                         # a symlink named PLAN-*.md must not resolve out of the directory
+            inside = prior.resolve().parent == path.parent.resolve()
+        except OSError:
+            inside = False
+        if inside and prior != path and prior.is_file():
             return _plan_role(prior, as_of, _depth + 1)
     return "undeclared"
 

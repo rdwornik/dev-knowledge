@@ -11,6 +11,7 @@ to buy.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -1075,4 +1076,18 @@ def test_as_of_rejects_an_undated_lineage_predecessor(tmp_path):
         _V13_HEAD.replace("date: 2026-10-04", "date: 2026-10-03")
         .replace("PLAN-HARNESS-2026-10-04-v12-superseded.md", "PLAN-LINEAGE-ROOT.md"), encoding="utf-8")
     row = hs.row_plan(t, as_of="2026-10-03")
+    assert row.value.startswith("no master plan declared among the newest"), row.value
+
+
+def test_a_symlinked_supersedes_target_cannot_escape_the_plan_directory(tmp_path):
+    t = _v13_transport(tmp_path, with_lineage=False)
+    (t / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").unlink()   # the bare companion would refuse on its own
+    outside = t / "to-browser" / "PLAN-OUTSIDE-2026-10-04.md"
+    outside.write_text(_V12_SUPERSEDED, encoding="utf-8")
+    link = t / "to-cc" / "PLAN-HARNESS-2026-10-04-v12-superseded.md"
+    try:
+        os.symlink(outside, link)      # a lineage name that resolves outside `to-cc`
+    except OSError:
+        pytest.skip("this account cannot create symlinks")
+    row = hs.row_plan(t)
     assert row.value.startswith("no master plan declared among the newest"), row.value
