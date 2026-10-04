@@ -26,8 +26,10 @@ failing check is a refusal (exit 1) that leaves every row file and the manifest 
 A LANE CANNOT CLOSE ITS OWN ROW. The step refuses when run from inside the lane's own worktree
 (`.claude/worktrees/<slug>` or branch `worktree-<slug>`), when the caller's session (the first 8
 characters of `$CLAUDE_CODE_SESSION_ID`, the convention `claim.py` writes) equals the implementing
-session (`--lane-session`, else the suffix of the contract's claim marker), and when either is
-unknown -- a caller that cannot prove it is not the lane is refused.
+session (the suffix of the contract's claim marker; `--lane-session` serves only when no marker is
+readable, and a flag that disagrees with the marker is refused), and when either is unknown -- a
+caller that cannot prove it is not the lane is refused. Limit, stated: with no marker the flag is
+the caller's word.
 
 ALL ROWS OR NONE. Every named row is planned against the untouched tree first; one that is not
 open refuses the whole batch. The writes then go through `gen_task_tree._cmd_close_row` -- the
@@ -49,6 +51,7 @@ error.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -80,6 +83,8 @@ _ACCEPTED_CONCLUSIONS = ("success", "failure")
 _ROWS_LINE_RE = re.compile(r"^\*\*Rows:\*\*(?P<rest>.*)$", re.MULTILINE)
 _ROW_ID_RE = re.compile(r"\[#(\d+)\]")
 _RELATED_SPLIT_RE = re.compile(r";\s*related\b", re.IGNORECASE)
+#: The clause must open with `closes` and a dash or colon; ids anywhere else are not closable.
+_CLOSES_OPEN_RE = re.compile(r"^\s*closes\s*(?:—|--|-|:)")
 _SESSION_PREFIX = 8
 
 
@@ -104,6 +109,9 @@ def parse_rows_line(contract_text: str) -> ParsedRows:
     if match is None:
         return ParsedRows((), (), "the contract has no **Rows:** line -- nothing names a row")
     rest = match.group("rest")
+    if _CLOSES_OPEN_RE.match(rest) is None:
+        return ParsedRows((), (), "the **Rows:** line does not open with `closes —` -- no id "
+                                  "is closable from it")
     parts = _RELATED_SPLIT_RE.split(rest, maxsplit=1)
     closes = tuple(int(i) for i in _ROW_ID_RE.findall(parts[0]))
     related = tuple(int(i) for i in _ROW_ID_RE.findall(parts[1])) if len(parts) > 1 else ()
@@ -219,25 +227,49 @@ def verify_ci_run(ci_run: Optional[str], merge_sha: str, gh: GhRunner) -> str:
 
 
 def verify_tests(repo_root: Path, merge_sha: str, tests: Sequence[str]) -> None:
-    """Every named node id exists at the merge sha (file, classes and function)."""
+    """Every named node id exists at the merge sha: the file, the exact class nesting and the
+    function, parsed with `ast` rather than searched for as text. A `[param]` selector is admitted
+    only on a parametrized function -- the parameter value itself is not collected here."""
     if not tests:
         raise RowCloseRefusal("refused: no test named (--test) -- a close needs the tests")
-    for node in tests:
-        path, *names = node.split("::")
+    for node_id in tests:
+        path, *names = node_id.split("::")
         if not path.endswith(".py") or ".." in path.split("/") or not names:
-            raise RowCloseRefusal(f"refused: {node!r} is not a test node id (file.py::name)")
+            raise RowCloseRefusal(f"refused: {node_id!r} is not a test node id (file.py::name)")
         shown = _git(repo_root, "show", f"{merge_sha}:{path}")
         if shown.returncode != 0:
             raise RowCloseRefusal(f"refused: {path} does not exist at {merge_sha}")
-        source = shown.stdout
-        for index, name in enumerate(names):
-            name = re.sub(r"\[.*\]$", "", name) if index == len(names) - 1 else name
-            keyword = "def" if index == len(names) - 1 else "class"
-            pattern = (rf"^\s*(?:async\s+)?def\s+{re.escape(name)}\s*\(" if keyword == "def"
-                       else rf"^\s*class\s+{re.escape(name)}\b")
-            if not re.search(pattern, source, re.MULTILINE):
-                raise RowCloseRefusal(f"refused: {node!r}: no {keyword} {name} in {path} at "
-                                      f"{merge_sha}")
+        try:
+            tree = ast.parse(shown.stdout)
+        except SyntaxError as exc:
+            raise RowCloseRefusal(f"refused: {path} at {merge_sha} does not parse ({exc})") from exc
+        param = re.search(r"\[.*\]$", names[-1])
+        if param:
+            names[-1] = names[-1][:param.start()]
+        found = _defined_at(tree.body, names)
+        if found is None:
+            raise RowCloseRefusal(f"refused: {node_id!r}: {'::'.join(names)} is not defined in "
+                                  f"{path} at {merge_sha} (exact class nesting)")
+        if param and not _is_parametrized(found):
+            raise RowCloseRefusal(f"refused: {node_id!r}: {names[-1]} is not parametrized, so "
+                                  f"it takes no parameter selector")
+
+
+def _defined_at(body: list, names: list[str]) -> Optional[ast.AST]:
+    """The def reached by walking `names` through DIRECT class nesting, else None."""
+    node = None
+    for index, name in enumerate(names):
+        kinds = ((ast.FunctionDef, ast.AsyncFunctionDef) if index == len(names) - 1
+                 else (ast.ClassDef,))
+        node = next((n for n in body if isinstance(n, kinds) and n.name == name), None)
+        if node is None:
+            return None
+        body = node.body
+    return node
+
+
+def _is_parametrized(node: ast.AST) -> bool:
+    return any("parametrize" in ast.unparse(d) for d in getattr(node, "decorator_list", ()))
 
 
 def close_for_merge(repo_root: Path, *, contract_text: str, slug: str, ci_run: Optional[str],
@@ -315,7 +347,12 @@ def main(argv: Optional[Sequence[str]] = None, *, gh: Optional[GhRunner] = None)
 
     try:
         text = args.contract.read_text(encoding="utf-8")
-        lane_session = args.lane_session or _lane_session_from_marker(args.contract)
+        marker = _lane_session_from_marker(args.contract)
+        if marker and args.lane_session and _session_key(marker) != _session_key(args.lane_session):
+            raise RowCloseRefusal(
+                f"refused: --lane-session {args.lane_session} disagrees with the contract's "
+                f"claim marker ({marker}) -- the marker names the implementing session")
+        lane_session = marker or args.lane_session
         closed = close_for_merge(
             args.repo_root, contract_text=text, slug=args.slug, ci_run=args.ci_run,
             tests=args.tests, caller_session=os.environ.get("CLAUDE_CODE_SESSION_ID"),

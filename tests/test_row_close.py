@@ -51,7 +51,8 @@ class Fixture:
         (self.repo / "tests").mkdir()
         (self.repo / "tests" / "test_widget.py").write_text(
             "class TestGroup:\n    def test_nested(self):\n        pass\n\n\n"
-            "def test_widget_works():\n    assert True\n", encoding="utf-8")
+            "def test_widget_works():\n    assert True\n\n\n"
+            "@pytest.mark.parametrize(\"x\", [1])\ndef test_param(x):\n    assert x\n", encoding="utf-8")
         self.source = self.repo / "BACKLOG.md"
         self.source.write_bytes(_TWO_THEMES.encode("utf-8"))
         self.tasks = self.repo / "tasks"
@@ -274,7 +275,7 @@ def test_refuses_a_test_function_absent_at_the_merge_sha(fx):
 
 def test_a_class_nested_and_parametrised_test_id_resolves(fx):
     assert fx.close(tests=["tests/test_widget.py::TestGroup::test_nested",
-                           "tests/test_widget.py::test_widget_works[a-b]"]) == [1]
+                           "tests/test_widget.py::test_param[1]"]) == [1]
 
 
 def test_refuses_a_row_that_is_not_open_and_writes_none_of_the_batch(fx):
@@ -315,3 +316,66 @@ def test_cli_closes_and_exits_zero_then_refuses_a_second_close_non_zero(fx, tmp_
     before = fx.snapshot()
     assert rc.main(argv, gh=fx.gh()) != 0
     assert fx.snapshot() == before
+
+
+# --- review 1 (Codex terra) fixes ---------------------------------------------------------
+
+def test_parse_refuses_ids_outside_a_closes_clause():
+    for line in ("**Rows:** notes [#1]\n", "**Rows:** related — [#1]\n", "**Rows:** [#1]\n"):
+        parsed = rc.parse_rows_line(line)
+        assert parsed.closes == () and parsed.refusal, line
+
+
+def test_refuses_a_malformed_rows_line_and_closes_nothing(fx):
+    _refuses(fx, contract_text="**Rows:** notes [#1]\n")
+
+
+def test_refuses_a_function_named_under_the_wrong_class(fx):
+    _refuses(fx, tests=["tests/test_widget.py::TestGroup::test_widget_works"])
+
+
+def test_refuses_a_class_method_named_as_a_module_function(fx):
+    _refuses(fx, tests=["tests/test_widget.py::test_nested"])
+
+
+def test_refuses_a_parameter_selector_on_an_unparametrised_test(fx):
+    _refuses(fx, tests=["tests/test_widget.py::test_widget_works[a-b]"])
+
+
+def _marker_env(tmp_path, monkeypatch, marker_session):
+    root = tmp_path / "prompts"
+    (root / "to-cc").mkdir(parents=True)
+    (root / "to-cc" / f"LANE-X.CLAIMED-{marker_session}").write_text("", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(root))
+
+
+def _cli(fx, tmp_path, monkeypatch, caller, *extra):
+    contract = tmp_path / "LANE-X.md"
+    contract.write_text(CONTRACT, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", caller)
+    monkeypatch.chdir(fx.repo)
+    argv = ["close", "--repo-root", str(fx.repo), "--contract", str(contract), "--slug", SLUG,
+            "--ci-run", "123456", "--test", TEST_ID, *extra]
+    return rc.main(argv, gh=fx.gh())
+
+
+def test_the_claim_marker_names_the_lane_when_no_flag_is_given(fx, tmp_path, monkeypatch):
+    _marker_env(tmp_path, monkeypatch, LANE_SESSION)
+    before = fx.snapshot()
+    assert _cli(fx, tmp_path, monkeypatch, LANE_SESSION) != 0
+    assert fx.snapshot() == before
+
+
+def test_a_lane_session_flag_cannot_override_the_claim_marker(fx, tmp_path, monkeypatch):
+    """A lane run from elsewhere cannot pass a different --lane-session to look like someone
+    else: a flag that disagrees with the marker is refused."""
+    _marker_env(tmp_path, monkeypatch, LANE_SESSION)
+    before = fx.snapshot()
+    assert _cli(fx, tmp_path, monkeypatch, LANE_SESSION, "--lane-session", "feedface") != 0
+    assert fx.snapshot() == before
+
+
+def test_the_integrator_closes_when_the_marker_names_a_different_session(fx, tmp_path,
+                                                                         monkeypatch):
+    _marker_env(tmp_path, monkeypatch, LANE_SESSION)
+    assert _cli(fx, tmp_path, monkeypatch, INTEGRATOR_SESSION + "-x") == 0
