@@ -1490,6 +1490,12 @@ def _rule_transport(value: str, ctx: _BootCtx) -> tuple[str, str]:
     except ImportError:
         return "skipped", "handoff_state not importable"
     value = value.strip()
+    try:
+        fresh = _hs.row_transport(ctx.repo_root).rendered()
+    except Exception as exc:            # noqa: BLE001 -- a reader's own failure is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    if value == fresh.strip():           # the cut-time reading, re-derived: same as before this lane
+        return "pass", f"matches live re-derivation: {fresh}"
     m = _TRANSPORT_VALUE_RE.match(value)
     tail = f"— evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]"
     if m is None or not value.endswith(tail):
