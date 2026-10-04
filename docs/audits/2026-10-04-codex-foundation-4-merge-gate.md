@@ -78,3 +78,18 @@ The text above stays as written; the Grok substitution read carried no nonce and
 No P1: nothing to fix RED-first. The Grok pass's Critical and High (not reproduced) were not re-raised by this reviewer.
 
 **Honest limits:** one reviewer at `low` reasoning effort, one pass; it found two items against a 25-file diff, so its silence on a file is weak evidence.
+
+## Amendment 2026-10-04 (repair 2 of 2) — the one refused clause: the CI log reader (`gh run view --log` truncates the pytest step)
+
+The text above stays as written. This amendment records the pinned reviewer's read of the repair-2 diff (`747d4c95..48ee437a`: `scripts/actions_verdict.py`, `scripts/ci_verdict.py` and their two test files). Consumer: the refusal `to-browser/REFUSED-foundation-4-merge-gate.md` (repair 2) and the frozen contract `LANE-FOUNDATION-foundation-4-merge-gate.md` items 10, 11 and 15.
+
+- **Command:** `codex exec -c model=gpt-5.6-terra --sandbox read-only --skip-git-repo-check -C <isolated folder> - < PROMPT.md` (codex-cli 0.155.0), from an isolated folder under the job tmp holding `DIFF.patch` (the repair diff, 210 lines), the four changed files, `CONTRACT.md` (the refusal), `nonce.txt` and the prompt. Exit code 0; first attempt, no retry.
+- **Served id:** `gpt-5.6-terra` (the Codex run header's `model:` line, provider openai).
+- **Nonce returned:** `NONCE-1791078911-28579` — the answer's first line, verbatim; its second line quoted the first diff line (`diff --git a/scripts/actions_verdict.py b/scripts/actions_verdict.py`). sha256 of the raw answer, first 16 hex: `43f46cecb5edc106`.
+- **Verdict as returned:** `P1=1 P2=0 P3=0`.
+
+| Finding | Disposition |
+|---|---|
+| P1 `scripts/ci_verdict.py:224` — `fetch_job_log` returned `""` when `gh api` succeeded with a blank body, against the "None when unreadable, never an empty string" contract; its test covered only a non-zero exit | **FIXED RED-first**: `test_repair2_fetch_job_log_is_NONE_for_a_blank_api_body_never_an_empty_string` (2 cases) failed (2 failed), then green after the `text if text.strip() else None` return. Commit `48ee437a`. |
+
+**Honest limits:** one reviewer, one pass, one finding against a four-file diff; its silence on the rest is weak evidence. It did not run the live acceptance — that is recorded in the session file, not here.
