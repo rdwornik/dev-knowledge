@@ -141,6 +141,23 @@ WITNESS_MEMBERS = (
 )
 
 
+#: b2-merge-gate (R64; architect seat ruling of 2026-10-04 08:40Z): the buckets `compare_to_base`
+#: FLAGS. A test red on BOTH sides is never a refusal -- it is named, with its bucket, in the
+#: receipt. The gate refuses only what the merge introduces (a NEW id) and, one organ over, a
+#: non-pass state of a required check.
+BUCKET_FLAKY_SWAP = "registered-flaky-sibling-swap"
+BUCKET_UNREGISTERED = "unregistered"
+BUCKET_STALE_SIGNATURE = "stale-registry-signature"
+BUCKET_SIGNATURE_CHANGED = "signature-changed"
+BUCKET_CEILING_EXCEEDED = "ceiling-exceeded"
+BUCKET_UNATTRIBUTED_ENTRY = "unattributed-registry-entry"
+FLAG_BUCKETS = (BUCKET_FLAKY_SWAP, BUCKET_UNREGISTERED, BUCKET_STALE_SIGNATURE,
+                BUCKET_SIGNATURE_CHANGED, BUCKET_CEILING_EXCEEDED, BUCKET_UNATTRIBUTED_ENTRY)
+#: What an unregistered red owes. This lane writes no registry entry (lane 1's registry), so the
+#: receipt names the debt and the integrator carries it as `ROWS-OWED`.
+UNREGISTERED_OWES = "needs a registry entry (task, owner, expiry) or a row"
+
+
 class KnownRedsError(RuntimeError):
     """The organ could not produce a verdict (as opposed to producing a red verdict)."""
 
@@ -602,6 +619,172 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
             **result_lists}
 
 
+def _split_flaky_swaps(new_ids: list, fixed: list, listed: dict) -> tuple:
+    """`(refused, swaps)`: the NEW ids that are NOT a registered-flaky sibling swap, and the
+    `(id, sibling)` pairs that are. A swap is a NEW id the registry lists as `flaky` whose base
+    run failed a DIFFERENT registered-flaky id of the SAME test file that the tip does not fail
+    (`fixed`) -- the flake moved, it did not grow. Pairing is one-to-one, so one flaky sibling
+    cannot vouch for two new reds; a flaky NEW with no such sibling stays refused."""
+    def flaky(node_id: str) -> bool:
+        entry = listed.get(node_id)
+        return isinstance(entry, dict) and entry.get("attribution") == FLAKY
+
+    spare: dict = {}
+    for node_id in fixed:
+        if flaky(node_id):
+            spare.setdefault(node_id.split("::", 1)[0], []).append(node_id)
+    refused: list = []
+    swaps: list = []
+    for node_id in new_ids:
+        siblings = spare.get(node_id.split("::", 1)[0]) if flaky(node_id) else None
+        if siblings:
+            swaps.append((node_id, siblings.pop(0)))
+        else:
+            refused.append(node_id)
+    return refused, swaps
+
+
+def compare_to_base(tip_failed: frozenset, base_failed: frozenset, registry: Registry, *,
+                    workers: int, os_key: str | None = None,
+                    tip_signatures: dict | None = None,
+                    base_signatures: dict | None = None) -> dict:
+    """The TEST-LEVEL truth table for ONE OS leg: the tip's failing node ids against the base
+    `main` run's failing node ids against the shrink-only registry (foundation-4-merge-gate, G4).
+
+    WHY IT EXISTS. The merge path classified a CI run by JOB NAME, so a NEW test red inside a job
+    that was already red read PRE-EXISTING (DVA A2; the `424d6c72` cut merge turned
+    `test_registered_check_never_fails_on_live_repo` red for 16 runs while the pytest job was
+    already red). This function is the replacement for that job-level set difference. It is PURE
+    -- the failing sets and signatures are read from the CI job logs by the caller
+    (`actions_verdict`), and the registry is loaded by the caller, so the table is testable
+    row by row.
+
+    b2-merge-gate (R64; architect seat ruling of 2026-10-04 08:40Z) NARROWED THE REFUSAL. As built
+    by foundation-4 every row below but `known` and `fixed` refused, so a red `main` made the
+    gate refuse every clean merge -- and a gate that refuses clean merges gets bypassed. Now the
+    verdict is `fail` for exactly ONE class, and everything else is FLAGGED with its bucket into
+    `flagged` (which the caller writes to the merge receipt):
+
+      new                 the id fails at the tip, did not fail at the base, and is not a swap
+                          -> REFUSED (a test red on the merge and green on the base)
+      flaky swap          a NEW id the registry lists `flaky`, while the base failed a different
+                          registered-flaky id of the same file that the tip does not -> FLAGGED
+                          (`BUCKET_FLAKY_SWAP`); the pairing is one-to-one
+      signature_changed   fails on both sides, differently -> FLAGGED (`BUCKET_SIGNATURE_CHANGED`)
+      known               fails on both sides with the same signature AND the registry vouches
+                          for it (membership, ceiling, unattributed) -> accounted for
+      base_unregistered   fails on both sides but the registry does not list it -> FLAGGED
+                          (`BUCKET_UNREGISTERED`, owing "a registry entry or a row"), never a
+                          silent baseline (D5(b)/DL8)
+      registry_regressions  listed, but the registry itself refuses it -> FLAGGED
+                          (`BUCKET_STALE_SIGNATURE` / `BUCKET_CEILING_EXCEEDED` /
+                          `BUCKET_UNATTRIBUTED_ENTRY`)
+      fixed               failed at the base, passes at the tip -> reported, never silent
+
+    The registry judgement is `compare` itself -- one comparator, not a second copy -- fed the
+    ids that are red on BOTH sides. NOT COMPARABLE (a worker count that is not the registry's
+    pin) fails closed. The non-test half of "every failing thing is accounted for" (a job
+    timeout, a collection error, an xdist crash, `cancelled`) is `actions_verdict`'s: those carry
+    no node id to put in this table, and each is a regression there.
+    """
+    if workers != registry.workers:
+        return {"baseline_id": registry.baseline_id, "os_key": os_key, "verdict": "fail",
+                "complete": False,
+                "reason": f"NOT COMPARABLE -- resolved at {workers} workers, the registry is "
+                          f"pinned at {registry.workers}",
+                "new": [], "signature_changed": [], "known": [], "base_unregistered": [],
+                "registry_regressions": [], "fixed": [], "flagged": []}
+    tip_sigs, base_sigs = tip_signatures or {}, base_signatures or {}
+    new_ids = sorted(tip_failed - base_failed)
+    fixed = sorted(base_failed - tip_failed)
+    both = tip_failed & base_failed
+    listed = dict(registry.members)
+    if os_key:
+        listed.update(registry.members_by_os.get(os_key, {}))
+    flagged: list[dict] = []
+    new, swaps = _split_flaky_swaps(new_ids, fixed, listed)
+    for node_id, sibling in swaps:
+        flagged.append({"id": node_id, "bucket": BUCKET_FLAKY_SWAP,
+                        "note": f"registered flaky; the base run failed its registered-flaky "
+                                f"sibling {sibling.split('::', 1)[-1]} instead (a swap, not a "
+                                f"new defect)"})
+
+    def _no_basis(node_id: str) -> bool:
+        """The tip says WHY it failed, and neither the base log nor the registry carries a
+        signature to say it is the same why: nothing vouches for 'the same failure'."""
+        entry = listed.get(node_id)
+        registered = entry.get("signature") if isinstance(entry, dict) else None
+        return bool(tip_sigs.get(node_id)) and not base_sigs.get(node_id) and not registered
+
+    signature_changed = sorted(
+        node_id for node_id in both
+        if (tip_sigs.get(node_id) and base_sigs.get(node_id)
+            and normalize_signature(tip_sigs[node_id]) != normalize_signature(base_sigs[node_id]))
+        or _no_basis(node_id))
+    judged = both - set(signature_changed)
+    registry_view = compare(frozenset(judged), registry, workers=workers, os_key=os_key,
+                            signatures=tip_sigs)
+    base_unregistered = sorted(n for n in registry_view["regressions"] if n not in listed)
+    registry_regressions = sorted(n for n in registry_view["regressions"] if n in listed)
+    known = sorted(set(registry_view["pre_existing"]) | set(registry_view["witnesses"]))
+    for node_id in signature_changed:
+        flagged.append({"id": node_id, "bucket": BUCKET_SIGNATURE_CHANGED,
+                        "note": "red on both sides, failing differently now"})
+    for node_id in base_unregistered:
+        flagged.append({"id": node_id, "bucket": BUCKET_UNREGISTERED,
+                        "note": f"red on both sides and absent from the registry: "
+                                f"{UNREGISTERED_OWES}"})
+    for node_id in registry_regressions:
+        if node_id in registry_view["unattributed"]:
+            bucket, note = BUCKET_UNATTRIBUTED_ENTRY, "its registry entry is unattributed"
+        elif node_id in registry_view["ceiling_exceeded"]:
+            bucket, note = BUCKET_CEILING_EXCEEDED, "its measured value is past the registered ceiling"
+        else:
+            bucket, note = (BUCKET_STALE_SIGNATURE,
+                            "red on both sides with the same signature, which is no longer the "
+                            "registered one: the registry entry is stale")
+        flagged.append({"id": node_id, "bucket": bucket, "note": note})
+    flagged.sort(key=lambda f: (f["bucket"], f["id"]))
+    # THE REFUSE SET IS THE NEW IDS, AND NOTHING ELSE: red on both sides is flagged above.
+    bad = bool(new)
+    if bad:
+        reason = (f"REGRESSION -- {len(new)} test(s) red on the merge and green on the base, "
+                  f"{len(flagged)} flagged (baseline {registry.baseline_id})")
+    else:
+        reason = (f"0 new, {len(known)} known failure(s), {len(flagged)} flagged (red on both "
+                  f"sides, not refused), {len(fixed)} fixed (baseline {registry.baseline_id})")
+    return {"baseline_id": registry.baseline_id, "os_key": os_key,
+            "verdict": "fail" if bad else "pass", "complete": not bad, "reason": reason,
+            "new": new, "signature_changed": signature_changed, "known": known,
+            "base_unregistered": base_unregistered, "registry_regressions": registry_regressions,
+            "fixed": fixed, "flagged": flagged}
+
+
+def render_compare_to_base(result: dict) -> str:
+    """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
+    lines = ["known-reds compare-to-base", "", f"baseline id    : {result['baseline_id']}"]
+    if result.get("os_key"):
+        lines.append(f"os key         : {result['os_key']}")
+    lines.append(f"known          : {len(result['known'])}")
+    for node_id in result["known"]:
+        lines.append(f"  known         {node_id}")
+    for key, tag in (("new", "NEW"), ("signature_changed", "SIG-CHANGED"),
+                     ("base_unregistered", "BASE-UNREGISTERED"),
+                     ("registry_regressions", "REGISTRY-REFUSED")):
+        lines.append(f"{key.replace('_', ' '):<15}: {len(result[key])}")
+        for node_id in result[key]:
+            lines.append(f"  {tag:<14}{node_id}")
+    lines.append(f"flagged        : {len(result.get('flagged', []))}")
+    for flag in result.get("flagged", []):
+        lines.append(f"  FLAGGED       [{flag['bucket']}] {flag['id']} -- {flag['note']}")
+    lines.append(f"fixed          : {len(result['fixed'])}")
+    for node_id in result["fixed"]:
+        lines.append(f"  fixed         {node_id}")
+    lines.append("")
+    lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
+    return "\n".join(lines)
+
+
 #: D2 (WAVE5B-N4 L2): the failure signature -- exception type + first failing assertion line --
 #: read verbatim from pytest's own short-summary `FAILED <id> - <reason>` / `ERROR <id> -
 #: <reason>` line (`-q --tb=short`'s stable, dependency-free reason text; no junit/json plugin,
@@ -644,6 +827,23 @@ _POSIX_ABS_PATH_RE = re.compile(r"(?<![\w.])/(?:[\w.\-]+/)+[\w.\-]*")
 _LIST_BODY_RE = re.compile(r"(?<=: )\[[^\[\]]*\]")
 _HEX_SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 _GENERATED_NAME_SUFFIX_RE = re.compile(r"(?<=[A-Za-z])-\d+\b")
+#: b2-merge-gate item 3 (N1 (ii)): a SET literal of quoted names -- pytest's own repr of a
+#: set-valued assertion over file names, e.g. `assert {'2026-10-04-...erge-gate.md'} == set()` --
+#: carries a PER-MERGE value (the audit file THIS merge adds), so the same failing assertion read
+#: `sig-changed` on every merge that touched `docs/audits/`. The literal is masked to a shape; the
+#: assertion around it still compares. The discriminator is the repo's own DATED-artifact name,
+#: `YYYY-MM-DD-slug.ext`, which every audit carries and which is what makes the value per-merge:
+#: every member of the set is a quoted name that opens with a date AND ends in a file extension
+#: (pytest's own `...` elision may stand between members), no `key: value` pair. An extension list
+#: alone was tried and failed both ways under Codex terra's reads (2026-10-04) -- it masked
+#: `{'feature_on.py'}` and missed `.rst` -- and a date alone masked `{'2026-10-04-expected'}`; so a
+#: dict repr, a set of any other quoted value (`{'expected-a'}`, `{'expected.v1'}`,
+#: `{'feature_on.py'}`, `{'2026-10-04-expected'}`) and every number or comparison operator stay as
+#: they are. Honest limit: a set of DATED FILE names that genuinely changed is indistinguishable
+#: from the per-merge one, and masks -- no content-only rule can tell them apart.
+_NAME_MEMBER = (r"(?:'\d{4}-\d{2}-\d{2}-[^'{}]*\.[A-Za-z0-9]{1,8}'"
+                r"|\"\d{4}-\d{2}-\d{2}-[^\"{}]*\.[A-Za-z0-9]{1,8}\")")
+_NAME_SET_RE = re.compile(r"\{" + _NAME_MEMBER + r"(?:,\s*(?:" + _NAME_MEMBER + r"|\.\.\.))*\}")
 
 
 def normalize_signature(text: str) -> str:
@@ -652,6 +852,7 @@ def normalize_signature(text: str) -> str:
     two reasons differing only by a sha / a random generated-name suffix / an absolute path /
     a growing list body compare EQUAL, while a genuinely different assertion still compares
     CHANGED."""
+    text = _NAME_SET_RE.sub("{<SET>}", text)
     text = _WIN_ABS_PATH_RE.sub("<PATH>", text)
     text = _POSIX_ABS_PATH_RE.sub("<PATH>", text)
     text = _LIST_BODY_RE.sub("[<LIST>]", text)

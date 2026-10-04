@@ -187,7 +187,11 @@ def cmd_diff(argv: Optional[list[str]] = None) -> int:
         return 2  # pragma: no cover -- argparse `required=True` makes this unreachable
 
     repo = Path(args.repo) if args.repo else _ROOT
-    introduced, resolved = diff(repo, args.base)
+    import merge_path  # noqa: PLC0415 -- A4/AM2-2: one run event per run, private home, never raises
+    with merge_path.timed_event("ship_gate_diff", base=args.base) as event:
+        introduced, resolved = diff(repo, args.base)
+        if introduced:
+            event["outcome"] = "fail"
 
     if args.json:
         print(json.dumps({"base": args.base, "introduced": sorted(introduced),

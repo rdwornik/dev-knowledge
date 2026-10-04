@@ -147,3 +147,35 @@ cost 10, modifiability 10, observability 15; area scores on a 5-point scale):
   orchestrator, 3.15) — the matrix could not decide between them, so D9 records the operator's
   Layer-2 ruling (R11 answer 3: the hub) as the deciding input rather than a scored one. C5
   (Managed Agents cloud leg, 3.00) stays gated on an R2 credential ruling.
+
+## AMENDMENT 1 — 2026-10-04, what D1, D3, D4, D5 and D6 are as built (lane `foundation-4-merge-gate`, batch FOUNDATION)
+
+> In-file amendment marker. The Decision section above is unchanged; where it says "Not yet
+> built", "Not yet armed" or "Not yet run", this section is the current state.
+
+- **D4 — landed.** The server-side spine and ADR-85 anchor checks, plus the seal, run as CI jobs
+  for every push: merge `119c8fc8` (`lane-server-governance`). As built they judge a push to an
+  **integration branch** as a push to `main` (stdin `refs/heads/main <tip> refs/heads/main
+  <origin/main sha>`), so a creation, an update, a fast-forward-shaped and an unanchored push are
+  each refused there exactly as they are on `main` (`scripts/merge_path.py target-line`).
+- **D5 — run.** The landing probe is merge `2baecfca` (`lane-landing-probe-2`, record
+  `docs/audits/2026-09-27-technical-landing-probe.md`): a pre-checked sha **is** accepted by a
+  direct push, and a receipt tip that follows the merge as a second unchecked commit is **not**.
+  The path built on that result is integration-branch-first, not PRs: `scripts/merge_path.py land`
+  pushes the merge to `worktree-integrate-<batch>`, waits for CI on that sha, re-checks that
+  `origin/main` is still the base, and pushes the SAME sha to `main`. A non-merge commit that
+  follows (receipt ledger, audits index) is a second unchecked tip and rides with the next merge.
+- **D1 — as built.** The verdict is one function, `ci_verdict.verdict_for`, which delegates the
+  classification to `actions_verdict.verdict_for`: push runs only, completed runs only, and
+  IN-PROGRESS, CANCELLED, a poll timeout and GH-UNAVAILABLE fail closed. A pytest leg is compared
+  **test by test, per OS**, against the registry read at the baseline sha
+  (`known_reds.compare_to_base`), so a new red inside an already-red job is a regression
+  (`424d6c72` shape). The merge is recorded in two halves, split at the push
+  (`merge_receipt`: `integration_branch`, `pushed_sha`, per-stage minutes).
+- **D3 — as built, still not armed.** `deploy/conductor-required-checks.ruleset.json` carries six
+  required contexts — `pytest (ubuntu-latest)`, `pytest (windows-latest)`, `ruff`, `seal`,
+  `spine`, `anchor` — no bypass actor, `refs/heads/main`, `enforcement: disabled`. Applying it is
+  the operator's act (`merge_path.py ruleset apply`, a dry run until `--execute`) and refuses
+  unless both pytest legs are green on a rehearsal sha first (G1).
+- **D6 — unchanged.** The integrator's local suite stays in the walk: removing it needs a
+  ratification that records Q7(a), and none did at the time of this amendment.

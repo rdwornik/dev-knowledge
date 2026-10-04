@@ -523,6 +523,29 @@ def test_racing_records_EVERY_jobs_verdict_and_FAILS_when_any_job_failed(tmp_pat
     assert result.exit_code != 0, "one failing job fails the race"
 
 
+def test_a_timed_step_and_every_raced_job_emit_a_run_event_each(tmp_path, monkeypatch):
+    """A4: every stage the receipt times also leaves ONE run event in the R17 private home, so the
+    stage durations survive a receipt that is abandoned or never closed."""
+    from click.testing import CliRunner
+
+    import merge_path as mp
+
+    events = tmp_path / "state" / mp.EVENTS_FILENAME
+    monkeypatch.setenv(mp.EVENTS_PATH_ENV, str(events))
+    mr.open_receipt(tmp_path, slug="m", batch="x")
+    CliRunner().invoke(mr.cli, [
+        "--repo-root", str(tmp_path), "time", "--slug", "m", "--step", "merge", "--",
+        sys.executable, "-c", "pass"])
+    CliRunner().invoke(mr.cli, [
+        "--repo-root", str(tmp_path), "race", "--slug", "m",
+        "--job", f"a:tests={sys.executable} -c \"pass\"",
+        "--job", f"b:review={sys.executable} -c \"import sys; sys.exit(3)\""])
+
+    rows = mp.read_events(events)
+    assert [(r["organ"], r["outcome"]) for r in rows] == [
+        ("merge_receipt:merge", "ok"), ("merge_receipt:a", "ok"), ("merge_receipt:b", "fail")]
+
+
 def test_a_raced_job_KNOWS_what_it_ran_against(tmp_path):
     """`raced_with` is what makes the wall-time grouping honest rather than a guess."""
     from click.testing import CliRunner
@@ -696,7 +719,11 @@ def test_the_receipt_records_HOW_MANY_SEATS_were_in_flight_beside_it(tmp_path):
 def _run(sha: str, *jobs: tuple[str, str], status: str = "completed") -> dict:
     """A `gh run list` row as `fetch_run` returns it, so the tests below drive the REAL state
     machine rather than asserting a state they typed themselves."""
-    return {"databaseId": 1, "headSha": sha, "status": status, "conclusion": "failure",
+    # The run's own conclusion follows its jobs (foundation-4 item 11): `verdict_for` now also
+    # reads the run-level conclusion, so a fixture that says `failure` over all-success jobs
+    # describes a run GitHub would not produce.
+    conclusion_run = "failure" if any(c == "failure" for _n, c in jobs) else "success"
+    return {"databaseId": 1, "headSha": sha, "status": status, "conclusion": conclusion_run,
             "displayTitle": f"run for {sha}",
             "jobs": [{"name": name, "conclusion": conclusion} for name, conclusion in jobs]}
 
@@ -898,8 +925,11 @@ def test_the_actions_verb_RECORDS_the_state_it_READ_and_still_exits_NON_ZERO(tmp
     and the step still reports a failure the integrator must record.
     """
     mr.open_receipt(tmp_path, slug="m", batch="y")
-    fetch = _fetcher(tip=_run("tip", ("pytest", "failure"), ("lint", "success")),
-                     base=_run("base", ("pytest", "failure"), ("lint", "success")))
+    # foundation-4 item 10: a failing `pytest` job is judged by node id now (see
+    # `tests/test_actions_verdict.py::test_G4_*`); this test is about the RECEIPT carrying a
+    # PRE-EXISTING state, so the red it carries is a non-pytest job, which keeps the job-level read.
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success"), ("lint", "failure")),
+                     base=_run("base", ("pytest", "success"), ("lint", "failure")))
 
     receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
                                                 baseline="base", fetch=fetch,
@@ -1054,7 +1084,7 @@ def test_the_BASELINE_is_DERIVED_from_the_merges_FIRST_PARENT_rather_than_SUPPLI
 
     def fetch(sha, **_kwargs):
         read.append(sha)
-        return _run(sha, ("pytest", "failure"))
+        return _run(sha, ("lint", "failure"))     # job-level: see the foundation-4 note above
 
     receipt, verdict = mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", fetch=fetch,
@@ -1092,9 +1122,9 @@ def test_a_TYPED_BASELINE_cannot_convert_a_REGRESSED_merge_into_a_PRE_EXISTING_o
     PRE-EXISTING, complete the receipt and let `require` exit 0. The refusal is what stops it.
     """
     mr.open_receipt(tmp_path, slug="m", batch="y")
-    fetch = _fetcher(tip=_run("tip", ("pytest", "failure")),
-                     realparent=_run("realparent", ("pytest", "success")),
-                     olderred=_run("olderred", ("pytest", "failure")))
+    fetch = _fetcher(tip=_run("tip", ("lint", "failure")),
+                     realparent=_run("realparent", ("lint", "success")),
+                     olderred=_run("olderred", ("lint", "failure")))
     parent = _parent({"tip": "realparent"})
 
     with pytest.raises(mr.MergeReceiptError):
@@ -1135,8 +1165,8 @@ def test_a_REGRESSED_reading_is_STICKY_and_a_LATER_read_cannot_supersede_it(tmp_
 
     mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", step="actions",
-        fetch=_fetcher(tip=_run("tip", ("pytest", "failure")),
-                       realparent=_run("realparent", ("pytest", "success"))),
+        fetch=_fetcher(tip=_run("tip", ("pytest", "success"), ("lint", "failure")),
+                       realparent=_run("realparent", ("pytest", "success"), ("lint", "success"))),
         first_parent=parent)
     receipt, _verdict = mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", step="actions-rerun",
@@ -1304,3 +1334,311 @@ def test_the_summary_SAYS_when_a_receipt_carries_no_model_reading():
     about a plausible answer returned because the discriminating field was absent."""
     rendered = mr.render_summary(_closed_receipt())
     assert "model" in rendered.lower()
+
+
+# =====================================================================================
+# foundation-4-merge-gate, item 9 (G5/G6) and item 12: the receipt is SPLIT AT THE PUSH.
+#
+# The integrator pushes the merge commit to `worktree-integrate-<batch>`, CI runs THERE, and the
+# same sha then goes to `main`. So the receipt has a pre-push half (handback, merge, the gates),
+# the push itself, a CI-wait half that is bound to the sha that was pushed, and teardown -- and
+# the digest reads per-stage times off it with no hand arithmetic.
+# =====================================================================================
+
+def test_G5_REQUIRED_STEPS_is_split_at_the_push_and_the_halves_recombine():
+    assert mr.REQUIRED_STEPS_PRE_PUSH == ("handback", "merge")
+    assert mr.REQUIRED_STEPS_POST_PUSH == ("suite", "teardown")
+    assert mr.REQUIRED_STEPS == mr.REQUIRED_STEPS_PRE_PUSH + mr.REQUIRED_STEPS_POST_PUSH
+
+
+def test_G5_record_push_binds_the_branch_and_the_sha_and_times_the_push(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    receipt = mr.record_push(tmp_path, slug="m", target="integration",
+                             branch="worktree-integrate-y", sha="abc123", seconds=4.5)
+
+    assert receipt.integration_branch == "worktree-integrate-y"
+    assert receipt.pushed_sha == "abc123"
+    step = receipt.steps[-1]
+    assert step.step == "push-integration" and step.seconds == 4.5
+    assert mr.load_receipt(tmp_path, "m").pushed_sha == "abc123", "carried forward on disk"
+
+
+def test_G5_an_integration_push_to_a_branch_that_is_not_an_integration_branch_is_refused(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError, match="worktree-integrate-"):
+        mr.record_push(tmp_path, slug="m", target="integration", branch="main", sha="abc123",
+                       seconds=1.0)
+
+
+def test_G5_the_push_to_main_must_be_the_SAME_sha_that_CI_ran_on(tmp_path):
+    """The whole point of the integration branch: what lands on main is the sha CI judged."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="abc123", seconds=1.0)
+
+    _record_suite_state(tmp_path, av.STATE_PASS)
+
+    with pytest.raises(mr.MergeReceiptError, match="same sha"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="def456",
+                       seconds=1.0)
+    receipt = mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                             seconds=2.0)
+
+    assert [s.step for s in receipt.steps] == ["push-integration", "suite", "push-main"]
+
+
+def _record_suite_state(root, state):
+    receipt = mr.load_receipt(root, "m")
+    receipt.steps.append(mr.StepTiming("suite", mr.CLASS_TESTS, 1.0, True, 0, "-", mr._now(),
+                                       verdict_state=state, baseline_sha="base"))
+    mr.save_receipt(root, receipt)
+
+
+@pytest.mark.parametrize("state", [None, av.STATE_REGRESSED, "IN-PROGRESS", "CANCELLED",
+                                   "GH-UNAVAILABLE", av.STATE_UNATTRIBUTED])
+def test_G6_the_push_to_main_is_refused_unless_the_recorded_suite_read_is_landable(tmp_path, state):
+    """Review finding (grok-4.7, Medium): `record_push(main)` checked only the sha string, so a
+    receipt could be completed around a suite read that was never landable (or never made)."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="abc123", seconds=1.0)
+    if state:
+        _record_suite_state(tmp_path, state)
+
+    with pytest.raises(mr.MergeReceiptError, match="suite"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                       seconds=1.0)
+    assert "push-main" not in [s.step for s in mr.load_receipt(tmp_path, "m").steps]
+
+
+def test_G6_the_suite_before_push_check_reads_the_LATEST_integration_push(tmp_path):
+    receipt = _split_era_complete()
+    receipt.steps.insert(3, mr.StepTiming("push-integration", mr.CLASS_CEREMONY, 5.0, True, 0, "-",
+                                          _stamp(200.0)))   # a later push, after the suite read at 110
+
+    reason = receipt.incompleteness_reason()
+
+    assert reason is not None and "before" in reason
+
+
+def test_G5_a_push_to_main_with_no_integration_push_first_is_refused(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError, match="integration"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                       seconds=1.0)
+
+
+def test_G6_the_suite_step_is_BOUND_to_the_sha_pushed_to_the_integration_branch(tmp_path):
+    """`--step suite` is the integration-branch wait: reading some OTHER sha's run is refused, and
+    a refused read records nothing."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="tip", seconds=1.0)
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success")),
+                     other=_run("other", ("pytest", "success")),
+                     base=_run("base", ("pytest", "success")))
+
+    with pytest.raises(mr.MergeReceiptError, match="pushed"):
+        mr.record_actions_verdict(tmp_path, slug="m", sha="other", fetch=fetch,
+                                  first_parent=_parent({"other": "base"}))
+    assert [s.step for s in mr.load_receipt(tmp_path, "m").steps] == ["push-integration"]
+
+    receipt, _verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch,
+                                                  first_parent=_parent({"tip": "base"}))
+
+    assert receipt.steps[-1].step == "suite", "bound to the wait: it IS the suite step"
+
+
+def _split_era_complete(*, with_main_push=True, suite_before_push=False):
+    receipt = mr.Receipt(slug="m", batch="x", opened=_stamp(), host="test", concurrent_seats=0,
+                         closed=_stamp(600.0), merge_sha="tip",
+                         integration_branch="worktree-integrate-x", pushed_sha="tip")
+    stamp = _stamp
+    receipt.steps += [
+        mr.StepTiming("handback", mr.CLASS_CEREMONY, 10.0, True, 0, "-", stamp(0.0)),
+        mr.StepTiming("merge", mr.CLASS_CEREMONY, 20.0, True, 0, "-", stamp(10.0)),
+        mr.StepTiming("push-integration", mr.CLASS_CEREMONY, 5.0, True, 0, "-", stamp(100.0)),
+        mr.StepTiming("suite", mr.CLASS_TESTS, 300.0, True, 0, "-",
+                      stamp(50.0 if suite_before_push else 110.0), verdict_state=av.STATE_PASS,
+                      baseline_sha="base"),
+    ]
+    if with_main_push:
+        receipt.steps.append(
+            mr.StepTiming("push-main", mr.CLASS_CEREMONY, 3.0, True, 0, "-", stamp(420.0)))
+    receipt.steps.append(mr.StepTiming("teardown", mr.CLASS_CEREMONY, 30.0, True, 0, "-",
+                                       stamp(430.0)))
+    return receipt
+
+
+def test_G5_a_split_era_receipt_with_both_pushes_is_COMPLETE():
+    assert _split_era_complete().incompleteness_reason() is None
+
+
+def test_G5_a_split_era_receipt_that_never_pushed_to_main_is_INCOMPLETE_and_names_it():
+    reason = _split_era_complete(with_main_push=False).incompleteness_reason()
+
+    assert reason is not None and "push-main" in reason
+
+
+def test_G6_a_suite_read_that_PRECEDES_the_integration_push_is_INCOMPLETE():
+    """A verdict read before the sha was pushed cannot be the integration branch's CI."""
+    reason = _split_era_complete(suite_before_push=True).incompleteness_reason()
+
+    assert reason is not None and "before" in reason
+
+
+def test_G5_the_stage_report_itemises_each_stage_with_no_hand_arithmetic():
+    stages = _split_era_complete().stage_seconds()
+
+    assert stages == {"handback": 10.0, "merge": 20.0, "ci-wait": 300.0, "push": 8.0,
+                      "teardown": 30.0}
+    assert list(stages) == [s for s in mr.STAGE_ORDER if s in stages], "in walk order"
+
+
+def test_G5_gate_steps_are_a_stage_of_their_own():
+    receipt = _split_era_complete()
+    receipt.steps.append(mr.StepTiming("gate:ruff", mr.CLASS_TESTS, 7.0, True, 0, "-", _stamp(60.0)))
+
+    assert receipt.stage_seconds()["gates"] == 7.0
+
+
+def test_G5_the_merge_moment_step_assemble_is_the_gates_stage():
+    """`moment:merge` (comparator, review packet, the gate list) is what the walk times as
+    `assemble`; the stage report must not leave the whole verification stage unattributed."""
+    assert mr.stage_of("assemble") == "gates"
+    receipt = _split_era_complete()
+    receipt.steps.append(mr.StepTiming("assemble", mr.CLASS_CEREMONY, 90.0, True, 0, "-", _stamp(60.0)))
+
+    assert receipt.stage_seconds()["gates"] == 90.0
+
+
+def test_G5_the_summary_prints_the_stages():
+    rendered = mr.render_summary(_split_era_complete())
+
+    assert "stage" in rendered.lower() and "ci-wait" in rendered and "push" in rendered
+
+
+def test_G5_a_pre_split_receipt_still_round_trips_and_keeps_its_four_required_steps():
+    legacy = {"slug": "old", "batch": "x", "opened": _stamp(), "host": "h",
+              "concurrent_seats": 0, "steps": [], "closed": None}
+
+    receipt = mr.Receipt.from_dict(legacy)
+
+    assert receipt.integration_branch is None and receipt.pushed_sha is None
+    assert receipt.missing_required() == list(mr.REQUIRED_STEPS)
+
+
+# =====================================================================================
+# b2-merge-gate (R64): the flagged buckets are WRITTEN TO THE RECEIPT, with the merge sha and the
+# timed steps beside them ([#976]). RED-first at `2dd2067d`: a step carried no `flagged` field, so
+# a red present on both sides reached the integrator only as the word PRE-EXISTING.
+# =====================================================================================
+
+_FLAG_UNREG = ("pytest (windows-latest): [unregistered] tests/test_worktree_seed.py::test_x -- "
+               "red on both sides and absent from the registry: needs a registry entry (task, "
+               "owner, expiry) or a row")
+_FLAG_STALE = ("pytest (windows-latest): [stale-registry-signature] "
+               "tests/test_prompts_guard_hook_wiring.py::test_one -- the registry entry is stale")
+
+
+def _flagged_verdict(*flagged, state=av.STATE_PRE_EXISTING):
+    return av.Verdict(sha="tip", state=state, baseline="base", flagged=tuple(flagged))
+
+
+def test_b2_the_suite_step_RECORDS_the_flagged_buckets_it_read_and_they_survive_the_trip(
+        tmp_path, monkeypatch):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    monkeypatch.setattr(mr._av, "verdict_for",
+                        lambda *a, **k: _flagged_verdict(_FLAG_UNREG, _FLAG_STALE))
+
+    receipt, _verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
+                                                  first_parent=_parent({"tip": "base"}))
+
+    assert receipt.steps[-1].flagged == (_FLAG_UNREG, _FLAG_STALE)
+    assert receipt.merge_sha == "tip", "the merge sha is bound beside them ([#976])"
+    reread = mr.load_receipt(tmp_path, "m")
+    assert reread.steps[-1].flagged == (_FLAG_UNREG, _FLAG_STALE)
+    assert reread.to_dict()["steps"][-1]["flagged"] == [_FLAG_UNREG, _FLAG_STALE]
+    assert reread.to_dict()["flagged_reds"] == [_FLAG_UNREG, _FLAG_STALE]
+
+
+def test_b2_a_receipt_written_before_the_field_existed_reads_with_no_flagged():
+    legacy = {"slug": "old", "opened": _stamp(),
+              "steps": [{"step": "suite", "step_class": "tests", "seconds": 1.0, "ok": True,
+                         "verdict_state": "PRE-EXISTING"}]}
+
+    receipt = mr.Receipt.from_dict(legacy)
+
+    assert receipt.steps[0].flagged == () and receipt.flagged_reds() == ()
+
+
+def test_b2_the_receipt_reports_the_LATEST_suite_reads_flags_not_a_superseded_ones():
+    receipt = _split_era_complete()
+    receipt.steps.insert(3, mr.StepTiming("suite", mr.CLASS_TESTS, 1.0, True, 0, "-", _stamp(105.0),
+                                          verdict_state=av.STATE_PRE_EXISTING,
+                                          flagged=(_FLAG_STALE,)))
+    suite = receipt.steps[-3]
+    assert suite.step == "suite"
+    receipt.steps[-3] = mr.StepTiming(**{**suite.__dict__, "flagged": (_FLAG_UNREG,)})
+
+    assert receipt.flagged_reds() == (_FLAG_UNREG,)
+
+
+def test_b2_the_summary_prints_every_flagged_bucket_and_the_rows_owed():
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__,
+                                        "verdict_state": av.STATE_PRE_EXISTING,
+                                        "flagged": (_FLAG_UNREG, _FLAG_STALE)})
+
+    text = mr.render_summary(receipt)
+
+    assert "FLAGGED" in text and "[unregistered]" in text and "[stale-registry-signature]" in text
+    owed = [ln for ln in text.splitlines() if "ROWS-OWED" in ln]
+    assert len(owed) == 1, "only the unregistered one owes a row; a stale entry is lane 1's registry"
+    assert "tests/test_worktree_seed.py::test_x" in owed[0]
+
+
+def test_b2_rows_owed_names_title_provenance_and_a_runnable_check():
+    (line,) = mr.rows_owed((_FLAG_UNREG, _FLAG_STALE))
+
+    assert line.startswith("ROWS-OWED: ")
+    assert "logs/KNOWN-REDS-REGISTRY.json" in line, "in-repo provenance"
+    assert "uv run --locked pytest" in line and "tests/test_worktree_seed.py::test_x" in line
+    assert line.count(" — ") == 2, "title — provenance — runnable check"
+
+
+def test_b2_a_flagged_PRE_EXISTING_receipt_is_still_COMPLETE_and_not_green():
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__,
+                                        "verdict_state": av.STATE_PRE_EXISTING,
+                                        "flagged": (_FLAG_UNREG,)})
+
+    assert receipt.incompleteness_reason() is None
+    assert receipt.suite_verdict() == av.STATE_PRE_EXISTING
+
+
+@pytest.mark.parametrize("state", [av.STATE_SKIPPED, av.STATE_TIMED_OUT])
+def test_b2_a_skipped_or_timed_out_required_check_makes_the_receipt_INCOMPLETE(state):
+    receipt = _split_era_complete()
+    receipt.steps[3] = mr.StepTiming(**{**receipt.steps[3].__dict__, "verdict_state": state})
+
+    assert receipt.incompleteness_reason() is not None
+
+
+def test_b2_the_suite_read_is_asked_for_the_required_contexts_it_is_handed(tmp_path, monkeypatch):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    seen = {}
+
+    def fake(*a, **k):
+        seen.update(k)
+        return _flagged_verdict()
+
+    monkeypatch.setattr(mr._av, "verdict_for", fake)
+
+    mr.record_actions_verdict(tmp_path, slug="m", sha="tip", first_parent=_parent({"tip": "base"}),
+                              required_contexts=("ruff", "seal"))
+
+    assert seen["required_contexts"] == ("ruff", "seal")

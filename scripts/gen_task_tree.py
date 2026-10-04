@@ -108,6 +108,7 @@ import hashlib
 import json
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -1600,10 +1601,40 @@ def refresh_task_frontmatter(out_dir: Path) -> list[str]:
 # it was, never half-closed.
 _EVIDENCE_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
 _CLOSE_MARKER_TEMPLATE = " · **CLOSED {date}** — evidence {evidence}"
+# B2-W1 W1-1: the evidence clause also names the CI run and the tests. Each is OPTIONAL here
+# (a sha-only close keeps working); `scripts/row_close.py` -- the integrator's step -- is what
+# verifies all three before it calls this, so the clause records checked evidence, not typed.
+_CI_RUN_RE = re.compile(r"^[0-9]+$")
+_CI_CONCLUSION_RE = re.compile(r"^[a-z_]+$")
+_TEST_ID_RE = re.compile(r"^[^\s`|·]+$")
+
+
+def _evidence_clause(evidence: str, ci_run: str | None, ci_conclusion: str | None,
+                     tests: Sequence[str]) -> str:
+    """The text after `evidence ` in the close marker; raises ValueError on a malformed part."""
+    clause = evidence
+    if ci_run is not None:
+        if not _CI_RUN_RE.match(ci_run):
+            raise ValueError(f"close_row: --ci-run {ci_run!r} is not a numeric run id")
+        clause += f" · CI run {ci_run}"
+        if ci_conclusion is not None:
+            if not _CI_CONCLUSION_RE.match(ci_conclusion):
+                raise ValueError(
+                    f"close_row: --ci-conclusion {ci_conclusion!r} is not a conclusion word")
+            clause += f" ({ci_conclusion})"
+    for test in tests:
+        if not _TEST_ID_RE.match(test):
+            raise ValueError(f"close_row: --test {test!r} is not a test node id "
+                             f"(no whitespace, backtick, pipe or middle dot)")
+    if tests:
+        clause += " · tests " + ", ".join(tests)
+    return clause
 
 
 def close_row_plan(
-    out_dir: Path, task_id: int, evidence: str, closed_on: str
+    out_dir: Path, task_id: int, evidence: str, closed_on: str,
+    ci_run: str | None = None, ci_conclusion: str | None = None,
+    tests: Sequence[str] = (),
 ) -> list[tuple[Path, str]]:
     """PURE: compute the two writes `close_row` needs, as ONE plan. Writes nothing; raises
     ValueError on the first refusal, so a caller learns whether the close is even possible
@@ -1642,7 +1673,8 @@ def close_row_plan(
 
     lineage = lineage_from_manifest(manifest)
     theme, story = lineage.get(fname, (None, None))
-    new_body = body + _CLOSE_MARKER_TEMPLATE.format(date=closed_on, evidence=evidence)
+    clause = _evidence_clause(evidence, ci_run, ci_conclusion, tests)
+    new_body = body + _CLOSE_MARKER_TEMPLATE.format(date=closed_on, evidence=clause)
     rendered = emit_task_file_text(
         TaskRow(id=task_id, raw=new_body, theme=theme, story=story),
         status_override="closed")
@@ -1653,7 +1685,9 @@ def close_row_plan(
     return [(path, rendered), (manifest_path, manifest_text)]
 
 
-def _cmd_close_row(out_dir: Path, task_id: int, evidence: str) -> int:
+def _cmd_close_row(out_dir: Path, task_id: int, evidence: str,
+                   ci_run: str | None = None, ci_conclusion: str | None = None,
+                   tests: Sequence[str] = ()) -> int:
     """`--close-row ID --evidence SHA`. Plans first, then writes both files, rolling back to
     their prior bytes on ANY failure mid-write (same BaseException-safe pattern as
     `_cmd_emit_source`'s rollback, for the same reason: a torn write must not leave the row
@@ -1662,7 +1696,8 @@ def _cmd_close_row(out_dir: Path, task_id: int, evidence: str) -> int:
     """
     closed_on = datetime.date.today().isoformat()
     try:
-        writes = close_row_plan(out_dir, task_id, evidence, closed_on)
+        writes = close_row_plan(out_dir, task_id, evidence, closed_on,
+                                ci_run, ci_conclusion, tests)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         print(f"gen_task_tree: close-row FAIL (nothing written): {exc}", file=sys.stderr)
         return 1
@@ -1895,6 +1930,16 @@ def main(argv: list[str] | None = None) -> int:
                              "BACKLOG.md")
     parser.add_argument("--evidence", type=str, default=None, metavar="SHA",
                         help="with --close-row only: the commit SHA proving the row's Done-when")
+    parser.add_argument("--ci-run", type=str, default=None, dest="ci_run", metavar="ID",
+                        help="with --close-row only: the CI run id, recorded in the evidence "
+                             "clause (scripts/row_close.py verifies it before calling this)")
+    parser.add_argument("--ci-conclusion", type=str, default=None, dest="ci_conclusion",
+                        metavar="WORD",
+                        help="with --ci-run only: that run's conclusion, recorded beside it")
+    parser.add_argument("--test", type=str, action="append", default=None, dest="tests",
+                        metavar="NODEID",
+                        help="with --close-row only, repeatable: a test node id recorded in the "
+                             "evidence clause")
     parser.add_argument("--force", action="store_true",
                         help="with --write only ([#474]): override a warned refusal (populated "
                              "tasks/ tree); loud, names every condition it overrides")
@@ -1914,6 +1959,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--close-row requires --evidence <sha> ([#730])")
     if args.evidence is not None and args.close_row is None:
         parser.error("--evidence is only meaningful with --close-row ([#730])")
+    if args.close_row is None and (args.ci_run or args.ci_conclusion or args.tests):
+        parser.error("--ci-run / --ci-conclusion / --test are only meaningful with "
+                     "--close-row ([#730])")
+    if args.ci_conclusion is not None and args.ci_run is None:
+        parser.error("--ci-conclusion is only meaningful with --ci-run")
 
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
@@ -1937,7 +1987,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.write:
         return _cmd_write(source_path, out_dir, force=args.force)
     if args.close_row is not None:
-        return _cmd_close_row(out_dir, args.close_row, args.evidence)
+        return _cmd_close_row(out_dir, args.close_row, args.evidence, args.ci_run,
+                              args.ci_conclusion, tuple(args.tests or ()))
 
     parser.print_usage(sys.stderr)
     return 2
