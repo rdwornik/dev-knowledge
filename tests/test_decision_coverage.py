@@ -1292,6 +1292,64 @@ def test_the_rulings_cli_stays_0_when_the_operator_chose_no_transport(tmp_path: 
     assert "NOT MEASURED" in capsys.readouterr().out
 
 
+def test_a_date_with_trailing_garbage_is_invalid_not_a_valid_prefix(tmp_path: Path):
+    """Codex pass 3: `date: 2026-09-01garbage` matched on its valid-looking prefix."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01garbage", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05")})      # ONE batch: inside the grace
+    got = dc.unlanded_rulings(root, transport)
+    assert _names(got) == ["R99"] and "no computable date" in got[0].evidence
+
+
+def test_a_CLOSED_date_with_trailing_garbage_makes_the_clock_unreadable(tmp_path: Path):
+    transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": "CLOSED 2026-09-05garbage\n"})
+    with pytest.raises(dc.TransportUnreadable):
+        dc.closed_batch_dates(transport)
+
+
+def test_a_CLOSED_timestamp_is_still_a_closed_day(tmp_path: Path):
+    transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": "CLOSED 2026-09-05T08:00Z -- x\n"})
+    assert [d.isoformat() for d in dc.closed_batch_dates(transport)] == ["2026-09-05"]
+
+
+def test_a_folder_that_cannot_be_enumerated_is_unreadable_not_empty(tmp_path: Path, monkeypatch):
+    """Codex pass 3: `Path.glob` can hide an enumeration error, which reads as zero batches."""
+    transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05")})
+
+    def deny(_path):
+        raise PermissionError("access denied")
+
+    monkeypatch.setattr(dc.os, "listdir", deny)
+    with pytest.raises(dc.TransportUnreadable):
+        dc.closed_batch_dates(transport)
+    with pytest.raises(dc.TransportUnreadable):
+        dc.ratification_files(transport)
+
+
+def test_a_report_that_was_not_measured_has_not_passed(tmp_path: Path):
+    """Codex pass 3: `refused` is False for an unmeasured report, so a consumer reading it alone
+    would pass. `passed` is the property that is True only when BOTH legs were measured clean."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    assert dc.rulings_report(root, transport=None).passed is False
+    transport = _transport(tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R70")},
+                           _TWO_CLOSED)
+    assert dc.rulings_report(root, transport=transport).passed is True
+
+
+@pytest.mark.parametrize("clause", ["non-owner: the fixture lane", "co-owner: the fixture lane",
+                                    "owner_x: the fixture lane", "not owner: the fixture lane"])
+def test_only_an_owner_clause_names_an_owner(tmp_path: Path, clause: str):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R70", owner=False)
+    path = next((root / "tasks").glob("1500-*.md"))
+    path.write_text(path.read_text(encoding="utf-8") + f"- extra · {clause}\n", encoding="utf-8")
+    assert _names(dc.uncarried_rulings(root)) == ["R70"]
+
+
 # --- the transport boundary ----------------------------------------------------------------
 
 

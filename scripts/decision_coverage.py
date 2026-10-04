@@ -92,6 +92,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import logging
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -1090,7 +1091,7 @@ def _task_row(root: Path, task_id: str) -> tuple[str, str] | None:
     return (match.group(1).lower() if match else ""), text
 
 
-_OWNER_RE = re.compile(r"\bowner:[ \t]*([^·\n]*)", re.I)
+_OWNER_RE = re.compile(r"(?<![\w-])(?<!not )owner:[ \t]*([^·\n]*)", re.I)   # not `non-owner:`
 #: What an `owner:` value may not be: a placeholder names nobody. The gate checks that SOMEONE is
 #: named, not that the name is a live lane -- that is a reading, and it stays the reviewer's.
 _OWNER_PLACEHOLDER_RE = re.compile(r"^(?:none|n/?a|tbd|tba|nobody|unknown|unassigned|-+)\W*$", re.I)
@@ -1186,8 +1187,12 @@ _SUPERSEDED_NAME_RE = re.compile(r"superseded|withdrawn", re.I)
 #: A ruling in a RATIFICATION file: a `## R<n>` / `### R<n>` heading, or the one-line register
 #: bullet `- **R<n>**` the older files use. A range such as `- **R1-R23**` is not a ruling.
 _FILE_RULING_RE = re.compile(r"(?m)^(?:#{2,3}[ \t]+\**R(\d+)\b|-[ \t]+\*\*R(\d+)\*\*)")
-_HEADER_DATE_RE = re.compile(r"(?m)^date:[ \t]*(\d{4}-\d{2}-\d{2})")
-_CLOSED_RE = re.compile(r"(?m)^CLOSED[ \t]+(\d{4}-\d{2}-\d{2})")
+#: The WHOLE first token after the key, so `2026-09-01garbage` is read as that token and judged
+#: invalid -- a regex that took only the valid-looking prefix would accept it.
+_HEADER_DATE_RE = re.compile(r"(?m)^date:[ \t]*(\S*)")
+_CLOSED_RE = re.compile(r"(?m)^CLOSED[ \t]+(\S+)")
+_DAY_ONLY_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_DAY_STAMP_RE = re.compile(r"(\d{4}-\d{2}-\d{2})(?:T\S*)?")     # `2026-09-05T08:00Z` is a day
 _HEAD_LINES = 12
 
 
@@ -1201,17 +1206,32 @@ def ratification_files(transport) -> list[Path]:
     """The NON-SUPERSEDED RATIFICATION files of `to-browser/`: not `-vN-superseded`, not
     `-withdrawn`, not the `RATIFICATION-DIGEST` summary."""
     folder = Path(transport) / "to-browser"
-    if not folder.is_dir():
-        raise TransportUnreadable(f"no to-browser/ under the transport {transport}")
-    return sorted(p for p in folder.glob("RATIFICATION-*.md")
-                  if p.is_file() and not _SUPERSEDED_NAME_RE.search(p.name)
+    return sorted(p for p in _transport_files(folder, "RATIFICATION-")
+                  if not _SUPERSEDED_NAME_RE.search(p.name)
                   and not p.name.startswith("RATIFICATION-DIGEST"))
 
 
-def _parse_day(text: str) -> _dt.date | None:
-    """A `YYYY-MM-DD` that is a real day, else None -- `2026-99-01` matches the shape, not a date."""
+def _transport_files(folder: Path, prefix: str) -> list[Path]:
+    """The `<prefix>*.md` files of a transport folder. Enumerated with `os.listdir`, which raises,
+    where `Path.glob` can swallow an enumeration error and read as an empty folder."""
+    if not folder.is_dir():
+        raise TransportUnreadable(f"no {folder.name}/ under the transport {folder.parent}")
     try:
-        return _dt.date.fromisoformat(text)
+        names = os.listdir(folder)
+    except OSError as exc:
+        raise TransportUnreadable(f"{folder.name}/ could not be listed: {exc}") from exc
+    return sorted(folder / n for n in names
+                  if n.startswith(prefix) and n.endswith(".md") and (folder / n).is_file())
+
+
+def _parse_day(text: str, *, stamp: bool = False) -> _dt.date | None:
+    """A whole token that is a real `YYYY-MM-DD` (or, with `stamp`, a `...T<time>` stamp of one),
+    else None -- `2026-99-01` and `2026-09-01garbage` match a date's shape and are not dates."""
+    match = (_DAY_STAMP_RE if stamp else _DAY_ONLY_RE).fullmatch(text)
+    if match is None:
+        return None
+    try:
+        return _dt.date.fromisoformat(match.group(1) if stamp else text)
     except ValueError:
         return None
 
@@ -1244,17 +1264,15 @@ def closed_batch_dates(transport) -> list[_dt.date]:
     """The batch clock: the day every `STATE-BATCH-*.md` that reads `CLOSED` was closed. A batch
     that is running, or `FINISHED`, has not closed and ages nothing."""
     folder = Path(transport) / "to-browser"
-    if not folder.is_dir():
-        raise TransportUnreadable(f"no to-browser/ under the transport {transport}")
     days = []
-    for path in sorted(folder.glob("STATE-BATCH-*.md")):
+    for path in _transport_files(folder, "STATE-BATCH-"):
         try:
             head = path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
         match = _CLOSED_RE.search(_top(head))
         if match:
-            day = _parse_day(match.group(1))
+            day = _parse_day(match.group(1), stamp=True)
             if day is None:
                 raise TransportUnreadable(
                     f"{path.name} reads CLOSED {match.group(1)}, which is not a date -- the "
@@ -1319,6 +1337,12 @@ class RulingsReport:
     @property
     def refused(self) -> bool:
         return bool(self.uncarried or self.unlanded)
+
+    @property
+    def passed(self) -> bool:
+        """True only when BOTH legs were measured and clean. `not refused` is not this: an
+        unmeasured leg is not a refusal and it is not a pass, so a consumer asks `passed`."""
+        return self.unlanded is not None and not self.refused
 
     def render(self) -> str:
         lines = []
