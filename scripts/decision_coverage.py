@@ -1334,11 +1334,28 @@ def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
     return out
 
 
+class _Unmeasured:
+    """The leg-(a) "not measured" marker. TRUTHY on purpose (N2 reviewer P1, repair 2): `None` and
+    `[]` are both falsy, so a reader writing `not report.unlanded` read an unmeasured leg as clean.
+    This marker is truthy, so that reading refuses; only a measured-empty list is falsy. It is not
+    iterable and has no length, so a reader that treats it as a findings list fails loudly."""
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return "UNMEASURED"
+
+
+UNMEASURED = _Unmeasured()
+
+
 @dataclass(frozen=True)
 class RulingsReport:
-    """Both legs. `unlanded is None` means NOT MEASURED -- the transport was unreadable."""
+    """Both legs. `unlanded is UNMEASURED` means NOT MEASURED -- the transport was unreadable."""
     uncarried: list[Finding]
-    unlanded: list[Finding] | None
+    unlanded: list[Finding] | _Unmeasured
     counts: RegisterCounts
     unmeasured_reason: str = ""
     files_read: int = 0
@@ -1349,12 +1366,12 @@ class RulingsReport:
         `[]` for an unmeasured report too, and a public findings-shaped attribute (`refused`, then
         `found`) is one a consumer reads as clean -- fail-open (Codex pass 4 and repair pass 1,
         both P1). The verdicts are `passed` and `exit_code`."""
-        return list(self.uncarried) + list(self.unlanded or [])
+        return list(self.uncarried) + ([] if self.unlanded is UNMEASURED else list(self.unlanded))
 
     @property
     def passed(self) -> bool:
         """True only when BOTH legs were measured and clean: an unmeasured leg is not a pass."""
-        return self.unlanded is not None and not self._findings()
+        return self.unlanded is not UNMEASURED and not self._findings()
 
     def exit_code(self, *, no_transport: bool) -> int:
         """1 = a refusal was found; 2 = leg (a) NOT MEASURED because the transport could not be
@@ -1362,7 +1379,7 @@ class RulingsReport:
         unmeasured leg stays 0 there."""
         if self._findings():
             return 1
-        return 2 if self.unlanded is None and not no_transport else 0
+        return 2 if self.unlanded is UNMEASURED and not no_transport else 0
 
     def render(self) -> str:
         lines = []
@@ -1372,7 +1389,7 @@ class RulingsReport:
             for finding in bad:
                 lines.append(f"  - {finding.subject}")
                 lines.append(f"    {finding.evidence}")
-        elif self.unlanded is None:
+        elif self.unlanded is UNMEASURED:
             # Never a bare OK: leg (a) was not read, so only leg (b) is a measured pass.
             lines.append("decision-coverage rulings: leg (b) OK; leg (a) NOT MEASURED")
         else:
@@ -1381,7 +1398,7 @@ class RulingsReport:
         lines.append(f"  leg (b) carried: {c.carried} of {c.gated} gated ruling(s) (R"
                      f"{FIRST_GATED_RULING} on) carried; {c.grandfathered} older entr"
                      f"{'y' if c.grandfathered == 1 else 'ies'} counted, not refused")
-        if self.unlanded is None:
+        if self.unlanded is UNMEASURED:
             lines.append(f"  leg (a) landed within a batch: not measured -- {self.unmeasured_reason}")
         else:
             lines.append(f"  leg (a) landed within a batch: {len(self.unlanded)} unlanded past "
@@ -1402,13 +1419,13 @@ def rulings_report(repo_root, *, transport=_UNSET, floor: int = FIRST_GATED_RULI
     if transport is _UNSET:
         transport = _transport_root()
     if transport is None:
-        return RulingsReport(uncarried, None, counts, "the transport is unresolved "
+        return RulingsReport(uncarried, UNMEASURED, counts, "the transport is unresolved "
                              "(CLAUDE_PROMPTS_DIR is unset or not a folder)")
     try:
         files, population = ratification_population(transport)
         unlanded = unlanded_rulings(root, transport, population=population)
     except TransportUnreadable as exc:
-        return RulingsReport(uncarried, None, counts, str(exc))
+        return RulingsReport(uncarried, UNMEASURED, counts, str(exc))
     return RulingsReport(uncarried, unlanded, counts, files_read=len(files),
                          rulings_read=len(population))
 

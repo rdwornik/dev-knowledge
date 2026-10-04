@@ -68,7 +68,7 @@ def check_rulings_carried(repo_path: Path) -> list[Finding]:
             f"{counts.carried} of {counts.gated} gated ruling(s) (R{_dc.FIRST_GATED_RULING} on) "
             f"carried by a row or a written 'no implementation required'; {counts.grandfathered} "
             f"older entries counted, not refused (decision_coverage.py rulings)"))
-    if report.unlanded is None:
+    if report.unlanded is _dc.UNMEASURED:
         findings.append(_na(
             CHECK_NAME, _NA_SUBJECT_ABSENT,
             f"leg (a) not measured, so not a pass: {report.unmeasured_reason}"))

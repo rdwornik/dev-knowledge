@@ -1209,7 +1209,7 @@ def test_a_malformed_CLOSED_date_makes_the_batch_clock_unreadable_not_a_crash(tm
     with pytest.raises(dc.TransportUnreadable):
         dc.closed_batch_dates(transport)
     report = dc.rulings_report(root, transport=transport)
-    assert report.unlanded is None and "not measured" in report.render()
+    assert report.unlanded is dc.UNMEASURED and "not measured" in report.render()
 
 
 def test_an_unreadable_ratification_file_is_not_an_empty_one(tmp_path: Path, monkeypatch):
@@ -1228,7 +1228,7 @@ def test_an_unreadable_ratification_file_is_not_an_empty_one(tmp_path: Path, mon
 
     monkeypatch.setattr(Path, "read_text", deny)
     report = dc.rulings_report(root, transport=transport)
-    assert report.unlanded is None and "RATIFICATION-2026-09-01.md" in report.unmeasured_reason
+    assert report.unlanded is dc.UNMEASURED and "RATIFICATION-2026-09-01.md" in report.unmeasured_reason
 
 
 def test_an_invalid_header_date_is_undated_not_the_file_name_date(tmp_path: Path):
@@ -1263,7 +1263,7 @@ def test_an_unreadable_STATE_BATCH_file_makes_the_clock_unreadable(tmp_path: Pat
     with pytest.raises(dc.TransportUnreadable):
         dc.closed_batch_dates(transport)
     report = dc.rulings_report(root, transport=transport)
-    assert report.unlanded is None and "STATE-BATCH-TWO.md" in report.unmeasured_reason
+    assert report.unlanded is dc.UNMEASURED and "STATE-BATCH-TWO.md" in report.unmeasured_reason
 
 
 def test_an_unmeasured_report_never_renders_as_a_bare_OK(tmp_path: Path):
@@ -1353,7 +1353,9 @@ def test_a_report_that_was_not_measured_has_not_passed(tmp_path: Path):
     assert dc.rulings_report(root, transport=None).passed is False
     transport = _transport(tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R70")},
                            _TWO_CLOSED)
-    assert dc.rulings_report(root, transport=transport).passed is True
+    measured = dc.rulings_report(root, transport=transport)
+    assert measured.passed is True
+    assert measured.unlanded == [] and not measured.unlanded   # measured-empty is the only falsy leg
 
 
 @pytest.mark.parametrize("clause", ["non-owner: the fixture lane", "co-owner: the fixture lane",
@@ -1377,7 +1379,11 @@ def test_an_unreadable_transport_is_reported_unmeasured_never_a_pass(tmp_path: P
     _register(root, _entry(70, NO_IMPL))
     report = dc.rulings_report(root, transport=None)
     assert report.uncarried == []
-    assert report.unlanded is None, "None is 'not measured' -- an empty list would read as clean"
+    # Repair 2 (N2 reviewer, P1): the sentinel is TRUTHY, so a reader's `not report.unlanded`
+    # cannot read an unmeasured leg as clean; only a measured-empty list is falsy.
+    assert report.unlanded is dc.UNMEASURED
+    assert bool(report.unlanded) is True, "an unmeasured leg must not be falsy"
+    assert report.passed is False
     assert "not measured" in report.render()
 
 
@@ -1385,7 +1391,7 @@ def test_a_transport_with_no_to_browser_folder_is_unreadable_not_empty(tmp_path:
     root = tmp_path / "r"
     _register(root, _entry(70, NO_IMPL))
     (tmp_path / "bare").mkdir()
-    assert dc.rulings_report(root, transport=tmp_path / "bare").unlanded is None
+    assert dc.rulings_report(root, transport=tmp_path / "bare").unlanded is dc.UNMEASURED
 
 
 # --- the live tree --------------------------------------------------------------------------
@@ -1429,7 +1435,8 @@ def test_an_unmeasured_report_has_no_attribute_that_reads_as_not_refused(tmp_pat
     root = tmp_path / "r"
     _register(root, _entry(70, NO_IMPL))
     report = dc.rulings_report(root, transport=None)
-    assert report.unlanded is None
+    assert report.unlanded is dc.UNMEASURED
+    assert bool(report.unlanded), "`not report.unlanded` must not read an unmeasured leg as clean"
     assert not hasattr(report, "refused"), "a refusal-shaped attribute that is False when unmeasured"
     # Codex repair pass 1 P1: the replacement list read `[]` for an unmeasured report too. No
     # public findings-shaped attribute remains: the verdicts are `passed` and `exit_code`.
