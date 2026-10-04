@@ -9,6 +9,9 @@ own `-Invoker`), never a real `gh` binary or a real codespace -- the same doctri
 `test_codespace_admission.py` states for its own `Probe` seam: a transport that can only be
 exercised by really provisioning a machine is a transport whose guards are never tested.
 
+The machine/idle defaults the first tests read are the 1:1 condition's substrate (`[#1335]`, lane
+b2-codespace-1to1, ADR-126 D2).
+
 R17's own test is `TestCodespaceDelete`: delete is refused when the manifest is missing or a hash
 differs, and allowed when it verifies -- and in the refusal case, `gh` is never called at all.
 """
