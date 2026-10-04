@@ -471,9 +471,34 @@ def test_the_grok_leg_installs_the_pinned_version_and_never_carries_a_credential
     (R13, N5), never a key typed into a provisioning script."""
     code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
     body = _bash_function(code, "leg_f5_grok")
-    assert 'bash -s "${want}"' in body
+    assert 'bash "${installer}" "${want}"' in body, "the version is the installer's first argument"
     for secret in ("GROK_DEPLOYMENT_KEY", "XAI_API_KEY", "GROK_API_KEY", "auth.json"):
         assert secret not in code, f"provision.sh names {secret}: a login is an operator act, not a script's"
+
+
+def test_a_vendor_installer_is_fetched_checked_to_be_a_script_and_never_piped_into_bash_blind():
+    """The first fresh-Codespace run of b2-codespace-1to1 (2026-10-04, creation.log) refused at
+
+        bash: line 1: syntax error near unexpected token `)'
+        [provision] REFUSED: L-F5 the Antigravity installer failed
+
+    `curl -fsSL https://antigravity.google/cli/install.sh | bash` had been handed COMPRESSED bytes
+    where the script should be, and bash tried to run them. The same line had passed the run
+    before. A vendor endpoint that answers differently from one run to the next is not a reason to
+    lose a whole container, and a refusal that says 'the installer failed' does not say why: the
+    helper asks for the encoding it will accept, retries, refuses anything that is not a `#!`
+    script, and names what it got."""
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    helper = _bash_function(code, "fetch_installer")
+    assert "--compressed" in helper, "decode what the CDN compresses"
+    assert "--retry" in helper
+    assert "#!" in helper, "refuse a payload that is not a script"
+    assert "first bytes" in helper, "say what was received"
+    for leg, url in (("leg_f5_agy", "antigravity.google/cli/install.sh"),
+                     ("leg_f5_grok", "x.ai/cli/install.sh")):
+        body = _bash_function(code, leg)
+        assert 'fetch_installer "https://' + url in body, leg
+        assert "| bash" not in body, f"{leg} pipes a download into bash unchecked"
 
 
 def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version():
