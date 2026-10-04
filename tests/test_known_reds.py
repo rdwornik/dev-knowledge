@@ -1592,17 +1592,27 @@ def test_b2_a_dotted_value_that_is_not_a_known_file_type_is_not_masked(kr):
     assert kr.normalize_signature(base) != kr.normalize_signature(tip)
 
 
-@pytest.mark.parametrize("name", ["2026-10-04-codex-x.md", "a.json", "b.yaml", "c.yml", "d.py",
-                                  "e.txt", "f.toml", "g.jsonl"])
-def test_b2_every_known_file_type_still_normalises(kr, name):
-    one = f"AssertionError: assert {{'{name}'}} == set()"
-    other = f"AssertionError: assert {{'zzz-other.{name.rsplit('.', 1)[1]}'}} == set()"
+@pytest.mark.parametrize("ext", ["md", "json", "yaml", "yml", "py", "txt", "toml", "jsonl", "rst",
+                                 "lock"])
+def test_b2_a_dated_artifact_name_normalises_whatever_its_extension(kr, ext):
+    """Codex terra, third read: the per-merge value is the DATED artifact name the repo's own
+    convention gives every audit (`YYYY-MM-DD-slug.ext`); an extension list both leaked (`feature_on.py`)
+    and missed (`.rst`), so the date prefix is the discriminator."""
+    one = f"AssertionError: assert {{'2026-10-04-audit.{ext}'}} == set()"
+    other = f"AssertionError: assert {{'2026-10-05-other-audit.{ext}'}} == set()"
 
     assert kr.normalize_signature(one) == kr.normalize_signature(other)
 
 
+def test_b2_an_undated_file_name_is_an_assertions_own_content_and_is_not_masked(kr):
+    base = "AssertionError: assert {'feature_on.py'} == {'expected.py'}"
+    tip = "AssertionError: assert {'feature_off.py'} == {'expected.py'}"
+
+    assert kr.normalize_signature(base) != kr.normalize_signature(tip)
+
+
 def test_b2_a_set_mixing_a_file_name_and_another_value_is_not_masked(kr):
-    base = "AssertionError: assert {'x.md', 'real-value-a'} == set()"
-    tip = "AssertionError: assert {'x.md', 'real-value-b'} == set()"
+    base = "AssertionError: assert {'2026-10-04-x.md', 'real-value-a'} == set()"
+    tip = "AssertionError: assert {'2026-10-04-x.md', 'real-value-b'} == set()"
 
     assert kr.normalize_signature(base) != kr.normalize_signature(tip)
