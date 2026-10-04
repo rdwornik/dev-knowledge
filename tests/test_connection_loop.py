@@ -1098,8 +1098,10 @@ def test_the_lane_end_wait_ends_when_the_worker_turns_the_receipt_terminal(tmp_p
 
 
 def test_the_lane_end_wait_is_still_bounded_at_300s_when_nothing_terminal_appears(tmp_path, monkeypatch):
-    """The timeout path: a claim that stays `running` forever ends the wait at 300 s -- not earlier, not later --
-    and the wait returns without raising, exactly as before."""
+    """The timeout path: a claim that stays `running` forever ends the wait at EXACTLY 300 s -- not earlier, not
+    later (the virtual clock moves in whole seconds, so the bound reads exact) -- and the wait returns without raising,
+    exactly as before."""
     waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "running"})
     assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "running"
-    assert 300 <= waited <= 301, f"the wait ended at {waited:.0f}s"
+    assert waited == 300, f"the wait ended at {waited:.0f}s, not at the 300 s bound"
+    assert LANE_END_WAIT_S == 300
