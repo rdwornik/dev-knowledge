@@ -1309,6 +1309,22 @@ def test_a_CLOSED_date_with_trailing_garbage_makes_the_clock_unreadable(tmp_path
         dc.closed_batch_dates(transport)
 
 
+@pytest.mark.parametrize("stamp", ["2026-09-05Tgarbage", "2026-09-05T", "2026-09-05T25:99Z",
+                                   "2026-09-05T08:00Zjunk"])
+def test_a_CLOSED_stamp_with_a_bad_time_part_makes_the_clock_unreadable(tmp_path: Path, stamp: str):
+    """Codex pass 4: `T\\S*` accepted any suffix after the T."""
+    transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": f"CLOSED {stamp}\n"})
+    with pytest.raises(dc.TransportUnreadable):
+        dc.closed_batch_dates(transport)
+
+
+@pytest.mark.parametrize("stamp", ["2026-09-05T08:00Z", "2026-09-05T08:00:30Z", "2026-10-04T14:29+02:00",
+                                   "2026-09-05"])
+def test_a_wellformed_CLOSED_stamp_is_a_closed_day(tmp_path: Path, stamp: str):
+    transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": f"CLOSED {stamp} -- x\n"})
+    assert len(dc.closed_batch_dates(transport)) == 1
+
+
 def test_a_CLOSED_timestamp_is_still_a_closed_day(tmp_path: Path):
     transport = _transport(tmp_path, {}, {"STATE-BATCH-ONE.md": "CLOSED 2026-09-05T08:00Z -- x\n"})
     assert [d.isoformat() for d in dc.closed_batch_dates(transport)] == ["2026-09-05"]
@@ -1340,7 +1356,9 @@ def test_a_report_that_was_not_measured_has_not_passed(tmp_path: Path):
 
 
 @pytest.mark.parametrize("clause", ["non-owner: the fixture lane", "co-owner: the fixture lane",
-                                    "owner_x: the fixture lane", "not owner: the fixture lane"])
+                                    "owner_x: the fixture lane", "not owner: the fixture lane",
+                                    "not  owner: the fixture lane", "non owner: the fixture lane",
+                                    "has no owner: the fixture lane"])
 def test_only_an_owner_clause_names_an_owner(tmp_path: Path, clause: str):
     root = tmp_path / "r"
     _register(root, _entry(70, "[#1500]"))

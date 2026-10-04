@@ -1091,7 +1091,9 @@ def _task_row(root: Path, task_id: str) -> tuple[str, str] | None:
     return (match.group(1).lower() if match else ""), text
 
 
-_OWNER_RE = re.compile(r"(?<![\w-])(?<!not )owner:[ \t]*([^·\n]*)", re.I)   # not `non-owner:`
+#: `owner:` must OPEN a clause (line start, `·`, `(` or `;`), so it is a field and not a word in
+#: prose: `non-owner:`, `not  owner:` and `has no owner:` are not owner clauses.
+_OWNER_RE = re.compile(r"(?:^|[·(;])[ \t]*owner:[ \t]*([^·\n]*)", re.I | re.M)
 #: What an `owner:` value may not be: a placeholder names nobody. The gate checks that SOMEONE is
 #: named, not that the name is a live lane -- that is a reading, and it stays the reviewer's.
 _OWNER_PLACEHOLDER_RE = re.compile(r"^(?:none|n/?a|tbd|tba|nobody|unknown|unassigned|-+)\W*$", re.I)
@@ -1192,7 +1194,8 @@ _FILE_RULING_RE = re.compile(r"(?m)^(?:#{2,3}[ \t]+\**R(\d+)\b|-[ \t]+\*\*R(\d+)
 _HEADER_DATE_RE = re.compile(r"(?m)^date:[ \t]*(\S*)")
 _CLOSED_RE = re.compile(r"(?m)^CLOSED[ \t]+(\S+)")
 _DAY_ONLY_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-_DAY_STAMP_RE = re.compile(r"(\d{4}-\d{2}-\d{2})(?:T\S*)?")     # `2026-09-05T08:00Z` is a day
+#: `2026-09-05T08:00Z` is a day: the shape here, then `datetime.fromisoformat` judges the clock.
+_DAY_STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?")
 _HEAD_LINES = 12
 
 
@@ -1227,11 +1230,12 @@ def _transport_files(folder: Path, prefix: str) -> list[Path]:
 def _parse_day(text: str, *, stamp: bool = False) -> _dt.date | None:
     """A whole token that is a real `YYYY-MM-DD` (or, with `stamp`, a `...T<time>` stamp of one),
     else None -- `2026-99-01` and `2026-09-01garbage` match a date's shape and are not dates."""
-    match = (_DAY_STAMP_RE if stamp else _DAY_ONLY_RE).fullmatch(text)
-    if match is None:
+    if (_DAY_STAMP_RE if stamp else _DAY_ONLY_RE).fullmatch(text) is None:
         return None
     try:
-        return _dt.date.fromisoformat(match.group(1) if stamp else text)
+        if stamp and "T" in text:
+            return _dt.datetime.fromisoformat(text).date()
+        return _dt.date.fromisoformat(text)
     except ValueError:
         return None
 
@@ -1336,6 +1340,7 @@ class RulingsReport:
 
     @property
     def refused(self) -> bool:
+        """A refusal was FOUND. False for an unmeasured report too -- ask `passed` for a verdict."""
         return bool(self.uncarried or self.unlanded)
 
     @property
