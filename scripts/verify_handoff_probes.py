@@ -1091,7 +1091,7 @@ _BOOT_DATA_ERA = "2026-09-25"
 #: A ruled row is owed only by a bundle cut on/after the row's era: a committed bundle is immutable,
 #: so a row added later cannot be asked of it. Rows absent here predate `_BOOT_DATA_ERA`.
 _ROW_ERA = {"Landed": "2026-10-03", "Decisions": "2026-10-03", "Dates": "2026-10-03",
-            "Models": "2026-10-03"}
+            "Models": "2026-10-03", "Plan": "2026-10-04"}
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -1450,7 +1450,10 @@ _STATE_ROW_FNS = {
     "Seats": lambda hs, ctx: hs.row_seats(),
     "Substrates": lambda hs, ctx: hs.row_substrates(ctx.repo_root),
     "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
-    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date),
+    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date,
+                                              repo_root=ctx.repo_root),
+    # B2-W1 W1-9: the master plan the boot points at, anchored to the bundle's own cut date.
+    "Plan": lambda hs, ctx: hs.row_plan(_transport_for(ctx), as_of=ctx.cut_date),
     "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx), as_of=ctx.cut_date),
     # batch FOUNDATION lane 3: the volatile onboarding facts (Landed, Decisions, Dates, Models).
     # Dates is a function of the date it is asked at, so a committed bundle is asked at its own
@@ -1464,7 +1467,8 @@ _STATE_ROW_FNS = {
 
 #: The rows judged by `_rule_committed_state` (FAIL -> WARN on a COMMITTED bundle, see its
 #: docstring); every other `_STATE_ROW_FNS` key except Seats keeps the plain `_rule_state`.
-_COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models")
+_COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models",
+                         "Plan")
 
 
 # [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole
@@ -1600,6 +1604,24 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
     return "pass", f"identity+liveness hold ({fresh.freshness}): {fresh.value}"
 
 
+def _rule_plan(base):
+    """B2-W1 W1-9 repair 1: a Plan row that REFUSES (`handoff_state.NO_MASTER_PLAN_DECLARED`) fails
+    outright; the no-transport / no-plan-files degrade ("no master plan found") stays tolerated.
+    Cut and live agree on a refusal, so the state comparison alone would pass it; and a committed
+    bundle's WARN downgrade must not turn a refusal into a tolerated row."""
+    def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
+        try:
+            import handoff_state as _hs  # noqa: PLC0415
+        except ImportError:
+            return base(value, ctx)
+        m = _RENDERED_TAIL_RE.match(value.strip())
+        underlying = m.group("val") if m else value.strip()
+        if underlying.startswith(_hs.NO_MASTER_PLAN_DECLARED):
+            return "fail", f"the Plan row names no master plan: {underlying}"
+        return base(value, ctx)
+    return rule
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1617,6 +1639,7 @@ BOOT_DATA_RULES = {
     # _rule_state, FAIL on any mismatch, committed or not.
     **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key in _COMMITTED_STATE_KEYS},
+    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"])),
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key not in ("Seats", *_COMMITTED_STATE_KEYS)},
     "Seats": _rule_bd_seats,
