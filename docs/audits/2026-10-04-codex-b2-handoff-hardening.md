@@ -34,7 +34,7 @@ The boot test's defects, each RED-first: a generated `Plan` row (newest master p
 **Nonce returned (final pass):** `NONCE-491e5d72ec4506d9`, the first line of the answer, equal to its `nonce.txt` (session `01a1088c-9c53-7592-9bfb-8777cdf0b70f`). Earlier passes each returned their own nonce (`NONCE-14df7829a316d322`, `…c6e0828e902c26e0`, `…5ff2d828ee5e5993`, `…e11e60a8409dc46b`, `…3a909bebad9f5532`, `…0d7296057e04c2a0`, `…4d99757e4f8adfa2`).
 **Tally (final):** `VERDICT: PASS (P1=0 P2=0 P3=0)`.
 
-Nine passes ran; the first eight each returned a FAIL with P1s that were real defects of the repaired row, each fixed RED-first before the next pass:
+Eight passes ran; the first seven each returned a FAIL with P1s that were real defects of the repaired row, each fixed RED-first before the next pass:
 
 | pass | P1/P2 | disposition |
 |---|---|---|
