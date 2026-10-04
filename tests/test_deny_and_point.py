@@ -87,6 +87,20 @@ def _write_store(db: Path, processes: dict[str, str]) -> Path:
     return db
 
 
+@pytest.fixture
+def owned_store(tmp_path, monkeypatch):
+    """A persisted store this test owns. `decide_with_store` returns "allow" on an absent or
+    empty store BEFORE the patched predicate is reached, so a test that patches `decide` must
+    first hand the guard a store holding a process set -- never lean on whatever the runner
+    built. `graph_store.store_path` is pointed at a populated file under `tmp_path`, so
+    `load_processes()` runs for real against it (foundation-8 item 1)."""
+    import graph_store as gs
+
+    db = _write_store(tmp_path / "owned" / "FPG.db", PROCESSES)
+    monkeypatch.setattr(gs, "store_path", lambda *_a, **_k: db)
+    return db
+
+
 def _bash(command: str) -> dict:
     return {"tool_name": "Bash", "tool_input": {"command": command}}
 
@@ -679,7 +693,7 @@ def test_an_UNREACHABLE_STORE_ENGINE_fails_CLOSED(monkeypatch):
     assert "Cause:" in reason and "Fix:" in reason
 
 
-def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch):
+def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch, owned_store):
     """Failure mode 3/4: crash. The predicate itself (`decide`) raises after the
     store has already loaded -- a bug in the matching logic, not a missing
     dependency. Previously ALLOWED at the site named L651 of 9136f133; must now
@@ -693,7 +707,7 @@ def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch):
     assert "Cause:" in reason and "Fix:" in reason
 
 
-def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch):
+def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch, owned_store):
     """Failure mode 4/4: unexpected rc. If the predicate ever returns something
     other than the two sanctioned verdicts ("allow"/"block") -- a future typo or
     a half-finished edit -- that is exactly the shape of an unexpected exit code
