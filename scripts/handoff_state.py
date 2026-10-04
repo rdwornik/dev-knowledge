@@ -397,8 +397,11 @@ _SUPERSEDES_RE = re.compile(r"(?im)^supersedes:\s*(\S+\.md)\b")
 _HEAD_LINES = 12
 _LINEAGE_DEPTH = 8
 
-#: The Plan row's refusal prefix; `verify_handoff_probes._rule_plan` fails on it.
+#: The Plan row's refusal prefixes. `verify_handoff_probes._rule_plan` fails on the first (plans exist
+#: but none is a declared master, or a newer one declares nothing); the second (no transport, no
+#: plan files) is the degrade path every transport-fed row already has, visible and tolerated.
 NO_MASTER_PLAN = "no master plan"
+NO_MASTER_PLAN_DECLARED = f"{NO_MASTER_PLAN} declared"
 
 
 def _plan_head(path: Path) -> str:
@@ -454,7 +457,7 @@ def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRo
     named = undeclared or [p.name for p, _r in roles[-3:]]
     why = ("; the newest declared master is "
            f"`{roles[start][0].name}`") if masters else ""
-    return StateRow("Plan", f"{NO_MASTER_PLAN} declared among the newest: {', '.join(named)} "
+    return StateRow("Plan", f"{NO_MASTER_PLAN_DECLARED} among the newest: {', '.join(named)} "
                     f"(add `status: MASTER PLAN` to the head of the master{why})", "SLOW", locator)
 
 

@@ -1605,7 +1605,8 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
 
 
 def _rule_plan(base):
-    """B2-W1 W1-9 repair 1: a Plan row that REFUSES (`handoff_state.NO_MASTER_PLAN`) fails outright.
+    """B2-W1 W1-9 repair 1: a Plan row that REFUSES (`handoff_state.NO_MASTER_PLAN_DECLARED`) fails
+    outright; the no-transport / no-plan-files degrade ("no master plan found") stays tolerated.
     Cut and live agree on a refusal, so the state comparison alone would pass it; and a committed
     bundle's WARN downgrade must not turn a refusal into a tolerated row."""
     def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
@@ -1615,7 +1616,7 @@ def _rule_plan(base):
             return base(value, ctx)
         m = _RENDERED_TAIL_RE.match(value.strip())
         underlying = m.group("val") if m else value.strip()
-        if underlying.startswith(_hs.NO_MASTER_PLAN):
+        if underlying.startswith(_hs.NO_MASTER_PLAN_DECLARED):
             return "fail", f"the Plan row names no master plan: {underlying}"
         return base(value, ctx)
     return rule
