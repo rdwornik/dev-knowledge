@@ -417,7 +417,7 @@ def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
     of the file its `supersedes:` names (a superseded predecessor stays on the transport, e.g.
     `-v12-superseded`). The name must be a bare `PLAN-*.md` basename resolved in the plan's own
     directory (no `../`, no absolute path), and `as_of` binds the lineage too: a predecessor dated
-    after the cut cannot vouch for a bundle cut before it. A missing, unreadable or out-of-bounds
+    after the cut, or carrying no date at all, cannot vouch for a bundle cut before it. A missing, unreadable or out-of-bounds
     predecessor leaves the plan `undeclared`, which `row_plan` refuses on rather than guessing."""
     head = _plan_head(path)
     if _MASTER_PLAN_RE.search(head):
@@ -431,8 +431,8 @@ def _plan_role(path: Path, as_of: "str | None" = None, _depth: int = 0) -> str:
             return "undeclared"
         prior = path.parent / ref
         dated = _DATED_STEM_RE.search(ref)
-        if as_of is not None and dated and dated.group(1) > as_of:
-            return "undeclared"
+        if as_of is not None and (dated is None or dated.group(1) > as_of):
+            return "undeclared"      # an undated target cannot be placed before the cut
         if prior != path and prior.is_file():
             return _plan_role(prior, as_of, _depth + 1)
     return "undeclared"
