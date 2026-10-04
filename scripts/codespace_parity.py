@@ -162,8 +162,9 @@ AUTH_NEEDS: dict[str, str] = {
              "no Codespaces secret holds it)",
     "grok": "`grok login --device-auth` run once in the Codespace (xAI device sign-in for a headless "
             "host; no Codespaces secret holds it)",
-    "agy": "an `agy` sign-in completed once in the Codespace (it has no login subcommand and no "
-           "Codespaces secret; its model call is what shows the login)",
+    "agy": "an `agy` sign-in: run `agy` once in the Codespace (`gh codespace ssh`), open the Google "
+           "URL it prints in a browser and complete the sign-in (no login subcommand, no Codespaces "
+           "secret; its model call is what shows the login)",
 }
 
 #: The one file name `collect --probe-write` may write on the transport: a single plain name, so
@@ -335,8 +336,9 @@ _AGY_TIERS = ("high", "medium", "low")
 #: not come back, so a model's own words about "signing in" in an answer never reclassify it (agy
 #: logs its model label before it authenticates, so a served id is not proof the call went through).
 _LOGIN_MISSING = re.compile(
-    r"not logged in|please (?:run /)?log ?in|sign[ -]?in|log ?in required|unauthori[sz]ed|\b401\b"
-    r"|missing credentials|authentication (?:required|failed)", re.IGNORECASE)
+    r"not (?:logged|signed) in|please (?:run /)?log ?in|sign(?:ed)?[ -]?in|log ?in required"
+    r"|unauthori[sz]ed|\b401\b|missing credentials|authentication (?:required|failed)",
+    re.IGNORECASE)
 
 PROBE_TIMEOUT = 240
 
