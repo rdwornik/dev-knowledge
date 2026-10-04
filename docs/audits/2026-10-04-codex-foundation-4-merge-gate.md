@@ -58,3 +58,23 @@ CONFIRMED and FIXED: exact comparison, and `land` refuses a base that is not a f
 
 - One reviewer, one pass; the Critical was a mis-read of one `!= "success"` expression, which is itself the evidence that the witness for it existed before the review.
 - No Codex pass has run on this diff. If the operator wants the pinned reviewer, `deploy/codex-review.ps1 -Topic foundation-4-merge-gate -DiffRange origin/main...HEAD` runs it after 02:25.
+
+---
+
+## Amendment 2026-10-04 (repair 1 of 2) — the pinned Codex read, nonce returned (R59 §0a item 1)
+
+The text above stays as written; the Grok substitution read carried no nonce and counts as failed under R59 §0a item 1. This amendment records the pinned reviewer's read, which meets the output contract.
+
+- **Command:** `codex exec -c model=gpt-5.6-terra --sandbox read-only --skip-git-repo-check -C <isolated folder> - < PROMPT.md` (codex-cli 0.155.0), from an isolated folder under the job tmp holding `DIFF.patch` (`origin/main...HEAD` at `76cf5939`, 25 files, includes `.github/workflows/conductor.yml`), the changed files at tip, `CONTRACT.md`, `nonce.txt` and the prompt. Exit code 0; first attempt, no retry.
+- **Served id:** `gpt-5.6-terra` (the Codex run header's `model:` line, provider openai, sandbox read-only).
+- **Nonce returned:** `NONCE-1791075519-201614212` — the answer's first line, verbatim; its second line quoted the first diff line (`diff --git a/.claude/commands/lane-integrate.md b/.claude/commands/lane-integrate.md`). Content hash of the raw answer: sha256 `8432e76e70505d30…` (first 16 hex).
+- **Verdict as returned:** `P1=0 P2=1 P3=1`.
+
+| Finding | Disposition |
+|---|---|
+| P2 `scripts/merge_path.py:300` — a shared integration branch holding commits absent from `main` makes `seal`/`spine`/`anchor` judge a wider range | The same finding as the Medium recorded above (long-lived integration ref); RECORDED, not fixed. The sha pushed to the integration branch is the sha that goes to `main`, so nothing unjudged lands; the wider range can only refuse. A per-merge ref changes the integration-branch name the contract fixes. Owed to the integrator's first rehearsal. |
+| P3 `scripts/merge_path.py:569` — the ruleset read-back checks only that a ruleset of the same name is listed, not its enforcement, bypass actors or contexts | RECORDED, not fixed in this repair (P3; outside the one refused clause). The apply step is not run by this lane; the integrator who runs it should read the ruleset back (`gh api repos/{owner}/{repo}/rulesets`) and compare `enforcement`, `bypass_actors` and the six contexts by eye until the read-back is tightened. |
+
+No P1: nothing to fix RED-first. The Grok pass's Critical and High (not reproduced) were not re-raised by this reviewer.
+
+**Honest limits:** one reviewer at `low` reasoning effort, one pass; it found two items against a 25-file diff, so its silence on a file is weak evidence.
