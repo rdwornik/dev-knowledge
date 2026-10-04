@@ -51,7 +51,7 @@ class Fixture:
         (self.repo / "tests").mkdir()
         (self.repo / "tests" / "test_widget.py").write_text(
             "class TestGroup:\n    def test_nested(self):\n        pass\n\n\n"
-            "def test_widget_works():\n    assert True\n\n\n"
+            "def helper():\n    return 1\n\n\nclass Helpers:\n    def test_hidden(self):\n        pass\n\n\ndef test_widget_works():\n    assert True\n\n\n"
             "@pytest.mark.parametrize(\"x\", [1])\ndef test_param(x):\n    assert x\n", encoding="utf-8")
         self.source = self.repo / "BACKLOG.md"
         self.source.write_bytes(_TWO_THEMES.encode("utf-8"))
@@ -406,3 +406,18 @@ def test_the_integrator_closes_when_the_marker_names_a_different_session(fx, tmp
                                                                          monkeypatch):
     _marker_env(tmp_path, monkeypatch, LANE_SESSION)
     assert _cli(fx, tmp_path, monkeypatch, INTEGRATOR_SESSION + "-x") == 0
+
+
+def test_closes_none_filed_closes_nothing_even_when_it_cites_a_source_id():
+    parsed = rc.parse_rows_line(
+        "**Rows:** closes — none filed for this requirement ([#519] is the source); "
+        "related, not closed by this lane — [#2]\n")
+    assert parsed.refusal is None
+    assert parsed.closes == ()
+    assert parsed.related == (2,)
+
+
+def test_refuses_ids_pytest_would_not_collect(fx):
+    _refuses(fx, tests=["tests/test_widget.py::helper"])
+    _refuses(fx, tests=["tests/test_widget.py::Helpers::test_hidden"])
+    _refuses(fx, tests=["tests/widget.py::test_widget_works"])

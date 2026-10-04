@@ -82,6 +82,7 @@ INTERNAL_ERROR = 2
 _ACCEPTED_CONCLUSIONS = ("success", "failure")
 _ROWS_LINE_RE = re.compile(r"^\*\*Rows:\*\*(?P<rest>.*)$", re.MULTILINE)
 _ROW_ID_RE = re.compile(r"\[#(\d+)\]")
+_NONE_RE = re.compile(r"^\s*`?none\b", re.IGNORECASE)
 _RELATED_OPEN_RE = re.compile(r"^\s*related\b", re.IGNORECASE)
 #: The clause must open with `closes` and a dash or colon; ids anywhere else are not closable.
 _CLOSES_OPEN_RE = re.compile(r"^\s*closes\s*(?:—|--|-|:)")
@@ -116,7 +117,9 @@ def parse_rows_line(contract_text: str) -> ParsedRows:
     if semicolon and tail.strip() and not _RELATED_OPEN_RE.match(tail):
         return ParsedRows((), (), "the **Rows:** line has text after the closes clause that is "
                                   "not a `related` clause -- no id is closable from it")
-    closes = tuple(int(i) for i in _ROW_ID_RE.findall(head))
+    # `closes — none filed …` is the no-row form: any id it cites is a source, never a close.
+    named = _CLOSES_OPEN_RE.sub("", head, count=1)
+    closes = () if _NONE_RE.match(named) else tuple(int(i) for i in _ROW_ID_RE.findall(named))
     related = tuple(int(i) for i in _ROW_ID_RE.findall(tail))
     return ParsedRows(closes, related)
 
@@ -250,6 +253,14 @@ def verify_tests(repo_root: Path, merge_sha: str, tests: Sequence[str]) -> None:
             raise RowCloseRefusal(
                 f"refused: {node_id!r}: a parameter selector cannot be proven without collecting "
                 f"the test -- name the function, not a case")
+        base = path.rsplit("/", 1)[-1]
+        collectable = ((base.startswith("test_") or base.endswith("_test.py"))
+                       and names[-1].startswith("test")
+                       and all(n.startswith("Test") for n in names[:-1]))
+        if not collectable:
+            raise RowCloseRefusal(
+                f"refused: {node_id!r} is not a node id pytest collects by default "
+                f"(test_*.py / *_test.py file, Test* classes, test* function)")
         if _defined_at(tree.body, names) is None:
             raise RowCloseRefusal(f"refused: {node_id!r}: {'::'.join(names)} is not defined in "
                                   f"{path} at {merge_sha} (exact class nesting)")
