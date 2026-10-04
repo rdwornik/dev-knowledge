@@ -217,9 +217,11 @@ def fetch_jobs(run_id, *, repo_root: Path) -> Optional[list]:
 
 
 def fetch_job_log(run_id, job_id, *, repo_root: Path) -> Optional[str]:
-    """One job's full log text, or `None` when it could not be read."""
+    """One job's FULL log text, or `None` when it could not be read. By the API endpoint, not
+    `gh run view --job <id> --log`, which cuts the pytest step before its failure summary (see
+    `actions_verdict._default_fetch_logs`); `run_id` is kept for the signature."""
     try:
-        return _gh_text(["gh", "run", "view", str(run_id), "--job", str(job_id), "--log"],
+        return _gh_text(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
                         repo_root=repo_root)
     except GhUnavailable:
         return None

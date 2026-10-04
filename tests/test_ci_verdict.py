@@ -8,6 +8,7 @@ IN-PROGRESS-then-completes and the timeout-while-waiting cases run in test time 
 from __future__ import annotations
 
 import json
+import subprocess
 
 import pytest
 
@@ -524,3 +525,28 @@ def test_step_window_is_NONE_when_the_step_never_ran():
                       "startedAt": "2026-09-24T00:00:00Z", "completedAt": "2026-09-24T00:01:00Z"}]}
 
     assert cv._step_window(job, cv.SUITE_GATE_STEP_NAME) is None
+
+
+# --- foundation-4-merge-gate, repair 2: the merge path's own log reader ----------------------
+
+def test_repair2_fetch_job_log_reads_the_FULL_job_log_by_the_api_endpoint(monkeypatch, tmp_path):
+    """`gh run view --job <id> --log` cuts the pytest step (0 FAILED lines on a 74-failure leg);
+    `ci_verdict.fetch_job_log` is the merge path's reader (`merge_path verdict`), so it is
+    the same defect as `actions_verdict._default_fetch_logs` and takes the same endpoint."""
+    seen = []
+
+    def fake_run(command, **kwargs):
+        seen.append(list(command))
+        return subprocess.CompletedProcess(command, 0, stdout="2026-10-04T01:00:00.0Z FAILED t", stderr="")
+
+    monkeypatch.setattr(cv.subprocess, "run", fake_run)
+
+    assert "FAILED t" in cv.fetch_job_log(7, 111333531317, repo_root=tmp_path)
+    assert seen == [["gh", "api", "repos/{owner}/{repo}/actions/jobs/111333531317/logs"]]
+
+
+def test_repair2_fetch_job_log_is_NONE_when_the_api_read_fails(monkeypatch, tmp_path):
+    monkeypatch.setattr(cv.subprocess, "run", lambda command, **kw: subprocess.CompletedProcess(
+        command, 1, stdout="", stderr="HTTP 404"))
+
+    assert cv.fetch_job_log(7, 5, repo_root=tmp_path) is None

@@ -380,11 +380,19 @@ def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
 
 
 def _default_fetch_logs(run: dict, job: dict, *, repo_root: Optional[Path] = None) -> Optional[str]:
-    """One job's full log text, or None when it could not be read (never an empty string)."""
+    """One job's FULL log text, or None when it could not be read (never an empty string).
+
+    Read by `gh api repos/{owner}/{repo}/actions/jobs/<id>/logs`, NOT `gh run view --job <id>
+    --log`: on job 111333531317 (gh 2.93.0) the latter returned 1151 lines with 0 `FAILED tests/`
+    lines and no "short test summary" -- the pytest step cut to 550 lines -- while the API's log
+    is 3538 lines with 74 of them, so every red-but-pre-existing leg read "names no failing test
+    node id" and REGRESSED. `gh` fills `{owner}/{repo}` from the checkout's remote. The API's lines
+    carry the timestamp without the job/step columns; `_log_text`'s prefix strip already matches.
+    """
     job_id = job.get("databaseId")
     if job_id is None:
         return None
-    command = ["gh", "run", "view", str(run.get("databaseId")), "--job", str(job_id), "--log"]
+    command = ["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"]
     try:
         proc = subprocess.run(command, cwd=str(repo_root or _REPO_ROOT), capture_output=True,
                               text=True, timeout=GH_TIMEOUT_S, check=False)

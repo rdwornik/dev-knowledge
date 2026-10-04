@@ -674,3 +674,120 @@ def test_G7_a_non_push_run_is_never_chosen(monkeypatch, tmp_path):
     monkeypatch.setattr(av.subprocess, "run", fake_run)
 
     assert av.fetch_run("abc1234", repo_root=tmp_path) is None
+
+
+# =====================================================================================
+# foundation-4-merge-gate, repair 2: the DEFAULT log fetcher reads the FULL job log.
+#
+# `gh run view <run> --job <id> --log` (gh 2.93.0) cut the pytest step of job 111333531317 to 550
+# lines: 1151 lines, 0 `FAILED tests/` lines, no "short test summary". The full log, by
+# `gh api repos/{owner}/{repo}/actions/jobs/<id>/logs`, is 3538 lines with 74 `FAILED tests/`
+# lines. Every fixture above feeds a synthetic log through `fetch_logs=`, so none of them could
+# see it: a red-but-pre-existing pytest leg read "names no failing test node id" -> REGRESSED.
+# =====================================================================================
+
+_JOB_LOG_API = "repos/{owner}/{repo}/actions/jobs/"
+
+
+def _api_log(failures: dict) -> str:
+    """The `gh api .../actions/jobs/<id>/logs` shape: `<ts> <text>`, no job/step columns."""
+    lines = ["============ short test summary info ============"]
+    lines += [f"FAILED {nid} - {reason}" for nid, reason in failures.items()]
+    lines.append(f"===== {len(failures)} failed in 61.20s =====")
+    return "\n".join(f"{_TS} {line}" for line in lines)
+
+
+def _truncated_gh_log() -> str:
+    """What `gh run view --job <id> --log` returned for a red leg: the step is cut before pytest's
+    summary, so there is no FAILED line and no 'short test summary'."""
+    body = ["Run uv run --locked python scripts/conductor.py suite", "collected 8870 items",
+            "tests/test_a.py ....F...", "tests/test_b.py ...F..."]
+    return "\n".join(f"pytest (ubuntu-latest)\tRun the suite\t{_TS} {line}" for line in body)
+
+
+def _fake_gh(monkeypatch, *, api_text="", api_rc=0, view_text=None):
+    """Replace `av.subprocess.run` with a `gh` that answers like the real one, and record every
+    command. `gh run view --log` returns the TRUNCATED text; `gh api` returns the full one."""
+    seen: list = []
+
+    def fake_run(command, **kwargs):
+        seen.append(list(command))
+        if command[:2] == ["gh", "api"]:
+            return subprocess.CompletedProcess(command, api_rc, stdout=api_text, stderr="")
+        if command[:3] == ["gh", "run", "view"] and "--log" in command:
+            return subprocess.CompletedProcess(
+                command, 0, stdout=view_text if view_text is not None else _truncated_gh_log(),
+                stderr="")
+        return subprocess.CompletedProcess(command, 1, stdout="", stderr="unexpected")
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+    return seen
+
+
+def test_repair2_the_default_fetcher_reads_the_FULL_job_log_by_the_api_endpoint(
+        monkeypatch, tmp_path):
+    seen = _fake_gh(monkeypatch, api_text=_api_log({_KNOWN: "AssertionError: k"}))
+
+    text = av._default_fetch_logs({"databaseId": 7}, {"databaseId": 111333531317, "name": _LEG_U},
+                                  repo_root=tmp_path)
+
+    assert text is not None and f"FAILED {_KNOWN}" in text
+    assert seen == [["gh", "api", f"{_JOB_LOG_API}111333531317/logs"]]
+    assert not any("--log" in c for c in seen), "`gh run view --log` truncates the pytest step"
+
+
+@pytest.mark.parametrize("rc,text", [(1, "boom"), (0, ""), (0, "   \n")])
+def test_repair2_the_default_fetcher_keeps_NONE_WHEN_UNREADABLE_never_an_empty_string(
+        monkeypatch, tmp_path, rc, text):
+    _fake_gh(monkeypatch, api_text=text, api_rc=rc)
+
+    assert av._default_fetch_logs({"databaseId": 7}, {"databaseId": 5, "name": _LEG_U},
+                                  repo_root=tmp_path) is None
+
+
+def test_repair2_a_gh_that_cannot_run_is_NONE_not_a_raise(monkeypatch, tmp_path):
+    def boom(command, **kwargs):
+        raise OSError("gh not found")
+
+    monkeypatch.setattr(av.subprocess, "run", boom)
+
+    assert av._default_fetch_logs({"databaseId": 7}, {"databaseId": 5, "name": _LEG_U},
+                                  repo_root=tmp_path) is None
+
+
+def test_repair2_a_job_without_an_id_is_NONE(monkeypatch, tmp_path):
+    seen = _fake_gh(monkeypatch)
+
+    assert av._default_fetch_logs({"databaseId": 7}, {"name": _LEG_U}, repo_root=tmp_path) is None
+    assert seen == []
+
+
+def test_repair2_a_red_but_pre_existing_leg_read_through_the_DEFAULT_fetcher_is_PRE_EXISTING(
+        monkeypatch, tmp_path):
+    """The live shape, end to end: no `fetch_logs=` override, so the production fetcher runs
+    against a `gh` whose `run view --log` is truncated and whose `api` is full."""
+    _fake_gh(monkeypatch, api_text=_api_log({_KNOWN: "AssertionError: k"}))
+    fetch = _gh({
+        "tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", "ruff": "success"}),
+        "base": _run_with_logs("base", "failure", {_LEG_U: "failure", "ruff": "success"}),
+    })
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, repo_root=tmp_path,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_PRE_EXISTING, verdict.render()
+    assert verdict.non_test == () and verdict.new_tests == ()
+
+
+def test_repair2_the_truncated_shape_alone_is_still_read_as_no_node_id_so_the_fix_is_the_FETCH(
+        monkeypatch, tmp_path):
+    """Pins that the PARSER stays fail-closed: a log with no FAILED line is not 'nothing failed'.
+    What changes is which text the default fetcher hands it."""
+    _fake_gh(monkeypatch, api_text="", api_rc=1)           # the API is down; only the cut text exists
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, repo_root=tmp_path,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state != av.STATE_PRE_EXISTING and verdict.state != av.STATE_PASS
