@@ -70,7 +70,7 @@ Four-tag discipline (witnessed/recall/inferred/unknown) is canonical per
 HANDOFF_PROCESS v4.3 Amendment A. The §3.1 three-tag text in the spec body is
 **superseded** — amendment-precedence applies. Bundle generation (Phase 2)
 enforces four tags; spec consolidation at v5 will fold amendments into the body.
-The definitions appear in `04_RECENT.md` of every generated bundle (so you don't
+The definitions appear in the recent-work file (file 04) of every generated bundle (so you don't
 need to read the spec to apply the discipline). This is enforced **syntactically**
 at lint time by `audit.py` check #9 — the lint verifies §3.1 has either all four
 canonical tags enumerated OR an explicit pointer to Amendment A. **Check #9 does NOT
@@ -81,7 +81,7 @@ verification cross-checking.
 ## Bundle maintenance during session
 
 If you discover drift between this bundle and repo state during your work — flag
-to Rob, JOURNAL the discovery, and amend the bundle's `04_RECENT.md` Load-bearing
+to Rob, JOURNAL the discovery, and amend the bundle's recent-work file (file 04) Load-bearing
 facts table via append (don't rewrite). The bundle is living until the next
 handoff. This implements the "handoff is back-and-forth, not unilateral guess"
 rule in PLAYBOOK methodology.
