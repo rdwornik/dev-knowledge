@@ -4,7 +4,8 @@
 **Branch:** `worktree-foundation-9-hygiene`
 **Diff range:** `origin/main...HEAD` (doc-counts excluded as generated). Review 1 at `6a45b1ff`, review 2 at `6d5e36b5`; base `3157d69b`, the sha this lane merged at step 0.
 **Mode:** diff-review, isolated read-only session — an empty folder under the job tmp holding the diff, the nine changed files, the contract and a `nonce.txt` (not the lane)
-**Consumer:** `LANE-FOUNDATION-foundation-9-hygiene.md` (Done-contract item 5, "the review record (route above) citing this contract inside it, its P1s fixed")
+**Consumer:** `LANE-FOUNDATION-foundation-9-hygiene.md` (Done-contract item 5, "the review record (route above) citing this contract inside it, its P1s fixed"); the integrator's merge verdict for batch FOUNDATION reads it.
+no-consumer: a lane's frozen contract is the only consumer this record has, and it is a transport file, not a governance surface (`[#id]` row, ADR, `STANDING_RULINGS`, intake) that `consumer_at_landing` recognises
 
 **Model used:** `gpt-5.6-terra`, served — read from each run's own header: `OpenAI Codex v0.155.0`, `model: gpt-5.6-terra`, `provider: openai`, reasoning effort high (review 1 session `01a103f4-4169-7321-a1fd-dd15489bc15c`; review 2 session `01a10416-6a73-7f53-9ad2-58597502559b`). Codex route, so no substitution.
 **Nonce returned:** review 1 `NONCE-57992783703346a7`; review 2 `NONCE-d3e016419d9b4980` — each the first line of the reviewer's answer, equal to the `nonce.txt` it was given.
