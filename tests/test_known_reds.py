@@ -1567,3 +1567,25 @@ def test_b2_a_genuinely_changed_assertion_still_compares_changed(kr):
         frozenset({_LANDING}), frozenset({_LANDING}), _flag_registry(kr), workers=4,
         tip_signatures={_LANDING: "KeyError: 'x'"}, base_signatures={_LANDING: _SET_BASE})
     assert _buckets(result) == {_LANDING: kr.BUCKET_SIGNATURE_CHANGED}
+
+
+# Codex terra P1 on this lane's diff (2026-10-04): the mask covered EVERY quoted set, so
+# `{'expected-a'} == {'actual-a'}` and `{'expected-b'} == {'actual-b'}` read as the same assertion --
+# a genuinely changed assertion hidden behind `{<SET>}`. Only a set of FILE names carries the
+# per-merge value (N1 (ii)); a set whose members are not file names is an assertion's own content.
+def test_b2_a_set_of_quoted_values_that_are_not_file_names_is_not_masked(kr):
+    base = "AssertionError: assert {'expected-a'} == {'actual-a'}"
+    tip = "AssertionError: assert {'expected-b'} == {'actual-b'}"
+
+    assert kr.normalize_signature(base) != kr.normalize_signature(tip)
+    result = kr.compare_to_base(
+        frozenset({_LANDING}), frozenset({_LANDING}), _flag_registry(kr), workers=4,
+        tip_signatures={_LANDING: tip}, base_signatures={_LANDING: base})
+    assert _buckets(result) == {_LANDING: kr.BUCKET_SIGNATURE_CHANGED}
+
+
+def test_b2_a_set_mixing_a_file_name_and_another_value_is_not_masked(kr):
+    base = "AssertionError: assert {'x.md', 'real-value-a'} == set()"
+    tip = "AssertionError: assert {'x.md', 'real-value-b'} == set()"
+
+    assert kr.normalize_signature(base) != kr.normalize_signature(tip)

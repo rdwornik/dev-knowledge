@@ -439,6 +439,14 @@ def rehearsal_problems(record: object, sha: str) -> list[str]:
     if record.get("event") != "push":
         problems.append(f"the rehearsal record is of a {record.get('event')!r} run; only a `push` "
                         f"run carries the check-runs the ruleset reads")
+    run_id = record.get("run_id")
+    if not isinstance(run_id, int) or isinstance(run_id, bool):
+        problems.append(f"the rehearsal record names no run (run_id {run_id!r}): the evidence is a "
+                        f"run's own job list, so a record that cannot say which run it read is "
+                        f"not a rehearsal")
+    if record.get("run_status") != "completed":
+        problems.append(f"the rehearsal record's run_status is {record.get('run_status')!r}, not "
+                        f"'completed': a run still going has not shown its contexts")
     contexts = record.get("contexts") if isinstance(record.get("contexts"), dict) else {}
     for context in required_contexts():
         conclusion = contexts.get(context, "not-run")
@@ -559,7 +567,9 @@ def cmd_verdict(ctx: click.Context, sha: str, base: str, timeout_s: int, interva
 @click.option("--interval", "interval_s", default=20, type=int)
 @click.option("--no-push", "no_push", is_flag=True, default=False,
               help="judge only: read the verdict a landing would read, print it with its flagged "
-                   "buckets, push NOTHING and record nothing. Exit 0 when the sha WOULD land")
+                   "buckets, push NOTHING and write no receipt step (the run event every verb "
+                   "emits to the private state home is still written, with no_push=true). "
+                   "Exit 0 when the sha WOULD land")
 @click.option("--run-id", "run_id", default=None, type=int,
               help="read THIS run alone instead of the newest push run for the sha")
 @click.pass_context

@@ -295,8 +295,9 @@ from an honest unknown are different facts and one of them is a bug.
 > receipt prints it as `ROWS-OWED: …` and you carry that line into the digest. Do not write the
 > registry entry to make a merge pass — the registry is not edited by the walk.
 > **Replay a merge without pushing:** `$MP land --no-push --batch <scratch> --sha <m> --base <its
-> first parent> [--run-id <run>]` reads the verdict a landing would read, prints it, and pushes
-> nothing and records nothing; exit 0 means it would land.
+> first parent> [--run-id <run>]` reads the verdict a landing would read, prints it, pushes
+> nothing and writes no receipt step (its run event, in the private state home, is still written
+> and carries `no_push=true`); exit 0 means it would land.
 >
 > **A refusal is not a retry loop.** `IN-PROGRESS` and a poll timeout: run
 > `$MP verdict --sha $M --base $BASE` once CI finishes, and when it reads landable re-run `land`.

@@ -509,7 +509,8 @@ def test_apply_is_a_DRY_RUN_by_default_and_sends_nothing(monkeypatch):
 def _rehearsal(**over):
     """A rehearsal record as `ruleset rehearse` writes it: every required context `success`."""
     record = {"schema": mp.REHEARSAL_SCHEMA, "sha": TIP, "run_id": 5, "run_url": "https://x/runs/5",
-              "event": "push", "recorded_at": "2026-10-04T12:00:00+00:00",
+              "event": "push", "run_status": "completed", "run_conclusion": "success",
+              "recorded_at": "2026-10-04T12:00:00+00:00",
               "contexts": {c: "success" for c in mp.required_contexts()}}
     record.update(over)
     return record
@@ -596,6 +597,31 @@ def test_b2_apply_refuses_a_record_of_a_non_push_run_or_another_schema(tmp_path)
     other_schema = _write_record(tmp_path, _rehearsal(schema="something/9"))
     unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=other_schema)
     assert len(unmet) == 1 and "schema" in unmet[0]
+
+
+# Codex terra P1 on this lane's diff (2026-10-04): the record is the ONLY evidence `apply` reads, and
+# it accepted one with no run identity at all -- a file holding the schema, the sha, `event: push`
+# and six `success` strings armed the ruleset. A record must name the run it read and show it
+# completed.
+@pytest.mark.parametrize("drop", ["run_id", "run_status"])
+def test_b2_apply_refuses_a_record_with_no_run_identity_or_completion_evidence(tmp_path, drop):
+    record = _rehearsal()
+    del record[drop]
+    path = _write_record(tmp_path, record)
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path)
+
+    assert len(unmet) == 1 and drop.replace("_", " ") in unmet[0].replace("_", " "), unmet
+
+
+@pytest.mark.parametrize("over", [{"run_id": None}, {"run_id": "5"}, {"run_id": True},
+                                  {"run_status": "in_progress"}, {"run_status": None}])
+def test_b2_apply_refuses_a_record_whose_run_is_unnamed_or_not_completed(tmp_path, over):
+    path = _write_record(tmp_path, _rehearsal(**over))
+
+    unmet = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path)
+
+    assert len(unmet) == 1, unmet
 
 
 def test_b2_the_record_is_written_by_rehearse_from_the_runs_own_jobs(tmp_path):

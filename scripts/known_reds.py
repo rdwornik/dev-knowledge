@@ -831,10 +831,13 @@ _GENERATED_NAME_SUFFIX_RE = re.compile(r"(?<=[A-Za-z])-\d+\b")
 #: set-valued assertion over file names, e.g. `assert {'2026-10-04-...erge-gate.md'} == set()` --
 #: carries a PER-MERGE value (the audit file THIS merge adds), so the same failing assertion read
 #: `sig-changed` on every merge that touched `docs/audits/`. The literal is masked to a shape; the
-#: assertion around it still compares. Scoped to `{'a', 'b', ...}` (quoted elements only, no
-#: `key: value` pair), so a dict repr and every number or comparison operator stay as they are.
-_NAME_SET_RE = re.compile(
-    r"\{(?:'[^'{}]*'|\"[^\"{}]*\")(?:,\s*(?:'[^'{}]*'|\"[^\"{}]*\"|\.\.\.))*\}")
+#: assertion around it still compares. Scoped to `{'a.md', 'b.md', ...}`: every member a quoted FILE
+#: name (it ends in an extension; pytest's own `...` elision may stand between members), no
+#: `key: value` pair -- so a dict repr, a set of any other quoted value (`{'expected-a'}`: an
+#: assertion's own content, Codex terra P1 2026-10-04) and every number or comparison operator stay
+#: as they are. Honest limit: `{'a.md'}` against `{'b.md'}` IS the per-merge value and is masked.
+_NAME_MEMBER = r"(?:'[^'{}]*\.[A-Za-z0-9]{1,8}'|\"[^\"{}]*\.[A-Za-z0-9]{1,8}\")"
+_NAME_SET_RE = re.compile(r"\{" + _NAME_MEMBER + r"(?:,\s*(?:" + _NAME_MEMBER + r"|\.\.\.))*\}")
 
 
 def normalize_signature(text: str) -> str:
