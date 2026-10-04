@@ -1253,12 +1253,29 @@ def test_a_call_that_timed_out_or_would_not_start_is_a_probe_error(tmp_path):
     assert out["codex"]["state"] == "probe-error" and out["agy"]["state"] == "probe-error"
 
 
-@pytest.mark.parametrize("text", ["Not logged in - Please run /login", "error: please sign in",
-                                  "401 Unauthorized", "Missing credentials"])
+@pytest.mark.parametrize("text", [
+    "Not logged in - Please run /login", "error: please sign in", "401 Unauthorized",
+    "Missing credentials",
+    # the two read verbatim from a fresh Codespace on 2026-10-04 (grok exit 1, agy exit 1); the
+    # grok one is "signed in", which a `sign in` pattern does not match
+    "Not signed in. To authenticate without a browser, run:\n  grok login --device-code\n",
+    "Authentication required. Please visit the URL to log in:\n  https://accounts.google.com/o/oauth2/auth",
+])
 def test_a_failed_call_that_says_the_login_is_missing_is_unauthenticated(tmp_path, text):
     run = _ModelRun(tmp_path, outputs={"codex": text}, rc={"codex": 1})
     out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
     assert out["codex"]["state"] == "unauthenticated"
+
+
+def test_every_login_item_names_the_step_that_was_read_from_the_tool_itself():
+    """N5: one exact step each, taken from what the CLI printed -- never a workaround and never an
+    API key (the standing auth ruling forbids one)."""
+    assert "grok login --device-auth" in cp.AUTH_NEEDS["grok"]
+    assert "codex login --device-auth" in cp.AUTH_NEEDS["codex"]
+    assert "gh codespace ssh" in cp.AUTH_NEEDS["agy"] and "URL" in cp.AUTH_NEEDS["agy"]
+    assert "CLAUDE_CODE_OAUTH_TOKEN" in cp.AUTH_NEEDS["claude"]
+    for need in cp.AUTH_NEEDS.values():
+        assert "API_KEY" not in need and "api-key" not in need.lower(), need
 
 
 def test_a_failed_call_with_some_other_message_is_no_answer_not_a_login_item(tmp_path):
