@@ -754,3 +754,61 @@ def test_the_persisted_live_store_answers_from_disk(live_store):
     assert counts.nodes > 1900 and counts.edges > 12_000
     assert counts.kinds >= 12
     assert json.loads(json.dumps(counts.as_dict()))["nodes"] == counts.nodes
+
+
+# --- foundation-8 item 2: the Windows flake members are quarantined, never silently skipped --------
+
+#: foundation-8 N4: no quarantine outlives the seat ruling's date for the sibling `deny_and_point` entry.
+_QUARANTINE_EXPIRY_CEILING = "2026-10-19"
+
+
+def _quarantine_problems(node_id: str, *, cause_marker: str, script: str) -> list[str]:
+    """What is missing from a Windows-leg quarantine entry: it must be `flaky`, owned by an OPEN
+    row that exists on disk, dated no later than the ceiling, and its reason must name the
+    cause, the script it lives in, and the measured control rates (N5)."""
+    import datetime
+    import re
+
+    registry = json.loads((REPO_ROOT / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
+    entry = registry["members_by_os"].get("windows-latest", {}).get(node_id)
+    if entry is None:
+        return [f"{node_id} is not quarantined on windows-latest"]
+    problems: list[str] = []
+    if entry.get("attribution") != "flaky":
+        problems.append(f"attribution is {entry.get('attribution')!r}, not 'flaky'")
+    row = re.fullmatch(r"\[#(\d+)\]", entry.get("task", ""))
+    row_files = list(REPO_ROOT.glob(f"tasks/{row.group(1)}-*.md")) if row else []
+    if not row_files:
+        problems.append(f"task {entry.get('task')!r} resolves to no tasks/ row")
+    elif "status: open" not in row_files[0].read_text(encoding="utf-8"):
+        problems.append(f"task {entry['task']} is not an open row")
+    if not entry.get("owner"):
+        problems.append("no owner")
+    if not entry.get("expiry") or datetime.date.fromisoformat(entry["expiry"]) > \
+            datetime.date.fromisoformat(_QUARANTINE_EXPIRY_CEILING):
+        problems.append(f"expiry {entry.get('expiry')!r} is missing or later than "
+                        f"{_QUARANTINE_EXPIRY_CEILING}")
+    reason = entry.get("reason", "")
+    for needle, what in ((cause_marker, "the cause"), (script, "the script it lives in")):
+        if needle not in reason:
+            problems.append(f"reason does not name {what} ({needle!r})")
+    if len(re.findall(r"\b\d+/\d+\b", reason)) < 2:
+        problems.append("reason carries no measured control-run rates (need >= 2 'n/m' figures)")
+    return problems
+
+
+@pytest.mark.parametrize("name", [
+    "test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store",
+    "test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock",
+])
+def test_the_windows_lock_flake_is_quarantined_with_its_cause_and_rates_not_skipped(name):
+    """foundation-8 item 2. The cause lives in `scripts/graph_store.py` (the lock token is
+    `pid + time_ns`, and Windows' clock ticks every 15.6 ms, so two acquisitions in one tick
+    share a token) -- not a test defect and not this lane's to edit -- so the test is
+    QUARANTINED in the registry with its task, owner, expiry and measured rates, and keeps
+    RUNNING: no skip, skipif or xfail."""
+    node_id = f"tests/test_graph_spine.py::{name}"
+    assert _quarantine_problems(node_id, cause_marker="time_ns",
+                                script="scripts/graph_store.py") == []
+    marks = {m.name for m in getattr(globals()[name], "pytestmark", [])}
+    assert not marks & {"skip", "skipif", "xfail"}, f"{name} is silently skipped"
