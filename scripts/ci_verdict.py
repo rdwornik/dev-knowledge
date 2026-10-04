@@ -221,10 +221,11 @@ def fetch_job_log(run_id, job_id, *, repo_root: Path) -> Optional[str]:
     `gh run view --job <id> --log`, which cuts the pytest step before its failure summary (see
     `actions_verdict._default_fetch_logs`); `run_id` is kept for the signature."""
     try:
-        return _gh_text(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
+        text = _gh_text(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
                         repo_root=repo_root)
     except GhUnavailable:
         return None
+    return text if text.strip() else None
 
 
 #: `gh run view --json jobs`'s `steps[].startedAt`/`completedAt` carry SECOND resolution only;

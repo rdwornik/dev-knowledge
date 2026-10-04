@@ -550,3 +550,12 @@ def test_repair2_fetch_job_log_is_NONE_when_the_api_read_fails(monkeypatch, tmp_
         command, 1, stdout="", stderr="HTTP 404"))
 
     assert cv.fetch_job_log(7, 5, repo_root=tmp_path) is None
+
+
+@pytest.mark.parametrize("blank", ["", "   \n"])
+def test_repair2_fetch_job_log_is_NONE_for_a_blank_api_body_never_an_empty_string(
+        monkeypatch, tmp_path, blank):
+    monkeypatch.setattr(cv.subprocess, "run", lambda command, **kw: subprocess.CompletedProcess(
+        command, 0, stdout=blank, stderr=""))
+
+    assert cv.fetch_job_log(7, 5, repo_root=tmp_path) is None
