@@ -5853,7 +5853,7 @@ Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-20
   3. **"Allow-list by absence" is not adopted** as a permission restriction.
   ```
 
-- **R70 — volatile facts have one source and are generated, never copied into prose** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:32` (v4)). In force as: every volatile fact (model ids, tool versions, document versions, dates, counts) has one source and every other copy is generated from it at render time; a hand copy that disagrees with its source is a false positive under R59; the handoff boot's version changes whenever its content changes. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+- **R70 — volatile facts have one source and are generated, not copied into prose** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:32` (v4)). In force as: every volatile fact (model ids, tool versions, document versions, dates, counts) has one source and every other copy is generated from it at render time; a hand copy that disagrees with its source is a false positive under R59; the handoff boot's version changes whenever its content changes. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
 
   **Carried by:** [#1370]
 
@@ -5962,7 +5962,7 @@ Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-20
   3. **This repeats the operator's 2026-09-27 stance,** which was never carried.
   ```
 
-- **R76 — the browser seat's role: brainstorm and evaluate, never decide alone** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:105` (v4)). In force as: the browser brainstorms, envisions, does web research, holds outside context, then evaluates; every decision is worked back and forth with CC, which brings evidence, checks, alternatives and challenge (R41); verifying, testing and thinking it through belong to the harness and CC; every window carries this rule in HANDOFF_BOOT and in the seat's memory. **Refines ADR-108 section A** (the technical-rulings split, whose text stays as written: the ADR is immutable): the seat's technical rulings follow the exchange with CC. **SEAT-LESSONS lesson 11 is to be corrected to match.** **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+- **R76 — the browser seat's role: brainstorm and evaluate, and decide together with CC** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:105` (v4)). In force as: the browser brainstorms, envisions, does web research, holds outside context, then evaluates; every decision is worked back and forth with CC, which brings evidence, checks, alternatives and challenge (R41); verifying, testing and thinking it through belong to the harness and CC; every window carries this rule in HANDOFF_BOOT and in the seat's memory. **Refines ADR-108 section A** (the technical-rulings split, whose text stays as written: the ADR is immutable): the seat's technical rulings follow the exchange with CC. **SEAT-LESSONS lesson 11 is to be corrected to match.** **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
 
   **Carried by:** [#1364]
 
