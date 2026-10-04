@@ -643,7 +643,7 @@ leg_f1_claude() {
   say "L-F1 ok — node present ($(node --version 2>/dev/null | head -1))"
 }
 
-# --- F5: the lane's toolset — claude PINNED, plus gh, codex, rclone, agy (foundation-13, R63 step 1)
+# --- F5: the lane's toolset — claude PINNED, plus gh, codex, rclone, agy, grok (foundation-13, R63 step 1; b2-codespace-1to1)
 #
 # WHY THESE LEGS EXIST. Codespace parity condition 1 (`scripts/codespace_parity.py`) compares the
 # tools a lane needs between the workstation and a Codespace. Its first recorded run measured the
@@ -835,16 +835,19 @@ leg_f5_rclone() {
 # --- F5e: agy ------------------------------------------------------------------------------------
 # The vendor's installer (read 2026-10-04): `curl -fsSL https://antigravity.google/cli/install.sh |
 # bash` fetches the platform manifest, verifies its sha512 and installs `agy` under ~/.local/bin.
-# It accepts --dir and NO version, so there is no pin to honour: presence is asserted and the
-# version is reported (`tools:` agy row). A skew against the workstation surfaces in parity
-# condition 1 by name rather than being papered over.
+# It accepts --dir and NO version, so this leg cannot SELECT the pin; it ASSERTS it (b2-codespace-
+# 1to1, R63). A release the vendor publishes past the pin in `provisioning.yaml` `tools:` is then a
+# named refusal here, and a version-skew FAIL in parity condition 1, rather than a tool that floats.
 leg_f5_agy() {
-  local ok=1
+  local want ok=1
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get agy)" \
+    || die "L-F5 cannot read the agy pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no agy pin"
   uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login || ok=0
   if [ "${ok}" -eq 1 ]; then
-    noop "L-F5 agy already installed"
+    noop "L-F5 agy already at the pinned ${want}"
   else
-    say "L-F5 installing agy (the vendor installer, latest — it takes no version)"
+    say "L-F5 installing agy (the vendor installer serves its latest, and the leg then asserts ${want})"
     curl -fsSL https://antigravity.google/cli/install.sh | bash >/dev/null \
       || die "L-F5 the Antigravity installer failed"
     export PATH="${UV_BIN_DIR}:${PATH}"
@@ -852,8 +855,36 @@ leg_f5_agy() {
   fi
   ensure_login_resolvable agy
   uv run --no-sync python scripts/provision_legs.py tools check --only agy --login \
-    || die "L-F5 FAILED — agy is not installed in a login shell. A login shell resolves: $(login_resolves agy)"
-  say "L-F5 OK — agy present"
+    || die "L-F5 FAILED — agy is not the pinned ${want} in a login shell (its installer takes no version, so a release past the pin shows up here). A login shell resolves: $(login_resolves agy)"
+  say "L-F5 OK — agy ${want}"
+}
+
+# --- F5f: grok -----------------------------------------------------------------------------------
+# xAI's first-party installer (read 2026-10-04): `curl -fsSL https://x.ai/cli/install.sh | bash -s
+# <X.Y.Z>` installs that version's artifact for the platform and checks the binary runs;
+# GROK_BIN_DIR picks the directory (default ~/.grok/bin). The installer's other documented form,
+# GROK_DEPLOYMENT_KEY, is a credential and is NEVER passed here (R13): a Codespace that needs a
+# Grok login gets it from an operator act, which parity condition 1 names as an auth item.
+leg_f5_grok() {
+  local want ok=1
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get grok)" \
+    || die "L-F5 cannot read the grok pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no grok pin"
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only grok --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 grok already at the pinned ${want}"
+  else
+    say "L-F5 installing grok ${want}"
+    mkdir -p "${UV_BIN_DIR}"
+    curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="${UV_BIN_DIR}" bash -s "${want}" >/dev/null \
+      || die "L-F5 the xAI Grok installer failed for ${want}"
+    export PATH="${UV_BIN_DIR}:${PATH}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable grok
+  uv run --no-sync python scripts/provision_legs.py tools check --only grok --login \
+    || die "L-F5 FAILED — grok is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves grok)"
+  say "L-F5 OK — grok ${want}"
 }
 
 # --- F4: workspace trust, so the DECLARED permission set is the EFFECTIVE one --------------------
@@ -1096,6 +1127,7 @@ main() {
   leg_f5_codex
   leg_f5_rclone
   leg_f5_agy
+  leg_f5_grok
   leg_f2_git_credential
   leg_f4_workspace_trust
   smoke_gate_liveness
