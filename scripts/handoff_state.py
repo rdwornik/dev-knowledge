@@ -466,6 +466,8 @@ def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRo
     if transport is not None:                   # a PLAN-*.md symlink must not resolve out of to-cc
         home = (Path(transport) / "to-cc").resolve()
         plans = [p for p in plans if p.resolve().parent == home]
+    if as_of is not None:                       # an undated plan is placed by its mtime date
+        plans = [p for p in plans if _plan_rank(p)[0] <= as_of]
     roles =[(p, _plan_role(p, as_of)) for p in plans]
     masters = [i for i, (_p, r) in enumerate(roles) if r == "master"]
     start = masters[-1] if masters else -1

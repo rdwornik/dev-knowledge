@@ -1157,3 +1157,16 @@ def test_a_crlf_transport_head_still_resolves_its_lineage(tmp_path):
         f = t / "to-cc" / name
         f.write_bytes(f.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8"))
     assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in hs.row_plan(t).value
+
+
+def test_as_of_excludes_an_undated_plan_whose_mtime_is_after_the_cut(tmp_path):
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    old = t / "to-cc" / "PLAN-WAVE5-2026-09-23.md"
+    old.write_text(_WAVE5, encoding="utf-8")
+    late = t / "to-cc" / "PLAN-LATE.md"
+    late.write_text(_WAVE5.replace("2026-09-23", "2026-10-04"), encoding="utf-8")
+    after = datetime(2026, 10, 4, 12, 0).timestamp()
+    os.utime(late, (after, after))
+    assert "PLAN-LATE.md" in hs.row_plan(t).value                         # live: it is the newest
+    assert "`to-cc/PLAN-WAVE5-2026-09-23.md`" in hs.row_plan(t, as_of="2026-09-30").value
