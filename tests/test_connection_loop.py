@@ -1017,3 +1017,78 @@ def test_no_handback_line_means_lane_end_does_not_run(tmp_path_factory):
         assert sorted(p.name for p in receipts.glob("MOMENT-LANE-END-*.json")) == ["MOMENT-LANE-END-PRECONDITION.json"]
         assert not (world.transport / "to-browser" / f"LANE-END-{NEGATIVE_SLUG}.md").exists(), "a report was delivered"
         _assert_transport_untouched(live_before)
+
+
+# --- the lane-end wait: ends on a terminal signal, still bounded at 300 s ---------------------------------------------
+# `World.stop_hook` waits for the detached lane-end worker. These tests drive it on a VIRTUAL clock (the module's `time`
+# is swapped for one that only a `sleep` advances) with the guard command stubbed, so a wait that idles costs no real
+# time and its length is read off the clock: a terminal signal ends it early, nothing terminal ends it at 300 s.
+
+class _VirtualTime:
+    """`time.monotonic` / `time.sleep` over a counter; `on_sleep(now)` lets a test change the world as time passes."""
+
+    def __init__(self, on_sleep=None) -> None:
+        self.now = 0.0
+        self.on_sleep = on_sleep
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+        if self.on_sleep:
+            self.on_sleep(self.now)
+
+
+def _virtual_stop_hook(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, guard_leaves=None, on_sleep=None) -> tuple:
+    """Run `stop_hook` with the guard command stubbed. `guard_leaves` is the receipt body the guard writes before it
+    returns (None: the guard wrote nothing, as for a session file with no HANDBACK line). Returns (virtual seconds
+    waited, receipt path)."""
+    world = World(tmp_path / "world", full=False)
+    worktree = tmp_path / "worktree"
+    receipt = worktree / "logs" / "receipts" / "MOMENT-LANE-END-HOOK.json"
+    receipt.parent.mkdir(parents=True)
+
+    def guard_command(self, argv, cwd=None, **extra):
+        if guard_leaves is not None:
+            receipt.write_text(json.dumps(guard_leaves), encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    clock = _VirtualTime(on_sleep=(lambda now: on_sleep(now, receipt)) if on_sleep else None)
+    monkeypatch.setattr(World, "run", guard_command)
+    monkeypatch.setattr(sys.modules[__name__], "time", clock)
+    world.stop_hook(worktree)
+    return clock.now, receipt
+
+
+def test_the_lane_end_wait_ends_when_the_guard_left_no_claim(tmp_path, monkeypatch):
+    """No HANDBACK line: the guard returns having written nothing -- the explicit 'lane end not run' outcome. The old
+    wait idled the full 300 s on it (301.86-302.05 s measured in CI); a terminal signal ends it at once."""
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves=None)
+    assert not receipt.exists()
+    assert waited < 10, f"waited {waited:.0f}s for a lane end the guard had already declined to start"
+
+
+def test_the_lane_end_wait_ends_when_the_receipt_is_already_terminal(tmp_path, monkeypatch):
+    waited, _ = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "REFUSED"})
+    assert waited < 10
+
+
+def test_the_lane_end_wait_ends_when_the_worker_turns_the_receipt_terminal(tmp_path, monkeypatch):
+    """A claimed lane end is still polled to its worker's finish: `running` -> `ok` after 5 virtual seconds."""
+    def worker_finishes(now: float, receipt: Path) -> None:
+        if now >= 5:
+            receipt.write_text(json.dumps({"status": "ok"}), encoding="utf-8")
+
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "running"},
+                                         on_sleep=worker_finishes)
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "ok"
+    assert 5 <= waited < 10
+
+
+def test_the_lane_end_wait_is_still_bounded_at_300s_when_nothing_terminal_appears(tmp_path, monkeypatch):
+    """The timeout path: a claim that stays `running` forever ends the wait at 300 s -- not earlier, not later --
+    and the wait returns without raising, exactly as before."""
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "running"})
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "running"
+    assert 300 <= waited <= 301, f"the wait ended at {waited:.0f}s"
