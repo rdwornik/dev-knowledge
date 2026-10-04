@@ -70,3 +70,9 @@ TALLY P1=1 P2=2 P3=3
 ## Verdict
 
 The P1 is fixed and proven RED-first then GREEN (targeted run: 356 passed, 1 skipped, 1 failed — the one failure is `test_history_check_exits_0_on_this_repo`, red in every lane worktree because local `main` is behind `origin/main`, lane 5's known ROWS-OWED, not this lane's). The reviewer was not re-run on the fix diff; the fixes are each covered by a RED-first test.
+
+## Amendment 2026-10-04 -- repair 1 (edge-class census row)
+
+The integrator's check (b) refused `scripts/provision_legs.py`: the Actions-only hook `graph-edge-class-census` read its two version regexes (`_PIN_RE`, `_VERSION_RE`) as the five-kind edge-computation shape. A one-row data change, `"scripts/provision_legs.py": _not_an_edge(...)` in `scripts/graph_queries.py` `EDGE_COMPUTATIONS`, verdicts it out of the class: the regexes parse a tool version string off a `--version` probe and compare it with a hand-declared pin in `provisioning.yaml`; no corpus relation is computed. `provision_legs.py` itself is unchanged (not reshaped to slip under the predicate).
+
+Reviewed by this lane's own read, not by a fresh Codex terra pass (the refusal says a fresh read is welcome, not required for a register row). RED/GREEN by the conductor's sequence (soft-reset to the merge-base with `origin/main`, then `pre-commit run graph-edge-class-census --hook-stage manual`): RED exit 1 naming `scripts/provision_legs.py` at `66a18389`; GREEN exit 0 at `207c0214`. Contract: `LANE-FOUNDATION-foundation-13-codespace-toolset.md` (repair claim `...-repair-1`).
