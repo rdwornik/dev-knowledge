@@ -44,3 +44,5 @@ The two declined items are a broader hardening than the refusal asked for; they 
 ## What the review did not examine
 
 Pass A and B saw only the repair diff and the two source files. The three tests the refusal named were run on the tip, detached, through `scripts/memory_admission_gate.py run`; they passed. Five other tests failed in that run and are attributed in the session file (live-transport dependence or red on the base CI run), none to this diff.
+
+**Amendment 2026-10-04 (repair 2, integrator order):** this record cites the governance row `[#1378]` (the rulings gate armed at batch close and the handoff cut) as its governance consumer, because `scripts/consumer_at_landing.py` does not count a contract path. Nothing above this line is edited.
