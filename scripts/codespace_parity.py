@@ -9,9 +9,13 @@ environment it runs in (`collect`), compares two such records (`check`), and pri
 condition -- `PASS`, `FAIL`, or `NOT-RUN <reason>` -- with the two values compared as evidence:
 
     1 environment   Python, `uv`, the `uv.lock` hash, `uv sync --locked` exit, the versions of the
-                    tools a lane needs (`claude`, `gh`, `codex`, `agy`), the installed git-hook
-                    set -- identical except the OS-specific entries declared below, in code.
-                    A tool the Codespace has but is not logged in to is a NAMED auth item
+                    tools a lane needs (`claude`, `gh`, `codex`, `grok`, `agy`), the installed
+                    git-hook set -- identical except the OS-specific entries declared below, in
+                    code. EACH MODEL CLI ALSO ANSWERS ONE CALL (b2-codespace-1to1, R63): the id it
+                    SERVED is read from the tool's own record and must equal what
+                    `ecosystem/provider-registry.yaml` routes that CLI's role to (R61) -- a CLI that
+                    prints the pinned `--version` and silently serves another model is a FAIL naming
+                    both ids. A tool the Codespace has but is not logged in to is a NAMED auth item
                     (`PASS except named auth items: ...`), never a silent exception.
     2 gates         a FIXED set of pre-commit hooks, `audit.py health` and a FIXED pytest
                     selection, same verdict on both sides or a declared OS case with its own row.
@@ -41,8 +45,10 @@ the only remote read is `gh codespace ssh ... cat` (measured: `cp` has failed th
 ways, `cat` fails visibly).
 
 PRIOR-ART CHECK (library-first). stdlib (`json`, `hashlib`, `subprocess`, `xml.etree` for the
-pytest junit file) plus the already-declared `click`; `pre-commit` and `pytest` are the existing
-runners; `codespace_regime.uptime_minutes` is reused for cost. No new dependency, no new runner.
+pytest junit file) plus the already-declared `click` and `pyyaml` (the registry is read as the YAML
+file it is, not through a second parser); `pre-commit` and `pytest` are the existing runners;
+`codespace_regime.uptime_minutes` is reused for cost. The served-id probes (b2-codespace-1to1) call
+each CLI's own headless mode and read each CLI's own record -- no vendor SDK, no new dependency.
 
     uv run --locked python scripts/codespace_parity.py collect --out record.json [--push-branch B]
     uv run --locked python scripts/codespace_parity.py check --local l.json --remote r.json
@@ -57,6 +63,7 @@ import logging
 import os
 import platform
 import re
+import secrets
 import shlex
 import shutil
 import subprocess
@@ -69,6 +76,7 @@ from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
 import click
+import yaml
 
 _SCRIPTS = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS.parent
@@ -90,10 +98,13 @@ DEFAULT_REMOTE_FILE = "/tmp/parity-remote.json"
 # ============================================================ what is declared, in code
 
 #: The tools a lane's close-out needs on EITHER substrate (`claude` runs the lane, `gh` lands it,
-#: `codex` is the review route after the Grok window, `agy` the other read route). Declared here
+#: `codex` and `grok` are the review routes, `agy` the other read route). Declared here
 #: rather than argued in prose: a tool absent on one side, absent on both, or at two versions is
 #: a FAIL naming it.
-LANE_TOOLS: tuple[str, ...] = ("claude", "gh", "codex", "agy")
+LANE_TOOLS: tuple[str, ...] = ("claude", "gh", "codex", "grok", "agy")
+
+#: The model CLIs among them: each answers one call and reports the id it SERVED (R61, R63).
+MODEL_CLIS: tuple[str, ...] = ("claude", "codex", "grok", "agy")
 
 #: Condition-1 manifest entries that legitimately differ by OS, each with its reason. Everything
 #: else in the manifest must be equal. `platform` is the OS and CPU by definition.
@@ -134,19 +145,25 @@ GATE_TESTS: tuple[str, ...] = (
 #: record); `check` then NAMES every tool the Codespace has installed but not authenticated, with
 #: what it needs, as `AUTH-ITEM` evidence and in the verdict line. They are exceptions to the
 #: environment PASS, never silent ones: condition 1 reads `PASS except named auth items: ...`.
-#: `agy` has no non-interactive status command, so it is `unprobed` and named for that reason.
+#: `agy` and `grok` have no non-interactive status command, so they are `unprobed` until their model
+#: call answers (that call is then the proof of login) and named for that reason otherwise.
 AUTH_PROBES: dict[str, Optional[tuple[str, ...]]] = {
     "claude": ("claude", "auth", "status"),
     "gh": ("gh", "auth", "status"),
     "codex": ("codex", "login", "status"),
+    "grok": None,
     "agy": None,
 }
 
 AUTH_NEEDS: dict[str, str] = {
     "claude": "the CLAUDE_CODE_OAUTH_TOKEN Codespaces secret (from `claude setup-token`)",
     "gh": "GITHUB_TOKEN or GH_TOKEN in the environment, or `gh auth login`",
-    "codex": "`codex login` (ChatGPT sign-in) or an API-key Codespaces secret",
-    "agy": "an `agy` login; it has no non-interactive status command, so it cannot be probed",
+    "codex": "`codex login --device-auth` run once in the Codespace (ChatGPT device sign-in; "
+             "no Codespaces secret holds it)",
+    "grok": "`grok login --device-auth` run once in the Codespace (xAI device sign-in for a headless "
+            "host; no Codespaces secret holds it)",
+    "agy": "an `agy` sign-in completed once in the Codespace (it has no login subcommand and no "
+           "Codespaces secret; its model call is what shows the login)",
 }
 
 #: The one file name `collect --probe-write` may write on the transport: a single plain name, so
@@ -229,8 +246,11 @@ def default_run(argv: Sequence[str], *, cwd: Optional[Path] = None, timeout: int
     if exe is None:
         return CmdResult(127, "", f"{argv[0]}: not found on PATH")
     try:
+        # stdin is closed: `codex exec` prints "Reading additional input from stdin..." and waits
+        # forever on an open pipe (found building the served-id probe, 2026-10-04).
         proc = subprocess.run([exe, *argv[1:]], cwd=str(cwd) if cwd else None, text=True,
                               encoding="utf-8", errors="replace", capture_output=True,
+                              stdin=subprocess.DEVNULL,
                               timeout=timeout, env=dict(env) if env is not None else None)
     except OSError as exc:
         return CmdResult(127, "", str(exc))
@@ -290,6 +310,274 @@ def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REP
     return auth
 
 
+
+# ====================================================== C1 served model ids (b2-codespace-1to1)
+
+#: The registry file the served ids are compared with -- the declared home of every provider, CLI
+#: and model string on the live surface. Read at call time so a test can point it elsewhere.
+REGISTRY_PATH = _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+
+#: Where the registry says each model CLI's id lives: (provider id, role). `claude` is the lane's
+#: runner (`implement`); `codex` and `grok` are the review routes; `agy` has no role-level model
+#: (its `read` entry pins none), so its id is the one `antigravity` row under `models:`.
+_MODEL_SEAMS: dict[str, tuple[str, Optional[str]]] = {
+    "claude": ("anthropic", "implement"),
+    "codex": ("openai", "review"),
+    "grok": ("xai", "review"),
+    "agy": ("antigravity", None),
+}
+
+#: agy lists each family in tiers (`agy models`: gemini-3.8-flash-{high,medium,low}); the registry
+#: row is the family, so a served tier of that family is the registered model.
+_AGY_TIERS = ("high", "medium", "low")
+
+#: What a failed call says when the login is what is missing. Matched only on a call whose nonce did
+#: not come back, so a model's own words about "signing in" in an answer never reclassify it (agy
+#: logs its model label before it authenticates, so a served id is not proof the call went through).
+_LOGIN_MISSING = re.compile(
+    r"not logged in|please (?:run /)?log ?in|sign[ -]?in|log ?in required|unauthori[sz]ed|\b401\b"
+    r"|missing credentials|authentication (?:required|failed)", re.IGNORECASE)
+
+PROBE_TIMEOUT = 240
+
+
+@dataclass(frozen=True)
+class ExpectedModel:
+    id: Optional[str]
+    where: str
+
+
+def load_registry(path: Optional[Path] = None) -> dict:
+    """The provider registry as a plain mapping; `{}` when it cannot be read (every expected id is
+    then absent, which the comparison reports by name rather than skipping)."""
+    target = Path(path) if path is not None else REGISTRY_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def expected_models(registry: Mapping) -> dict[str, ExpectedModel]:
+    """cli -> the id the registry routes that CLI to, and where the registry says so."""
+    out: dict[str, ExpectedModel] = {}
+    for cli, (provider, role) in _MODEL_SEAMS.items():
+        if role is not None:
+            order = ((registry.get("roles") or {}).get(role) or {}).get("order") or []
+            entry = next((e for e in order if isinstance(e, Mapping)
+                          and e.get("provider") == provider), None)
+            model = (entry or {}).get("model")
+            where = f"roles.{role}, provider {provider}"
+            out[cli] = ExpectedModel(str(model) if model else None,
+                                     where if model else f"{where}: no model pinned")
+        else:
+            rows = [name for name, row in (registry.get("models") or {}).items()
+                    if isinstance(row, Mapping) and row.get("provider") == provider]
+            where = f"models row of provider {provider}"
+            out[cli] = ExpectedModel(rows[0] if len(rows) == 1 else None,
+                                     where if len(rows) == 1 else f"{where}: {len(rows)} rows, need one")
+    return out
+
+
+def served_matches(cli: str, served: Optional[str], expected: Optional[str]) -> bool:
+    """Exact equality; `agy` alone also accepts a tier of the registered family."""
+    if not served or not expected:
+        return False
+    if served == expected:
+        return True
+    return cli == "agy" and served.startswith(expected + "-") \
+        and served[len(expected) + 1:] in _AGY_TIERS
+
+
+def probe_prompt(nonce: str) -> str:
+    """One line, no quotes: it crosses a login shell and, on Windows, a `.cmd` shim. It is not an
+    instruction to repeat an exact string -- grok refuses that wording -- but a check code to return."""
+    return f"This is a connectivity check and the check code is {nonce}. Please reply with the check code."
+
+
+def model_probe_argv(cli: str, nonce: str, model: str, log_file: str) -> list[str]:
+    """The one trivial headless call for `cli`, asking for the registry's id by name. A lane asks
+    for its model by id too, so the probe tests that the CLI SERVES the id it was asked for."""
+    prompt = probe_prompt(nonce)
+    if cli == "claude":
+        return ["claude", "-p", prompt, "--model", model, "--output-format", "stream-json",
+                "--verbose", "--no-session-persistence", "--max-turns", "1",
+                "--setting-sources", "user"]
+    if cli == "codex":
+        return ["codex", "exec", "--skip-git-repo-check", "--color", "never", "-m", model,
+                "-s", "read-only", prompt]
+    if cli == "grok":
+        return ["grok", "-m", model, "-p", prompt, "--output-format", "json", "--max-turns", "1"]
+    if cli == "agy":
+        return ["agy", "-p", prompt, "--output-format", "json", "--log-file", log_file]
+    raise ValueError(f"no served-id probe is declared for {cli!r}")
+
+
+def _json_lines(text: str) -> list[dict]:
+    rows = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            rows.append(obj)
+    return rows
+
+
+def _json_object(text: str) -> Optional[dict]:
+    """The first JSON object in `text` (a CLI may print a warning line before it)."""
+    text = text or ""
+    start = text.find("{")
+    if start < 0:
+        return None
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError:
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
+def read_claude(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is the stream's own assistant message `message.model` -- the
+    transcript record -- and `<synthetic>` (what Claude Code writes for its own error text) is not a
+    served model."""
+    served: Optional[str] = None
+    texts: list[str] = []
+    for obj in _json_lines(stdout):
+        if obj.get("type") != "assistant":
+            continue
+        message = obj.get("message") or {}
+        model = message.get("model")
+        if model and model != "<synthetic>" and served is None:
+            served = str(model)
+        for block in message.get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "text":
+                texts.append(str(block.get("text") or ""))
+    return served, nonce in "\n".join(texts)
+
+
+_ANSI = re.compile("\x1b\\[[0-9;]*m")
+
+
+def read_codex(text: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is the `model:` line of Codex's own run header (printed on
+    stderr, and colour-coded when a terminal is attached -- measured 2026-10-04); the answer is any
+    appearance of the nonce once the echoed prompt, which carries it too, is taken out."""
+    plain = _ANSI.sub("", text or "")
+    match = re.search(r"^model:\s*(\S+)", plain, re.MULTILINE)
+    return (match.group(1) if match else None), nonce in plain.replace(probe_prompt(nonce), "")
+
+
+def read_grok(stdout: str, nonce: str, home: Path) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is `primaryModelId` in the session store's `usage.json`
+    (`~/.grok/sessions/<cwd>/<session>/usage.json`) for the session this call printed."""
+    obj = _json_object(stdout)
+    if obj is None:
+        return None, False
+    answered = nonce in str(obj.get("text") or "")
+    session = str(obj.get("sessionId") or "")
+    served: Optional[str] = None
+    if session and re.fullmatch(r"[A-Za-z0-9._-]+", session):
+        for usage in sorted(Path(home, ".grok", "sessions").glob(f"*/{session}/usage.json")):
+            try:
+                data = json.loads(usage.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            primary = ((data or {}).get("session") or {}).get("primaryModelId")
+            if primary:
+                served = str(primary)
+                break
+    return served, answered
+
+
+def _label_slug(label: str) -> str:
+    return re.sub(r"[^a-z0-9.]+", "-", label.lower()).strip("-")
+
+
+def read_agy(stdout: str, log_text: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is the model label agy's own run log propagates to its
+    backend (`label="Gemini 3.8 Flash (High)"`), as the slug `agy models` lists it under."""
+    obj = _json_object(stdout) or {}
+    answered = obj.get("status") == "SUCCESS" and nonce in str(obj.get("response") or "")
+    labels = re.findall(r'label="([^"]+)"', log_text or "")
+    return (_label_slug(labels[-1]) if labels else None), answered
+
+
+def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[ExpectedModel],
+               nonce: str, home: Path, timeout: int) -> dict:
+    log_file = workdir / "agy.log"
+    if expected is None or not expected.id:
+        why = expected.where if expected else "no registry entry"
+        return {"state": "no-expected", "served_id": None,
+                "detail": f"the registry names no model for {cli} ({why}); the call was not made"}
+    res = run(_status_probe(model_probe_argv(cli, nonce, expected.id, str(log_file))),
+              cwd=workdir, timeout=timeout)
+    if res.returncode in (124, 127):
+        return {"state": "probe-error", "served_id": None,
+                "detail": f"the call did not run (exit {res.returncode}): {(res.stderr or '')[:80]}"}
+    out = res.stdout or ""
+    if cli == "claude":
+        served, answered = read_claude(out, nonce)
+    elif cli == "codex":
+        served, answered = read_codex(out + "\n" + (res.stderr or ""), nonce)
+    elif cli == "grok":
+        served, answered = read_grok(out, nonce, home)
+    else:
+        try:
+            log_text = log_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            log_text = ""
+        served, answered = read_agy(out, log_text, nonce)
+    if served and answered:
+        return {"state": "served", "served_id": served,
+                "detail": "served id read from the tool's own record; the nonce came back"}
+    said = out + "\n" + (res.stderr or "")
+    if not answered and _LOGIN_MISSING.search(said):
+        return {"state": "unauthenticated", "served_id": None,
+                "detail": "the call said the login is missing"}
+    return {"state": "no-answer", "served_id": served,
+            "detail": (f"exit {res.returncode}; "
+                       + ("the nonce did not come back" if served else "no served id in the tool's record"))}
+
+
+def collect_models(run: Runner, tools: Mapping[str, Mapping], auth: Mapping[str, Mapping],
+                   expected: Mapping[str, ExpectedModel], *, home: Optional[Path] = None,
+                   nonce: Optional[str] = None, timeout: int = PROBE_TIMEOUT) -> dict:
+    """Each model CLI's served id, from ONE call each, run in an empty directory so no project
+    context shapes the answer. The record keeps state, id and a one-line detail only -- never the
+    model's output, the nonce or any credential."""
+    home = Path(home) if home is not None else Path.home()
+    nonce = nonce or "CHK-" + secrets.token_hex(4).upper()
+    out: dict[str, dict] = {}
+    with tempfile.TemporaryDirectory(prefix="parity-probe-") as tmp:
+        for cli in MODEL_CLIS:
+            if not (tools.get(cli) or {}).get("present"):
+                out[cli] = {"state": "tool-absent", "served_id": None, "detail": f"{cli} is not installed"}
+            elif ((auth.get(cli) or {}).get("state")) == "unauthenticated":
+                out[cli] = {"state": "not-probed-auth", "served_id": None,
+                            "detail": "login missing -- a named auth item; the call was not made"}
+            else:
+                out[cli] = _probe_one(cli, run, Path(tmp), expected.get(cli), nonce, home, timeout)
+    return out
+
+
+def _fold_model_proof_into_auth(auth: dict, models: Mapping[str, Mapping]) -> None:
+    """A model call is the only login probe `grok` and `agy` have: an answered call proves the login,
+    and one that said the login is missing names it. Status-command verdicts are left alone."""
+    for cli in MODEL_CLIS:
+        entry, model = auth.get(cli), models.get(cli) or {}
+        if entry is None:
+            continue
+        if model.get("state") == "served" and entry.get("state") == "unprobed":
+            auth[cli] = {"state": "authenticated", "probe": "a model call answered (served-id probe)"}
+        elif model.get("state") == "unauthenticated":
+            auth[cli] = {"state": "unauthenticated", "probe": entry.get("probe", "")}
+
+
 def installed_hooks(run: Runner, root: Path) -> list[str]:
     """Hook types whose shim exists and is pre-commit-managed in the RESOLVED hooks dir."""
     where = run(["git", "rev-parse", "--git-path", "hooks"], cwd=root)
@@ -311,7 +599,8 @@ def installed_hooks(run: Runner, root: Path) -> list[str]:
 
 
 def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
-                        hooks: Optional[Sequence[str]] = None) -> dict:
+                        hooks: Optional[Sequence[str]] = None, home: Optional[Path] = None,
+                        nonce: Optional[str] = None) -> dict:
     """Condition 1's manifest, built in the environment this runs in."""
     uv = run(["uv", "--version"], cwd=root)
     sync = run(["uv", "sync", "--locked"], cwd=root)
@@ -325,13 +614,19 @@ def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
         first = (res.stdout.strip().splitlines() or [""])[0]
         tools[name] = {"present": present,
                        "version": (_semver(first) or first or None) if present else None}
+    auth = collect_auth(run, tools, root=root)
+    models = collect_models(run, tools, auth,
+                            expected_models(load_registry(root / "ecosystem" / "provider-registry.yaml")),
+                            home=home, nonce=nonce)
+    _fold_model_proof_into_auth(auth, models)
     return {
         "python": py.stdout.strip() or None if py.returncode == 0 else None,
         "uv": _semver(uv.stdout) if uv.returncode == 0 else None,
         "uv_lock_sha256": hashlib.sha256(lock.read_bytes()).hexdigest() if lock.is_file() else None,
         "uv_sync_exit": sync.returncode,
         "tools": tools,
-        "auth": collect_auth(run, tools, root=root),
+        "auth": auth,
+        "models": models,
         "hooks": sorted(hooks) if hooks is not None else installed_hooks(run, root),
         "platform": {"system": platform.system(), "machine": platform.machine()},
     }
@@ -520,8 +815,10 @@ def core_hours(created: Optional[datetime], deleted: Optional[datetime], machine
 
 # =========================================================================== comparators
 
-def compare_environment(local: Mapping, remote: Mapping) -> Verdict:
+def compare_environment(local: Mapping, remote: Mapping,
+                        registry: Optional[Mapping] = None) -> Verdict:
     le, re_ = local["environment"], remote["environment"]
+    registry = load_registry() if registry is None else registry
     problems: list[str] = []
     evidence: list[str] = []
     for key in sorted(set(le) | set(re_)):
@@ -529,7 +826,7 @@ def compare_environment(local: Mapping, remote: Mapping) -> Verdict:
             evidence.append(f"{key}: declared OS-specific ({OS_SPECIFIC_ENTRIES[key]}) -- "
                             f"local={le.get(key)} codespace={re_.get(key)}")
             continue
-        if key in ("tools", "uv_sync_exit", "hooks", "auth"):
+        if key in ("tools", "uv_sync_exit", "hooks", "auth", "models"):
             continue    # compared below, each with its own verdict wording
         lv, rv = le.get(key), re_.get(key)
         evidence.append(f"{key}: local={lv} codespace={rv}")
@@ -555,7 +852,8 @@ def compare_environment(local: Mapping, remote: Mapping) -> Verdict:
     evidence.append(f"hook set local={lh} codespace={rh}")
     if sorted(lh) != sorted(rh) or not lh:
         problems.append(f"hook set differs (local={lh} codespace={rh})")
-    auth_items = _auth_items(le, re_, evidence)
+    model_named = _compare_models(le, re_, registry, problems, evidence)
+    auth_items = _auth_items(le, re_, evidence, model_named)
     for name in LANE_TOOLS:     # an auth probe that never ran is a FAIL, not a named exception
         if ((re_.get("auth") or {}).get(name) or {}).get("state") == "probe-error":
             problems.append(f"the auth probe for {name} could not run on the codespace -- its "
@@ -567,20 +865,64 @@ def compare_environment(local: Mapping, remote: Mapping) -> Verdict:
     return _verdict(1, "PASS", "", evidence)
 
 
-def _auth_items(le: Mapping, re_: Mapping, evidence: list[str]) -> list[str]:
+def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list[str],
+                    evidence: list[str]) -> set[str]:
+    """Each model CLI's served id against the registry (R61), on both sides. Returns the CLIs the
+    CODESPACE could not probe for want of a login: they are named as auth items, never failed, never
+    passed silently. The workstation is the reference, so a local CLI with no served id fails."""
+    expected = expected_models(registry)
+    named: set[str] = set()
+    for cli in MODEL_CLIS:
+        if not expected[cli].id:
+            problems.append(f"the registry names no model for {cli} ({expected[cli].where}): "
+                            "its served id cannot be checked")
+    for side, env in (("local", le), ("codespace", re_)):
+        models = env.get("models")
+        if not isinstance(models, Mapping):
+            problems.append(f"no served model id on the {side}: the record has no model probe "
+                            f"({', '.join(MODEL_CLIS)})")
+            continue
+        for cli in MODEL_CLIS:
+            rec = models.get(cli) or {}
+            state, served, exp = rec.get("state"), rec.get("served_id"), expected[cli]
+            if state == "tool-absent":
+                continue    # reported once, by the tool comparison above
+            if state in ("not-probed-auth", "unauthenticated") and side == "codespace":
+                evidence.append(f"served model {cli} {side}: not probed -- login missing "
+                                "(a named auth item)")
+                named.add(cli)
+                continue
+            if state == "served" and served:
+                evidence.append(f"served model {cli} {side}={served} registry={exp.id} ({exp.where})")
+                if exp.id and not served_matches(cli, served, exp.id):
+                    problems.append(f"{cli} served {served!r} on the {side} but the registry routes "
+                                    f"it to {exp.id!r} ({exp.where})")
+                continue
+            detail = rec.get("detail") or "no detail recorded"
+            evidence.append(f"served model {cli} {side}: none ({state or 'no record'})")
+            problems.append(f"{cli} returned no served model id on the {side} "
+                            f"({state or 'no record'}: {detail})")
+    return named
+
+
+def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
+                model_named: Sequence[str] = ()) -> list[str]:
     """The tools the Codespace has installed but not logged in, each named with what it needs.
 
     An exception is only ever NAMED here -- it neither fails condition 1 (installation is what
     condition 1 measures) nor passes silently. A record with no `auth` section (an older one)
-    names nothing, so no exception can be invented for a side that was never probed."""
+    names nothing, so no exception can be invented for a side that was never probed. A CLI whose
+    model call found the login missing (`model_named`) is named even where its auth state was
+    `unprobed`, which is the only state `grok` and `agy` can have before they answer."""
     named: list[str] = []
     for name in LANE_TOOLS:
         theirs = (re_.get("auth") or {}).get(name)
-        if not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error"):
+        if name not in model_named and (
+                not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error")):
             continue    # tool-absent and probe-error are each their own FAIL, not an exception
         ours = ((le.get("auth") or {}).get(name) or {}).get("state")
-        evidence.append(f"AUTH-ITEM {name}: codespace={theirs.get('state')} local={ours} -- needs "
-                        f"{AUTH_NEEDS[name]}")
+        evidence.append(f"AUTH-ITEM {name}: codespace={(theirs or {}).get('state', 'unprobed')} "
+                        f"local={ours} -- needs {AUTH_NEEDS[name]}")
         named.append(name)
     return named
 
@@ -733,8 +1075,9 @@ def compare_cleanup(cleanup: Optional[Mapping]) -> Verdict:
     return _verdict(5, "PASS", "", evidence)
 
 
-def compare_all(local: Mapping, remote: Mapping, cleanup: Optional[Mapping] = None) -> list[Verdict]:
-    return [compare_environment(local, remote), compare_gates(local, remote),
+def compare_all(local: Mapping, remote: Mapping, cleanup: Optional[Mapping] = None,
+                registry: Optional[Mapping] = None) -> list[Verdict]:
+    return [compare_environment(local, remote, registry), compare_gates(local, remote),
             compare_landing(local, remote), compare_transport(local, remote),
             compare_cleanup(cleanup)]
 

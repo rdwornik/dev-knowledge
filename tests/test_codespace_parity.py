@@ -1093,6 +1093,33 @@ def test_codex_reader_takes_the_id_from_the_run_header_and_ignores_the_echoed_pr
     assert cp.read_codex("no header here\n", _NONCE) == (None, False)
 
 
+def test_codex_reader_reads_a_colour_coded_header_as_a_terminal_prints_it():
+    """Measured live 2026-10-04: with a terminal attached `codex exec` colours its stderr header
+    (`ESC[1mmodel:ESC[0m gpt-5.6-terra`), so the plain-text id regex found nothing and the probe
+    reported no served id for a CLI that had answered."""
+    esc = chr(27)
+    coloured = _CODEX_OUT.replace("model:", f"{esc}[1mmodel:{esc}[0m")
+    assert cp.read_codex(coloured, _NONCE) == ("gpt-5.6-terra", True)
+
+
+def test_the_codex_call_asks_for_no_colour_and_is_given_header_and_answer_from_both_streams(tmp_path):
+    argv = cp.model_probe_argv("codex", _NONCE, "gpt-5.6-terra", "x")
+    assert argv[argv.index("--color") + 1] == "never"
+    # what the real CLI does: the answer on stdout, the run header (and echoed prompt) on stderr
+    stderr_part = _CODEX_OUT.split("\ncodex\n", 1)[0]
+
+    class _Split(_ModelRun):
+        def __call__(self, argv, **kw):
+            res = super().__call__(argv, **kw)
+            if "codex" in " ".join(argv):
+                return cp.CmdResult(0, _NONCE + "\n", stderr_part)
+            return res
+
+    _grok_usage(tmp_path, "sess-run")
+    out = cp.collect_models(_Split(tmp_path), _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "served" and out["codex"]["served_id"] == "gpt-5.6-terra"
+
+
 def _grok_json(session: str, text: str = _NONCE) -> str:
     return json.dumps({"text": text, "stopReason": "end_turn", "sessionId": session})
 
