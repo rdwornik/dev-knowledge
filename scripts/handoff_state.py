@@ -385,33 +385,69 @@ def row_rulings(transport: "Path | None", *, as_of: "str | None" = None,
 
 # --- Plan: the newest non-superseded MASTER plan on the transport -------------------------------
 
-#: A master plan declares itself in its own head: a versioned `kind: PLAN v<n>` line, or
-#: `status: MASTER PLAN`. A companion plan says `kind: PLAN — … It complements …` (no version), so
-#: it is not a master even when it is newer -- on 2026-10-04 `PLAN-HANDOFF-…` (written 14:37)
-#: complements `PLAN-HARNESS-…` v12 (written 13:09), and newest-by-date alone picks the wrong one.
+#: A plan declares its role in its own head. Explicit master: `kind: PLAN v<n>` or
+#: `status: MASTER PLAN`. Companion: a `kind: PLAN` line that says it complements another plan.
+#: A bare `kind: PLAN` (the v13 shape: the version moved into `summary:`) declares nothing itself;
+#: it inherits the role of the plan its `supersedes:` line names (`_plan_role`). On 2026-10-04 the
+#: master and its companion both went bare, so an explicit-only match passed over BOTH and named
+#: `PLAN-WAVE5-2026-09-23.md` -- DECIDED-BY-LANE (B2-W1 W1-9 repair 1): lineage, then refuse.
 _MASTER_PLAN_RE = re.compile(r"(?im)^(?:kind:\s*PLAN\s+v\d+\b|status:\s*MASTER\s+PLAN\b)")
+_COMPANION_PLAN_RE = re.compile(r"(?im)^kind:\s*PLAN\b.*\bcomplement")
+_SUPERSEDES_RE = re.compile(r"(?im)^supersedes:\s*(\S+\.md)\b")
 _HEAD_LINES = 12
+_LINEAGE_DEPTH = 8
+
+#: The Plan row's refusal prefix; `verify_handoff_probes._rule_plan` fails on it.
+NO_MASTER_PLAN = "no master plan"
 
 
-def _is_master_plan(path: Path) -> bool:
+def _plan_head(path: Path) -> str:
     try:
         with path.open(encoding="utf-8", errors="replace") as fh:
-            head = "".join(line for _, line in zip(range(_HEAD_LINES), fh))
+            return "".join(line for _, line in zip(range(_HEAD_LINES), fh))
     except OSError:
-        return False
-    return _MASTER_PLAN_RE.search(head) is not None
+        return ""
+
+
+def _plan_role(path: Path, _depth: int = 0) -> str:
+    """`master` | `companion` | `undeclared`, from the plan's own head. A bare head inherits the role
+    of the file its `supersedes:` names in the same directory (a superseded predecessor stays on
+    the transport, e.g. `-v12-superseded`); a missing or unreadable predecessor leaves it
+    `undeclared`, which `row_plan` refuses on rather than guessing."""
+    head = _plan_head(path)
+    if _MASTER_PLAN_RE.search(head):
+        return "master"
+    if _COMPANION_PLAN_RE.search(head):
+        return "companion"
+    m = _SUPERSEDES_RE.search(head)
+    if m is not None and _depth < _LINEAGE_DEPTH:
+        prior = path.parent / m.group(1)
+        if prior != path and prior.is_file():
+            return _plan_role(prior, _depth + 1)
+    return "undeclared"
 
 
 def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
-    """The master plan the next seat reads: the newest non-superseded `to-cc/PLAN-*.md` whose own
-    head declares it a master (`_is_master_plan`). The boot points here instead of hand-typing a
-    path that goes stale the day a newer plan lands."""
+    """The master plan the next seat reads: the newest non-superseded `to-cc/PLAN-*.md` whose role
+    is `master` (`_plan_role`). Never a silent fall-back: a plan NEWER than that master whose role
+    is `undeclared` makes the row refuse, naming it -- the boot must not point a seat at an older
+    master while a newer plan may be the real one (the plan files' heads are the architect's; the
+    reader asks for a head line, it does not edit them). Companions are skipped by role, not date."""
     locator = "to-cc/PLAN-*.md (newest non-superseded master plan)"
-    doc = _newest_transport_doc(transport, "PLAN", as_of=as_of, subdir="to-cc",
-                                accept=_is_master_plan)
-    if doc is None:
-        return StateRow("Plan", "no master plan found on the transport", "SLOW", locator)
-    return StateRow("Plan", f"`to-cc/{doc.name}`", "SLOW", locator)
+    plans = _live_transport_docs(transport, "PLAN", as_of=as_of, subdir="to-cc")
+    roles = [(p, _plan_role(p)) for p in plans]
+    masters = [i for i, (_p, r) in enumerate(roles) if r == "master"]
+    start = masters[-1] if masters else -1
+    undeclared = [p.name for p, r in roles[start + 1:] if r == "undeclared"]
+    if masters and not undeclared:
+        return StateRow("Plan", f"`to-cc/{roles[start][0].name}`", "SLOW", locator)
+    if not roles:
+        return StateRow("Plan", f"{NO_MASTER_PLAN} found on the transport", "SLOW", locator)
+    named = undeclared or [p.name for p, _r in roles[-3:]]
+    why = ("; the newest declared master is "
+           f"`{roles[start][0].name}`") if masters else ""
+    return StateRow("Plan", f"{NO_MASTER_PLAN} declared among the newest: {', '.join(named)} "
+                    f"(add `status: MASTER PLAN` to the head of the master{why})", "SLOW", locator)
 
 
 #: The digest's own table heading, e.g. "## Table (at 1f3f318c)" -- any heading level, any

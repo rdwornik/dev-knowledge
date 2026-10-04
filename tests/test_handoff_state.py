@@ -38,6 +38,10 @@ def _repo_with_registries(tmp_path: Path) -> Path:
 def _transport(tmp_path: Path, *, ratification: bool = True, capability_map: bool = True) -> Path:
     t = tmp_path / "transport"
     (t / "to-browser").mkdir(parents=True)
+    # A refused Plan row fails BD-plan (W1-9 repair 1), so the shared transport declares a master.
+    (t / "to-cc").mkdir(parents=True)
+    (t / "to-cc" / "PLAN-FIXTURE-2026-09-20.md").write_text(
+        "carried-by: OPEN\nkind: PLAN v1 -- the fixture master\n\n# PLAN\n", encoding="utf-8")
     if ratification:
         (t / "to-browser" / "RATIFICATION-2026-09-25.md").write_text(
             "- **R1** one.\n- **R2** two.\n## R3 — three\n", encoding="utf-8")
@@ -957,3 +961,71 @@ def test_row_rulings_keeps_the_legacy_shape_for_a_bundle_cut_before_the_era(tmp_
     repo, t = _rulings_fixture(tmp_path)
     old = hs.row_rulings(t, as_of="2026-10-02", repo_root=repo)
     assert old.value == "R1–R3 (3 ruling(s)) — `RATIFICATION-2026-09-25.md`", old.value
+
+
+# --- B2-W1 lane W1-9 repair 1: the Plan row never falls back silently to an older master --------
+# RED-first at 88c77d6f: on 2026-10-04 17:19Z the live master was rewritten to a bare `kind: PLAN`
+# head (v13 shape, the version moved into `summary:`), the companion has the same bare head, and
+# `row_plan` -- which matched only `kind: PLAN v<n>` / `status: MASTER PLAN` -- passed over both and
+# named `PLAN-WAVE5-2026-09-23.md`, eleven days old, with `evidence:` making it look checked.
+
+_V13_HEAD = ("carried-by: OPEN\nkind: PLAN\ndate: 2026-10-04\n"
+             "supersedes: PLAN-HARNESS-2026-10-04-v12-superseded.md\n"
+             "summary: The harness plan, v13 and handoff-ready.\nlands-via: B2-W1\n\n"
+             "# PLAN-HARNESS (v13) — start here\n")
+_BARE_COMPANION_HEAD = ("carried-by: OPEN\nkind: PLAN\ndate: 2026-10-04\n"
+                        "supersedes: PLAN-HANDOFF-2026-10-04-v1-superseded.md\n"
+                        "summary: This seat's close-out and handoff.\n\n# PLAN-HANDOFF (v2)\n")
+_V12_SUPERSEDED = _MASTER_HEAD
+_V1_SUPERSEDED = _COMPANION_HEAD
+_WAVE5 = ("carried-by: OPEN\ndate: 2026-09-23\n"
+          "status: MASTER PLAN — the single source for waves\n\n# PLAN\n")
+
+
+def _v13_transport(tmp_path: Path, *, with_lineage: bool = True) -> Path:
+    """Today's three shapes: a superseded versioned master, a newer bare-`kind: PLAN` master beside a
+    bare-`kind: PLAN` companion (written LAST, so newest by mtime), and an older MASTER PLAN file.
+    `with_lineage=False` drops the two superseded predecessors the bare heads' `supersedes:` lines
+    point at -- the head then declares nothing a reader can resolve."""
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-cc" / "PLAN-WAVE5-2026-09-23.md").write_text(_WAVE5, encoding="utf-8")
+    if with_lineage:
+        (t / "to-cc" / "PLAN-HARNESS-2026-10-04-v12-superseded.md").write_text(
+            _V12_SUPERSEDED, encoding="utf-8")
+        (t / "to-cc" / "PLAN-HANDOFF-2026-10-04-v1-superseded.md").write_text(
+            _V1_SUPERSEDED, encoding="utf-8")
+    (t / "to-cc" / "PLAN-HARNESS-2026-10-04.md").write_text(_V13_HEAD, encoding="utf-8")
+    (t / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").write_text(_BARE_COMPANION_HEAD, encoding="utf-8")
+    return t
+
+
+def test_row_plan_names_the_v13_master_by_its_supersedes_lineage_not_an_older_master(tmp_path):
+    row = hs.row_plan(_v13_transport(tmp_path))
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in row.value, row.value
+    assert "WAVE5" not in row.value and "PLAN-HANDOFF" not in row.value, row.value
+
+
+def test_row_plan_refuses_visibly_when_a_newer_plan_declares_nothing(tmp_path):
+    """No resolvable lineage: the two bare-head plans are undeclared and NEWER than the older
+    master. The row must name them and refuse -- never hand the seat the older master."""
+    row = hs.row_plan(_v13_transport(tmp_path, with_lineage=False))
+    assert row.value.startswith("no master plan declared among the newest"), row.value
+    assert "PLAN-HARNESS-2026-10-04.md" in row.value and "PLAN-HANDOFF-2026-10-04.md" in row.value
+    assert "WAVE5" not in row.value.split("(")[0], row.value
+
+
+def test_row_plan_an_older_undeclared_plan_does_not_block_a_newer_declared_master(tmp_path):
+    t = _v13_transport(tmp_path)
+    (t / "to-cc" / "PLAN-OLD-2026-09-16.md").write_text("# PLAN — no head at all\n", encoding="utf-8")
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in hs.row_plan(t).value
+
+
+def test_bd_plan_fails_on_a_refused_plan_row_even_though_cut_and_live_agree(tmp_path, monkeypatch):
+    t = _v13_transport(tmp_path, with_lineage=False)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    boot = (bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "no master plan declared among the newest" in boot
+    res = [r for r in vhp.verify_boot(bundle_dir, repo) if r.probe_id == "BD-plan"]
+    assert [r.status for r in res] == ["fail"], res

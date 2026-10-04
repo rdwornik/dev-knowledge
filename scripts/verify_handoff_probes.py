@@ -1604,6 +1604,23 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
     return "pass", f"identity+liveness hold ({fresh.freshness}): {fresh.value}"
 
 
+def _rule_plan(base):
+    """B2-W1 W1-9 repair 1: a Plan row that REFUSES (`handoff_state.NO_MASTER_PLAN`) fails outright.
+    Cut and live agree on a refusal, so the state comparison alone would pass it; and a committed
+    bundle's WARN downgrade must not turn a refusal into a tolerated row."""
+    def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
+        try:
+            import handoff_state as _hs  # noqa: PLC0415
+        except ImportError:
+            return base(value, ctx)
+        m = _RENDERED_TAIL_RE.match(value.strip())
+        underlying = m.group("val") if m else value.strip()
+        if underlying.startswith(_hs.NO_MASTER_PLAN):
+            return "fail", f"the Plan row names no master plan: {underlying}"
+        return base(value, ctx)
+    return rule
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1621,6 +1638,7 @@ BOOT_DATA_RULES = {
     # _rule_state, FAIL on any mismatch, committed or not.
     **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key in _COMMITTED_STATE_KEYS},
+    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"])),
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key not in ("Seats", *_COMMITTED_STATE_KEYS)},
     "Seats": _rule_bd_seats,
