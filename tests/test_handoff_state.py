@@ -375,7 +375,21 @@ def test_row_substrates_degrades_when_the_file_is_absent(tmp_path):
 def test_row_transport_counts_registered_kinds(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_transport(repo)
-    assert row.value == "2 kind(s) registered"
+    # B2-W1 W1-11: the count AND a digest over the sorted kind names, so the row records
+    # kind identity and a later probe can tell a REMOVED kind from registry growth.
+    import hashlib
+    digest = hashlib.sha256("\n".join(sorted(["GO", "BATCH"])).encode("utf-8")).hexdigest()[:12]
+    assert row.value == f"2 kind(s) registered, names-digest {digest}"
+
+
+def test_row_transport_digest_is_order_independent_and_name_sensitive(tmp_path):
+    repo = _repo_with_registries(tmp_path)
+    reg = repo / "ecosystem" / "transport-registry.yaml"
+    first = hs.row_transport(repo).value
+    reg.write_text("kinds:\n  - kind: BATCH\n  - kind: GO\n", encoding="utf-8")
+    assert hs.row_transport(repo).value == first                  # order is not identity
+    reg.write_text("kinds:\n  - kind: GO\n  - kind: OTHER\n", encoding="utf-8")
+    assert hs.row_transport(repo).value != first                  # a swapped kind is
 
 
 def test_row_rulings_picks_the_newest_non_superseded_file(tmp_path):

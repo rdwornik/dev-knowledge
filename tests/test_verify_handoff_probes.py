@@ -2641,3 +2641,185 @@ def test_a_bundle_self_locator_resolves_against_the_bundle_outside_the_repo(tmp_
     by = _bd(vhp.verify(outside, repo_root=tmp_path / "repo"))
     for key in ("Probes", "Receipt"):
         assert by[f"BD-{vhp.boot_data_id(key)}"].status == "pass", by[f"BD-{vhp.boot_data_id(key)}"]
+
+
+# --- B2-W1 W1-11 (b2-transport-probe): BD-transport compares what registry GROWTH cannot ----
+# invalidate. The sealed 2026-10-02 bundle recorded only a COUNT ("106 kind(s) registered");
+# the probe equality-matched it, so adding a kind (106 -> 110, lane W1-6) read as a broken
+# handoff. The rule is now recorded-kinds-are-still-registered: growth passes, a removed
+# recorded kind fails. These fixtures spell the digest out (`_digest12`) rather than import
+# it, so the row's value format is pinned by a second, independent derivation.
+
+_TRANSPORT_EVIDENCE = "ecosystem/transport-registry.yaml"
+
+
+def _digest12(names):
+    import hashlib
+    return hashlib.sha256("\n".join(sorted(set(names))).encode("utf-8")).hexdigest()[:12]
+
+
+def _registry_yaml(names):
+    return "kinds:\n" + "".join(f"  - kind: {n}\n" for n in names)
+
+
+def _transport_repo(tmp_path, names):
+    repo = tmp_path / "trepo"
+    (repo / "ecosystem").mkdir(parents=True)
+    (repo / "ecosystem" / "transport-registry.yaml").write_text(
+        _registry_yaml(names), encoding="utf-8")
+    return repo
+
+
+def _transport_ctx(repo, cut_sha=None):
+    return vhp._BootCtx(repo / "bundle", repo, {}, cut_sha, None)
+
+
+def _legacy_row(n):
+    return f"{n} kind(s) registered — evidence: {_TRANSPORT_EVIDENCE} [SLOW]"
+
+
+def _digest_row(names):
+    return (f"{len(set(names))} kind(s) registered, names-digest {_digest12(names)} — "
+            f"evidence: {_TRANSPORT_EVIDENCE} [SLOW]")
+
+
+def _names(n, prefix="K"):
+    return [f"{prefix}{i:03d}" for i in range(n)]
+
+
+def _transport_rule(value, repo, cut_sha=None):
+    return vhp.BOOT_DATA_RULES["Transport"](value, _transport_ctx(repo, cut_sha))
+
+
+def _committed_registry(tmp_path, recorded_names, live_names):
+    """A git repo whose commit 1 holds the registry as CUT (`recorded_names`) and whose working
+    tree then moves to `live_names`; returns (repo, cut_sha)."""
+    repo = tmp_path / "grepo"
+    run = _git_repo(repo)
+    (repo / "ecosystem").mkdir()
+    reg = repo / "ecosystem" / "transport-registry.yaml"
+    reg.write_text(_registry_yaml(recorded_names), encoding="utf-8")
+    _commit_at(run, "ecosystem", "2026-10-02T10:00:00+00:00", "cut")
+    cut_sha = run(["rev-parse", "HEAD"]).stdout.strip()
+    reg.write_text(_registry_yaml(live_names), encoding="utf-8")
+    return repo, cut_sha
+
+
+@_needs_git
+def test_a_grown_registry_passes_a_row_recorded_over_the_smaller_one(tmp_path):
+    """N4 (a): recorded over N kinds, live N+4 with every recorded kind present -> PASS."""
+    recorded = _names(106)
+    repo, cut_sha = _committed_registry(tmp_path, recorded, recorded + _names(4, "NEW"))
+    status, detail = _transport_rule(_digest_row(recorded), repo, cut_sha)
+    assert status == "pass", detail
+    assert "110" in detail and "106" in detail
+
+
+@_needs_git
+def test_a_removed_recorded_kind_fails_and_names_it(tmp_path):
+    """N4 (b): a recorded kind absent from the live registry -> FAIL, naming the kind."""
+    recorded = _names(106)
+    repo, cut_sha = _committed_registry(tmp_path, recorded, recorded[:-1] + _names(5, "NEW"))
+    status, detail = _transport_rule(_digest_row(recorded), repo, cut_sha)
+    assert status == "fail", detail
+    assert "K105" in detail
+
+
+@_needs_git
+def test_a_removal_with_a_replacement_fails_when_the_row_records_identity(tmp_path):
+    """The case a bare count cannot see: same live count, one recorded kind swapped out."""
+    recorded = _names(106)
+    live = recorded[:-1] + ["SWAPPED"]
+    assert len(live) == len(recorded)
+    repo, cut_sha = _committed_registry(tmp_path, recorded, live)
+    status, detail = _transport_rule(_digest_row(recorded), repo, cut_sha)
+    assert status == "fail", detail
+    assert "K105" in detail
+
+
+def test_the_unchanged_registry_passes_on_the_digest_alone(tmp_path):
+    names = _names(12)
+    repo = _transport_repo(tmp_path, names)
+    status, detail = _transport_rule(_digest_row(names), repo)
+    assert status == "pass", detail
+
+
+def test_a_digest_row_with_no_resolvable_snapshot_falls_back_to_the_count(tmp_path):
+    """Uncommitted bundle (no cut sha): growth passes, shrink fails -- the honest floor."""
+    recorded = _names(106)
+    grown = _transport_repo(tmp_path, recorded + _names(4, "NEW"))
+    assert _transport_rule(_digest_row(recorded), grown)[0] == "pass"
+    shrunk = _transport_repo(tmp_path / "s", recorded[:105])
+    status, detail = _transport_rule(_digest_row(recorded), shrunk)
+    assert status == "fail", detail
+
+
+@_needs_git
+def test_a_snapshot_that_does_not_match_the_recorded_digest_is_not_trusted(tmp_path):
+    """A cut sha whose registry hashes to something other than the recorded digest proves
+    nothing about what was recorded: the rule falls back to the count, never a false PASS on
+    a swapped-in snapshot, and says so."""
+    repo, cut_sha = _committed_registry(tmp_path, _names(5), _names(5, "OTHER"))
+    status, detail = _transport_rule(_digest_row(_names(5, "REAL")), repo, cut_sha)
+    assert status == "pass", detail                     # count 5 >= 5: the floor holds
+    assert "snapshot" in detail.lower()
+    shrunk, cut2 = _committed_registry(tmp_path / "two", _names(5), _names(4, "OTHER"))
+    assert _transport_rule(_digest_row(_names(5, "REAL")), shrunk, cut2)[0] == "fail"
+
+
+def test_the_legacy_count_only_row_passes_on_growth_and_fails_on_shrink(tmp_path):
+    """N4 (c): the sealed 2026-10-02 bundle's own value, `106 kind(s) registered`."""
+    assert _transport_rule(_legacy_row(106), _transport_repo(tmp_path / "a", _names(110)))[0] == "pass"
+    assert _transport_rule(_legacy_row(106), _transport_repo(tmp_path / "b", _names(106)))[0] == "pass"
+    status, detail = _transport_rule(_legacy_row(106), _transport_repo(tmp_path / "c", _names(105)))
+    assert status == "fail", detail
+    assert "105" in detail and "106" in detail
+
+
+def test_a_tampered_or_unparseable_transport_value_still_fails(tmp_path):
+    repo = _transport_repo(tmp_path, _names(3))
+    assert _transport_rule("TAMPERED-VALUE", repo)[0] == "fail"
+    assert _transport_rule("", repo)[0] == "fail"
+
+
+def test_an_unreadable_live_registry_fails_rather_than_passing_a_row(tmp_path):
+    repo = tmp_path / "norepo"
+    repo.mkdir()
+    status, _detail = _transport_rule(_legacy_row(106), repo)
+    assert status == "fail"
+
+
+def test_no_other_state_key_loses_its_equality_teeth(tmp_path):
+    """The Transport change is scoped to Transport: a drifted Substrates row still FAILs on
+    inequality, exactly as `_rule_state` always did."""
+    repo = tmp_path / "srepo"
+    (repo / "ecosystem").mkdir(parents=True)
+    (repo / "ecosystem" / "substrate-registry.yaml").write_text(
+        "substrates:\n  local:\n    live: true\n", encoding="utf-8")
+    ctx = vhp._BootCtx(repo / "bundle", repo, {}, None, None)
+    live = hs.row_substrates(repo).rendered()
+    assert vhp.BOOT_DATA_RULES["Substrates"](live, ctx)[0] == "pass"
+    status, detail = vhp.BOOT_DATA_RULES["Substrates"](live.replace("1/1", "9/9"), ctx)
+    assert status == "fail", detail
+
+
+_SEALED_BUNDLE = "2026-10-02-dev-knowledge-architect"
+
+
+def test_the_sealed_bundles_transport_row_passes_over_a_grown_registry_tree(tmp_path):
+    """N4 (d): the production contract of `test_registered_check_never_fails_on_live_repo`
+    held over a tmp tree whose registry has grown past the sealed bundle's recorded count
+    (this lane does not own `ecosystem/transport-registry.yaml`, so the growth is a fixture)."""
+    import re
+    sealed = Path(aud._REPO_ROOT) / "docs" / "handoffs" / _SEALED_BUNDLE
+    boot = (sealed / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    recorded = int(re.search(r"\*\*Transport\*\* \| (\d+) kind\(s\) registered", boot).group(1))
+    tree = _transport_repo(tmp_path, _names(recorded + 4))
+    bundle = tree / "docs" / "handoffs" / _SEALED_BUNDLE
+    shutil.copytree(sealed, bundle)
+    by = _bd(vhp.verify_boot(bundle, tree))
+    assert by["BD-transport"].status == "pass", by["BD-transport"].detail
+    shrunk = _transport_repo(tmp_path / "s", _names(recorded - 1))
+    shutil.copytree(sealed, shrunk / "docs" / "handoffs" / _SEALED_BUNDLE)
+    by2 = _bd(vhp.verify_boot(shrunk / "docs" / "handoffs" / _SEALED_BUNDLE, shrunk))
+    assert by2["BD-transport"].status == "fail", by2["BD-transport"].detail
