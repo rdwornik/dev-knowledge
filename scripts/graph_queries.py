@@ -1253,6 +1253,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "could hold (the batch-Z close-packet's 'Defect three' finding is exactly that "
         "fragility). There is no relation here for a W-G3 lane to migrate, because FPG-1 has "
         "nowhere to hold what was extracted"),
+    "scripts/provision_legs.py": _not_an_edge(
+        "the Codespace provisioning legs (foundation-13, docs/audits/2026-10-04-technical-"
+        "codespace-toolset-run.md). The shape matched when it grew its two version regexes -- "
+        "`_PIN_RE` and `_VERSION_RE` -- beside its reads of `provisioning.yaml` and "
+        "`ecosystem/*/state.yaml`. The class does not apply because the regexes parse a TOOL "
+        "VERSION STRING off a `--version` probe's stdout (`2.1.288`) and compare it with a "
+        "pin DECLARED BY HAND in `provisioning.yaml`; the rest is git state and a machine's "
+        "installed tools. None of it is a relation between two corpus files, so there is no "
+        "edge for FPG-1 to hold and nothing for a W-G3 lane to migrate"),
 }
 
 

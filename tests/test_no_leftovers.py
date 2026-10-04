@@ -246,6 +246,41 @@ def test_8_fails_while_a_job_record_still_points_at_the_lane(hub, jobs):
     assert "bc6e739e" in res[8].evidence
 
 
+def test_8_passes_a_stopped_job_record_and_names_its_state(hub, jobs):
+    # R3: a stopped job's record stays; removal is never required, so it cannot fail teardown.
+    _job(jobs, "0d5e4736", worktreePath=str(_lane_dir(hub)), worktreeBranch=f"worktree-{SLUG}",
+         state="stopped")
+    res = _run(hub, jobs)[8]
+    assert res.passed, res.evidence
+    assert "0d5e4736" in res.evidence and "stopped" in res.evidence
+
+
+@pytest.mark.parametrize("state", ["working", "blocked", "done", "", None])
+def test_8_still_fails_a_record_in_a_live_or_unknown_state(hub, jobs, state):
+    rec = {"worktreePath": str(_lane_dir(hub)), "worktreeBranch": f"worktree-{SLUG}"}
+    if state is not None:
+        rec["state"] = state
+    _job(jobs, "bc6e739e", **rec)
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "bc6e739e" in res.evidence
+
+
+def test_8_fails_when_a_stopped_record_sits_beside_a_live_one(hub, jobs):
+    _job(jobs, "0d5e4736", worktreeBranch=f"worktree-{SLUG}", state="stopped")
+    _job(jobs, "1e7dcc41", worktreeBranch=f"worktree-{SLUG}", state="working")
+    res = _run(hub, jobs)[8]
+    assert not res.passed
+    assert "1e7dcc41" in res.evidence
+
+
+def test_8_fails_a_stopped_record_beside_an_unreadable_one(hub, jobs):
+    _job(jobs, "0d5e4736", worktreeBranch=f"worktree-{SLUG}", state="stopped")
+    (jobs / "deadbeef").mkdir()
+    (jobs / "deadbeef" / "state.json").write_text("{not json", encoding="utf-8")
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "deadbeef" in res.evidence
+
+
 def test_8_matches_a_record_by_branch_when_the_path_is_missing(hub, jobs):
     _job(jobs, "cafe0001", worktreeBranch=f"worktree-{SLUG}")
     assert not _run(hub, jobs)[8].passed
@@ -257,6 +292,30 @@ def test_8_fails_closed_on_a_job_record_it_cannot_parse(hub, jobs):
     (jobs / "deadbeef" / "state.json").write_text("{not json", encoding="utf-8")
     res = _run(hub, jobs)[8]
     assert not res.passed and "deadbeef" in res.evidence
+
+
+@pytest.mark.parametrize("body", ["[]", "null", '"stopped"', "42"])
+def test_8_fails_closed_on_a_record_that_parses_but_is_not_an_object(hub, jobs, body):
+    # Codex terra P1 (review of foundation-9-hygiene): valid JSON that is not an object cannot say
+    # whether it points at the lane, so it is as unreadable as `{not json`.
+    (jobs / "feedc0de").mkdir()
+    (jobs / "feedc0de" / "state.json").write_text(body, encoding="utf-8")
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "feedc0de" in res.evidence
+
+
+@pytest.mark.parametrize("field", ["cwd", "worktreePath", "worktreeBranch"])
+def test_8_fails_closed_on_a_record_whose_locator_field_is_not_a_string(hub, jobs, field):
+    # Codex terra review 2 P1: `{"worktreePath": []}` cannot rule the lane out either.
+    _job(jobs, "badf1e1d", state="stopped", **{field: ["x"]})
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "badf1e1d" in res.evidence
+
+
+def test_8_passes_a_record_with_null_or_absent_locators_that_names_no_lane(hub, jobs):
+    _job(jobs, "00000001", state="working", worktreePath=None)
+    _job(jobs, "00000002", state="working")
+    assert _run(hub, jobs)[8].passed
 
 
 def test_8_fails_when_the_jobs_directory_cannot_be_read(hub, tmp_path):

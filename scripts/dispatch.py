@@ -1524,8 +1524,9 @@ def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iter
         return QueueDecision(lane.slug, ACTION_HELD_FAILED,
                              f"dependency FAILED: {', '.join(lane.starts_after)}")
     if dep == DEP_WAITING:
+        unmet = [name for name in lane.starts_after if states.get(name) != "MERGED"]
         return QueueDecision(lane.slug, ACTION_HOLD,
-                             f"waiting on {', '.join(lane.starts_after)} to read MERGED")
+                             f"waiting on {', '.join(unmet)} to read MERGED")
     if not serialize_group_clear(lane, all_lanes, live_slugs):
         return QueueDecision(lane.slug, ACTION_HOLD,
                              f"serialize-group {lane.serialize_group!r} has a live member")

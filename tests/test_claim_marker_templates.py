@@ -105,6 +105,30 @@ def test_the_claim_step_0_line_sits_before_the_worktree_pairing_section_in_the_l
     assert claim_idx < pairing_idx
 
 
+def _lane_closeout_item() -> str:
+    """The lane template's Close-out item: from its bold label to the handback clause."""
+    text = _flat(_text(LANE_TEMPLATE))
+    start = text.index("**Close-out:**")
+    return text[start:text.index("handback in", start)]
+
+
+def test_the_lane_template_close_out_asks_for_the_r59_proof_of_read():
+    """foundation-9-hygiene item 4: the review record names its consumer AND carries the proof
+    of read -- the served model id from the tool's own log, plus a nonce or content hash the
+    reviewer returned. Its absence caused two refusals (AMEND-BATCH-FOUNDATION-5)."""
+    item = _lane_closeout_item()
+    assert "review record citing its consumer (the row or this contract)" in item
+    assert "served model id" in item and "tool's own log" in item
+    assert "nonce" in item and "content hash" in item
+    assert "R59" in item
+
+
+def test_the_lane_template_close_out_keeps_the_clauses_other_readers_find():
+    item = _lane_closeout_item()
+    for clause in ("targeted tests for this diff", "self-check and purity per the common rules"):
+        assert clause in item
+
+
 def test_do_not_edit_the_forbidden_sections_of_the_order_templates():
     """Do-not: this lane does not touch the close/refusal/arming/cycle sections owned by
     lane-arm-ci and lane-orchestrator-cycling. Pins their headings are untouched rather than

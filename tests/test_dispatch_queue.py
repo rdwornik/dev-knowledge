@@ -367,6 +367,31 @@ def test_decide_lane_dependency_hold_outranks_every_other_gate():
     assert "lane-a" in decision.reason
 
 
+def test_decide_lane_hold_reason_names_only_the_unmet_dependency():
+    """One dependency MERGED, one not: the HOLD reason names the unmet one only (dispatcher,
+    2026-10-02 20:05Z -- the reason listed a lane that had already merged)."""
+    lane = _lane("lane-c", starts_after=("lane-a", "lane-b"))
+    decision = _decide(lane, states={"lane-a": "MERGED", "lane-b": "IN-FLIGHT"})
+    assert decision.action == d.ACTION_HOLD
+    assert "lane-b" in decision.reason
+    assert "lane-a" not in decision.reason
+
+
+def test_decide_lane_hold_reason_names_every_unmet_dependency():
+    lane = _lane("lane-d", starts_after=("lane-a", "lane-b", "lane-c"))
+    decision = _decide(lane, states={"lane-a": "MERGED", "lane-c": "REFUSED"})
+    assert decision.action == d.ACTION_HOLD
+    assert "lane-b" in decision.reason and "lane-c" in decision.reason   # b absent, c not MERGED
+    assert "lane-a" not in decision.reason
+
+
+def test_decide_lane_hold_decision_is_unchanged_by_the_reason_fix():
+    lane = _lane("lane-c", starts_after=("lane-a", "lane-b"))
+    assert _decide(lane, states={"lane-a": "MERGED", "lane-b": "MERGED"}).action == d.ACTION_FIRE
+    assert _decide(lane, states={"lane-a": "MERGED", "lane-b": "FAILED"}).action \
+        == d.ACTION_HELD_FAILED
+
+
 def test_decide_lane_held_failed_when_dependency_failed():
     lane = _lane("lane-b", starts_after=("lane-a",))
     decision = _decide(lane, states={"lane-a": "FAILED"})

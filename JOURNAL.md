@@ -21,6 +21,50 @@
 
 ---
 
+### 2026-10-04 (f) - CC (Opus 5.5, integrator seat FOUNDATION): batch FOUNDATION close -- ten lanes merged, lane 4 waits on a ruling, lanes 7 and 12 wait behind it
+
+**Anchors:** `3ce1abd5` -- `chore/foundation-close-ledgers`, merged `--no-ff`.
+
+**Did:**
+- Fates (R65): MERGED -- lanes 1, 2, 3, 5, 6, 8, 9, 10, 11, 13; WAITING -- lane 4 (`foundation-4-merge-gate`: its repair 2 fixed the CI job-log fetch and is verified live, but `known_reds.compare_to_base` still refuses the red-on-both-sides buckets, so `merge_path.land` would refuse every clean merge -- the flag-vs-refuse question is the architect's or operator's), lanes 7 and 12 (start only after lane 4 merges). FAILED -- none. The main ruleset and OT-M are not run: both follow lane 4's merge.
+- Landed the close ledgers: lane foundation-9-hygiene's closed merge receipt in `logs/MERGE-RECEIPTS.jsonl`; eleven `lane_cost.py close` rows and the integrator's `seat-close` row in `logs/LANE-COSTS.jsonl` (lane rows read USD 0.00 because `claude-sonnet-5-5` carries no rates block in `ecosystem/provider-registry.yaml` -- tokens counted, money unknown).
+
+**Result:** the batch digest is `to-browser/DIGEST-FOUNDATION-2026-10-03.md` on the transport, failures first; the integrator receipt is `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl`.
+
+**Next:** the compare_to_base ruling for lane 4 (then its merge, the ruleset rehearsal and apply, OT-M, lanes 7 and 12); the batch's ROWS-OWED, filed by the operator's intake.
+
+### 2026-10-04 (e) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-9-hygiene merges after one repair -- four harness reports read true: a cycled seat, a stopped lane, a HOLD reason, the review item
+
+**Anchors:** `847cd87e`, `92b0ee68`, `92fdfdd4`, `6a45b1ff`, `6d5e36b5`, `dfe3e4fb`, `68a42786`, `824efd86`, `c2c7e872`, `6306ce8f` -- `worktree-foundation-9-hygiene`, merged `--no-ff` through `epic/foundation-int-foundation-9-hygiene-r2` after one repair.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. `scripts/seat_registry.py` gains `unbind`, called at the dispatcher's handover (`templates/dispatcher-order-template.md` Cycle section), so a cycled seat reads absent rather than wedged; `scripts/no_leftovers.py` check 08 passes a `stopped` job record (R3) and still fails closed on anything else; `dispatch.decide_lane`'s HOLD reason names only the unmet `starts_after` lanes; the lane template's close-out review item asks for the served model id and a nonce or content hash (R59). Each RED first.
+- Repair 1 of 2: the first build's health test asserted the real `audit.py health` reads OK, which is red on every CI runner (DEGRADED on registered environmental checks); the repair asserts a paired before/after reading plus the isolated seat readers -- RED with `unbind` disabled, GREEN with it, and green under a forced foreign DEGRADED.
+- Regenerated `ecosystem/doc-counts.md` and `docs/audits/README.md`; carried lane foundation-13-codespace-toolset's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `scripts/{seat_registry,no_leftovers,dispatch}.py`, `templates/{dispatcher-order,lane-contract}-template.md`, `tests/test_{seat_registry,no_leftovers,dispatch_queue,claim_marker_templates}.py`, one audit, `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4 waits on the compare_to_base ruling; lanes 7 and 12 held behind it; then the close.
+
+### 2026-10-04 (d) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-13-codespace-toolset merges -- a Codespace carries the lane toolset, claude pinned to the workstation version
+
+**Anchors:** `56bfcc09`, `aec1d23a`, `a550f05b`, `93cbc749`, `66a18389`, `b0db608d`, `207c0214`, `07fe685b` -- `worktree-foundation-13-codespace-toolset`, merged `--no-ff` through `epic/foundation-int-foundation-13-codespace-toolset-r2` after one repair.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane (R63 step 1). `.devcontainer/provisioning.yaml` declares the `tools:` pins and `provision.sh` installs them through `scripts/provision_legs.py tools`; `scripts/codespace_parity.py` gains the C4 write probe and the C1 named auth items. One fresh Codespace read C1 PASS except named auth items (codex, agy) and C4 PASS on both legs; teardown verified. The codex and agy logins are OPERATOR-ACTIONs, not worked around.
+- Repair 1 of 2: the Actions commit-gate's edge-class ratchet refused `scripts/provision_legs.py` (two version-string regexes gave it the five-kind shape); the lane answered with one `_not_an_edge` row in `scripts/graph_queries.py` `EDGE_COMPUTATIONS`, RED then GREEN under the conductor's soft-reset sequence, the module not reshaped.
+- `[#1335]` cites the lane's run record as its governance consumer; regenerated `ecosystem/doc-counts.md` and `docs/audits/README.md`; carried lane foundation-8-test-isolation's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `.devcontainer/{provision.sh,provisioning.yaml}`, `scripts/{codespace_parity,provision_legs,graph_queries}.py`, `tests/test_{codespace_parity,provision_legs,provision_sh}.py`, two audits, `tasks/1335` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4 waits on the compare_to_base ruling; lane 9's repair 1 of 2; lanes 7 and 12 held behind lane 4.
+
 ### 2026-10-04 (c) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-8-test-isolation merges -- the deny_and_point fail-closed pair owns its store; three Windows flakes quarantined with their shown cause
 
 **Anchors:** `cd5ec6cc`, `66c5fc08`, `dcff4a70`, `7dc45a8f`, `209bd725`, `79ee0f10` -- `worktree-foundation-8-test-isolation`, merged `--no-ff` through `epic/foundation-int-foundation-8-test-isolation`.

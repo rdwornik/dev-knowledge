@@ -29,6 +29,10 @@ THE FIELD, AND WHO MAY WRITE IT
   * `bind` records IDENTITY (role, batch) for a seat in the primary checkout, and never a state.
     Its CLI binds `CLAUDE_CODE_SESSION_ID` -- the id the RUNTIME set -- and offers no `--session`,
     so a seat cannot bind someone else.
+  * `unbind` is the outgoing seat's own terminal handover event (the dispatcher order's Cycle
+    section calls it before the new seat starts): the session then reads `absent`, never the
+    `wedged` a seat that simply handed over would age into. It writes no state either, and a
+    later `bind` of the same session undoes it.
 
 `wedged` and `starved` are never written at all. They are READ, as a function of event timestamps
 and one threshold each: a seat silent mid-turn past `WEDGED_AFTER_MIN` is wedged; a seat whose last
@@ -227,6 +231,23 @@ def bind(role: str, batch: str, *, session_id: str, path: Optional[Path] = None,
     return row
 
 
+def unbind(*, session_id: str, path: Optional[Path] = None,
+           now: Optional[datetime] = None) -> dict:
+    """Record a seat's HANDOVER: the terminal event of an outgoing seat. Never a state.
+
+    A cycled seat writes nothing more, so it would age to `wedged` and be named as a stall; the
+    reader treats a session whose newest bind/unbind row is an unbind as `absent`, as for a
+    `SessionEnd`. Later hook events of that session (its own Stop) do not revive it; a fresh
+    `bind` of the same session does."""
+    if not session_id:
+        raise SeatRefusal("unknown-role", "no session id to unbind",
+                          remedy="unbind from inside the outgoing seat's own Claude Code session")
+    row = {"schema": SCHEMA, "kind": "unbind", "session_id": session_id,
+           "ts": (now or _now()).isoformat()}
+    _append(Path(path) if path else REGISTRY_PATH, row)
+    return row
+
+
 def read_hook_stdin(timeout: float = 2.0) -> dict:
     """The hook's stdin JSON, or {} -- BOUNDED, because an unbounded read is how a hook wedges."""
     if sys.stdin is None or sys.stdin.isatty():
@@ -285,6 +306,8 @@ def _valid(row: object) -> bool:
         return row.get("event") in EVENT_STATE and row.get("state") == EVENT_STATE[row["event"]]
     if row.get("kind") == "bind":
         return row.get("role") in ROLES and "state" not in row
+    if row.get("kind") == "unbind":
+        return "state" not in row
     return False
 
 
@@ -351,9 +374,13 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
     moment = now or _now()
     events: dict[str, list[dict]] = {}
     binds: dict[str, dict] = {}
-    for row in read_rows(path):
+    handed_over: dict[str, str] = {}                  # session -> the unbind row's ts
+    for row in sorted(read_rows(path), key=lambda r: r["ts"]):
         if row["kind"] == "bind":
             binds[row["session_id"]] = row
+            handed_over.pop(row["session_id"], None)
+        elif row["kind"] == "unbind":
+            handed_over[row["session_id"]] = row["ts"]
         else:
             events.setdefault(row["session_id"], []).append(row)
     out: list[Seat] = []
@@ -363,7 +390,10 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
         bound = binds.get(session)
         role = bound["role"] if bound else ("lane" if lane else None)
         batch = bound["batch"] if bound else (_batch_of(lane) if lane else None)
-        if not rows:
+        if session in handed_over:
+            # The outgoing seat said so itself (`unbind`): terminal until it binds again.
+            activity, kind, state = datetime.fromisoformat(handed_over[session]), "unbind", "absent"
+        elif not rows:
             # D23: a fresh bind used to read `absent` until this session's first hook event --
             # long enough that a dispatcher checking occupancy right after a bind saw a seat
             # that looked gone (SESSION-integrator-wave4b-2026-09-22.md s1: two pre-launch
@@ -485,6 +515,22 @@ def cmd_bind(role: str, batch: str) -> None:
         click.echo(str(exc))
         raise SystemExit(1) from exc
     click.echo(f"bound {row['session_id']} as {row['role']} for batch {row['batch']}")
+
+
+@cli.command("unbind")
+def cmd_unbind() -> None:
+    """Hand THIS session (CLAUDE_CODE_SESSION_ID) over: it reads `absent`, not `wedged`."""
+    session = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+    if not session:
+        click.echo("REFUSED [unknown-role]: CLAUDE_CODE_SESSION_ID is unset -- unbind from inside "
+                   "the outgoing seat's own Claude Code session; a typed session id is not accepted")
+        raise SystemExit(1)
+    try:
+        row = unbind(session_id=session)
+    except SeatRefusal as exc:
+        click.echo(str(exc))
+        raise SystemExit(1) from exc
+    click.echo(f"unbound {row['session_id']} (handover)")
 
 
 @cli.command("show")

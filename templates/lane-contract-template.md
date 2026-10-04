@@ -85,7 +85,9 @@ This line is how the lane decides every question it meets at night — write it 
 1. <A checkable end-state — the command or test that shows it, not "improved".>
 2. <...>
 n. **Close-out:** targeted tests for this diff; Codex review record citing its consumer (the row
-   or this contract); self-check and purity per the common rules; handback in
+   or this contract) and carrying the R59 proof of read: the served model id from the tool's own
+   log, and a nonce or content hash the reviewer returned (a record without both reads as a
+   failed read); self-check and purity per the common rules; handback in
    `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`.
 
 ## Do not
