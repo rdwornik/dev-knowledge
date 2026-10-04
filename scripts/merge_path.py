@@ -457,11 +457,58 @@ def rehearsal_problems(record: object, sha: str) -> list[str]:
     return problems
 
 
+def verify_rehearsal_live(record: dict, sha: str, *, root: Path, run_fn: Optional[Callable] = None,
+                          jobs_fn: Optional[Callable] = None) -> list[str]:
+    """Re-read, LIVE, the one run a rehearsal record names, because the record is self-reported
+    (Codex terra P1, 2026-10-04): a record copied from sha A's completed push run with only its
+    `sha` edited to B passed every check on the file. The run must be `sha`'s own completed push
+    run, and every required context must be `success` in ITS job list, whatever the file says.
+    An unreadable run or job list is a problem, never a pass. `run_fn(run_id, repo_root=)` and
+    `jobs_fn(run_id, repo_root=)` are the test seams. Writes nothing."""
+    import ci_verdict as civ
+    run_fn = run_fn or civ.fetch_run_status
+    jobs_fn = jobs_fn or civ.fetch_jobs
+    run_id = record.get("run_id")
+    try:
+        run = run_fn(run_id, repo_root=root)
+    except civ.GhUnavailable as exc:
+        return [f"run {run_id} named by the rehearsal record could not be re-read ({exc}): the "
+                f"file alone is self-reported, so arming is refused until GitHub can be asked"]
+    if not isinstance(run, dict) or not run:
+        return [f"run {run_id} named by the rehearsal record could not be re-read: GitHub returned "
+                f"no run"]
+    problems: list[str] = []
+    if not _same(str(run.get("headSha", "")), sha):
+        problems.append(f"run {run_id} ran for {str(run.get('headSha', ''))[:12] or 'no sha'}, not "
+                        f"the sha named for arming ({sha[:12]}): the record vouches for a run that "
+                        f"is not this sha's")
+    if run.get("event") != "push":
+        problems.append(f"run {run_id} is a {run.get('event')!r} run live; only a `push` run counts")
+    if run.get("status") != "completed":
+        problems.append(f"run {run_id} is {run.get('status')!r} live, not completed")
+    jobs = jobs_fn(run_id, repo_root=root)
+    if jobs is None:
+        problems.append(f"run {run_id}'s job list could not be read live: the record's contexts "
+                        f"cannot be confirmed")
+        return problems
+    live = {j.get("name"): j.get("conclusion") for j in jobs}
+    claimed = record.get("contexts") if isinstance(record.get("contexts"), dict) else {}
+    for context in required_contexts():
+        if live.get(context) != "success":
+            problems.append(f"{context}: {live.get(context, 'not-run')} in run {run_id} live, "
+                            f"where the record says {claimed.get(context)!r}")
+    return problems
+
+
 def apply_preconditions(sha: str, *, root: Path, go: str,
-                        rehearsal_path: Optional[Path] = None) -> list[str]:
+                        rehearsal_path: Optional[Path] = None, live_check: bool = False,
+                        run_fn: Optional[Callable] = None,
+                        jobs_fn: Optional[Callable] = None) -> list[str]:
     """G1: the operator's recorded GO named, and a REHEARSAL RECORD for the named sha showing both
     pytest legs and every required context `success` (`rehearsal_problems`). No record is its own
-    unmet precondition: arming is refused without one. Returns the unmet preconditions."""
+    unmet precondition: arming is refused without one. `live_check=True` (the CLI always sets it)
+    also re-reads the named run live (`verify_rehearsal_live`) once the file itself is sound.
+    Returns the unmet preconditions."""
     unmet: list[str] = []
     if not go.strip():
         unmet.append("no operator GO named (--go '<the recorded GO>')")
@@ -474,7 +521,10 @@ def apply_preconditions(sha: str, *, root: Path, go: str,
     except (OSError, ValueError) as exc:
         unmet.append(f"the rehearsal record {rehearsal_path} cannot be read: {exc}")
         return unmet
-    unmet += rehearsal_problems(record, sha)
+    problems = rehearsal_problems(record, sha)
+    unmet += problems
+    if live_check and not problems:
+        unmet += verify_rehearsal_live(record, sha, root=root, run_fn=run_fn, jobs_fn=jobs_fn)
     return unmet
 
 
@@ -705,7 +755,7 @@ def cmd_ruleset_apply(ctx: click.Context, repo: str, sha: str, go: str, rehearsa
     click.echo(f"  command : {' '.join(plan['argv'])}")
     click.echo(f"  contexts: {', '.join(required_contexts())}")
     click.echo(f"  sets    : enforcement {payload.get('enforcement')} -> active")
-    preconditions = apply_preconditions(sha, root=root, go=go,
+    preconditions = apply_preconditions(sha, root=root, go=go, live_check=True,
                                         rehearsal_path=Path(rehearsal) if rehearsal else None)
     unmet = problems + (preconditions if execute else [])
     for item in unmet:

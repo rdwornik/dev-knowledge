@@ -624,6 +624,76 @@ def test_b2_apply_refuses_a_record_whose_run_is_unnamed_or_not_completed(tmp_pat
     assert len(unmet) == 1, unmet
 
 
+# Codex terra P1, second read of the repair (2026-10-04): the record is SELF-REPORTED, so a record
+# copied from a completed push on sha A with only its `sha` edited to B passed every check above.
+# At apply time the ONE run the record names is re-read live: it must be that sha's completed push
+# run, and every required context must be `success` in its own job list, whatever the file says.
+def _live(head=TIP, event="push", status="completed", jobs=None):
+    jobs = jobs if jobs is not None else [{"name": c, "conclusion": "success"}
+                                          for c in mp.required_contexts()]
+    run = {"databaseId": 5, "headSha": head, "event": event, "status": status}
+    return (lambda run_id, **kw: run), (lambda run_id, **kw: jobs)
+
+
+def _live_unmet(tmp_path, record=None, **live):
+    run_fn, jobs_fn = _live(**live)
+    path = _write_record(tmp_path, record or _rehearsal())
+    return mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path,
+                                  live_check=True, run_fn=run_fn, jobs_fn=jobs_fn)
+
+
+def test_b2_a_record_whose_run_really_ran_for_the_sha_passes_the_live_check(tmp_path):
+    assert _live_unmet(tmp_path) == []
+
+
+def test_b2_a_record_copied_from_another_shas_run_with_the_sha_edited_is_refused(tmp_path):
+    unmet = _live_unmet(tmp_path, head=BASE)
+
+    assert len(unmet) == 1 and BASE[:12] in unmet[0] and TIP[:12] in unmet[0], unmet
+
+
+def test_b2_a_record_claiming_success_the_live_run_does_not_show_is_refused(tmp_path):
+    jobs = [{"name": c, "conclusion": "success"} for c in mp.required_contexts()]
+    jobs[-1] = {"name": jobs[-1]["name"], "conclusion": "failure"}
+
+    unmet = _live_unmet(tmp_path, jobs=jobs)
+
+    assert len(unmet) == 1 and jobs[-1]["name"] in unmet[0] and "failure" in unmet[0], unmet
+
+
+@pytest.mark.parametrize("over", [{"event": "workflow_dispatch"}, {"status": "in_progress"}])
+def test_b2_the_live_run_must_be_a_completed_push_run(tmp_path, over):
+    assert len(_live_unmet(tmp_path, **over)) == 1
+
+
+def test_b2_an_unreadable_run_or_job_list_refuses_rather_than_trusting_the_file(tmp_path):
+    import ci_verdict as civ
+
+    def gone(run_id, **kw):
+        raise civ.GhUnavailable("no network")
+
+    path = _write_record(tmp_path, _rehearsal())
+    unreadable = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path,
+                                        live_check=True, run_fn=gone, jobs_fn=lambda *a, **k: [])
+    no_jobs = mp.apply_preconditions(TIP, root=Path("."), go="x", rehearsal_path=path,
+                                     live_check=True, run_fn=_live()[0], jobs_fn=lambda *a, **k: None)
+
+    assert len(unreadable) == 1 and "re-read" in unreadable[0], unreadable
+    assert len(no_jobs) == 1 and "job list" in no_jobs[0], no_jobs
+
+
+def test_b2_the_apply_verb_always_turns_the_live_check_on(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(mp, "apply_preconditions",
+                        lambda sha, **k: seen.update(k) or [])
+    path = _write_record(tmp_path, _rehearsal())
+
+    CliRunner().invoke(mp.cli, ["ruleset", "apply", "--repo", "o/r", "--sha", TIP, "--go", "x",
+                                "--rehearsal", str(path)])
+
+    assert seen.get("live_check") is True, seen
+
+
 def test_b2_the_record_is_written_by_rehearse_from_the_runs_own_jobs(tmp_path):
     jobs = [{"name": c, "conclusion": "success"} for c in mp.required_contexts()]
     jobs.append({"name": "terra", "conclusion": "failure"})          # not a required context

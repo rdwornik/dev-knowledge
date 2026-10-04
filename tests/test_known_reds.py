@@ -1584,6 +1584,23 @@ def test_b2_a_set_of_quoted_values_that_are_not_file_names_is_not_masked(kr):
     assert _buckets(result) == {_LANDING: kr.BUCKET_SIGNATURE_CHANGED}
 
 
+def test_b2_a_dotted_value_that_is_not_a_known_file_type_is_not_masked(kr):
+    """Codex terra P1, second read: `.v1` is a dotted suffix, not a file extension."""
+    base = "AssertionError: assert {'expected.v1'} == {'actual.v1'}"
+    tip = "AssertionError: assert {'expected.v2'} == {'actual.v2'}"
+
+    assert kr.normalize_signature(base) != kr.normalize_signature(tip)
+
+
+@pytest.mark.parametrize("name", ["2026-10-04-codex-x.md", "a.json", "b.yaml", "c.yml", "d.py",
+                                  "e.txt", "f.toml", "g.jsonl"])
+def test_b2_every_known_file_type_still_normalises(kr, name):
+    one = f"AssertionError: assert {{'{name}'}} == set()"
+    other = f"AssertionError: assert {{'zzz-other.{name.rsplit('.', 1)[1]}'}} == set()"
+
+    assert kr.normalize_signature(one) == kr.normalize_signature(other)
+
+
 def test_b2_a_set_mixing_a_file_name_and_another_value_is_not_masked(kr):
     base = "AssertionError: assert {'x.md', 'real-value-a'} == set()"
     tip = "AssertionError: assert {'x.md', 'real-value-b'} == set()"
