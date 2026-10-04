@@ -1108,9 +1108,15 @@ def _names_an_owner(text: str) -> bool:
     return False
 
 
+def _ruling_id(number: int) -> str:
+    """`R<n>`, built by concatenation: an f-string `R{...}` reads to `transport`'s template
+    derivation as a transport prefix `R-` (tests/test_transport.py), which this is not."""
+    return "R" + str(number)
+
+
 def _entry_defect(root: Path, entry: RegisterEntry) -> str | None:
     """Why this entry is not carried, or None when it is."""
-    ruling = f"R{entry.number}"
+    ruling = _ruling_id(entry.number)
     if entry.carried is None:
         return "it has no `Carried by:` line, so neither a row nor a written disposition"
     if entry.carried.lower().startswith(NO_IMPLEMENTATION):
@@ -1151,7 +1157,7 @@ def uncarried_rulings(repo_root, *, floor: int = FIRST_GATED_RULING) -> list[Fin
         defect = _entry_defect(root, entry)
         if defect is not None:
             out.append(Finding(
-                subject=f"R{entry.number}",
+                subject=_ruling_id(entry.number),
                 evidence=f"{RULINGS_REL}:{entry.line} -- {defect}. {REPAIR_RULING}"))
     return out
 
@@ -1339,19 +1345,21 @@ class RulingsReport:
     rulings_read: int = 0
 
     @property
-    def refused(self) -> bool:
-        """A refusal was FOUND. False for an unmeasured report too -- ask `passed` for a verdict."""
-        return bool(self.uncarried or self.unlanded)
+    def found(self) -> list[Finding]:
+        """The findings both legs produced. An unmeasured leg contributes none -- so an empty
+        list is NOT a verdict; ask `passed`. (There is deliberately no `refused` attribute: it
+        read False for an unmeasured report, and a consumer testing `not report.refused` passed
+        fail-open -- Codex pass 4 P1.)"""
+        return list(self.uncarried) + list(self.unlanded or [])
 
     @property
     def passed(self) -> bool:
-        """True only when BOTH legs were measured and clean. `not refused` is not this: an
-        unmeasured leg is not a refusal and it is not a pass, so a consumer asks `passed`."""
-        return self.unlanded is not None and not self.refused
+        """True only when BOTH legs were measured and clean: an unmeasured leg is not a pass."""
+        return self.unlanded is not None and not self.found
 
     def render(self) -> str:
         lines = []
-        bad = list(self.uncarried) + list(self.unlanded or [])
+        bad = self.found
         if bad:
             lines.append(f"decision-coverage rulings: REFUSED — {len(bad)} ruling(s)")
             for finding in bad:
@@ -1458,7 +1466,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 1
         print(report.render())
-        if report.refused:
+        if report.found:
             return 1
         # 2 = leg (a) NOT MEASURED because the transport could not be read; `--no-transport` is the
         # operator's explicit choice to skip it, so that stays 0.

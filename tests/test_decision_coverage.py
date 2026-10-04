@@ -1419,3 +1419,15 @@ def test_the_live_unlanded_leg_where_the_transport_is_reachable():
         return
     got = dc.unlanded_rulings(REPO_ROOT, transport)
     assert got == [], "; ".join(f"{f.subject}: {f.evidence}" for f in got)
+
+
+def test_an_unmeasured_report_has_no_attribute_that_reads_as_not_refused(tmp_path: Path):
+    """Codex pass 4 P1 (repair 1): `refused` was False for an unmeasured report, so a consumer
+    testing `not report.refused` would pass fail-open. The attribute is gone; `passed` is the
+    only verdict, and it is False until both legs were measured clean."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    report = dc.rulings_report(root, transport=None)
+    assert report.unlanded is None
+    assert not hasattr(report, "refused"), "a refusal-shaped attribute that is False when unmeasured"
+    assert report.passed is False
