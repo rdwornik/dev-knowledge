@@ -722,7 +722,7 @@ def cmd_ruleset_rehearse(ctx: click.Context, sha: str, out: str) -> None:
         record = read_rehearsal(sha, root=ctx.obj["root"])
         problems = rehearsal_problems(record, sha)
         result["outcome"] = "fail" if problems else "ok"
-    Path(out).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    Path(out).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
     for context in required_contexts():
         click.echo(f"rehearse: {context}: {record['contexts'].get(context)}")
     for item in problems:
