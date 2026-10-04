@@ -1604,6 +1604,15 @@ def test_b2_a_dated_artifact_name_normalises_whatever_its_extension(kr, ext):
     assert kr.normalize_signature(one) == kr.normalize_signature(other)
 
 
+def test_b2_a_dated_value_that_is_not_a_file_name_is_not_masked(kr):
+    """Codex terra, fourth read: the date alone is not the shape -- the per-merge value is a dated
+    artifact FILE name, so it must also end in an extension."""
+    base = "AssertionError: assert {'2026-10-04-expected'} == set()"
+    tip = "AssertionError: assert {'2026-10-05-actual'} == set()"
+
+    assert kr.normalize_signature(base) != kr.normalize_signature(tip)
+
+
 def test_b2_an_undated_file_name_is_an_assertions_own_content_and_is_not_masked(kr):
     base = "AssertionError: assert {'feature_on.py'} == {'expected.py'}"
     tip = "AssertionError: assert {'feature_off.py'} == {'expected.py'}"

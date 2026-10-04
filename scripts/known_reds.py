@@ -833,13 +833,16 @@ _GENERATED_NAME_SUFFIX_RE = re.compile(r"(?<=[A-Za-z])-\d+\b")
 #: `sig-changed` on every merge that touched `docs/audits/`. The literal is masked to a shape; the
 #: assertion around it still compares. The discriminator is the repo's own DATED-artifact name,
 #: `YYYY-MM-DD-slug.ext`, which every audit carries and which is what makes the value per-merge:
-#: every member of the set is a quoted name that opens with a date (pytest's own `...` elision may
-#: stand between members), no `key: value` pair. An extension list was tried and failed both ways
-#: under Codex terra's reads (2026-10-04) -- it masked `{'feature_on.py'}` and missed `.rst` -- so
-#: a dict repr, a set of any other quoted value (`{'expected-a'}`, `{'expected.v1'}`,
-#: `{'feature_on.py'}`) and every number or comparison operator stay as they are. Honest limit: a
-#: set of DATED names that genuinely changed is indistinguishable from the per-merge one, and masks.
-_NAME_MEMBER = r"(?:'\d{4}-\d{2}-\d{2}-[^'{}]*'|\"\d{4}-\d{2}-\d{2}-[^\"{}]*\")"
+#: every member of the set is a quoted name that opens with a date AND ends in a file extension
+#: (pytest's own `...` elision may stand between members), no `key: value` pair. An extension list
+#: alone was tried and failed both ways under Codex terra's reads (2026-10-04) -- it masked
+#: `{'feature_on.py'}` and missed `.rst` -- and a date alone masked `{'2026-10-04-expected'}`; so a
+#: dict repr, a set of any other quoted value (`{'expected-a'}`, `{'expected.v1'}`,
+#: `{'feature_on.py'}`, `{'2026-10-04-expected'}`) and every number or comparison operator stay as
+#: they are. Honest limit: a set of DATED FILE names that genuinely changed is indistinguishable
+#: from the per-merge one, and masks -- no content-only rule can tell them apart.
+_NAME_MEMBER = (r"(?:'\d{4}-\d{2}-\d{2}-[^'{}]*\.[A-Za-z0-9]{1,8}'"
+                r"|\"\d{4}-\d{2}-\d{2}-[^\"{}]*\.[A-Za-z0-9]{1,8}\")")
 _NAME_SET_RE = re.compile(r"\{" + _NAME_MEMBER + r"(?:,\s*(?:" + _NAME_MEMBER + r"|\.\.\.))*\}")
 
 
