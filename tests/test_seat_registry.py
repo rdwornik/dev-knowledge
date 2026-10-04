@@ -489,15 +489,28 @@ def test_a_simulated_cycle_leaves_the_health_readers_clean(tmp_path, monkeypatch
     assert "WEDGED" not in handoff_state.row_seats(path=path).value
 
 
-def test_audit_health_reads_ok_after_a_simulated_cycle(tmp_path):
-    """Done-contract item 1: `audit.py health` reads OK after a cycle. The command is run for real,
-    as a child with HOME pointed at a folder whose registry holds a bound-then-unbound dispatcher
-    that has been silent past `WEDGED_AFTER_MIN`. (`audit.py` carries no seat reader of its own, so
-    this proves the integrated command stays OK beside a cycled registry; the readers themselves
-    are pinned by the test above.)"""
+def _health_findings(done_stdout):
+    """The `[!!]` check names in an `audit.py health` stdout (detail text can carry a clock)."""
+    return {line.split("]", 1)[1].split(":", 1)[0].strip()
+            for line in done_stdout.splitlines() if line.lstrip().startswith("[!!]")}
+
+
+@pytest.mark.parametrize("foreign", [False, True], ids=["clean-box", "foreign-DEGRADED"])
+def test_audit_health_gains_no_finding_after_a_simulated_cycle(tmp_path, monkeypatch, foreign):
+    """Done-contract item 1, repaired (integrator repair 1): `audit.py health` STAYS as it was
+    across a cycle. A PAIRED reading: the real command runs BEFORE the cycle (the dispatcher is
+    bound and silent past `WEDGED_AFTER_MIN`) and AFTER it (`unbind`), against one HOME, and the
+    AFTER run adds no `[!!]` finding the BEFORE run lacked -- a foreign DEGRADED (the CI runner's
+    registered environmental checks) is in both and cancels. `audit.py` carries no seat reader of
+    its own, so the seat readers the cycle CAN disturb (`handoff_state.row_seats`, the `[seats]`
+    line) are asserted in the same test: the isolated seat-reading check reads clean AFTER and is
+    the leg that goes red when the cycle leaves a wedged seat. `foreign=True` forces a foreign
+    `[!!]` onto both real runs, the condition on CI."""
     import os
     import subprocess
     import sys
+
+    import handoff_state
     home = tmp_path / "home"
     registry = home / ".claude" / "seat-registry.jsonl"
     then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
@@ -505,12 +518,26 @@ def test_audit_health_reads_ok_after_a_simulated_cycle(tmp_path):
                       "cwd": str(tmp_path)}, path=registry, now=then,
                      env={"CLAUDE_PID": str(os.getpid())})
     reg.bind("dispatcher", "FOUNDATION", session_id="out-sid", path=registry, now=then)
-    reg.unbind(session_id="out-sid", path=registry, now=then + timedelta(minutes=1))
-    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state == "absent"
     env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home), "PYTHONUTF8": "1"}
     repo = Path(__file__).resolve().parent.parent
-    done = subprocess.run([sys.executable, str(repo / "scripts" / "audit.py"), "health"],
-                          cwd=repo, env=env, capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", timeout=600)
-    assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
-    assert "health: OK" in done.stdout
+    real_run = subprocess.run
+
+    def health():
+        done = real_run([sys.executable, str(repo / "scripts" / "audit.py"), "health"],
+                        cwd=repo, env=env, capture_output=True, text=True, encoding="utf-8",
+                        errors="replace", timeout=600)
+        out = done.stdout       # the `[!!]` lines; the verdict line is on stderr when DEGRADED
+        if foreign:
+            out += "  [!!] dispatch_drift: forced foreign finding (the CI runner)\n"
+        assert "health:" in done.stdout + done.stderr, out[-2000:] + done.stderr[-2000:]   # it ran
+        return out
+
+    before = health()
+    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state == "wedged"
+    reg.unbind(session_id="out-sid", path=registry, now=then + timedelta(minutes=1))   # the cycle
+    after = health()
+    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state != "wedged"
+    assert "WEDGED" not in handoff_state.row_seats(path=registry).value
+    assert not any("seat" in name.lower() for name in _health_findings(after))
+    gained = _health_findings(after) - _health_findings(before)
+    assert not gained, f"the cycle added health finding(s): {sorted(gained)}"
