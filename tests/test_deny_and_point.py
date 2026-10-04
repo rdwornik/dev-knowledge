@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -66,6 +67,38 @@ PROCESSES = {
     ".claude/commands/boot-session.md": "command",
     ".claude/skills/verify/SKILL.md": "skill",
 }
+
+
+def _write_store(db: Path, processes: dict[str, str]) -> Path:
+    """A persisted-store file shaped like FPG-1's, holding only what `load_processes` reads:
+    `nodes(path, process_class)`. Written here so a test owns the store it judges against."""
+    import sqlite3
+
+    db.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(db)
+    try:
+        con.execute("CREATE TABLE nodes (key TEXT PRIMARY KEY, kind TEXT NOT NULL, "
+                    "label TEXT NOT NULL, path TEXT, process_class TEXT)")
+        con.executemany("INSERT INTO nodes VALUES (?, 'file', ?, ?, ?)",
+                        [(p, p, p, k) for p, k in processes.items()])
+        con.commit()
+    finally:
+        con.close()
+    return db
+
+
+@pytest.fixture
+def owned_store(tmp_path, monkeypatch):
+    """A persisted store this test owns. `decide_with_store` returns "allow" on an absent or
+    empty store BEFORE the patched predicate is reached, so a test that patches `decide` must
+    first hand the guard a store holding a process set -- never lean on whatever the runner
+    built. `graph_store.store_path` is pointed at a populated file under `tmp_path`, so
+    `load_processes()` runs for real against it (foundation-8 item 1)."""
+    import graph_store as gs
+
+    db = _write_store(tmp_path / "owned" / "FPG.db", PROCESSES)
+    monkeypatch.setattr(gs, "store_path", lambda *_a, **_k: db)
+    return db
 
 
 def _bash(command: str) -> dict:
@@ -660,7 +693,7 @@ def test_an_UNREACHABLE_STORE_ENGINE_fails_CLOSED(monkeypatch):
     assert "Cause:" in reason and "Fix:" in reason
 
 
-def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch):
+def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch, owned_store):
     """Failure mode 3/4: crash. The predicate itself (`decide`) raises after the
     store has already loaded -- a bug in the matching logic, not a missing
     dependency. Previously ALLOWED at the site named L651 of 9136f133; must now
@@ -674,7 +707,7 @@ def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch):
     assert "Cause:" in reason and "Fix:" in reason
 
 
-def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch):
+def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch, owned_store):
     """Failure mode 4/4: unexpected rc. If the predicate ever returns something
     other than the two sanctioned verdicts ("allow"/"block") -- a future typo or
     a half-finished edit -- that is exactly the shape of an unexpected exit code
@@ -686,6 +719,41 @@ def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch):
     decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
     assert decision == "block", "an unrecognised verdict must refuse, not permit"
     assert "Cause:" in reason and "Fix:" in reason
+
+
+_FAIL_CLOSED_PAIR = (
+    "test_a_CRASH_MID_EVALUATION_fails_CLOSED",
+    "test_an_UNRECOGNISED_VERDICT_fails_CLOSED",
+)
+
+
+@pytest.mark.parametrize("runner_store", ["absent", "empty", "populated"])
+def test_the_fail_closed_pair_does_not_depend_on_the_runners_store(tmp_path, runner_store):
+    """foundation-8 item 1. The two tests that patch `decide` judge against whatever process
+    set `load_processes()` finds. Run on a runner with NO persisted store they read "allow" --
+    the guard's documented "not governed yet" (`if not processes:`) returns BEFORE the patched
+    `decide` is ever reached -- so they passed only when some earlier test on that runner had
+    built the gitignored store (CI never builds one). The repro of the integrator's N2 (four
+    cases: store present/absent x crash/unrecognised), run as a child pytest whose git dir is
+    a throwaway one, so `graph_store.store_path` lands on a store this test fully controls:
+    the runner's store absent, present-but-empty, and populated. The pair must pass in all three.
+    """
+    import graph_store as gs
+
+    git_dir = tmp_path / "gitdir"
+    subprocess.run(["git", "init", "-q", "--bare", str(git_dir)], check=True,
+                   capture_output=True)
+    if runner_store != "absent":
+        _write_store(git_dir / gs.STORE_RELPATH, PROCESSES if runner_store == "populated" else {})
+    env = {**os.environ, "GIT_DIR": str(git_dir)}
+    ids = [f"{Path(__file__).as_posix()}::{name}" for name in _FAIL_CLOSED_PAIR]
+    run = subprocess.run(
+        [sys.executable, "-m", "pytest", "-n", "0", "-p", "no:cacheprovider", "-q", *ids],
+        cwd=str(_REPO), env=env, capture_output=True, text=True, encoding="utf-8",
+        errors="replace")
+    assert run.returncode == 0 and "2 passed" in run.stdout, (
+        f"the fail-closed pair read the runner's store ({runner_store}):\n"
+        f"{run.stdout[-1500:]}\n{run.stderr[-500:]}")
 
 
 def test_the_declared_escape_STILL_WORKS_after_the_flip():

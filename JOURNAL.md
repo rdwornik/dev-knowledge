@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-04 (c) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-8-test-isolation merges -- the deny_and_point fail-closed pair owns its store; three Windows flakes quarantined with their shown cause
+
+**Anchors:** `cd5ec6cc`, `66c5fc08`, `dcff4a70`, `7dc45a8f`, `209bd725`, `79ee0f10` -- `worktree-foundation-8-test-isolation`, merged `--no-ff` through `epic/foundation-int-foundation-8-test-isolation`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. The two `deny_and_point` fail-closed tests run against their own populated store under `tmp_path` (the guard's absent-store ALLOW untouched); the `test_graph_spine` lock pair and the `test_transport` concurrent append are quarantined on `windows-latest` in the known-reds registry with cause, owner, expiry and control rates -- the causes sit in `scripts/graph_store.py` (lock token not unique within a clock tick) and `scripts/transport.py` (PermissionError not read as contention), scripts the lane may not edit; `[#1350]` files the transport cause.
+- `[#639]` cites lane foundation-11's removal ledger as its governance consumer (carried from a refused lane-4 integration, never on `main`); regenerated `docs/audits/README.md`; carried lane foundation-11-retire-approved's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `tests/test_{deny_and_point,graph_spine,transport}.py`, `logs/KNOWN-REDS-REGISTRY.json`, `tasks/1350` (new), `tasks/639` (refs), `tasks/manifest.json`, one audit, `logs/MERGE-RECEIPTS.jsonl`, generated `BACKLOG.md` / `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4's repair 2 of 2; lane 13; lane 9; ROWS-OWED: the graph-store lock token row.
+
 ### 2026-10-04 (b) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-11-retire-approved merges -- the seven DEAD templates are retired under R66 and ADR-116 is withdrawn
 
 **Anchors:** `ed9180d0`, `055bf91d`, `35e06455`, `716a85b3`, `d6d1f7f5`, `555f98cd`, `78f11e06` -- `worktree-foundation-11-retire-approved`, merged `--no-ff` through `epic/foundation-int-foundation-11-retire-approved`.
