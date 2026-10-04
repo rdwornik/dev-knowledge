@@ -1140,10 +1140,8 @@ def test_load_config_refuses_a_tool_with_no_doc(tmp_path: Path) -> None:
 
 
 def _nines() -> dict:
-    """Every tool pinned at 9.9.9 except `agy`, which has no pin (its installer takes none)."""
-    rows = {n: _tool_row(version="9.9.9") for n in TOOLS}
-    rows["agy"] = _tool_row(version=None, reason="latest only")
-    return rows
+    """Every tool pinned at 9.9.9, `agy` included (its installer takes none; the leg asserts the pin)."""
+    return {n: _tool_row(version="9.9.9") for n in TOOLS}
 
 
 def _probe_of(table: dict):
@@ -1154,7 +1152,7 @@ def _probe_of(table: dict):
 
 
 _BANNER = {"claude": "9.9.9 (Claude Code)", "gh": "gh version 9.9.9 (2026-01-01)",
-           "codex": "codex-cli 9.9.9", "agy": "9.9.9", "rclone": "rclone v9.9.9"}
+           "codex": "codex-cli 9.9.9", "agy": "9.9.9", "grok": "grok 9.9.9", "rclone": "rclone v9.9.9"}
 
 
 @pytest.mark.parametrize("name", TOOLS)
