@@ -860,12 +860,17 @@ def _default_verdict(sha: str, **kw):
 
 def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_branch: str, base: str,
                         outcome_test: Sequence[str], workdir: Path, ci_timeout_s: int = 3600,
-                        ci_interval_s: int = 30, verdict_fn: Optional[Callable] = None) -> dict:
+                        ci_interval_s: int = 30, verdict_fn: Optional[Callable] = None,
+                        onto: Optional[str] = None) -> dict:
     """The integrator's acts on the test lane's pushed branch, on a SCRATCH branch, never on main.
 
     1. read the run branch's tip on origin and fetch it;
-    2. cut `scratch_branch` (`worktree-integrate-*`) from `base` in a temporary worktree and merge
-       the run tip into it with `--no-ff` -- the local merge the integrator does;
+    2. cut `scratch_branch` (`worktree-integrate-*`) from `onto` (default `base`) in a temporary
+       worktree and merge the run tip into it with `--no-ff` -- the local merge the integrator
+       does. `base` is the parity base the run branch must descend from; `onto` is what the
+       integrator cuts from, origin/main: CI's spine job judges an integration-branch push as if
+       it landed on main, so a scratch branch cut from a lane tip would show the lane's own
+       commits as direct ones (b2-codespace-green run 2);
     3. re-run the outcome test on the merged tree;
     4. push the scratch branch alone and read CI's push verdict for the merge commit
        (`merge_path.read_verdict`, the one verdict function the merge path itself uses);
@@ -882,9 +887,12 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         raise ValueError(f"run branch {run_branch!r} is not a `worktree-<slug>` branch")
     if not _FULL_SHA_RE.fullmatch(base):
         raise ValueError(f"base {base!r} is not a full 40-hex sha")
+    onto = base if onto is None else onto
+    if not _FULL_SHA_RE.fullmatch(onto):
+        raise ValueError(f"onto {onto!r} is not a full 40-hex sha")
     workdir = Path(workdir)
     record: dict = {"schema": SCHEMA, "side": "integration", "run_branch": run_branch,
-                    "scratch_branch": scratch_branch, "base_sha": base, "run_sha": None,
+                    "scratch_branch": scratch_branch, "base_sha": base, "onto_sha": onto, "run_sha": None,
                     "run_cut_from_base": None}
     listed = run(["git", "ls-remote", "--heads", "origin", run_branch], cwd=root, timeout=120)
     run_sha = _exact_head(listed.stdout, run_branch) if listed.returncode == 0 else None
@@ -899,7 +907,7 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
 
     created = pushed = False
     try:
-        added = run(["git", "worktree", "add", "-b", scratch_branch, str(workdir), base],
+        added = run(["git", "worktree", "add", "-b", scratch_branch, str(workdir), onto],
                     cwd=root, timeout=300)
         if added.returncode != 0:
             record["note"] = f"git worktree add exited {added.returncode}"
@@ -929,7 +937,7 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         pushed = push.returncode == 0
         record["push_exit"] = push.returncode
         if pushed:
-            record["ci"] = _read_ci(head, base=base, root=root, timeout_s=ci_timeout_s,
+            record["ci"] = _read_ci(head, base=onto, root=root, timeout_s=ci_timeout_s,
                                     interval_s=ci_interval_s, verdict_fn=verdict_fn)
         return record
     finally:
@@ -1198,8 +1206,10 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
         elif len(parents) != 2:
             bad.append(f"the merge commit is not a two-parent merge ({len(parents)} parent(s))")
         else:
-            if parents[0] != integration.get("base_sha"):
-                bad.append(f"the merge's first parent {parents[0]} is not the base")
+            onto_sha = integration.get("onto_sha") or integration.get("base_sha")
+            if parents[0] != onto_sha:
+                bad.append(f"the merge's first parent {parents[0]} is not the commit the scratch "
+                           f"branch was cut from ({onto_sha})")
             if parents[1] != integration.get("run_sha"):
                 bad.append(f"the merge's second parent {parents[1]} is not the run branch tip")
         legs.append(LegResult(Leg.FAIL, "; ".join(bad)) if bad else
@@ -1600,21 +1610,32 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
 @click.option("--run-branch", required=True, help="The test lane's pushed branch (worktree-<slug>).")
 @click.option("--scratch-branch", required=True, help="worktree-integrate-<slug>; never main.")
 @click.option("--base", required=True, help="Full 40-hex sha the run branch was cut from.")
+@click.option("--onto", default=None,
+              help="Full sha the scratch branch is cut from; default: origin/main as `git "
+                   "ls-remote` reads it now. (Not --base: CI judges the push as if it landed on "
+                   "main.)")
 @click.option("--workdir", required=True, type=click.Path(path_type=Path),
               help="Where the scratch worktree is created (and removed).")
 @click.option("--test", "outcome_test", required=True,
               help="The outcome test as a JSON argv list, run on the merged tree.")
 @click.option("--ci-timeout", "ci_timeout_s", default=3600, show_default=True, type=int)
 @click.option("--out", "out", required=True, type=click.Path(path_type=Path))
-def integrate_cmd(run_branch: str, scratch_branch: str, base: str, workdir: Path,
-                  outcome_test: str, ci_timeout_s: int, out: Path) -> None:
+def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optional[str],
+                  workdir: Path, outcome_test: str, ci_timeout_s: int, out: Path) -> None:
     """Condition 3's integration legs: merge the run branch on a scratch branch, test, read CI."""
     try:
         argv = json.loads(outcome_test)
         if not (isinstance(argv, list) and argv and all(isinstance(a, str) for a in argv)):
             raise ValueError("--test must be a non-empty JSON list of strings")
+        if onto is None:
+            main = default_run(["git", "ls-remote", "--heads", "origin", "main"], cwd=_REPO_ROOT,
+                               timeout=120)
+            onto = _exact_head(main.stdout, "main") if main.returncode == 0 else None
+            if not onto:
+                raise ValueError("could not read origin/main: pass --onto explicitly")
+            default_run(["git", "fetch", "origin", "main"], cwd=_REPO_ROOT, timeout=300)
         record = collect_integration(default_run, root=_REPO_ROOT, run_branch=run_branch,
-                                     scratch_branch=scratch_branch, base=base,
+                                     scratch_branch=scratch_branch, base=base, onto=onto,
                                      outcome_test=argv, workdir=workdir,
                                      ci_timeout_s=ci_timeout_s)
     except (ValueError, json.JSONDecodeError) as exc:

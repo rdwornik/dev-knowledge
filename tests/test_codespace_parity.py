@@ -1474,7 +1474,7 @@ def _remote_all_exercised() -> dict:
 
 def test_an_unmeasured_leg_is_a_different_value_from_a_passing_leg():
     assert cp.Leg.NOT_RUN is not cp.Leg.PASS and cp.Leg.NOT_RUN != cp.Leg.FAIL
-    assert {l.value for l in cp.Leg} == {"PASS", "FAIL", "NOT-RUN"}
+    assert {leg.value for leg in cp.Leg} == {"PASS", "FAIL", "NOT-RUN"}
 
 
 def test_folding_legs_passes_only_when_every_leg_passed():
@@ -1990,3 +1990,49 @@ def test_the_parity_ci_landable_states_are_the_merge_paths():
     from scripts import merge_path
     assert tuple(cp.CI_LANDABLE_STATES) == tuple(merge_path.LANDABLE_STATES)
     assert not set(cp.CI_LANDABLE_STATES) & set(cp.CI_FAILED_STATES)
+
+
+_ONTO = "e" * 40
+
+
+def test_the_scratch_branch_is_cut_from_onto_not_from_the_compared_base(tmp_path):
+    """Run 2 of b2-codespace-green: cut from the lane tip, the lane's own 7 commits read to the CI
+    spine job (which judges an integration push as if it landed on main) as direct commits. The
+    real integrator cuts its scratch branch from origin/main; `base` stays the parity base the run
+    branch must descend from."""
+    run = _GitRun(parents=[_ONTO, _RUN_SHA])
+    seen = {}
+
+    def verdict(sha, **k):
+        seen.update(k)
+        return _Verdict()
+
+    rec = _collect(run, tmp_path, onto=_ONTO, verdict_fn=verdict)
+    add = next(c[0] for c in run.calls if c[0][:3] == ["git", "worktree", "add"])
+    assert add[-1] == _ONTO and _SHA not in add
+    assert rec["onto_sha"] == _ONTO and rec["base_sha"] == _SHA and rec["run_cut_from_base"] is True
+    assert seen["base"] == _ONTO, "CI's baseline is the commit the scratch branch was cut from"
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "PASS"
+
+
+def test_without_onto_the_scratch_branch_is_cut_from_the_base_as_before(tmp_path):
+    run = _GitRun()
+    rec = _collect(run, tmp_path)
+    add = next(c[0] for c in run.calls if c[0][:3] == ["git", "worktree", "add"])
+    assert add[-1] == _SHA and rec["onto_sha"] == _SHA
+
+
+def test_the_merges_first_parent_must_be_the_commit_the_scratch_branch_was_cut_from():
+    good = _integration(onto_sha=_ONTO, merge={"exit": 0, "sha": _MERGE_SHA,
+                                               "parents": [_ONTO, _RUN_SHA]})
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), good).status == "PASS"
+    bad = _integration(onto_sha=_ONTO)  # parents still [base, run]
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), bad)
+    assert verdict.status == "FAIL" and "first parent" in verdict.reason
+
+
+def test_collect_integration_refuses_an_onto_that_is_not_a_full_sha(tmp_path):
+    run = _GitRun()
+    with pytest.raises(ValueError):
+        _collect(run, tmp_path, onto="origin/main")
+    assert run.calls == []
