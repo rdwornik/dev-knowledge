@@ -24,7 +24,7 @@ import json
 import pytest
 
 import consumer_at_landing as cal
-from branch_context import names_at_merge_base, witness
+from branch_context import merge_base_with_main, names_at_merge_base, witness
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -423,7 +423,9 @@ def test_the_live_corpus_measures_and_the_baseline_matches_it():
     inherited = names_at_merge_base(root, "docs/audits")
     if inherited is not None:
         owed &= {name.rsplit("/", 1)[-1] for name in inherited}
-    assert owed == set()
+    assert owed == set(), (
+        f"merge base {merge_base_with_main(root)!r}; "
+        f"{'unknown' if inherited is None else len(inherited)} audits inherited from it")
 
 
 @pytest.mark.xdist_group(name="branch_context")

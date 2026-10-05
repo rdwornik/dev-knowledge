@@ -9,7 +9,7 @@ import pytest
 
 
 import gen_audit_index as gai  # noqa: E402
-from branch_context import names_at_merge_base, witness  # noqa: E402
+from branch_context import merge_base_with_main, names_at_merge_base, witness  # noqa: E402
 
 
 def _audit(d: Path, name: str, title: str | None = "T") -> None:
@@ -133,6 +133,9 @@ def _live_index_verdict() -> int:
         scoped = gai.render_index(tracked=tracked - lane_added)
         if gai._TARGET.read_text(encoding="utf-8") == scoped:
             return gai._check_titles()
+    print(f"scope not applied: merge base {merge_base_with_main(root)!r}, tracked "
+          f"{'unknown' if tracked is None else len(tracked)}, inherited "
+          f"{'unknown' if inherited is None else len(inherited)}", file=sys.stderr)
     return gai.main(["--check"])
 
 

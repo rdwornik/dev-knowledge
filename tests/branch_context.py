@@ -84,6 +84,30 @@ class BranchContexts:
                            ("commit.gpgsign", "false"), ("core.hooksPath", str(hooks)),
                            ("core.autocrlf", "false"), ("core.longpaths", "true")):
             _git(self.work, "config", key, value)
+        if base is None:
+            self._leave_out_what_the_integrator_indexes()
+
+    def _leave_out_what_the_integrator_indexes(self) -> None:
+        """Make the base a tree `main` could be: without the audits THIS branch added.
+
+        A lane adds an audit record (its own Codex review, at least) and is barred from indexing it
+        -- the integrator does at merge. A clone of that tree called `main` would carry an audit
+        `main`'s README does not list, and every strict corpus check would fail on it for a reason
+        that is the lane's own file, not the shape under test. So the base is HEAD's tree minus the
+        `docs/audits/` files added since the merge base; nothing else is touched, and on `main`
+        (nothing added) the base stays HEAD.
+        """
+        inherited = names_at_merge_base(REPO, "docs/audits")
+        listing = _git(REPO, "ls-tree", "-r", "--name-only", self.base, "--", "docs/audits", check=False)
+        added = [p for p in listing.splitlines()
+                 if p and inherited is not None and p not in inherited and p != "docs/audits/README.md"]
+        if not added:
+            return
+        _git(self.work, "checkout", "-q", "-f", "-B", "main", self.base)
+        _git(self.work, "rm", "-q", "--", *added)
+        _git(self.work, "commit", "-q", "-m", "base: the audits this branch added are the integrator's to index")
+        self.base = _git(self.work, "rev-parse", "HEAD")
+        _git(self.work, "push", "-q", "-f", "origin", f"{self.base}:refs/heads/main")
 
     # -- shapes -----------------------------------------------------------------------------------
 
