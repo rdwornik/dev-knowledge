@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "05fcb0e6dc98eda20c50ad2f5a2f20beff0d896852a72ac40298e1f2cd0c70c0",
+  "generated_sha256": "36ace2e5eb2bb8acf8f07b85614be564dccde5ab4d8fa0264cb7407edb684062",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2906,6 +2906,14 @@
     {
       "task": 1386,
       "file": "1386-the-cut-generator-names-every-open-carrier-in-residual-md.md"
+    },
+    {
+      "task": 1410,
+      "file": "1410-the-dispatcher-enforces-a-same-defect-attempt-bound-in-code.md"
+    },
+    {
+      "task": 1411,
+      "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
     },
     {
       "prose": ""

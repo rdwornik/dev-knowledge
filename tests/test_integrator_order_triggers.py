@@ -112,3 +112,77 @@ def test_only_close_and_refusal_headings_changed_shape_others_untouched():
     ):
         assert re.search(rf"^##\s*{re.escape(heading)}\s*$", text, re.M), (
             f"heading '{heading}' is missing or reworded -- out of this lane's ownership")
+
+
+# --- LANE-B2-W1-b2-integrator-liveness: the integrator never goes silent and never runs as one 15 h session ----
+
+def _wait_section(text: str) -> str:
+    return _section(text, "Waiting — a handback wakes you")
+
+
+def _cycle_section(text: str) -> str:
+    return _section(text, "Cycle — hand over to a fresh session of the same role")
+
+
+def test_the_wait_section_names_the_watch_command_for_a_monitor_and_keeps_the_cron_as_the_fallback():
+    wait = _wait_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "scripts/lane_end_guard.py watch" in wait, "the Monitor's one command"
+    assert "Monitor" in wait
+    assert "CronCreate" in wait and re.search(r"\b10[ -]min", wait), "the 10-minute cron stays as the fallback"
+    assert re.search(r"fallback", wait, re.I)
+
+
+def test_the_wake_runs_the_transport_sweep_and_the_integrators_writes_call_the_lint():
+    """Done-contract 3: W1-6's sweep on every wake, W1-6's lint before every transport write."""
+    wait = _wait_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "scripts/transport_lint.py sweep" in wait and "--since" in wait
+    assert "TRANSPORT-LINT" in wait
+    assert "scripts/transport_lint.py check" in wait, "a file written by hand is linted before it is written"
+    for written in ("STATE-", "REFUSED-", "DIGEST-", "SESSION-integrator"):
+        assert written in wait, f"the lint covers {written}"
+
+
+def test_the_cycle_hands_over_only_at_a_no_merge_point():
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "no-merge point" in cycle
+    assert re.search(r"no integration worktree (is )?open", cycle)
+    assert re.search(r"no CI wait (is )?in flight", cycle)
+
+
+def test_the_cycle_ceiling_is_three_hours_since_bind_and_the_old_two_hour_wording_is_gone():
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert re.search(r"at least every 3 h", cycle), "the ceiling is 3 h"
+    assert re.search(r"since (you|the seat) bound|since bind", cycle)
+    assert "About every 2 h" not in cycle
+
+
+def test_the_successor_claims_and_binds_before_the_outgoing_seat_releases():
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    claim = cycle.index("INTEGRATOR-<BATCH>-cycle-<n>")
+    bind = cycle.index("seat_registry.py bind")
+    release = cycle.index("claim.py release")
+    unbind = cycle.index("seat_registry.py unbind")
+    assert claim < bind < release, "claim, then bind, then the outgoing release"
+    assert bind < unbind
+
+
+def test_the_successor_reads_the_receipt_back_three_times_thirty_seconds_apart():
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert re.search(r"three times", cycle) and re.search(r"30 s apart", cycle)
+    assert "STATE" in cycle and "SESSION-integrator" in cycle
+
+
+def test_the_successor_scans_the_in_flight_lanes_and_the_outgoing_seat_starts_no_new_merge():
+    """Codex terra P1, round 2: the wake ledger records what a Monitor reported, not what was acted on, and two
+    Monitors overlap while a handover runs. The cycle says who acts: the successor, from a scan of every lane
+    the state file lists as IN-FLIGHT; the outgoing seat starts no merge once the successor has claimed."""
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "IN-FLIGHT" in cycle and "HANDBACK" in cycle
+    assert re.search(r"starts no new merge", cycle)
+
+
+def test_the_cycle_runs_the_transport_sweep_and_stops_every_monitor_and_cron_before_handing_over():
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "scripts/transport_lint.py sweep" in cycle
+    assert "CronDelete" in cycle and "Monitor" in cycle
+    assert "scripts/seat_state.py read" in cycle, "the state-file rebind of the existing wording is kept"

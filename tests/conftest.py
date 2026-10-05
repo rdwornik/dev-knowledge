@@ -20,6 +20,7 @@ hook is its wiring.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 import pytest
@@ -46,6 +47,23 @@ OPERATOR_HOST_TESTS: frozenset[str] = frozenset({
     "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[actions]",
     "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[close]",
 })
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _wake_home_is_not_the_operators(tmp_path_factory: pytest.TempPathFactory):
+    """LANE-B2-W1-b2-integrator-liveness: `lane_end_guard.py` leaves a wake file in the operator's private state
+    directory for every closing HANDBACK line. A test that runs the real guard (`test_connection_loop.py`, through
+    the real Stop hook) must not wake the operator's live integrator for a fixture lane, so the whole session writes
+    its wakes under pytest's own temp directory. Subprocesses inherit it; a test that wants its own home sets one."""
+    prior = os.environ.get("HARNESS_WAKE_DIR")
+    os.environ["HARNESS_WAKE_DIR"] = str(tmp_path_factory.mktemp("integrator-wake"))
+    try:
+        yield
+    finally:
+        if prior is None:
+            os.environ.pop("HARNESS_WAKE_DIR", None)
+        else:
+            os.environ["HARNESS_WAKE_DIR"] = prior
 
 
 def pytest_configure(config: pytest.Config) -> None:
