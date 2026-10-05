@@ -453,7 +453,6 @@ def test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH(tmp_path):
     assert verdict.holds, verdict.why
 
 
-@requires_git
 def test_a_primary_off_main_is_reported_as_not_holding(tmp_path):
     """The accidental satisfaction `[#716]` refuses, now stated on a fixture instead of read off
     whichever branch the suite runs on: `head` seeds a lane from wherever the primary sits."""
@@ -463,7 +462,6 @@ def test_a_primary_off_main_is_reported_as_not_holding(tmp_path):
     assert "not on main" in verdict.why
 
 
-@requires_git
 @pytest.mark.xdist_group(name="branch_context")
 def test_the_dispatch_base_verdict_is_the_same_on_a_lane_branch(tmp_path_factory):
     """The witness for the two tests above: the listed test, run from a clone whose HEAD is a
