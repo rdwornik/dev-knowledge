@@ -29,6 +29,12 @@ import pytest
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _PROVISION_SH = _REPO_ROOT / ".devcontainer" / "provision.sh"
 
+#: Bash spawn budget for the login-path test: it starts four bash processes and took 48 s alone on
+#: a Windows host, so the old 30 s / 60 s budgets read as a failure on a loaded box while the same
+#: test passed on the Codespace (b2-codespace-green run 7; the failing run kept only a verdict,
+#: so a timeout is the likely cause, not a proven one).
+_BASH_SPAWN_TIMEOUT_S = 240
+
 #: Matches an actual invocation, not a prose mention of the path — this file's own
 #: retirement-record comments cite retired paths by name deliberately.
 #:
@@ -300,7 +306,7 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     # can be compared, and a later shell's PATH search actually finds the file.
     def _canon(p: Path) -> str:
         r = subprocess.run([bash_exe, "-c", f'cd "{p.as_posix()}" && pwd'],
-                            capture_output=True, text=True, timeout=30)
+                            capture_output=True, text=True, timeout=_BASH_SPAWN_TIMEOUT_S)
         assert r.returncode == 0, f"could not resolve {p} through bash: {r.stderr!r}"
         return r.stdout.strip()
 
@@ -322,7 +328,8 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
         'leg_pc_login_path\n',
         encoding="utf-8")
 
-    run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True, timeout=60)
+    run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                         timeout=_BASH_SPAWN_TIMEOUT_S)
     assert run.returncode == 0, f"stdout={run.stdout!r} stderr={run.stderr!r}"
 
     # NOT ~/.bashrc: none of `.bash_profile`/`.bash_login`/`.profile` existed, so the leg must
@@ -346,7 +353,7 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     child_env["PATH"] = "/usr/bin:/bin"
     fresh = subprocess.run(
         [bash_exe, "-lc", "command -v pre-commit"],
-        capture_output=True, text=True, timeout=30, env=child_env,
+        capture_output=True, text=True, timeout=_BASH_SPAWN_TIMEOUT_S, env=child_env,
     )
     assert "THIS LINE MUST NEVER RUN UNDER bash -lc" not in fresh.stderr, (
         "the decoy ~/.bashrc ran — the test setup does not isolate what it claims to")

@@ -228,9 +228,42 @@ CONDITION_NAMES = {1: "environment", 2: "gates", 3: "landing", 4: "transport", 5
 _REQUIRED_KEYS = ("environment", "gates", "landing", "transport", "base_sha", "tree_sha", "side")
 
 
+#: CI reds a scratch integration branch shows BY CONSTRUCTION, keyed by test node id (no OS prefix)
+#: -> `[#row] why`. A test that asks about the checkout itself reads red on a branch that is not
+#: `main` and green on main's own run, so it reads NEW against the main baseline on every
+#: integration. A declaration forgives that one id only, and only when it is the sole red.
+DECLARED_CI_CASES: dict[str, str] = {
+    "tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH":
+        "[#716] asks whether the live checkout is `main`; a scratch integration branch is not",
+}
+
+_CI_RED_NAME_RE = re.compile(r"^pytest \([^)]*\): (\S+)$")
+_CI_RED_COUNTS_RE = re.compile(r"^(\d+) new red test\(s\), 0 non-test failure\(s\), 0 job\(s\) broken")
+
+
 def declared_cases_problems() -> list[str]:
-    """Each declared OS case must carry a row id -- a bare forgiveness is a hidden FAIL."""
-    return [k for k, row in DECLARED_OS_CASES.items() if not str(row).startswith("[#")]
+    """Each declared OS or CI case must carry a row id -- a bare forgiveness is a hidden FAIL."""
+    return [k for table in (DECLARED_OS_CASES, DECLARED_CI_CASES) for k, row in table.items()
+            if not str(row).startswith("[#")]
+
+
+def _declared_only_reds(ci: Mapping) -> list[str]:
+    """The declared ids when EVERY red of a REGRESSED verdict is a declared case, else `[]`.
+
+    The verdict's own count must close: N reds named, N counted, no non-test failure, no broken
+    job, no missing context. A verdict whose reason cannot be read, or whose list was cut short,
+    forgives nothing."""
+    counts = _CI_RED_COUNTS_RE.match(str(ci.get("reason") or ""))
+    reds = [str(r) for r in (ci.get("new_reds") or [])]
+    if not counts or ci.get("missing_contexts") or not reds or int(counts.group(1)) != len(reds):
+        return []
+    names = []
+    for red in reds:
+        m = _CI_RED_NAME_RE.match(red)
+        if not m or m.group(1) not in DECLARED_CI_CASES or m.group(1) in declared_cases_problems():
+            return []
+        names.append(m.group(1))
+    return sorted(set(names))
 
 
 # =============================================================================== types
@@ -1265,7 +1298,16 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
         evidence.append(f"CI: {state or '(no state)'} for {ci.get('sha')} (run {ci.get('run_id')}"
                         f"; missing contexts {list(ci.get('missing_contexts') or [])})")
         merge_sha = (merge or {}).get("sha") if isinstance(merge, Mapping) else None
-        if state in CI_FAILED_STATES:
+        declared = _declared_only_reds(ci) if state == "REGRESSED" else None
+        if declared:
+            evidence.append("declared CI case(s), the ONLY reds: " + "; ".join(
+                f"{k} -> {DECLARED_CI_CASES[k]}" for k in declared))
+            if merge_sha and ci.get("sha") != merge_sha:
+                legs.append(LegResult(Leg.FAIL, f"the CI verdict is for {ci.get('sha')}, not the "
+                                      f"merge commit {merge_sha}"))
+            else:
+                legs.append(LegResult(Leg.PASS, "CI verdict (declared cases only)"))
+        elif state in CI_FAILED_STATES:
             legs.append(LegResult(Leg.FAIL, f"CI verdict {state}: {ci.get('reason') or 'red'}"))
         elif state in CI_LANDABLE_STATES:
             if merge_sha and ci.get("sha") != merge_sha:

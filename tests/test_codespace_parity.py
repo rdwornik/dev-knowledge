@@ -1571,6 +1571,53 @@ def test_a_pre_existing_ci_state_with_no_missing_context_is_landable():
     assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ).status == "PASS"
 
 
+_DECLARED_RED = "tests/test_x.py::test_reads_the_live_checkout"
+
+
+def _regressed(*names, reason=None, **over):
+    integ = _integration()
+    reds = [f"pytest ({os_}): {n}" for n in names for os_ in ("ubuntu-latest", "windows-latest")]
+    integ["ci"].update(state="REGRESSED", landable=False, new_reds=reds,
+                       reason=reason or f"{len(reds)} new red test(s), 0 non-test failure(s), "
+                                        "0 job(s) broken", **over)
+    return integ
+
+
+def test_a_red_that_only_a_scratch_branch_can_show_passes_when_it_is_declared_with_its_row(monkeypatch):
+    """Run 7 of b2-codespace-green: `test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH` asks whether
+    the CHECKOUT is `main`; a scratch integration branch is not, so it is red on every branch push
+    and green on main's own run. The declaration names that one id and its row, and the evidence
+    line says so; the verdict still reads every OTHER red."""
+    monkeypatch.setitem(cp.DECLARED_CI_CASES, _DECLARED_RED, "[#716] reads the live checkout")
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), _regressed(_DECLARED_RED))
+    assert verdict.status == "PASS", verdict
+    assert any("declared CI case" in e and _DECLARED_RED in e and "[#716]" in e
+               for e in verdict.evidence)
+
+
+@pytest.mark.parametrize("make", [
+    lambda: _regressed(_DECLARED_RED, "tests/test_x.py::test_a_real_regression"),
+    lambda: _regressed(_DECLARED_RED, reason="2 new red test(s), 1 non-test failure(s), 0 job(s) broken"),
+    lambda: _regressed(_DECLARED_RED, reason="2 new red test(s), 0 non-test failure(s), 1 job(s) broken"),
+    lambda: _regressed(_DECLARED_RED, reason="9 new red test(s), 0 non-test failure(s), 0 job(s) broken"),
+    lambda: _regressed(_DECLARED_RED, reason="unreadable"),
+    lambda: _regressed(_DECLARED_RED, missing_contexts=["pytest (windows-latest)"]),
+])
+def test_a_declared_red_never_forgives_anything_else(monkeypatch, make):
+    monkeypatch.setitem(cp.DECLARED_CI_CASES, _DECLARED_RED, "[#716] reads the live checkout")
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), make())
+    assert verdict.status == "FAIL", verdict
+
+
+def test_an_undeclared_red_is_a_fail_and_a_declaration_without_a_row_is_refused(monkeypatch):
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), _regressed(_DECLARED_RED))
+    assert verdict.status == "FAIL"
+    monkeypatch.setitem(cp.DECLARED_CI_CASES, _DECLARED_RED, "no row id")
+    assert _DECLARED_RED in cp.declared_cases_problems()
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), _regressed(_DECLARED_RED))
+    assert verdict.status == "FAIL", "a declaration with no row id is a hidden FAIL"
+
+
 def test_the_scratch_branch_is_cleaned_up_or_the_landing_is_not_a_pass():
     integ = _integration()
     integ["cleanup"]["remote_deleted"] = False
