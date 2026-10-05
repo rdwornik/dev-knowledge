@@ -70,6 +70,8 @@ OUTPUT_NAME = "MOMENT-LANE-END-HOOK-OUTPUT.txt"
 WAKE_PREFIX = "WAKE-"
 WAKE_DIR_NAME = "integrator-wake"
 WATCH_POLL_S = 2.0       # the Monitor sees a wake within one poll of its being written
+WATCH_LEDGER = ".watch-seen"   # the watch's cursor: the wake files it has already reported
+WAKE_WRITE_ATTEMPTS, WAKE_RETRY_S = 3, 0.2
 _STATE_APP_NAME = "dev-knowledge"   # the same per-user state directory `merge_path.py` and `quota_watch.py` use
 
 # Windows creation flags: no console window (the organs' children must not each open one), its own process
@@ -242,44 +244,92 @@ def _reap_abandoned(receipt_path: Path, handback: str, lane: str) -> None:
             int(current.get("guard_ms") or 0), detached=bool(current.get("detached", True))))
 
 
-def wake_dir(environ: Mapping[str, str]) -> Path:
-    """The integrator wake home: `HARNESS_WAKE_DIR` (tests, a second operator), else a directory in the per-user
-    OS state directory. `platformdirs` is imported here, not at module top: the skip path stays stdlib-only."""
+def _primary_of(root: Path) -> Path:
+    """The primary checkout of a lane worktree (`<primary>/.claude/worktrees/<slug>`), else `root` itself."""
+    return root.parents[2] if root.parent.name == "worktrees" and root.parent.parent.name == ".claude" else root
+
+
+def _is_inside(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def checked_home(home: Path, environ: Mapping[str, str], root: Path = _ROOT) -> Path:
+    """`home` if it is outside this repository (the worktree and its primary) and the transport; else ValueError.
+    The wake is a private, same-machine signal (N2): an override that aimed it at either place would put a run
+    signal where a decision file is checked, or into git. (Codex terra P1 of this lane's review.)"""
+    for repo in {root, _primary_of(root)}:
+        if _is_inside(home, repo):
+            raise ValueError(f"the wake home {home} is inside this repository ({repo}); it lives in the private state directory")
+    transport = environ.get("CLAUDE_PROMPTS_DIR")
+    if transport and _is_inside(home, Path(transport)):
+        raise ValueError(f"the wake home {home} is inside the transport ({transport}); it lives in the private state directory")
+    return home
+
+
+def wake_dir(environ: Mapping[str, str], root: Path = _ROOT) -> Path:
+    """The integrator wake home: `HARNESS_WAKE_DIR` (tests, a second operator) when it passes `checked_home`, else a
+    directory in the per-user OS state directory. `platformdirs` is imported here, not at module top: the skip
+    path stays stdlib-only."""
     override = environ.get("HARNESS_WAKE_DIR")
     if override:
-        return Path(override)
+        return checked_home(Path(override), environ, root)
     import platformdirs  # noqa: PLC0415 -- only a closing line, or a watch, needs the home
     return Path(platformdirs.user_state_dir(_STATE_APP_NAME, appauthor=False)) / WAKE_DIR_NAME
 
 
 def write_wake(home: Path, lane: str, handback: str) -> Path:
-    """Leave one wake file for one closing line (atomic: a watcher never reads half of it). Idempotent per line."""
+    """Leave one wake file for one closing line (atomic: a watcher never reads half of it). Idempotent per line.
+    A failed write is tried `WAKE_WRITE_ATTEMPTS` times: on Windows a scanner or a reader can hold a file briefly."""
     key = handback_key(handback)
     branch, sha, cls = _parse_handback(handback)
     path = home / f"{WAKE_PREFIX}{lane}-{key}.json"
-    home.mkdir(parents=True, exist_ok=True)
     tmp = home / f".{path.name}.tmp"
-    tmp.write_text(json.dumps({"schema": 1, "lane": lane, "key": key, "handback": handback,
-                               "handback_branch": branch, "handback_sha": sha, "handback_class": cls,
-                               "written_at": _stamp()}, indent=2, sort_keys=True), encoding="utf-8")
-    os.replace(tmp, path)
-    return path
+    body = json.dumps({"schema": 1, "lane": lane, "key": key, "handback": handback, "handback_branch": branch,
+                       "handback_sha": sha, "handback_class": cls, "written_at": _stamp()}, indent=2, sort_keys=True)
+    for attempt in range(WAKE_WRITE_ATTEMPTS):
+        try:
+            home.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(body, encoding="utf-8")
+            os.replace(tmp, path)
+            return path
+        except OSError:
+            if attempt == WAKE_WRITE_ATTEMPTS - 1:
+                raise
+            time.sleep(WAKE_RETRY_S)
+    raise AssertionError("unreachable")   # the loop returns or raises
 
 
-def watch_wakes(home: Path, since: float, poll_s: float = WATCH_POLL_S, max_wait_s: Optional[float] = None,
+def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path] = None,
+                poll_s: float = WATCH_POLL_S, max_wait_s: Optional[float] = None,
                 emit: Optional[Callable[[str], None]] = None, sleep: Callable[[float], None] = time.sleep,
                 now: Callable[[], float] = time.monotonic) -> int:
-    """Block, and emit one `WAKE <lane> <closing line>` per wake file written at or after `since` (epoch s), once
-    each. This is the line a Monitor turns into a notification. Returns 0 when `max_wait_s` runs out (None: never)."""
+    """Block, and emit one `WAKE <lane> <closing line>` per wake file, once each. This is the line a Monitor turns
+    into a notification. Returns 0 when `max_wait_s` runs out (None: never).
+
+    Two ways to say which wakes count. `since` (epoch s): those written at or after it. `ledger` (a file): the
+    CURSOR -- the names already reported are listed in it, a wake not listed is reported whenever it landed, so a
+    restarted Monitor and a successor seat lose nothing and repeat nothing. The first start on a missing ledger
+    only records what is already there (the integrator's own initial scan covers it)."""
     emit = emit or (lambda line: print(line, flush=True))
     seen: set[str] = set()
+    if ledger is not None:
+        ledger.parent.mkdir(parents=True, exist_ok=True)
+        if ledger.is_file():
+            seen = set(ledger.read_text(encoding="utf-8").split())
+        else:
+            seen = {p.name for p in home.glob(f"{WAKE_PREFIX}*.json")}
+            ledger.write_text("".join(f"{n}\n" for n in sorted(seen)), encoding="utf-8")
     started = now()
     while True:
         for path in sorted(home.glob(f"{WAKE_PREFIX}*.json")):
             if path.name in seen:
                 continue
             try:
-                fresh = path.stat().st_mtime >= since
+                fresh = since is None or path.stat().st_mtime >= since
             except OSError:
                 continue
             wake = _read_receipt(path) if fresh else {}
@@ -288,6 +338,9 @@ def watch_wakes(home: Path, since: float, poll_s: float = WATCH_POLL_S, max_wait
             seen.add(path.name)
             if fresh:
                 emit(f"WAKE {wake['lane']} {wake['handback']}")
+                if ledger is not None:
+                    with ledger.open("a", encoding="utf-8") as out:
+                        out.write(path.name + "\n")
         if max_wait_s is not None and now() - started >= max_wait_s:
             return 0
         sleep(poll_s)
@@ -299,18 +352,27 @@ def _watch_cli(args: list[str], environ: Mapping[str, str]) -> int:
     parser = argparse.ArgumentParser(prog="lane_end_guard.py watch", description=(
         "Print one line per new lane handback wake, and block. A Monitor consumes the lines."))
     parser.add_argument("--wake-dir", default=None, help="the wake home (default: the per-user state directory)")
-    parser.add_argument("--since", default="now", help="report wakes written since: now (default), 30m, 2h, 1d or an ISO time")
+    parser.add_argument("--since", default=None, help=(
+        "report wakes written since: now, 30m, 2h, 1d or an ISO time. Default: resume from this watch's own ledger "
+        f"({WATCH_LEDGER} in the wake home), so a restart or a successor seat repeats and loses nothing"))
     parser.add_argument("--poll", type=float, default=WATCH_POLL_S, help="seconds between scans (default 2)")
     parser.add_argument("--max-wait", type=float, default=None, help="exit 0 after this many seconds (default: never)")
     ns = parser.parse_args(args)
-    home = Path(ns.wake_dir) if ns.wake_dir else wake_dir(environ)
-    if ns.since == "now":
+    try:
+        home = checked_home(Path(ns.wake_dir), environ) if ns.wake_dir else wake_dir(environ)
+    except ValueError as exc:
+        print(f"lane_end_guard watch: refused -- {exc}", file=sys.stderr)
+        return 2
+    since, ledger = None, None
+    if ns.since is None:
+        ledger = home / WATCH_LEDGER
+    elif ns.since == "now":
         since = time.time()
     else:
         import transport_lint  # noqa: PLC0415 -- its own `--since` grammar, one reader
         since = transport_lint.parse_since(ns.since)
     try:
-        return watch_wakes(home, since, poll_s=ns.poll, max_wait_s=ns.max_wait)
+        return watch_wakes(home, since, ledger, poll_s=ns.poll, max_wait_s=ns.max_wait)
     except (KeyboardInterrupt, BrokenPipeError):
         return 0
 
@@ -322,15 +384,17 @@ def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], Moment
     moment is minutes long and the integrator should not wait for it."""
     handback, guard_ms = claim.get("handback"), int(claim.get("guard_ms") or 0)
     detached = bool(claim.get("detached", True))
+    wake_note = ""
     if handback:
         try:
             write_wake(wake_dir(wake_env if wake_env is not None else os.environ), lane, str(handback))
-        except BaseException as exc:  # noqa: BLE001 -- a lost wake is a stderr line; the moment still runs
-            print(f"lane_end_guard: wake not written -- {type(exc).__name__}: {exc}", file=sys.stderr)
+        except BaseException as exc:  # noqa: BLE001 -- a lost wake is named in the receipt; the moment still runs
+            wake_note = f"wake not written -- {type(exc).__name__}: {exc}"
+            print(f"lane_end_guard: {wake_note}", file=sys.stderr)
     try:
         result = run()
         final = _receipt(lane, "ok" if result.exit_code == 0 else "FAILED", result.exit_code, handback,
-                         "" if result.exit_code == 0 else f"the moment exited {result.exit_code}",
+                         wake_note if result.exit_code == 0 else f"the moment exited {result.exit_code}",
                          guard_ms, result.duration_ms, detached=detached)
     except BaseException as exc:  # noqa: BLE001 -- a crashing moment is a receipt, never a blocked session
         final = _receipt(lane, "FAILED", EXIT_FAILED, handback, f"{type(exc).__name__}: {exc}", guard_ms,

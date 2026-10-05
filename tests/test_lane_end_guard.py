@@ -659,9 +659,10 @@ def test_a_transient_wake_write_failure_is_retried(lane, monkeypatch):
     calls = {"n": 0}
 
     def flaky(src, dst):
-        calls["n"] += 1
-        if calls["n"] < 3:
-            raise PermissionError("the file is held by another process")
+        if Path(dst).name.startswith("WAKE-"):   # the receipt's own atomic writes go through untouched
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise PermissionError("the file is held by another process")
         return real(src, dst)
 
     monkeypatch.setattr(g.os, "replace", flaky)

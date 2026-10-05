@@ -107,12 +107,13 @@ organ still files nothing).
 
 Between merges you wait on an event, with a timer behind it:
 
-1. **Event wake.** One Monitor on `uv run --locked python scripts/lane_end_guard.py watch` (after a
-   cycle add `--since <the previous wake>`, so a handback that landed in between is reported). A
+1. **Event wake.** One Monitor on `uv run --locked python scripts/lane_end_guard.py watch`. A
    lane's Stop hook leaves a wake file in your machine's private state directory the moment its
    closing `HANDBACK` line lands, and the command prints one `WAKE <lane> <closing line>` per new
-   file: pickup within 30 s. The wake is the signal; the lane's `to-browser/SESSION-<slug>.md`
-   stays the evidence you merge from.
+   file: pickup within 30 s. The command keeps its own ledger of what it reported, so a restarted
+   Monitor, or the successor seat after a cycle, reports a handback that landed while none ran and
+   repeats none. The wake is the signal; the lane's `to-browser/SESSION-<slug>.md` stays the
+   evidence you merge from.
 2. **Cron fallback.** `CronCreate`, recurring, every 10 min, one foreground check per wake: it
    catches a handback the Monitor missed (an expired Monitor, a hook that did not fire).
 3. **Every wake, event or cron, runs the transport sweep.** `uv run --locked python
