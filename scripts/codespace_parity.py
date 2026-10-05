@@ -895,7 +895,8 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
                         outcome_test: Sequence[str], workdir: Path, ci_timeout_s: int = 3600,
                         ci_interval_s: int = 30, verdict_fn: Optional[Callable] = None,
                         onto: Optional[str] = None, ci_base: Optional[str] = None,
-                        ci_reruns: int = 1, sleep_fn: Callable[[float], None] = time.sleep) -> dict:
+                        ci_reruns: int = 1, sleep_fn: Callable[[float], None] = time.sleep,
+                        control: bool = True) -> dict:
     """The integrator's acts on the test lane's pushed branch, on a SCRATCH branch, never on main.
 
     1. read the run branch's tip on origin and fetch it;
@@ -946,7 +947,7 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         record["note"] = f"git fetch of {run_branch} exited {fetched.returncode}"
         return record
 
-    created = pushed = False
+    created = pushed = control_pushed = False
     try:
         added = run(["git", "worktree", "add", "-b", scratch_branch, str(workdir), onto],
                     cwd=root, timeout=300)
@@ -962,7 +963,11 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
                       run_sha], cwd=workdir, timeout=300)
         record["merge"] = {"exit": merged.returncode, "sha": None, "parents": []}
         if merged.returncode != 0:
-            return record
+            resolved = _resolve_union_conflicts(
+                workdir, f"Merge {run_branch} @ {run_sha[:8]} (parity integration leg, scratch)")
+            if not resolved:
+                return record
+            record["merge"].update({"exit": 0, "resolved": resolved})
         head = run(["git", "rev-parse", "HEAD"], cwd=workdir, timeout=60).stdout.strip()
         parents = run(["git", "rev-list", "--parents", "-n", "1", "HEAD"], cwd=workdir,
                       timeout=60).stdout.split()
@@ -978,7 +983,30 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         pushed = push.returncode == 0
         record["push_exit"] = push.returncode
         if pushed:
-            record["ci"] = _read_ci(head, base=ci_base, root=root, timeout_s=ci_timeout_s,
+            baseline = ci_base
+            if control:
+                # An EMPTY commit on `onto`, pushed beside the merge: CI judges both against the
+                # main it fetches NOW, so whatever main's motion or the branch shape turns red
+                # turns red in both, and the merge is judged against the control (runs 6, 9, 10).
+                control_branch = f"{scratch_branch}-control"
+                record["control"] = {"branch": control_branch, "sha": None, "push_exit": None}
+                tree = run(["git", "rev-parse", f"{onto}^{{tree}}"], cwd=workdir, timeout=60)
+                made = run(["git", "commit-tree", tree.stdout.strip(), "-p", onto, "-m",
+                            "control: no lane content (parity integration leg, scratch)"],
+                           cwd=workdir, timeout=60)
+                control_sha = made.stdout.strip() if made.returncode == 0 else ""
+                if _FULL_SHA_RE.fullmatch(control_sha):
+                    cpush = run(["git", "push", "origin",
+                                 f"{control_sha}:refs/heads/{control_branch}"], cwd=workdir,
+                                timeout=300)
+                    record["control"].update(sha=control_sha, push_exit=cpush.returncode)
+                    control_pushed = cpush.returncode == 0
+                if control_pushed:
+                    baseline = control_sha
+                else:
+                    record["control_note"] = ("the control commit was not pushed: the baseline "
+                                              "stays ci_base, main's tip")
+            record["ci"] = _read_ci(head, base=baseline, root=root, timeout_s=ci_timeout_s,
                                     interval_s=ci_interval_s, verdict_fn=verdict_fn)
             attempts = [record["ci"]]
             for _ in range(max(0, ci_reruns)):
@@ -987,22 +1015,25 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
                 listed_main = run(["git", "ls-remote", "--heads", "origin", "main"], cwd=root,
                                   timeout=120)
                 main_now = _exact_head(listed_main.stdout, "main") if listed_main.returncode == 0 else None
-                if main_now != ci_base:
+                if main_now != onto:
                     record["ci_rerun_note"] = (
-                        f"main moved from {ci_base} to {main_now or '(unreadable)'} since the "
-                        "baseline: a re-run would judge a tree that lacks it")
+                        f"main moved from {onto} to {main_now or '(unreadable)'} since the "
+                        "scratch branch was cut: a re-run would judge a tree that lacks it")
                     break
                 started, why = _rerun_failed(run, root, record["ci"]["run_id"], sleep_fn)
                 if not started:
                     record["ci_rerun_note"] = why
                     break
-                record["ci"] = _read_ci(head, base=ci_base, root=root, timeout_s=ci_timeout_s,
+                record["ci"] = _read_ci(head, base=baseline, root=root, timeout_s=ci_timeout_s,
                                         interval_s=ci_interval_s, verdict_fn=verdict_fn)
                 attempts.append(record["ci"])
             if len(attempts) > 1:
                 record["ci_attempts"] = attempts
         return record
     finally:
+        if control_pushed:
+            run(["git", "push", "origin", "--delete", f"{scratch_branch}-control"], cwd=root,
+                timeout=300)
         if pushed:
             run(["git", "push", "origin", "--delete", scratch_branch], cwd=root, timeout=300)
         if created:
@@ -1011,7 +1042,8 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
             # (it is the test lane's merge, never landed), so `-d` can only refuse; it is this
             # call's own branch, created above, and deleted only after it was pushed or abandoned.
             run(["git", "branch", "-D", scratch_branch], cwd=root, timeout=60)
-        record["cleanup"] = _read_cleanup(run, root, scratch_branch, workdir)
+        record["cleanup"] = _read_cleanup(run, root, scratch_branch, workdir,
+                                          f"{scratch_branch}-control" if control_pushed else None)
 
 
 def default_onto(run: Runner, *, root: Path, base: str) -> str:
@@ -1075,9 +1107,11 @@ def _rerun_failed(run: Runner, root: Path, run_id, sleep_fn: Callable[[float], N
     return False, f"CI re-run of run {run_id} never started: the run stayed completed"
 
 
-def _read_cleanup(run: Runner, root: Path, scratch_branch: str, workdir: Path) -> dict:
+def _read_cleanup(run: Runner, root: Path, scratch_branch: str, workdir: Path,
+                  control_branch: Optional[str] = None) -> dict:
     """What is PROVEN gone, each read back: the scratch ref on origin, the worktree, the local
-    branch. A read that could not be made is False -- 'could not look' is not 'gone'."""
+    branch, and the control ref when one was pushed. A read that could not be made is False --
+    'could not look' is not 'gone'."""
     heads = run(["git", "ls-remote", "--heads", "origin", scratch_branch], cwd=root, timeout=120)
     remote_gone = heads.returncode == 0 and _exact_head(heads.stdout, scratch_branch) is None
     trees = run(["git", "worktree", "list", "--porcelain"], cwd=root, timeout=60)
@@ -1085,8 +1119,57 @@ def _read_cleanup(run: Runner, root: Path, scratch_branch: str, workdir: Path) -
     worktree_gone = trees.returncode == 0 and here not in trees.stdout.replace("\\", "/").lower()
     local = run(["git", "rev-parse", "--verify", "--quiet", f"refs/heads/{scratch_branch}"],
                 cwd=root, timeout=60)
-    return {"remote_deleted": remote_gone, "worktree_removed": worktree_gone,
-            "local_branch_removed": local.returncode != 0 and local.returncode != 127}
+    out = {"remote_deleted": remote_gone, "worktree_removed": worktree_gone,
+           "local_branch_removed": local.returncode != 0 and local.returncode != 127}
+    if control_branch:
+        ctl = run(["git", "ls-remote", "--heads", "origin", control_branch], cwd=root, timeout=120)
+        out["control_remote_deleted"] = (ctl.returncode == 0
+                                         and _exact_head(ctl.stdout, control_branch) is None)
+    return out
+
+
+#: Append-only / newest-first logs a lane and main both write at the same end, so a textual
+#: conflict on them means two entries, not two opinions. The integrator keeps both; so does this.
+UNION_MERGE_FILES: tuple[str, ...] = ("JOURNAL.md", "logs/MERGE-RECEIPTS.jsonl")
+
+
+def _resolve_union_conflicts(workdir: Path, message: str) -> list[str]:
+    """After a conflicted `git merge` in `workdir`: when EVERY conflicted file is a
+    `UNION_MERGE_FILES` log, keep both sides' lines (`git merge-file --union`), stage them and
+    commit the merge. Returns the resolved files, or `[]` having changed nothing."""
+    def git(*args: str, data: Optional[bytes] = None):
+        return subprocess.run(["git", *args], cwd=str(workdir), capture_output=True, input=data,
+                              timeout=120, check=False)
+
+    try:
+        listed = git("diff", "--name-only", "--diff-filter=U")
+    except (OSError, subprocess.SubprocessError):  # no worktree to resolve in: nothing resolved
+        return []
+    files = [ln.strip() for ln in listed.stdout.decode("utf-8", "replace").splitlines() if ln.strip()]
+    if listed.returncode != 0 or not files or any(f not in UNION_MERGE_FILES for f in files):
+        return []
+    merged: dict[str, bytes] = {}
+    for name in files:
+        stages = [git("show", f":{n}:{name}") for n in (2, 1, 3)]
+        if any(s.returncode != 0 for s in stages):
+            return []
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for label, s in zip(("ours", "base", "theirs"), stages):
+                p = Path(tmp) / label
+                p.write_bytes(s.stdout)
+                paths.append(str(p))
+            joined = subprocess.run(["git", "merge-file", "-p", "--union", *paths], capture_output=True,
+                                    timeout=120, check=False)
+        if joined.returncode < 0 or joined.returncode > 127:
+            return []
+        merged[name] = joined.stdout
+    for name, body in merged.items():
+        (Path(workdir) / name).write_bytes(body)
+        if git("add", "--", name).returncode != 0:
+            return []
+    done = git("commit", "-m", message, "-m", "kill-candidates: none - a scratch merge files no row")
+    return files if done.returncode == 0 else []
 
 
 def collect_record(run: Runner = default_run, *, root: Path = _REPO_ROOT, side: str = "",
@@ -1304,6 +1387,14 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
                         f"{integration.get('onto_sha') or integration.get('base_sha')} (base "
                         f"{integration.get('base_sha')}) -> {merge.get('sha')} "
                         f"(exit {merge.get('exit')})")
+        if merge.get("resolved"):
+            evidence.append("merge conflicts kept both sides of: " + ", ".join(merge["resolved"]))
+        control = integration.get("control")
+        if isinstance(control, Mapping) and control.get("sha"):
+            evidence.append(f"CI baseline: the control commit {control['sha']} on "
+                            f"{control.get('branch')} (cut from the same onto, no lane content)")
+        elif integration.get("control_note"):
+            evidence.append(f"CI baseline: main's tip -- {integration['control_note']}")
         bad = []
         if integration.get("base_sha") != base:
             bad.append(f"the integration base {integration.get('base_sha')} is not the compared "
@@ -1383,8 +1474,10 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
     if not isinstance(cleanup, Mapping):
         legs.append(LegResult(Leg.NOT_RUN, "scratch cleanup NOT-RUN: nothing was read back"))
     else:
-        left = [k for k in ("remote_deleted", "worktree_removed", "local_branch_removed")
-                if cleanup.get(k) is not True]
+        keys = ["remote_deleted", "worktree_removed", "local_branch_removed"]
+        if "control_remote_deleted" in cleanup:
+            keys.append("control_remote_deleted")
+        left = [k for k in keys if cleanup.get(k) is not True]
         evidence.append(f"scratch cleanup read back: {dict(cleanup)}")
         legs.append(LegResult(Leg.FAIL, "the scratch integration was not cleaned up: "
                               + ", ".join(left)) if left else LegResult(Leg.PASS, "scratch cleanup"))

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -1433,6 +1434,7 @@ def test_the_probe_prompt_is_one_nonce_and_asks_for_nothing_else():
 
 _RUN_SHA = "d" * 40
 _MERGE_SHA = "e" * 40
+_CTL_SHA = "c" * 40
 _PROBE_PATH = "to-browser/DIGEST-b2-codespace-green-probe-run1.md"
 
 
@@ -1631,10 +1633,11 @@ class _GitRun:
     """The `run` seam for `collect_integration`: answers by the leading git verb."""
 
     def __init__(self, *, run_exists=True, merge_rc=0, test_rc=0, test_out="1 passed in 0.5s",
-                 push_rc=0, merge_base=_SHA, parents=None):
+                 push_rc=0, merge_base=_SHA, parents=None, control_push_rc=0, control_survives=False):
         self.calls: list[tuple[list[str], str | None]] = []
         self.run_exists, self.merge_rc, self.test_rc, self.test_out = run_exists, merge_rc, test_rc, test_out
         self.push_rc, self.merge_base = push_rc, merge_base
+        self.control_push_rc, self.control_survives = control_push_rc, control_survives
         self.parents = parents or [_SHA, _RUN_SHA]
         self.scratch_listed = False
         self.worktree_listed = False
@@ -1648,6 +1651,9 @@ class _GitRun:
         sub = argv[1]
         if sub == "ls-remote":
             name = argv[-1]
+            if name.endswith("-control"):
+                return cp.CmdResult(0, f"{_CTL_SHA}\trefs/heads/{name}\n" if self.control_survives
+                                    else "", "")
             if name.startswith("worktree-integrate-"):
                 return cp.CmdResult(0, f"{_MERGE_SHA}\trefs/heads/{name}\n" if self.scratch_listed
                                     else "", "")
@@ -1660,6 +1666,8 @@ class _GitRun:
         if sub == "worktree" and argv[2] == "remove":
             self.worktree_listed = False
             return cp.CmdResult(0, "", "")
+        if sub == "commit-tree":
+            return cp.CmdResult(0, _CTL_SHA + "\n", "")
         if sub == "merge-base":
             return cp.CmdResult(0, self.merge_base + "\n", "")
         if sub == "merge":
@@ -1673,6 +1681,8 @@ class _GitRun:
         if sub == "push" and "--delete" in argv:
             self.scratch_listed = False
             return cp.CmdResult(0, "", "")
+        if sub == "push" and argv[-1].endswith("-control"):
+            return cp.CmdResult(self.control_push_rc, "", "")
         if sub == "push":
             self.scratch_listed = self.push_rc == 0
             return cp.CmdResult(self.push_rc, "", "")
@@ -1776,6 +1786,121 @@ def test_a_verdict_that_is_only_declared_cases_is_not_re_run(tmp_path, monkeypat
     assert _reruns(run) == [] and "ci_attempts" not in rec
 
 
+def test_a_control_commit_cut_from_onto_is_pushed_beside_the_merge_and_is_the_ci_baseline(tmp_path):
+    """Runs 6, 9 and 10 of b2-codespace-green: CI judges a pushed branch against the main it fetches
+    NOW, so every spine entry main gained since the branch was cut reads as a new red -- 38 handoff-
+    cut reds that name main's motion, not the lane. An EMPTY commit on the same `onto`, pushed
+    beside the merge, takes the same artifacts at the same moment; the merge is judged against it."""
+    seen = {}
+
+    def verdict(sha, **k):
+        seen.setdefault("calls", []).append((sha, k["base"]))
+        return _Verdict()
+
+    run = _GitRun()
+    rec = _collect(run, tmp_path, onto=_SHA, ci_base=_MAIN_NOW, verdict_fn=verdict)
+    ctl = next(c[0] for c in run.calls if c[0][:2] == ["git", "commit-tree"])
+    assert ctl[-4:-2] == ["-p", _SHA] or "-p" in ctl and _SHA in ctl
+    pushes = [c[0] for c in run.calls if c[0][:2] == ["git", "push"] and "--delete" not in c[0]]
+    assert any(p[-1] == f"{_CTL_SHA}:refs/heads/worktree-integrate-b2-codespace-green-run1-control"
+               for p in pushes), pushes
+    assert seen["calls"] == [(_MERGE_SHA, _CTL_SHA)]
+    assert rec["control"] == {"branch": "worktree-integrate-b2-codespace-green-run1-control",
+                              "sha": _CTL_SHA, "push_exit": 0}
+    assert rec["ci_base_sha"] == _MAIN_NOW, "the main tip stays recorded; the control is the baseline"
+
+
+def test_the_control_branch_is_deleted_and_read_back_or_the_cleanup_leg_fails(tmp_path):
+    rec = _collect(_GitRun(), tmp_path)
+    assert rec["cleanup"]["control_remote_deleted"] is True
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "PASS"
+    survived = _collect(_GitRun(control_survives=True), tmp_path)
+    assert survived["cleanup"]["control_remote_deleted"] is False
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), survived)
+    assert verdict.status == "FAIL" and "control_remote_deleted" in verdict.reason
+
+
+def test_without_a_control_or_when_its_push_fails_the_baseline_is_ci_base_and_the_record_says_so(tmp_path):
+    seen = []
+    run = _GitRun()
+    _collect(run, tmp_path, ci_base=_MAIN_NOW, control=False,
+             verdict_fn=lambda sha, **k: seen.append(k["base"]) or _Verdict())
+    assert seen == [_MAIN_NOW] and not [c for c in run.calls if c[0][:2] == ["git", "commit-tree"]]
+    seen.clear()
+    rec = _collect(_GitRun(control_push_rc=1), tmp_path, ci_base=_MAIN_NOW,
+                   verdict_fn=lambda sha, **k: seen.append(k["base"]) or _Verdict())
+    assert seen == [_MAIN_NOW] and rec["control"]["push_exit"] == 1
+    assert "control" in rec["control_note"]
+
+
+def _git(cwd, *args):
+    done = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, text=True,
+                          encoding="utf-8", check=True)
+    return done.stdout.strip()
+
+
+def _journal_repo(tmp_path, *, main_touches="JOURNAL.md"):
+    """origin + clone; a lane prepends to JOURNAL.md; main then ALSO moves (the integrator's merge)."""
+    origin = tmp_path / "origin.git"
+    root = tmp_path / "root"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(root)], check=True, capture_output=True)
+    for k, v in (("user.name", "t"), ("user.email", "t@example.invalid"), ("commit.gpgsign", "false"),
+                 ("core.hooksPath", str(tmp_path / "nohooks"))):
+        _git(root, "config", k, v)
+    (root / "JOURNAL.md").write_text("# J\n\n### 1 base\nold\n", encoding="utf-8")
+    (root / "other.txt").write_text("one\n", encoding="utf-8")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-qm", "base")
+    _git(root, "push", "-q", "origin", "HEAD:refs/heads/main")
+    base = _git(root, "rev-parse", "HEAD")
+    _git(root, "checkout", "-qb", "worktree-lane-run1")
+    (root / "JOURNAL.md").write_text("# J\n\n### 3 lane\nlane entry\n\n### 1 base\nold\n", encoding="utf-8")
+    _git(root, "commit", "-qam", "lane journal")
+    _git(root, "push", "-q", "origin", "HEAD:refs/heads/worktree-lane-run1")
+    _git(root, "checkout", "-q", "main")
+    (root / main_touches).write_text(
+        "# J\n\n### 2 main\nmain entry\n\n### 1 base\nold\n" if main_touches == "JOURNAL.md" else "two\n",
+        encoding="utf-8")
+    _git(root, "commit", "-qam", "main moved")
+    _git(root, "push", "-q", "origin", "HEAD:refs/heads/main")
+    return root, base, _git(root, "rev-parse", "HEAD")
+
+
+def _real_collect(tmp_path, root, base, onto):
+    return cp.collect_integration(
+        cp.default_run, root=root, run_branch="worktree-lane-run1",
+        scratch_branch="worktree-integrate-lane-run1", base=base, onto=onto, ci_base=onto,
+        outcome_test=[sys.executable, "-c", "print('1 passed')"], workdir=tmp_path / "wt",
+        verdict_fn=lambda sha, **k: _Verdict(), control=False, ci_reruns=0)
+
+
+def test_a_journal_only_conflict_is_resolved_by_keeping_both_entries_and_the_record_says_so(tmp_path):
+    """Run 10 of b2-codespace-green: main journalled after the lane synced, the two prepends at the
+    top of JOURNAL.md conflicted, and the integration could not even be read. The integrator keeps
+    both entries of a newest-first log; this does the same, for the append-only logs ONLY."""
+    root, base, onto = _journal_repo(tmp_path)
+    rec = _real_collect(tmp_path, root, base, onto)
+    assert rec["merge"]["exit"] == 0 and rec["merge"]["resolved"] == ["JOURNAL.md"], rec["merge"]
+    assert len(rec["merge"]["parents"]) == 2 and rec["merge"]["parents"][0] == onto
+    assert rec["ci"]["state"] == "PASS" and rec["cleanup"]["worktree_removed"] is True
+    merged = _git(root, "show", f"{rec['merge']['sha']}:JOURNAL.md")
+    assert "lane entry" in merged and "main entry" in merged and "old" in merged
+    assert "<<<<<<<" not in merged
+
+
+def test_any_other_conflicted_file_is_never_resolved_by_the_tool(tmp_path):
+    root, base, onto = _journal_repo(tmp_path, main_touches="other.txt")
+    _git(root, "checkout", "-q", "worktree-lane-run1")
+    (root / "other.txt").write_text("lane\n", encoding="utf-8")
+    _git(root, "commit", "-qam", "lane touches other")
+    _git(root, "push", "-q", "origin", "HEAD:refs/heads/worktree-lane-run1")
+    _git(root, "checkout", "-q", "main")
+    rec = _real_collect(tmp_path, root, base, onto)
+    assert rec["merge"]["exit"] != 0 and not rec["merge"].get("resolved")
+    assert "outcome_test" not in rec and rec["cleanup"]["worktree_removed"] is True
+
+
 def test_no_re_run_once_main_has_moved_because_it_would_judge_a_tree_that_lacks_it(tmp_path):
     """Run 9 of b2-codespace-green: the first CI read named two timing flakes and the declared case;
     main then moved, the re-run judged the same tree against the NEW main, and every spine entry
@@ -1828,8 +1953,8 @@ def test_collect_integration_merges_no_ff_on_a_scratch_branch_tests_pushes_reads
     assert rec["ci"]["state"] == "PASS" and rec["ci"]["landable"] is True and rec["ci"]["sha"] == _MERGE_SHA
     assert rec["run_cut_from_base"] is True
     assert rec["cleanup"] == {"remote_deleted": True, "worktree_removed": True,
-                              "local_branch_removed": True}
-    verbs = [" ".join(c[0][:3]) for c in run.calls if c[0][0] == "git"]
+                              "local_branch_removed": True, "control_remote_deleted": True}
+    verbs =[" ".join(c[0][:3]) for c in run.calls if c[0][0] == "git"]
     assert any(v.startswith("git worktree add") for v in verbs)
     merge = next(c[0] for c in run.calls if c[0][:2] == ["git", "merge"])
     assert "--no-ff" in merge and _RUN_SHA in merge
@@ -1843,7 +1968,8 @@ def test_collect_integration_never_pushes_anything_but_the_scratch_branch(tmp_pa
     assert pushes, "the scratch branch is pushed so CI can run on it"
     for argv in pushes:
         assert "refs/heads/main" not in " ".join(argv) and "main" not in argv
-        assert any(a.endswith("worktree-integrate-b2-codespace-green-run1") for a in argv)
+        assert any(a.endswith(("worktree-integrate-b2-codespace-green-run1",
+                               "worktree-integrate-b2-codespace-green-run1-control")) for a in argv)
 
 
 @pytest.mark.parametrize("bad", ["main", "master", "worktree-b2-codespace-green-run1",
@@ -2177,7 +2303,7 @@ def test_the_scratch_branch_is_cut_from_onto_not_from_the_compared_base(tmp_path
         seen.update(k)
         return _Verdict()
 
-    rec = _collect(run, tmp_path, onto=_ONTO, verdict_fn=verdict)
+    rec = _collect(run, tmp_path, onto=_ONTO, verdict_fn=verdict, control=False)
     add = next(c[0] for c in run.calls if c[0][:3] == ["git", "worktree", "add"])
     assert add[-1] == _ONTO and _SHA not in add
     assert rec["onto_sha"] == _ONTO and rec["base_sha"] == _SHA and rec["run_cut_from_base"] is True
@@ -2257,7 +2383,7 @@ def test_ci_is_compared_against_the_ci_base_when_one_is_given(tmp_path):
         return _Verdict()
 
     run = _GitRun(parents=[_ONTO, _RUN_SHA])
-    rec = _collect(run, tmp_path, onto=_ONTO, ci_base=_MAIN_NOW, verdict_fn=verdict)
+    rec = _collect(run, tmp_path, onto=_ONTO, ci_base=_MAIN_NOW, verdict_fn=verdict, control=False)
     add = next(c[0] for c in run.calls if c[0][:3] == ["git", "worktree", "add"])
     assert add[-1] == _ONTO, "the merge is still cut from the synced commit"
     assert seen["base"] == _MAIN_NOW and rec["ci_base_sha"] == _MAIN_NOW
