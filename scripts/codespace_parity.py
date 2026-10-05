@@ -861,7 +861,7 @@ def _default_verdict(sha: str, **kw):
 def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_branch: str, base: str,
                         outcome_test: Sequence[str], workdir: Path, ci_timeout_s: int = 3600,
                         ci_interval_s: int = 30, verdict_fn: Optional[Callable] = None,
-                        onto: Optional[str] = None) -> dict:
+                        onto: Optional[str] = None, ci_base: Optional[str] = None) -> dict:
     """The integrator's acts on the test lane's pushed branch, on a SCRATCH branch, never on main.
 
     1. read the run branch's tip on origin and fetch it;
@@ -890,9 +890,16 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
     onto = base if onto is None else onto
     if not _FULL_SHA_RE.fullmatch(onto):
         raise ValueError(f"onto {onto!r} is not a full 40-hex sha")
+    # `ci_base` is the commit whose CI run the merge's run is judged AGAINST: main as it is now when
+    # the caller knows it (CI runs the scratch branch against the current `main` ref, so an older
+    # baseline reads every main-side change since as NEW -- b2-codespace-green run 5); default the
+    # commit the scratch branch was cut from.
+    ci_base = onto if ci_base is None else ci_base
+    if not _FULL_SHA_RE.fullmatch(ci_base):
+        raise ValueError(f"ci_base {ci_base!r} is not a full 40-hex sha")
     workdir = Path(workdir)
     record: dict = {"schema": SCHEMA, "side": "integration", "run_branch": run_branch,
-                    "scratch_branch": scratch_branch, "base_sha": base, "onto_sha": onto, "run_sha": None,
+                    "scratch_branch": scratch_branch, "base_sha": base, "onto_sha": onto, "ci_base_sha": ci_base, "run_sha": None,
                     "run_cut_from_base": None}
     listed = run(["git", "ls-remote", "--heads", "origin", run_branch], cwd=root, timeout=120)
     run_sha = _exact_head(listed.stdout, run_branch) if listed.returncode == 0 else None
@@ -937,7 +944,7 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         pushed = push.returncode == 0
         record["push_exit"] = push.returncode
         if pushed:
-            record["ci"] = _read_ci(head, base=onto, root=root, timeout_s=ci_timeout_s,
+            record["ci"] = _read_ci(head, base=ci_base, root=root, timeout_s=ci_timeout_s,
                                     interval_s=ci_interval_s, verdict_fn=verdict_fn)
         return record
     finally:
@@ -983,6 +990,7 @@ def _read_ci(sha: str, *, base: str, root: Path, timeout_s: int, interval_s: int
     return {"sha": sha, "state": state, "landable": state in CI_LANDABLE_STATES and not missing,
             "run_id": getattr(verdict, "run_id", None), "missing_contexts": missing,
             "reason": str(getattr(verdict, "reason", "") or "")[:300],
+            "new_reds": [str(r) for r in (getattr(verdict, "new_reds", ()) or ())][:40],
             "flagged": [str(f) for f in (getattr(verdict, "flagged", ()) or ())][:20]}
 
 
@@ -1212,7 +1220,9 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
         parents = list(merge.get("parents") or [])
         evidence.append(f"merge: {integration.get('scratch_branch')} merged "
                         f"{integration.get('run_branch')} at {integration.get('run_sha')} onto "
-                        f"{integration.get('base_sha')} -> {merge.get('sha')} (exit {merge.get('exit')})")
+                        f"{integration.get('onto_sha') or integration.get('base_sha')} (base "
+                        f"{integration.get('base_sha')}) -> {merge.get('sha')} "
+                        f"(exit {merge.get('exit')})")
         bad = []
         if integration.get("base_sha") != base:
             bad.append(f"the integration base {integration.get('base_sha')} is not the compared "
@@ -1632,6 +1642,9 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
               help="Full sha the scratch branch is cut from; default: the main commit --base "
                    "already contains (`git merge-base origin/main <base>`). Not --base itself: "
                    "CI judges the push as if it landed on main.")
+@click.option("--ci-base", "ci_base", default=None,
+              help="Full sha whose CI run the merge's run is judged against; default: origin/main's "
+                   "tip now (CI runs the scratch branch against the current main ref).")
 @click.option("--workdir", required=True, type=click.Path(path_type=Path),
               help="Where the scratch worktree is created (and removed).")
 @click.option("--test", "outcome_test", required=True,
@@ -1639,7 +1652,8 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
 @click.option("--ci-timeout", "ci_timeout_s", default=3600, show_default=True, type=int)
 @click.option("--out", "out", required=True, type=click.Path(path_type=Path))
 def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optional[str],
-                  workdir: Path, outcome_test: str, ci_timeout_s: int, out: Path) -> None:
+                  ci_base: Optional[str], workdir: Path, outcome_test: str, ci_timeout_s: int,
+                  out: Path) -> None:
     """Condition 3's integration legs: merge the run branch on a scratch branch, test, read CI."""
     try:
         argv = json.loads(outcome_test)
@@ -1647,9 +1661,15 @@ def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optiona
             raise ValueError("--test must be a non-empty JSON list of strings")
         if onto is None:
             onto = default_onto(default_run, root=_REPO_ROOT, base=base)
+        if ci_base is None:
+            listed = default_run(["git", "ls-remote", "--heads", "origin", "main"], cwd=_REPO_ROOT,
+                                 timeout=120)
+            ci_base = _exact_head(listed.stdout, "main") if listed.returncode == 0 else None
+            if not ci_base:
+                raise ValueError("could not read origin/main for the CI baseline: pass --ci-base")
         record = collect_integration(default_run, root=_REPO_ROOT, run_branch=run_branch,
                                      scratch_branch=scratch_branch, base=base, onto=onto,
-                                     outcome_test=argv, workdir=workdir,
+                                     ci_base=ci_base, outcome_test=argv, workdir=workdir,
                                      ci_timeout_s=ci_timeout_s)
     except (ValueError, json.JSONDecodeError) as exc:
         raise click.UsageError(str(exc)) from exc

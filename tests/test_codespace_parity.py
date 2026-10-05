@@ -2067,3 +2067,40 @@ def test_the_default_onto_is_the_main_commit_the_lane_is_synced_to(tmp_path):
 def test_the_default_onto_refuses_what_it_cannot_read(tmp_path, kw):
     with pytest.raises(ValueError):
         cp.default_onto(_OntoRun(**kw), root=tmp_path, base=_SHA)
+
+
+_MAIN_NOW = "d" * 40
+
+
+def test_ci_is_compared_against_the_ci_base_when_one_is_given(tmp_path):
+    """Run 5 of b2-codespace-green: the baseline was main at the lane's sync commit, but CI runs
+    the scratch branch against main as it is NOW -- three newer unanchored main entries put the
+    handoff-cut tests red on the merge and on every branch, and read as NEW against the older
+    main run. The verdict that matters to a landing today is against main's current tip."""
+    seen = {}
+
+    def verdict(sha, **k):
+        seen.update(k)
+        return _Verdict()
+
+    run = _GitRun(parents=[_ONTO, _RUN_SHA])
+    rec = _collect(run, tmp_path, onto=_ONTO, ci_base=_MAIN_NOW, verdict_fn=verdict)
+    add = next(c[0] for c in run.calls if c[0][:3] == ["git", "worktree", "add"])
+    assert add[-1] == _ONTO, "the merge is still cut from the synced commit"
+    assert seen["base"] == _MAIN_NOW and rec["ci_base_sha"] == _MAIN_NOW
+
+
+def test_collect_integration_refuses_a_ci_base_that_is_not_a_full_sha(tmp_path):
+    run = _GitRun()
+    with pytest.raises(ValueError):
+        _collect(run, tmp_path, ci_base="main")
+    assert run.calls == []
+
+
+def test_the_ci_record_names_the_new_reds(tmp_path):
+    class _Red(_Verdict):
+        state, reason = "REGRESSED", "1 new red test(s)"
+        new_reds = ("pytest (ubuntu-latest): tests/test_x.py::test_y",)
+
+    rec = _collect(_GitRun(), tmp_path, verdict_fn=lambda sha, **k: _Red())
+    assert rec["ci"]["new_reds"] == ["pytest (ubuntu-latest): tests/test_x.py::test_y"]
