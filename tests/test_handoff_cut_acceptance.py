@@ -23,6 +23,7 @@ import pytest
 
 import audit as aud
 import gen_handoff as gh
+from branch_context import witness
 
 # repair U1 follow-up (integrator d9fa78c0, CI run 36945030700): `scripts/audit_checks/
 # check_dispatch_drift.py` resolves its module as `from scripts import dispatch_drift`
@@ -173,3 +174,17 @@ def test_check_doc_claims_is_the_one_named_warn_only_exception(tmp_path, monkeyp
     monkeypatch.setattr(aud, "check_doc_claims", _warn_only)
     result, _ = _run_dry_cut(tmp_path, monkeypatch)
     assert result.bundle_dir.exists()
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_dry_cut_tests_give_the_same_verdict_on_a_lane_whose_tree_lags_main(
+        tmp_path_factory):
+    """The witness for the four dry-cut tests that read the live JOURNAL spine (B2-W1 W1-8): the
+    same four, run from a clone whose `main` is one merge AHEAD of the lane's tree (the shape a
+    lane has once a sibling merged), must pass as they do on `main`."""
+    names = ("test_dry_cut_one_attempt_under_bound_with_bundle_files",
+             "test_dry_cut_evaluates_only_the_named_handoff_organ_set",
+             "test_dry_cut_not_blocked_by_a_hard_fail_outside_the_set",
+             "test_check_doc_claims_is_the_one_named_warn_only_exception")
+    witness(tmp_path_factory, *(f"tests/test_handoff_cut_acceptance.py::{n}" for n in names),
+            peer_files={"PEER-PROBE.txt": "a sibling lane merged to main\n"})

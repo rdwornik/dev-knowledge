@@ -156,6 +156,35 @@ def names_at_merge_base(repo: Path, subtree: str, against: str = "origin/main") 
     return frozenset(p for p in listing.stdout.split("\0") if p)
 
 
+def pin_journal_spine(mp) -> None:
+    """Pin the two live-JOURNAL inputs of a handoff cut to a clean spine, on `mp` (a MonkeyPatch).
+
+    A cut is run to test its MECHANICS (bundle files, organ set, refusal shape). Two of the
+    organs it evaluates read the repository's JOURNAL against `main`'s first-parent spine --
+    `gen_handoff._journal_spine_gaps` (preflight row `journal_anchored`) and
+    `audit.check_journal_spine_anchor` (the `ship_gate` row's organ set). Both are red whenever
+    `main` carries an entry the JOURNAL has not anchored YET: on a lane whose tree lags `main`,
+    and on `main` itself between an integrator's merge and its JOURNAL entry (measured at
+    469f0d85: two unanchored spine entries on a main-shaped clone). Neither state is the cut's.
+
+    Pinned the way the sibling live-state rows already are (`_linked_worktrees`, the dispatch
+    probe): the organ's own behaviour is untouched and covered by `tests/test_journal_anchor.py`
+    and `tests/test_gen_handoff_preflight.py`; only THIS test's choice to exercise it against the
+    live spine is replaced. The organ is resolved by name at call time, so the stand-in keeps the
+    organ's `__name__`.
+    """
+    import audit as aud  # noqa: PLC0415
+    import gen_handoff as gh  # noqa: PLC0415
+
+    def _anchored(_root):
+        return [aud.Finding("journal_spine_anchor", "pass",
+                            "pinned by the cut test -- see branch_context.pin_journal_spine")]
+
+    _anchored.__name__ = "check_journal_spine_anchor"
+    mp.setattr(gh, "_journal_spine_gaps", lambda _root: [])
+    mp.setattr(aud, "check_journal_spine_anchor", _anchored)
+
+
 _CACHE: dict[str, BranchContexts] = {}
 
 
@@ -173,15 +202,21 @@ def tail(done: subprocess.CompletedProcess, lines: int = 40) -> str:
     return "\n".join(text.splitlines()[-lines:])
 
 
-def witness(tmp_path_factory, nodeid: str, **lane_shape) -> None:
-    """Assert `nodeid` passes on `main` AND on a lane shaped as `lane_shape` says.
+def witness(tmp_path_factory, *nodeids: str, **lane_shape) -> None:
+    """Assert every node id passes on `main` AND on a lane shaped as `lane_shape` says.
 
-    The `main` run is the CONTROL: if the harness itself (a missing file in the clone, a changed
-    interpreter) broke the test, the control fails too and the failure names the harness, not the
-    branch. Only a test that passes on `main` and fails on the lane is branch-dependent.
+    Several node ids go through ONE pytest run per shape: a clone's collection and a module-level
+    fixture (a dry cut) are paid once, not once per test.
+
+    The `main` run is the CONTROL: a test that fails there too has a verdict that depends on live
+    state (or on the harness) rather than on the branch, and the failure says so. Only a test that
+    passes on `main` and fails on the lane is branch-dependent in the narrow sense.
     """
     ctx = contexts(tmp_path_factory)
-    control = ctx.run_node(ctx.main(), nodeid)
-    assert control.returncode == 0, f"CONTROL (main-shaped) failed -- the harness, not the branch:\n{tail(control)}"
-    lane = ctx.run_node(ctx.lane(**lane_shape), nodeid)
-    assert lane.returncode == 0, f"{nodeid} passes on main and FAILS on a lane-shaped checkout:\n{tail(lane)}"
+    control = ctx.run_node(ctx.main(), *nodeids)
+    assert control.returncode == 0, (
+        f"{nodeids} FAIL on a main-shaped clone (HEAD == main == origin/main) -- the verdict "
+        f"depends on live state, not on the branch:\n{tail(control)}")
+    lane = ctx.run_node(ctx.lane(**lane_shape), *nodeids)
+    assert lane.returncode == 0, (
+        f"{nodeids} pass on main and FAIL on a lane-shaped checkout:\n{tail(lane)}")

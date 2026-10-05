@@ -41,6 +41,7 @@ if str(_SCRIPTS) not in sys.path:
 import audit as aud  # noqa: E402
 import gen_handoff as gh  # noqa: E402
 import graph_queries as gq  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 _RECEIPT_NAMES = {"MOMENT-SEAT-RELEASE-NOTES.json", "MOMENT-SEAT-RELEASE-BUNDLE.json",
                   "MOMENT-SEAT-RELEASE-MANIFEST.json", "MOMENT-SEAT-RELEASE-COPY.json"}
@@ -428,3 +429,14 @@ def test_ci_manifest_step_reds_a_tampered_bundle_smuggled_inside_archive(dry_bun
     result = _run_ci_manifest_step(tmp_path)
     assert result.returncode != 0, result.stdout + result.stderr
     assert "HANDOFF_BOOT.md" in result.stdout
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_dry_bundle_fixture_builds_on_a_lane_whose_tree_lags_main(tmp_path_factory):
+    """The witness for the tests that error at the `dry_bundle` fixture (B2-W1 W1-8): one of
+    them, run from a clone whose `main` is a merge AHEAD of the lane's tree, must pass as on
+    `main`. The fixture is module-scoped, so one passing test is the fixture building."""
+    witness(tmp_path_factory,
+            "tests/test_seat_release_moment.py::"
+            "test_moment_writes_one_receipt_per_organ_on_a_complete_release",
+            peer_files={"PEER-PROBE.txt": "a sibling lane merged to main\n"})
