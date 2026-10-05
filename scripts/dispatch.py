@@ -2365,6 +2365,13 @@ def codespace_observe(name: str, *, workdir: str = "/workspaces/dispatch",
 #: `codespace_delete` gates on exactly that manifest, never on this constant.
 HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json")
 
+#: The platform's creation log, read from its FIXED remote path rather than from `workdir`, and kept
+#: as `creation.log`. A run refused before it started (a recovery container, a failed creation --
+#: b2-codespace-green run 1) has no run.log and no receipt, so without this the manifest lists
+#: nothing and `codespace_delete` refuses: a billing box with no way out. The log is also the one
+#: evidence of WHY the box was refused.
+HARVEST_CREATION_LOG = "creation.log"
+
 HARVEST_MANIFEST_NAME = "manifest.json"
 
 #: D2's own default ("a durable PRIVATE location", proposed `~/.claude/remote-runs/<batch>/<lane>/`).
@@ -2426,6 +2433,8 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         for rel in files:
             commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--", "cat",
                                              f"{workdir}/{rel}"]))
+        commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--", "cat",
+                                         cs.CREATION_LOG_PATH]))
         return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
                               commands=tuple(commands))
 
@@ -2439,6 +2448,12 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         local.parent.mkdir(parents=True, exist_ok=True)
         local.write_text(res.stdout, encoding="utf-8", newline="\n")
         manifest[rel] = hashlib.sha256(local.read_bytes()).hexdigest()
+
+    log = call(["codespace", "ssh", "-c", name, "--", "cat", cs.CREATION_LOG_PATH])
+    if log.ok and log.stdout.strip():
+        local = out_dir / HARVEST_CREATION_LOG
+        local.write_text(log.stdout, encoding="utf-8", newline="\n")
+        manifest[HARVEST_CREATION_LOG] = hashlib.sha256(local.read_bytes()).hexdigest()
 
     manifest_path.write_text(
         json.dumps({"name": name, "batch": batch, "lane": lane, "files": manifest},

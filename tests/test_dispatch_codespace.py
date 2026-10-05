@@ -1042,3 +1042,28 @@ def test_the_observe_cli_prints_the_reading_as_json(monkeypatch):
 
 def test_the_run_step_outlasts_every_other_gh_call():
     assert d.RUN_TIMEOUT_SECONDS > d.GH_TIMEOUT_SECONDS
+
+
+def test_a_run_refused_at_creation_still_harvests_its_creation_log_so_the_box_can_be_deleted(tmp_path):
+    """b2-codespace-green run 1: a recovery container was refused before the run, so it had no
+    run.log and no receipt, the manifest listed nothing, and `codespace_delete` refused -- a
+    billing box with no way out. The creation log is the evidence such a run DOES have."""
+    fake = _ssh_cat_fake({"creation.log": "Creating recovery container."})
+    result = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-refused", out_root=tmp_path,
+                                 invoker=fake)
+    assert result.ok and set(result.files) == {"creation.log"}
+    assert d.verify_harvest_manifest(result.out_dir, expected_name="fluffy-1").ok
+    deleted = d.codespace_delete("fluffy-1", out_dir=result.out_dir,
+                                 invoker=lambda argv: d.GhResult(True, 0, ""))
+    assert deleted.ok and not deleted.refused
+
+
+def test_harvest_reads_the_creation_log_from_its_fixed_remote_path(tmp_path):
+    seen = []
+
+    def fake(argv):
+        seen.append(list(argv)[-1])
+        return d.GhResult(ok=False, exit_code=1, stdout="")
+
+    d.codespace_harvest("fluffy-1", batch="B1", lane="lane-path", out_root=tmp_path, invoker=fake)
+    assert d.cs.CREATION_LOG_PATH in seen
