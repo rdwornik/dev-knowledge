@@ -1706,11 +1706,14 @@ class _Regressed(_Verdict):
 class _RerunRun(_GitRun):
     """`_GitRun` plus the two `gh` calls a CI re-run makes: `run rerun` and the status poll."""
 
-    def __init__(self, *, rerun_rc=0, statuses=("in_progress",), **kw):
+    def __init__(self, *, rerun_rc=0, statuses=("in_progress",), main_sha=_SHA, **kw):
         super().__init__(**kw)
-        self.rerun_rc, self.statuses = rerun_rc, list(statuses)
+        self.rerun_rc, self.statuses, self.main_sha = rerun_rc, list(statuses), main_sha
 
     def __call__(self, argv, cwd=None, timeout=None, **kw):
+        if list(argv)[:5] == ["git", "ls-remote", "--heads", "origin", "main"]:
+            self.calls.append((list(argv), str(cwd) if cwd else None))
+            return cp.CmdResult(0, f"{self.main_sha}\trefs/heads/main\n", "")
         if list(argv)[:3] == ["gh", "run", "rerun"]:
             self.calls.append((list(argv), str(cwd) if cwd else None))
             return cp.CmdResult(self.rerun_rc, "", "denied" if self.rerun_rc else "")
@@ -1771,6 +1774,23 @@ def test_a_verdict_that_is_only_declared_cases_is_not_re_run(tmp_path, monkeypat
     run = _RerunRun()
     rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed()), sleep_fn=lambda s: None)
     assert _reruns(run) == [] and "ci_attempts" not in rec
+
+
+def test_no_re_run_once_main_has_moved_because_it_would_judge_a_tree_that_lacks_it(tmp_path):
+    """Run 9 of b2-codespace-green: the first CI read named two timing flakes and the declared case;
+    main then moved, the re-run judged the same tree against the NEW main, and every spine entry
+    main gained read as unanchored -- 38 handoff-cut reds that say main moved, not that the lane
+    is wrong. The first verdict stands, and the record says why there is no second."""
+    run = _RerunRun(main_sha="e" * 40)
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   sleep_fn=lambda s: None)
+    assert _reruns(run) == [] and rec["ci"]["state"] == "REGRESSED" and "ci_attempts" not in rec
+    assert "main moved" in rec["ci_rerun_note"] and "e" * 40 in rec["ci_rerun_note"]
+    run = _RerunRun(main_sha=_SHA)  # an unreadable main is not 'unmoved' either
+    run.main_sha = ""
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   sleep_fn=lambda s: None)
+    assert _reruns(run) == [] and "main" in rec["ci_rerun_note"]
 
 
 def test_ci_reruns_zero_never_re_runs_and_a_refused_re_run_keeps_the_first_verdict(tmp_path):

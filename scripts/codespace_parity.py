@@ -984,6 +984,14 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
             for _ in range(max(0, ci_reruns)):
                 if not _rerunnable(record["ci"]):
                     break
+                listed_main = run(["git", "ls-remote", "--heads", "origin", "main"], cwd=root,
+                                  timeout=120)
+                main_now = _exact_head(listed_main.stdout, "main") if listed_main.returncode == 0 else None
+                if main_now != ci_base:
+                    record["ci_rerun_note"] = (
+                        f"main moved from {ci_base} to {main_now or '(unreadable)'} since the "
+                        "baseline: a re-run would judge a tree that lacks it")
+                    break
                 started, why = _rerun_failed(run, root, record["ci"]["run_id"], sleep_fn)
                 if not started:
                     record["ci_rerun_note"] = why
