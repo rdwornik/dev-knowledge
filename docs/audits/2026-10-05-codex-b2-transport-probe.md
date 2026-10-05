@@ -70,3 +70,17 @@ Disposition 1 above said HIGH 1 was FIXED in `31231c8c`. Running the W1-6 refusa
 - **HIGH 1 — DECLINED, reason above.** The shortcut returns, narrowed: it passes only when the cut recorded the degraded reading AND the re-derivation is that same degraded reading now, and its detail says `degraded`, never a clean reading. A degraded value over a registry that is readable now FAILs. Pinned by `test_a_forged_or_degraded_transport_value_cannot_reach_the_count_floor`.
 - **HIGH 2 — FIXED, unchanged:** the cell is parsed with `fullmatch`.
 - The fixture addition to `test_a_well_formed_boot_data_block_passes_every_row` made under disposition 1 is reverted; that test is as on `origin/main`.
+
+### Amendment 2, 2026-10-05 (repair 1): the N2 reviewer's verdict, and HIGH 1 is FIXED as `skipped`
+
+The amendment above declined HIGH 1 and kept a `pass`. The lane had settled a dispute about its own work (Codex never re-read the declined disposition), so by night rule N2 the integrator sent it, read-only, to an independent reviewer.
+
+- **Reviewer:** grok-4.7 (served id from `~/.grok/sessions/…n2-w1-11/01a10a3d-61b1-7c02-85bb-a193a0ff8ece/usage.json`, `primaryModelId "grok-4.7"`); nonce `NONCE-fd6a0167f63e`; answer hash prefix `EA9074E180A010B7`.
+- **Verdict: REWRITE, P1=1 P2=0.** The narrowed shortcut was consistent with the other BOOT-DATA rows and the decline of a hard fail was right, but typing an unreadable registry as `pass` contradicts N1 (an unmeasured result must never read as a pass to any reader): `ProbeResult.status` is a plain string, the CLI tallies the degraded result as a pass, and `audit.py check_handoff_probes` reads it as a measured pass.
+- **New disposition of HIGH 1 — FIXED as `skipped`** (commit `8344f64f`). The branch `value == fresh and value.startswith("unavailable")` returns `"skipped"`, detail still saying `degraded`. It is NOT failed closed: `skipped` is a WARN in the CLI (exit 0) and in `audit.py check_handoff_probes`, so the stub-repo cuts the decline rested on are not refused. Unchanged and still `"fail"`: a recorded count/digest over an unreadable live registry; a degraded recorded value over a registry readable now. RED-first: `test_a_forged_or_degraded_transport_value_cannot_reach_the_count_floor` asserting `status == "skipped"`, `!= "pass"` and `"degraded" in detail` failed at `194e0ae8` (`assert 'pass' == 'skipped'`), GREEN at `8344f64f`; its two `fail` assertions are unchanged.
+
+**Codex terra re-read of the changed branch and its test** (`194e0ae8..8344f64f`, Focus naming the three checks: a surviving degraded `pass` path, a `skipped` that masks a real regression, a test that would not fail on the old code).
+
+- **Served model id, from the tool's own log:** `gpt-5.6-terra` (codex-cli 0.155.0, rollout `rollout-2026-10-05T06-37-06-01a10a59-df78-7c13-bc76-814bf5cc1109.jsonl`, `"model":"gpt-5.6-terra"`, effort `high`).
+- **Nonce the reviewer returned:** `76eabf6d1302f429` (first line of its findings, `NONCE=76eabf6d1302f429`), equal to the one placed.
+- **Findings: Critical 0 / High 0 / Medium 0 / Low 0** — `(none)` under every band. No P1 to fix and none declined. The wrapper's own file for this re-read was folded into this record and not kept as a separate path.
