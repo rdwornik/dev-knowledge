@@ -2048,18 +2048,21 @@ class _OntoRun:
         self.calls.append(argv)
         if argv[:3] == ["git", "fetch", "origin"]:
             return cp.CmdResult(self.fetch_rc, "", "")
-        if argv[:2] == ["git", "merge-base"]:
+        if argv[:3] == ["git", "rev-parse", "origin/main"]:
             return cp.CmdResult(self.mb_rc, self.mb_out, "")
         return cp.CmdResult(127, "", f"unexpected {argv}")
 
 
-def test_the_default_onto_is_the_main_commit_the_lane_is_synced_to(tmp_path):
-    """Run 3 of b2-codespace-green: cut from the CURRENT origin/main, a main that had moved since
-    the lane's sync conflicted on a generated file. The integrator lands a lane it has synced, so
-    the scratch branch is cut from the main commit the base already contains."""
+def test_the_default_onto_is_origin_mains_tip_after_a_fetch(tmp_path):
+    """Run 6 of b2-codespace-green: cut from the older main the lane was synced to, the scratch
+    merge lacked main's newer JOURNAL anchors and 38 handoff-cut tests went red in CI, which judges
+    a pushed integration branch as if it landed on main now. The tip is the faithful base; a lane
+    main has outrun is re-synced before it is frozen."""
     run = _OntoRun()
     assert cp.default_onto(run, root=tmp_path, base=_SHA) == _ONTO
-    assert ["git", "merge-base", "origin/main", _SHA] in run.calls
+    assert ["git", "rev-parse", "origin/main"] in run.calls
+    assert not any(c[:2] == ["git", "merge-base"] for c in run.calls)
+    assert [c[:3] for c in run.calls][0] == ["git", "fetch", "origin"]
 
 
 @pytest.mark.parametrize("kw", [dict(fetch_rc=1), dict(mb_rc=1), dict(mb_out="\n"),

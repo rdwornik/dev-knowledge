@@ -960,20 +960,20 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
 
 
 def default_onto(run: Runner, *, root: Path, base: str) -> str:
-    """The main commit the integrator cuts its scratch branch from: the one `base` ALREADY contains
-    -- `git merge-base origin/main <base>` after a fetch.
+    """The main commit the integrator cuts its scratch branch from: origin/main's tip, after a fetch.
 
-    The integrator lands a lane it has synced to main. Cutting from the CURRENT origin/main instead
-    made every lane that main had outrun conflict on the generated files both sides regenerate
-    (b2-codespace-green run 3: `ecosystem/doc-counts.md`), which says main moved, not that the
-    lane is wrong. A lane that is not synced is the integrator's re-sync, not this tool's guess."""
+    CI judges a pushed integration branch as if it landed on main now, so a tree cut from an older
+    main fails the checks that main's newer commits satisfy (b2-codespace-green run 6: three spine
+    entries anchored by main's newer JOURNAL read as unanchored, 38 handoff-cut tests red). A lane
+    that main has outrun is the integrator's re-sync, done before the lane is frozen; a merge that
+    conflicts here says the lane is not synced, and the record carries that exit."""
     fetched = run(["git", "fetch", "origin", "main"], cwd=root, timeout=300)
     if fetched.returncode != 0:
         raise ValueError(f"git fetch origin main exited {fetched.returncode}: pass --onto explicitly")
-    found = run(["git", "merge-base", "origin/main", base], cwd=root, timeout=120)
+    found = run(["git", "rev-parse", "origin/main"], cwd=root, timeout=120)
     onto = found.stdout.strip() if found.returncode == 0 else ""
     if not _FULL_SHA_RE.fullmatch(onto):
-        raise ValueError(f"no merge-base of origin/main and {base}: pass --onto explicitly")
+        raise ValueError(f"cannot read origin/main: pass --onto explicitly (base {base})")
     return onto
 
 
@@ -1639,9 +1639,9 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
 @click.option("--scratch-branch", required=True, help="worktree-integrate-<slug>; never main.")
 @click.option("--base", required=True, help="Full 40-hex sha the run branch was cut from.")
 @click.option("--onto", default=None,
-              help="Full sha the scratch branch is cut from; default: the main commit --base "
-                   "already contains (`git merge-base origin/main <base>`). Not --base itself: "
-                   "CI judges the push as if it landed on main.")
+              help="Full sha the scratch branch is cut from; default: origin/main's tip "
+                   "after a fetch. Not --base itself: CI judges the push as if it landed on main "
+                   "now, so sync the lane to main before it is frozen.")
 @click.option("--ci-base", "ci_base", default=None,
               help="Full sha whose CI run the merge's run is judged against; default: origin/main's "
                    "tip now (CI runs the scratch branch against the current main ref).")
