@@ -102,3 +102,35 @@ MODEL-ID gpt-5
 (none)
 
 All witness nodeids resolve to named tests, and pytest would fail on zero collection; I found no new skip, xfail, deselect, or branch-name conditional.
+
+## Repair 1 (2026-10-05) — contract `LANE-B2-W1-b2-branch-context-tests` (repair 1 of 2)
+
+Refusal: `to-browser/REFUSED-b2-branch-context-tests.md`. The integrator's independent read (Codex `gpt-5.6-terra`
+session `01a10c3c-5fb3-7831-ad83-8980f9d42abc`; reviewer `grok-4.7` session `01a10c42-a4cc-7dc3-ad07-c1777896cea3`)
+found two P1s in the commits after `88968da9`; both are fixed in `d461b3ca`, with tests.
+
+1. **P1 `tests/branch_context.py:195` — `merge_base_with_main` returned `local or remote` when one ref was missing.**
+   Fixed: either ref unresolvable returns None (judge strictly). Tests
+   `test_the_merge_base_is_unknown_when_only_local_main_resolves` and `..._only_origin_main_resolves` cover both
+   directions (`tests/test_gen_audit_index.py`).
+2. **P1 `tests/branch_context.py:102` — the synthetic main deleted every `docs/audits/` file added since the merge base,**
+   including one the README (regenerated in an integration merge) already indexes. This is what showed on the
+   integration merge as four reds: the two witnesses' main-shaped control (a clone whose `main` is the synthetic
+   commit `2cfda2e8…`, an object that exists only in that clone, which is why it was not in the repository) failed the
+   strict check, and the two inner live tests are the control's own lines in the witness failure text. Fixed: only an audit
+   the base tree's README does not list and its consumer baseline does not name is left out. Tests
+   `test_the_main_shaped_control_keeps_the_audit_an_integration_merge_indexed` (RED at `cc5df9f4`, GREEN after; built by
+   `BranchContexts.integration()`) and `test_the_synthetic_main_drops_only_an_audit_its_own_tree_does_not_account_for`.
+
+**Repair-diff read (this session):** `codex exec --sandbox read-only -c model=gpt-5.6-terra -c model_reasoning_effort=high`;
+served model id from the run header: `gpt-5.6-terra` (the reviewer's one-line self-report again said `gpt-5`; the header is the record).
+- Read 1: session `01a10c72-ae1a-7d40-a3d4-7ee77cdc4cd0`, reviewed `d461b3ca`, returned
+  `CONTENT-HASH tests/branch_context.py sha256=8a9ac34caf601ce63009ebfea2faf4cd2afb96edb5bd5419caa2a6560815e0d9`
+  (equal to the lane's own `sha256sum`). One **P1** (`tests/branch_context.py:126`): the README name was matched with a regex that
+  excluded whitespace, so an audit named with a space that the README indexes was still dropped. Fixed in `e86f6392`: the README is matched by the
+  exact link target `(<file name>)`; the space-name case is in the synthetic-main test above.
+- Read 2: session `01a10c7c-70fd-7c80-8e71-5eac920ec74c`, reviewed `e86f6392`, returned
+  `CONTENT-HASH tests/branch_context.py sha256=05487f22e09b30bf91e24349674b0dbe0178899f96947c0eaeb0423492f2d96b`
+  (equal to the lane's own); `NO FINDINGS`.
+
+Tally for this repair: 0 Critical / 1 High (fixed) / 0 / 0, plus the integrator's two P1s (fixed).
