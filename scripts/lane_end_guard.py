@@ -431,13 +431,16 @@ def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], Moment
         except BaseException as exc:  # noqa: BLE001 -- a lost wake is named in the receipt; the moment still runs
             wake_note = f"wake not written -- {type(exc).__name__}: {exc}"
             print(f"lane_end_guard: {wake_note}", file=sys.stderr)
+    def reason(moment: str) -> str:   # the moment's own failure and the wake's note are both findable
+        return "; ".join(part for part in (moment, wake_note) if part)
+
     try:
         result = run()
         final = _receipt(lane, "ok" if result.exit_code == 0 else "FAILED", result.exit_code, handback,
-                         wake_note if result.exit_code == 0 else f"the moment exited {result.exit_code}",
+                         reason("" if result.exit_code == 0 else f"the moment exited {result.exit_code}"),
                          guard_ms, result.duration_ms, detached=detached)
     except BaseException as exc:  # noqa: BLE001 -- a crashing moment is a receipt, never a blocked session
-        final = _receipt(lane, "FAILED", EXIT_FAILED, handback, f"{type(exc).__name__}: {exc}", guard_ms,
+        final = _receipt(lane, "FAILED", EXIT_FAILED, handback, reason(f"{type(exc).__name__}: {exc}"), guard_ms,
                          detached=detached)
     try:
         if _read_receipt(receipt_path).get("handback") == handback:

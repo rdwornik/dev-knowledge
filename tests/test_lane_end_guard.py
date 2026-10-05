@@ -654,6 +654,20 @@ def test_a_lost_wake_is_named_in_the_receipt_not_only_on_stderr(lane):
     assert "wake not written" in rec["reason"]
 
 
+@pytest.mark.parametrize("runner", [_Runner(exit_code=3), _Runner(raises=RuntimeError("boom"))])
+def test_a_failed_moment_does_not_hide_a_lost_wake_in_the_receipt(lane, runner):
+    """Codex terra P1, round 4: the moment's own failure reason replaced the wake note, so a lost wake behind a
+    failed moment could not be found in the receipt."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    lane["wakes"].write_text("a file", encoding="utf-8")
+    _guard().fallback_home(lane["wakes"]).write_text("a file", encoding="utf-8")
+    assert _run(lane, runner) == 0
+    rec = _receipt(lane)
+    assert rec["status"] == "FAILED" and rec["exit_code"] != 0
+    assert "wake not written" in rec["reason"]
+    assert ("the moment exited 3" in rec["reason"]) or ("RuntimeError: boom" in rec["reason"])
+
+
 def test_an_unusable_wake_home_falls_back_to_its_private_sibling_and_the_watch_reads_both(lane):
     """Codex terra P1, round 3: the home can be replaced by a file or denied by an ACL while a sibling under the
     same per-user state directory stays writable. The wake goes there, the receipt says so, the watch reads both."""
