@@ -134,22 +134,63 @@ class BranchContexts:
             errors="replace", timeout=timeout)
 
 
-def names_at_merge_base(repo: Path, subtree: str, against: str = "origin/main") -> "frozenset[str] | None":
-    """Repo-relative paths under `subtree` as of `git merge-base HEAD <against>`.
+def _git_out(repo: Path, *args: str) -> "str | None":
+    """`git -C repo <args>` stdout, stripped; None when git fails, is absent or times out."""
+    try:
+        done = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
+                              encoding="utf-8", timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    out = done.stdout.strip()
+    return out if done.returncode == 0 and out else None
+
+
+def _is_ancestor(repo: Path, older: str, newer: str) -> bool:
+    try:
+        return subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", older, newer],
+                              capture_output=True, timeout=60).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def merge_base_with_main(repo: Path) -> "str | None":
+    """The commit this branch inherited from `main`: the LATER of its merge bases with local
+    `main` and with `origin/main`.
+
+    Later, so the scope can only be as loose as the evidence forces. A checkout ON `main` that is
+    ahead of a stale `origin/main` has merge base HEAD with the local ref, and a lane whose local
+    `main` has not been fetched forward has the newer base with the remote ref; either way no
+    commit is treated as "the lane's" that the branch actually inherited. The two bases are both
+    ancestors of HEAD; when neither is an ancestor of the other the answer is None (cannot tell),
+    which every caller reads as "judge strictly". On `main` itself the answer is HEAD, so a check
+    scoped by it is exactly as strict as the unscoped one.
+    """
+    local = _git_out(repo, "merge-base", "HEAD", "refs/heads/main")
+    remote = _git_out(repo, "merge-base", "HEAD", "refs/remotes/origin/main")
+    if local is None or remote is None or local == remote:
+        return local or remote
+    if _is_ancestor(repo, local, remote):
+        return remote
+    if _is_ancestor(repo, remote, local):
+        return local
+    return None
+
+
+def names_at_merge_base(repo: Path, subtree: str) -> "frozenset[str] | None":
+    """Repo-relative paths under `subtree` as of `merge_base_with_main(repo)`.
 
     The branch-independent half of a live-corpus test: what THIS branch inherited. On `main` the
-    merge base is HEAD itself, so the answer is the whole current corpus and a test using it is as
+    base is HEAD itself, so the answer is the whole current corpus and a test using it is as
     strict as it ever was; on a lane it excludes only what the lane added after branching, which
-    the integrator's merge is what reconciles. None when it cannot be told (no `against` ref, no
+    the integrator's merge is what reconciles. None when it cannot be told (no `main` ref, no
     common ancestor, git absent) -- a caller falls back to the strict whole-corpus verdict.
     """
+    base = merge_base_with_main(repo)
+    if base is None:
+        return None
     try:
-        base = subprocess.run(["git", "-C", str(repo), "merge-base", "HEAD", against],
-                              capture_output=True, text=True, encoding="utf-8", timeout=60)
-        if base.returncode != 0 or not base.stdout.strip():
-            return None
         listing = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "-z", "--name-only",
-                                  base.stdout.strip(), "--", subtree],
+                                  base, "--", subtree],
                                  capture_output=True, text=True, encoding="utf-8", timeout=60)
     except (OSError, subprocess.SubprocessError):
         return None
@@ -159,33 +200,25 @@ def names_at_merge_base(repo: Path, subtree: str, against: str = "origin/main") 
 
 
 def pin_journal_spine(mp) -> None:
-    """Pin the two live-JOURNAL inputs of a handoff cut to a clean spine, on `mp` (a MonkeyPatch).
+    """Pin the live JOURNAL spine's UNANCHORED LIST, the one input of a handoff cut that depends
+    on the branch, to empty -- on `mp` (a MonkeyPatch).
 
     A cut is run to test its MECHANICS (bundle files, organ set, refusal shape). Two of the
-    organs it evaluates read the repository's JOURNAL against `main`'s first-parent spine --
-    `gen_handoff._journal_spine_gaps` (preflight row `journal_anchored`) and
-    `audit.check_journal_spine_anchor` (the `ship_gate` row's organ set). Both are red whenever
-    `main` carries an entry the JOURNAL has not anchored YET: on a lane whose tree lags `main`,
-    and on `main` itself between an integrator's merge and its JOURNAL entry (measured at
-    469f0d85: two unanchored spine entries on a main-shaped clone). Neither state is the cut's.
+    organs it evaluates -- `gen_handoff._journal_spine_gaps` (preflight row `journal_anchored`) and
+    `audit.check_journal_spine_anchor` (the `ship_gate` row's organ set) -- both ask
+    `journal_anchor.unanchored_on_spine` which entries on `main`'s first-parent spine the JOURNAL
+    has not anchored. That list is non-empty whenever `main` carries an entry the JOURNAL has not
+    anchored YET: on a lane whose tree lags `main`, and on `main` itself between an integrator's
+    merge and its JOURNAL entry (measured at 469f0d85: two unanchored spine entries on a
+    main-shaped clone). Neither state is the cut's.
 
-    Pinned the way the sibling live-state rows already are (`_linked_worktrees`, the dispatch
-    probe): the organ's own behaviour is untouched and covered by `tests/test_journal_anchor.py`
-    and `tests/test_gen_handoff_preflight.py`; only THIS test's choice to exercise it against the
-    live spine is replaced. The organ is resolved by name at call time, so the stand-in keeps the
-    organ's `__name__`.
+    Only that list is replaced. Both organs still run for real -- the floor read from the ADR, the
+    JOURNAL text, the batch-manifest exemption, the pass/fail verdict -- and the predicate itself
+    has its own tests (`tests/test_journal_anchor.py`, `tests/test_gen_handoff_preflight.py`).
     """
-    import audit as aud  # noqa: PLC0415
-    import gen_handoff as gh  # noqa: PLC0415
+    import journal_anchor as ja  # noqa: PLC0415
 
-    def _anchored(_root):
-        return [aud.Finding("journal_spine_anchor", "pass",
-                            "pinned by the cut test -- see branch_context.pin_journal_spine")]
-
-    _anchored.__name__ = "check_journal_spine_anchor"
-    mp.setattr(gh, "_journal_spine_gaps", lambda _root: [])
-    mp.setattr(aud, "check_journal_spine_anchor", _anchored)
-
+    mp.setattr(ja, "unanchored_on_spine", lambda *_args, **_kwargs: [])
 
 _CACHE: dict[str, BranchContexts] = {}
 

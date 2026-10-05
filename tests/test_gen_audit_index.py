@@ -380,6 +380,54 @@ def test_check_titles_is_green_on_the_live_corpus():
     assert gai.main(["--check-titles"]) == 0
 
 
+# --- the merge-base scope the live checks above use (B2-W1 W1-8) ---------------------------
+
+
+def _main_repo_with_two_audits(tmp_path: Path) -> Path:
+    """`main` carries audit A, `origin/main` is a fetch behind (still at A), and main then
+    gained audit B -- the state of a checkout on `main` with unpushed commits."""
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/main")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _audit(audits, "2026-02-02-technical-b.md", "Audit B")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "B")
+    return repo
+
+
+def test_a_main_ahead_of_a_stale_origin_is_judged_on_everything_it_carries(tmp_path):
+    """The scope must not loosen on `main` itself: HEAD is `main`, so audit B -- unpushed, and
+    after the remote-tracking ref -- is inherited, not 'the lane's'. A merge base taken against
+    `origin/main` alone would have exempted it (terra review of b2-branch-context-tests, H1)."""
+    repo = _main_repo_with_two_audits(tmp_path)
+    inherited = names_at_merge_base(repo, "docs/audits")
+    assert inherited == {"docs/audits/2026-01-01-technical-a.md",
+                         "docs/audits/2026-02-02-technical-b.md"}
+
+
+def test_a_lane_that_adds_an_audit_leaves_it_out_of_what_it_inherited(tmp_path):
+    repo = _main_repo_with_two_audits(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "worktree-lane")
+    _audit(repo / "docs" / "audits", "2026-03-03-technical-c.md", "Audit C")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "C")
+    inherited = names_at_merge_base(repo, "docs/audits")
+    assert "docs/audits/2026-03-03-technical-c.md" not in inherited
+    assert "docs/audits/2026-02-02-technical-b.md" in inherited
+
+
+def test_the_merge_base_is_unknown_when_there_is_no_main_to_compare_with(tmp_path):
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/trunk")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
 # --- the branch-context witnesses (B2-W1 W1-8) ---------------------------------------------
 # A lane that adds an audit is barred from regenerating the shared index (`[#590]`), so the
 # live tests above read stale on EVERY such lane and fresh on `main`. Each witness runs one of

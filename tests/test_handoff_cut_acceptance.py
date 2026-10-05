@@ -182,6 +182,20 @@ def test_check_doc_claims_is_the_one_named_warn_only_exception(tmp_path, monkeyp
     assert result.bundle_dir.exists()
 
 
+def test_the_journal_pin_replaces_the_spine_list_and_leaves_both_organs_real(monkeypatch):
+    """The pin is an INPUT, not an organ (terra review of b2-branch-context-tests, H3): the preflight
+    row and the `ship_gate` organ stay the real functions, and only the list of unanchored spine
+    entries they ask `journal_anchor` for is empty."""
+    import journal_anchor as ja
+
+    organ, row, predicate = aud.check_journal_spine_anchor, gh._journal_spine_gaps, ja.unanchored_on_spine
+    pin_journal_spine(monkeypatch)
+    assert aud.check_journal_spine_anchor is organ
+    assert gh._journal_spine_gaps is row
+    assert ja.unanchored_on_spine is not predicate
+    assert ja.unanchored_on_spine(Path("."), "main", "floor", "journal text") == []
+
+
 @pytest.mark.xdist_group(name="branch_context")
 def test_the_dry_cut_tests_give_the_same_verdict_on_a_lane_whose_tree_lags_main(
         tmp_path_factory):
