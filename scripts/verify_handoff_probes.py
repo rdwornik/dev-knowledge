@@ -1434,6 +1434,110 @@ def _rule_committed_state(state_fn):
     return rule
 
 
+#: The WHOLE cell, anchored (`fullmatch`): no content may sit between the count/digest and the
+#: evidence tail. The tail's literal is `handoff_state.TRANSPORT_REGISTRY_REL` (asserted by a test).
+_TRANSPORT_VALUE_RE = re.compile(
+    r"(\d+) kind\(s\) registered(?:, names-digest ([0-9a-f]{12}))?"
+    r" — evidence: ecosystem/transport-registry\.yaml \[SLOW\]")
+
+
+def _transport_snapshot(ctx: _BootCtx, hs) -> "list[str] | None":
+    """The kind names `ecosystem/transport-registry.yaml` registered at the bundle's cut sha,
+    or None when that is not resolvable (an uncommitted bundle, no git, the path absent then).
+    Read-only (`git show`); the caller checks the snapshot against the digest the row recorded
+    before it trusts a single name from it."""
+    if not ctx.cut_sha:
+        return None
+    import subprocess  # noqa: PLC0415
+    try:
+        import gitenv as _ge  # noqa: PLC0415
+    except ImportError:
+        from scripts import gitenv as _ge  # type: ignore[no-redef]  # noqa: PLC0415
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(ctx.repo_root), "show",
+             f"{ctx.cut_sha}:{hs.TRANSPORT_REGISTRY_REL}"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_ge.scrubbed_git_env())
+        if out.returncode != 0:
+            return None
+        return hs.transport_kind_names(out.stdout)
+    except Exception:                    # noqa: BLE001 -- unresolvable means "fall back", not "fail"
+        return None
+
+
+def _rule_transport(value: str, ctx: _BootCtx) -> tuple[str, str]:
+    """BD-transport (B2-W1 W1-11): every kind the bundle recorded is still registered.
+
+    The generic `_rule_state` equality-matched the rendered row, so the registry's own growth
+    (106 -> 110 kinds, lane W1-6) read as a broken handoff: a frozen copy of a volatile fact
+    compared as an invariant. This rule compares what growth cannot invalidate instead.
+
+    DECIDED-BY-LANE: of the AMEND's two designs ("every recorded kind is still registered" /
+    "a comparison against the bundle's own recorded registry snapshot") this is a composition.
+    The row records `<n> kind(s) registered, names-digest <12 hex>`, 12 bytes of identity rather
+    than 110 names in the paste. The snapshot is the registry AT THE CUT SHA, which git already
+    holds; it is trusted only when its names re-hash to the recorded digest. Then
+    recorded subset-of live: growth passes, a removed kind (even one replaced, so the count is
+    unchanged) FAILs naming it.
+
+    HONEST LIMITS, named so they are not a surprise:
+      * a LEGACY count-only row (the sealed 2026-10-02 bundle: `106 kind(s) registered`) records
+        no identity, so it can be judged only as live count >= recorded count. A removal that is
+        offset by an addition is invisible to it;
+      * a digest row whose cut sha is unresolvable (an uncommitted bundle, or a snapshot that
+        does not hash to the recorded digest) gets the same count floor, and says so.
+    """
+    try:
+        import handoff_state as _hs  # noqa: PLC0415
+    except ImportError:
+        return "skipped", "handoff_state not importable"
+    value = value.strip()
+    try:
+        fresh = _hs.row_transport(ctx.repo_root).rendered().strip()
+    except Exception as exc:            # noqa: BLE001 -- a reader's own failure is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    if value == fresh and value.startswith("unavailable"):
+        # DECIDED-BY-LANE (Codex HIGH 1, hard fail DECLINED; typing REWRITTEN by grok-4.7 under
+        # N2): the registry was unreadable at the cut and still is. Nothing was measured, so
+        # by N1 it is typed `skipped` (a WARN, exit 0), never `pass` -- an unmeasured result
+        # must not read as a pass to any reader. It is not failed closed either: the cuts the
+        # tests make from registry-less stub repos rest on this degrade and this rule cannot
+        # improve on it.
+        return "skipped", f"registry unreadable at the cut and now, the same degraded reading: {fresh}"
+    m = _TRANSPORT_VALUE_RE.fullmatch(value)
+    if m is None:
+        return "fail", (f"cut recorded {value!r}, which is not `<n> kind(s) registered"
+                        f"[, names-digest <12 hex>] — evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]`")
+    recorded_count, recorded_digest = int(m.group(1)), m.group(2)
+    try:
+        live = _hs.transport_kind_names(
+            (Path(ctx.repo_root) / _hs.TRANSPORT_REGISTRY_REL).read_text(encoding="utf-8"))
+    except Exception as exc:            # noqa: BLE001 -- an unreadable live registry is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    if recorded_digest is None:
+        basis = "legacy count-only row, no kind identity recorded"
+    elif _hs.transport_names_digest(live) == recorded_digest:
+        return "pass", f"registry unchanged since the cut ({len(live)} kinds, digest {recorded_digest})"
+    else:
+        snapshot = _transport_snapshot(ctx, _hs)
+        if snapshot is not None and _hs.transport_names_digest(snapshot) == recorded_digest:
+            missing = sorted(set(snapshot) - set(live))
+            if missing:
+                shown = ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
+                return "fail", (f"{len(missing)} of the {len(set(snapshot))} kind(s) recorded at "
+                                f"the cut are no longer registered: {shown}")
+            return "pass", (f"every one of the {len(set(snapshot))} recorded kinds is still "
+                            f"registered; {len(live)} now (growth is allowed)")
+        basis = ("no registry snapshot resolvable at the cut sha" if snapshot is None
+                 else "the registry snapshot at the cut sha does not match the recorded digest")
+    if len(live) >= recorded_count:
+        return "pass", (f"{len(live)} kinds registered now against {recorded_count} recorded "
+                        f"({basis}: judged on the count floor, growth is allowed)")
+    return "fail", (f"{len(live)} kinds registered now, fewer than the {recorded_count} the cut "
+                    f"recorded ({basis}): a recorded kind was removed")
+
+
 def _transport_for(ctx: _BootCtx):
     """`gen_handoff.transport_root()`, deferred-imported like every other cross-module read on
     this rung (`_rule_chat_title`, `_rule_destination`, `_rule_role` above)."""
@@ -1641,7 +1745,9 @@ BOOT_DATA_RULES = {
        if key in _COMMITTED_STATE_KEYS},
     "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"])),
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
-       if key not in ("Seats", *_COMMITTED_STATE_KEYS)},
+       if key not in ("Seats", "Transport", *_COMMITTED_STATE_KEYS)},
+    # B2-W1 W1-11: Transport compares recorded-kinds-subset-of-live, not the rendered string.
+    "Transport": _rule_transport,
     "Seats": _rule_bd_seats,
 }
 

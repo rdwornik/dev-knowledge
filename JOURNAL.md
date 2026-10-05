@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (l) - CC (Opus 5.5, integrator seat B2-W1 cycle 7): lane b2-transport-probe merges -- the BD-transport probe checks recorded kinds against the live registry, so adding a transport kind no longer reds the handoff path, and an unreadable registry reads skipped, never pass
+
+**Anchors:** `846ea0fb`, `4764433f`, `d72aa720`, `31231c8c`, `7654e899`, `e6f13fab`, `194e0ae8`, `8344f64f`, `f2f2b33e` -- `worktree-b2-transport-probe` (B2-W1 W1-11, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-11 after its repair 1: `handoff_state.row_transport` records the kind count plus a 12-hex names digest, and `verify_handoff_probes._rule_transport` passes growth, fails a removed recorded kind, and judges the sealed 2026-10-02 bundle's legacy count-only row as live count >= recorded. Repair 1 (decided by night rule N2, independent reviewer grok-4.7: REWRITE) types an identical degraded `unavailable` reading `skipped`, so an unmeasured Transport row never reads as a pass.
+- `[#978]` refs cite the lane's review record as its governance consumer (the registry this probe stops penalising for growth). The closed merge receipt of lane b2-codespace-1to1 (`0db61b7b`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/{handoff_state,verify_handoff_probes}.py`, their tests, `tasks/978-…`, one review record, generated index/counts.
+
+**Next:** re-test W1-6 b2-transport-lint unchanged at `a4f0fa89` (its gate, W1-11 merged); W1-3 b2-ci-poll WAITING on the architect's item-4 ruling.
+
+---
+
 ### 2026-10-04 (k) - CC (Opus 5.5, integrator seat B2-W1 cycle 5): lane b2-codespace-1to1 merges -- a fresh Codespace comes up 4-core/240 min with every model CLI pinned, and C1 reads each CLI's served model id from the tool's own record
 
 **Anchors:** `a707ab37`, `787dc007`, `85144b42`, `c9dcb23e`, `86c9e7af`, `6c822c39`, `6ba5e7a3`, `218d9d23`, `94c52403`, `6676a243`, `e88e6aff`, `aa334b7b`, `510b0d7f`, `4cd8f4ff`, `e6991460`, `6a723c54`, `a9a7a311`, `6be0629b`, `b76a8375`, `db064469`, `183c9b18` -- `worktree-b2-codespace-1to1` (B2-W1 W1-7, after repair 1)

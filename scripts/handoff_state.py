@@ -96,6 +96,7 @@ and `seat_registry` rather than re-deriving any of their reads.
 from __future__ import annotations
 
 import datetime as _dt
+import hashlib
 import re
 import sys
 from dataclasses import dataclass
@@ -238,15 +239,40 @@ def row_substrates(repo_root: "Path | str") -> StateRow:
 
 # --- Transport: the registered transport-file kinds -------------------------------------------
 
+#: The registry the Transport row reads; the verifier resolves the SAME path at a cut sha.
+TRANSPORT_REGISTRY_REL = "ecosystem/transport-registry.yaml"
+
+
+def transport_kind_names(registry_text: str) -> "list[str]":
+    """The kind NAMES a transport-registry document registers, in file order (the `kind:` field
+    of every row that carries one). Raises on an unparseable document."""
+    data = yaml.safe_load(registry_text) or {}
+    kinds = data.get("kinds") or []
+    return [k["kind"] for k in kinds if isinstance(k, dict) and isinstance(k.get("kind"), str)]
+
+
+def transport_names_digest(names: "list[str]") -> str:
+    """12 hex of sha256 over the sorted, de-duplicated kind names, newline-joined. Order is not
+    identity, a swapped-out kind is: this is what lets a later probe tell a REMOVED kind from
+    registry growth (the row records identity in 12 bytes, not 110 names)."""
+    joined = "\n".join(sorted(set(names)))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:12]
+
+
 def row_transport(repo_root: "Path | str") -> StateRow:
-    evidence = "ecosystem/transport-registry.yaml"
+    """`<n> kind(s) registered, names-digest <12 hex>` -- the count AND the identity digest.
+
+    B2-W1 W1-11: the row used to be the bare count, which the verifier equality-matched, so
+    registry growth (the thing the registry exists for) read as a broken handoff. The digest is
+    what `verify_handoff_probes._rule_transport` resolves against the registry at the bundle's
+    cut sha to prove every recorded kind is still registered."""
+    evidence = TRANSPORT_REGISTRY_REL
     path = Path(repo_root) / "ecosystem" / "transport-registry.yaml"
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        kinds = data.get("kinds") or []
+        names = transport_kind_names(path.read_text(encoding="utf-8"))
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Transport", evidence, "SLOW", exc)
-    value = f"{len(kinds)} kind(s) registered"
+    value = f"{len(names)} kind(s) registered, names-digest {transport_names_digest(names)}"
     return StateRow("Transport", value, "SLOW", evidence)
 
 
