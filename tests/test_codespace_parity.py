@@ -1489,12 +1489,15 @@ def _integration(**over) -> dict:
     return row
 
 
-def _remote_pushed(sha=_SHA) -> dict:
+def _remote_pushed(sha=_SHA, lane=True) -> dict:
     """A Codespace record whose parity push put the compared HEAD (== the base, collected before
-    the lane works) on origin. The TEST LANE's own branch is a different ref, merged by C3's leg."""
+    the lane works) on origin. The TEST LANE's own branch is a different ref, merged by C3's leg
+    and named by the record's `lane` (stamped after the lane ran; `lane=False`: never stamped)."""
     remote = _record("codespace")
     remote["landing"] = {"pushed_branch": "worktree-b2-codespace-green-run1-parity",
                          "pushed_sha": sha, "push_exit": 0}
+    if lane:
+        remote["lane"] = {"branch": "worktree-b2-codespace-green-run1", "sha": _RUN_SHA}
     return remote
 
 
@@ -2465,3 +2468,102 @@ def test_the_ci_record_names_the_new_reds(tmp_path):
 
     rec = _collect(_GitRun(), tmp_path, verdict_fn=lambda sha, **k: _Red())
     assert rec["ci"]["new_reds"] == ["pytest (ubuntu-latest): tests/test_x.py::test_y"]
+
+
+# =============================================================================================
+# b2-codespace-green repair 2 (review P1-1, `[#1335]`): C3 is BOUND to this run
+# =============================================================================================
+#
+# RED on 86a8d744 (merged with origin/main a09c4fff): `integration_legs` never compared the
+# integration record's `run_branch` / `run_sha` with anything the Codespace record says it worked,
+# so a green record for ANOTHER branch, or a stale one cut from the same base, read PASS -- a check
+# that goes green without measuring this run (R59, N1). The Codespace record now carries the lane
+# branch it worked and that branch's tip (`lane`, stamped by `stamp-lane`); a mismatch is a FAIL,
+# and a record with no `lane` is NOT-RUN (the binding was not measured), never a pass.
+
+_LANE_BRANCH = "worktree-b2-codespace-green-run1"
+
+
+def _remote_laned(branch=_LANE_BRANCH, sha=_RUN_SHA, **extra) -> dict:
+    remote = _remote_pushed(_SHA, lane=False)
+    remote["lane"] = {"branch": branch, "sha": sha, **extra}
+    return remote
+
+
+def test_c3_passes_when_the_integration_record_is_for_the_branch_and_tip_the_codespace_worked():
+    verdict = cp.compare_landing(_record("local"), _remote_laned(), _integration())
+    assert verdict.status == "PASS", verdict
+    assert any(_LANE_BRANCH in e and "bound" in e for e in verdict.evidence), verdict.evidence
+
+
+def test_c3_fails_a_green_integration_record_for_another_branch():
+    """The must-not-pass fixture: every leg of the record is green and cut from the same base, but
+    it merged a branch this Codespace run never produced."""
+    other = _integration(run_branch="worktree-some-other-lane")
+    verdict = cp.compare_landing(_record("local"), _remote_laned(), other)
+    assert verdict.status == "FAIL", verdict
+    assert "worktree-some-other-lane" in verdict.reason and _LANE_BRANCH in verdict.reason
+
+
+def test_c3_fails_a_stale_integration_record_cut_from_the_same_base_at_another_tip():
+    """Same branch name, same base, a different tip: the record merged an EARLIER push of the
+    branch (its merge parents agree with its own run_sha, so no internal check can catch it)."""
+    stale_tip = "a" * 40
+    stale = _integration(run_sha=stale_tip,
+                         merge={"exit": 0, "sha": _MERGE_SHA, "parents": [_SHA, stale_tip]})
+    verdict = cp.compare_landing(_record("local"), _remote_laned(), stale)
+    assert verdict.status == "FAIL", verdict
+    assert stale_tip in verdict.reason and _RUN_SHA in verdict.reason
+
+
+@pytest.mark.parametrize("lane", [
+    None,
+    {},
+    {"branch": _LANE_BRANCH},
+    {"sha": _RUN_SHA},
+    {"branch": "", "sha": _RUN_SHA},
+    {"branch": _LANE_BRANCH, "sha": ""},
+    {"branch": 7, "sha": _RUN_SHA},
+    "worktree-b2-codespace-green-run1",
+])
+def test_c3_is_not_run_when_the_codespace_record_names_no_lane_branch_and_tip(lane):
+    """Unmeasured binding: NOT-RUN (exit 2), never PASS -- and never silently skipped."""
+    remote = _remote_pushed(_SHA, lane=False)
+    if lane is not None:
+        remote["lane"] = lane
+    verdict = cp.compare_landing(_record("local"), remote, _integration())
+    assert verdict.status == "NOT-RUN", verdict
+    assert "lane" in verdict.reason
+
+
+def test_a_failed_binding_is_never_rescued_by_a_passing_merge_outcome_and_ci():
+    verdict = cp.compare_landing(_record("local"), _remote_laned(sha="b" * 40), _integration())
+    assert verdict.status == "FAIL" and "outcome test" not in verdict.reason
+    assert cp.fold_legs([cp.LegResult(cp.Leg.PASS, "a"), cp.LegResult(cp.Leg.FAIL, "b")])[0] == "FAIL"
+
+
+def test_stamp_lane_reads_the_branch_tip_in_the_codespace_tree_and_writes_it_into_the_record(tmp_path):
+    seen = []
+
+    def run(argv, **kw):
+        seen.append(list(argv))
+        return cp.CmdResult(0, _RUN_SHA + "\n", "") if argv[:2] == ["git", "rev-parse"] else cp.CmdResult(1, "", "")
+
+    record = tmp_path / "remote.json"
+    record.write_text(json.dumps(_remote_pushed(_SHA)), encoding="utf-8")
+    lane = cp.stamp_lane(run, root=tmp_path, record_path=record, branch=_LANE_BRANCH)
+    assert lane == {"branch": _LANE_BRANCH, "sha": _RUN_SHA}
+    assert json.loads(record.read_text(encoding="utf-8"))["lane"] == lane
+    assert any("refs/heads/" + _LANE_BRANCH in " ".join(a) for a in seen)
+
+
+def test_stamp_lane_refuses_a_branch_it_cannot_resolve_and_a_tip_that_is_not_a_full_sha(tmp_path):
+    record = tmp_path / "remote.json"
+    record.write_text(json.dumps(_remote_pushed(_SHA, lane=False)), encoding="utf-8")
+    with pytest.raises(ValueError, match="resolve"):
+        cp.stamp_lane(lambda a, **k: cp.CmdResult(128, "", "fatal"), root=tmp_path,
+                      record_path=record, branch=_LANE_BRANCH)
+    with pytest.raises(ValueError, match="full sha"):
+        cp.stamp_lane(lambda a, **k: cp.CmdResult(0, "abc123\n", ""), root=tmp_path,
+                      record_path=record, branch=_LANE_BRANCH)
+    assert "lane" not in json.loads(record.read_text(encoding="utf-8"))

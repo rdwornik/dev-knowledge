@@ -1402,11 +1402,54 @@ def compare_gates(local: Mapping, remote: Mapping) -> Verdict:
     return _verdict(2, "PASS", "", evidence)
 
 
+def stamp_lane(run: Runner, *, root: Path, record_path: Path, branch: str) -> dict:
+    """Write `lane` = {branch, sha} into the Codespace record: the branch the test lane worked and
+    the tip it resolves to IN THIS TREE. Run in the Codespace after the lane pushed, so C3 can
+    refuse an integration record for any other branch or tip. A branch that does not resolve, or a
+    tip that is not a full sha, writes nothing."""
+    if not _RUN_BRANCH_RE.fullmatch(branch):
+        raise ValueError(f"lane branch {branch!r} is not a `worktree-<slug>` branch")
+    res = run(["git", "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"], cwd=root,
+              timeout=60)
+    if res.returncode != 0:
+        raise ValueError(f"could not resolve refs/heads/{branch} in {root} (exit "
+                         f"{res.returncode}): nothing stamped")
+    sha = res.stdout.strip()
+    if not _FULL_SHA_RE.fullmatch(sha):
+        raise ValueError(f"{branch} resolved to {sha!r}, which is not a full sha: nothing stamped")
+    record = json.loads(Path(record_path).read_text(encoding="utf-8"))
+    if not isinstance(record, dict):
+        raise ValueError(f"{record_path} is not a JSON object")
+    record["lane"] = {"branch": branch, "sha": sha}
+    write_record(Path(record_path), record)
+    return record["lane"]
+
+
+def lane_binding(remote: Optional[Mapping]) -> Optional[tuple[str, str]]:
+    """The (branch, tip) the Codespace record says its test lane worked -- `lane`, stamped by
+    `stamp-lane` after the lane ran -- or None when the record carries no usable one. Anything
+    but a non-empty branch string and a full 40-hex tip is unmeasured, never a partial binding."""
+    lane = (remote or {}).get("lane") if isinstance(remote, Mapping) else None
+    if not isinstance(lane, Mapping):
+        return None
+    branch, sha = lane.get("branch"), lane.get("sha")
+    if (isinstance(branch, str) and branch and isinstance(sha, str)
+            and _FULL_SHA_RE.fullmatch(sha)):
+        return branch, sha
+    return None
+
+
 def integration_legs(local: Mapping, integration: Optional[Mapping],
-                     evidence: list[str]) -> list[LegResult]:
+                     evidence: list[str], remote: Optional[Mapping] = None) -> list[LegResult]:
     """C3's integrator legs, each judged from what `integrate` MEASURED. A leg whose record is
     absent or carries no result is `NOT_RUN`; one that ran and failed is `FAIL`; only a measured
-    pass is `PASS`. CI is judged by its STATE (`landable` is a convenience flag, never trusted)."""
+    pass is `PASS`. CI is judged by its STATE (`landable` is a convenience flag, never trusted).
+
+    BOUND TO THIS RUN (review P1-1): the merge leg also compares the integration record's
+    `run_branch` / `run_sha` with the lane branch and tip the CODESPACE record says it worked
+    (`lane_binding`). A green record for another branch, or a stale one cut from the same base at
+    an earlier tip, is a FAIL naming both; a Codespace record that names no lane is NOT-RUN -- the
+    binding was not measured, so the leg cannot pass."""
     if not isinstance(integration, Mapping):
         return [LegResult(Leg.NOT_RUN, f"merge leg NOT-RUN: {LANDING_MERGE_NOT_RUN_REASON}")]
     legs: list[LegResult] = []
@@ -1448,8 +1491,26 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
                            f"branch was cut from ({onto_sha})")
             if parents[1] != integration.get("run_sha"):
                 bad.append(f"the merge's second parent {parents[1]} is not the run branch tip")
-        legs.append(LegResult(Leg.FAIL, "; ".join(bad)) if bad else
-                    LegResult(Leg.PASS, "merge"))
+        bound = lane_binding(remote)
+        if bound is not None:
+            lane_branch, lane_sha = bound
+            if integration.get("run_branch") != lane_branch:
+                bad.append(f"the integration record merged {integration.get('run_branch')}, not "
+                           f"the lane branch {lane_branch} this Codespace worked")
+            if integration.get("run_sha") != lane_sha:
+                bad.append(f"the integration record merged {integration.get('run_sha')}, not the "
+                           f"tip {lane_sha} of the lane branch this Codespace worked")
+            if not bad:
+                evidence.append(f"bound to this run: {lane_branch} at {lane_sha} is the branch "
+                                "and tip the Codespace worked and the integration merged")
+        if bad:
+            legs.append(LegResult(Leg.FAIL, "; ".join(bad)))
+        elif bound is None:
+            legs.append(LegResult(Leg.NOT_RUN, "merge leg NOT-RUN: the Codespace record carries "
+                                  "no `lane` (branch and tip) to bind the integration record to "
+                                  "(run `stamp-lane` in the Codespace after the lane pushed)"))
+        else:
+            legs.append(LegResult(Leg.PASS, "merge"))
 
     outcome = integration.get("outcome_test")
     if not isinstance(outcome, Mapping) or outcome.get("exit") is None:
@@ -1544,7 +1605,7 @@ def compare_landing(local: Mapping, remote: Mapping,
     push_leg = (LegResult(Leg.PASS, "push") if pushed else
                 LegResult(Leg.NOT_RUN, f"push leg not exercised (the Codespace pushed no branch; "
                           f"push exit {landing.get('push_exit')})"))
-    status, reason = fold_legs([push_leg, *integration_legs(local, integration, evidence)])
+    status, reason = fold_legs([push_leg, *integration_legs(local, integration, evidence, remote)])
     return _verdict(3, status, reason, evidence)
 
 
@@ -1906,6 +1967,19 @@ def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optiona
     write_record(out, record)
     click.echo(f"integration record written: merge={record.get('merge')} "
                f"ci={(record.get('ci') or {}).get('state')} -> {out}")
+
+
+@cli.command("stamp-lane")
+@click.option("--record", "record_path", required=True, type=click.Path(path_type=Path),
+              help="The Codespace's record (`collect --side codespace --out`), stamped in place.")
+@click.option("--branch", required=True, help="The test lane's branch (`worktree-<slug>`).")
+def stamp_lane_cmd(record_path: Path, branch: str) -> None:
+    """Bind the Codespace record to the lane it worked: its branch and that branch's tip."""
+    try:
+        lane = stamp_lane(default_run, root=_REPO_ROOT, record_path=record_path, branch=branch)
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        raise click.UsageError(str(exc)) from exc
+    click.echo(f"lane stamped: {lane['branch']} at {lane['sha'][:12]} -> {record_path}")
 
 
 @cli.command("verify-cleanup")
