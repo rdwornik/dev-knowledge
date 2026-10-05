@@ -24,6 +24,8 @@ import json
 import pytest
 
 import consumer_at_landing as cal
+from branch_context import (BranchContexts, contexts, merge_base_with_main, names_at_merge_base,
+                            tail, witness)
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -402,10 +404,60 @@ def test_an_undecodable_artifact_raises_rather_than_undercounting(tree):
 @pytest.mark.live_repo
 def test_the_live_corpus_measures_and_the_baseline_matches_it():
     """The committed baseline is commensurable with a live measurement — a ratchet whose
-    baseline no longer parses is a gate that measures nothing."""
+    baseline no longer parses is a gate that measures nothing.
+
+    SCOPED TO WHAT THIS BRANCH INHERITED. A review record a lane adds has no consumer until the
+    merge writes its `kind: merge` receipt (`logs/MERGE-RECEIPTS.jsonl`), so the unscoped check
+    was red on every lane that landed one -- 61/67 lane runs, and on `main` too (15/21) in the
+    window between a merge and its receipt (`DIGEST-B2-PREP-2026-10-03` Part 4). Now the
+    unconsumed set is compared to the baseline for the corpus at the merge base with
+    `origin/main`: on `main` that is the whole corpus (as strict as before), on a lane it leaves
+    out only the records the lane added. A record with no consumer route after it has been on
+    `main` still fails, and a baseline that no longer parses still fails.
+    """
     root = cal.repo_root()
     m = cal.measure(root)
     baseline = cal.load_baseline(root)
     assert baseline is not None, f"{cal.BASELINE_RELPATH} is absent or malformed"
     assert baseline["detector_id"] == m.detector_id
-    assert set(m.unconsumed) - set(baseline["artifacts"]) == set()
+    owed = set(m.unconsumed) - set(baseline["artifacts"])
+    inherited = names_at_merge_base(root, "docs/audits")
+    if inherited is not None:
+        owed &= {name.rsplit("/", 1)[-1] for name in inherited}
+    assert owed == set(), (
+        f"merge base {merge_base_with_main(root)!r}; "
+        f"{'unknown' if inherited is None else len(inherited)} audits inherited from it")
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_live_corpus_verdict_is_the_same_on_a_lane_that_lands_a_review_record(
+        tmp_path_factory):
+    """The witness for the live test above (B2-W1 W1-8): a lane lands a review record, and its
+    consumer is a merge receipt that does not exist until the lane merges."""
+    witness(tmp_path_factory,
+            "tests/test_consumer_at_landing.py::"
+            "test_the_live_corpus_measures_and_the_baseline_matches_it",
+            lane_files={"docs/audits/2026-10-05-codex-lane-probe.md":
+                        "# Codex review of a lane\n\nA landed review record.\n"})
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_main_shaped_control_of_an_integration_merge_is_consumer_clean(tmp_path_factory):
+    """The integration shape (repair 1 of B2-W1 W1-8): the integrator's merge indexes the review
+    record the lane added AND lands its `kind: merge` receipt, which is the record's consumer.
+
+    A control built from that tree keeps the record (its README lists it), so the record is
+    inherited there and must be consumed there -- by the receipt, not by luck. The live check
+    must pass in the control exactly as it does on `main` right after such a merge.
+    """
+    record = "docs/audits/2026-10-05-codex-lane-probe.md"
+    integration = contexts(tmp_path_factory).integration(
+        lane_files={record: "# Codex review of a lane\n\nA landed review record.\n"},
+        receipt_slug="lane-probe")
+    inner = BranchContexts(tmp_path_factory.mktemp("integration-source"), source=integration)
+    control = inner.main()
+    assert (control / record).is_file(), "the control dropped a record its README indexes"
+    done = inner.run_node(
+        control, "tests/test_consumer_at_landing.py::"
+        "test_the_live_corpus_measures_and_the_baseline_matches_it")
+    assert done.returncode == 0, tail(done)

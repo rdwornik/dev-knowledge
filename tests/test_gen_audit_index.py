@@ -9,6 +9,8 @@ import pytest
 
 
 import gen_audit_index as gai  # noqa: E402
+from branch_context import (BranchContexts, contexts, merge_base_with_main, names_at_merge_base,  # noqa: E402
+                            tail, witness)
 
 
 def _audit(d: Path, name: str, title: str | None = "T") -> None:
@@ -107,9 +109,40 @@ def test_check_detects_drift(tmp_path, monkeypatch, capsys):
     assert "stale vs docs/audits/" in capsys.readouterr().err
 
 
+def _live_index_verdict() -> int:
+    """`gai.main(["--check"])`, scoped to the audits the merge base already carried.
+
+    THE DEFECT THIS REPLACES. The live check compared the shipped README to EVERY tracked audit.
+    A lane that adds an audit is barred from regenerating that shared file (`[#590]`: requiring
+    it put the index in 6 of the last 7 conflicted merges), so the check was stale on every such
+    lane and fresh on `main` -- 41/67 lane runs against 0/21 `main` runs, a verdict about the
+    branch rather than the index.
+
+    THE SCOPE. The shipped README must match a render of the audits that existed at the merge
+    base with `origin/main`. On `main` that merge base IS HEAD, so the check is the strict one;
+    on a lane it ignores only the audits the lane itself added, which the integrator indexes at
+    merge. A README the lane DID regenerate matches the full render and is checked by the
+    unchanged `gai.main`. No branch name is read: a stale row for an audit the branch
+    inherited, or a title-less audit anywhere, still fails.
+    """
+    root = gai._REPO_ROOT
+    tracked = gai.tracked_files(root)
+    inherited = names_at_merge_base(root, "docs/audits")
+    if tracked is not None and inherited is not None:
+        lane_added = frozenset(p for p in tracked
+                               if p.startswith("docs/audits/") and p not in inherited)
+        scoped = gai.render_index(tracked=tracked - lane_added)
+        if gai._TARGET.read_text(encoding="utf-8") == scoped:
+            return gai._check_titles()
+    print(f"scope not applied: merge base {merge_base_with_main(root)!r}, tracked "
+          f"{'unknown' if tracked is None else len(tracked)}, inherited "
+          f"{'unknown' if inherited is None else len(inherited)}", file=sys.stderr)
+    return gai.main(["--check"])
+
+
 def test_live_index_is_fresh():
-    # the shipped docs/audits/README.md matches disk (the generator's own green)
-    assert gai.main(["--check"]) == 0
+    # the shipped docs/audits/README.md matches the audits this branch inherited
+    assert _live_index_verdict() == 0
 
 
 # --- tracked-files-only: the twin of the d5b19a2d F1 fix in generate_organ_index -----
@@ -188,8 +221,9 @@ def test_a_path_outside_the_repo_root_is_never_silently_dropped(tmp_path, monkey
 
 def test_live_index_excludes_nothing_because_every_audit_is_tracked():
     # The result to want, measured rather than assumed: the shipped index is byte-unchanged
-    # by this fix (d5b19a2d recorded the same outcome for its twin).
-    assert gai.main(["--check"]) == 0
+    # by this fix (d5b19a2d recorded the same outcome for its twin). Same scoped verdict as
+    # `test_live_index_is_fresh`: the audits this branch inherited are all indexed.
+    assert _live_index_verdict() == 0
     assert sys.executable  # keep the import honest under ruff
 
 
@@ -348,6 +382,151 @@ def test_check_titles_is_reachable_without_the_index(tmp_path, monkeypatch, caps
 
 def test_check_titles_is_green_on_the_live_corpus():
     assert gai.main(["--check-titles"]) == 0
+
+
+# --- the merge-base scope the live checks above use (B2-W1 W1-8) ---------------------------
+
+
+def _main_repo_with_two_audits(tmp_path: Path) -> Path:
+    """`main` carries audit A, `origin/main` is a fetch behind (still at A), and main then
+    gained audit B -- the state of a checkout on `main` with unpushed commits."""
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/main")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _audit(audits, "2026-02-02-technical-b.md", "Audit B")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "B")
+    return repo
+
+
+def test_a_main_ahead_of_a_stale_origin_is_judged_on_everything_it_carries(tmp_path):
+    """The scope must not loosen on `main` itself: HEAD is `main`, so audit B -- unpushed, and
+    after the remote-tracking ref -- is inherited, not 'the lane's'. A merge base taken against
+    `origin/main` alone would have exempted it (terra review of b2-branch-context-tests, H1)."""
+    repo = _main_repo_with_two_audits(tmp_path)
+    inherited = names_at_merge_base(repo, "docs/audits")
+    assert inherited == {"docs/audits/2026-01-01-technical-a.md",
+                         "docs/audits/2026-02-02-technical-b.md"}
+
+
+def test_a_lane_that_adds_an_audit_leaves_it_out_of_what_it_inherited(tmp_path):
+    repo = _main_repo_with_two_audits(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "worktree-lane")
+    _audit(repo / "docs" / "audits", "2026-03-03-technical-c.md", "Audit C")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "C")
+    inherited = names_at_merge_base(repo, "docs/audits")
+    assert "docs/audits/2026-03-03-technical-c.md" not in inherited
+    assert "docs/audits/2026-02-02-technical-b.md" in inherited
+
+
+def test_the_merge_base_is_unknown_when_there_is_no_main_to_compare_with(tmp_path):
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/trunk")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
+def _one_commit_repo(tmp_path: Path) -> Path:
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/trunk")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    return repo
+
+
+def test_the_merge_base_is_unknown_when_only_local_main_resolves(tmp_path):
+    """One ref present, the other absent: cannot tell, so strict -- never the one that is there."""
+    repo = _one_commit_repo(tmp_path)
+    _git(repo, "update-ref", "refs/heads/main", "HEAD")
+    assert merge_base_with_main(repo) is None
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
+def test_the_merge_base_is_unknown_when_only_origin_main_resolves(tmp_path):
+    repo = _one_commit_repo(tmp_path)
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    assert merge_base_with_main(repo) is None
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
+def test_the_synthetic_main_drops_only_an_audit_its_own_tree_does_not_account_for(tmp_path):
+    """A lane that added two audits, one of which its README lists (a regenerated index) and one
+    of which nothing lists: only the second may be left out of the base."""
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/main")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _git(repo, "checkout", "-q", "-b", "worktree-lane")
+    _audit(audits, "2026-02-02-technical-indexed.md", "Indexed")
+    _audit(audits, "2026-03-03-technical-unindexed.md", "Unindexed")
+    _audit(audits, "2026-02-03 spaced name.md", "Spaced")
+    (audits / "README.md").write_text("- [2026-02-02](2026-02-02-technical-indexed.md) -- Indexed\n"
+                                      "- [2026-02-03](2026-02-03 spaced name.md) -- Spaced\n",
+                                      encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "lane")
+    ctx = BranchContexts(tmp_path / "ctx", source=repo)
+    kept = {p.name for p in (ctx.main() / "docs" / "audits").glob("*.md")}
+    assert "2026-02-02-technical-indexed.md" in kept, "left out an audit its own README lists"
+    assert "2026-02-03 spaced name.md" in kept, "left out an indexed audit whose name has a space"
+    assert "2026-03-03-technical-unindexed.md" not in kept
+    assert "2026-01-01-technical-a.md" in kept
+
+
+# --- the branch-context witnesses (B2-W1 W1-8) ---------------------------------------------
+# A lane that adds an audit is barred from regenerating the shared index (`[#590]`), so the
+# live tests above read stale on EVERY such lane and fresh on `main`. Each witness runs one of
+# them from a clone shaped like that lane and must see the verdict it sees on `main`.
+
+_LANE_AUDIT = {"docs/audits/2026-10-05-technical-lane-probe.md": "# Lane probe\n\nbody\n"}
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_live_index_is_fresh_on_a_lane_that_adds_an_audit(tmp_path_factory):
+    witness(tmp_path_factory, "tests/test_gen_audit_index.py::test_live_index_is_fresh",
+            lane_files=_LANE_AUDIT)
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_live_index_excludes_nothing_on_a_lane_that_adds_an_audit(tmp_path_factory):
+    witness(tmp_path_factory,
+            "tests/test_gen_audit_index.py::"
+            "test_live_index_excludes_nothing_because_every_audit_is_tracked",
+            lane_files=_LANE_AUDIT)
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_main_shaped_control_keeps_the_audit_an_integration_merge_indexed(tmp_path_factory):
+    """The integration shape (repair 1 of B2-W1 W1-8): HEAD is the `--no-ff` merge the integrator
+    pushes, with the README regenerated IN it, so the README lists the audit the branch added.
+
+    The control the witnesses run is a clone of that tree called `main`. If it drops the audit
+    the branch added, the README it keeps lists a file that is gone and the strict check reads it
+    as stale -- the four reds on the integration merge `1beec4c9` (CI run 37316982951). The audit
+    must stay, and the two live checks must pass in the control built from it.
+    """
+    probe = "docs/audits/2026-10-05-technical-lane-probe.md"
+    integration = contexts(tmp_path_factory).integration(lane_files=_LANE_AUDIT)
+    assert Path(integration / probe).is_file()
+    assert f"({probe.rsplit('/', 1)[-1]})" in (integration / "docs/audits/README.md").read_text(
+        encoding="utf-8"), "the integration shape must carry a README that indexes the audit"
+    inner = BranchContexts(tmp_path_factory.mktemp("integration-source"), source=integration)
+    control = inner.main()
+    assert (control / probe).is_file(), "the main-shaped control dropped an audit its README indexes"
+    done = inner.run_node(
+        control,
+        "tests/test_gen_audit_index.py::test_live_index_is_fresh",
+        "tests/test_gen_audit_index.py::test_live_index_excludes_nothing_because_every_audit_is_tracked")
+    assert done.returncode == 0, tail(done)
 
 
 def test_the_title_hook_is_armed_on_the_audits_tree_not_just_the_index():
