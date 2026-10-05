@@ -34,7 +34,9 @@ not in it. A witness therefore measures what is committed -- which is what CI me
 """
 from __future__ import annotations
 
+import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -91,19 +93,24 @@ class BranchContexts:
             self._leave_out_what_the_integrator_indexes()
 
     def _leave_out_what_the_integrator_indexes(self) -> None:
-        """Make the base a tree `main` could be: without the audits THIS branch added.
+        """Make the base a tree `main` could be: without the audits THIS branch added and has not
+        had indexed.
 
         A lane adds an audit record (its own Codex review, at least) and is barred from indexing it
         -- the integrator does at merge. A clone of that tree called `main` would carry an audit
         `main`'s README does not list, and every strict corpus check would fail on it for a reason
         that is the lane's own file, not the shape under test. So the base is HEAD's tree minus the
-        `docs/audits/` files added since the merge base; nothing else is touched, and on `main`
-        (nothing added) the base stays HEAD.
+        `docs/audits/` files added since the merge base that THIS tree does not account for: one its
+        own README lists, or its consumer baseline names, stays -- deleting it would leave an index
+        (or a baseline) pointing at a file that is gone. On `main` (nothing added) the base stays
+        HEAD; on an integration branch (the README regenerated in the merge) nothing is dropped.
         """
         inherited = names_at_merge_base(self.source, "docs/audits")
         listing = _git(self.source, "ls-tree", "-r", "--name-only", self.base, "--", "docs/audits", check=False)
+        accounted = self._accounted_for()
         added = [p for p in listing.splitlines()
-                 if p and inherited is not None and p not in inherited and p != "docs/audits/README.md"]
+                 if p and inherited is not None and p not in inherited and p != "docs/audits/README.md"
+                 and p.rsplit("/", 1)[-1] not in accounted]
         if not added:
             return
         _git(self.work, "checkout", "-q", "-f", "-B", "main", self.base)
@@ -111,6 +118,19 @@ class BranchContexts:
         _git(self.work, "commit", "-q", "-m", "base: the audits this branch added are the integrator's to index")
         self.base = _git(self.work, "rev-parse", "HEAD")
         _git(self.work, "push", "-q", "-f", "origin", f"{self.base}:refs/heads/main")
+
+    def _accounted_for(self) -> frozenset:
+        """Audit file names the base tree's own README indexes or its consumer baseline names."""
+        names: set = set()
+        readme = _git(self.source, "show", f"{self.base}:docs/audits/README.md", check=False)
+        names.update(m for m in re.findall(r"\(([^()\s/]+\.md)\)", readme))
+        relpath = "ecosystem/audit-consumer-baseline.json"
+        try:
+            data = json.loads(_git(self.source, "show", f"{self.base}:{relpath}", check=False) or "{}")
+            names.update(name for name in data.get("artifacts", []) if isinstance(name, str))
+        except ValueError:
+            pass
+        return frozenset(names)
 
     # -- shapes -----------------------------------------------------------------------------------
 
@@ -208,14 +228,16 @@ def merge_base_with_main(repo: Path) -> "str | None":
     ahead of a stale `origin/main` has merge base HEAD with the local ref, and a lane whose local
     `main` has not been fetched forward has the newer base with the remote ref; either way no
     commit is treated as "the lane's" that the branch actually inherited. The two bases are both
-    ancestors of HEAD; when neither is an ancestor of the other the answer is None (cannot tell),
-    which every caller reads as "judge strictly". On `main` itself the answer is HEAD, so a check
+    ancestors of HEAD; when neither is an ancestor of the other, or either ref cannot be resolved,
+    the answer is None (cannot tell), which every caller reads as "judge strictly". On `main` itself the answer is HEAD, so a check
     scoped by it is exactly as strict as the unscoped one.
     """
     local = _git_out(repo, "merge-base", "HEAD", "refs/heads/main")
     remote = _git_out(repo, "merge-base", "HEAD", "refs/remotes/origin/main")
-    if local is None or remote is None or local == remote:
-        return local or remote
+    if local is None or remote is None:
+        return None      # one ref cannot be resolved: cannot tell, so judge strictly
+    if local == remote:
+        return local
     if _is_ancestor(repo, local, remote):
         return remote
     if _is_ancestor(repo, remote, local):

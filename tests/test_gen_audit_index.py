@@ -432,6 +432,53 @@ def test_the_merge_base_is_unknown_when_there_is_no_main_to_compare_with(tmp_pat
     assert names_at_merge_base(repo, "docs/audits") is None
 
 
+def _one_commit_repo(tmp_path: Path) -> Path:
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/trunk")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    return repo
+
+
+def test_the_merge_base_is_unknown_when_only_local_main_resolves(tmp_path):
+    """One ref present, the other absent: cannot tell, so strict -- never the one that is there."""
+    repo = _one_commit_repo(tmp_path)
+    _git(repo, "update-ref", "refs/heads/main", "HEAD")
+    assert merge_base_with_main(repo) is None
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
+def test_the_merge_base_is_unknown_when_only_origin_main_resolves(tmp_path):
+    repo = _one_commit_repo(tmp_path)
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    assert merge_base_with_main(repo) is None
+    assert names_at_merge_base(repo, "docs/audits") is None
+
+
+def test_the_synthetic_main_drops_only_an_audit_its_own_tree_does_not_account_for(tmp_path):
+    """A lane that added two audits, one of which its README lists (a regenerated index) and one
+    of which nothing lists: only the second may be left out of the base."""
+    repo, audits = _repo_with_audits(tmp_path)
+    _git(repo, "symbolic-ref", "HEAD", "refs/heads/main")
+    _audit(audits, "2026-01-01-technical-a.md", "Audit A")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "A")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _git(repo, "checkout", "-q", "-b", "worktree-lane")
+    _audit(audits, "2026-02-02-technical-indexed.md", "Indexed")
+    _audit(audits, "2026-03-03-technical-unindexed.md", "Unindexed")
+    (audits / "README.md").write_text("- [2026-02-02](2026-02-02-technical-indexed.md) -- Indexed\n",
+                                      encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "lane")
+    ctx = BranchContexts(tmp_path / "ctx", source=repo)
+    kept = {p.name for p in (ctx.main() / "docs" / "audits").glob("*.md")}
+    assert "2026-02-02-technical-indexed.md" in kept, "left out an audit its own README lists"
+    assert "2026-03-03-technical-unindexed.md" not in kept
+    assert "2026-01-01-technical-a.md" in kept
+
+
 # --- the branch-context witnesses (B2-W1 W1-8) ---------------------------------------------
 # A lane that adds an audit is barred from regenerating the shared index (`[#590]`), so the
 # live tests above read stale on EVERY such lane and fresh on `main`. Each witness runs one of
