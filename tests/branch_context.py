@@ -64,16 +64,19 @@ def _write(root: Path, files: dict[str, str]) -> None:
 class BranchContexts:
     """One clone of the live repo's HEAD plus a bare `origin`, re-shaped on request."""
 
-    def __init__(self, root: Path, base: "str | None" = None) -> None:
+    def __init__(self, root: Path, base: "str | None" = None, source: "Path | None" = None) -> None:
         self.root = root
+        #: The repository this models: the live checkout, or a repo the caller built (a test of
+        #: the fixture itself hands it an integration-shaped one).
+        self.source = source or REPO
         #: The commit that is `main` in every shape: the live HEAD, or a commit the caller names
         #: (an ancestor of it) when the question is about what `main` carried earlier.
-        self.base = base or _git(REPO, "rev-parse", "HEAD")
+        self.base = base or _git(self.source, "rev-parse", "HEAD")
         self.origin = root / "origin.git"
         self.work = root / "work"
         hooks = root / "no-hooks"
         hooks.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "clone", "-q", "--bare", str(REPO), str(self.origin)],
+        subprocess.run(["git", "clone", "-q", "--bare", str(self.source), str(self.origin)],
                        check=True, capture_output=True, timeout=600)
         _git(self.origin, "update-ref", "refs/heads/main", self.base)
         _git(self.origin, "symbolic-ref", "HEAD", "refs/heads/main")
@@ -97,8 +100,8 @@ class BranchContexts:
         `docs/audits/` files added since the merge base; nothing else is touched, and on `main`
         (nothing added) the base stays HEAD.
         """
-        inherited = names_at_merge_base(REPO, "docs/audits")
-        listing = _git(REPO, "ls-tree", "-r", "--name-only", self.base, "--", "docs/audits", check=False)
+        inherited = names_at_merge_base(self.source, "docs/audits")
+        listing = _git(self.source, "ls-tree", "-r", "--name-only", self.base, "--", "docs/audits", check=False)
         added = [p for p in listing.splitlines()
                  if p and inherited is not None and p not in inherited and p != "docs/audits/README.md"]
         if not added:
@@ -143,6 +146,25 @@ class BranchContexts:
         _git(self.work, "commit", "-q", "-m", "lane: the lane's own work")
         if peer_files and not local_main_follows_origin:
             _git(self.work, "branch", "-q", "-f", "main", self.base)
+        return self.work
+
+    def integration(self, *, branch: str = "worktree-branch-context-probe",
+                    lane_files: "dict[str, str] | None" = None) -> Path:
+        """The shape the integrator pushes: HEAD is a `--no-ff` merge of a lane onto `origin/main`
+        with `docs/audits/README.md` regenerated IN the merge, so the index lists what the lane
+        added. HEAD == local `main`'s child; local `main` == `origin/main` is the merge's first parent.
+        """
+        self._reset()
+        _git(self.work, "checkout", "-q", "-b", branch, self.base)
+        _write(self.work, lane_files or _DEFAULT_LANE_FILES)
+        _git(self.work, "add", "-A")
+        _git(self.work, "commit", "-q", "-m", "lane: the lane's own work")
+        _git(self.work, "checkout", "-q", "-b", "integration", "main")
+        _git(self.work, "merge", "-q", "--no-ff", "--no-commit", branch)
+        subprocess.run([sys.executable, str(self.work / "scripts" / "gen_audit_index.py"), "--write"],
+                       cwd=str(self.work), check=True, capture_output=True, timeout=300)
+        _git(self.work, "add", "-A")
+        _git(self.work, "commit", "-q", "-m", f"Merge {branch} (the integrator indexes the audits in the merge)")
         return self.work
 
     # -- running ----------------------------------------------------------------------------------

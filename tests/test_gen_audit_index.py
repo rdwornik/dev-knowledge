@@ -9,7 +9,8 @@ import pytest
 
 
 import gen_audit_index as gai  # noqa: E402
-from branch_context import merge_base_with_main, names_at_merge_base, witness  # noqa: E402
+from branch_context import (BranchContexts, contexts, merge_base_with_main, names_at_merge_base,  # noqa: E402
+                            tail, witness)
 
 
 def _audit(d: Path, name: str, title: str | None = "T") -> None:
@@ -451,6 +452,31 @@ def test_live_index_excludes_nothing_on_a_lane_that_adds_an_audit(tmp_path_facto
             "tests/test_gen_audit_index.py::"
             "test_live_index_excludes_nothing_because_every_audit_is_tracked",
             lane_files=_LANE_AUDIT)
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_main_shaped_control_keeps_the_audit_an_integration_merge_indexed(tmp_path_factory):
+    """The integration shape (repair 1 of B2-W1 W1-8): HEAD is the `--no-ff` merge the integrator
+    pushes, with the README regenerated IN it, so the README lists the audit the branch added.
+
+    The control the witnesses run is a clone of that tree called `main`. If it drops the audit
+    the branch added, the README it keeps lists a file that is gone and the strict check reads it
+    as stale -- the four reds on the integration merge `1beec4c9` (CI run 37316982951). The audit
+    must stay, and the two live checks must pass in the control built from it.
+    """
+    probe = "docs/audits/2026-10-05-technical-lane-probe.md"
+    integration = contexts(tmp_path_factory).integration(lane_files=_LANE_AUDIT)
+    assert Path(integration / probe).is_file()
+    assert f"({probe.rsplit('/', 1)[-1]})" in (integration / "docs/audits/README.md").read_text(
+        encoding="utf-8"), "the integration shape must carry a README that indexes the audit"
+    inner = BranchContexts(tmp_path_factory.mktemp("integration-source"), source=integration)
+    control = inner.main()
+    assert (control / probe).is_file(), "the main-shaped control dropped an audit its README indexes"
+    done = inner.run_node(
+        control,
+        "tests/test_gen_audit_index.py::test_live_index_is_fresh",
+        "tests/test_gen_audit_index.py::test_live_index_excludes_nothing_because_every_audit_is_tracked")
+    assert done.returncode == 0, tail(done)
 
 
 def test_the_title_hook_is_armed_on_the_audits_tree_not_just_the_index():
