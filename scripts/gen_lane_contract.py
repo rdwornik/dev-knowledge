@@ -132,6 +132,7 @@ from gen_handoff import transport_root  # noqa: E402
 #: `transport.emit`, which runs `transport_lint` on a transport destination before it writes.
 #: Imported as the module (not by name) so a test patches `transport.emit` where it is called.
 import transport as _transport  # noqa: E402
+import transport_lint as _transport_lint  # noqa: E402
 #: `[#716]` — THE STEP-0 SYNC RETIRES ITSELF. `worktree_seed` is the repo's worktree-
 #: provisioning organ (live `graph_queries.py process-list`: "no trigger; ON-DEMAND-BY-OPERATOR,
 #: invoked by /lane-boot"), and `base_ref_verdict` is its answer to "does a lane dispatched now
@@ -972,9 +973,11 @@ def render_contract(spec: LaneSpec) -> str:
     if spec.shape == "local":
         parts.append(
             f"**The operator does NOT type the line above.** He types\n"
-            f"`{launch_command(fname, 'local')}` **from the target repo root**, or\n"
-            f"`dispatch {fname}`, the hub shim over the same command (PLAYBOOK Ch8's dispatch\n"
-            f"table, the sole literal-command site). The launcher reads this `## Dispatch`\n"
+            f"`dispatch {fname}` **from the target repo root** — the hub shim over\n"
+            f"`scripts/dispatch.py launch`, which runs the hub's launcher without changing\n"
+            f"directory (PLAYBOOK Ch8's dispatch table, the sole literal-command site). From\n"
+            f"the hub checkout itself, `{launch_command(fname, 'local')}`\n"
+            f"is the same act typed in full. The launcher reads this `## Dispatch`\n"
             f"block for its fields — model, effort, worktree, permission mode — and builds the\n"
             f"session's own argv; it never runs the block. The `{READER_PROMPTS_DIR_TOKEN}`\n"
             f"token is how a frozen contract names its own location without hard-coding an\n"
@@ -1756,6 +1759,14 @@ def _write_contract(target: Path, text: str) -> None:
     """The one place this module writes a contract: `transport.emit` lints a destination inside
     the transport before a byte lands (LANE-B2-W1-b2-transport-lint) and writes an operator's
     scratch `--out-dir` plainly. A refusal is a `ClickException` carrying the lint's findings."""
+    # The lint runs HERE, whatever the destination: `emit` writes a scratch `--out-dir` plainly, and
+    # a contract that fails the lint is no better for landing outside the transport (it is the file
+    # an operator later copies in). `emit` then re-checks the registered kind, writer and folder.
+    findings = _transport_lint.lint_text(target.name, _transport._folder_of(target), text)
+    if findings:
+        raise click.ClickException(
+            f"{target.name!r} fails the transport lint: "
+            + "; ".join(f"{f.code} ({f.reason})" for f in findings))
     try:
         _transport.emit("gen_lane_contract", target, text)
     except _transport.TransportWriteRefused as exc:

@@ -1722,6 +1722,32 @@ def test_a_contract_the_lint_refuses_is_not_written(tmp_path, monkeypatch):
     assert not (prompts / glc.contract_filename("lane-x-920-refused")).exists()
 
 
+def test_a_scratch_out_dir_does_not_bypass_the_lint(tmp_path, monkeypatch):
+    """Codex terra P1: `transport.emit` writes a destination outside the transport plainly, so an
+    operator's `--out-dir` would persist a contract the lint refuses at the transport root."""
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    scratch = tmp_path / "scratch"
+    _transport_at(monkeypatch, prompts)
+    monkeypatch.chdir(tmp_path)
+    real = glc.render_contract
+    monkeypatch.setattr(glc, "render_contract", lambda spec: real(spec).replace("Close-out", "Wrap-up"))
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-x-920-scratch", "--purpose", "lint refusal",
+        "--out-dir", str(scratch)])
+    assert result.exit_code != 0
+    assert "lane-contract-no-r59-proof" in result.output, result.output
+    assert not (scratch / glc.contract_filename("lane-x-920-scratch")).exists()
+
+
+def test_the_contract_tells_the_operator_to_type_the_shim_from_the_target_repo_root():
+    """Codex terra P1: the relative `scripts/dispatch.py` line only resolves in the hub checkout, so
+    the target-repo-root instruction names the shim and the typed-in-full line says where it runs."""
+    text = " ".join(glc.render_contract(_spec(shape="local")).split())
+    assert "`dispatch LANE-a-539-ch8-codification.md` **from the target repo root**" in text
+    assert "From the hub checkout itself" in text
+
+
 def test_a_contract_the_lint_passes_is_written_through_the_transport_emit(tmp_path, monkeypatch):
     prompts = tmp_path / "prompts-root"
     prompts.mkdir()

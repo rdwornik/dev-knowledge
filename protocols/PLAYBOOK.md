@@ -2900,9 +2900,9 @@ contract's `Substrate` field and cannot route, so today the substrate is chosen 
 operator types** (`dispatch` for local; `Dispatch-Cloud` / `Dispatch-Codespace` until their lanes
 land in the hub) and a contract's `Substrate:` line is **documentation only** until the Layer-3
 router lands. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
-PATH command, runs `scripts/dispatch.py launch`, and `uv run --locked python scripts/dispatch.py
-launch <contract.md>` is the same act typed in full and the manual fallback; the generator emits
-that line for a local contract. Until 2026-10-05 the PATH verb resolved to win-tooling's
+PATH command, runs `scripts/dispatch.py launch` from whichever repo root it is typed in, and `uv run
+--locked python scripts/dispatch.py launch <contract.md>` is the same act typed in full from the hub
+checkout and the manual fallback; the generator emits that line for a local contract. Until 2026-10-05 the PATH verb resolved to win-tooling's
 `Invoke-Dispatch.ps1`; the operator's order of 2026-10-04 is that the harness owns local dispatch,
 so win-tooling's `Dispatch-Local` (née `Dispatch-Lane`) is no longer the documented fallback.
 Substrate-named verbs are canonical; version-named ones
