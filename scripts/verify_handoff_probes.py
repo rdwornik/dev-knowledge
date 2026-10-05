@@ -1434,8 +1434,11 @@ def _rule_committed_state(state_fn):
     return rule
 
 
+#: The WHOLE cell, anchored (`fullmatch`): no content may sit between the count/digest and the
+#: evidence tail. The tail's literal is `handoff_state.TRANSPORT_REGISTRY_REL` (asserted by a test).
 _TRANSPORT_VALUE_RE = re.compile(
-    r"(\d+) kind\(s\) registered(?:, names-digest ([0-9a-f]{12}))? —")
+    r"(\d+) kind\(s\) registered(?:, names-digest ([0-9a-f]{12}))?"
+    r" — evidence: ecosystem/transport-registry\.yaml \[SLOW\]")
 
 
 def _transport_snapshot(ctx: _BootCtx, hs) -> "list[str] | None":
@@ -1490,17 +1493,11 @@ def _rule_transport(value: str, ctx: _BootCtx) -> tuple[str, str]:
     except ImportError:
         return "skipped", "handoff_state not importable"
     value = value.strip()
-    try:
-        fresh = _hs.row_transport(ctx.repo_root).rendered()
-    except Exception as exc:            # noqa: BLE001 -- a reader's own failure is reported
-        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
-    if value == fresh.strip():           # the cut-time reading, re-derived: same as before this lane
-        return "pass", f"matches live re-derivation: {fresh}"
-    m = _TRANSPORT_VALUE_RE.match(value)
-    tail = f"— evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]"
-    if m is None or not value.endswith(tail):
+    m = _TRANSPORT_VALUE_RE.fullmatch(value)
+    if m is None:
         return "fail", (f"cut recorded {value!r}, which is not `<n> kind(s) registered"
-                        f"[, names-digest <12 hex>] {tail}`")
+                        f"[, names-digest <12 hex>] — evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]` "
+                        f"(a degraded `unavailable` reading is not a transport fact)")
     recorded_count, recorded_digest = int(m.group(1)), m.group(2)
     try:
         live = _hs.transport_kind_names(

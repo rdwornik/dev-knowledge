@@ -2489,6 +2489,11 @@ def test_a_well_formed_boot_data_block_passes_every_row(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     bundle = _boot_bundle(tmp_path)
     repo_root = bundle.parents[2]
+    # B2-W1 W1-11: a recorded `unavailable` Transport reading is no longer a pass (it is not a
+    # transport fact), so this well-formed block carries a real registry to read.
+    (repo_root / "ecosystem").mkdir(exist_ok=True)
+    (repo_root / "ecosystem" / "transport-registry.yaml").write_text(
+        _registry_yaml(_names(3)), encoding="utf-8")
     import gen_handoff as gh  # noqa: PLC0415
     # The transport the verifier will resolve (the unset variable falls back to ~/Downloads on a
     # box that has one): the Decisions row counts files there, so writing it against None would
@@ -2780,6 +2785,30 @@ def test_a_tampered_or_unparseable_transport_value_still_fails(tmp_path):
     repo = _transport_repo(tmp_path, _names(3))
     assert _transport_rule("TAMPERED-VALUE", repo)[0] == "fail"
     assert _transport_rule("", repo)[0] == "fail"
+
+
+def test_a_forged_or_degraded_transport_value_cannot_reach_the_count_floor(tmp_path):
+    """Codex HIGH 2: the whole cell is parsed, so content wedged between the count and the
+    evidence tail is a tamper, not a legacy row. Codex HIGH 1: a recorded `unavailable` reading
+    is not a transport fact, so it fails even over a registry that is itself unreadable."""
+    repo = _transport_repo(tmp_path / "ok", _names(110))
+    forged = f"106 kind(s) registered — forged text — evidence: {_TRANSPORT_EVIDENCE} [SLOW]"
+    assert _transport_rule(forged, repo)[0] == "fail"
+    assert _transport_rule(forged.replace("— forged text ", ""), repo)[0] == "pass"
+    junk_digest = f"106 kind(s) registered, names-digest nothex — evidence: {_TRANSPORT_EVIDENCE} [SLOW]"
+    assert _transport_rule(junk_digest, repo)[0] == "fail"
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    degraded = hs.row_transport(empty).rendered()
+    assert degraded.startswith("unavailable")
+    assert _transport_rule(degraded, empty)[0] == "fail"
+    assert _transport_rule(degraded, repo)[0] == "fail"
+
+
+def test_the_transport_value_grammar_names_the_registry_the_row_reads():
+    assert _TRANSPORT_EVIDENCE == hs.TRANSPORT_REGISTRY_REL
+    assert vhp._TRANSPORT_VALUE_RE.fullmatch(hs.row_transport(
+        Path(aud._REPO_ROOT)).rendered()), "the live row must satisfy the verifier's grammar"
 
 
 def test_an_unreadable_live_registry_fails_rather_than_passing_a_row(tmp_path):
