@@ -22,6 +22,17 @@ NEVER BLOCKS THE SESSION (DECLARE-NIGHT N3). The hook returns 0 on every path: a
 `exit_code` is non-zero, never exit code 2 (a Stop hook's "block and continue"), never a `decision` on
 stdout. Nothing is killed or truncated: the worker has no deadline.
 
+THE WAKE (LANE-B2-W1-b2-integrator-liveness, batch B2-W1). FOUNDATION's integrator learnt of a handback from
+a 10-minute cron, so every handback waited 1-2 minutes for pickup. This guard already is the event, so the
+worker's first act, before it runs the moment, is a wake file `WAKE-<lane>-<key>.json` in the R17 private
+home (`platformdirs.user_state_dir`, `ecosystem/fleet-shape-spec.yaml` `private:`) -- never the repository, never
+the transport: both seats run on one machine, and a transport file would need its own registry kind and ride
+Drive sync. `lane_end_guard.py watch` is what the integrator's Monitor runs: it prints one `WAKE <lane>
+<closing line>` per new wake file and blocks. A wake that cannot be written is a stderr line, never a lost
+moment and never a blocked session. Prior art: `merge_path.py` / `quota_watch.py` own the same state-directory
+convention (`platformdirs`, already a dependency); a file-per-event directory read by polling needs no
+watcher library and behaves the same on Windows and Linux.
+
 FLOOR: hub-only. One-line reason: it reads the operator's transport drive and the hub's harness, neither
 of which a consumer repo carries.
 """
@@ -54,6 +65,12 @@ _IS_NT = os.name == "nt"
 HANDBACK_PATTERN = re.compile(r'^HANDBACK\s+\S+\s+@\s+\S+', re.MULTILINE)
 RECEIPT_NAME = "MOMENT-LANE-END-HOOK.json"
 OUTPUT_NAME = "MOMENT-LANE-END-HOOK-OUTPUT.txt"
+
+# The integrator wake (see the docstring): a file per closing line in the R17 private home.
+WAKE_PREFIX = "WAKE-"
+WAKE_DIR_NAME = "integrator-wake"
+WATCH_POLL_S = 2.0       # the Monitor sees a wake within one poll of its being written
+_STATE_APP_NAME = "dev-knowledge"   # the same per-user state directory `merge_path.py` and `quota_watch.py` use
 
 # Windows creation flags: no console window (the organs' children must not each open one), its own process
 # group, and out of the hook's job object so the worker outlives the hook that started it.
@@ -225,11 +242,91 @@ def _reap_abandoned(receipt_path: Path, handback: str, lane: str) -> None:
             int(current.get("guard_ms") or 0), detached=bool(current.get("detached", True))))
 
 
-def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], MomentResult]) -> None:
+def wake_dir(environ: Mapping[str, str]) -> Path:
+    """The integrator wake home: `HARNESS_WAKE_DIR` (tests, a second operator), else a directory in the per-user
+    OS state directory. `platformdirs` is imported here, not at module top: the skip path stays stdlib-only."""
+    override = environ.get("HARNESS_WAKE_DIR")
+    if override:
+        return Path(override)
+    import platformdirs  # noqa: PLC0415 -- only a closing line, or a watch, needs the home
+    return Path(platformdirs.user_state_dir(_STATE_APP_NAME, appauthor=False)) / WAKE_DIR_NAME
+
+
+def write_wake(home: Path, lane: str, handback: str) -> Path:
+    """Leave one wake file for one closing line (atomic: a watcher never reads half of it). Idempotent per line."""
+    key = handback_key(handback)
+    branch, sha, cls = _parse_handback(handback)
+    path = home / f"{WAKE_PREFIX}{lane}-{key}.json"
+    home.mkdir(parents=True, exist_ok=True)
+    tmp = home / f".{path.name}.tmp"
+    tmp.write_text(json.dumps({"schema": 1, "lane": lane, "key": key, "handback": handback,
+                               "handback_branch": branch, "handback_sha": sha, "handback_class": cls,
+                               "written_at": _stamp()}, indent=2, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, path)
+    return path
+
+
+def watch_wakes(home: Path, since: float, poll_s: float = WATCH_POLL_S, max_wait_s: Optional[float] = None,
+                emit: Optional[Callable[[str], None]] = None, sleep: Callable[[float], None] = time.sleep,
+                now: Callable[[], float] = time.monotonic) -> int:
+    """Block, and emit one `WAKE <lane> <closing line>` per wake file written at or after `since` (epoch s), once
+    each. This is the line a Monitor turns into a notification. Returns 0 when `max_wait_s` runs out (None: never)."""
+    emit = emit or (lambda line: print(line, flush=True))
+    seen: set[str] = set()
+    started = now()
+    while True:
+        for path in sorted(home.glob(f"{WAKE_PREFIX}*.json")):
+            if path.name in seen:
+                continue
+            try:
+                fresh = path.stat().st_mtime >= since
+            except OSError:
+                continue
+            wake = _read_receipt(path) if fresh else {}
+            if fresh and not (wake.get("lane") and wake.get("handback")):
+                continue   # not readable yet: look again next poll rather than report a blank
+            seen.add(path.name)
+            if fresh:
+                emit(f"WAKE {wake['lane']} {wake['handback']}")
+        if max_wait_s is not None and now() - started >= max_wait_s:
+            return 0
+        sleep(poll_s)
+
+
+def _watch_cli(args: list[str], environ: Mapping[str, str]) -> int:
+    """`lane_end_guard.py watch`: the integrator's Monitor command. Exit 0; it ends only when told to."""
+    import argparse  # noqa: PLC0415 -- only the watch needs a parser; the hook path parses by hand
+    parser = argparse.ArgumentParser(prog="lane_end_guard.py watch", description=(
+        "Print one line per new lane handback wake, and block. A Monitor consumes the lines."))
+    parser.add_argument("--wake-dir", default=None, help="the wake home (default: the per-user state directory)")
+    parser.add_argument("--since", default="now", help="report wakes written since: now (default), 30m, 2h, 1d or an ISO time")
+    parser.add_argument("--poll", type=float, default=WATCH_POLL_S, help="seconds between scans (default 2)")
+    parser.add_argument("--max-wait", type=float, default=None, help="exit 0 after this many seconds (default: never)")
+    ns = parser.parse_args(args)
+    home = Path(ns.wake_dir) if ns.wake_dir else wake_dir(environ)
+    if ns.since == "now":
+        since = time.time()
+    else:
+        import transport_lint  # noqa: PLC0415 -- its own `--since` grammar, one reader
+        since = transport_lint.parse_since(ns.since)
+    try:
+        return watch_wakes(home, since, poll_s=ns.poll, max_wait_s=ns.max_wait)
+    except (KeyboardInterrupt, BrokenPipeError):
+        return 0
+
+
+def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], MomentResult],
+            wake_env: Optional[Mapping[str, str]] = None) -> None:
     """Run the moment and replace the claim with the final receipt. Never raises. A worker whose claim was taken
-    over by a newer closing line while it ran leaves the receipt to that line's worker."""
+    over by a newer closing line while it ran leaves the receipt to that line's worker. The wake is left FIRST: the
+    moment is minutes long and the integrator should not wait for it."""
     handback, guard_ms = claim.get("handback"), int(claim.get("guard_ms") or 0)
     detached = bool(claim.get("detached", True))
+    if handback:
+        try:
+            write_wake(wake_dir(wake_env if wake_env is not None else os.environ), lane, str(handback))
+        except BaseException as exc:  # noqa: BLE001 -- a lost wake is a stderr line; the moment still runs
+            print(f"lane_end_guard: wake not written -- {type(exc).__name__}: {exc}", file=sys.stderr)
     try:
         result = run()
         final = _receipt(lane, "ok" if result.exit_code == 0 else "FAILED", result.exit_code, handback,
@@ -255,6 +352,8 @@ def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.en
 
     `detach=False` runs the moment in this process (tests, manual runs); the CLI entry passes True."""
     args = list(sys.argv[1:] if argv is None else argv)
+    if args[:1] == ["watch"]:   # the integrator's Monitor command; the hook's own flags are untouched
+        return _watch_cli(args[1:], environ)
     worker = "--worker" in args
     receipts = Path(environ.get("HARNESS_RECEIPTS_DIR") or root / "logs" / "receipts")
     receipt_path = receipts / RECEIPT_NAME
@@ -274,7 +373,8 @@ def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.en
             key = args[args.index("--key") + 1] if "--key" in args else None
             owned = key is None or handback_key(str(claim.get("handback"))) == key   # the claim this worker was born for
             if claim.get("status") == "running" and owned:
-                _finish(receipt_path, claim, lane, lambda: run(argv_moment, root, receipts / OUTPUT_NAME))
+                _finish(receipt_path, claim, lane, lambda: run(argv_moment, root, receipts / OUTPUT_NAME),
+                        wake_env=environ)
             return 0
         session = environ.get("HARNESS_SESSION_FILE")
         if not session:
@@ -302,7 +402,8 @@ def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.en
         _write_atomic(receipt_path, claim_receipt)   # replaces the receipt of any earlier closing line
         child_env["HARNESS_SESSION_FILE"] = session
         if not detach:
-            _finish(receipt_path, asdict(claim_receipt), lane, lambda: run(argv_moment, root, receipts / OUTPUT_NAME))
+            _finish(receipt_path, asdict(claim_receipt), lane, lambda: run(argv_moment, root, receipts / OUTPUT_NAME),
+                    wake_env=environ)
             return 0
         worker_argv = [sys.executable, str(Path(__file__).resolve()), "--worker", "--key", key]
         if moment_argv:
