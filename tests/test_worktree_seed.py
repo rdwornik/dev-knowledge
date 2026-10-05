@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- the dispatch-base fixture legs and lane-shape witness added here are claimed under [#1101].
 """[#429] leg (a) — the fleet worktree seed manifest, stated once in the hub.
 
 WHAT THESE PIN, and why each is a defect waiting rather than a coverage box:

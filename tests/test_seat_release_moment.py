@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- the journal pin and lane-shape witness added here are claimed under [#1101].
 """LANE-5B5-2 (B1): `moment:seat-release` -- a single refusing transaction over a released
 handoff bundle (PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2 rule 1). It refuses to
 publish unless the outgoing notes (SUPPLEMENT.md), the generated bundle (HANDOFF_BOOT.md), the

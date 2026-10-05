@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- related rows: [#1101], [#912], [#590] (the lane contract names them; none is closed here).
 """Branch-context fixtures: a repository whose HEAD and `main` THIS module sets (B2-W1 W1-8).
 
 WHY THIS EXISTS. A test that reads the live checkout answers for whichever branch CI happens to

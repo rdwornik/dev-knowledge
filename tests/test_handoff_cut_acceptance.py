@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- the journal pin and lane-shape witness added here are claimed under [#1101].
 """Step 1 (the Done-when, R44/R45): the real cut path, dry-cut / no-commit mode, against the
 live hub tree, gated on the ADR-129 handoff organ set.
 
