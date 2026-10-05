@@ -1,6 +1,6 @@
 # Codex review of `worktree-b2-codespace-green` — two P1 findings, both open (2026-10-05)
 
-Consumer and contract: `LANE-B2-W1-b2-codespace-green` (batch B2-W1, lane W1-12), read by the close-out-only repair `LANE-B2-W1-b2-codespace-green-repair-1` (seat ruling A). This is the review record common rules §2 (e) asks for. The run record it pairs with is `docs/audits/2026-10-05-technical-codespace-green-run.md`.
+Consumer and contract: row [#1335] and `LANE-B2-W1-b2-codespace-green` (batch B2-W1, lane W1-12), read by the close-out-only repair `LANE-B2-W1-b2-codespace-green-repair-1` (seat ruling A). This is the review record common rules §2 (e) asks for. The run record it pairs with is `docs/audits/2026-10-05-technical-codespace-green-run.md`.
 
 ## What was read, and by what
 
