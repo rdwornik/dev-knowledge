@@ -468,13 +468,16 @@ def test_the_synthetic_main_drops_only_an_audit_its_own_tree_does_not_account_fo
     _git(repo, "checkout", "-q", "-b", "worktree-lane")
     _audit(audits, "2026-02-02-technical-indexed.md", "Indexed")
     _audit(audits, "2026-03-03-technical-unindexed.md", "Unindexed")
-    (audits / "README.md").write_text("- [2026-02-02](2026-02-02-technical-indexed.md) -- Indexed\n",
+    _audit(audits, "2026-02-03 spaced name.md", "Spaced")
+    (audits / "README.md").write_text("- [2026-02-02](2026-02-02-technical-indexed.md) -- Indexed\n"
+                                      "- [2026-02-03](2026-02-03 spaced name.md) -- Spaced\n",
                                       encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "lane")
     ctx = BranchContexts(tmp_path / "ctx", source=repo)
     kept = {p.name for p in (ctx.main() / "docs" / "audits").glob("*.md")}
     assert "2026-02-02-technical-indexed.md" in kept, "left out an audit its own README lists"
+    assert "2026-02-03 spaced name.md" in kept, "left out an indexed audit whose name has a space"
     assert "2026-03-03-technical-unindexed.md" not in kept
     assert "2026-01-01-technical-a.md" in kept
 

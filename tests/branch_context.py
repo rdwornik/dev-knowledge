@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -107,10 +106,10 @@ class BranchContexts:
         """
         inherited = names_at_merge_base(self.source, "docs/audits")
         listing = _git(self.source, "ls-tree", "-r", "--name-only", self.base, "--", "docs/audits", check=False)
-        accounted = self._accounted_for()
+        readme, baselined = self._accounted_for()
         added = [p for p in listing.splitlines()
                  if p and inherited is not None and p not in inherited and p != "docs/audits/README.md"
-                 and p.rsplit("/", 1)[-1] not in accounted]
+                 and f"({p.rsplit('/', 1)[-1]})" not in readme and p.rsplit("/", 1)[-1] not in baselined]
         if not added:
             return
         _git(self.work, "checkout", "-q", "-f", "-B", "main", self.base)
@@ -119,18 +118,20 @@ class BranchContexts:
         self.base = _git(self.work, "rev-parse", "HEAD")
         _git(self.work, "push", "-q", "-f", "origin", f"{self.base}:refs/heads/main")
 
-    def _accounted_for(self) -> frozenset:
-        """Audit file names the base tree's own README indexes or its consumer baseline names."""
-        names: set = set()
+    def _accounted_for(self) -> "tuple[str, frozenset]":
+        """The base tree's README text, and the audit file names its consumer baseline names.
+
+        The README is matched by the exact link target `(<file name>)` the generator writes, so a
+        name with a space or any other character is matched as it is, not as a pattern guesses it.
+        """
         readme = _git(self.source, "show", f"{self.base}:docs/audits/README.md", check=False)
-        names.update(m for m in re.findall(r"\(([^()\s/]+\.md)\)", readme))
         relpath = "ecosystem/audit-consumer-baseline.json"
         try:
             data = json.loads(_git(self.source, "show", f"{self.base}:{relpath}", check=False) or "{}")
-            names.update(name for name in data.get("artifacts", []) if isinstance(name, str))
+            baselined = frozenset(n for n in data.get("artifacts", []) if isinstance(n, str))
         except ValueError:
-            pass
-        return frozenset(names)
+            baselined = frozenset()
+        return readme, baselined
 
     # -- shapes -----------------------------------------------------------------------------------
 
