@@ -59,8 +59,10 @@ class _Runner:
 def lane(tmp_path: Path) -> dict:
     session = tmp_path / "SESSION-lane-end-hook.md"
     receipts = tmp_path / "receipts"
-    env = {"HARNESS_LANE": LANE, "HARNESS_SESSION_FILE": str(session), "HARNESS_RECEIPTS_DIR": str(receipts)}
-    return {"session": session, "receipts": receipts, "env": env, "root": tmp_path}
+    wakes = tmp_path / "wakes"   # the integrator wake home: a test never writes the operator's own state directory
+    env = {"HARNESS_LANE": LANE, "HARNESS_SESSION_FILE": str(session), "HARNESS_RECEIPTS_DIR": str(receipts),
+           "HARNESS_WAKE_DIR": str(wakes)}
+    return {"session": session, "receipts": receipts, "env": env, "root": tmp_path, "wakes": wakes}
 
 
 def _receipt(lane: dict) -> dict | None:
@@ -515,7 +517,7 @@ def test_the_guard_finds_the_session_file_by_worktree_slug(tmp_path):
 
     (tmp_path / "to-browser").mkdir()
     (tmp_path / "to-browser" / "SESSION-lane-my-slug.md").write_text(HANDBACK + "\n", encoding="utf-8")
-    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts")}
+    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts"), "HARNESS_WAKE_DIR": str(tmp_path / "wakes")}
     assert g.main([], environ=env, runner=_Runner(), root=root,
                  resolve_transport=fake_resolve_transport) == 0
     assert calls, "the guard resolved the session file through the transport, by the worktree slug"
@@ -550,3 +552,367 @@ def test_the_terminal_receipt_is_always_ok_or_failed_never_running(lane):
     os.utime(receipt_path, (stale, stale))
     assert g.main([], environ=lane["env"], runner=_Runner(), root=lane["root"]) == 0
     assert _receipt(lane)["status"] != "running"
+
+
+# --- LANE-B2-W1-b2-integrator-liveness: a handback wakes the integrator (Done-contract 1) -------------------
+#
+# FOUNDATION's integrator learnt of a handback from a 10-minute cron, so every one waited 1-2 minutes for
+# pickup. The guard already is the event: it fires the moment a lane's closing HANDBACK line lands. These
+# tests hold the wake it now leaves (a file in the R17 private home, never the repository or the
+# transport) and the `watch` command a Monitor consumes (one line per new wake file, blocking).
+
+WAKE_WITHIN_S = 30
+
+
+def _wakes(lane: dict) -> list[Path]:
+    return sorted(lane["wakes"].glob("WAKE-*.json")) if lane["wakes"].is_dir() else []
+
+
+def test_a_handback_writes_a_wake_file_naming_the_lane_and_the_closing_line(lane):
+    lane["session"].write_text(f"# SESSION\n\nwork\n\n{HANDBACK}\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    files = _wakes(lane)
+    assert len(files) == 1, "one closing line, one wake file"
+    wake = json.loads(files[0].read_text(encoding="utf-8"))
+    assert wake["lane"] == LANE and wake["handback"] == HANDBACK
+    assert wake["key"] == _guard().handback_key(HANDBACK)
+    assert wake["handback_branch"] == "worktree-lane-end-hook" and wake["handback_sha"] == "abc1234"
+
+
+def test_no_handback_line_writes_no_wake(lane):
+    lane["session"].write_text("# SESSION\n\nstill working\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert _wakes(lane) == [] and not lane["wakes"].exists()
+
+
+def test_the_wake_is_written_before_the_moment_runs_so_a_slow_moment_cannot_delay_it(lane):
+    """The moment is five organ launches -- minutes. The integrator should not wait for it."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    seen: list[int] = []
+
+    def runner(argv, cwd, log):
+        seen.append(len(_wakes(lane)))
+        return _guard().MomentResult(exit_code=0, duration_ms=1)
+
+    assert _run(lane, runner) == 0
+    assert seen == [1], "the wake file was already there when the moment started"
+
+
+def test_a_failed_moment_still_leaves_its_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner(exit_code=3)) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_second_turn_end_on_the_same_closing_line_writes_no_second_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    runner = _Runner()
+    for _ in range(3):
+        assert _run(lane, runner) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_new_closing_line_is_a_new_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    lane["session"].write_text(HANDBACK + "\nHANDBACK worktree-lane-end-hook @ def5678 code\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert len(_wakes(lane)) == 2
+
+
+def test_the_detached_worker_writes_the_wake_too(lane):
+    """The hook path only claims and spawns; the wake is the worker's, written before its moment."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    spawned: list = []
+    assert _guard().main([], environ=lane["env"], runner=_Runner(), root=lane["root"], detach=True,
+                         spawner=lambda argv, cwd, env: spawned.append(argv)) == 0
+    assert len(spawned) == 1 and _wakes(lane) == [], "the hook path itself writes no wake"
+    assert _guard().main(["--worker"], environ=lane["env"], runner=_Runner(), root=lane["root"]) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_wake_that_cannot_be_written_is_not_a_blocked_session_and_not_a_lost_moment(lane, capsys):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    runner = _Runner()
+    assert _run(lane, runner) == 0
+    assert len(runner.calls) == 1, "the moment still runs"
+    assert _receipt(lane)["status"] == "ok"
+    assert capsys.readouterr().out == ""
+
+
+def test_a_lost_wake_is_named_in_the_receipt_not_only_on_stderr(lane):
+    """Codex terra P1 (review of this lane): a wake-write failure was a stderr line nobody reads. The
+    receipt is what the integrator and the moment read, and the cron fallback is the cover -- so the loss is
+    written where it can be found. The moment's own result is untouched: status stays ok, exit_code 0."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    _guard().fallback_home(lane["wakes"]).write_text("and another where the fallback should be", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    rec = _receipt(lane)
+    assert rec["status"] == "ok" and rec["exit_code"] == 0
+    assert "wake not written" in rec["reason"]
+
+
+@pytest.mark.parametrize("runner", [_Runner(exit_code=3), _Runner(raises=RuntimeError("boom"))])
+def test_a_failed_moment_does_not_hide_a_lost_wake_in_the_receipt(lane, runner):
+    """Codex terra P1, round 4: the moment's own failure reason replaced the wake note, so a lost wake behind a
+    failed moment could not be found in the receipt."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    lane["wakes"].write_text("a file", encoding="utf-8")
+    _guard().fallback_home(lane["wakes"]).write_text("a file", encoding="utf-8")
+    assert _run(lane, runner) == 0
+    rec = _receipt(lane)
+    assert rec["status"] == "FAILED" and rec["exit_code"] != 0
+    assert "wake not written" in rec["reason"]
+    assert ("the moment exited 3" in rec["reason"]) or ("RuntimeError: boom" in rec["reason"])
+
+
+def test_an_unusable_wake_home_falls_back_to_its_private_sibling_and_the_watch_reads_both(lane):
+    """Codex terra P1, round 3: the home can be replaced by a file or denied by an ACL while a sibling under the
+    same per-user state directory stays writable. The wake goes there, the receipt says so, the watch reads both."""
+    g = _guard()
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    fallback = g.fallback_home(lane["wakes"])
+    assert len(list(fallback.glob("WAKE-*.json"))) == 1
+    rec = _receipt(lane)
+    assert rec["status"] == "ok" and "fallback" in rec["reason"] and "wake not written" not in rec["reason"]
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == [f"WAKE {LANE} {HANDBACK}"]
+
+
+def test_the_fallback_home_is_a_sibling_so_it_is_as_private_as_the_home(tmp_path):
+    g = _guard()
+    home = tmp_path / "integrator-wake"
+    assert g.fallback_home(home) == tmp_path / "integrator-wake-fallback" and g.fallback_home(home).parent == home.parent
+
+
+def test_the_first_start_does_not_record_a_wake_it_could_not_stat(lane, monkeypatch):
+    """Codex terra P1, round 3: a scanner can deny a new file's metadata for a moment. The first start recorded
+    such a wake as seen, and it was invisible for good. An unreadable wake is left for the polling loop."""
+    g = _guard()
+    wake = g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
+    real_stat = Path.stat
+    denied = {"on": True}
+
+    def flaky(self, *args, **kwargs):
+        if denied["on"] and self.name.startswith("WAKE-"):
+            raise PermissionError("held by a scanner")
+        return real_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", flaky)
+    ledger = _ledger(lane)
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"], "reported by the loop, not swallowed at init"
+    assert ledger.read_text(encoding="utf-8").split() == [wake.name]
+    denied["on"] = False
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert len(seen) == 1, "and reported once"
+
+
+def test_a_transient_wake_write_failure_is_retried(lane, monkeypatch):
+    g = _guard()
+    real = g.os.replace
+    calls = {"n": 0}
+
+    def flaky(src, dst):
+        if Path(dst).name.startswith("WAKE-"):   # the receipt's own atomic writes go through untouched
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise PermissionError("the file is held by another process")
+        return real(src, dst)
+
+    monkeypatch.setattr(g.os, "replace", flaky)
+    monkeypatch.setattr(g.time, "sleep", lambda s: None)
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert len(_wakes(lane)) == 1 and _receipt(lane)["reason"] == ""
+
+
+def test_a_wake_home_inside_this_repository_is_refused(lane):
+    """Codex terra P1: `HARNESS_WAKE_DIR` was an arbitrary path, so a hook environment could aim the wake at
+    the repository. The private home is the contract; an override outside it is refused, nothing written."""
+    g = _guard()
+    inside = _REPO / "logs" / "receipts" / "wake-should-never-exist"
+    with pytest.raises(ValueError, match="inside"):
+        g.wake_dir({"HARNESS_WAKE_DIR": str(inside)})
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    env = {**lane["env"], "HARNESS_WAKE_DIR": str(inside)}
+    assert g.main([], environ=env, runner=_Runner(), root=lane["root"]) == 0
+    assert not inside.exists(), "nothing was written into the repository"
+    assert "wake not written" in _receipt(lane)["reason"]
+
+
+def test_a_wake_home_inside_the_primary_checkout_or_the_transport_is_refused(tmp_path):
+    g = _guard()
+    transport = tmp_path / "prompts"
+    with pytest.raises(ValueError, match="transport"):
+        g.wake_dir({"HARNESS_WAKE_DIR": str(transport / "to-browser"), "CLAUDE_PROMPTS_DIR": str(transport)})
+    # a worktree lives under <primary>/.claude/worktrees/<slug>; the whole primary is the repository
+    primary = tmp_path / "primary"
+    worktree = primary / ".claude" / "worktrees" / "some-lane"
+    with pytest.raises(ValueError, match="inside"):
+        g.wake_dir({"HARNESS_WAKE_DIR": str(primary / "logs" / "w")}, root=worktree)
+    assert g.wake_dir({"HARNESS_WAKE_DIR": str(tmp_path / "elsewhere")}, root=worktree) == tmp_path / "elsewhere"
+
+
+def _ledger(lane: dict) -> Path:
+    """The watch's cursor: a file BESIDE the wake home, so a home that is itself broken cannot take it down."""
+    return lane["wakes"].with_name(lane["wakes"].name + _guard().WATCH_LEDGER_SUFFIX)
+
+
+def test_the_watch_runs_when_the_wake_home_is_replaced_by_a_file(lane):
+    g = _guard()
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")   # lands in the fallback home
+    seen: list[str] = []
+    assert g.watch_wakes(lane["wakes"], ledger=_ledger(lane), poll_s=0, max_wait_s=0, emit=seen.append) == 0
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"]
+
+
+def test_a_restarted_watch_reports_a_wake_that_landed_while_no_monitor_ran(lane):
+    """Codex terra P1: the default `since=now` dropped a wake written just before the Monitor started (a
+    restart, or the successor seat's start). The ledger is the cursor: wakes already reported are not
+    reported again, wakes not yet reported are, whenever they landed."""
+    g = _guard()
+    ledger = _ledger(lane)
+    first = g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"], (
+        "Codex terra P1, round 2: the FIRST start reports a recent wake too -- the template has no separate initial scan")
+    assert first.name in ledger.read_text(encoding="utf-8")
+    seen.clear()
+    g.write_wake(lane["wakes"], "lane-b", "HANDBACK worktree-b @ bbbbbbb code")   # no Monitor is running
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-b HANDBACK worktree-b @ bbbbbbb code"]
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert len(seen) == 1, "a third start reports nothing twice"
+
+
+def test_the_first_start_reports_recent_wakes_and_only_records_the_old_ones(lane):
+    g = _guard()
+    stale = g.write_wake(lane["wakes"], "lane-old", "HANDBACK worktree-old @ 0000000 code")
+    long_ago = time.time() - g.FIRST_START_LOOKBACK_S - 600
+    os.utime(stale, (long_ago, long_ago))
+    g.write_wake(lane["wakes"], "lane-new", "HANDBACK worktree-new @ 1111111 code")
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], ledger=_ledger(lane), poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-new HANDBACK worktree-new @ 1111111 code"], "an earlier batch's wake is not replayed"
+    assert stale.name in _ledger(lane).read_text(encoding="utf-8")
+
+
+def test_two_monitors_each_report_every_wake_to_their_own_seat(lane):
+    """Codex terra P1, round 2 (overlapping Monitors). Claiming a wake before emitting it would let the OUTGOING
+    seat's Monitor take a wake from the successor at a handover. Each Monitor reports to its own seat; the cycle's
+    in-flight scan, not a lock, is what keeps one seat from acting twice."""
+    g = _guard()
+    first, second = [], []
+    g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=first.append)
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=second.append)
+    assert first == second and len(first) == 1
+
+
+def test_the_watch_cli_without_since_resumes_from_its_ledger(lane, tmp_path):
+    g = _guard()
+    args = [sys.executable, str(_GUARD), "watch", "--wake-dir", str(lane["wakes"]), "--poll", "0.2", "--max-wait", "1"]
+    out = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=str(_REPO))
+    assert out.returncode == 0 and out.stdout == "" and _ledger(lane).is_file()
+    g.write_wake(lane["wakes"], "lane-c", "HANDBACK worktree-c @ ccccccc code")
+    out = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=str(_REPO))
+    assert out.stdout.splitlines() == ["WAKE lane-c HANDBACK worktree-c @ ccccccc code"]
+    out = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=str(_REPO))
+    assert out.stdout == ""
+
+
+def test_the_default_wake_home_is_the_private_state_directory_and_never_inside_this_repo():
+    import platformdirs
+    home = _guard().wake_dir({})
+    assert home.parent == Path(platformdirs.user_state_dir("dev-knowledge", appauthor=False))
+    assert _REPO not in home.parents and home != _REPO
+
+
+def test_the_suite_never_points_the_wake_home_at_the_operators_state_directory():
+    """Any test that runs the REAL guard on a HANDBACK line (tests/test_connection_loop.py does, through the real
+    Stop hook) would otherwise leave a wake in the operator's live private home, and the integrator's Monitor
+    would print a WAKE for a fixture lane. `tests/conftest.py` redirects the home for the whole session."""
+    home = os.environ.get("HARNESS_WAKE_DIR")
+    assert home, "tests/conftest.py redirects the wake home for the whole test session"
+    assert Path(home) != _guard().wake_dir({}) and _REPO not in Path(home).parents
+
+
+def test_the_environment_overrides_the_wake_home(tmp_path):
+    assert _guard().wake_dir({"HARNESS_WAKE_DIR": str(tmp_path / "x")}) == tmp_path / "x"
+
+
+def _watch(tmp_path: Path, *extra: str) -> subprocess.Popen:
+    return subprocess.Popen(
+        [sys.executable, str(_GUARD), "watch", "--wake-dir", str(tmp_path / "wakes"), "--poll", "0.5",
+         "--max-wait", "90", *extra],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_REPO))
+
+
+def _first_line(proc: subprocess.Popen, within_s: float) -> str | None:
+    import queue
+    import threading
+    q: queue.Queue = queue.Queue()
+    threading.Thread(target=lambda: q.put(proc.stdout.readline()), daemon=True).start()
+    try:
+        return q.get(timeout=within_s) or None
+    except queue.Empty:
+        return None
+
+
+def test_a_handback_reaches_the_watch_command_within_30_seconds(lane, tmp_path):
+    """The outcome: hook turn end -> wake file -> the Monitor's line. `--since 1h` makes the start-up race
+    irrelevant (a wake written before the first scan is still reported); the latency is measured, not claimed."""
+    proc = _watch(tmp_path, "--since", "1h")
+    try:
+        lane["session"].write_text(f"work\n{HANDBACK}\n", encoding="utf-8")
+        started = time.perf_counter()
+        assert _run(lane, _Runner()) == 0
+        line = _first_line(proc, WAKE_WITHIN_S)
+        latency = time.perf_counter() - started
+    finally:
+        proc.kill()
+        proc.communicate()
+    assert line is not None, f"no wake line within {WAKE_WITHIN_S}s"
+    assert line.rstrip("\n") == f"WAKE {LANE} {HANDBACK}"
+    assert latency < WAKE_WITHIN_S
+    print(f"MEASURED handback-to-watch-line latency: {latency:.2f}s")
+
+
+def test_the_watch_command_reports_each_wake_once_and_only_those_after_its_start_by_default(lane):
+    g = _guard()
+    old = g.write_wake(lane["wakes"], "old-lane", "HANDBACK worktree-old @ 1111111 code")   # before the watch starts
+    os.utime(old, (time.time() - 100, time.time() - 100))
+    seen: list[str] = []
+    clock = {"t": 0.0}
+
+    def tick(_s):
+        clock["t"] += 1
+        if clock["t"] == 2:
+            g.write_wake(lane["wakes"], "new-lane", "HANDBACK worktree-new @ 2222222 code")
+
+    g.watch_wakes(lane["wakes"], since=time.time() - 10, poll_s=1, max_wait_s=5, emit=seen.append,
+                  sleep=tick, now=lambda: clock["t"])
+    assert seen == ["WAKE new-lane HANDBACK worktree-new @ 2222222 code"]
+
+
+def test_the_watch_command_exits_when_its_wait_runs_out_without_a_wake(tmp_path):
+    proc = subprocess.run(
+        [sys.executable, str(_GUARD), "watch", "--wake-dir", str(tmp_path / "none"), "--poll", "0.2",
+         "--max-wait", "1"], capture_output=True, text=True, timeout=30, cwd=str(_REPO))
+    assert proc.returncode == 0 and proc.stdout == ""
+
+
+def test_the_watch_subcommand_leaves_the_hook_flags_and_exit_codes_alone():
+    g = _guard()
+    source = _GUARD.read_text(encoding="utf-8")
+    assert (g.EXIT_REFUSED, g.EXIT_FAILED, g.HOOK_LIMIT_S) == (3, 4, 15)
+    assert "--worker" in source and "--moment-json" in source and "--key" in source

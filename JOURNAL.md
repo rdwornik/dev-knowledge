@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-04 (s) - CC (Opus 5.5, integrator seat B2-W1 cycle 13): lane b2-integrator-liveness merges after repair 2 -- a lane's handback wakes the integrator within 30 s through a watched wake file, the integrator order's cycle section names a 3 h ceiling and the rebind, and no_leftovers check 08 reads a done job record as terminal
+
+**Anchors:** `58ceec48` -- `worktree-b2-integrator-liveness` (15 lane commits `a6778231`..`58ceec48`, plus the origin syncs `733e6afb`, `b3d6a468`, `24addb3a`)
+
+**Did:**
+- `scripts/lane_end_guard.py`: a handback writes a wake file the integrator's `watch` command reads; the watch resumes from a ledger and falls back to a private home when the shared one is unwritable (four Codex terra rounds). Repair 2 pinned `newline="\n"` on the two writes the lane added, so the newline scan reads main's registered 15, not 17.
+- `scripts/no_leftovers.py` check 08 passes a job record in a terminal state and names it; `templates/integrator-order-template.md` cycle section carries the 3 h ceiling and the rebind line.
+- Tests: `tests/test_lane_end_guard.py`, `tests/test_no_leftovers.py`, `tests/test_integrator_order_triggers.py`, `tests/test_order_cycle_rule.py`, `tests/conftest.py` (wakes under pytest's temp directory).
+- `[#971]` refs gain the review record; the row stays open (its Done-when names an idle watchdog and a deny-and-point guard this lane does not build).
+
+**Result:** verdict and evidence in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md` (cycle 13).
+
+**Changes:** `scripts/lane_end_guard.py`, `scripts/no_leftovers.py`, `templates/integrator-order-template.md`, `tests/` (five files), `docs/audits/2026-10-05-codex-b2-integrator-liveness.md`, `tasks/971-*.md`, generated indices.
+
+**Next:** W1-12 b2-codespace-green, then the batch close.
+
+---
+
 ### 2026-10-04 (r) - CC (Opus 5.5, integrator seat B2-W1 cycle 11): main reads green to known_reds again -- the 21 registered reds whose live reason drifted are re-signed, by operator emergency order, with no entry added, removed or widened
 
 **Anchors:** `ee4eb63e` -- `chore/b2-w1-known-reds-resign`; and `9e2627ae` -- lane b2-branch-context-tests' merge, whose closed merge receipt rides here

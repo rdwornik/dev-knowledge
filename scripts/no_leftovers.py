@@ -22,8 +22,8 @@ THE ELEVEN CHECKS (numbers are the spec's order)
    5 no-lane-branch                     no `worktree-<slug>` in local or remote-tracking branches
    6 no-ref-names-lane                  no ref of any kind whose name carries the slug
    7 no-remote-head                     `git ls-remote --heads origin` carries no head for the lane
-   8 job-record-absent                  no live `~/.claude/jobs/<id>/state.json` points at the lane (a `stopped`
-                                        record passes, named in the detail: R3 keeps it; unreadable = FAIL)
+   8 job-record-absent                  no live `~/.claude/jobs/<id>/state.json` points at the lane (a `stopped` or
+                                        `done` record passes, named in the detail: R3 keeps it; unreadable = FAIL)
    9 job-not-in-agents                  `claude agents --json` lists no session cwd'd in the lane
   10 working-tree-clean                 the primary's `git status --porcelain` is empty
   11 main-equals-origin-main            local `main` == the remote's `main` (read with ls-remote, never a stale tracking ref)
@@ -251,12 +251,15 @@ def _refs(repo: Path, *patterns: str) -> tuple[list[str] | None, str]:
     return (None, why) if out is None else ([ln for ln in out.splitlines() if ln], "")
 
 
-#: The `state` values of a job record that check 8 reads as TERMINAL. Only `stopped` is read so:
-#: `claude stop` leaves the record by design (R3 -- no seat removes a session), so it cannot be a
-#: leftover. Every other value (`working`, `blocked`, `done`, absent, ...) stays a FAIL, because
-#: whether such a session can still act is not read here -- check 9 covers listed liveness, and an
-#: unknown state fails closed. Widening this set is one edit, made on evidence of the state.
-_TERMINAL_JOB_STATES = ("stopped",)
+#: The `state` values of a job record that check 8 reads as TERMINAL: `stopped` and `done`. Both
+#: leave the record by design (R3 -- no seat removes a session: `claude stop` leaves a `stopped`
+#: record, a session that finished its work leaves a `done` one), so neither can be a leftover.
+#: `done` was added on evidence (FOUNDATION's integrator job e60f026d finished `done` and its own
+#: close could not pass this check; LANE-B2-W1-b2-integrator-liveness). Every other value
+#: (`working`, `blocked`, absent, ...) stays a FAIL, because whether such a session can still act
+#: is not read here -- check 9 covers listed liveness, and an unknown state fails closed.
+#: Widening this set is one edit, made on evidence of the state.
+_TERMINAL_JOB_STATES = ("stopped", "done")
 
 
 def _points_at_lane(rec: dict, lane_path: str, branch: str) -> bool:
@@ -423,7 +426,7 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
                 f"(cannot rule the lane out): {_shown(unparseable)}") if unparseable else ""
         if stopped and not (hits or unparseable):
             detail = (f"{len(stopped)} job record(s) point at {lane}, all in a terminal state "
-                      f"(R3: a stopped job's record stays): {_shown(stopped)}")
+                      f"(R3: a stopped or finished job's record stays): {_shown(stopped)}")
         else:
             detail = (f"job record(s) pointing at the lane: {_shown(hits)}" if hits else "") + note
         add(8, "job-record-absent", not (hits or unparseable),
