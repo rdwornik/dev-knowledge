@@ -1845,7 +1845,7 @@ class Step:
 
 
 def codespace_plan(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
-                   machine: str = "basicLinux32gb", idle_timeout: str = "30m",
+                   machine: str = "standardLinux32gb", idle_timeout: str = "240m",
                    retention: str = "24h", workdir: str = "/workspaces/dispatch",
                    batch: str = "") -> list[Step]:
     """Ported from Start-DispatchCodespace. `{cs}` is the codespace NAME, printed to stdout by
@@ -2042,7 +2042,7 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
 
 
 def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
-                    *, machine: str = "basicLinux32gb", idle_timeout: str = "30m",
+                    *, machine: str = "standardLinux32gb", idle_timeout: str = "240m",
                     retention: str = "24h", workdir: str = "/workspaces/dispatch",
                     invoker: Optional[Callable[[Sequence[str]], GhResult]] = None) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
@@ -2358,8 +2358,8 @@ def codespace_delete(name: str, *, out_dir: Path,
 @click.option("--slug", required=True, help="Lane slug; also the codespace's -d display name.")
 @click.option("--argv-json", required=True,
               help="JSON list -- the head argv, e.g. `plan --substrate codespace`'s own `argv` field.")
-@click.option("--machine", default="basicLinux32gb", show_default=True)
-@click.option("--idle-timeout", default="30m", show_default=True)
+@click.option("--machine", default="standardLinux32gb", show_default=True)
+@click.option("--idle-timeout", default="240m", show_default=True)
 @click.option("--retention", default="24h", show_default=True)
 @click.option("--workdir", default="/workspaces/dispatch", show_default=True)
 def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_json: str,

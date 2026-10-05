@@ -49,6 +49,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import yaml
@@ -254,10 +255,33 @@ def _fresh(label, receipt, command, previous):
         and data["input_hash"] == _input_hash(_argv(command), _upstream(previous)))
 
 
+def _emit_event(label, ok, started, moment):
+    """A4: one run event per organ run, to the R17 private home (never git, never ~/.claude). Never
+    raises -- a dropped event must not fail the organ it describes."""
+    try:
+        scripts = str(_ROOT / "scripts")
+        if scripts not in sys.path:
+            sys.path.insert(0, scripts)
+        import merge_path  # noqa: PLC0415 -- light (click, platformdirs); only an organ run pays
+        merge_path.emit_run_event(f"dodo:{label}", "ok" if ok else "fail", time.monotonic() - started,
+                                  moment=(moment or {}).get("name"))
+    except Exception as exc:  # noqa: BLE001 -- telemetry never fails the organ
+        print(f"dodo: run event for {label} NOT written -- {exc!r}", file=sys.stderr)
+
+
 def _execute(label, row, receipt, previous, optional, moment=None):
     def action():
         if moment and _precondition_skipped(moment):
             return True  # the moment's precondition did not hold: its one SKIPPED receipt is the whole record
+        started = time.monotonic()
+        ok = _run_organ(label, row, receipt, previous, optional)
+        _emit_event(label, ok, started, moment)
+        return ok
+    return action
+
+
+def _run_organ(label, row, receipt, previous, optional):
+    def action():
         command = row.get("command")
         argv = _argv(command) if command else ["<none>"]
         wrap = [sys.executable, _WRAP, "wrap", label, "--receipt", str(receipt), "--input-hash",
@@ -281,7 +305,7 @@ def _execute(label, row, receipt, previous, optional, moment=None):
                   f"organs still run", file=sys.stderr)
             return True
         return code == 0
-    return action
+    return action()
 
 
 def _task(name, label, row, receipt, previous, deps, optional=False, moment=None):

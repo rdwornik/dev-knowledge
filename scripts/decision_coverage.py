@@ -63,10 +63,13 @@ implements it directly. Measured 2026-09-11: 95 of 104 resolve, 7 carry no key, 
 a schedule, not a ruling.
 
 WHAT THIS ORGAN DOES NOT SEE, stated rather than discovered later:
-  * `protocols/STANDING_RULINGS.md` entries. A9-1's population is three classes and the
-    register is not among them; `[#721]` is the open row that adds the fourth, at entry
-    granularity, and it is filed beside `[#692]` precisely because `[#692]`'s Done-when carries
-    A9-1 VERBATIM and cannot gain a class without ceasing to be verbatim.
+  * `protocols/STANDING_RULINGS.md` entries, in the THREE-CLASS query above. A9-1's population is
+    three classes and the register is not among them; `[#721]` is the row that adds the fourth,
+    at entry granularity, and it was filed beside `[#692]` precisely because `[#692]`'s Done-when
+    carries A9-1 VERBATIM and cannot gain a class without ceasing to be verbatim. The fourth
+    class is the `rulings` subcommand and the section "the ruling register leg" below (batch
+    B2-W1, lane `b2-rulings-landing`, R79.3): it is a separate leg, not a fourth `Decision` kind,
+    because a ruling's carrier is its own `Carried by:` line and not an `implements:` edge.
   * A transport decision when `CLAUDE_PROMPTS_DIR` is unresolved. That is reported as a DEGRADED
     class, never as an empty one -- DEFECT E-29's rule that an unknown boundary is not a clean
     one.
@@ -81,6 +84,7 @@ Usage:
     python scripts/decision_coverage.py check   [--repo-root .] [--db PATH] [--staged PATH ...]
     python scripts/decision_coverage.py ledger  [--repo-root .] [--db PATH]
     python scripts/decision_coverage.py metrics [--repo-root .] [--db PATH]
+    python scripts/decision_coverage.py rulings [--repo-root .] [--no-transport]   # exit 1 = refused, 2 = leg (a) not measured
 """
 
 from __future__ import annotations
@@ -88,6 +92,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import logging
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -932,6 +937,499 @@ def metrics(found: list[Decision], today: _dt.date | None = None, *,
         transport_measured=transport_measured)
 
 
+# -------------------------------------------------- the ruling register leg ([#721], R79.3)
+#
+# R79 item 3 (operator, 2026-10-04): *"no decision is ever forgotten"* -- every ratified ruling
+# lands in the repository, is carried by a backlog row or an explicit "no implementation
+# required", and is enforced by a gate that refuses at batch close and at the handoff cut. This is
+# that gate, and it is `[#721]`'s Done-when: the register's entries are counted AT ENTRY
+# GRANULARITY and one with neither an implementing row nor a written disposition is NAMED.
+#
+# LIBRARY-FIRST, decided by lane `b2-rulings-landing` (AMEND-B2-W1-2: "CC designs it"):
+#   * This module is the home (stdlib > established dependency > stabilized project): it already
+#     joins a document-read population with a relation, carries `Disposition`, era-bounds its
+#     refusals and returns `Finding`. A second module would restate all four.
+#   * The row -> ruling link is the register entry's own `**Carried by:**` line, NOT a new
+#     `implements:` token kind. Widening the grammar means two regexes (`file_purpose_graph`,
+#     `validate_backlog`), a new FPG-1 node kind and a store rebuild, and `implements:` is derived
+#     from a row-body clause that `gen_task_tree` owns. The register is where the ruling already
+#     is, `landed:` predicates already parse it at entry granularity, and a one-way link is
+#     checked from BOTH ends: the named row must exist, carry a status, state a Done-when, and
+#     itself name the ruling.
+#   * The ruling's identity is its R-number alone (R1-R79 are in practice globally unique: the
+#     file that restarts at R1 restates the same rulings). A ruling counts as landed when a
+#     register bullet `- **R<n>` exists -- the shape `handoff_state._LANDED_RE` counts, pinned
+#     equal by a test -- and NEVER because a RATIFICATION file's `carried-by:` names the register:
+#     P11 proves a home exists, not that the ruling is in it.
+#
+# THE ERA BOUND, stated as this lane's one design ruling. The `Carried by:` line did not exist
+# before R55, and sections A..AQ are immutable to the lane that adds it, so 54 entries could
+# never be repaired by the author the refusal would land on. `FIRST_GATED_RULING` bounds the
+# REFUSAL and nothing else: `register_counts` reports how many entries it declines to refuse on
+# every run, and `floor=` re-arms the same predicate over the older sections (the test for
+# [#721]'s section-AH witness does exactly that).
+#
+# "UNLANDED FOR MORE THAN ONE BATCH" needs a batch clock, and the transport already has one:
+# `to-browser/STATE-BATCH-<X>.md` reads `CLOSED <date>`. A ruling is aged by the number of
+# batches CLOSED on a LATER day than its file's `date:` (a batch closed the same day it was
+# ruled does not age it), and refuses when that number exceeds `GRACE_BATCHES`.
+#
+# WHAT THIS LEG DOES NOT SEE, stated rather than discovered later:
+#   * Whether a named row is the RIGHT row (coverage is structural; adequacy is a reviewer's).
+#   * A ruling whose RATIFICATION file has no `## R<n>` heading or `- **R<n>**` bullet.
+#   * The transport when `CLAUDE_PROMPTS_DIR` is unresolved: the unlanded leg then reports
+#     itself NOT MEASURED -- never an empty list, never a pass (DEFECT E-29's rule).
+
+RULINGS_REL = "protocols/STANDING_RULINGS.md"
+#: R55 is the first ruling that can carry a `Carried by:` line (it is the first one landed after
+#: R79's rule existed); see the era-bound block above.
+FIRST_GATED_RULING = 55
+#: "more than one batch": a ruling unlanded across MORE than this many closed batches refuses.
+GRACE_BATCHES = 1
+#: A row in one of these states carries a ruling. `retired` and `superseded` rows do not: the
+#: work they named is not going to happen under that id.
+CARRYING_ROW_STATUSES = frozenset({"open", "closed", "deferred"})
+NO_IMPLEMENTATION = "no implementation required"
+
+#: The bundle's own landed-id shape. `tests/test_decision_coverage.py` pins it EQUAL to
+#: `handoff_state._LANDED_RE.pattern`, so the two cannot disagree about what is landed.
+_LANDED_RE = re.compile(r"(?m)^- \*\*R(\d+)\b")
+_ENTRY_END_RE = re.compile(r"^(?:- \*\*R\d+\b|#{2,3} )")
+_CARRIED_LINE_RE = re.compile(r"^\s*\*\*Carried by:\*\*\s*(\S.*?)\s*$")
+_FENCE_RE = re.compile(r"^\s*```")
+_ROW_REF_RE = re.compile(r"\[#(\d+)\]")
+_DISPOSITION_RE = re.compile(
+    rf"^{NO_IMPLEMENTATION}\s*(?:—|--|-)\s*(?P<reason>.+?)\s*\(owner:\s*(?P<owner>[^()]+?)\)\s*$",
+    re.I | re.S)
+_TITLE_RE = re.compile(r"^- \*\*R\d+\s*(?:—|--|-)?\s*([^*]*)\*\*")
+
+REPAIR_RULING = ("Add a line `**Carried by:** [#<row id>]` to the entry in "
+                 f"`{RULINGS_REL}` (the row must exist, state a Done-when and name the ruling), "
+                 f"or `**Carried by:** {NO_IMPLEMENTATION} — <why> (owner: <who>)`.")
+
+
+@dataclass(frozen=True)
+class RegisterEntry:
+    """One `- **R<n>` bullet of the register, with what its `Carried by:` line says."""
+    number: int
+    line: int                          # 1-based line of the bullet
+    title: str
+    carried: str | None                # the raw value after `**Carried by:**`, or None
+    rows: tuple[str, ...]              # `[#id]` references, in order
+    disposition: Disposition | None    # parsed only when the value is a well-formed one
+
+
+def parse_register(text: str) -> list[RegisterEntry]:
+    """Every register bullet `- **R<n>` OUTSIDE a fenced block, section-agnostic.
+
+    Fenced text is skipped on both sides: a verbatim block quoting a source that itself contains
+    `- **R71 ...` or `**Carried by:**` is the source's text, not an entry (a test pins it).
+    An entry runs from its bullet to the next bullet or heading.
+    """
+    lines = text.replace("\r\n", "\n").split("\n")
+    entries: list[RegisterEntry] = []
+    fenced = False
+    current: dict | None = None
+
+    def _close() -> None:
+        nonlocal current
+        if current is None:
+            return
+        carried = current["carried"]
+        rows = tuple(_ROW_REF_RE.findall(carried)) if carried else ()
+        disposition = None
+        if carried and carried.lower().startswith(NO_IMPLEMENTATION):
+            match = _DISPOSITION_RE.match(carried)
+            if match and match.group("reason").strip() and match.group("owner").strip():
+                disposition = Disposition(reason=match.group("reason").strip(),
+                                          owner=match.group("owner").strip())
+            rows = ()
+        entries.append(RegisterEntry(current["number"], current["line"], current["title"],
+                                     carried, rows, disposition))
+        current = None
+
+    for index, line in enumerate(lines, start=1):
+        if _FENCE_RE.match(line):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        bullet = _LANDED_RE.match(line)
+        if bullet:
+            _close()
+            title = _TITLE_RE.match(line)
+            current = {"number": int(bullet.group(1)), "line": index,
+                       "title": (title.group(1).strip() if title else ""), "carried": None}
+            continue
+        if _ENTRY_END_RE.match(line):
+            _close()
+            continue
+        if current is not None and current["carried"] is None:
+            carried = _CARRIED_LINE_RE.match(line)
+            if carried:
+                current["carried"] = carried.group(1)
+    _close()
+    return entries
+
+
+def _read_register(root: Path) -> str:
+    path = root / RULINGS_REL
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise PopulationUnreadable(f"no ruling register at {path}: {exc}") from exc
+
+
+def _task_row(root: Path, task_id: str) -> tuple[str, str] | None:
+    """`(status, full text)` of `tasks/<id>-*.md`, or None when no such row file exists. Closed
+    rows stay on disk with `status: closed`, so a closed row is found here like any other."""
+    found = sorted((root / "tasks").glob(f"{task_id}-*.md"))
+    if not found:
+        return None
+    text = found[0].read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?m)^status:\s*(\w+)", text)
+    return (match.group(1).lower() if match else ""), text
+
+
+#: `owner:` must OPEN a clause (line start, `·`, `(` or `;`), so it is a field and not a word in
+#: prose: `non-owner:`, `not  owner:` and `has no owner:` are not owner clauses.
+_OWNER_RE = re.compile(r"(?:^|[·(;])[ \t]*owner:[ \t]*([^·\n]*)", re.I | re.M)
+#: What an `owner:` value may not be: a placeholder names nobody. The gate checks that SOMEONE is
+#: named, not that the name is a live lane -- that is a reading, and it stays the reviewer's.
+_OWNER_PLACEHOLDER_RE = re.compile(r"^(?:none|n/?a|tbd|tba|nobody|unknown|unassigned|-+)\W*$", re.I)
+
+
+def _names_an_owner(text: str) -> bool:
+    """True when some `owner:` clause in the row carries a value that is not a placeholder."""
+    for match in _OWNER_RE.finditer(text):
+        value = match.group(1).strip()
+        if value and not _OWNER_PLACEHOLDER_RE.match(value):
+            return True
+    return False
+
+
+def _ruling_id(number: int) -> str:
+    """`R<n>`, built by concatenation: an f-string with `R` right before a placeholder reads to `transport`'s template
+    derivation as a transport prefix `R-` (tests/test_transport.py), which this is not."""
+    return "R" + str(number)
+
+
+def _entry_defect(root: Path, entry: RegisterEntry) -> str | None:
+    """Why this entry is not carried, or None when it is."""
+    ruling = _ruling_id(entry.number)
+    if entry.carried is None:
+        return "it has no `Carried by:` line, so neither a row nor a written disposition"
+    if entry.carried.lower().startswith(NO_IMPLEMENTATION):
+        if entry.disposition is None:
+            return ("its disposition does not name BOTH a reason and an owner "
+                    f"(`{NO_IMPLEMENTATION} — <why> (owner: <who>)`)")
+        return None
+    if not entry.rows:
+        return f"its `Carried by:` line names no `[#id]` row and is not a `{NO_IMPLEMENTATION}` line"
+    problems = []
+    for task_id in entry.rows:
+        row = _task_row(root, task_id)
+        if row is None:
+            problems.append(f"[#{task_id}] does not exist under tasks/")
+            continue
+        status, text = row
+        if status not in CARRYING_ROW_STATUSES:
+            problems.append(f"[#{task_id}] has status `{status or 'none'}`, which carries nothing")
+        elif not re.search(rf"\b{ruling}\b", text):
+            problems.append(f"[#{task_id}] never names {ruling}")
+        elif not re.search(r"done[ -]when", text, re.I):
+            problems.append(f"[#{task_id}] states no Done-when")
+        elif not _names_an_owner(text):
+            problems.append(f"[#{task_id}] names no `owner:` (a wave or a lane)")
+        else:
+            return None
+    return "no named row carries it: " + "; ".join(problems)
+
+
+def uncarried_rulings(repo_root, *, floor: int = FIRST_GATED_RULING) -> list[Finding]:
+    """[#721] and R79.3(b): a landed ruling with neither a row nor a 'no implementation required'
+    line, named by the refusal. Entries below `floor` are not judged (see the era-bound block)."""
+    root = Path(repo_root)
+    out: list[Finding] = []
+    for entry in parse_register(_read_register(root)):
+        if entry.number < floor:
+            continue
+        defect = _entry_defect(root, entry)
+        if defect is not None:
+            out.append(Finding(
+                subject=_ruling_id(entry.number),
+                evidence=f"{RULINGS_REL}:{entry.line} -- {defect}. {REPAIR_RULING}"))
+    return out
+
+
+@dataclass(frozen=True)
+class RegisterCounts:
+    """How the register divides, so the era bound is MEASURED rather than silent."""
+    total: int
+    gated: int
+    carried: int
+    grandfathered: int
+
+
+def register_counts(repo_root, *, floor: int = FIRST_GATED_RULING) -> RegisterCounts:
+    root = Path(repo_root)
+    entries = parse_register(_read_register(root))
+    gated = [e for e in entries if e.number >= floor]
+    bad = len(uncarried_rulings(root, floor=floor))
+    return RegisterCounts(total=len(entries), gated=len(gated), carried=len(gated) - bad,
+                          grandfathered=len(entries) - len(gated))
+
+
+class TransportUnreadable(PopulationUnreadable):
+    """The transport has no `to-browser/` to read -- NOT MEASURED, never 'no rulings'."""
+
+
+@dataclass(frozen=True)
+class FileRuling:
+    file: str
+    number: int
+    date: _dt.date | None
+
+
+_SUPERSEDED_NAME_RE = re.compile(r"superseded|withdrawn", re.I)
+#: A ruling in a RATIFICATION file: a `## R<n>` / `### R<n>` heading, or the one-line register
+#: bullet `- **R<n>**` the older files use. A range such as `- **R1-R23**` is not a ruling.
+_FILE_RULING_RE = re.compile(r"(?m)^(?:#{2,3}[ \t]+\**R(\d+)\b|-[ \t]+\*\*R(\d+)\*\*)")
+#: The WHOLE first token after the key, so `2026-09-01garbage` is read as that token and judged
+#: invalid -- a regex that took only the valid-looking prefix would accept it.
+_HEADER_DATE_RE = re.compile(r"(?m)^date:[ \t]*(\S*)")
+_CLOSED_RE = re.compile(r"(?m)^CLOSED[ \t]+(\S+)")
+_DAY_ONLY_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+#: `2026-09-05T08:00Z` is a day: the shape here, then `datetime.fromisoformat` judges the clock.
+_DAY_STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?")
+_HEAD_LINES = 12
+
+
+def _top(text: str) -> str:
+    """The first `_HEAD_LINES` lines of a transport file, where its `date:` / `CLOSED` line sits.
+    Takes the text, not a path: the caller owns the read, so a read failure is raised there."""
+    return "\n".join(text.replace("\r\n", "\n").split("\n")[:_HEAD_LINES])
+
+
+def ratification_files(transport) -> list[Path]:
+    """The NON-SUPERSEDED RATIFICATION files of `to-browser/`: not `-vN-superseded`, not
+    `-withdrawn`, not the `RATIFICATION-DIGEST` summary."""
+    folder = Path(transport) / "to-browser"
+    return sorted(p for p in _transport_files(folder, "RATIFICATION-")
+                  if not _SUPERSEDED_NAME_RE.search(p.name)
+                  and not p.name.startswith("RATIFICATION-DIGEST"))
+
+
+def _transport_files(folder: Path, prefix: str) -> list[Path]:
+    """The `<prefix>*.md` files of a transport folder. Enumerated with `os.listdir`, which raises,
+    where `Path.glob` can swallow an enumeration error and read as an empty folder."""
+    if not folder.is_dir():
+        raise TransportUnreadable(f"no {folder.name}/ under the transport {folder.parent}")
+    try:
+        names = os.listdir(folder)
+    except OSError as exc:
+        raise TransportUnreadable(f"{folder.name}/ could not be listed: {exc}") from exc
+    return sorted(folder / n for n in names
+                  if n.startswith(prefix) and n.endswith(".md") and (folder / n).is_file())
+
+
+def _parse_day(text: str, *, stamp: bool = False) -> _dt.date | None:
+    """A whole token that is a real `YYYY-MM-DD` (or, with `stamp`, a `...T<time>` stamp of one),
+    else None -- `2026-99-01` and `2026-09-01garbage` match a date's shape and are not dates."""
+    if (_DAY_STAMP_RE if stamp else _DAY_ONLY_RE).fullmatch(text) is None:
+        return None
+    try:
+        if stamp and "T" in text:
+            return _dt.datetime.fromisoformat(text).date()
+        return _dt.date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
+def file_rulings(path: Path) -> list[FileRuling]:
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        # NOT `[]`: a file that cannot be read is not a file with no rulings.
+        raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
+    header = _HEADER_DATE_RE.search(_top(text))
+    if header:
+        # A header that is PRESENT and not a real day is undated, never the file-name date: the
+        # name can sit inside the grace period and hide the refusal.
+        date = _parse_day(header.group(1))
+    else:
+        date = _filename_date(path.name)
+    seen: set[int] = set()
+    out: list[FileRuling] = []
+    for match in _FILE_RULING_RE.finditer(text):
+        number = int(match.group(1) or match.group(2))
+        if number not in seen:
+            seen.add(number)
+            out.append(FileRuling(path.name, number, date))
+    return out
+
+
+def closed_batch_dates(transport) -> list[_dt.date]:
+    """The batch clock: the day every `STATE-BATCH-*.md` that reads `CLOSED` was closed. A batch
+    that is running, or `FINISHED`, has not closed and ages nothing."""
+    folder = Path(transport) / "to-browser"
+    days = []
+    for path in _transport_files(folder, "STATE-BATCH-"):
+        try:
+            head = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
+        match = _CLOSED_RE.search(_top(head))
+        if match:
+            day = _parse_day(match.group(1), stamp=True)
+            if day is None:
+                raise TransportUnreadable(
+                    f"{path.name} reads CLOSED {match.group(1)}, which is not a date -- the "
+                    "batch clock cannot be trusted")
+            days.append(day)
+    return days
+
+
+def ratification_population(transport) -> tuple[list[Path], list[FileRuling]]:
+    """`(files, rulings)` of the non-superseded RATIFICATION files -- the population leg (a) reads,
+    returned so a report can say HOW MANY it read (an empty read must not look like a clean one)."""
+    files = ratification_files(transport)
+    return files, [r for path in files for r in file_rulings(path)]
+
+
+def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
+                     population: "list[FileRuling] | None" = None) -> list[Finding]:
+    """R79.3(a): a ruling in a non-superseded RATIFICATION file that is not landed in the register
+    and has outlived MORE than `grace` closed batches. Raises `TransportUnreadable` when the
+    transport has no `to-browser/` -- the caller reports that as NOT MEASURED."""
+    root = Path(repo_root)
+    landed = {e.number for e in parse_register(_read_register(root))}
+    closed = closed_batch_dates(transport)
+    out: list[Finding] = []
+    if population is None:
+        population = ratification_population(transport)[1]
+    for ruling in population:
+        if ruling.number in landed:
+            continue
+        if ruling.date is None:
+            # An unknown date cannot excuse an unlanded ruling (exempt forever = forgotten).
+            out.append(Finding(
+                subject=_ruling_id(ruling.number),
+                evidence=(f"{ruling.file} holds {_ruling_id(ruling.number)}, which is not landed in "
+                          f"{RULINGS_REL}, and the file has no computable date (a `date: YYYY-MM-DD` "
+                          f"header or a dated file name), so its age cannot be shown to be within "
+                          f"the grace period. Land it as an entry (`- **{_ruling_id(ruling.number)} — "
+                          f"<title>**`) with a `Carried by:` line, or date the file.")))
+            continue
+        passed = sum(1 for day in closed if day > ruling.date)
+        if passed > grace:
+            out.append(Finding(
+                subject=_ruling_id(ruling.number),
+                evidence=(f"{ruling.file} (dated {ruling.date.isoformat()}) holds "
+                          f"{_ruling_id(ruling.number)}, which is not landed in {RULINGS_REL}, and "
+                          f"{passed} closed batch(es) have passed since -- {grace} is the "
+                          f"grace period. Land it as an entry (`- **{_ruling_id(ruling.number)} — "
+                          f"<title>**`) with a `Carried by:` line.")))
+    return out
+
+
+class _Unmeasured:
+    """The leg-(a) "not measured" marker. TRUTHY on purpose (N2 reviewer P1, repair 2): `None` and
+    `[]` are both falsy, so a reader writing `not report.unlanded` read an unmeasured leg as clean.
+    This marker is truthy, so that reading refuses; only a measured-empty list is falsy. It is not
+    iterable and has no length, so a reader that treats it as a findings list fails loudly."""
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return "UNMEASURED"
+
+
+UNMEASURED = _Unmeasured()
+
+
+@dataclass(frozen=True)
+class RulingsReport:
+    """Both legs. `unlanded is UNMEASURED` means NOT MEASURED -- the transport was unreadable."""
+    uncarried: list[Finding]
+    unlanded: list[Finding] | _Unmeasured
+    counts: RegisterCounts
+    unmeasured_reason: str = ""
+    files_read: int = 0
+    rulings_read: int = 0
+
+    def _findings(self) -> list[Finding]:
+        """Both legs' findings. PRIVATE on purpose: an unmeasured leg contributes none, so this is
+        `[]` for an unmeasured report too, and a public findings-shaped attribute (`refused`, then
+        `found`) is one a consumer reads as clean -- fail-open (Codex pass 4 and repair pass 1,
+        both P1). The verdicts are `passed` and `exit_code`."""
+        return list(self.uncarried) + ([] if self.unlanded is UNMEASURED else list(self.unlanded))
+
+    @property
+    def passed(self) -> bool:
+        """True only when BOTH legs were measured and clean: an unmeasured leg is not a pass."""
+        return self.unlanded is not UNMEASURED and not self._findings()
+
+    def exit_code(self, *, no_transport: bool) -> int:
+        """1 = a refusal was found; 2 = leg (a) NOT MEASURED because the transport could not be
+        read; 0 otherwise. `no_transport` is the operator's explicit choice to skip leg (a), so an
+        unmeasured leg stays 0 there."""
+        if self._findings():
+            return 1
+        return 2 if self.unlanded is UNMEASURED and not no_transport else 0
+
+    def render(self) -> str:
+        lines = []
+        bad = self._findings()
+        if bad:
+            lines.append(f"decision-coverage rulings: REFUSED — {len(bad)} ruling(s)")
+            for finding in bad:
+                lines.append(f"  - {finding.subject}")
+                lines.append(f"    {finding.evidence}")
+        elif self.unlanded is UNMEASURED:
+            # Never a bare OK: leg (a) was not read, so only leg (b) is a measured pass.
+            lines.append("decision-coverage rulings: leg (b) OK; leg (a) NOT MEASURED")
+        else:
+            lines.append("decision-coverage rulings: OK")
+        c = self.counts
+        lines.append(f"  leg (b) carried: {c.carried} of {c.gated} gated ruling(s) (R"
+                     f"{FIRST_GATED_RULING} on) carried; {c.grandfathered} older entr"
+                     f"{'y' if c.grandfathered == 1 else 'ies'} counted, not refused")
+        if self.unlanded is UNMEASURED:
+            lines.append(f"  leg (a) landed within a batch: not measured -- {self.unmeasured_reason}")
+        else:
+            lines.append(f"  leg (a) landed within a batch: {len(self.unlanded)} unlanded past "
+                         f"{GRACE_BATCHES} closed batch(es) -- read {self.rulings_read} ruling(s) in "
+                         f"{self.files_read} non-superseded RATIFICATION file(s)")
+        return "\n".join(lines)
+
+
+def rulings_report(repo_root, *, transport=_UNSET, floor: int = FIRST_GATED_RULING) -> RulingsReport:
+    """Both legs of the gate, in one place for the CLI, the audit finding and the tests.
+
+    `transport=None` (or a transport with no `to-browser/`) leaves the unlanded leg NOT MEASURED;
+    the carried leg needs only the repository and always runs.
+    """
+    root = Path(repo_root)
+    uncarried = uncarried_rulings(root, floor=floor)
+    counts = register_counts(root, floor=floor)
+    if transport is _UNSET:
+        transport = _transport_root()
+    if transport is None:
+        return RulingsReport(uncarried, UNMEASURED, counts, "the transport is unresolved "
+                             "(CLAUDE_PROMPTS_DIR is unset or not a folder)")
+    try:
+        files, population = ratification_population(transport)
+        unlanded = unlanded_rulings(root, transport, population=population)
+    except TransportUnreadable as exc:
+        return RulingsReport(uncarried, UNMEASURED, counts, str(exc))
+    return RulingsReport(uncarried, unlanded, counts, files_read=len(files),
+                         rulings_read=len(population))
+
+
 # --------------------------------------------------------------------------------------- CLI
 
 
@@ -970,6 +1468,9 @@ def main(argv: list[str] | None = None) -> int:
                        help="leg 1 only -- the commit's own decision files")
     sub.add_parser("ledger", parents=[common], help="emit A9-2's decision ledger (writes nothing)")
     sub.add_parser("metrics", parents=[common], help="emit A9-3's four numbers")
+    sub.add_parser("rulings", parents=[common],
+                   help="refuse while a ratified ruling is unlanded past one batch, or landed "
+                        "with neither a row nor a 'no implementation required' (R79.3, [#721])")
 
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
@@ -980,6 +1481,16 @@ def main(argv: list[str] | None = None) -> int:
 
     root = Path(args.repo_root).resolve()
     transport = None if args.no_transport else _transport_root()
+    if args.command == "rulings":
+        # The register leg reads files, not the graph store: no `_open` (a stale-store rebuild
+        # would cost seconds a register read does not need), and its own transport judgement.
+        try:
+            report = rulings_report(root, transport=transport)
+        except PopulationUnreadable as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 1
+        print(report.render())
+        return report.exit_code(no_transport=args.no_transport)
     try:
         store = _open(args)
     except gs.StoreUnreadable as exc:

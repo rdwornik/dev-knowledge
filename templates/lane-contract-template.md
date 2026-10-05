@@ -23,6 +23,10 @@ reconciled_with: handoff-process@7.1.0
     ordering before the freeze. ONE GRAMMAR, WRITTEN HERE AND READ THERE
     (`lane-plan-lint-grammar`, WAVE5B-N1): keep the two in agreement rather than drifting one and
     patching the other's regex around it.
+  * `**Rows:** closes — [#id], …; related, not closed by this lane — [#id], …` — one line.
+    `scripts/row_close.py` reads only the ids in the `closes —` clause; the integrator closes
+    those rows at merge, with evidence, and the lane closes none. A contract without the line
+    is refused by that step. Write `closes — none filed …` when the lane closes no row.
   * A bare alias (`opus`, `sonnet`, `haiku`, `opusplan`) in the Model cell or the Dispatch
     line's `--model` — one is not written; the night rule wants an explicit, versioned id, and
     `plan_lint.py` refuses a contract that names one instead.
@@ -74,6 +78,8 @@ slug `<slug>` -> branch `worktree-<slug>` -> contract `LANE-<id>-<slug>.md`
 <**Produces:** `<artifact>` · **Consumes:** `<artifact>` — only when another lane of the batch reads it>
 
 <Operator authorization, quoted with its date, for any path this lane creates; a path not named here is not created.>
+
+**Rows:** closes — <`[#id]`, … | none filed for this requirement (<its source>)>; related, not closed by this lane — <`[#id]`, … | none>
 
 ## Value
 

@@ -584,7 +584,9 @@ def test_pin_only_prints_just_the_three_line_pin(tmp_path: Path) -> None:
     assert len(lines) == 3
     assert lines[0].startswith("ROLE PIN — HANDOFF_BOOT.md @ handoff-process v6.3.0")
     assert lines[1].startswith("sha256: ")
-    assert "If your project instructions do not carry this contract" in lines[2]
+    # B2-W1 W1-9 item 5: the refusal names the knowledge file (the live Project's one install mode)
+    assert "HANDOFF_BOOT.md in your project knowledge" in lines[2]
+    assert "project instructions" not in lines[2]
 
 
 def test_pin_only_needs_no_bundle_dir(tmp_path: Path) -> None:
@@ -1105,3 +1107,36 @@ def test_the_live_35kb_bundle_sheds_under_the_ceiling(tmp_path: Path) -> None:
     assert _paste_bytes(bundle) <= 20_000
     header = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8").split("=== ROLE PIN", 1)[0]
     assert "PLAYBOOK" not in header
+
+
+# ------------------------------------------------------------------ #
+# B2-W1 lane W1-9 item 6: no probe table in an architect paste (R30). RED at e67f27ac: the
+# architect paste folded PROBES.md verbatim although the boot says "there is no probe table to
+# read, and none is owed".
+# ------------------------------------------------------------------ #
+
+def test_an_architect_paste_carries_no_probe_table_but_the_bundle_keeps_its_file(tmp_path: Path) -> None:
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "PROBES.md" not in _labels(paste), _labels(paste)
+    assert "P1 probe here." not in paste
+    assert (bundle / "PROBES.md").is_file()           # CC's probe gate (HANDOFF_PROCESS §5) still reads it
+    assert f"=== END OF PASTE — {len(_labels(paste))} sections" in paste
+
+
+def test_a_non_architect_paste_still_folds_the_probe_table(tmp_path: Path) -> None:
+    bundle, script = _make_bundle(tmp_path, mode="execution")
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "PROBES.md" in _labels(paste) and "P1 probe here." in paste
+
+
+def test_an_architect_cut_still_needs_probes_md_in_the_bundle(tmp_path: Path) -> None:
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+    (bundle / "PROBES.md").unlink()
+    result = _run(script, bundle)
+    assert result.returncode == 1 and "Required source missing" in result.stderr
+    assert not (bundle / "PASTE_THIS.md").exists()

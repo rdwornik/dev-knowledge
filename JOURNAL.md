@@ -21,6 +21,99 @@
 
 ---
 
+### 2026-10-04 (l) - CC (Opus 5.5, integrator seat B2-W1 cycle 7): lane b2-transport-probe merges -- the BD-transport probe checks recorded kinds against the live registry, so adding a transport kind no longer reds the handoff path, and an unreadable registry reads skipped, never pass
+
+**Anchors:** `846ea0fb`, `4764433f`, `d72aa720`, `31231c8c`, `7654e899`, `e6f13fab`, `194e0ae8`, `8344f64f`, `f2f2b33e` -- `worktree-b2-transport-probe` (B2-W1 W1-11, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-11 after its repair 1: `handoff_state.row_transport` records the kind count plus a 12-hex names digest, and `verify_handoff_probes._rule_transport` passes growth, fails a removed recorded kind, and judges the sealed 2026-10-02 bundle's legacy count-only row as live count >= recorded. Repair 1 (decided by night rule N2, independent reviewer grok-4.7: REWRITE) types an identical degraded `unavailable` reading `skipped`, so an unmeasured Transport row never reads as a pass.
+- `[#978]` refs cite the lane's review record as its governance consumer (the registry this probe stops penalising for growth). The closed merge receipt of lane b2-codespace-1to1 (`0db61b7b`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/{handoff_state,verify_handoff_probes}.py`, their tests, `tasks/978-…`, one review record, generated index/counts.
+
+**Next:** re-test W1-6 b2-transport-lint unchanged at `a4f0fa89` (its gate, W1-11 merged); W1-3 b2-ci-poll WAITING on the architect's item-4 ruling.
+
+---
+
+### 2026-10-04 (k) - CC (Opus 5.5, integrator seat B2-W1 cycle 5): lane b2-codespace-1to1 merges -- a fresh Codespace comes up 4-core/240 min with every model CLI pinned, and C1 reads each CLI's served model id from the tool's own record
+
+**Anchors:** `a707ab37`, `787dc007`, `85144b42`, `c9dcb23e`, `86c9e7af`, `6c822c39`, `6ba5e7a3`, `218d9d23`, `94c52403`, `6676a243`, `e88e6aff`, `aa334b7b`, `510b0d7f`, `4cd8f4ff`, `e6991460`, `6a723c54`, `a9a7a311`, `6be0629b`, `b76a8375`, `db064469`, `183c9b18` -- `worktree-b2-codespace-1to1` (B2-W1 W1-7, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-7 after its repair 1: `scripts/dispatch.py` Codespace defaults `standardLinux32gb` / `240m` in all three places; `.devcontainer/provision.sh` + `provisioning.yaml` install and pin claude, gh, codex, rclone, agy 1.2.16 and grok 1.0.44; `scripts/codespace_parity.py` C1 probes each model CLI's served id against `ecosystem/provider-registry.yaml` (a mismatch or no id is a FAIL, an unprobed CLI a named AUTH-ITEM). Repair 1 carries the two `tests/test_provision_legs.py` declaration assertions that follow the agy/grok pins (operator order via the refusal) plus two disclosed fixture lines.
+- `[#1335]` refs cite the lane's run record and its two review records as their governance consumer. The closed merge receipt of lane b2-rulings-landing (`42ba43c2`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `.devcontainer/{provision.sh,provisioning.yaml}`, `scripts/{codespace_parity,dispatch}.py`, their tests, `tasks/1335-…`, one run record and two review records, generated index/counts.
+
+**Next:** W1-3 b2-ci-poll WAITING on the architect's item-4 ruling; W1-11 b2-transport-probe building.
+
+---
+### 2026-10-04 (j) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-rulings-landing merges -- R55-R79 land as STANDING_RULINGS section AR, each carried by a row, and a two-leg rulings gate whose unmeasured leg never reads clean
+
+**Anchors:** `dc9bfb21`, `c499dddb`, `b7a0e503`, `8d74b255`, `eed7071d`, `393bc9a3`, `a3c39142`, `c84d43ab`, `defb2fae`, `82aaafdd`, `4de8c97e`, `167216ee`, `71ace1cf`, `c8c465b0` -- `worktree-b2-rulings-landing` (B2-W1 W1-10, after repair 2)
+
+**Did:**
+- Merged batch B2-W1 lane W1-10 after its repair 2: section AR of `protocols/STANDING_RULINGS.md` (R55-R79), rows `[#1360]`-`[#1379]` carrying them, and `decision_coverage.py rulings` with its `rulings_carried` audit finding. Repair 2 (decided by night rule N2, independent reviewer grok-4.7: REWRITE) makes leg (a)'s "not measured" a truthy `UNMEASURED` sentinel, so `not report.unlanded` never reads an unmeasured leg as clean.
+- `[#1378]` refs cite the lane's three review records as their governance consumer (the `1546090c` precedent). The closed merge receipt of lane b2-handoff-hardening (`1627e74c`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `protocols/STANDING_RULINGS.md`, `scripts/{decision_coverage,audit}.py`, `scripts/audit_checks/{check_rulings_carried,registry}.py`, `ecosystem/doc-code-edge.yaml`, their tests, `tasks/1360-…`-`tasks/1379-…`, three review records, generated index/counts.
+
+**Next:** W1-7's repair 1 and W1-3's first handback; W1-11 is building.
+
+---
+
+### 2026-10-04 (i) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-handoff-hardening merges -- the boot's defects found by the boot test are fixed, and the Plan row refuses visibly instead of falling back to an old master plan
+
+**Anchors:** `f74d1c4c`, `10565b84`, `a23eaaf3`, `88c77d6f`, `be729b33`, `8a43a1de`, `d7444f89`, `6b8e6911`, `6a26c984`, `bd7a7a53`, `a4327fa6`, `b15b2f67`, `70228c11`, `1c8e97d5`, `464ef70b`, `9bd6c63d`, `29262f24` -- `worktree-b2-handoff-hardening` (B2-W1 W1-9, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-9 after its repair 1: a generated `Plan` row (a plan's role read from its own head, then its `supersedes:` lineage; a newer undeclared plan refuses the row and fails `BD-plan`), a boot version that moves, one first move in core item 3, a Rulings row printing the ids in force and the computed `not landed:` set, one install mode, and no PROBES table in an architect paste.
+- `[#663]` refs cite the lane's review record as its governance consumer (the `1546090c` precedent). The closed merge receipt of lane b2-merge-gate (`1546090c`), uncarried since the refused W1-10 merge, rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `protocols/{HANDOFF_BOOT,OPERATOR-INTERFACE}.md`, `scripts/{handoff_state,verify_handoff_probes,assemble_paste}.py`, `templates/handoff/v5/{HANDOFF_BOOT.md,RESIDUAL.md}.tmpl`, their tests, one review record, `tasks/663-…`, generated index/counts.
+
+**Next:** W1-11 b2-transport-probe unblocks on this merge; then W1-6's re-test.
+
+---
+
+### 2026-10-04 (h) - CC (Opus 5.5, integrator seat B2-W1 cycle 3): lane b2-merge-gate merges -- CI's verdict refuses only a NEW red or a non-pass required check, and a red on both sides is flagged by bucket
+
+**Anchors:** `5f94f2b7`, `b2aa273b`, `d41b7321`, `12c8a8f5`, `18b964cb`, `a13d883a`, `937b94ca`, `8c41d639`, `80d31774`, `a71c568b`, `730821ff`, `747d4c95`, `ec74680a`, `48ee437a`, `27825023`, `5fb90eee`, `5d97fd1d`, `e49140ff`, `4899d80b`, `96a1534f`, `0673145a`, `3a83b5d3`, `8174ee4d`, `de8bb6e6`, `37a9061e`, `54d890a5`, `29d43f74`, `87484c64`, `44ce797f`, `9db0b523`, `b3da5142` -- `worktree-b2-merge-gate` (lane 4 `worktree-foundation-4-merge-gate` up to `2dd2067d` carried), merged `--no-ff` through `epic/b2-w1-int-b2-merge-gate`.
+
+**Did:**
+- Merged batch B2-W1 lane W1-2 after its repair 1: `known_reds`, `actions_verdict`, `ci_verdict` and `merge_path.land` refuse only a test red on the merge and green on the base, and each non-pass state of a required check; a red on both sides is FLAGGED into the receipt by bucket, an unregistered one as ROWS-OWED. A base pytest leg is judged by its log, not its job conclusion (main's legs conclude `success` with known reds). `merge_path.py land --no-push` replays a verdict; `ruleset apply` refuses without a rehearsal record.
+- `[#966]` refs cite the two review records as their governance consumer (the a0bf5cae precedent). The closed merge receipt of lane b2-row-close-on-merge (`1ae12a29`), uncarried since two refused merges, rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged buckets and the same-branch-context control (architect ruling (c)) are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/{known_reds,actions_verdict,ci_verdict,merge_path,merge_receipt,gates,dodo,ship_gate_diff}.py`, their tests, `.github/workflows/conductor.yml`, `deploy/conductor-required-checks.ruleset.json`, ADR-127 markers, `templates/integrator-order-template.md`, `.claude/commands/lane-integrate.md`, `tasks/966-…`, two review records, generated index/counts.
+
+**Next:** W1-3 b2-ci-poll and W1-8's edge unblock on this merge.
+
+---
+
+### 2026-10-04 (g) - CC (Opus 5.5, integrator seat B2-W1 cycle 2): lane b2-row-close-on-merge merges -- a merged lane's rows close with verified evidence, by the integrator
+
+**Anchors:** `da5078e8`, `6cf78acd`, `1d89fc16`, `f754e6f3`, `1841dcd6`, `700aed43`, `96f7abf0`, `5e0d4e64` -- `worktree-b2-row-close-on-merge`, merged `--no-ff` through `epic/b2-w1-int-b2-row-close-on-merge`.
+
+**Did:**
+- Merged batch B2-W1 lane W1-1: `scripts/row_close.py close --contract … --slug … --ci-run … --test …` reads a contract's `**Rows:** closes —` ids, verifies the merge sha from the closed merge receipt (reachable from `origin/main`), the CI push run (same sha, completed, not cancelled/timed out) and each test node id at the merge sha, and closes each row through `gen_task_tree`'s one writer with all three in the evidence clause; it refuses, files byte-identical, on missing evidence or when called from the lane's own worktree or session. `templates/lane-contract-template.md` carries the `**Rows:**` line.
+- `[#730]` refs cite the lane's review record as its governance consumer (the a0bf5cae precedent).
+
+**Result:** the integrator's step 5a has a coded closing step from this merge on; the merge's verdict is in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/row_close.py`, `tests/test_row_close.py`, `scripts/gen_task_tree.py` (close-row evidence clause), `tests/test_gen_task_tree.py`, `templates/lane-contract-template.md`, `ecosystem/harness.yaml` (one fates line), `tasks/730-…`, `docs/audits/2026-10-04-codex-b2-row-close-on-merge.md`, generated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** the remaining B2-W1 handbacks, in handback order.
+
 ### 2026-10-04 (f) - CC (Opus 5.5, integrator seat FOUNDATION): batch FOUNDATION close -- ten lanes merged, lane 4 waits on a ruling, lanes 7 and 12 wait behind it
 
 **Anchors:** `3ce1abd5` -- `chore/foundation-close-ledgers`, merged `--no-ff`.

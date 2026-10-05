@@ -141,7 +141,7 @@ def test_dry_cut_evaluates_only_the_named_handoff_organ_set(tmp_path, monkeypatc
     _run_dry_cut(tmp_path, monkeypatch)
     assert "checks" in seen, "row 1 never ran the handoff organ set through run_checks"
     assert {f.__name__ for f in seen["checks"]} == handoff_names
-    assert len(handoff_names) == 11, "the ratified set is eleven organs"
+    assert len(handoff_names) == 12, "the ratified set is eleven organs plus rulings_carried"
     assert seen["parallel"] is True, "the set must run in parallel (L6)"
 
 

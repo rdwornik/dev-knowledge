@@ -1060,8 +1060,8 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
 
 import re  # noqa: E402
 
-TOOLS = ("claude", "gh", "codex", "agy", "rclone")
-_PINNED = ("claude", "gh", "codex", "rclone")     # `agy`'s installer takes no version
+TOOLS = ("claude", "gh", "codex", "agy", "grok", "rclone")
+_PINNED = ("claude", "gh", "codex", "agy", "grok", "rclone")  # agy's installer takes no version: the leg installs the latest and asserts the pin
 
 
 def _tool_row(**over: object) -> dict:
@@ -1106,10 +1106,10 @@ def test_the_live_declaration_pins_every_lane_tool() -> None:
         assert len(tool.method) >= 20, f"{name}: a token, not a recorded method"
 
 
-def test_agy_is_unpinned_on_purpose_and_says_why() -> None:
+def test_agy_is_pinned_although_its_installer_takes_no_version_and_says_why() -> None:
     agy = cp.load_config().tools["agy"]
-    assert agy.version is None
-    assert "latest" in agy.reason, "the unpinned tool records why it cannot be pinned"
+    assert agy.version == "1.2.16"
+    assert "latest" in agy.reason, "the pinned tool records why its installer cannot select the pin"
 
 
 def test_load_config_without_a_tools_block_still_loads(tmp_path: Path) -> None:
@@ -1140,10 +1140,8 @@ def test_load_config_refuses_a_tool_with_no_doc(tmp_path: Path) -> None:
 
 
 def _nines() -> dict:
-    """Every tool pinned at 9.9.9 except `agy`, which has no pin (its installer takes none)."""
-    rows = {n: _tool_row(version="9.9.9") for n in TOOLS}
-    rows["agy"] = _tool_row(version=None, reason="latest only")
-    return rows
+    """Every tool pinned at 9.9.9, `agy` included (its installer takes none; the leg asserts the pin)."""
+    return {n: _tool_row(version="9.9.9") for n in TOOLS}
 
 
 def _probe_of(table: dict):
@@ -1154,7 +1152,7 @@ def _probe_of(table: dict):
 
 
 _BANNER = {"claude": "9.9.9 (Claude Code)", "gh": "gh version 9.9.9 (2026-01-01)",
-           "codex": "codex-cli 9.9.9", "agy": "9.9.9", "rclone": "rclone v9.9.9"}
+           "codex": "codex-cli 9.9.9", "agy": "9.9.9", "grok": "grok 9.9.9", "rclone": "rclone v9.9.9"}
 
 
 @pytest.mark.parametrize("name", TOOLS)

@@ -21,6 +21,14 @@
   ANSWER-FREE: no SHA / count / verdict / date value is ever templated here — those are the
   probes' live answers. The BRANCH token = which branch this was cut on (`Generated at`); the DATA
   block's Destination row = where the seat LANDS at boot (P3's operand; §13(c″)).
+
+  FILL-IN AUTHORS (derived from the homes and quoted, not invented -- B2-W1 W1-9 item 7):
+    drift-flags (RESIDUAL.md, region `driftflags`): CC. HANDOFF_PROCESS §2: "CC's handoff is only
+      the residual"; drift-flags are "plus CC's state read".
+    Purpose, and the Destination prose (worktree, write-scope, mode basis): NO HOME NAMES THE
+      AUTHOR. HANDOFF_PROCESS "Residual completeness" says the regions are "authored before the
+      bundle is committed" (no actor) and §13(c″) says "The three prose fields are FILL-IN
+      regions" (no actor). Open QUESTION for the architect seat; this template picks no author.
 -->
 # Handoff boot — session header + paste-pointer ({{MODE}} mode)
 <!-- scope: meta -->
@@ -48,17 +56,16 @@
 
 
 1. Open a fresh Claude.ai chat.
-2. Paste **`PASTE_THIS.md`** (in this bundle directory) — the browser role file + residual + probes (+ the
-   supplement ANSWERS **only if filled**), assembled in order by `scripts/assemble_paste.py`. One paste;
-   never hand-feed individual files to the file-less browser.
+2. Paste **`PASTE_THIS.md`** (in this bundle directory) — the ROLE PIN + residual (+ the probes in a
+   non-architect mode) (+ the supplement ANSWERS **only if filled**), assembled in order by
+   `scripts/assemble_paste.py`. One paste; never hand-feed individual files to the file-less browser.
 3. The browser replies with its on-load acknowledgment line (it names the Layer-1 actor); a partial or
    missing paste is then visible.
 4. **{{MODE}} mode** — the browser adopts the mode posture from `protocols/HANDOFF_BOOT.md` (§"{{MODE}}
    mode"): {{MODE_POSTURE}}.
-5. **Boot on the ROLE PIN alone (R30).** The browser runs no `/handoff-verify` and asks for no
-   evidence block: the three-line ROLE PIN at the head of the paste (role file, live
-   `handoff-process` version, sha256) is the whole onboarding check, and a pin mismatch is its only
-   FAIL. CC holds the probe gate and runs it at the cut (HANDOFF_PROCESS §5), not as a boot step.
+5. **Boot on the ROLE PIN alone (R30).** The browser's first move is core item 3 of
+   `protocols/HANDOFF_BOOT.md`. CC holds the probe gate and runs it at the cut (HANDOFF_PROCESS §5),
+   not as a boot step; an architect-mode paste carries no probe table.
 {{PASTE_STEP6}}
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2). **The bundle states no drift-flag value:** ask CC to
