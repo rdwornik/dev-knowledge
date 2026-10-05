@@ -888,7 +888,7 @@
         "task": "[#1348]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 4 == 1"
+        "signature": "AssertionError: assert 5 == 1"
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
@@ -1248,140 +1248,140 @@
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "[#863]",
         "expiry": "2026-10-08",
-        "signature": "KeyError: 'PreToolUse'"
+        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
         "attribution": "pre-freeze",
@@ -1430,7 +1430,7 @@
         "task": "[#1348]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 4 == 1"
+        "signature": "AssertionError: assert 5 == 1"
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
@@ -1488,6 +1488,7 @@
     "AM2-2: the 20 test_prompts_guard_hook_wiring entries keep their recorded windows signature (KeyError: 'PreToolUse'), are not re-signed and carry no new expiry: task [#912], owner [#863], expiry 2026-10-08 (the guard's off-expiry, CLAUDE.md section 9). On windows the live reason ('expected exactly one prompts-guard hook, found 0') differs, so compare reads them SIG-CHANGED until the operator decides by 2026-10-07.",
     "AM2-3 growing items D5 (boot base bytes), D6 (unpinned text writes), D7 (floor components) carry ceiling+growth, enforced by compare; D8's changed first-orphan is stated in its growth and held by exact signature.",
     "entries with no per-leg signature (the reason text varied over the evidence runs): test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock on win (3 distinct normalized signatures over 6 runs)",
-    "2026-10-04 foundation-8-test-isolation: the three Windows flake members (the two graph-spine lock tests, [#1344]; the transport concurrent-append test, [#1350]) carry their shown cause, the script it lives in and their measured control rates; the transport member is new on windows-latest. No signature re-signed, no entry grew. The deny_and_point fail-closed pair was never registered (lane 5 merged on one CI read with the pair absent), so there is no entry of theirs to remove."
+    "2026-10-04 foundation-8-test-isolation: the three Windows flake members (the two graph-spine lock tests, [#1344]; the transport concurrent-append test, [#1350]) carry their shown cause, the script it lives in and their measured control rates; the transport member is new on windows-latest. No signature re-signed, no entry grew. The deny_and_point fail-closed pair was never registered (lane 5 merged on one CI read with the pair absent), so there is no entry of theirs to remove.",
+    "2026-10-05 B2-W1 integrator cycle 11 (session ae3fca90), by operator emergency order 2026-10-05 (the decision AM2-2 waited for): 21 per-OS signatures re-signed to the live ones read on main 3e97b2fd's push run 37310685233 (ubuntu job 111765035834, windows job 111765035880; compare there: ubuntu 1, windows 21 REGRESSION, all SIG-CHANGED). Same cause, classified with evidence in to-browser/SESSION-integrator-b2-w1-2026-10-04.md (CLASSIFY-1/-2): (1) tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword on both legs 'assert 4 == 1' -> 'assert 5 == 1': the oracle resolves one more `class Finding` (scripts/transport_lint.py:66, added by 477353aa, lane b2-transport-lint) -- the [#1348] homonym count, a volatile fact (N5); (2) the 20 test_prompts_guard_hook_wiring.py entries on windows-latest \"KeyError: 'PreToolUse'\" -> 'expected exactly one prompts-guard hook, found 0': the guard is still OFF by operator order ([#863], expiry 2026-10-08); .claude/settings.json gained a PreToolUse block for scope_guard (193e9007, 2026-09-27), so the lookup no longer raises KeyError and finds no prompts-guard hook. Task, owner and expiry unchanged; no entry added, removed or widened."
   ]
 }
