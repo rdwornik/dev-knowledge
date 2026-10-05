@@ -214,14 +214,17 @@ tools:
       precompiled binary: downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip
     doc: https://rclone.org/install/
   agy:
-    version: "1.2.16"
+    version: "1.2.17"
     method: curl -fsSL https://antigravity.google/cli/install.sh | bash
     doc: https://codelabs.developers.google.com/antigravity-cli-hands-on
     reason: >-
       PINNED BUT NOT SELECTABLE (b2-codespace-1to1, R63): the vendor installer takes only --dir and
       installs the manifest's latest release, so the leg cannot choose this version. It ASSERTS it:
-      a release the vendor publishes past the workstation's 1.2.16 is a named skew refusal here
-      and a C1 version-skew FAIL, never a silent one. The manifest read 2026-10-04 named 1.2.16.
+      a release the vendor publishes past the workstation's 1.2.17 is a named skew refusal here
+      and a C1 version-skew FAIL, never a silent one. The manifest read 2026-10-04 named 1.2.16;
+      it named 1.2.17 on 2026-10-05, when a Codespace created at the 1.2.16 pin refused (run 1 of
+      b2-codespace-green: `L-F5 FAILED -- agy is not the pinned 1.2.16`), became a recovery
+      container, and the workstation's own `agy --version` read 1.2.17.
   grok:
     version: "1.0.44"
     method: >-
