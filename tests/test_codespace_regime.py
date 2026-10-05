@@ -253,3 +253,8 @@ def test_a_failed_fate_without_a_reason_or_step_is_refused(tmp_path):
             continue
         raise AssertionError("a FAILED fate with no reason or step was written")
     assert not ledger.exists()
+
+
+def test_the_regime_fates_are_the_classifiers_fates():
+    from scripts import codespace_state as state
+    assert tuple(cs.FATES) == tuple(state.FATES)

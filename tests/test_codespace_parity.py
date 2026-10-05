@@ -1984,3 +1984,9 @@ def test_the_live_registry_routes_the_review_role_to_the_newest_codex_model():
     now reads, so the registry follows the provider."""
     expected = cp.expected_models(cp.load_registry(_REPO_REGISTRY))
     assert expected["codex"].id == "gpt-6-astra", expected["codex"]
+
+
+def test_the_parity_ci_landable_states_are_the_merge_paths():
+    from scripts import merge_path
+    assert tuple(cp.CI_LANDABLE_STATES) == tuple(merge_path.LANDABLE_STATES)
+    assert not set(cp.CI_LANDABLE_STATES) & set(cp.CI_FAILED_STATES)

@@ -25,12 +25,13 @@ without saying which kind it is.
 --------------------------------------------------------------------------------------------
 WHAT THIS MODULE DELIBERATELY IS NOT
 --------------------------------------------------------------------------------------------
-It is NOT a poller, and it does not decide how state reaches it. `classify_lane` is a pure cross
-over (container_state, progress_age) — whether those two inputs arrive by polling from outside, by
-the lane pushing from inside, or by both, is the open architectural question filed as intake #102
-and routed to the decision engine by operator directive. Building the observer here would decide
-that question in a diff, which is exactly what the directive forbade. What is built is the part
-every option shares: the classifier they would all call.
+It is NOT a poller. `classify_lane` stays a pure cross over (container_state, progress_age); the
+architectural question of how state reaches it (intake #102) is still the decision engine's, so
+this module reads ONE moment and never loops. What b2-codespace-green (R65) added is the part every
+option shares: the bounded reads (`fetch_creation_log`, `fetch_state`, `fetch_progress`, each with a
+timeout), an ABSENT state for a deleted box (not UNKNOWN), and `assess_lane`, which crosses state,
+a heartbeat reading and an unreachable duration into a state AND a fate. The observer verb in
+`dispatch.py` (`codespace-observe`) calls them once per invocation.
 
 HONEST LIMIT, stated because the register would otherwise imply it away. `classify_creation_log`
 is validated against ONE measured recovery event and one healthy log. It will name the failure

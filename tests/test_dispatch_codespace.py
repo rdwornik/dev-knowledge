@@ -1038,3 +1038,7 @@ def test_the_observe_cli_prints_the_reading_as_json(monkeypatch):
     out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1"])
     assert out.exit_code == 0, out.output
     assert json.loads(out.output)["state"] == "working"
+
+
+def test_the_run_step_outlasts_every_other_gh_call():
+    assert d.RUN_TIMEOUT_SECONDS > d.GH_TIMEOUT_SECONDS
