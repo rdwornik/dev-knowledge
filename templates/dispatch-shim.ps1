@@ -40,6 +40,15 @@
   table) or from -Model / -Effort. There is no default and no cap argument: -TokenCap is optional
   and only WRITES the cap field into the launch receipt.
 
+.NOTES
+  INSTALL (an operator act: it writes under the operator's profile, which no hub lane does). This file
+  is the PATH verb `dispatch`; the copy below replaces the PATH command of that name:
+
+    Copy-Item -LiteralPath "$HOME\Documents\Dev\.dev-knowledge\templates\dispatch-shim.ps1" -Destination "$HOME\.dev-terminals\bin\dispatch.ps1" -Force
+
+  `$HOME\.dev-terminals\bin` is the directory the PATH verb lives in (PLAYBOOK Ch8, "dispatch is a
+  PATH command"). Re-run the copy after any redeploy of that directory.
+
 .PARAMETER ContractFile
   Path to a contract .md, or a bare file name resolved against the prompts directory.
 

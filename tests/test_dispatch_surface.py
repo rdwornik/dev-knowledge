@@ -416,3 +416,66 @@ def test_a_bg_fence_carrying_opusplan_is_refused_even_when_the_row_is_clean(tmp_
         "slug `lane-z-001-split` -> branch `worktree-lane-z-001-split` "
         "-> contract `LANE-z-001-split.md`\n", encoding="utf-8")
     assert any("opusplan" in h for h in ds.contract_findings(p))
+
+
+# --- LANE-B2-W1-b2-dispatch-local-sole: the PATH verb is the hub's ---------------------------
+#
+# Item 2: `dispatch` becomes a thin hub shim calling `dispatch.py`. Item 4: PLAYBOOK's local-verb
+# ruling points at the hub. Both read the tracked text, so they run on every OS leg (the pwsh
+# run of the shim is in tests/test_dispatch_shim.py, gated on a PowerShell being there).
+
+import re  # noqa: E402
+
+_SHIM = _REPO / "templates" / "dispatch-shim.ps1"
+_WIN_TOOLING = re.compile(r"pwsh|powershell|Invoke-Dispatch|Dispatch-", re.IGNORECASE)
+
+
+def _shim_code() -> str:
+    """The shim minus its `<# ... #>` help block and its `#` comment lines: what PowerShell runs."""
+    text = re.sub(r"<#.*?#>", "", _SHIM.read_text(encoding="utf-8"), flags=re.DOTALL)
+    return "\n".join(ln for ln in text.splitlines() if ln.strip() and not ln.strip().startswith("#"))
+
+
+def test_the_shim_runs_the_hubs_dispatch_py_and_nothing_else():
+    code = _shim_code()
+    calls = re.findall(r"^&\s+(.+)$", code, re.MULTILINE)
+    assert calls == [r"uv run --locked --project $Hub python $DispatchPy @verb"], calls
+    assert "$DispatchPy = Join-Path $Hub 'scripts\\dispatch.py'" in code
+    assert "'launch', $ContractFile" in code
+    assert not _WIN_TOOLING.search(code), _WIN_TOOLING.search(code).group(0)
+
+
+def test_the_shim_carries_the_exact_install_command_for_the_path_verb():
+    """The install writes under the operator's profile, which no lane does: it is an operator act,
+    and the command for it lives in the shim itself so it cannot drift from the file it copies."""
+    text = _SHIM.read_text(encoding="utf-8")
+    install = re.search(r"^\s*Copy-Item .*dispatch-shim\.ps1.*dispatch\.ps1.*$", text, re.MULTILINE)
+    assert install is not None, "the shim names no install command"
+    assert r"$HOME\.dev-terminals\bin\dispatch.ps1" in install.group(0)
+
+
+def _ruling_paragraph() -> str:
+    playbook = (_REPO / ds.PLAYBOOK_PATH).read_text(encoding="utf-8")
+    start = playbook.index("**THE RULING (operator, 2026-08-25")
+    return playbook[start:playbook.index("\n\n", start)]
+
+
+def test_playbook_no_longer_calls_the_win_tooling_verb_the_sole_operator_verb():
+    playbook = (_REPO / ds.PLAYBOOK_PATH).read_text(encoding="utf-8")
+    assert "THE sole operator verb" not in playbook
+
+
+def test_playbooks_local_verb_ruling_points_at_the_hub():
+    ruling = " ".join(_ruling_paragraph().split())
+    assert "scripts/dispatch.py" in ruling and "templates/dispatch-shim.ps1" in ruling
+    assert "`dispatch <contract.md>`" in ruling          # the operator's typed form is unchanged
+    # the local manual fallback is the hub's launcher, not win-tooling's alias
+    assert "`Dispatch-Local` (née `Dispatch-Lane`) is the documented manual fallback" not in ruling
+
+
+def test_playbook_does_not_restate_the_verb_as_a_win_tooling_path_command():
+    playbook = " ".join((_REPO / ds.PLAYBOOK_PATH).read_text(encoding="utf-8").split())
+    for stale in ("`dispatch` is a PATH command from that same repo's `scripts/dispatch/Invoke-Dispatch.ps1`",
+                  "`dispatch` / `Invoke-Dispatch.ps1` carries a **local** contract",
+                  "Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`"):
+        assert stale not in playbook, stale
