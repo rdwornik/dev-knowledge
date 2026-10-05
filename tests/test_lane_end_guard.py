@@ -837,6 +837,15 @@ def test_the_default_wake_home_is_the_private_state_directory_and_never_inside_t
     assert _REPO not in home.parents and home != _REPO
 
 
+def test_the_suite_never_points_the_wake_home_at_the_operators_state_directory():
+    """Any test that runs the REAL guard on a HANDBACK line (tests/test_connection_loop.py does, through the real
+    Stop hook) would otherwise leave a wake in the operator's live private home, and the integrator's Monitor
+    would print a WAKE for a fixture lane. `tests/conftest.py` redirects the home for the whole session."""
+    home = os.environ.get("HARNESS_WAKE_DIR")
+    assert home, "tests/conftest.py redirects the wake home for the whole test session"
+    assert Path(home) != _guard().wake_dir({}) and _REPO not in Path(home).parents
+
+
 def test_the_environment_overrides_the_wake_home(tmp_path):
     assert _guard().wake_dir({"HARNESS_WAKE_DIR": str(tmp_path / "x")}) == tmp_path / "x"
 
