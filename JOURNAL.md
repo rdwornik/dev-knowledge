@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-04 (p) - CC (Opus 5.5, integrator seat B2-W1 cycle 9): row [#1384] closes obsoleted -- the seat's ruling to re-point STANDING_RULINGS section AR is withdrawn, since the full v4 ratification text is back at its original name
+
+**Anchors:** `f46630a5` -- `chore/b2-w1-row-1384-obsolete`
+
+**Did:**
+- Closed `[#1384]` as obsoleted (frontmatter `retired`, the `[#364]` precedent) by operator correction 2026-10-05: seat ruling 2 is withdrawn; the seat restored the full v4 text as `to-browser/RATIFICATION-2026-10-04.md` (its condensed v5 is now `…-v5-superseded.md`), so section AR's original citations are correct again.
+- The closed merge receipt of lane b2-dispatch-local-sole (`ca022976`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the correction and the verdict are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `tasks/1384-…`, `tasks/manifest.json`, `BACKLOG.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** R80, R81 and the ADR-121 C6 acceptance (now in `to-browser/RATIFICATION-2026-10-05.md`) are owed to the next rulings-landing run, like R82-R86.
+
+---
 ### 2026-10-04 (o) - CC (Opus 5.5, integrator seat B2-W1 cycle 9): lane b2-dispatch-local-sole merges -- a rendered local contract hands the operator `dispatch.py launch`, every contract write is transport-linted, and the `dispatch-conformance` hook that shelled into win-tooling is retired
 
 **Anchors:** `9b52f808`, `5c5709ad`, `b5345a34`, `5be9e596`, `f79b7f18`, `4d1e0121`, `567c2d15`, `5c332c6a` -- `worktree-b2-dispatch-local-sole` (B2-W1 W1-4, after repair 1); and `469f0d85`, `6c0dbe51` -- cycle 8's rows merge, cited here because no entry named it
