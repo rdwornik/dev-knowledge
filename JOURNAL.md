@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-04 (o) - CC (Opus 5.5, integrator seat B2-W1 cycle 9): lane b2-dispatch-local-sole merges -- a rendered local contract hands the operator `dispatch.py launch`, every contract write is transport-linted, and the `dispatch-conformance` hook that shelled into win-tooling is retired
+
+**Anchors:** `9b52f808`, `5c5709ad`, `b5345a34`, `5be9e596`, `f79b7f18`, `4d1e0121`, `567c2d15`, `5c332c6a` -- `worktree-b2-dispatch-local-sole` (B2-W1 W1-4, after repair 1); and `469f0d85`, `6c0dbe51` -- cycle 8's rows merge, cited here because no entry named it
+
+**Did:**
+- Merged batch B2-W1 lane W1-4 after repair 1 (its first handback edited `CLAUDE.md` section 9 without re-stamping `last_reviewed`, a self-audit FAIL; the repair re-read and stamped it): `scripts/gen_lane_contract.py`'s local emit is `uv run --locked python scripts/dispatch.py launch <contract>` and every contract it writes is linted first, whatever `--out-dir`; `templates/dispatch-shim.ps1` carries its install command; PLAYBOOK Ch8's local-verb ruling points at the hub. The `dispatch-conformance` hook and `scripts/dispatch_conformance.py` are retired (R56 evidence in the lane's handback); `tests/test_dispatch_conformance.py` is a pure-Python seam witness over `dispatch.py`.
+- `[#920]` refs cite the lane's review record (consumer at landing) and its three new witnesses; the row stays open (its Done-when names the deployed PATH command, which waits on the operator's shim install). The closed merge receipt of lane b2-ci-poll (`469f0d85`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/gen_lane_contract.py`, `scripts/dispatch_conformance.py` (deleted), `.pre-commit-config.yaml`, `templates/dispatch-shim.ps1`, `protocols/{PLAYBOOK,BUILD-LIST}.md`, `CLAUDE.md` section 9 and its stamp, `scripts/{codespace_parity,graph_queries}.py`, their tests, one review record, `tasks/920-…`, generated index/counts.
+
+**Next:** W1-8 b2-branch-context-tests, W1-5 b2-integrator-liveness and W1-12 b2-codespace-green are building; the shim install is an OPERATOR-ACTION.
+
+---
 ### 2026-10-04 (n) - CC (Opus 5.5, integrator seat B2-W1 cycle 8): lane b2-ci-poll merges with Done item 4 UNMET by architect ruling -- the lane-end wait ends on the guard's own outcome instead of idling 300 s, and the Linux leg's 420 s target moves to a row
 
 **Anchors:** `6195258d`, `2166b06a`, `e2d55f77`, `122a8a37`, `05005702`, `f52caf92` -- `worktree-b2-ci-poll` (B2-W1 W1-3)

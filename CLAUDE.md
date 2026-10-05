@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-30
+last_reviewed: 2026-10-05
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -149,7 +149,7 @@ Repo-level skills live in `.claude/skills/<name>/SKILL.md` — list that directo
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 13 (counter+expiry) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
+Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 12 (counter+expiry; `dispatch-conformance` retired 2026-10-05) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness
@@ -177,7 +177,6 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 - `graph-edge-class-census` — edge-class ratchet ([#664])
 - `quality-requirements-freshness` — quality register ([#765])
 - `prepend-order` — newest-first / append-only logs ([#786])
-- `dispatch-conformance` — generator<->verb ([#675])
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
 - `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
@@ -232,5 +231,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-05
 **Maintained by:** Rob

@@ -2847,8 +2847,9 @@ drift, and a contract emitted with no command line is a generator bug with a tes
 `Dispatch-Local`, `Dispatch-Cloud` and `Dispatch-Codespace` (with their working version-named
 aliases `Dispatch-Lane`, `Dispatch-CloudV2`) are PowerShell aliases exported by `win-tooling`
 `config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared and auto-loading by that
-repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`; `dispatch` is a PATH command from that
-same repo's `scripts/dispatch/Invoke-Dispatch.ps1`. **That module is the source of truth for their
+repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`; `dispatch` is a PATH command that is
+the hub's own shim over `scripts/dispatch.py launch` (`templates/dispatch-shim.ps1`, an operator
+install). **That module is the source of truth for their
 BEHAVIOUR and this repo does not carry a copy of it** — what this chapter records is each verb's
 CONTRACT (argument shape, receipt, guards) so a seat can use it without reading PowerShell, and
 which one to reach for, and why. They are a versioned, tested, SHA-deployed module rather than
@@ -2893,12 +2894,18 @@ itself calls "the FALLBACK form, not the default" while silently dropping `--mod
 uninformed; they were informed by sources that disagreed. Full measurement, probed in three
 shells: `docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 lines).
 
-**THE RULING (operator, 2026-08-25).** `dispatch <contract.md>` is THE sole operator verb for a
-LOCAL lane — and it is **local-only**: it does not read a contract's `Substrate` field and cannot
-route, so today the substrate is chosen by **which verb the operator types**
-(`Dispatch-Local` / `Dispatch-Cloud` / `Dispatch-Codespace`) and a contract's `Substrate:` line is
-**documentation only** until the Layer-3 router lands. `Dispatch-Local` (née `Dispatch-Lane`) is
-the documented manual fallback. Substrate-named verbs are canonical; version-named ones
+**THE RULING (operator, 2026-08-25; the local verb moved to the hub 2026-10-05).** `dispatch
+<contract.md>` is the operator verb for a LOCAL lane — and it is **local-only**: it does not read a
+contract's `Substrate` field and cannot route, so today the substrate is chosen by **which verb the
+operator types** (`dispatch` for local; `Dispatch-Cloud` / `Dispatch-Codespace` until their lanes
+land in the hub) and a contract's `Substrate:` line is **documentation only** until the Layer-3
+router lands. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
+PATH command, runs `scripts/dispatch.py launch` from whichever repo root it is typed in, and `uv run
+--locked python scripts/dispatch.py launch <contract.md>` is the same act typed in full from the hub
+checkout and the manual fallback; the generator emits that line for a local contract. Until 2026-10-05 the PATH verb resolved to win-tooling's
+`Invoke-Dispatch.ps1`; the operator's order of 2026-10-04 is that the harness owns local dispatch,
+so win-tooling's `Dispatch-Local` (née `Dispatch-Lane`) is no longer the documented fallback.
+Substrate-named verbs are canonical; version-named ones
 (`Dispatch-CloudV2`) are working aliases. The raw `claude --bg` / `--worktree` form is
 **FALLBACK-ONLY** and does not appear in a command file or a template. Interactive and
 primary-checkout seats keep the shape in row 3 below.
@@ -3329,7 +3336,7 @@ with no conditional form has no first batch either.
 **SCOPE, amended 2026-08-23 (M10).** This section's claim below — *"the operator's whole dispatch
 surface is one typed line"* — was written when a local contract was the only dispatch this chapter
 described, and read alone it is now false: it is true of **shape 1 of three**. `dispatch` /
-`Invoke-Dispatch.ps1` carries a **local** contract to a background lane; it is not the cloud
+`dispatch.py launch` carries a **local** contract to a background lane; it is not the cloud
 transport and not the interactive form. A seat holding a cloud brief takes `Dispatch-CloudV2` from
 "Dispatching a session — the boundary, the dispatch table" above. Everything else in this section —
 contract mode, the doubled-prefix incident, the effort enum, the execution gate — stands
@@ -3352,7 +3359,9 @@ git created, and the cost appeared only at the integrator's merge queue, where
 `batch_manifest.is_lane_merge` matched 0 of 12 and the ADR-110 exemption silently did not apply.
 The repair was a uniform rename; `[#531]` is the gate that refuses such a name at creation.
 
-Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`. **`dispatch` is a
+Home: the hub's `scripts/dispatch.py launch`, through `templates/dispatch-shim.ps1` (from
+2026-10-05); the history below is of the win-tooling verb it replaced
+(`scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`). **`dispatch` is a
 PATH command, not a dot-sourced shell function** — `win-tooling@fb52bf6` (2026-08-11; a
 cross-repo SHA, named as one per the citation convention): `scripts/dev-terminals/bin/dispatch.ps1`
 plus a `dispatch.cmd` shim for `cmd.exe`, both deployed by
