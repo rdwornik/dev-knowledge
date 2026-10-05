@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (t) - CC (Opus 5.5, integrator seat B2-W1 cycle 13): AMEND-B2-W1-5's two rows land -- the dispatcher should bound a lane's same-defect attempts in code, and the render should refuse a Done-when item that hangs on outside state not named as a gate
+
+**Anchors:** `082378da` -- `worktree-b2-w1-amend5-rows`; and `7363c99f` -- lane b2-integrator-liveness' merge, whose closed merge receipt rides here
+
+**Did:**
+- `[#1410]` (P1) and `[#1411]` (P2) filed by the session applying AMEND-B2-W1-5 on the operator's order; this merge lands them. Evidence: W1-12 b2-codespace-green ran 13 attempts against its bound of 3, and its item 6 needed main's CI green.
+- The closed merge receipt of lane b2-integrator-liveness (`7363c99f`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** rows on `main`; W1-13 b2-codespace-subscription-auth joins B2-W1 and HOLDs on W1-12. Evidence in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md` (cycle 13).
+
+**Changes:** `tasks/1410-*.md`, `tasks/1411-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** W1-12 b2-codespace-green close-out, then W1-13.
+
+---
+
 ### 2026-10-04 (s) - CC (Opus 5.5, integrator seat B2-W1 cycle 13): lane b2-integrator-liveness merges after repair 2 -- a lane's handback wakes the integrator within 30 s through a watched wake file, the integrator order's cycle section names a 3 h ceiling and the rebind, and no_leftovers check 08 reads a done job record as terminal
 
 **Anchors:** `58ceec48` -- `worktree-b2-integrator-liveness` (15 lane commits `a6778231`..`58ceec48`, plus the origin syncs `733e6afb`, `b3d6a468`, `24addb3a`)

@@ -766,6 +766,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1383] [P2][M] The Linux pytest leg runs in at most 420 s on two consecutive push runs, carried from B2-W1 W1-3's unmet Done item 4 · tasks/1383-the-linux-pytest-leg-runs-in-at-most-420-s-carried-from-b2-w1.md
 - [#1385] [P2][M] decision_coverage recognises an AMEND as carried when every lane it adds has merged · tasks/1385-decision-coverage-recognises-an-amend-carried-by-its-merged-lanes.md
 - [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
+- [#1410] [P1][M] The dispatcher enforces a lane's same-defect attempt bound in code, not by the lane's reading of its contract · tasks/1410-the-dispatcher-enforces-a-same-defect-attempt-bound-in-code.md
+- [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
 
 ---
 
