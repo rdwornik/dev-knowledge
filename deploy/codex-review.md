@@ -78,10 +78,10 @@ wrapper runs a **prose/structural** review instead of skipping — `mode=doc-rev
 assesses disposition-faithfulness, cross-doc consistency (stale claims, dangling
 references), structural integrity (broken links, section/anchor/TOC drift), and
 template/usability, under the same Critical/High/Medium/Low bands. **Both lanes** pin the
-model explicitly to **`gpt-5.6-terra`** (the verified default; never a bare `gpt-5.6`) — the
-doc-lane pin was [#333], the code lane joined it at [#469] (2026-08-01) after a run the
-operator asked for as terra silently EXECUTED as sol, with nothing in the artifact recording
-which model had run. Neither lane inherits the config default. Diff mode only — see PLAYBOOK §16.
+model explicitly to **`gpt-6-astra`** (the newest served model, R82, 2026-10-05; it replaced
+`gpt-5.6-terra`; never a bare `gpt-5.6` or `gpt-6`) — the doc-lane pin was [#333], the code
+lane joined it at [#469] (2026-08-01) after a run the operator asked for as terra silently
+EXECUTED as sol, with nothing in the artifact recording which model had run. Neither lane inherits the config default. Diff mode only — see PLAYBOOK §16.
 
 ## Setup
 
