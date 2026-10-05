@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2669a94a08959d9c3a707d0fb7d1daa04d8bd0e648159eaa7e58c1e0b810830a",
+  "generated_sha256": "05fcb0e6dc98eda20c50ad2f5a2f20beff0d896852a72ac40298e1f2cd0c70c0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2898,10 +2898,6 @@
     {
       "task": 1383,
       "file": "1383-the-linux-pytest-leg-runs-in-at-most-420-s-carried-from-b2-w1.md"
-    },
-    {
-      "task": 1384,
-      "file": "1384-standing-rulings-ar-cites-its-verbatim-rulings-from-the-v4-ratification.md"
     },
     {
       "task": 1385,
