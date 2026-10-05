@@ -824,7 +824,9 @@ def test_collect_environment_probes_auth_by_status_command_and_never_reads_a_sec
     env = cp.collect_environment(run, root=tmp_path, hooks=[])
     assert env["auth"]["claude"]["state"] == "authenticated"
     assert env["auth"]["gh"]["state"] == "authenticated"
-    assert env["auth"]["codex"]["state"] == "unauthenticated"
+    assert env["auth"]["codex"]["state"] == "unprobed", \
+        "`codex login status` reads the ChatGPT login only; the served-id call is codex's proof"
+    assert not [c for c in run.calls if "codex login" in c]
     assert env["auth"]["agy"]["state"] == "unprobed", "agy has no non-interactive status command"
     assert all(set(v) == {"state", "probe"} for v in env["auth"].values()), "no output is stored"
 
@@ -1416,3 +1418,569 @@ def test_the_probe_prompt_is_one_nonce_and_asks_for_nothing_else():
     assert _NONCE in prompt
     assert "\n" not in prompt, "one line, so it survives a cmd shim and a login shell alike"
     assert '"' not in prompt and "'" not in prompt, "nothing a shell has to quote"
+
+
+# =============================================================================================
+# b2-codespace-green (R63, R83; N1): the check CAN print all-green, and no leg passes unmeasured
+# =============================================================================================
+#
+# RED on cd3ab8a6: `compare_landing` ended in `NOT-RUN cond=3` for ANY record (the merge leg was
+# NOT-RUN by construction), `compare_transport` ended in `NOT-RUN cond=4` unless a probe name that
+# no `to-browser/` path can satisfy was given, and `compare_all` / `run_check` took no integration
+# record -- so "all five PASS, exit 0" was unreachable. Every test below that reads PASS has a twin
+# that reads NOT-RUN for the same record with ONE leg unmeasured: that twin is the must-not-pass
+# fixture for the leg.
+
+_RUN_SHA = "d" * 40
+_MERGE_SHA = "e" * 40
+_PROBE_PATH = "to-browser/DIGEST-b2-codespace-green-probe-run1.md"
+
+
+def _integration(**over) -> dict:
+    """What `integrate` writes after the integrator's acts on a scratch branch, all exercised."""
+    row = {
+        "schema": cp.SCHEMA,
+        "run_branch": "worktree-b2-codespace-green-run1",
+        "run_sha": _RUN_SHA,
+        "scratch_branch": "worktree-integrate-b2-codespace-green-run1",
+        "base_sha": _SHA,
+        "run_cut_from_base": True,
+        "merge": {"exit": 0, "sha": _MERGE_SHA, "parents": [_SHA, _RUN_SHA]},
+        "outcome_test": {"argv": ["pytest", "tests/test_x.py::test_y"], "exit": 0, "passed": 1},
+        "ci": {"sha": _MERGE_SHA, "state": "PASS", "landable": True, "run_id": 123,
+               "missing_contexts": [], "reason": ""},
+        "cleanup": {"remote_deleted": True, "worktree_removed": True, "local_branch_removed": True},
+    }
+    row.update(over)
+    return row
+
+
+def _remote_pushed(sha=_SHA) -> dict:
+    """A Codespace record whose parity push put the compared HEAD (== the base, collected before
+    the lane works) on origin. The TEST LANE's own branch is a different ref, merged by C3's leg."""
+    remote = _record("codespace")
+    remote["landing"] = {"pushed_branch": "worktree-b2-codespace-green-run1-parity",
+                         "pushed_sha": sha, "push_exit": 0}
+    return remote
+
+
+def _remote_all_exercised() -> dict:
+    remote = _remote_pushed(_SHA)
+    remote["transport"]["write"] = _write_leg(name=_PROBE_PATH)
+    return remote
+
+
+# ---- the type-level distinction ------------------------------------------------------------------
+
+def test_an_unmeasured_leg_is_a_different_value_from_a_passing_leg():
+    assert cp.Leg.NOT_RUN is not cp.Leg.PASS and cp.Leg.NOT_RUN != cp.Leg.FAIL
+    assert {l.value for l in cp.Leg} == {"PASS", "FAIL", "NOT-RUN"}
+
+
+def test_folding_legs_passes_only_when_every_leg_passed():
+    lr = cp.LegResult
+    assert cp.fold_legs([lr(cp.Leg.PASS, "a"), lr(cp.Leg.PASS, "b")])[0] == "PASS"
+    assert cp.fold_legs([lr(cp.Leg.PASS, "a"), lr(cp.Leg.NOT_RUN, "b")])[0] == "NOT-RUN"
+    assert cp.fold_legs([lr(cp.Leg.NOT_RUN, "a"), lr(cp.Leg.FAIL, "b")])[0] == "FAIL"
+    assert cp.fold_legs([lr(cp.Leg.PASS, "a"), lr(cp.Leg.FAIL, "b")])[0] == "FAIL"
+
+
+def test_folding_no_legs_at_all_is_not_a_pass():
+    """An empty fold would be 'all legs passed' by vacuity -- the pass N1 forbids."""
+    assert cp.fold_legs([])[0] == "NOT-RUN"
+
+
+# ---- C3 -- the integrator's acts, on a scratch branch -----------------------------------------------
+
+def test_landing_passes_when_the_merge_the_outcome_test_and_the_ci_verdict_all_ran_and_held():
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), _integration())
+    assert verdict.status == "PASS", verdict
+    text = "\n".join(verdict.evidence)
+    assert _MERGE_SHA in text and "outcome" in text and "CI" in text
+
+
+def test_landing_without_an_integration_record_is_still_not_run_naming_the_merge_leg():
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), None)
+    assert verdict.status == "NOT-RUN"
+    assert "merge leg" in verdict.reason and cp.LANDING_MERGE_NOT_RUN_REASON in verdict.reason
+
+
+@pytest.mark.parametrize("mutate,word", [
+    (lambda i: i.pop("merge"), "merge"),
+    (lambda i: i.update(merge={"exit": None, "sha": None, "parents": []}), "merge"),
+    (lambda i: i.pop("outcome_test"), "outcome"),
+    (lambda i: i.update(outcome_test={"argv": ["pytest"], "exit": None, "passed": None}), "outcome"),
+    (lambda i: i.pop("ci"), "CI"),
+    (lambda i: i["ci"].update(state="IN-PROGRESS", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="NO-RUN", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="GH-UNAVAILABLE", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="JOBS-UNREADABLE", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="UNATTRIBUTED", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="", landable=False), "CI"),
+    (lambda i: i["ci"].update(state="SOMETHING-NEW", landable=True), "CI"),
+])
+def test_each_integration_leg_that_was_not_measured_is_not_run_never_pass(mutate, word):
+    """The must-not-pass fixture per leg (N1): the other legs are fine, one is unmeasured."""
+    integ = _integration()
+    mutate(integ)
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ)
+    assert verdict.status == "NOT-RUN", verdict
+    assert word in verdict.reason
+
+
+def test_a_missing_push_leg_is_not_run_even_when_every_integration_leg_passed():
+    remote = _record("codespace")
+    remote["landing"] = {"pushed_branch": None, "pushed_sha": None}
+    verdict = cp.compare_landing(_record("local"), remote, _integration())
+    assert verdict.status == "NOT-RUN" and "push" in verdict.reason
+
+
+@pytest.mark.parametrize("mutate,word", [
+    (lambda i: i["merge"].update(exit=1), "merge exit 1"),
+    (lambda i: i["merge"].update(parents=["f" * 40, _RUN_SHA]), "first parent"),
+    (lambda i: i["merge"].update(parents=[_SHA, "f" * 40]), "second parent"),
+    (lambda i: i["merge"].update(parents=[_SHA]), "two-parent"),
+    (lambda i: i.update(run_cut_from_base=False), "cut from"),
+    (lambda i: i.update(base_sha="f" * 40), "base"),
+    (lambda i: i["outcome_test"].update(exit=1), "outcome"),
+    (lambda i: i["outcome_test"].update(passed=0), "outcome"),
+    (lambda i: i["ci"].update(state="REGRESSED", landable=False), "REGRESSED"),
+    (lambda i: i["ci"].update(state="RED", landable=False), "RED"),
+    (lambda i: i["ci"].update(state="CANCELLED", landable=False), "CANCELLED"),
+    (lambda i: i["ci"].update(sha="f" * 40), "not the merge"),
+    (lambda i: i["ci"].update(missing_contexts=["pytest (windows-latest)"]), "missing"),
+])
+def test_an_integration_leg_that_ran_and_failed_is_a_fail_naming_it(mutate, word):
+    integ = _integration()
+    mutate(integ)
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ)
+    assert verdict.status == "FAIL", verdict
+    assert word in verdict.reason
+
+
+def test_a_ci_state_the_flag_calls_landable_is_judged_by_its_state_not_the_flag():
+    integ = _integration()
+    integ["ci"].update(state="REGRESSED", landable=True)
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ).status == "FAIL"
+
+
+def test_a_pre_existing_ci_state_with_no_missing_context_is_landable():
+    """`merge_path.LANDABLE_STATES`: PASS, or PRE-EXISTING when main already carries the red."""
+    integ = _integration()
+    integ["ci"].update(state="PRE-EXISTING")
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ).status == "PASS"
+
+
+def test_the_scratch_branch_is_cleaned_up_or_the_landing_is_not_a_pass():
+    integ = _integration()
+    integ["cleanup"]["remote_deleted"] = False
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), integ)
+    assert verdict.status != "PASS" and "scratch" in verdict.reason
+
+
+# ---- C3 -- collecting the integration record ---------------------------------------------------------
+
+class _GitRun:
+    """The `run` seam for `collect_integration`: answers by the leading git verb."""
+
+    def __init__(self, *, run_exists=True, merge_rc=0, test_rc=0, test_out="1 passed in 0.5s",
+                 push_rc=0, merge_base=_SHA, parents=None):
+        self.calls: list[tuple[list[str], str | None]] = []
+        self.run_exists, self.merge_rc, self.test_rc, self.test_out = run_exists, merge_rc, test_rc, test_out
+        self.push_rc, self.merge_base = push_rc, merge_base
+        self.parents = parents or [_SHA, _RUN_SHA]
+        self.scratch_listed = False
+        self.worktree_listed = False
+        self.local_branch = False
+
+    def __call__(self, argv, cwd=None, timeout=None, **_kw):
+        argv = list(argv)
+        self.calls.append((argv, str(cwd) if cwd else None))
+        if argv[0] != "git":
+            return cp.CmdResult(self.test_rc, self.test_out, "")
+        sub = argv[1]
+        if sub == "ls-remote":
+            name = argv[-1]
+            if name.startswith("worktree-integrate-"):
+                return cp.CmdResult(0, f"{_MERGE_SHA}\trefs/heads/{name}\n" if self.scratch_listed
+                                    else "", "")
+            return cp.CmdResult(0, f"{_RUN_SHA}\trefs/heads/{name}\n" if self.run_exists else "", "")
+        if sub == "worktree" and argv[2] == "add":
+            self.worktree_listed = self.local_branch = True
+            return cp.CmdResult(0, "", "")
+        if sub == "worktree" and argv[2] == "list":
+            return cp.CmdResult(0, "worktree C:/wt/scratch\n" if self.worktree_listed else "", "")
+        if sub == "worktree" and argv[2] == "remove":
+            self.worktree_listed = False
+            return cp.CmdResult(0, "", "")
+        if sub == "merge-base":
+            return cp.CmdResult(0, self.merge_base + "\n", "")
+        if sub == "merge":
+            return cp.CmdResult(self.merge_rc, "", "conflict" if self.merge_rc else "")
+        if sub == "rev-parse" and "--verify" in argv:
+            return cp.CmdResult(0 if self.local_branch else 1, "", "")
+        if sub == "rev-parse":
+            return cp.CmdResult(0, _MERGE_SHA + "\n", "")
+        if sub == "rev-list":
+            return cp.CmdResult(0, " ".join([_MERGE_SHA, *self.parents]) + "\n", "")
+        if sub == "push" and "--delete" in argv:
+            self.scratch_listed = False
+            return cp.CmdResult(0, "", "")
+        if sub == "push":
+            self.scratch_listed = self.push_rc == 0
+            return cp.CmdResult(self.push_rc, "", "")
+        if sub == "branch":
+            self.local_branch = False
+            return cp.CmdResult(0, "", "")
+        if sub == "fetch":
+            return cp.CmdResult(0, "", "")
+        return cp.CmdResult(127, "", f"unexpected {argv}")
+
+
+class _Verdict:
+    state, run_id, missing_contexts, reason, flagged = "PASS", 77, (), "", ()
+
+
+def _collect(run, tmp_path, **kw):
+    args = dict(root=tmp_path, run_branch="worktree-b2-codespace-green-run1",
+                scratch_branch="worktree-integrate-b2-codespace-green-run1", base=_SHA,
+                outcome_test=["pytest", "tests/test_x.py::test_y"], workdir=tmp_path / "wt",
+                verdict_fn=lambda sha, **k: _Verdict())
+    args.update(kw)
+    return cp.collect_integration(run, **args)
+
+
+def test_collect_integration_merges_no_ff_on_a_scratch_branch_tests_pushes_reads_ci_and_cleans(tmp_path):
+    run = _GitRun()
+    rec = _collect(run, tmp_path)
+    assert rec["merge"] == {"exit": 0, "sha": _MERGE_SHA, "parents": [_SHA, _RUN_SHA]}
+    assert rec["outcome_test"]["exit"] == 0 and rec["outcome_test"]["passed"] == 1
+    assert rec["ci"]["state"] == "PASS" and rec["ci"]["landable"] is True and rec["ci"]["sha"] == _MERGE_SHA
+    assert rec["run_cut_from_base"] is True
+    assert rec["cleanup"] == {"remote_deleted": True, "worktree_removed": True,
+                              "local_branch_removed": True}
+    verbs = [" ".join(c[0][:3]) for c in run.calls if c[0][0] == "git"]
+    assert any(v.startswith("git worktree add") for v in verbs)
+    merge = next(c[0] for c in run.calls if c[0][:2] == ["git", "merge"])
+    assert "--no-ff" in merge and _RUN_SHA in merge
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "PASS"
+
+
+def test_collect_integration_never_pushes_anything_but_the_scratch_branch(tmp_path):
+    run = _GitRun()
+    _collect(run, tmp_path)
+    pushes = [c[0] for c in run.calls if c[0][:2] == ["git", "push"]]
+    assert pushes, "the scratch branch is pushed so CI can run on it"
+    for argv in pushes:
+        assert "refs/heads/main" not in " ".join(argv) and "main" not in argv
+        assert any(a.endswith("worktree-integrate-b2-codespace-green-run1") for a in argv)
+
+
+@pytest.mark.parametrize("bad", ["main", "master", "worktree-b2-codespace-green-run1",
+                                 "worktree-integrate-", "worktree-integrate-x/../main",
+                                 "feat/x", "", "refs/heads/main"])
+def test_collect_integration_refuses_a_scratch_branch_that_is_not_an_integrate_branch(tmp_path, bad):
+    run = _GitRun()
+    with pytest.raises(ValueError):
+        _collect(run, tmp_path, scratch_branch=bad)
+    assert run.calls == [], "nothing ran against a refused name"
+
+
+def test_collect_integration_with_no_run_branch_on_origin_runs_nothing_and_records_it(tmp_path):
+    run = _GitRun(run_exists=False)
+    rec = _collect(run, tmp_path)
+    assert rec["run_sha"] is None and rec.get("merge") is None
+    assert not any(c[0][:2] in (["git", "merge"], ["git", "push"]) for c in run.calls)
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "NOT-RUN"
+
+
+def test_collect_integration_records_a_conflicted_merge_and_runs_no_test_and_pushes_nothing(tmp_path):
+    run = _GitRun(merge_rc=1)
+    rec = _collect(run, tmp_path)
+    assert rec["merge"]["exit"] == 1
+    assert rec.get("outcome_test") is None
+    assert not any(c[0][:2] == ["git", "push"] and "--delete" not in c[0] for c in run.calls)
+    assert rec["cleanup"]["worktree_removed"] is True
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "FAIL"
+
+
+def test_collect_integration_cleans_up_even_when_the_ci_read_raises(tmp_path):
+    run = _GitRun()
+
+    def boom(sha, **_k):
+        raise RuntimeError("gh unavailable")
+
+    rec = _collect(run, tmp_path, verdict_fn=boom)
+    assert rec["ci"]["state"] == "GH-UNAVAILABLE" and rec["ci"]["landable"] is False
+    assert rec["cleanup"]["remote_deleted"] is True and rec["cleanup"]["worktree_removed"] is True
+
+
+def test_collect_integration_reads_a_run_that_selected_no_test_as_zero_passed(tmp_path):
+    rec = _collect(_GitRun(test_out="no tests ran in 0.01s", test_rc=5), tmp_path)
+    assert rec["outcome_test"]["exit"] == 5 and rec["outcome_test"]["passed"] == 0
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "FAIL"
+
+
+def test_collect_integration_proves_a_surviving_scratch_branch_not_gone(tmp_path):
+    class _Stubborn(_GitRun):
+        def __call__(self, argv, **kw):
+            res = super().__call__(argv, **kw)
+            if list(argv)[1:3] == ["push", "origin"] and "--delete" in argv:
+                self.scratch_listed = True  # the delete "succeeded" but the ref survives
+            return res
+
+    rec = _collect(_Stubborn(), tmp_path)
+    assert rec["cleanup"]["remote_deleted"] is False
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status != "PASS"
+
+
+# ---- C4 -- the write leg writes where the contract names it ---------------------------------------------
+
+def test_transport_passes_when_the_write_leg_ran_on_the_named_to_browser_file():
+    verdict = cp.compare_transport(_record("local"), _remote_all_exercised())
+    assert verdict.status == "PASS", verdict
+    assert any(_PROBE_PATH in e for e in verdict.evidence)
+
+
+def test_transport_without_a_write_leg_stays_not_run_naming_the_write():
+    verdict = cp.compare_transport(_record("local"), _record("codespace"))
+    assert verdict.status == "NOT-RUN" and "write" in verdict.reason
+
+
+@pytest.mark.parametrize("over", [{"write_exit": None}, {"readback_ok": None},
+                                  {"delete_exit": None}, {"gone_after": None}])
+def test_a_write_leg_step_that_never_ran_is_never_a_pass(over):
+    remote = _remote_all_exercised()
+    remote["transport"]["write"].update(over)
+    assert cp.compare_transport(_record("local"), remote).status != "PASS"
+
+
+@pytest.mark.parametrize("good", [
+    "DIGEST-b2-codespace-green-probe-run1.md",
+    "to-browser/DIGEST-b2-codespace-green-probe-run2.md",
+    "PROBE-foundation-13-codespace-toolset.txt",
+])
+def test_the_probe_path_may_be_a_plain_name_or_one_to_browser_file(good):
+    fake = _DirRclone()
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=good)
+    assert t["write"]["name"] == good and t["write"]["gone_after"] is True
+
+
+@pytest.mark.parametrize("bad", [
+    "to-browser/../x.md", "to-browser/a/b.md", "to-browser/", "to-browser", "/to-browser/x.md",
+    "other/x.md", "to-cc/x.md", "to-browser\\x.md", "to-browser/..", "to-browser/.hidden/../x",
+    "to-browser/x.md\n", "../to-browser/x.md",
+])
+def test_a_probe_path_outside_the_one_named_folder_is_refused_before_any_write(bad):
+    fake = _DirRclone()
+    with pytest.raises(ValueError):
+        cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=bad)
+    assert not fake.calls or all(c[1] != "copyto" for c in fake.calls)
+
+
+class _DirRclone:
+    """An in-memory remote that keeps folders: `copyto`/`cat`/`deletefile` address `gdrive:<path>`,
+    `lsf gdrive:<dir> --include <name>` lists that folder only."""
+
+    def __init__(self):
+        self.store: dict[str, str] = {}
+        self.calls: list[list[str]] = []
+
+    def __call__(self, argv, **_kw):
+        argv = list(argv)
+        self.calls.append(argv)
+        sub = argv[1] if len(argv) > 1 else ""
+        if sub == "--version":
+            return cp.CmdResult(0, "rclone v1.73.2\n", "")
+        if sub == "lsf" and "--include" in argv:
+            folder = argv[2].split(":", 1)[1].strip("/")
+            name = argv[argv.index("--include") + 1]
+            key = f"{folder}/{name}" if folder else name
+            return cp.CmdResult(0, (name + "\n") if key in self.store else "", "")
+        if sub == "lsf":
+            return cp.CmdResult(0, "a/\nb/\n", "")
+        if sub == "copyto":
+            self.store[argv[3].split(":", 1)[1]] = Path(argv[2]).read_text(encoding="utf-8")
+            return cp.CmdResult(0, "", "")
+        if sub == "cat":
+            return cp.CmdResult(0, self.store.get(argv[2].split(":", 1)[1], ""), "")
+        if sub == "deletefile":
+            self.store.pop(argv[2].split(":", 1)[1], None)
+            return cp.CmdResult(0, "", "")
+        return cp.CmdResult(127, "", "unexpected")
+
+
+def test_the_probe_file_is_written_read_back_byte_equal_deleted_and_listed_absent_in_its_folder():
+    fake = _DirRclone()
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=_PROBE_PATH)
+    assert t["write"] == {"name": _PROBE_PATH, "write_exit": 0, "readback_ok": True,
+                          "delete_exit": 0, "gone_after": True}
+    assert fake.store == {}
+    written = next(c for c in fake.calls if c[1] == "copyto")
+    assert written[3] == f"gdrive:{_PROBE_PATH}"
+    listing = [c for c in fake.calls if c[1] == "lsf" and "--include" in c][-1]
+    assert listing[2] == "gdrive:to-browser", "the absence check looks in the probe's own folder"
+
+
+def test_a_probe_file_that_survives_in_its_folder_is_reported_still_there():
+    class _Keeps(_DirRclone):
+        def __call__(self, argv, **kw):
+            if len(argv) > 1 and argv[1] == "deletefile":
+                self.calls.append(list(argv))
+                return cp.CmdResult(0, "", "")
+            return super().__call__(argv, **kw)
+
+    t = cp.collect_transport(_Keeps(), env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"},
+                             probe_write=_PROBE_PATH)
+    assert t["write"]["gone_after"] is False
+
+
+# ---- C5 -- the extra branches are checked too -----------------------------------------------------------
+
+def test_cleanup_fails_when_an_extra_run_branch_is_still_on_origin():
+    record = _cleanup(extra_branches=["worktree-integrate-x-run1"],
+                      extra_branches_listed_after={"worktree-integrate-x-run1": True})
+    verdict = cp.compare_cleanup(record)
+    assert verdict.status == "FAIL" and "worktree-integrate-x-run1" in verdict.reason
+
+
+def test_cleanup_with_every_extra_branch_gone_passes():
+    record = _cleanup(extra_branches=["a", "b"],
+                      extra_branches_listed_after={"a": False, "b": False})
+    assert cp.compare_cleanup(record).status == "PASS"
+
+
+def test_a_cleanup_record_that_names_an_extra_branch_but_carries_no_read_of_it_is_not_a_pass():
+    record = _cleanup(extra_branches=["a"], extra_branches_listed_after={})
+    assert cp.compare_cleanup(record).status != "PASS"
+
+
+def test_verify_cleanup_reads_each_extra_branch_by_its_exact_ref():
+    seen: list[list[str]] = []
+
+    def run(argv, **_kw):
+        argv = list(argv)
+        seen.append(argv)
+        if argv[:3] == ["gh", "codespace", "list"]:
+            return cp.CmdResult(0, "[]", "")
+        name = argv[-1]
+        return cp.CmdResult(0, f"{_SHA}\trefs/heads/{name}\n" if name == "b" else "", "")
+
+    rec = cp.verify_cleanup("cs", "lane", "2026-10-05T10:00:00+00:00", "2026-10-05T10:30:00+00:00",
+                            "standardLinux32gb", run, extra_branches=["a", "b"])
+    assert rec["extra_branches_listed_after"] == {"a": False, "b": True}
+    assert rec["extra_branches"] == ["a", "b"]
+
+
+# ---- the whole check ------------------------------------------------------------------------------------
+
+def test_a_record_where_every_leg_was_exercised_reads_all_five_pass_and_exits_zero():
+    """The outcome test of item 2. RED on cd3ab8a6: `NOT-RUN cond=3` and `NOT-RUN cond=4`, exit 2
+    (`compare_all` had no integration record to read, and the write leg could not name a
+    `to-browser/` file)."""
+    verdicts = cp.compare_all(_record("local"), _remote_all_exercised(), _cleanup(),
+                              integration=_integration())
+    assert [v.status for v in verdicts] == ["PASS"] * 5, [v.render() for v in verdicts]
+    assert cp.exit_code(verdicts) == 0
+
+
+def test_run_check_reads_the_integration_record_and_prints_five_pass_and_exit_zero(tmp_path):
+    local = _write(tmp_path / "local.json", _record("local"))
+    remote = _write(tmp_path / "remote.json", _remote_all_exercised())
+    cleanup = _write(tmp_path / "cleanup.json", _cleanup())
+    integ = _write(tmp_path / "integ.json", _integration())
+    code, text = cp.run_check(local, remote_path=remote, cleanup_path=cleanup,
+                              integration_path=integ)
+    lines = [ln for ln in text.splitlines() if ln.startswith(("PASS", "FAIL", "NOT-RUN"))]
+    assert [ln.split()[0] for ln in lines] == ["PASS"] * 5, text
+    assert code == 0 and "NOT-RUN" not in text
+
+
+def test_run_check_with_the_same_files_but_no_integration_record_is_still_exit_two(tmp_path):
+    """The twin: the same exercised record minus one leg is not green."""
+    local = _write(tmp_path / "local.json", _record("local"))
+    remote = _write(tmp_path / "remote.json", _remote_all_exercised())
+    cleanup = _write(tmp_path / "cleanup.json", _cleanup())
+    code, text = cp.run_check(local, remote_path=remote, cleanup_path=cleanup)
+    assert code == 2 and "NOT-RUN cond=3" in text and "NOT-RUN cond=4" not in text
+
+
+def test_an_unreadable_integration_record_is_a_cond_3_fail_not_a_pass(tmp_path):
+    local = _write(tmp_path / "local.json", _record("local"))
+    remote = _write(tmp_path / "remote.json", _remote_all_exercised())
+    bad = tmp_path / "integ.json"
+    bad.write_text("not json", encoding="utf-8")
+    code, text = cp.run_check(local, remote_path=remote, integration_path=bad)
+    assert code == 1 and "FAIL cond=3" in text
+
+
+# ---- C2 -- the Windows skip is fixed at its cause --------------------------------------------------------
+
+def test_the_exec_bit_case_that_made_c2_differ_is_no_longer_platform_skipped():
+    """RED on cd3ab8a6: `test_present_but_not_executable_is_treated_as_absent` carried a platform
+    skip, so C2 read local=skipped codespace=passed and FAILED on every run of the night. The cause
+    is the skip, not the comparator: the case now runs, and passes, on both sides."""
+    text = (REPO_ROOT / "tests" / "test_codespace_admission.py").read_text(encoding="utf-8")
+    marker = "def test_present_but_not_executable_is_treated_as_absent"
+    head = text[:text.index(marker)].rstrip().splitlines()[-3:]
+    assert not any("skip" in ln for ln in head), head
+
+
+def test_the_declared_os_case_table_stays_empty_because_the_case_was_fixed_not_forgiven():
+    assert cp.DECLARED_OS_CASES == {}
+
+
+# ---- item 4 -- codex: not an auth item when its key answers; the registry route ------------------------------
+
+def test_codex_has_no_status_command_because_login_status_ignores_the_api_key():
+    """D9: `codex login status` printed 'Not logged in' while CODEX_API_KEY answered, so C1 named
+    codex an auth item on every run. The served-id call is its login proof, as for grok and agy."""
+    assert cp.AUTH_PROBES["codex"] is None
+
+
+def test_codex_answering_through_its_key_is_authenticated_and_not_an_auth_item(tmp_path):
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "provider-registry.yaml").write_text(
+        cp.REGISTRY_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+
+    class _Run(_ModelRun):
+        def __call__(self, argv, **kw):
+            import shlex
+
+            flat = list(argv)
+            if flat[:2] == ["bash", "-lc"]:
+                flat = shlex.split(flat[2])
+            if "--version" in flat:
+                return cp.CmdResult(0, "1.0.0\n", "")
+            if flat[:3] == ["claude", "auth", "status"]:
+                return cp.CmdResult(0, '{"loggedIn": true}', "")
+            if flat[:3] == ["codex", "login", "status"]:
+                return cp.CmdResult(1, "Not logged in\n", "")
+            if flat[1:3] == ["auth", "status"]:
+                return cp.CmdResult(0, "ok", "")
+            if flat[0] == "uv":
+                return cp.CmdResult(0, "3.12.10\n", "")
+            return super().__call__(argv, **kw)
+
+    _grok_usage(tmp_path, "sess-run")
+    env = cp.collect_environment(_Run(tmp_path), root=tmp_path, hooks=[], home=tmp_path,
+                                 nonce=_NONCE)
+    assert env["models"]["codex"]["state"] == "served"
+    assert env["auth"]["codex"]["state"] == "authenticated", env["auth"]["codex"]
+    remote = _record("codespace")
+    remote["environment"]["models"] = env["models"]
+    remote["environment"]["auth"] = {k: dict(v) for k, v in env["auth"].items()}
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert "codex" not in verdict.reason, verdict
+
+
+def test_the_live_registry_routes_the_review_role_to_the_newest_codex_model():
+    """R82: `codex debug models` on codex-cli 0.155.0 (2026-10-05) lists `gpt-6-astra` as the
+    frontier model ('Frontier intelligence for the most demanding work') above `gpt-5.6-terra`
+    ('Older balanced model'); OpenAI's model guide calls GPT-6 Astra 'our most intelligent model
+    yet'. A Codespace that serves astra against a registry that says terra is the mismatch C1
+    now reads, so the registry follows the provider."""
+    expected = cp.expected_models(cp.load_registry(_REPO_REGISTRY))
+    assert expected["codex"].id == "gpt-6-astra", expected["codex"]

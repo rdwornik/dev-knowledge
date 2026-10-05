@@ -24,6 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 
 import dispatch as d
 
@@ -160,27 +161,45 @@ def test_run_gh_keeps_stderr_separate_from_stdout(monkeypatch):
 # codespace_exec
 # ---------------------------------------------------------------------------------------------
 
+_HEALTHY_LOG = "[2026-10-05 08:04:02.884Z] Finished configuring codespace.\n"
+_RECOVERY_LOG = ("[2026-10-04 22:07:14.201Z] postCreateCommand failed with exit code 1.\n"
+                 "Container creation failed.\nCreating recovery container.\n")
+
+
+def _ssh_reply(argv, *, log: str = _HEALTHY_LOG):
+    """What a `codespace ssh` answers: the creation log when it is asked for, else nothing."""
+    if "creation.log" in " ".join(argv):
+        return d.GhResult(ok=True, exit_code=0, stdout=log)
+    return d.GhResult(ok=True, exit_code=0, stdout="")
+
+
 class _FakeGh:
     """Records every argv it is called with and answers by matching on the leading verb pair,
     same shape as `_StubRunProbe` in `test_codespace_admission.py`."""
 
     def __init__(self, *, receipt_written: dict | None = None, fail_at: str | None = None,
-                created_name: str = "fluffy-space-1"):
+                created_name: str = "fluffy-space-1", log: str = _HEALTHY_LOG,
+                fail_code: int = 1):
         self.calls: list[list[str]] = []
         self.receipt_written = receipt_written
         self.fail_at = fail_at
         self.created_name = created_name
+        self.log = log
+        self.fail_code = fail_code
 
     def __call__(self, argv):
         argv = list(argv)
         self.calls.append(argv)
         verb = " ".join(argv[:2])
-        # `codespace ssh` covers two distinct calls (`mkdir -p <workdir>`, then `bash <runner>`)
-        # -- tag them apart so a test can fail one without silently failing the other too.
+        # `codespace ssh` covers several distinct calls (`mkdir -p <workdir>`, the creation-log
+        # read, then `bash -l <runner>`) -- tag them apart so a test can fail one without silently
+        # failing the others too.
         tag = ("codespace ssh mkdir" if verb == "codespace ssh" and "mkdir" in argv else
-              "codespace ssh run" if verb == "codespace ssh" and "bash" in argv else verb)
+               "codespace ssh log" if verb == "codespace ssh" and "creation.log" in " ".join(argv)
+               else "codespace ssh probe" if verb == "codespace ssh" and argv[-3:-1] == ["sh", "-c"]
+               else "codespace ssh run" if verb == "codespace ssh" and "bash" in argv else verb)
         if self.fail_at in (verb, tag):
-            return d.GhResult(ok=False, exit_code=1, stdout="boom")
+            return d.GhResult(ok=False, exit_code=self.fail_code, stdout="boom")
         if verb == "codespace create":
             # measured (`DIGEST-2026-09-15-codespaces-reference.md:182-183`): `gh codespace
             # create` writes the codespace NAME to stdout via `fmt.Fprintln`.
@@ -191,7 +210,7 @@ class _FakeGh:
                 Path(argv[-1]).write_text(json.dumps(self.receipt_written), encoding="utf-8")
             return d.GhResult(ok=True, exit_code=0, stdout="")
         if verb == "codespace ssh":
-            return d.GhResult(ok=True, exit_code=0, stdout="")
+            return _ssh_reply(argv, log=self.log)
         raise AssertionError(f"unexpected gh call: {argv}")
 
 
@@ -207,11 +226,13 @@ def test_codespace_exec_happy_path_returns_the_receipt(tmp_path):
     assert result.ok, result.failure
     assert result.name == "fluffy-space-1"
     assert result.receipt == receipt
-    # create (its stdout IS the name), mkdir the workdir, cp contract, cp runner, ssh run, cp
-    # receipt back -- no `list` call: the name is never reconstructed (codex terra P1, 2026-09-27)
+    # create (its stdout IS the name), read the creation log over ssh (item 3: a recovery
+    # container is refused before anything ships), mkdir the workdir, cp contract, cp runner, ssh
+    # run, cp receipt back -- no `list` call: the name is never reconstructed (codex terra P1,
+    # 2026-09-27)
     verbs = [" ".join(c[:2]) for c in fake.calls]
-    assert verbs == ["codespace create", "codespace ssh", "codespace cp", "codespace cp",
-                     "codespace ssh", "codespace cp"]
+    assert verbs == ["codespace create", "codespace ssh", "codespace ssh", "codespace cp",
+                     "codespace cp", "codespace ssh", "codespace cp"]
 
 
 def test_codespace_exec_refuses_on_create_failure_without_further_calls(tmp_path):
@@ -264,7 +285,7 @@ def test_codespace_exec_creates_the_workdir_before_shipping_anything_into_it(tmp
     assert not result.ok
     assert "creating" in result.failure
     verbs = [" ".join(c[:2]) for c in fake.calls]
-    assert verbs == ["codespace create", "codespace ssh"]  # nothing shipped
+    assert verbs == ["codespace create", "codespace ssh", "codespace ssh"]  # nothing shipped
 
 
 def test_codespace_exec_still_pulls_the_receipt_after_a_failed_runner(tmp_path):
@@ -317,7 +338,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
                 Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
-            return d.GhResult(True, 0, "")
+            return _ssh_reply(argv)
         raise AssertionError(f"unexpected gh call: {argv}")
 
     prompt = f"Read and execute the frozen contract at {contract}"
@@ -355,7 +376,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
                 Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
-            return d.GhResult(True, 0, "")
+            return _ssh_reply(argv)
         raise AssertionError(f"unexpected gh call: {argv}")
 
     # `plan`'s own prompt always embeds the ABSOLUTE path; the CONTRACT arg handed to exec is
@@ -391,7 +412,7 @@ def test_codespace_exec_runs_the_agent_in_the_checkout_derived_from_repo(tmp_pat
                 Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
-            return d.GhResult(True, 0, "")
+            return _ssh_reply(argv)
         raise AssertionError(f"unexpected gh call: {argv}")
 
     result = d.codespace_exec("me/dev-knowledge", "main", "lane-x", contract, ["claude"],
@@ -709,3 +730,311 @@ def test_codespace_plan_shows_harvest_and_manifest_check_before_delete(tmp_path)
     assert harvest_is, "no harvest step in the plan"
     assert max(harvest_is) < manifest_i < delete_i
     assert steps[delete_i].argv == ["gh", "codespace", "delete", "-c", "{cs}", "--force"]
+
+
+# =============================================================================================
+# b2-codespace-green (R63, R65, R83): the lane carries its secrets, a recovery container is
+# refused before the run, and a stalled or disconnected lane has a fate
+# =============================================================================================
+
+_RUNNER = "/workspaces/dispatch/run-lane-x.sh"
+_FIVE_SECRETS = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY", "XAI_API_KEY",
+                 "RCLONE_CONFIG_GDRIVE_TOKEN")
+
+
+def _contract(tmp_path):
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    return contract
+
+
+# ---- item 1: a login shell with stdin closed (D1, D8) -----------------------------------------
+
+def test_the_planned_run_step_is_a_login_shell(tmp_path):
+    """D1, RED on cd3ab8a6: the plan shipped `gh codespace ssh -c {cs} -- bash <runner>`, a
+    NON-login shell that sees none of the five Codespaces secrets (night probe x3: `set=no`; a
+    login shell `yes`), so `claude -p` answered 'Not logged in'."""
+    steps = d.codespace_plan("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"])
+    run = next(s for s in steps if s.argv[-1] == _RUNNER)
+    assert run.argv[-4:] == ["--", "bash", "-l", _RUNNER], run.argv
+
+
+def test_the_executed_run_step_is_a_login_shell(tmp_path):
+    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert result.ok, result.failure
+    run_calls = [c for c in fake.calls if c[:2] == ["codespace", "ssh"] and "bash" in c]
+    assert len(run_calls) == 1
+    assert run_calls[0][-4:] == ["--", "bash", "-l", _RUNNER], run_calls[0]
+
+
+def test_the_runner_closes_stdin_of_the_head():
+    """D8, RED on cd3ab8a6: `claude -p` waited 3 s on an open stdin and a codex head would hang."""
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo",
+                                      ["claude", "-p", "hi"])
+    head = next(ln for ln in body.splitlines() if ln.startswith("claude "))
+    assert "< /dev/null" in head
+
+
+def test_the_runner_records_the_five_secrets_as_booleans_and_never_a_value():
+    """R13: presence only. The probe names each variable and prints yes/no; no line can expand a
+    secret's value."""
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    for name in _FIVE_SECRETS:
+        assert name in body
+    assert "set=" in body
+    assert "printenv" not in body and "env |" not in body
+    for name in _FIVE_SECRETS:
+        assert f"${name}" not in body and f"${{{name}}}" not in body, \
+            f"a line could expand {name}'s value"
+
+
+# ---- item 5: heartbeat, stall watchdog, and a hangup that does not kill the lane ----------------
+
+def test_the_runner_survives_a_dropped_ssh_connection():
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert "trap '' HUP" in body
+
+
+def test_the_runner_writes_a_heartbeat_the_observer_reads():
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert "/workspaces/dispatch/heartbeat" in body
+    assert "sleep 30" in body
+
+
+def test_the_runner_kills_a_stalled_head_after_the_stated_bound():
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"],
+                                      stall_after_s=120)
+    assert "-gt 120" in body and "kill" in body
+    default = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert "-gt 900" in default, "the default is classify_lane's own stale bound"
+
+
+def test_a_stalled_run_writes_a_failed_fate_with_reason_and_step_into_the_receipt(tmp_path):
+    body = d._codespace_runner_script(str(tmp_path), str(tmp_path / "checkout"), ["true"],
+                                      stall_after_s=120)
+    code = _extract_receipt_writer_py(body)
+    (tmp_path / "run.log").write_text("partial output, then silence\n", encoding="utf-8")
+    subprocess.run([sys.executable, "-c", code, "124", "stalled"], cwd=tmp_path, check=True)
+    receipt = json.loads((tmp_path / "receipt.json").read_text(encoding="utf-8"))
+    assert receipt["is_error"] is True and receipt["status"] == "hung"
+    assert receipt["fate"]["fate"] == "FAILED" and receipt["fate"]["step"] == "run"
+    assert "no progress" in receipt["fate"]["reason"] and "120" in receipt["fate"]["reason"]
+
+
+def test_a_normal_run_writes_no_fate_into_the_receipt(tmp_path):
+    body = d._codespace_runner_script(str(tmp_path), str(tmp_path / "checkout"), ["true"])
+    code = _extract_receipt_writer_py(body)
+    (tmp_path / "run.log").write_text('{"is_error": false, "subtype": "success"}\n',
+                                      encoding="utf-8")
+    subprocess.run([sys.executable, "-c", code, "0"], cwd=tmp_path, check=True)
+    assert "fate" not in json.loads((tmp_path / "receipt.json").read_text(encoding="utf-8"))
+
+
+# ---- item 3: the creation log is read over ssh, and a recovery container is refused -------------
+
+def test_a_recovery_container_is_refused_before_anything_ships_or_runs(tmp_path):
+    """D3, RED on cd3ab8a6: `dispatch.py` never called the classifier, so a recovery container
+    (Alpine, no uv/claude/gh) was handed the lane."""
+    fake = _FakeGh(log=_RECOVERY_LOG)
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert not result.ok
+    assert result.name == "fluffy-space-1", "the box was created, so it is named for teardown"
+    assert "recovery" in result.failure
+    assert [" ".join(c[:2]) for c in fake.calls] == ["codespace create", "codespace ssh"]
+    assert fake.calls[1][-2:] == ["cat", "/workspaces/.codespaces/.persistedshare/creation.log"]
+
+
+def test_an_unreadable_creation_log_is_refused_after_a_bounded_number_of_reads(tmp_path):
+    """An empty log is not evidence of health (the classifier's own rule): refuse, never run."""
+    fake = _FakeGh(log="")
+    slept: list[float] = []
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake, sleep=slept.append)
+    assert not result.ok and "indeterminate" in result.failure
+    reads = [c for c in fake.calls if "creation.log" in " ".join(c)]
+    assert len(reads) == d.CREATION_LOG_ATTEMPTS == 3
+    assert len(slept) == d.CREATION_LOG_ATTEMPTS - 1
+    assert not any("bash" in c for c in fake.calls)
+
+
+def test_a_log_that_is_not_finished_on_the_first_read_is_read_again(tmp_path):
+    answers = iter(["", "[2026-10-05 08:03:00Z] Running the postCreateCommand...\n", _HEALTHY_LOG])
+
+    def fake(argv):
+        argv = list(argv)
+        verb = " ".join(argv[:2])
+        if verb == "codespace create":
+            return d.GhResult(True, 0, "fluffy-1\n")
+        if verb == "codespace cp":
+            if argv[-2].startswith("remote:"):
+                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+            return d.GhResult(True, 0, "")
+        if "creation.log" in " ".join(argv):
+            return d.GhResult(True, 0, next(answers))
+        return d.GhResult(True, 0, "")
+
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake, sleep=lambda s: None)
+    assert result.ok, result.failure
+
+
+def test_a_creation_failure_without_a_recovery_line_is_refused_too(tmp_path):
+    fake = _FakeGh(log="[x] postCreateCommand failed with exit code 1.\nContainer creation failed.\n")
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake, sleep=lambda s: None)
+    assert not result.ok and "creation-failed" in result.failure
+
+
+def test_the_plan_names_the_creation_log_check_before_the_run(tmp_path):
+    steps = d.codespace_plan("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"])
+    notes = [s.note for s in steps]
+    log_i = next(i for i, n in enumerate(notes) if "creation log" in n)
+    run_i = next(i for i, s in enumerate(steps) if s.argv[-1] == _RUNNER)
+    assert log_i < run_i
+    assert steps[log_i].argv[-2:] == ["cat", "/workspaces/.codespaces/.persistedshare/creation.log"]
+
+
+def test_run_gh_takes_a_per_call_timeout_so_an_observer_read_cannot_block_for_900_s(monkeypatch):
+    seen: dict = {}
+
+    def capture(*_a, **kw):
+        seen.update(kw)
+        raise subprocess.TimeoutExpired(cmd=["gh"], timeout=kw["timeout"])
+
+    monkeypatch.setattr(d.subprocess, "run", capture)
+    result = d.run_gh(["codespace", "ssh", "-c", "x"], timeout=7)
+    assert seen["timeout"] == 7 and result.exit_code == 124
+
+
+def test_run_gh_closes_stdin_so_a_gh_prompt_cannot_wait_on_a_pipe(monkeypatch):
+    seen: dict = {}
+
+    class _Done:
+        returncode, stdout, stderr = 0, "", ""
+
+    def capture(*_a, **kw):
+        seen.update(kw)
+        return _Done()
+
+    monkeypatch.setattr(d.subprocess, "run", capture)
+    d.run_gh(["codespace", "list"])
+    assert seen.get("stdin") is subprocess.DEVNULL
+
+
+# ---- item 5: a failed run carries its fate ---------------------------------------------------------
+
+@pytest.mark.parametrize("code,word", [(255, "disconnected"), (124, "timed out")])
+def test_a_run_whose_transport_died_fails_with_a_fate_naming_the_step(tmp_path, code, word):
+    """D4/D5, RED on cd3ab8a6: the failure was a bare string; the lane had no fate."""
+    fake = _FakeGh(receipt_written=None, fail_at="codespace ssh run", fail_code=code)
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert not result.ok
+    assert result.fate["fate"] == "FAILED" and result.fate["step"] == "run"
+    assert word in result.fate["reason"]
+
+
+def test_a_missing_receipt_after_a_clean_run_fails_with_a_receipt_step_fate(tmp_path):
+    fake = _FakeGh(receipt_written=None)
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert not result.ok
+    assert result.fate["fate"] == "FAILED" and result.fate["step"] == "receipt"
+
+
+def test_a_stalled_receipt_is_a_failed_run_with_the_runners_own_fate(tmp_path):
+    receipt = {"exit_code": 124, "is_error": True, "status": "hung",
+               "fate": {"fate": "FAILED", "step": "run", "reason": "no progress for 901s"}}
+    fake = _FakeGh(receipt_written=receipt)
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert not result.ok
+    assert result.fate == receipt["fate"]
+
+
+def test_a_successful_exec_has_no_fate_failure(tmp_path):
+    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
+                              invoker=fake)
+    assert result.ok and result.fate == {}
+
+
+# ---- items 3 and 5: the observer (live -> working, deleted -> absent) -------------------------------
+
+class _ObserveGh:
+    def __init__(self, *, listing, probe=None, list_ok=True, probe_ok=True):
+        self.listing, self.probe = listing, probe
+        self.list_ok, self.probe_ok = list_ok, probe_ok
+        self.calls: list[list[str]] = []
+
+    def __call__(self, argv):
+        argv = list(argv)
+        self.calls.append(argv)
+        if argv[:2] == ["codespace", "list"]:
+            return d.GhResult(self.list_ok, 0 if self.list_ok else 1, json.dumps(self.listing))
+        if argv[:2] == ["codespace", "ssh"]:
+            return d.GhResult(self.probe_ok, 0 if self.probe_ok else 255,
+                              self.probe if self.probe_ok else "", "" if self.probe_ok else "reset")
+        raise AssertionError(f"unexpected gh call: {argv}")
+
+
+def test_a_live_lane_reads_working_not_unknown():
+    """D4, RED on cd3ab8a6: the hub classifier read `unknown` for a live box."""
+    fake = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=1000 log=990 hb=995 receipt=0\n")
+    seen = d.codespace_observe("cs-1", invoker=fake)
+    assert seen["state"] == "working" and seen["fate"] == "RUNNING"
+    assert seen["container_state"] == "Available" and seen["progress_age_s"] == 10.0
+
+
+def test_a_deleted_codespace_reads_absent_and_is_not_probed_over_ssh():
+    fake = _ObserveGh(listing=[{"name": "someone-else", "state": "Available"}])
+    seen = d.codespace_observe("cs-1", expected_gone=True, invoker=fake)
+    assert seen["state"] == "absent" and seen["fate"] == "TORN-DOWN"
+    assert not any(c[:2] == ["codespace", "ssh"] for c in fake.calls)
+
+
+def test_a_vanished_codespace_this_line_did_not_delete_is_failed():
+    seen = d.codespace_observe("cs-1", invoker=_ObserveGh(listing=[]))
+    assert seen["state"] == "absent" and seen["fate"] == "FAILED"
+
+
+def test_a_stalled_lane_is_hung_and_failed_at_the_run_step():
+    fake = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=5000 log=100 hb=4990 receipt=0\n")
+    seen = d.codespace_observe("cs-1", invoker=fake)
+    assert seen["state"] == "hung" and seen["fate"] == "FAILED" and seen["step"] == "run"
+
+
+def test_a_listing_that_cannot_be_read_is_waiting_never_absent():
+    seen = d.codespace_observe("cs-1", invoker=_ObserveGh(listing=[], list_ok=False))
+    assert seen["state"] == "unknown" and seen["fate"] == "WAITING"
+
+
+def test_an_unreachable_box_waits_then_is_disconnected_at_the_bound():
+    fake = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}], probe_ok=False)
+    early = d.codespace_observe("cs-1", invoker=fake, unreachable_for_s=10)
+    late = d.codespace_observe("cs-1", invoker=fake, unreachable_for_s=300)
+    assert early["state"] == "unknown" and early["fate"] == "WAITING"
+    assert late["state"] == "disconnected" and late["fate"] == "FAILED"
+
+
+def test_a_receipt_on_the_box_reads_finished_and_a_handback():
+    fake = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=1000 log=900 hb=900 receipt=1\n")
+    seen = d.codespace_observe("cs-1", invoker=fake)
+    assert seen["state"] == "finished" and seen["fate"] == "HANDBACK"
+
+
+def test_the_observe_cli_prints_the_reading_as_json(monkeypatch):
+    from click.testing import CliRunner
+
+    monkeypatch.setattr(d, "run_gh", lambda argv, **kw: _ObserveGh(
+        listing=[{"name": "cs-1", "state": "Available"}],
+        probe="now=1000 log=990 hb=995 receipt=0\n")(argv))
+    out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1"])
+    assert out.exit_code == 0, out.output
+    assert json.loads(out.output)["state"] == "working"

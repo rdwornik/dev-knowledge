@@ -99,6 +99,11 @@ try:  # pragma: no cover -- `queue`'s own RAM read: no second memory reader here
 except ImportError:  # pragma: no cover
     import memory_admission_gate as mag
 
+try:  # pragma: no cover -- the Codespace legs' classifier: one reader of the creation log and the lane's progress
+    from scripts import codespace_state as cs
+except ImportError:  # pragma: no cover
+    import codespace_state as cs
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
 
@@ -1864,14 +1869,19 @@ def codespace_plan(repo: str, branch: str, slug: str, contract: Path, head_argv:
         Step(["gh", "codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
               "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug],
              "create -- its own stdout is the NAME, `{cs}` below"),
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "cat", cs.CREATION_LOG_PATH],
+             "creation log: read over ssh and classified -- a recovery container is REFUSED "
+             "before anything ships or runs (night leg 5, D3)"),
         Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "mkdir", "-p", workdir],
              "create the workdir -- NOT the checkout's own directory"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", str(contract),
               f"remote:{workdir}/{Path(contract).name}"], "ship the contract in"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", "{runner}", f"remote:{runner}"],
              "ship the runner in"),
-        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "bash", runner],
-             "run (stream-metered) -- cwd is the checkout `create` produced, not `workdir`"),
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "bash", "-l", runner],
+             "run (stream-metered) in a LOGIN shell -- a non-login ssh shell sees none of the "
+             "Codespaces secrets (night leg 5, D1); cwd is the checkout `create` produced, "
+             "not `workdir`"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", f"remote:{workdir}/receipt.json",
               "{receipt}"], "pull the receipt back"),
     ]
@@ -1941,8 +1951,8 @@ def format_gh_line(argv: Sequence[str]) -> str:
     return "gh " + " ".join(parts)
 
 
-def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
-           ) -> GhResult:
+def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+           timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
     """The single seam every `gh` call in the codespace legs goes through -- ported from
     `Invoke-CodespaceGh`. Returns ok/exit_code/stdout rather than raising: a non-zero `gh` exit is
     data this domain reasons about (unauthenticated, no such codespace, quota), never an
@@ -1950,9 +1960,12 @@ def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], G
     asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`."""
     if invoker is not None:
         return invoker(argv)
+    # `timeout` is per call: an observer's read is bounded in seconds, a whole lane's run step in
+    # hours, and neither is the 900 s default. stdin is closed so a `gh` prompt can only fail,
+    # never wait on a pipe nobody writes to.
     try:  # pragma: no cover -- real gh
         proc = subprocess.run(["gh", *argv], capture_output=True, text=True,
-                              timeout=GH_TIMEOUT_SECONDS)
+                              timeout=timeout, stdin=subprocess.DEVNULL)
     except OSError as exc:
         # `gh` missing (or unrunnable) is DATA this domain reasons about, same as a non-zero
         # exit -- a codex terra HIGH (2026-09-27): an uncaught FileNotFoundError crashed every
@@ -1964,7 +1977,7 @@ def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], G
         # are ported here (this module's own docstring), so a bound is the only thing standing
         # between a stuck `gh` and a caller that never gets its documented refusal.
         return GhResult(ok=False, exit_code=124,
-                        stdout=f"gh timed out after {GH_TIMEOUT_SECONDS}s: {exc}")
+                        stdout=f"gh timed out after {timeout}s: {exc}")
     return GhResult(ok=(proc.returncode == 0), exit_code=proc.returncode,
                      stdout=proc.stdout or "", stderr=proc.stderr or "")
 
@@ -1978,9 +1991,32 @@ class ExecResult:
     receipt: dict = field(default_factory=dict)
     commands: tuple[str, ...] = ()
     failure: str = ""
+    #: A failed lane's fate (R65): `{"fate": "FAILED", "step": ..., "reason": ...}`. Empty on success.
+    fate: dict = field(default_factory=dict)
 
 
-def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str]) -> str:
+#: The five Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
+#: enters a file or a log). `claude -p` needs the first, `gh` and `git push` the second, the two
+#: review heads the next two, and the transport read/write the last.
+RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY",
+                                   "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN")
+
+#: The runner's own bounds, from the classifier's: a head whose run log is quiet for longer than
+#: this is killed and its receipt says why.
+RUNNER_STALL_AFTER_S = int(cs.STALE_AFTER_S)
+
+#: How often, and how many times, the creation log is read before a box with no finished log is
+#: refused. The ssh read works only once the box is up; the log's last line lands a moment later.
+CREATION_LOG_ATTEMPTS = 3
+CREATION_LOG_WAIT_S = 20
+
+#: The run step's own bound, in seconds: the codespace's idle timeout (240 m) less a margin. A lane
+#: is long, and the stall watchdog in the runner (not this number) is what ends a quiet one.
+RUN_TIMEOUT_SECONDS = 3 * 3600
+
+
+def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str],
+                             stall_after_s: int = RUNNER_STALL_AFTER_S) -> str:
     """The bash script shipped in and run as `bash <path>` -- never a string crossing the ssh
     boundary (the same measured failure `codespace_plan`'s own docstring names for the contract
     prompt: a command travels as a FILE, not an argument). `head_argv` runs with `checkout_dir`
@@ -2004,10 +2040,16 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
     # a trailing diagnostic line after the agent's own final JSON result used to stop the scan
     # dead on the FIRST (i.e. last) line, leaving `d={}` and a zero exit code read as success even
     # when the real last JSON result reported an error.
+    #
+    # A STALLED RUN (item 5, R65): the runner's watchdog kills a head whose run log has not grown
+    # for `stall_after_s` and passes `stalled` as the second argument; the receipt then says so --
+    # `is_error`, status `hung`, and a FAILED fate with its reason and the step that failed -- so
+    # a stalled lane is never an empty result with no fate.
     py = "\n".join([
         "import json,sys",
         f"RUN_LOG={run_log!r}",
         f"RECEIPT={receipt_json!r}",
+        f"STALL={int(stall_after_s)!r}",
         "t=open(RUN_LOG,encoding='utf-8',errors='replace').read()",
         "r=None",
         "for ln in reversed(t.splitlines()):",
@@ -2027,15 +2069,52 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "'exit_code':int(sys.argv[1]),"
         "'transcript':{'session_id':d.get('session_id'),'path':''},"
         "'recovery':{'policy':'restart-once','attempt':0,'next':'none'}}",
+        "if len(sys.argv)>2 and sys.argv[2]=='stalled':",
+        "    receipt['is_error']=True",
+        "    receipt['status']='hung'",
+        "    receipt['fate']={'fate':'FAILED','step':'run',"
+        "'reason':'hung: no progress for more than %ds (bound %ds); the runner killed the head' % (STALL,STALL)}",
         "json.dump(receipt,open(RECEIPT,'w'))",
     ])
+    heartbeat = shlex.quote(f"{workdir}/heartbeat")
+    stalled = shlex.quote(f"{workdir}/stalled")
+    names = " ".join(RUNNER_SECRETS)
     return "\n".join([
         "#!/usr/bin/env bash",
         "set -uo pipefail",
+        # a dropped ssh connection sends SIGHUP: the lane outlives it and the receipt is still written
+        "trap '' HUP",
         f"cd {shlex.quote(checkout_dir)} || exit 90",
-        f"{quoted} > {shlex.quote(run_log)} 2>&1",
+        f"rm -f {stalled}",
+        # BOOLEANS ONLY (R13): a name and yes/no. `${!n}` is read for emptiness and never printed.
+        f"for n in {names}; do",
+        '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
+        '  echo "[runner] secret $n set=$v"',
+        f"done > {shlex.quote(run_log)} 2>&1",
+        # the heartbeat says the runner PROCESS lives (the run log's age says the lane works)
+        f"( while :; do date +%s > {heartbeat}; sleep {cs.HEARTBEAT_S}; done ) &",
+        "hb=$!",
+        # stdin is closed: `claude -p` waits 3 s on an open one and a codex head would hang (D8)
+        f"{quoted} < /dev/null >> {shlex.quote(run_log)} 2>&1 &",
+        "head=$!",
+        # the watchdog: a run log quiet for longer than the bound is a stalled head
+        "( while kill -0 $head 2>/dev/null; do",
+        "    sleep 15",
+        "    now=$(date +%s)",
+        f"    mt=$(stat -c %Y {shlex.quote(run_log)} 2>/dev/null || echo $now)",
+        f"    if [ $((now - mt)) -gt {int(stall_after_s)} ]; then",
+        f"      echo stalled > {stalled}",
+        "      kill -TERM $head 2>/dev/null; sleep 5; kill -KILL $head 2>/dev/null",
+        "      break",
+        "    fi",
+        "  done ) &",
+        "wd=$!",
+        "wait $head",
         "code=$?",
-        f'python3 -c {shlex.quote(py)} "$code"',
+        "kill $hb $wd 2>/dev/null",
+        'stalled=""',
+        f'if [ -f {stalled} ]; then stalled=stalled; code=124; fi',
+        f'python3 -c {shlex.quote(py)} "$code" "$stalled"',
         "exit $code",
         "",
     ])
@@ -2044,11 +2123,22 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
 def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
                     *, machine: str = "standardLinux32gb", idle_timeout: str = "240m",
                     retention: str = "24h", workdir: str = "/workspaces/dispatch",
-                    invoker: Optional[Callable[[Sequence[str]], GhResult]] = None) -> ExecResult:
+                    invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+                    sleep: Callable[[float], None] = time.sleep,
+                    run_timeout_s: float = RUN_TIMEOUT_SECONDS) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
-    of `Start-DispatchCodespace` (create, read the NAME back, ship the contract and a generated
-    runner script in, run it, pull `receipt.json` back). Harvest, stop and delete are the
-    separate legs below, matching the PS module's own split."""
+    of `Start-DispatchCodespace` (create, read the NAME back, read the creation log and refuse a
+    recovery container, ship the contract and a generated runner script in, run it, pull
+    `receipt.json` back). Harvest, stop and delete are the separate legs below, matching the PS
+    module's own split.
+
+    DECIDED-BY-LANE (b2-codespace-green, item 1, D1): the run step is `bash -l <runner>`, a LOGIN
+    shell. A non-login ssh shell sees none of the five Codespaces secrets (night probe x3:
+    `set=no`; a login shell `yes`), so `claude -p` answered 'Not logged in'. `bash -l` is what the
+    PS verb did, what `codespace_admission` and `codespace_parity` already assume ("PATH is only
+    complete there"), and what the night's workaround proved; an equivalent (sourcing a profile
+    by hand) would be a second spelling of the same fact. The runner closes the head's stdin (D8)
+    and records the five secrets as booleans (R13)."""
     if not head_argv:
         # Codex terra P1 (2026-09-27): an empty argv made `_codespace_runner_script` emit a
         # redirection-only shell command -- `> run.log 2>&1` with no left-hand side -- that exits
@@ -2062,9 +2152,9 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     contract = Path(contract).resolve()
     commands: list[str] = []
 
-    def call(argv: Sequence[str]) -> GhResult:
+    def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
         commands.append(format_gh_line(argv))
-        return run_gh(argv, invoker=invoker)
+        return run_gh(argv, invoker=invoker, timeout=timeout)
 
     created = call(["codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
                     "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug])
@@ -2082,6 +2172,15 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     if not name:
         return ExecResult(False, commands=tuple(commands),
                            failure="`gh codespace create` returned no name on stdout")
+
+    # THE CREATION LOG IS READ BEFORE ANYTHING SHIPS (item 3, D3). A recovery container is
+    # reachable and reports `Available` throughout, so nothing else says it is not ours; the log is
+    # the one discriminator GitHub documents. A log that is not finished yet is read again a
+    # bounded number of times; one that never finishes, or that names a recovery container or a
+    # failed creation, REFUSES the run -- the box exists and is named for teardown.
+    refusal = _creation_log_refusal(name, call, sleep)
+    if refusal:
+        return ExecResult(False, name=name, commands=tuple(commands), failure=refusal)
 
     # REWRITE THE CONTRACT PATH. `head_argv` (built by `plan` from `build_plan`) carries the
     # prompt "Read and execute the frozen contract at <LOCAL path>" -- a path on the machine that
@@ -2128,7 +2227,21 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
         # writes `receipt.json` in its own `exit $code` tail, so a non-zero ssh exit still has a
         # receipt worth reading -- returning early on `ran.ok` alone threw away exactly the
         # evidence a failed lane most needs kept.
-        ran = call(["codespace", "ssh", "-c", name, "--", "bash", runner_remote])
+        ran = call(["codespace", "ssh", "-c", name, "--", "bash", "-l", runner_remote],
+                   timeout=run_timeout_s)
+
+        # THE FATE OF A RUN WHOSE TRANSPORT DIED (item 5, R65): ssh's own exit 255 is a dropped
+        # connection and gh's 124 a timeout (`run_gh`). The lane may still be running on the box --
+        # the runner outlives a hangup -- so this is FAILED at the `run` step with the reason, and
+        # the box is named for the observer / harvest, never an empty result with no fate.
+        transport_fate: dict = {}
+        if not ran.ok and ran.exit_code in (255, 124):
+            what = ("disconnected: the ssh session to the codespace dropped"
+                    if ran.exit_code == 255 else
+                    f"timed out: the run step exceeded {run_timeout_s:.0f}s")
+            transport_fate = {"fate": "FAILED", "step": "run",
+                              "reason": f"{what} (exit {ran.exit_code}); the lane may still be "
+                                        "running on the box -- observe it, then harvest"}
 
         cp3 = call(["codespace", "cp", "-c", name, "-e", f"remote:{workdir}/receipt.json",
                     str(receipt_local)])
@@ -2137,26 +2250,109 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
                       "PS verb's own receipt gate)")
             if not ran.ok:
                 failure = f"the runner exited {ran.exit_code}; {failure}"
-            return ExecResult(False, name=name, commands=tuple(commands), failure=failure)
+            fate = transport_fate or {"fate": "FAILED", "step": "receipt", "reason": failure}
+            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+                              fate=fate)
         try:
             receipt = json.loads(receipt_local.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            return ExecResult(False, name=name, commands=tuple(commands),
-                               failure=f"receipt.json did not parse: {exc}")
+            failure = f"receipt.json did not parse: {exc}"
+            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+                              fate={"fate": "FAILED", "step": "receipt", "reason": failure})
 
+        # a stalled head's receipt carries the runner's own fate (reason + step), written there
+        # by the runner that killed it
+        receipt_fate = receipt.get("fate") if isinstance(receipt.get("fate"), dict) else {}
         if not ran.ok:
+            failure = f"the runner exited {ran.exit_code}"
+            fate = transport_fate or receipt_fate or {
+                "fate": "FAILED", "step": "run",
+                "reason": f"{failure}; the receipt reports status={receipt.get('status')!r}"}
             return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
-                               failure=f"the runner exited {ran.exit_code}")
+                               failure=failure, fate=fate)
         # THE RECEIPT'S OWN VERDICT GATES SUCCESS TOO (codex terra P1, 2026-09-27): the ssh call
         # can exit 0 while the agent it ran reports `is_error: true` or a non-success status --
         # `bash runner_remote` only ever fails on a TRANSPORT problem, not a lane one.
         if receipt.get("is_error") or receipt.get("status") not in (None, "success"):
+            failure = (f"the lane's own receipt reports failure: "
+                       f"is_error={receipt.get('is_error')!r} status={receipt.get('status')!r}")
+            fate = receipt_fate or {"fate": "FAILED", "step": "run", "reason": failure}
             return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
-                               failure=f"the lane's own receipt reports failure: "
-                                       f"is_error={receipt.get('is_error')!r} "
-                                       f"status={receipt.get('status')!r}")
+                               failure=failure, fate=fate)
 
     return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands))
+
+
+def _creation_log_refusal(name: str, call: Callable[..., GhResult],
+                          sleep: Callable[[float], None]) -> str:
+    """'' when the creation log says the container is ours; else the reason to refuse the run.
+
+    READS THE LOG OVER SSH (`cs.creation_log_args`) with a timeout, up to `CREATION_LOG_ATTEMPTS`
+    times while it is INDETERMINATE (empty, unreadable, or not yet finished). A recovery container
+    or a failed creation refuses at once: another read cannot make it ours."""
+    verdict = None
+    for attempt in range(CREATION_LOG_ATTEMPTS):
+        res = call(cs.creation_log_args(name), timeout=cs.SSH_TIMEOUT_S)
+        verdict = cs.classify_creation_log(res.stdout if res.ok else "")
+        if verdict.verdict is cs.ContainerVerdict.OURS:
+            return ""
+        if verdict.verdict is not cs.ContainerVerdict.INDETERMINATE:
+            break
+        if attempt + 1 < CREATION_LOG_ATTEMPTS:
+            sleep(CREATION_LOG_WAIT_S)
+    assert verdict is not None
+    why = f"the codespace is a {verdict.verdict.value}: {verdict.reason}"
+    if verdict.verdict is cs.ContainerVerdict.INDETERMINATE:
+        why += f" (read {CREATION_LOG_ATTEMPTS} times)"
+    return why + " -- the run was REFUSED; the box exists and must be deleted"
+
+
+# ----- observe: what is the lane doing, and what is its fate (items 3 and 5) ------------------------
+
+def codespace_observe(name: str, *, workdir: str = "/workspaces/dispatch",
+                      expected_gone: bool = False, unreachable_for_s: float = 0.0,
+                      invoker: Optional[Callable[[Sequence[str]], GhResult]] = None) -> dict:
+    """One reading of a Codespace lane: the platform state from a LISTING, the progress signal over
+    ssh (both bounded), crossed by `codespace_state.assess_lane` into a state AND a fate.
+
+    A live lane reads `working` (not `unknown`); a deleted codespace reads `absent` -- `torn-down`
+    when `expected_gone` says this line deleted it; a stalled one reads `hung` and a disconnected
+    one `disconnected`, each FAILED with its reason and step; what cannot be read is WAITING with
+    its gate named. The box is probed over ssh only while the platform says it is `Available`: a
+    probe of a deleted or stopped box says nothing. `unreachable_for_s` is how long the CALLER has
+    already failed to reach the box -- the observer owns that clock, not this one-shot read."""
+    listing = run_gh(["codespace", "list", "--json", "name,state"], invoker=invoker,
+                     timeout=cs.SSH_TIMEOUT_S)
+    container: Optional[str] = None
+    if listing.ok:
+        try:
+            rows = json.loads(listing.stdout or "[]")
+        except json.JSONDecodeError:
+            rows = None
+        if isinstance(rows, list):
+            container = cs.state_from_listing(rows, name)
+    reading: Optional[cs.ProgressReading] = None
+    if container == "Available":
+        probe = run_gh(cs.progress_args(name, workdir), invoker=invoker, timeout=cs.SSH_TIMEOUT_S)
+        reading = (cs.parse_progress(probe.stdout) if probe.ok else
+                   cs.ProgressReading(reachable=False,
+                                      error=f"ssh exited {probe.exit_code}"))
+    assessed = cs.assess_lane(container, reading, unreachable_for_s=unreachable_for_s,
+                              expected_gone=expected_gone)
+    return {
+        "codespace": name,
+        "container_state": container,
+        "state": assessed.state.value,
+        "fate": assessed.fate,
+        "reason": assessed.reason,
+        "step": assessed.step,
+        "progress_age_s": reading.age_s if reading else None,
+        "runner_alive": reading.runner_alive if reading else None,
+        "receipt_present": reading.receipt_present if reading else False,
+        "reachable": reading.reachable if reading else None,
+        "unreachable_for_s": unreachable_for_s,
+        "observed": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
 
 
 # ----- harvest: pull evidence out, before any delete (R17 / D2) -------------------------------
@@ -2383,6 +2579,20 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
     click.echo(json.dumps(asdict(result)))
     if not result.ok:
         sys.exit(EXIT_REFUSED)
+
+
+@cli.command("codespace-observe")
+@click.option("--name", required=True, help="Codespace NAME (gh codespace list -> name).")
+@click.option("--workdir", default="/workspaces/dispatch", show_default=True)
+@click.option("--expected-gone", is_flag=True,
+              help="This line deleted the codespace: absence is the clean end (TORN-DOWN).")
+@click.option("--unreachable-for-s", type=float, default=0.0, show_default=True,
+              help="How long the caller has already failed to reach the box (the observer's clock).")
+def codespace_observe_cmd(name: str, workdir: str, expected_gone: bool,
+                          unreachable_for_s: float) -> None:
+    """Read a Codespace lane once: state, progress, fate. Starts nothing, changes nothing."""
+    click.echo(json.dumps(codespace_observe(name, workdir=workdir, expected_gone=expected_gone,
+                                            unreachable_for_s=unreachable_for_s)))
 
 
 @cli.command("codespace-harvest")
