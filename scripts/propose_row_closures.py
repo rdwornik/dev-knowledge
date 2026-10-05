@@ -65,6 +65,7 @@ def _load(name: str):
 
 _gd = _load("gen_dashboard")
 _gh = _load("gen_handoff")
+_tp = _load("transport")
 
 DEFAULT_COMPARE_REF_CANDIDATES = ("main",)
 
@@ -212,6 +213,17 @@ def render_closure_list(rows: list["_gd.ClosedRow"], compare_ref: str, generated
     return "\n".join(lines) + "\n"
 
 
+def _write(out_path: Path, text: str) -> bool:
+    """The one write: a transport destination goes through `transport.write` (registered kind,
+    registered writer, linted content); an explicit `--out` elsewhere is a plain atomic write."""
+    try:
+        _tp.emit("propose_row_closures", out_path, text)
+    except _tp.TransportWriteRefused as exc:
+        print(f"propose_row_closures: {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="propose_row_closures",
@@ -243,16 +255,16 @@ def main(argv: list[str] | None = None) -> int:
             f"# Closure list -- {today}\n\n"
             f"**Could not resolve a comparison ref** (tried: "
             f"{', '.join(tried)}). Nothing witnessed this run.\n")
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(text, encoding="utf-8", newline="\n")
+        if not _write(out_path, text):
+            return 1
         print(f"propose_row_closures: no comparison ref resolvable; wrote {out_path}",
               file=sys.stderr)
         return 0
 
     rows = witnessed_closures(repo_root, compare_ref)
     text = render_closure_list(rows, compare_ref, today)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(text, encoding="utf-8", newline="\n")
+    if not _write(out_path, text):
+        return 1
     print(f"propose_row_closures: {len(rows)} row(s) witnessed against `{compare_ref}` "
           f"-> {out_path}")
     return 0

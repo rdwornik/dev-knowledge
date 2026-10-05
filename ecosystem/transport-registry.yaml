@@ -24,6 +24,11 @@
 #               name, and this comment records the convention so a future check has it in one
 #               place).
 #   folder      to-cc | to-browser | root -- where this kind lives.
+#   class       decision | non-decision, on every kind. A decision kind rules something, so its
+#               file carries a flush-left `carried-by:` in its first 6 lines (`scripts/
+#               transport_lint.py` checks it at write time). The decision kinds are exactly
+#               `gen_handoff.CARRIAGE_PREFIXES` -- DECLARE-, AMEND-, BATCH- -- and a test holds
+#               the two equal; a run signal is a `SIGNAL-` file, not one of those three.
 #   writers     who may create/replace this kind. A script's own module name (no `.py`), or a
 #               ROLE for a human/session act no in-repo script performs: `operator` (the browser
 #               seat / the operator directly, via Drive -- not through transport.write, since
@@ -40,6 +45,7 @@ kinds:
     prefix: "GO-"
     pattern: '^GO-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     readers: [go_reader]
     repo_scope: hub
@@ -52,6 +58,7 @@ kinds:
     prefix: "LEDGER-"
     pattern: '^LEDGER-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [gen_ledger]
     readers: [gen_handoff]
     repo_scope: any
@@ -64,6 +71,7 @@ kinds:
     prefix: "PLAN-"
     pattern: '^PLAN-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     readers: []
     repo_scope: hub
@@ -76,6 +84,7 @@ kinds:
     prefix: "BATCH-"
     pattern: '^BATCH-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
@@ -88,6 +97,7 @@ kinds:
     prefix: "DECLARE-"
     pattern: '^DECLARE-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
@@ -98,6 +108,7 @@ kinds:
     prefix: "AMEND-"
     pattern: '^AMEND-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
@@ -108,6 +119,7 @@ kinds:
     prefix: "LANE-END-"
     pattern: '^LANE-END-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [transport_report]
     readers: [lane_digest]
     repo_scope: hub
@@ -118,6 +130,7 @@ kinds:
     prefix: "HANDBACK-REFUSED-"
     pattern: '^HANDBACK-REFUSED-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [handback]
     readers: []
     repo_scope: hub
@@ -130,6 +143,7 @@ kinds:
     prefix: "SESSION-"
     pattern: '^SESSION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [handback, lane]
     readers: [lane_end_guard, gen_handoff, dodo]
     repo_scope: any
@@ -143,6 +157,7 @@ kinds:
     prefix: "REFUSED-"
     pattern: '^REFUSED-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [integrator]
     readers: []
     repo_scope: hub
@@ -156,6 +171,7 @@ kinds:
     prefix: "SEAT-BOOT-"
     pattern: '^SEAT-BOOT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [gen_seat_boot]
     readers: []
     repo_scope: hub
@@ -165,6 +181,7 @@ kinds:
     prefix: "MERGE-PLAN-"
     pattern: '^MERGE-PLAN-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [integrator]
     readers: []
     repo_scope: hub
@@ -175,6 +192,7 @@ kinds:
     prefix: "ESCALATE-"
     pattern: '^ESCALATE-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [integrator]
     readers: []
     repo_scope: hub
@@ -185,6 +203,7 @@ kinds:
     prefix: "LANE-"
     pattern: '^LANE-(?!END-)[A-Za-z0-9._-]+\.md$'
     folder: root
+    class: non-decision
     writers: [gen_lane_contract]
     readers: [dispatch]
     repo_scope: hub
@@ -198,6 +217,7 @@ kinds:
     prefix: "RATIFICATION-"
     pattern: '^RATIFICATION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
@@ -208,6 +228,7 @@ kinds:
     prefix: "STATUS-"
     pattern: '^STATUS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     readers: [gen_handoff]
     repo_scope: any
@@ -218,6 +239,7 @@ kinds:
     prefix: "QUESTION-"
     pattern: '^QUESTION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     readers: [gen_handoff]
     repo_scope: any
@@ -228,6 +250,7 @@ kinds:
     prefix: "ANSWER-"
     pattern: '^ANSWER-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
@@ -238,6 +261,7 @@ kinds:
     prefix: "CLOSURE-LIST-"
     pattern: '^CLOSURE-LIST-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [propose_row_closures]
     readers: []
     repo_scope: hub
@@ -247,6 +271,7 @@ kinds:
     prefix: "STATE-BATCH-"
     pattern: '^STATE-BATCH-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [integrator]
     readers: []
     repo_scope: hub
@@ -260,6 +285,7 @@ kinds:
     prefix: "DIGEST-"
     pattern: '^DIGEST-[A-Za-z0-9._-]+\.(md|png|yaml|json)$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     readers: []
     repo_scope: any
@@ -277,6 +303,7 @@ kinds:
     prefix: "DIGEST-CAPABILITY-MAP-"
     pattern: '^DIGEST-CAPABILITY-MAP-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     readers: [handoff_state]
     repo_scope: hub
@@ -293,6 +320,7 @@ kinds:
     prefix: "ADDENDUM-"
     pattern: '^ADDENDUM-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -303,6 +331,7 @@ kinds:
     prefix: "AMEND"
     pattern: '^AMEND[0-9]+-PLAN-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -314,6 +343,7 @@ kinds:
     prefix: "ARCHITECT-INBOX-"
     pattern: '^ARCHITECT-INBOX-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -324,6 +354,7 @@ kinds:
     prefix: "CONTRACT-"
     pattern: '^CONTRACT-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -334,6 +365,7 @@ kinds:
     prefix: "dispatch-measure.ps1"
     pattern: '^dispatch-measure\.ps1$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -345,6 +377,7 @@ kinds:
     prefix: "DISPATCHER-"
     pattern: '^DISPATCHER-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -355,6 +388,7 @@ kinds:
     prefix: "DRAFT-"
     pattern: '^DRAFT-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -365,6 +399,7 @@ kinds:
     prefix: "FINAL-"
     pattern: '^FINAL-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -375,6 +410,7 @@ kinds:
     prefix: "FINDING-"
     pattern: '^FINDING-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -386,6 +422,7 @@ kinds:
     prefix: "FINISH-"
     pattern: '^FINISH-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -396,6 +433,7 @@ kinds:
     prefix: "FIX-"
     pattern: '^FIX-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -406,6 +444,7 @@ kinds:
     prefix: "FLEET-READINESS-CONTRACT-"
     pattern: '^FLEET-READINESS-CONTRACT-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -416,6 +455,7 @@ kinds:
     prefix: "INBOX-dev-knowledge-"
     pattern: '^INBOX-dev-knowledge-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -427,6 +467,7 @@ kinds:
     prefix: "INTEGRATOR-FINISH-"
     pattern: '^INTEGRATOR-FINISH-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -437,6 +478,7 @@ kinds:
     prefix: "INTEGRATOR-PREHANDOFF-"
     pattern: '^INTEGRATOR-PREHANDOFF-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -447,6 +489,7 @@ kinds:
     prefix: "INTEGRATOR-STANDING-ORDER"
     pattern: '^INTEGRATOR-STANDING-ORDER(-WAVE[0-9A-Z]+)?-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -457,6 +500,7 @@ kinds:
     prefix: "INTEGRATOR-WAVE"
     pattern: '^INTEGRATOR-WAVE5[AB](-N[0-9]+)?-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -468,6 +512,7 @@ kinds:
     prefix: "lane-3-9-window-metrics.patch"
     pattern: '^lane-3-9-window-metrics\.patch$'
     folder: to-cc
+    class: non-decision
     writers: [operator, lane]
     repo_scope: hub
     versioned: false
@@ -479,6 +524,7 @@ kinds:
     prefix: "POSTWAVE-CHAIN-"
     pattern: '^POSTWAVE-CHAIN-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -489,6 +535,7 @@ kinds:
     prefix: "PRECUT-"
     pattern: '^PRECUT-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -499,6 +546,7 @@ kinds:
     prefix: "R5-DECLARED.md"
     pattern: '^R5-DECLARED\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -509,6 +557,7 @@ kinds:
     prefix: "RECOVERED-"
     pattern: '^RECOVERED-[A-Za-z0-9._-]+\.(patch|md)$'
     folder: to-cc
+    class: non-decision
     writers: [operator, lane]
     repo_scope: hub
     versioned: false
@@ -520,6 +569,7 @@ kinds:
     prefix: "RULING-RELAY-"
     pattern: '^RULING-RELAY-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -530,6 +580,7 @@ kinds:
     prefix: "run-lane-copilot.ps1"
     pattern: '^run-lane-copilot\.ps1$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -540,6 +591,7 @@ kinds:
     prefix: "SUITE-"
     pattern: '^SUITE-(ANALYTICS|BASELINE)-CODESPACES-[A-Za-z0-9._-]+\.log$'
     folder: to-cc
+    class: non-decision
     writers: [operator, lane]
     repo_scope: hub
     versioned: false
@@ -550,6 +602,7 @@ kinds:
     prefix: "SUPPLEMENT-ANSWERS"
     pattern: '^SUPPLEMENT-ANSWERS(-CITATIONS)?-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -561,6 +614,7 @@ kinds:
     prefix: "SUPPLEMENT-QUESTIONS-"
     pattern: '^SUPPLEMENT-QUESTIONS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -571,6 +625,7 @@ kinds:
     prefix: "WAVE"
     pattern: '^WAVE[0-9]+-ORDER-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -581,6 +636,7 @@ kinds:
     prefix: "WAVE"
     pattern: '^WAVE[0-9]+-SUBWAVE-PLAN\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -591,6 +647,7 @@ kinds:
     prefix: "WAVE"
     pattern: '^WAVE[0-9]+[AB]?-COMMON-[A-Za-z0-9._-]+\.md$'
     folder: to-cc
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -601,6 +658,7 @@ kinds:
     prefix: ""
     pattern: '^\d{4}-\d{2}-\d{2}-[a-z0-9-]+-lane-contract\.md$'
     folder: root
+    class: non-decision
     writers: [operator, gen_lane_contract]
     repo_scope: hub
     versioned: false
@@ -614,6 +672,7 @@ kinds:
     prefix: "AJ-SECOND-PASS-"
     pattern: '^AJ-SECOND-PASS-[A-Za-z0-9._-]+\.md$'
     folder: root
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -624,6 +683,7 @@ kinds:
     prefix: "FUNNEL-GROOM-"
     pattern: '^FUNNEL-GROOM-[A-Za-z0-9._-]+\.md$'
     folder: root
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -634,6 +694,7 @@ kinds:
     prefix: ""
     pattern: '^\d{4}-\d{2}-\d{2}-(?!.*-lane-contract\.md$)[a-z0-9-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, lane]
     repo_scope: any
     versioned: false
@@ -647,6 +708,7 @@ kinds:
     prefix: "ADR-"
     pattern: '^ADR-[0-9]+-[a-z0-9-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     repo_scope: hub
     versioned: false
@@ -658,6 +720,7 @@ kinds:
     prefix: "BOOT-SESSION-"
     pattern: '^BOOT-SESSION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -668,6 +731,7 @@ kinds:
     prefix: "BRIEFING-"
     pattern: '^BRIEFING-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -678,6 +742,7 @@ kinds:
     prefix: "BROWSER-SEAT-FLOOR-"
     pattern: '^BROWSER-SEAT-FLOOR-(DRAFT|PIN)-[A-Za-z0-9._-]+\.(md|sha256|txt)$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -689,6 +754,7 @@ kinds:
     prefix: "browser-seat-skills-"
     pattern: '^browser-seat-skills-[A-Za-z0-9._-]+\.zip$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -699,6 +765,7 @@ kinds:
     prefix: "CARRIED-QUESTIONS-"
     pattern: '^CARRIED-QUESTIONS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -709,6 +776,7 @@ kinds:
     prefix: "CLOSE-"
     pattern: '^CLOSE-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -719,6 +787,7 @@ kinds:
     prefix: "CLOSURE-VERDICTS-"
     pattern: '^CLOSURE-VERDICTS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [integrator]
     repo_scope: hub
     versioned: false
@@ -729,6 +798,7 @@ kinds:
     prefix: "COPY-"
     pattern: '^COPY-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -739,6 +809,7 @@ kinds:
     prefix: "DECISION-SHEET-"
     pattern: '^DECISION-SHEET-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -749,6 +820,7 @@ kinds:
     prefix: "DEFECT-"
     pattern: '^DEFECT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -759,6 +831,7 @@ kinds:
     prefix: "DELETE-LIST-"
     pattern: '^DELETE-LIST-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane, operator]
     repo_scope: hub
     versioned: false
@@ -770,6 +843,7 @@ kinds:
     prefix: "DISPATCH-"
     pattern: '^DISPATCH-(CARD|CONTRACT)-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     repo_scope: hub
     versioned: false
@@ -780,6 +854,7 @@ kinds:
     prefix: "DOCS-CUT-LIST-"
     pattern: '^DOCS-CUT-LIST-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -790,6 +865,7 @@ kinds:
     prefix: "HANDBACK-"
     pattern: '^HANDBACK-(?!REFUSED-)[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane, integrator]
     repo_scope: hub
     versioned: false
@@ -802,6 +878,7 @@ kinds:
     prefix: "HANDOFF-SUPPLEMENT-"
     pattern: '^HANDOFF-SUPPLEMENT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, lane]
     repo_scope: hub
     versioned: false
@@ -812,6 +889,7 @@ kinds:
     prefix: "HANDOFF-VERIFY-"
     pattern: '^HANDOFF-VERIFY-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -822,6 +900,7 @@ kinds:
     prefix: "HANDOFF_BOOT-"
     pattern: '^HANDOFF_BOOT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -833,6 +912,7 @@ kinds:
     prefix: "HANDOVER-"
     pattern: '^HANDOVER-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -843,6 +923,7 @@ kinds:
     prefix: "HOW-TO-DISPATCH-AND-INTEGRATE-"
     pattern: '^HOW-TO-DISPATCH-AND-INTEGRATE-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -853,6 +934,7 @@ kinds:
     prefix: "INTEGRATOR-"
     pattern: '^INTEGRATOR-(STOP-)?wave2(-pass[0-9]+)?-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [integrator]
     repo_scope: hub
     versioned: false
@@ -864,6 +946,7 @@ kinds:
     prefix: "LAUNCH-REPORT-"
     pattern: '^LAUNCH-REPORT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     repo_scope: hub
     versioned: false
@@ -874,6 +957,7 @@ kinds:
     prefix: "LEG"
     pattern: '^LEG[0-9]+-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -884,6 +968,7 @@ kinds:
     prefix: "NIGHT-LEG"
     pattern: '^NIGHT-LEG[0-9]+-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -894,6 +979,7 @@ kinds:
     prefix: "MAP-"
     pattern: '^MAP-(?!DATA-|VERIFICATION-)[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -906,6 +992,7 @@ kinds:
     prefix: "MAP-DATA-"
     pattern: '^MAP-DATA-[A-Za-z0-9._-]+\.js$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -916,6 +1003,7 @@ kinds:
     prefix: "MAP-VERIFICATION-"
     pattern: '^MAP-VERIFICATION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -926,6 +1014,7 @@ kinds:
     prefix: "NEW-ARCHITECT-"
     pattern: '^NEW-ARCHITECT-[A-Za-z0-9._-]+(-SUPERSEDED-v[0-9]+)?\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -936,6 +1025,7 @@ kinds:
     prefix: "PASTE_THIS"
     pattern: '^PASTE_THIS(-[A-Za-z0-9._-]+)?\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -946,6 +1036,7 @@ kinds:
     prefix: "PERMISSION-DIAGNOSIS-"
     pattern: '^PERMISSION-DIAGNOSIS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -956,6 +1047,7 @@ kinds:
     prefix: "PIN-"
     pattern: '^PIN-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -966,6 +1058,7 @@ kinds:
     prefix: "POSTURE-"
     pattern: '^POSTURE-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: true
@@ -976,6 +1069,7 @@ kinds:
     prefix: "PREPARED-"
     pattern: '^PREPARED-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -986,6 +1080,7 @@ kinds:
     prefix: "PROPOSED-CLOSURES-"
     pattern: '^PROPOSED-CLOSURES-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [propose_row_closures]
     repo_scope: hub
     versioned: false
@@ -998,6 +1093,7 @@ kinds:
     prefix: "RECEIPT-wave2-"
     pattern: '^RECEIPT-wave2-[A-Za-z0-9._-]+\.(json|stderr\.txt)$'
     folder: to-browser
+    class: non-decision
     writers: [integrator, lane]
     repo_scope: hub
     versioned: false
@@ -1008,6 +1104,7 @@ kinds:
     prefix: "RECON-NIGHT-"
     pattern: '^RECON-NIGHT-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -1018,6 +1115,7 @@ kinds:
     prefix: "REGISTER-"
     pattern: '^REGISTER-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -1028,6 +1126,7 @@ kinds:
     prefix: "REPOMAP-EVALUATION-"
     pattern: '^REPOMAP-EVALUATION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -1038,6 +1137,7 @@ kinds:
     prefix: "RESUME-"
     pattern: '^RESUME-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -1048,6 +1148,7 @@ kinds:
     prefix: "REVIEW-"
     pattern: '^REVIEW-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane, operator]
     repo_scope: hub
     versioned: false
@@ -1059,6 +1160,7 @@ kinds:
     prefix: "SCAN-"
     pattern: '^SCAN-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -1069,6 +1171,7 @@ kinds:
     prefix: "SPINE-FIRST-STOP-"
     pattern: '^SPINE-FIRST-STOP-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -1079,6 +1182,7 @@ kinds:
     prefix: "STATE-"
     pattern: '^STATE-(?!BATCH-|OF-THE-HARNESS-)[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -1091,6 +1195,7 @@ kinds:
     prefix: "STATE-OF-THE-HARNESS-"
     pattern: '^STATE-OF-THE-HARNESS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, lane]
     repo_scope: hub
     versioned: false
@@ -1101,6 +1206,7 @@ kinds:
     prefix: "STATUS.md"
     pattern: '^STATUS\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane]
     repo_scope: hub
     versioned: false
@@ -1112,6 +1218,7 @@ kinds:
     prefix: "UNOWNED-"
     pattern: '^UNOWNED-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -1122,6 +1229,7 @@ kinds:
     prefix: "WATCHER"
     pattern: '^WATCHER(-LOG)?-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [lane, integrator]
     repo_scope: hub
     versioned: false
@@ -1132,6 +1240,7 @@ kinds:
     prefix: "WAVE"
     pattern: '^WAVE[0-9]+-CLOSE-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator, integrator]
     repo_scope: hub
     versioned: false
@@ -1142,6 +1251,7 @@ kinds:
     prefix: "WINDOW-GOALS-"
     pattern: '^WINDOW-GOALS-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [operator]
     repo_scope: hub
     versioned: false
@@ -1152,6 +1262,7 @@ kinds:
     prefix: "QUOTA-WARN-"
     pattern: '^QUOTA-WARN-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
+    class: non-decision
     writers: [quota_watch]
     readers: [gen_handoff]
     repo_scope: hub
@@ -1160,3 +1271,61 @@ kinds:
       R7 (LANE-5B2-6-quota-watch): written on a 50/80/100% quota crossing or the first billed
       dollar (`scripts/quota_watch.py::cmd_record`). Additive kind, ruling (f) -- nothing else
       in this file touched by that lane.
+
+  # --- b2-transport-lint (LANE-B2-W1-b2-transport-lint, batch B2-W1) ------------------------
+  - kind: SIGNAL
+    prefix: "SIGNAL-"
+    pattern: '^SIGNAL-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [operator, lane, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A run SIGNAL (a GREEN, a start, a stop): a fact about the run, not a ruling. It has its
+      own non-decision kind because `AMEND-`, `BATCH-` and `DECLARE-` are reserved for
+      decisions, which carry a flush-left `carried-by:` in their first 6 lines
+      (`gen_handoff.CARRIAGE_PREFIXES`). `AMEND-5-GREEN-2026-10-03.md` was a signal written under
+      a decision prefix; the trial cut found it at close. Folder to-browser, where the live
+      `SIGNAL-B2-W1-GREEN-2026-10-04.md` sits.
+
+  - kind: INTEGRATOR_BATCH
+    prefix: "INTEGRATOR-"
+    pattern: '^INTEGRATOR-[A-Z0-9][A-Za-z0-9._-]*-[0-9]{4}-[0-9]{2}-[0-9]{2}(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    class: non-decision
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      A batch's integrator order, `INTEGRATOR-<BATCH>-<date>.md` (`INTEGRATOR-FOUNDATION-
+      2026-10-03.md`, `INTEGRATOR-B2-W1-2026-10-04.md`). Shorter than the four older
+      `INTEGRATOR-*` kinds, so those still win where their own pattern matches. Registered so a
+      sweep does not flag the live integrator order of the batch it runs in.
+
+  - kind: CLAIM_MARKER
+    prefix: ""
+    pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*\.CLAIMED-[A-Za-z0-9]+$'
+    folder: to-cc
+    class: non-decision
+    writers: [operator, lane, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `<name>.CLAIMED-<session>`, the claim marker `scripts/claim.py` creates before a seat
+      works (a hand-made marker counts the same, per that module). Written by the seat's own
+      session through `claim.py`, so the writer is a role; it is an empty file, so the lint
+      checks its name and folder only.
+
+  - kind: SEAT_STATE
+    prefix: "STATE-"
+    pattern: '^STATE-(?!BATCH-|OF-THE-HARNESS-)[A-Za-z0-9._-]+\.json$'
+    folder: to-browser
+    class: non-decision
+    writers: [seat_state]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `STATE-<batch-slug>[-dispatcher].json`, the seat state file `scripts/seat_state.py write`
+      keeps (schema `dev-knowledge-seat-state/1`). The `.json` twin of the bare STATE kind, which
+      is `.md` only; without it a wake's sweep flags the live state files every time.

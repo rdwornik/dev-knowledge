@@ -363,8 +363,11 @@ def test_write_refuses_a_lane_contract_kind_sitting_inside_a_subfolder(t, world,
 
 def test_write_accepts_a_lane_contract_kind_at_the_transport_root(t, world, registry):
     dest = world["root"] / "LANE-a-539-ch8.md"
-    got = t.write("gen_lane_contract", dest, "x", registry=registry)
-    assert got.read_text(encoding="utf-8") == "x"
+    # a lane contract now lints at write time (b2-transport-lint): its close-out names the R59
+    # proof of read, so the fixture body does too
+    body = "close-out: the served model id and a nonce or content hash the reviewer returned\n"
+    got = t.write("gen_lane_contract", dest, body, registry=registry)
+    assert got.read_text(encoding="utf-8") == body
 
 
 def test_concurrent_appends_to_the_same_destination_serialize_without_interleaving(t, world, registry):

@@ -9,12 +9,14 @@ the one place that answers "is this filename a known kind, and is THIS caller th
 registered writer" -- `ecosystem/transport-registry.yaml` is the data, this is the one
 function (`write` / `append`) every future writer composes rather than reinventing.
 
-SCOPE, DELIBERATELY NARROW (lane contract: "switch the writer" is `handback.py` only).
-This organ does not change `transport_report.py`, `gen_ledger.py`, `gen_seat_boot.py` or
-`propose_row_closures.py` -- their own direct writes to the transport are untouched, and
-their kinds are registered here as READ-ONLY data (the registry describes what they already
-do; it does not intercept them). Only `handback.py`'s two writes (the REFUSED order and the
-SESSION append) are switched to call through here.
+WHO CALLS IT. `handback.py`'s two writes (the REFUSED order and the SESSION append) were the
+first; LANE-B2-W1-b2-transport-lint added the lint (`transport_lint.py`: a decision file's
+`carried-by:` head, a signal kept out of the decision prefixes, a lane contract's R59 proof)
+INSIDE `write()` / `append()`, and routed `transport_report.py`, `gen_ledger.py` and
+`propose_row_closures.py` through `write()` / `emit()`. `gen_seat_boot.py` writes a repo
+handoff bundle, not the transport, so it has no call site here. `gen_lane_contract.py` (lane
+W1-4's) and the integrator template's own writes (lane W1-5's) follow after this lane merges;
+`transport_lint.py sweep` covers them in the meantime.
 
 DERIVED, NOT HAND-COPIED (Done-when 1: "a test derives the kinds from the code and asserts
 none is missing"). `derive_kinds_from_code()` below scans every script that actually touches
@@ -50,6 +52,7 @@ import transport_report as _tr  # noqa: E402
 _ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = _ROOT / "ecosystem" / "transport-registry.yaml"
 FOLDERS = ("to-cc", "to-browser", "root")
+KIND_CLASSES = ("decision", "non-decision")
 
 
 class TransportRegistryError(Exception):
@@ -72,6 +75,7 @@ class Kind:
     repo_scope: str = "hub"     # "hub" (.dev-knowledge only) | "any" (every repo on the transport)
     versioned: bool = False
     notes: str = ""
+    decision: bool = False      # class: decision -> the file carries an anchored `carried-by:`
 
     def matches(self, filename: str) -> bool:
         return bool(self.regex.match(filename))
@@ -107,12 +111,17 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> list[Kind]:
             regex = re.compile(row["pattern"])
         except re.error as exc:
             raise TransportRegistryError(f"kind {name!r}: bad pattern {row['pattern']!r}: {exc}") from exc
+        cls = row.get("class", "non-decision")
+        if cls not in KIND_CLASSES:
+            raise TransportRegistryError(
+                f"kind {name!r}: class {cls!r} is not one of {KIND_CLASSES}")
         out.append(Kind(name=name, prefix=row.get("prefix", ""), regex=regex,
                         folder=row["folder"], writers=writers,
                         readers=tuple(row.get("readers", ())),
                         repo_scope=row.get("repo_scope", "hub"),
                         versioned=bool(row.get("versioned", False)),
-                        notes=row.get("notes", "")))
+                        notes=row.get("notes", ""),
+                        decision=cls == "decision"))
     # Longest prefix first: `LANE-END-{lane}.md` must classify as LANE_END, never the shorter
     # `LANE-{stem}.md` (LANE_CONTRACT) a substring-first search would match instead.
     out.sort(key=lambda k: len(k.prefix), reverse=True)
@@ -133,7 +142,7 @@ def _folder_of(dest: Path) -> str:
     """`dest`'s own folder name, as `scan()`'s convention reads it: `to-cc`/`to-browser` when
     the immediate parent is named that, else `root` (a `LANE-*.md` contract, sitting directly
     under the transport root rather than either subfolder)."""
-    parent_name = dest.parent.name
+    parent_name = dest.parent.name.lower()   # a Windows path may spell it `TO-BROWSER`
     return parent_name if parent_name in ("to-cc", "to-browser") else "root"
 
 
@@ -158,13 +167,64 @@ def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
     return kind
 
 
+def _lint(dest: Path, text: str, reg: list[Kind]) -> None:
+    """`transport_lint` on the file about to be written (LANE-B2-W1-b2-transport-lint): a
+    decision file with no anchored `carried-by:`, a signal under a decision prefix, a lane
+    contract with no R59 proof -- refused here, before any byte lands, not at the batch close.
+    Imported on use: `transport_lint` imports this module."""
+    import transport_lint  # noqa: PLC0415
+    findings = transport_lint.lint_text(dest.name, _folder_of(dest), text, reg)
+    if findings:
+        raise TransportWriteRefused(
+            f"{dest.name!r} fails the transport lint: "
+            + "; ".join(f"{f.code} ({f.reason})" for f in findings))
+
+
 def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
     """Write `data` (text) to `dest` WHOLE (atomic tmp+replace, `transport_report.deliver`'s own
     pattern), but only when `dest.name` is a registered kind, `writer` is its registered writer,
-    AND `dest` sits in that kind's registered folder. Raises `TransportWriteRefused` before
-    touching the filesystem otherwise."""
+    `dest` sits in that kind's registered folder AND `transport_lint` passes the content. Raises
+    `TransportWriteRefused` before touching the filesystem otherwise."""
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
+    _lint(dest, data, reg)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    _tr.deliver(dest, data.encode("utf-8"))
+    return dest
+
+
+def _same(a: Path, b: Path) -> bool:
+    return os.path.normcase(str(a)) == os.path.normcase(str(b))
+
+
+def is_transport_dest(dest: Path, transport_root: Optional[Path] = None) -> bool:
+    """True when `dest` sits in the transport: the root itself (where `LANE-*.md` contracts
+    live) or an immediate `to-cc/` / `to-browser/` child of it. The root is `transport_root`,
+    else the configured `CLAUDE_PROMPTS_DIR`; paths are resolved and compared case-insensitively
+    on Windows, so a scratch directory that merely shares the basename `to-browser` is not the
+    transport, and `TO-BROWSER` is. With no root known at all the folder name decides."""
+    parent = dest.parent
+    raw = transport_root or _tr.windows_user_env("CLAUDE_PROMPTS_DIR") \
+        or os.environ.get("CLAUDE_PROMPTS_DIR")
+    if not raw:
+        return parent.name.lower() in ("to-cc", "to-browser")
+    try:
+        root, real = Path(raw).resolve(), parent.resolve()
+    except OSError:
+        return False
+    if _same(real, root):
+        return True
+    return real.name.lower() in ("to-cc", "to-browser") and _same(real.parent, root)
+
+
+def emit(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None,
+         transport_root: Optional[Path] = None) -> Path:
+    """A generator's single write call: a destination inside the transport goes through
+    `write()` (registered kind, registered writer, linted content); any other path -- an
+    operator's explicit `--out` into a scratch directory -- is a plain atomic write, since it is
+    not a transport write."""
+    if is_transport_dest(dest, transport_root):
+        return write(writer, dest, data, registry=registry)
     dest.parent.mkdir(parents=True, exist_ok=True)
     _tr.deliver(dest, data.encode("utf-8"))
     return dest
@@ -218,12 +278,12 @@ def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]
     _check(writer, dest, reg)
     dest.parent.mkdir(parents=True, exist_ok=True)
     with _DestinationLock(dest):
+        existing = dest.read_text(encoding="utf-8", errors="replace") if dest.exists() else ""
+        sep = "\n" if existing and not block.startswith("\n") else ""
+        tail = "" if block.endswith("\n") else "\n"
+        _lint(dest, existing + sep + block + tail, reg)
         with dest.open("a", encoding="utf-8", newline="\n") as fh:
-            if dest.stat().st_size and not block.startswith("\n"):
-                fh.write("\n")
-            fh.write(block)
-            if not block.endswith("\n"):
-                fh.write("\n")
+            fh.write(sep + block + tail)
     return dest
 
 

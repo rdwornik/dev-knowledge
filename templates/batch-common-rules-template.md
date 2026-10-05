@@ -66,6 +66,15 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 - **Backward-compatible CLIs:** a script another organ calls keeps its flags and exit codes; new
   behaviour goes behind new flags.
 
+- **Transport writes are linted before they land.** Harness writers go through
+  `scripts/transport.py` (`write` / `append` / `emit`), which runs `scripts/transport_lint.py`
+  first. A file you write by hand: `uv run --locked python scripts/transport_lint.py check <file>`
+  before it goes to Drive. `AMEND-`, `BATCH-` and `DECLARE-` are decision prefixes: the file carries
+  a flush-left `carried-by:` (`OPEN` or a repo path) in its first 6 lines. A run signal (a GREEN, a
+  start, a stop) is a `SIGNAL-<slug>-<date>.md`. The dispatcher and the integrator run
+  `transport_lint.py sweep --since <the previous wake>` at each wake, which flags a bad file within
+  one wake.
+
 ## 4. Waiting and processes
 
 - Wait with the Monitor tool, using an until-loop. A background poll can be reaped under memory

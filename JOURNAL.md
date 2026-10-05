@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (m) - CC (Opus 5.5, integrator seat B2-W1 cycle 8): lane b2-transport-lint merges after its last repair -- every transport write is linted, a signal and a decision file each have one shape, and the template's R59 proof is checked by content, not by a frozen line number
+
+**Anchors:** `477353aa`, `69ae5bcc`, `40d4f813`, `b16cfebb`, `a4f0fa89`, `5b28f52c`, `7e570c44`, `d7e0e30b` -- `worktree-b2-transport-lint` (B2-W1 W1-6, after repair 2 of 2)
+
+**Did:**
+- Merged batch B2-W1 lane W1-6: `scripts/transport_lint.py` (a signal kind, a decision class, a sweep that reports and renames nothing), a lint inside `transport.write`, four new kinds in `ecosystem/transport-registry.yaml` (SIGNAL, INTEGRATOR_BATCH, CLAIM_MARKER, SEAT_STATE). Its re-test after W1-11 was refused on one red, its own Done-item-5 test slicing the lane-contract template at a line number frozen at `e67f27ac` (night rule N5); repair 2 anchors that test on the `## Done-contract` item's content and adds two negatives (Codex terra P1 fixed).
+- `[#978]` refs cite the lane's review record as its governance consumer. The closed merge receipt of lane b2-transport-probe (`e89e16d3`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/{transport,transport_lint,transport_report,gen_ledger,propose_row_closures}.py`, `ecosystem/{transport-registry,harness}.yaml`, two templates, their tests, `tasks/978-…`, one review record, generated index/counts.
+
+**Next:** b2-integrator-liveness and b2-dispatch-local-sole are freed (their edge was this lane); W1-3 b2-ci-poll WAITING on the architect's item-4 ruling.
+
+---
+
 ### 2026-10-04 (l) - CC (Opus 5.5, integrator seat B2-W1 cycle 7): lane b2-transport-probe merges -- the BD-transport probe checks recorded kinds against the live registry, so adding a transport kind no longer reds the handoff path, and an unreadable registry reads skipped, never pass
 
 **Anchors:** `846ea0fb`, `4764433f`, `d72aa720`, `31231c8c`, `7654e899`, `e6f13fab`, `194e0ae8`, `8344f64f`, `f2f2b33e` -- `worktree-b2-transport-probe` (B2-W1 W1-11, after repair 1)

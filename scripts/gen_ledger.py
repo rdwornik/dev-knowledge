@@ -61,10 +61,12 @@ try:
     import boot_frontier as _bf
     import gen_handoff as _gh
     import gen_task_tree as _gtt
+    import transport as _transport
 except ImportError:                                  # imported as `scripts.gen_ledger`
     from scripts import boot_frontier as _bf         # type: ignore[no-redef]
     from scripts import gen_handoff as _gh           # type: ignore[no-redef]
     from scripts import gen_task_tree as _gtt        # type: ignore[no-redef]
+    from scripts import transport as _transport      # type: ignore[no-redef]
 
 _REPO_ROOT = _SCRIPTS.parent
 
@@ -349,8 +351,11 @@ def cli(out_path: "str | None", repo_root: "str | None", repo_name: str,
         click.echo("gen_ledger: no transport resolvable and no --out given; nothing written",
                    err=True)
         raise SystemExit(1)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(text, encoding="utf-8", newline="\n")
+    try:
+        _transport.emit("gen_ledger", target, text)   # a transport destination is linted first
+    except _transport.TransportWriteRefused as exc:
+        click.echo(f"gen_ledger: {exc}", err=True)
+        raise SystemExit(1) from exc
     click.echo(f"{target} ({len(text.encode('utf-8'))} B, refreshed {when})")
 
 

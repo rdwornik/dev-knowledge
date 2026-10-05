@@ -84,6 +84,13 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
 2. **Liveness, every <10> min.** A lane that is gone, or idle over <30> min without a HANDBACK line,
    and at least <10> min old, gets a continuation session `<lane>-resume-<n>` in its own
    worktree — at most <2>.
+   **Transport sweep, on the same wake.** `uv run --locked python scripts/transport_lint.py sweep
+   --since <the previous wake>` reads `to-cc/`, `to-browser/` and the root. A file written by hand
+   to Drive bypasses every hook, so this is where it is caught: exit 1 prints one
+   `<path>: <code>: <reason>` line per non-conforming file. Paste the lines into the receipt as
+   `TRANSPORT-LINT` and name the writer. The sweep renames, moves and deletes nothing; the
+   writer fixes the file. A run signal is a `SIGNAL-<slug>-<date>.md`, and `AMEND-`, `BATCH-` and
+   `DECLARE-` are decision prefixes that carry a `carried-by:` line.
 3. **Repairs.** Launch a repair only from a `to-browser/REFUSED-<slug>.md` that carries both
    `from: the INTEGRATOR` and `repair N of 2`. `HANDBACK-REFUSED-*` files are a lane's own
    self-refusals: do not repair from them.

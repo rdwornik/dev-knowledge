@@ -356,8 +356,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         name = f"{ARTIFACT_PREFIX}{lane}.md"
         result.update(artifact=name, destination=str(folder / name))
         body = build_report(lane, receipts_dir, repo).encode("utf-8")
+        import transport as _transport  # noqa: PLC0415 -- transport imports this module
         try:
-            digest = deliver(folder / name, body)
+            # the lint-gated writer: registered kind, registered writer, linted content, and
+            # `deliver`'s own atomic write and read-back underneath
+            _transport.write("transport_report", folder / name, body.decode("utf-8"))
+            digest = hashlib.sha256(body).hexdigest()
+        except _transport.TransportWriteRefused as exc:
+            return finish(EXIT_REFUSED, str(exc))
         except DeliveryFailed as exc:
             return finish(EXIT_FAILED, str(exc))
         result.update(delivered=True, verified=True, sha256=digest)
