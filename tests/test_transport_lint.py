@@ -452,8 +452,58 @@ def test_a_lane_contract_with_no_close_out_item_is_refused(lint):
     assert [f.code for f in lint.lint_text("LANE-x.md", "root", text)] == ["lane-contract-no-r59-proof"]
 
 
+_ITEM_START = re.compile(r"^(\d+|n)\.\s")
+
+
+def _r59_item_in_done_contract(text: str) -> str:
+    """The numbered Done-contract item that carries `R59 proof of read`, or "" if there is none.
+
+    Content-anchored (N5): finds the phrase's line, requires it to lie after the `## Done-contract`
+    heading and before the next `## ` heading, and returns that numbered item (its first line up to
+    the next numbered item or blank line).
+    """
+    lines = text.splitlines()
+    start = next((n for n, ln in enumerate(lines) if ln.startswith("## Done-contract")), None)
+    if start is None:
+        return ""
+    end = next((n for n in range(start + 1, len(lines)) if lines[n].startswith("## ")), len(lines))
+    hit = next((n for n in range(start + 1, end) if "R59 proof of read" in lines[n]), None)
+    if hit is None:
+        return ""
+    first = hit
+    while first > start + 1 and lines[first].strip() and not _ITEM_START.match(lines[first]):
+        first -= 1
+    last = hit + 1
+    while last < end and lines[last].strip() and not _ITEM_START.match(lines[last]):
+        last += 1
+    return " ".join(lines[first:last])
+
+
 def test_the_lane_contract_template_still_names_the_proof_at_the_line_the_contract_cites():
-    """Item 5's template half is met on main (`6a45b1ff`); quoted, not re-edited here."""
-    lines = (_REPO / "templates" / "lane-contract-template.md").read_text(encoding="utf-8").splitlines()
-    window = " ".join(lines[84:92])
-    assert "R59 proof of read" in window and "nonce or content hash" in window
+    """Item 5's template half is met on main (`6a45b1ff`); quoted, not re-edited here.
+
+    The contract cited `:88`, frozen at `e67f27ac`; a later lane inserted lines above it, so the
+    check now finds the item wherever it sits inside `## Done-contract` (N5: no frozen line number).
+    """
+    item = _r59_item_in_done_contract(
+        (_REPO / "templates" / "lane-contract-template.md").read_text(encoding="utf-8"))
+    assert "R59 proof of read" in item and "nonce or content hash" in item
+
+
+def test_the_template_proof_check_refuses_the_sentence_moved_below_do_not():
+    """Negative: the same check over a tmp copy with the R59 item moved under `## Do not` must fail."""
+    text = (_REPO / "templates" / "lane-contract-template.md").read_text(encoding="utf-8")
+    lines = text.splitlines()
+    first = next(n for n, ln in enumerate(lines) if "R59 proof of read" in ln)
+    while not _ITEM_START.match(lines[first]):
+        first -= 1
+    last = first + 1
+    while lines[last].strip():
+        last += 1
+    moved = lines[first:last]
+    rest = lines[:first] + lines[last:]
+    at = next(n for n, ln in enumerate(rest) if ln.startswith("## Do not"))
+    mutated = "\n".join(rest[:at + 1] + moved + rest[at + 1:])
+    assert "R59 proof of read" in mutated  # the phrase still exists; only its place changed
+    item = _r59_item_in_done_contract(mutated)
+    assert not ("R59 proof of read" in item and "nonce or content hash" in item)
