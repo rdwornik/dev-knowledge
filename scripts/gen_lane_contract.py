@@ -261,8 +261,8 @@ PROMPTS_DIR_TOKEN = "<PROMPTS_DIR>"
 #: dry run prints a plausible line, and the lane boots and cannot find its own contract.
 #:
 #: Caught 2026-09-12 by `[#675]` clause 1's own probe going green on the wrong token, which is
-#: why `dispatch_conformance.Probe._location_ok` now also asserts the resolved line carries NO
-#: unsubstituted placeholder. A conformance check that reads "the reader found the contract"
+#: why `tests/test_dispatch_conformance.py`'s `location` property also asserts the resolved
+#: prompt carries NO unsubstituted placeholder. A conformance check that reads "the reader found the contract"
 #: and stops has not checked that the SESSION will.
 READER_PROMPTS_DIR_TOKEN = "$env:CLAUDE_PROMPTS_DIR"
 
@@ -792,7 +792,8 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     operator verb for a local lane — admits only a `claude` head token. Every conforming local
     contract was refused by the verb meant to launch it, and four rows (`[#716]` `[#717]`
     `[#718]` `[#740]`) are symptoms of that one gap. `tests/test_dispatch_conformance.py` is
-    the standing witness; `scripts/dispatch_conformance.py` is the probe.
+    the standing witness: it asks `dispatch.py`, the reader since LANE-B2-W1-b2-dispatch-local-sole,
+    what it resolves from a contract this generator rendered.
 
     WHAT THE OPERATOR TYPES DOES NOT CHANGE: `dispatch LANE-<slug>.md`. What changed is the
     line the contract hands that verb. The composition is `Start-DispatchLane`'s own, read off

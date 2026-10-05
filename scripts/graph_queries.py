@@ -1170,7 +1170,6 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         ("check_provider_registry", "registry value agreement at hard-coded sites"),
         ("coherence_enumerator",
          "intra-document line sites; the pair relation is validate_reconciliation's"),
-        ("dispatch_conformance", "writer vs an external verb's dry-run output"),
         ("dispatch_surface", "value agreement at declared sites + enum checks"),
         ("export_backlog_view", "renders task files to a view; resolves nothing"),
         ("fleet_health", "state files, dates, proposal log vs open ids (machine log)"),
