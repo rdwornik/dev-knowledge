@@ -258,3 +258,21 @@ def test_a_failed_fate_without_a_reason_or_step_is_refused(tmp_path):
 def test_the_regime_fates_are_the_classifiers_fates():
     from scripts import codespace_state as state
     assert tuple(cs.FATES) == tuple(state.FATES)
+
+
+def test_last_fate_is_the_newest_fate_row_of_that_codespace_and_carries_the_unreachable_stamp(tmp_path):
+    """The observer's memory between readings (review P1-2): a container row, another codespace's
+    fate and a torn line are never the answer; the stamp round-trips."""
+    ledger = tmp_path / "ledger.jsonl"
+    assert cs.last_fate("cs-1", ledger) is None
+    cs.write_receipt("lane", "B", "cs-1", _T0, None, "basicLinux32gb", False, {}, ledger_path=ledger)
+    cs.write_fate("cs-1", "lane", "WAITING", "unknown", "waiting on a probe", "observe",
+                  ledger_path=ledger, now=_T0, unreachable_since=_T0)
+    cs.write_fate("cs-2", "other", "RUNNING", "working", "progress", "", ledger_path=ledger, now=_T0)
+    with ledger.open("a", encoding="utf-8") as fh:
+        fh.write("not json\n")
+    row = cs.last_fate("cs-1", ledger)
+    assert row["fate"] == "WAITING" and row["unreachable_since"] == _T0.isoformat(timespec="seconds")
+    cs.write_fate("cs-1", "lane", "RUNNING", "working", "progress", "", ledger_path=ledger, now=_T0)
+    assert cs.last_fate("cs-1", ledger)["fate"] == "RUNNING"
+    assert "unreachable_since" not in cs.last_fate("cs-1", ledger)

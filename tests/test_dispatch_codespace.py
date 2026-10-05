@@ -22,11 +22,13 @@ import re
 import shlex
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
 import dispatch as d
+cs = d.cs
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1067,3 +1069,113 @@ def test_harvest_reads_the_creation_log_from_its_fixed_remote_path(tmp_path):
 
     d.codespace_harvest("fluffy-1", batch="B1", lane="lane-path", out_root=tmp_path, invoker=fake)
     assert d.cs.CREATION_LOG_PATH in seen
+
+
+# ---- item 5, review P1-2 (repair 2): the fate has its OWN clock and the line RECORDS it --------------
+#
+# RED on 86a8d744 (merged with origin/main a09c4fff): the disconnect bound took its clock from the
+# CALLER (`unreachable_for_s`, default 0), so repeated `codespace-observe` readings of an unreachable
+# box never crossed it, and no path in the line called `write_fate` -- a disconnected lane was never
+# recorded FAILED by the line, only by the hand-run `codespace_regime.py fate` CLI.
+
+_T0 = datetime(2026, 10, 6, 0, 0, 0, tzinfo=timezone.utc)
+
+
+def _t(seconds: float) -> datetime:
+    return _T0 + timedelta(seconds=seconds)
+
+
+def _fates(ledger) -> list[dict]:
+    if not ledger.is_file():
+        return []
+    rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [r for r in rows if r.get("kind") == "codespace-fate"]
+
+
+def _unreachable() -> "_ObserveGh":
+    return _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}], probe_ok=False)
+
+
+def _observe(fake, ledger, at, **kw):
+    return d.codespace_observe("cs-1", invoker=fake, slug="lane-x", ledger_path=ledger,
+                               now=_t(at), **kw)
+
+
+def test_repeated_readings_of_an_unreachable_box_cross_the_bound_on_their_own_clock(tmp_path):
+    """No caller-supplied duration anywhere: the first-unreachable stamp is stored in the ledger and
+    the duration is derived from it, so three plain readings reach `disconnected` -> FAILED."""
+    ledger, fake = tmp_path / "receipts.jsonl", _unreachable()
+    first = _observe(fake, ledger, 0)
+    middle = _observe(fake, ledger, 120)
+    last = _observe(fake, ledger, cs.DISCONNECT_AFTER_S + 10)
+    assert (first["state"], first["fate"]) == ("unknown", "WAITING")
+    assert (middle["state"], middle["fate"]) == ("unknown", "WAITING")
+    assert middle["unreachable_for_s"] == 120
+    assert (last["state"], last["fate"], last["step"]) == ("disconnected", "FAILED", "observe")
+    assert last["unreachable_for_s"] == cs.DISCONNECT_AFTER_S + 10
+    rows = _fates(ledger)
+    assert [(r["fate"], r["state"]) for r in rows] == [("WAITING", "unknown"),
+                                                     ("FAILED", "disconnected")], rows
+    failed = rows[-1]
+    assert failed["codespace"] == "cs-1" and failed["slug"] == "lane-x"
+    assert failed["step"] == "observe" and "unreachable over ssh" in failed["reason"]
+    assert failed["unreachable_since"] == _T0.isoformat(timespec="seconds")
+
+
+def test_a_reachable_reading_ends_the_unreachable_streak_and_resets_its_clock(tmp_path):
+    ledger = tmp_path / "receipts.jsonl"
+    _observe(_unreachable(), ledger, 0)
+    ok = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                    probe="now=1000 log=990 hb=995 receipt=0\n")
+    assert _observe(ok, ledger, 200)["fate"] == "RUNNING"
+    again = _observe(_unreachable(), ledger, 400)       # a NEW streak: 0 s, not 400 s
+    assert again["unreachable_for_s"] == 0 and again["fate"] == "WAITING"
+    assert _observe(_unreachable(), ledger, 400 + cs.DISCONNECT_AFTER_S - 1)["fate"] == "WAITING"
+    assert _observe(_unreachable(), ledger, 400 + cs.DISCONNECT_AFTER_S)["fate"] == "FAILED"
+
+
+def test_every_fate_transition_writes_its_row_through_write_fate_and_a_repeat_writes_none(tmp_path):
+    ledger = tmp_path / "receipts.jsonl"
+    live = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=1000 log=990 hb=995 receipt=0\n")
+    hung = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=5000 log=100 hb=4990 receipt=0\n")
+    done = _ObserveGh(listing=[{"name": "cs-1", "state": "Available"}],
+                      probe="now=1000 log=900 hb=900 receipt=1\n")
+    gone = _ObserveGh(listing=[])
+    for at, fake in ((0, live), (30, live), (60, hung), (90, hung), (120, done), (150, gone)):
+        _observe(fake, ledger, at, expected_gone=fake is gone)
+    assert [(r["fate"], r["state"]) for r in _fates(ledger)] == [
+        ("RUNNING", "working"), ("FAILED", "hung"), ("HANDBACK", "finished"),
+        ("TORN-DOWN", "absent")]
+    hung_row = _fates(ledger)[1]
+    assert hung_row["step"] == "run" and "no progress" in hung_row["reason"]
+
+
+def test_the_recorded_fate_goes_through_write_fate_not_a_second_writer(tmp_path, monkeypatch):
+    seen = []
+    real = d.regime.write_fate
+    monkeypatch.setattr(d.regime, "write_fate", lambda *a, **k: seen.append((a, k)) or real(*a, **k))
+    _observe(_unreachable(), tmp_path / "receipts.jsonl", 0)
+    assert len(seen) == 1 and seen[0][0][2] == "WAITING"
+
+
+def test_a_reading_with_no_slug_records_nothing_and_keeps_the_callers_clock(tmp_path):
+    ledger = tmp_path / "receipts.jsonl"
+    seen = d.codespace_observe("cs-1", invoker=_unreachable(), ledger_path=ledger, now=_t(0),
+                               unreachable_for_s=cs.DISCONNECT_AFTER_S)
+    assert seen["fate"] == "FAILED" and not ledger.exists()
+
+
+def test_the_observe_cli_records_the_fate_in_the_ledger(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    ledger = tmp_path / "receipts.jsonl"
+    monkeypatch.setattr(d, "run_gh", lambda argv, **kw: _ObserveGh(
+        listing=[{"name": "cs-1", "state": "Available"}],
+        probe="now=1000 log=990 hb=995 receipt=0\n")(argv))
+    out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1", "--slug", "lane-x",
+                                     "--ledger", str(ledger)])
+    assert out.exit_code == 0, out.output
+    assert json.loads(out.output)["fate"] == "RUNNING"
+    assert [(r["slug"], r["fate"]) for r in _fates(ledger)] == [("lane-x", "RUNNING")]

@@ -232,10 +232,34 @@ def open_receipts(ledger_path: Optional[Path] = None) -> list[dict]:
     return [row for row in last.values() if row.get("open")]
 
 
+def last_fate(codespace: str, ledger_path: Optional[Path] = None) -> Optional[dict]:
+    """The newest lane-fate row for `codespace`, or None. The observer reads it to tell a
+    TRANSITION (write a row) from a repeat (write none) and to recover the first-unreachable stamp
+    its disconnect clock runs from -- the ledger is the observer's only memory between readings."""
+    path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
+    if not path.is_file():
+        return None
+    found: Optional[dict] = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (isinstance(row, dict) and row.get("kind") == "codespace-fate"
+                and row.get("codespace") == codespace):
+            found = row
+    return found
+
+
 def write_fate(codespace: str, slug: str, fate: str, state: str, reason: str, step: str,
-               ledger_path: Optional[Path] = None, now: Optional[datetime] = None) -> dict:
+               ledger_path: Optional[Path] = None, now: Optional[datetime] = None,
+               unreachable_since: Optional[datetime] = None) -> dict:
     """Append one lane-fate row (R65): the fate a stalled, disconnected, finished or torn-down lane
-    was given, with the reason and the step that failed.
+    was given, with the reason and the step that failed. `unreachable_since` stamps the moment the
+    current unreachable streak began, so the next reading derives its own duration from it.
 
     A fate outside `FATES` is refused, and so is a FAILED fate with no reason or no step: 'failed'
     with nothing said is the unknown fate this row exists to end. Nothing is appended on a refusal."""
@@ -253,6 +277,8 @@ def write_fate(codespace: str, slug: str, fate: str, state: str, reason: str, st
         "step": step,
         "recorded": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
     }
+    if unreachable_since is not None:
+        row["unreachable_since"] = unreachable_since.isoformat(timespec="seconds")
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="\n") as fh:
