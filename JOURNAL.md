@@ -21,6 +21,38 @@
 
 ---
 
+### 2026-10-04 (r) - CC (Opus 5.5, integrator seat B2-W1 cycle 11): main reads green to known_reds again -- the 21 registered reds whose live reason drifted are re-signed, by operator emergency order, with no entry added, removed or widened
+
+**Anchors:** `ee4eb63e` -- `chore/b2-w1-known-reds-resign`; and `9e2627ae` -- lane b2-branch-context-tests' merge, whose closed merge receipt rides here
+
+**Did:**
+- `logs/KNOWN-REDS-REGISTRY.json`: one ubuntu and 21 windows signatures re-signed to the live ones on main `3e97b2fd`'s push run 37310685233, where `known_reds compare` read them SIG-CHANGED. `test_reverse_dep_oracle::test_position_points_at_name_not_keyword` now reads `assert 5 == 1` (one more `class Finding`, `[#1348]`); the 20 `test_prompts_guard_hook_wiring` entries read "found 0" instead of a `KeyError` (the guard is still off, `[#912]`/`[#863]`). Task, owner and expiry unchanged; a dated note carries the evidence.
+- The closed merge receipt of lane b2-branch-context-tests (`9e2627ae`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** compare on run 37310685233 with the re-signed registry: PASS on both legs; classification and evidence in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** W1-5 b2-integrator-liveness repair 1, then W1-12 b2-codespace-green.
+
+---
+
+### 2026-10-04 (q) - CC (Opus 5.5, integrator seat B2-W1 cycle 11): lane b2-branch-context-tests merges after repair 1 -- the listed tests give one verdict on `main`, on a lane and on an integration branch, through tmp-repo fixtures and merge-base scoping, with no skip
+
+**Anchors:** `dc6721db`, `7605f3ba`, `6d2890cd`, `88968da9`, `9c6a85dd`, `8355c4c2`, `e6083c3d`, `93599c03`, `cc5df9f4`, `d461b3ca`, `e86f6392`, `e3ea8ca5`, `acef490d`, `072b8164` -- `worktree-b2-branch-context-tests` (B2-W1 W1-8), and its sync merge `bd7354b7`
+
+**Did:**
+- Merged batch B2-W1 lane W1-8: `tests/branch_context.py` builds main-, lane- and integration-shaped clones; the seven listed test files give the same verdict on each shape, with no skip, xfail or branch-name condition. Repair 1 adds the integration shape (a `--no-ff` merge with the README regenerated and the merge receipt landed) as a witness, returns no merge base when either main ref is missing, and keeps an audit its own tree's README or consumer baseline accounts for.
+- `[#1101]` refs cite the lane's review record (consumer at landing) and `tests/branch_context.py`; the row stays open (its Done-when is a registry shrink, not this lane's).
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `tests/branch_context.py` (new), seven test files, one review record, `tasks/1101-…`, generated index/counts.
+
+**Next:** W1-5 b2-integrator-liveness repair 1 and W1-12 b2-codespace-green are building.
+
+---
+
 ### 2026-10-04 (p) - CC (Opus 5.5, integrator seat B2-W1 cycle 9): row [#1384] closes obsoleted -- the seat's ruling to re-point STANDING_RULINGS section AR is withdrawn, since the full v4 ratification text is back at its original name
 
 **Anchors:** `f46630a5` -- `chore/b2-w1-row-1384-obsolete`
