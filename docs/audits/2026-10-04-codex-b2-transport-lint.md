@@ -85,3 +85,27 @@ MODEL-ID gpt-5
 ## LOW
 
 (none)
+## Amendment 2026-10-05 -- repair 2 of 2 (refusal `REFUSED-b2-transport-lint.md`)
+
+Consumer: [#978] LANE-B2-W1-b2-transport-lint-repair-2. The integrator refused the lane at step 3(b):
+`tests/test_transport_lint.py::test_the_lane_contract_template_still_names_the_proof_at_the_line_the_contract_cites`
+sliced `lines[84:92]` of `templates/lane-contract-template.md` (the contract's `:88`, frozen at
+`e67f27ac`); lane W1-1 then inserted 6 lines above, so the slice missed a property that still held
+(night rule N5: a comparison against a frozen copy of a volatile fact).
+
+**Change (tests only, this function and two negatives):** the test now finds the numbered
+`## Done-contract` item that carries `R59 proof of read` and asserts `nonce or content hash` in the same
+item; both phrases are still asserted. Negative tests: the item moved under `## Do not` fails; unrelated
+flush-left prose adjacent to a numbered item fails. Synced from `origin/main` (merge `fcc7ccb0`), RED
+reproduced there before the edit, GREEN after.
+
+**One Codex terra read of the changed test** (commit `5b28f52c`):
+- **Served model id, from the run header:** `model: gpt-5.6-terra` (codex-cli 0.155.0, provider openai,
+  sandbox read-only, session `01a10ad2-dbe7-71e2-be7a-21fde30efb72`).
+- **Nonce returned:** `REV-128E3BFF` (the reviewer's final line, matching the one set in the Focus).
+- **Tally:** 0/1/0/0 (one P1).
+- **P1 -- unrelated Done-contract prose could be treated as the R59 item** (the backward/forward scan
+  accepted any nonblank line as a continuation). **Fixed, not declined:** a continuation line must be
+  indented, flush-left prose ends the item, and a hit with no numbered-item start returns empty; test
+  `test_the_template_proof_check_refuses_unrelated_prose_adjacent_to_a_numbered_item` (RED on the first
+  helper, GREEN on the fix).

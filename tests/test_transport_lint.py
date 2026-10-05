@@ -471,10 +471,14 @@ def _r59_item_in_done_contract(text: str) -> str:
     if hit is None:
         return ""
     first = hit
-    while first > start + 1 and lines[first].strip() and not _ITEM_START.match(lines[first]):
+    while first > start + 1 and not _ITEM_START.match(lines[first]):
+        if not lines[first][:1].isspace():  # flush-left prose is not a continuation line
+            return ""
         first -= 1
+    if not _ITEM_START.match(lines[first]):
+        return ""
     last = hit + 1
-    while last < end and lines[last].strip() and not _ITEM_START.match(lines[last]):
+    while last < end and lines[last][:1].isspace() and lines[last].strip():
         last += 1
     return " ".join(lines[first:last])
 
@@ -507,3 +511,18 @@ def test_the_template_proof_check_refuses_the_sentence_moved_below_do_not():
     assert "R59 proof of read" in mutated  # the phrase still exists; only its place changed
     item = _r59_item_in_done_contract(mutated)
     assert not ("R59 proof of read" in item and "nonce or content hash" in item)
+
+
+def test_the_template_proof_check_refuses_unrelated_prose_adjacent_to_a_numbered_item():
+    """Codex terra P1 (repair 2): the phrases split across a numbered item and flush-left prose
+    after it are not one item, so the check must not accept them."""
+    text = ("## Done-contract (immutable)\n\n"
+            "n. **Close-out:** handback, and a nonce or content hash.\n"
+            "The R59 proof of read is mentioned here in unrelated prose.\n\n"
+            "## Do not\n")
+    assert _r59_item_in_done_contract(text) == ""
+    ok = ("## Done-contract (immutable)\n\n"
+          "n. **Close-out:** the R59 proof of read:\n"
+          "   a nonce or content hash.\n\n## Do not\n")
+    item = _r59_item_in_done_contract(ok)
+    assert "R59 proof of read" in item and "nonce or content hash" in item
