@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- the dispatch-base fixture legs and lane-shape witness added here are claimed under [#1101].
 """[#429] leg (a) — the fleet worktree seed manifest, stated once in the hub.
 
 WHAT THESE PIN, and why each is a defect waiting rather than a coverage box:
@@ -29,6 +30,7 @@ import pytest
 
 
 import worktree_seed as ws  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 
@@ -405,21 +407,68 @@ def test_a_missing_or_unparseable_settings_file_is_skipped_not_fatal(tmp_path):
     assert ws.read_base_ref(tmp_path, chain=(absent, broken, good)) == "head"
 
 
-@requires_git
-def test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH():
-    """`[#716]`'s Done-when, against the LIVE repo. This is the witness that had to redden.
+def _fixture_primary(tmp_path, *, on_main: bool):
+    """A primary checkout whose HEAD and `main` THIS test sets, carrying the tree's own settings.
 
-    Deliberately not a fixture. The row's cost is measured on real checkouts -- this lane
-    branched behind twice -- and a synthetic repo would assert that the function computes what
-    it computes. The question is whether THIS machine, configured as it is now, dispatches a
-    lane onto `main` HEAD.
-
-    RED before the fix: baseRef unset -> `fresh` -> base `origin/main`, which sat 7 commits
-    behind local `main`. GREEN after: the repo declares `head`, and the dispatching checkout is
-    the primary, which is on `main`.
+    The settings file is a byte copy of the live tracked one, so the fixture dispatches under
+    the configuration this tree declares and only the REF STATE is constructed. `on_main=False`
+    leaves HEAD one commit ahead of `main`, on a lane-shaped branch.
     """
-    verdict = ws.base_ref_verdict(_HUB)
+    repo = tmp_path / "primary"
+    (repo / ".claude").mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.invalid")
+    _git(repo, "config", "user.name", "t")
+    shutil.copy2(_HUB / ".claude" / "settings.json", repo / ".claude" / "settings.json")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "init")
+    if not on_main:
+        _git(repo, "checkout", "-q", "-b", "worktree-lane")
+        (repo / "lane.txt").write_text("lane", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-qm", "lane")
+    return repo
+
+
+@requires_git
+def test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH(tmp_path):
+    """`[#716]`'s Done-when, in two legs that give the same verdict on ANY branch.
+
+    The first version asked the LIVE checkout whether its HEAD was `main` HEAD. That is a fact
+    about which branch CI happened to be on: it held on `main` and failed on every lane and
+    integration branch, so it carried no signal about the setting it exists to guard
+    (`DIGEST-B2-PREP-2026-10-03` Part 4: 0/21 on `main`, 19/19 epic, 67/67 worktree).
+
+      * CONFIGURATION, live and branch-independent: the tree declares `worktree.baseRef=head`.
+        This is the real regression -- someone changing the setting -- and it reads the
+        tracked settings file, not the refs.
+      * REF STATE, on a fixture whose HEAD and `main` this test sets: `head` plus a primary on
+        `main` HEAD holds. The converse (a primary off `main`) is its own test below.
+
+    RED before `[#716]`'s fix: baseRef unset -> `fresh` -> base `origin/main`, 7 commits behind.
+    """
+    declared = ws.read_base_ref(_HUB, chain=(_HUB / ".claude" / "settings.json",))
+    assert declared == ws.BASE_REF_HEAD, (
+        f"this tree declares {ws.BASE_REF_KEY}={declared!r}; lanes would not seed from `main` HEAD")
+    verdict = ws.base_ref_verdict(_fixture_primary(tmp_path, on_main=True))
     assert verdict.holds, verdict.why
+
+
+def test_a_primary_off_main_is_reported_as_not_holding(tmp_path):
+    """The accidental satisfaction `[#716]` refuses, now stated on a fixture instead of read off
+    whichever branch the suite runs on: `head` seeds a lane from wherever the primary sits."""
+    verdict = ws.base_ref_verdict(_fixture_primary(tmp_path, on_main=False))
+    assert verdict.effective == ws.BASE_REF_HEAD
+    assert not verdict.holds
+    assert "not on main" in verdict.why
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_dispatch_base_verdict_is_the_same_on_a_lane_branch(tmp_path_factory):
+    """The witness for the two tests above: the listed test, run from a clone whose HEAD is a
+    lane commit and whose `main` is not HEAD, passes exactly as it does on `main`."""
+    witness(tmp_path_factory,
+            "tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH")
 
 
 @requires_git

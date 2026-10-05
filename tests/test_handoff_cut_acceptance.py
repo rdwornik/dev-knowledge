@@ -1,3 +1,4 @@
+# B2-W1 W1-8 -- the journal pin and lane-shape witness added here are claimed under [#1101].
 """Step 1 (the Done-when, R44/R45): the real cut path, dry-cut / no-commit mode, against the
 live hub tree, gated on the ADR-129 handoff organ set.
 
@@ -23,6 +24,7 @@ import pytest
 
 import audit as aud
 import gen_handoff as gh
+from branch_context import pin_journal_spine, witness
 
 # repair U1 follow-up (integrator d9fa78c0, CI run 36945030700): `scripts/audit_checks/
 # check_dispatch_drift.py` resolves its module as `from scripts import dispatch_drift`
@@ -72,6 +74,12 @@ def _run_dry_cut(tmp_path: Path, monkeypatch, *, today: str = "2026-10-01",
     # DIGEST-HANDOFF-UNBLOCK-2026-09-30 §3 measured. Pinned to "none" for determinism
     # (AMEND item 2); its live behaviour has its own test in test_gen_handoff_preflight.py.
     monkeypatch.setattr(gh, "_linked_worktrees", lambda repo_root: [])
+    # Rows 6 (`journal_anchored`) and the ship_gate row's `journal_spine_anchor` organ read the live
+    # JOURNAL against `main`'s spine, so they are red on any lane whose tree lags `main` and on
+    # `main` between a merge and its JOURNAL entry -- a fact about the branch, not about the cut
+    # (B2-W1 W1-8; tests/branch_context.py::pin_journal_spine). Their own behaviour has its own
+    # tests; this one pins them clean.
+    pin_journal_spine(monkeypatch)
     # dispatch_drift (also in the handoff organ set) resolves every literal command in
     # PLAYBOOK Ch8's dispatch table via Get-Command on THIS machine's PATH -- clean on a dev
     # box with codex/agy/etc. installed, a genuine hard-fail on a bare CI runner that carries
@@ -173,3 +181,31 @@ def test_check_doc_claims_is_the_one_named_warn_only_exception(tmp_path, monkeyp
     monkeypatch.setattr(aud, "check_doc_claims", _warn_only)
     result, _ = _run_dry_cut(tmp_path, monkeypatch)
     assert result.bundle_dir.exists()
+
+
+def test_the_journal_pin_replaces_the_spine_list_and_leaves_both_organs_real(monkeypatch):
+    """The pin is an INPUT, not an organ (terra review of b2-branch-context-tests, H3): the preflight
+    row and the `ship_gate` organ stay the real functions, and only the list of unanchored spine
+    entries they ask `journal_anchor` for is empty."""
+    import journal_anchor as ja
+
+    organ, row, predicate = aud.check_journal_spine_anchor, gh._journal_spine_gaps, ja.unanchored_on_spine
+    pin_journal_spine(monkeypatch)
+    assert aud.check_journal_spine_anchor is organ
+    assert gh._journal_spine_gaps is row
+    assert ja.unanchored_on_spine is not predicate
+    assert ja.unanchored_on_spine(Path("."), "main", "floor", "journal text") == []
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_dry_cut_tests_give_the_same_verdict_on_a_lane_whose_tree_lags_main(
+        tmp_path_factory):
+    """The witness for the four dry-cut tests that read the live JOURNAL spine (B2-W1 W1-8): the
+    same four, run from a clone whose `main` is one merge AHEAD of the lane's tree (the shape a
+    lane has once a sibling merged), must pass as they do on `main`."""
+    names = ("test_dry_cut_one_attempt_under_bound_with_bundle_files",
+             "test_dry_cut_evaluates_only_the_named_handoff_organ_set",
+             "test_dry_cut_not_blocked_by_a_hard_fail_outside_the_set",
+             "test_check_doc_claims_is_the_one_named_warn_only_exception")
+    witness(tmp_path_factory, *(f"tests/test_handoff_cut_acceptance.py::{n}" for n in names),
+            peer_files={"PEER-PROBE.txt": "a sibling lane merged to main\n"})
