@@ -647,10 +647,56 @@ def test_a_lost_wake_is_named_in_the_receipt_not_only_on_stderr(lane):
     written where it can be found. The moment's own result is untouched: status stays ok, exit_code 0."""
     lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
     lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    _guard().fallback_home(lane["wakes"]).write_text("and another where the fallback should be", encoding="utf-8")
     assert _run(lane, _Runner()) == 0
     rec = _receipt(lane)
     assert rec["status"] == "ok" and rec["exit_code"] == 0
     assert "wake not written" in rec["reason"]
+
+
+def test_an_unusable_wake_home_falls_back_to_its_private_sibling_and_the_watch_reads_both(lane):
+    """Codex terra P1, round 3: the home can be replaced by a file or denied by an ACL while a sibling under the
+    same per-user state directory stays writable. The wake goes there, the receipt says so, the watch reads both."""
+    g = _guard()
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    fallback = g.fallback_home(lane["wakes"])
+    assert len(list(fallback.glob("WAKE-*.json"))) == 1
+    rec = _receipt(lane)
+    assert rec["status"] == "ok" and "fallback" in rec["reason"] and "wake not written" not in rec["reason"]
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == [f"WAKE {LANE} {HANDBACK}"]
+
+
+def test_the_fallback_home_is_a_sibling_so_it_is_as_private_as_the_home(tmp_path):
+    g = _guard()
+    home = tmp_path / "integrator-wake"
+    assert g.fallback_home(home) == tmp_path / "integrator-wake-fallback" and g.fallback_home(home).parent == home.parent
+
+
+def test_the_first_start_does_not_record_a_wake_it_could_not_stat(lane, monkeypatch):
+    """Codex terra P1, round 3: a scanner can deny a new file's metadata for a moment. The first start recorded
+    such a wake as seen, and it was invisible for good. An unreadable wake is left for the polling loop."""
+    g = _guard()
+    wake = g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
+    real_stat = Path.stat
+    denied = {"on": True}
+
+    def flaky(self, *args, **kwargs):
+        if denied["on"] and self.name.startswith("WAKE-"):
+            raise PermissionError("held by a scanner")
+        return real_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", flaky)
+    ledger = lane["wakes"] / ".watch-seen"
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == [] and wake.name not in ledger.read_text(encoding="utf-8")
+    denied["on"] = False
+    g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"]
 
 
 def test_a_transient_wake_write_failure_is_retried(lane, monkeypatch):
