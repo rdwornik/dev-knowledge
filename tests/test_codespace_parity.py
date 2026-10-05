@@ -1319,6 +1319,38 @@ def test_a_failed_call_with_some_other_message_is_no_answer_not_a_login_item(tmp
     assert out["codex"]["state"] == "no-answer"
 
 
+_NO_CREDITS_TEXT = ("ERROR: stream disconnected before completion: You have no credits remaining. "
+                    "Add credits to continue using the API at https://platform.openai.com/settings/"
+                    "organization/billing/.")
+
+
+@pytest.mark.parametrize("text", [_NO_CREDITS_TEXT, "unexpected status 401 Unauthorized\n" + _NO_CREDITS_TEXT,
+                                  "insufficient_quota: You exceeded your current quota"])
+def test_a_call_refused_for_want_of_credits_is_no_credits_with_the_operator_action_not_a_login(tmp_path, text):
+    """Run 11 of b2-codespace-green: the OpenAI account behind CODEX_API_KEY ran out of credits and
+    codex answered nothing. A key with no credit is not a missing login, so the contract's 'codex is
+    not an auth item' holds: this is its own state, with its own exact operator line."""
+    run = _ModelRun(tmp_path, outputs={"codex": text}, rc={"codex": 1})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "no-credits" and out["codex"]["served_id"] is None
+    assert out["codex"]["detail"].startswith("OPERATOR-ACTION: ") and "credit" in out["codex"]["detail"]
+
+
+def test_a_cli_with_no_credits_or_no_answer_fails_c1_and_is_never_named_an_auth_item():
+    for state, detail in (("no-credits", "OPERATOR-ACTION: add credits to the account behind the key"),
+                          ("no-answer", "exit 1; the nonce did not come back")):
+        remote = _record("codespace")
+        remote["environment"]["models"]["codex"] = {"state": state, "served_id": "gpt-6-astra",
+                                                    "detail": detail}
+        remote["environment"]["auth"] = _auth(codex="unprobed", agy="authenticated")
+        local = _record("local")
+        local["environment"]["auth"] = _auth(agy="authenticated")
+        verdict = cp.compare_environment(local, remote)
+        assert verdict.status == "FAIL" and "codex" in verdict.reason and state in verdict.reason, verdict
+        assert not [e for e in verdict.evidence if e.startswith("AUTH-ITEM codex")], verdict.evidence
+    assert "credits" in verdict.reason or state == "no-answer"
+
+
 def test_a_cli_with_no_registry_id_is_not_called(tmp_path):
     run = _ModelRun(tmp_path)
     expected = dict(_expected(), codex=cp.ExpectedModel(None, "role review: no model pinned"))
@@ -1633,8 +1665,10 @@ class _GitRun:
     """The `run` seam for `collect_integration`: answers by the leading git verb."""
 
     def __init__(self, *, run_exists=True, merge_rc=0, test_rc=0, test_out="1 passed in 0.5s",
-                 push_rc=0, merge_base=_SHA, parents=None, control_push_rc=0, control_survives=False):
+                 push_rc=0, merge_base=_SHA, parents=None, control_push_rc=0, control_survives=False,
+                 control_statuses=("completed",)):
         self.calls: list[tuple[list[str], str | None]] = []
+        self.control_statuses = list(control_statuses)
         self.run_exists, self.merge_rc, self.test_rc, self.test_out = run_exists, merge_rc, test_rc, test_out
         self.push_rc, self.merge_base = push_rc, merge_base
         self.control_push_rc, self.control_survives = control_push_rc, control_survives
@@ -1646,6 +1680,10 @@ class _GitRun:
     def __call__(self, argv, cwd=None, timeout=None, **_kw):
         argv = list(argv)
         self.calls.append((argv, str(cwd) if cwd else None))
+        if argv[:3] == ["gh", "run", "list"]:
+            status = self.control_statuses.pop(0) if len(self.control_statuses) > 1 \
+                else self.control_statuses[0]
+            return cp.CmdResult(0, json.dumps([{"status": status}]) if status else "", "")
         if argv[0] != "git":
             return cp.CmdResult(self.test_rc, self.test_out, "")
         sub = argv[1]
@@ -1808,6 +1846,30 @@ def test_a_control_commit_cut_from_onto_is_pushed_beside_the_merge_and_is_the_ci
     assert rec["control"] == {"branch": "worktree-integrate-b2-codespace-green-run1-control",
                               "sha": _CTL_SHA, "push_exit": 0}
     assert rec["ci_base_sha"] == _MAIN_NOW, "the main tip stays recorded; the control is the baseline"
+
+
+def test_the_merge_verdict_is_read_only_after_the_control_run_has_completed(tmp_path):
+    """Run 11 of b2-codespace-green: the merge's CI finished first, the control run (started a
+    minute later, and failing) was still in progress, and a baseline that is not completed reads
+    UNATTRIBUTED -- though every pytest leg of the merge was green. Wait for the control first."""
+    order = []
+    run = _GitRun(control_statuses=("queued", "in_progress", "completed"))
+    rec = _collect(run, tmp_path, ci_interval_s=1, sleep_fn=lambda s: order.append(("sleep", s)),
+                   verdict_fn=lambda sha, **k: order.append(("verdict", k["base"])) or _Verdict())
+    polls = [c[0] for c in run.calls if c[0][:3] == ["gh", "run", "list"]]
+    assert len(polls) == 3 and "--branch" in polls[0]
+    assert polls[0][polls[0].index("--branch") + 1] == "worktree-integrate-b2-codespace-green-run1-control"
+    assert order == [("sleep", 1), ("sleep", 1), ("verdict", _CTL_SHA)]
+    assert rec["ci"]["state"] == "PASS" and "control_note" not in rec
+
+
+def test_a_control_run_that_never_completes_is_said_and_the_verdict_is_still_read(tmp_path):
+    run = _GitRun(control_statuses=("in_progress",))
+    seen = []
+    rec = _collect(run, tmp_path, ci_timeout_s=3, ci_interval_s=1, sleep_fn=lambda s: None,
+                   verdict_fn=lambda sha, **k: seen.append(k["base"]) or _Verdict())
+    assert "control run" in rec["control_note"] and "completed" in rec["control_note"]
+    assert seen == [_CTL_SHA], "the verdict is still read; it will say UNATTRIBUTED if the baseline is unread"
 
 
 def test_the_control_branch_is_deleted_and_read_back_or_the_cleanup_leg_fails(tmp_path):

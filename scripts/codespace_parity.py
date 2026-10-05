@@ -434,6 +434,11 @@ _LOGIN_MISSING = re.compile(
     r"|unauthori[sz]ed|\b401\b|missing credentials|authentication (?:required|failed)",
     re.IGNORECASE)
 
+#: What a refused call says when the ACCOUNT behind the key has no credit left. Checked before the
+#: login patterns: such a call can carry a 401 too, and a key with no credit is not a missing login.
+_NO_CREDITS = re.compile(r"no credits remaining|insufficient[_ ]quota|exceeded your current quota"
+                         r"|add credits to continue", re.IGNORECASE)
+
 PROBE_TIMEOUT = 240
 
 
@@ -636,6 +641,10 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         return {"state": "served", "served_id": served,
                 "detail": "served id read from the tool's own record; the nonce came back"}
     said = out + "\n" + (res.stderr or "")
+    if not answered and _NO_CREDITS.search(said):
+        return {"state": "no-credits", "served_id": None,
+                "detail": (f"OPERATOR-ACTION: add credits to the account that issued the {cli} key "
+                           "(the call said none remain); not a login item")}
     if not answered and _LOGIN_MISSING.search(said):
         return {"state": "unauthenticated", "served_id": None,
                 "detail": "the call said the login is missing"}
@@ -1003,6 +1012,11 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
                     control_pushed = cpush.returncode == 0
                 if control_pushed:
                     baseline = control_sha
+                    if not _wait_run_completed(run, root, control_branch, ci_timeout_s,
+                                               ci_interval_s, sleep_fn):
+                        record["control_note"] = (
+                            f"the control run on {control_branch} had not completed within "
+                            f"{ci_timeout_s}s: a baseline that is not completed reads UNATTRIBUTED")
                 else:
                     record["control_note"] = ("the control commit was not pushed: the baseline "
                                               "stays ci_base, main's tip")
@@ -1079,6 +1093,26 @@ def _read_ci(sha: str, *, base: str, root: Path, timeout_s: int, interval_s: int
             "reason": str(getattr(verdict, "reason", "") or "")[:300],
             "new_reds": [str(r) for r in (getattr(verdict, "new_reds", ()) or ())][:40],
             "flagged": [str(f) for f in (getattr(verdict, "flagged", ()) or ())][:20]}
+
+
+def _wait_run_completed(run: Runner, root: Path, branch: str, timeout_s: int, interval_s: int,
+                        sleep_fn: Callable[[float], None]) -> bool:
+    """Poll the newest push run on `branch` until its status is `completed` (True), or give up
+    after `timeout_s` of polling every `interval_s` (False). A listing that cannot be read is one
+    more poll that did not complete."""
+    step = max(1, int(interval_s))
+    for attempt in range(max(1, int(timeout_s) // step)):
+        if attempt:
+            sleep_fn(interval_s)
+        listed = run(["gh", "run", "list", "--branch", branch, "--event", "push", "--limit", "1",
+                      "--json", "status"], cwd=root, timeout=120)
+        try:
+            rows = json.loads(listed.stdout) if listed.returncode == 0 else []
+        except ValueError:
+            rows = []
+        if rows and isinstance(rows[0], dict) and rows[0].get("status") == "completed":
+            return True
+    return False
 
 
 def _rerunnable(ci: Mapping) -> bool:
@@ -1316,6 +1350,8 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
     named: list[str] = []
     for name in LANE_TOOLS:
         theirs = (re_.get("auth") or {}).get(name)
+        if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits"):
+            continue    # a call that ran and gave nothing is its own FAIL, never a login item
         if name not in model_named and (
                 not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error")):
             continue    # tool-absent and probe-error are each their own FAIL, not an exception
