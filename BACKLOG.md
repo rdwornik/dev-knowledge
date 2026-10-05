@@ -763,6 +763,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1377] [P1][L] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness · tasks/1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md
 - [#1378] [P1][S] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded · tasks/1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md
 - [#1379] [P2][S] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds · tasks/1379-the-rclone-drive-token-expiry-row-has-a-named-owne.md
+- [#1383] [P2][M] The Linux pytest leg runs in at most 420 s on two consecutive push runs, carried from B2-W1 W1-3's unmet Done item 4 · tasks/1383-the-linux-pytest-leg-runs-in-at-most-420-s-carried-from-b2-w1.md
+- [#1384] [P2][S] STANDING_RULINGS section AR cites its verbatim rulings from the v4 ratification file that holds them · tasks/1384-standing-rulings-ar-cites-its-verbatim-rulings-from-the-v4-ratification.md
+- [#1385] [P2][M] decision_coverage recognises an AMEND as carried when every lane it adds has merged · tasks/1385-decision-coverage-recognises-an-amend-carried-by-its-merged-lanes.md
+- [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
 
 ---
 

@@ -61,6 +61,7 @@ FEATURE_COMMIT = f"feat: {SUBJECT} -- the toy change"
 INTEGRATOR_SESSION = "toy-integrator"
 NEGATIVE_SLUG = "lane-20260921-wire-toy-negative"
 STOP_TIMEOUT_S = 1800
+LANE_END_WAIT_S = 300    # the bound on waiting for a CLAIMED lane end's worker; a wait with no terminal signal ends here
 
 #: Done-contract 4/5: this module's tests are NOT independently parallelizable -- exactly one heavy
 #: operation (the shared walk, or a negative-path test) may hold the host's uv/git/doit subprocess
@@ -83,11 +84,16 @@ STOP_TIMEOUT_S = 1800
 #: tests/test_connection_loop.py --durations=0` shows TWO separate multi-hundred-second `setup`
 #: costs for the module-scoped `walk` fixture in the same run -- one per worker that drew a
 #: walk-consuming test -- which is only possible if the module was split across both workers. The
-#: marker is kept anyway (harmless today, and it becomes real the day some invocation adds
-#: `--dist=loadgroup`; adding that flag repo-wide is a cross-cutting pytest-config decision this
-#: lane does not own). It did NOT fix the launch-step trio: `core.longpaths` in the toy repo's own
-#: git config (`c9529fa4`) is the actual, verified fix -- proven by 3/3 green `-n 2` runs measured
-#: after this correction, with the marker still inert.
+#: marker is kept anyway (it becomes real the day some invocation adds `--dist=loadgroup`; adding
+#: that flag repo-wide is a cross-cutting pytest-config decision this lane does not own). It did
+#: NOT fix the launch-step trio: `core.longpaths` in the toy repo's own git config (`c9529fa4`) is
+#: the actual, verified fix -- proven by 3/3 green `-n 2` runs measured after this correction, with
+#: the marker still inert.
+#:
+#: UPDATE (b2-ci-poll, 2026-10-04): that day has come for CI -- the `pytest` job in
+#: `.github/workflows/conductor.yml` runs `-n 4 --dist loadgroup` (lane foundation-6-ci-speed), so
+#: there the marker is live and this module runs on one worker. The marker is still inert under a
+#: bare `-n` / `-n auto` run with the default `--dist load`.
 pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
 #: The stops the walk recorded when W3-F ran (2026-09-21), re-pinned by repair U4 of
@@ -455,7 +461,12 @@ class World:
         assert shell, "no POSIX shell to run the declared Stop command"
         self.run([shell, "-c", commands[0]], cwd=worktree, CLAUDE_PROJECT_DIR=worktree.as_posix())
         receipt = worktree / "logs" / "receipts" / "MOMENT-LANE-END-HOOK.json"
-        deadline = time.monotonic() + 300
+        if not receipt.exists():
+            # The guard has RETURNED (`self.run` is synchronous; the Stop command is not backgrounded) and it writes its
+            # `running` claim before it spawns the worker, so no receipt now means no claim was taken and no worker
+            # exists: the lane end is not run (a session file with no HANDBACK line). Nothing can appear later.
+            return
+        deadline = time.monotonic() + LANE_END_WAIT_S
         while time.monotonic() < deadline:
             body = _read_receipt(receipt)
             if body and body.get("status") != "running":
@@ -1017,3 +1028,80 @@ def test_no_handback_line_means_lane_end_does_not_run(tmp_path_factory):
         assert sorted(p.name for p in receipts.glob("MOMENT-LANE-END-*.json")) == ["MOMENT-LANE-END-PRECONDITION.json"]
         assert not (world.transport / "to-browser" / f"LANE-END-{NEGATIVE_SLUG}.md").exists(), "a report was delivered"
         _assert_transport_untouched(live_before)
+
+
+# --- the lane-end wait: ends on a terminal signal, still bounded at 300 s ---------------------------------------------
+# `World.stop_hook` waits for the detached lane-end worker. These tests drive it on a VIRTUAL clock (the module's `time`
+# is swapped for one that only a `sleep` advances) with the guard command stubbed, so a wait that idles costs no real
+# time and its length is read off the clock: a terminal signal ends it early, nothing terminal ends it at 300 s.
+
+class _VirtualTime:
+    """`time.monotonic` / `time.sleep` over a counter; `on_sleep(now)` lets a test change the world as time passes."""
+
+    def __init__(self, on_sleep=None) -> None:
+        self.now = 0.0
+        self.on_sleep = on_sleep
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+        if self.on_sleep:
+            self.on_sleep(self.now)
+
+
+def _virtual_stop_hook(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, guard_leaves=None, on_sleep=None) -> tuple:
+    """Run `stop_hook` with the guard command stubbed. `guard_leaves` is the receipt body the guard writes before it
+    returns (None: the guard wrote nothing, as for a session file with no HANDBACK line). Returns (virtual seconds
+    waited, receipt path)."""
+    world = World(tmp_path / "world", full=False)
+    worktree = tmp_path / "worktree"
+    receipt = worktree / "logs" / "receipts" / "MOMENT-LANE-END-HOOK.json"
+    receipt.parent.mkdir(parents=True)
+
+    def guard_command(self, argv, cwd=None, **extra):
+        if guard_leaves is not None:
+            receipt.write_text(json.dumps(guard_leaves), encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    clock = _VirtualTime(on_sleep=(lambda now: on_sleep(now, receipt)) if on_sleep else None)
+    monkeypatch.setattr(World, "run", guard_command)
+    monkeypatch.setattr(sys.modules[__name__], "time", clock)
+    world.stop_hook(worktree)
+    return clock.now, receipt
+
+
+def test_the_lane_end_wait_ends_when_the_guard_left_no_claim(tmp_path, monkeypatch):
+    """No HANDBACK line: the guard returns having written nothing -- the explicit 'lane end not run' outcome. The old
+    wait idled the full 300 s on it (301.86-302.05 s measured in CI); a terminal signal ends it at once."""
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves=None)
+    assert not receipt.exists()
+    assert waited < 10, f"waited {waited:.0f}s for a lane end the guard had already declined to start"
+
+
+def test_the_lane_end_wait_ends_when_the_receipt_is_already_terminal(tmp_path, monkeypatch):
+    waited, _ = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "REFUSED"})
+    assert waited < 10
+
+
+def test_the_lane_end_wait_ends_when_the_worker_turns_the_receipt_terminal(tmp_path, monkeypatch):
+    """A claimed lane end is still polled to its worker's finish: `running` -> `ok` after 5 virtual seconds."""
+    def worker_finishes(now: float, receipt: Path) -> None:
+        if now >= 5:
+            receipt.write_text(json.dumps({"status": "ok"}), encoding="utf-8")
+
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "running"},
+                                         on_sleep=worker_finishes)
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "ok"
+    assert 5 <= waited < 10
+
+
+def test_the_lane_end_wait_is_still_bounded_at_300s_when_nothing_terminal_appears(tmp_path, monkeypatch):
+    """The timeout path: a claim that stays `running` forever ends the wait at EXACTLY 300 s -- not earlier, not
+    later (the virtual clock moves in whole seconds, so the bound reads exact) -- and the wait returns without raising,
+    exactly as before."""
+    waited, receipt = _virtual_stop_hook(tmp_path, monkeypatch, guard_leaves={"status": "running"})
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "running"
+    assert waited == 300, f"the wait ended at {waited:.0f}s, not at the 300 s bound"
+    assert LANE_END_WAIT_S == 300
