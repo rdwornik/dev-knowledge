@@ -2799,7 +2799,8 @@ def test_a_forged_or_degraded_transport_value_cannot_reach_the_count_floor(tmp_p
     degraded = hs.row_transport(empty).rendered()
     assert degraded.startswith("unavailable")
     status, detail = _transport_rule(degraded, empty)        # unreadable then, unreadable now
-    assert status == "pass" and "degraded" in detail
+    # N1/N2: an unmeasured reading is `skipped` (a WARN, never a FAIL), and never reads as a pass
+    assert status == "skipped" and status != "pass" and "degraded" in detail
     assert _transport_rule(degraded, repo)[0] == "fail"       # readable now: the cut's reading is stale/forged
     assert _transport_rule("unavailable — something else entirely", empty)[0] == "fail"
 
