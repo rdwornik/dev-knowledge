@@ -46,6 +46,24 @@ def test_the_exit_code_of_launch_comes_back_unchanged(tmp_path, code):
     assert done.returncode == code, done.stderr
 
 
+def test_the_shims_argv_reaches_the_hubs_dispatch_py_and_names_no_win_tooling(tmp_path):
+    """LANE-B2-W1-b2-dispatch-local-sole item 2, run for real: the one `uv` call carries the
+    hub's `scripts/dispatch.py` as the program it runs, and nothing in the call is a PowerShell
+    or a win-tooling verb. (The static twin, which also runs where there is no pwsh, is in
+    tests/test_dispatch_surface.py.)"""
+    done, calls = _run(tmp_path, 0)
+    assert done.returncode == 0, done.stderr
+    assert len(calls) == 1
+    argv = calls[0].split()
+    assert argv[:3] == ["run", "--locked", "--project"], argv
+    hub = str(tmp_path / "hub")
+    assert argv[3] == hub and argv[4] == "python", argv
+    assert argv[5] == str(Path(hub) / "scripts" / "dispatch.py"), argv
+    assert argv[6] == "launch", argv
+    for word in ("pwsh", "powershell", "Invoke-Dispatch", "Dispatch-"):
+        assert word.lower() not in calls[0].lower()
+
+
 def test_the_shim_makes_exactly_one_call_and_it_is_launch(tmp_path):
     """No governor after it and no recovery path: a refusal (exit 5) is just returned."""
     done, calls = _run(tmp_path, 5)

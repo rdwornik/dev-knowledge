@@ -151,14 +151,15 @@ def test_main_exits_zero_regardless_of_verdicts(tmp_path: Path, capsys) -> None:
 
 def test_judged_hook_ids_finds_every_telemetry_wrapped_hook_in_the_real_config() -> None:
     ids = hev.judged_hook_ids()
-    # The thirteen ids B2 lane4 armed with a counter + 2026-09-25 expiry (A3/A4 of
-    # DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md). If this set drifts, the parser (not a
+    # The twelve ids B2 lane4 armed with a counter + 2026-09-25 expiry (A3/A4 of
+    # DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md), less `dispatch-conformance`, retired
+    # 2026-10-05 by LANE-B2-W1-b2-dispatch-local-sole. If this set drifts, the parser (not a
     # hand-maintained list here) should be the thing that notices.
     expected = {
         "codemap-freshness", "roster-freshness", "claude-rosters-freshness",
         "quality-requirements-freshness", "validate-hermetization", "intake-index-freshness",
         "row-archive-proof", "provider-registry-agreement", "impacted-tests-guard",
-        "dispatch-conformance", "backlog-id-on-close", "backlog-filing-backpressure",
+        "backlog-id-on-close", "backlog-filing-backpressure",
         "commit-message-type-prefix",
     }
     assert set(ids) == expected

@@ -127,7 +127,6 @@ GATE_HOOKS: tuple[str, ...] = (
     "organ-index-freshness",
     "quality-requirements-freshness",
     "provider-registry-agreement",
-    "dispatch-conformance",
 )
 
 #: Condition 2's fixed pytest selection: the owned fix sites' own tests plus this check's.
