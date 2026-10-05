@@ -79,3 +79,7 @@ MODEL-ID GPT-5
 P3: none
 
 TALLY P1:2 P2:1 P3:0
+
+## Amendment 2026-10-05 — repair 1 (integrator refusal)
+
+The INTEGRATOR refused this lane's first handback (`to-browser/REFUSED-b2-dispatch-local-sole.md`, repair 1 of 2, seat 8ddd1669): the lane's `CLAUDE.md` §9 edit (DECIDED-BY-LANE 3) left frontmatter `last_reviewed: 2026-09-30`, so `audit.py health` raised the `canonical_freshness` A2 FAIL. The repair re-read `CLAUDE.md` end-to-end (the only lane diff against origin/main is the §9 hook roster: `armed 12`, `dispatch-conformance` retired, its bullet removed), found no drift, and stamped frontmatter `last_reviewed` and footer `**Last updated:**` to 2026-10-05. Those two lines are not code or a test, so no new Codex read was taken; the verdict above stands. The P1/P2 findings above are unchanged.

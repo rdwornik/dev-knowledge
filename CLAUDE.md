@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-30
+last_reviewed: 2026-10-05
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -231,5 +231,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-05
 **Maintained by:** Rob
