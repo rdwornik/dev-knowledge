@@ -21,6 +21,37 @@
 
 ---
 
+### 2026-10-04 (k) - CC (Opus 5.5, integrator seat B2-W1 cycle 5): lane b2-codespace-1to1 merges -- a fresh Codespace comes up 4-core/240 min with every model CLI pinned, and C1 reads each CLI's served model id from the tool's own record
+
+**Anchors:** `a707ab37`, `787dc007`, `85144b42`, `c9dcb23e`, `86c9e7af`, `6c822c39`, `6ba5e7a3`, `218d9d23`, `94c52403`, `6676a243`, `e88e6aff`, `aa334b7b`, `510b0d7f`, `4cd8f4ff`, `e6991460`, `6a723c54`, `a9a7a311`, `6be0629b`, `b76a8375`, `db064469`, `183c9b18` -- `worktree-b2-codespace-1to1` (B2-W1 W1-7, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-7 after its repair 1: `scripts/dispatch.py` Codespace defaults `standardLinux32gb` / `240m` in all three places; `.devcontainer/provision.sh` + `provisioning.yaml` install and pin claude, gh, codex, rclone, agy 1.2.16 and grok 1.0.44; `scripts/codespace_parity.py` C1 probes each model CLI's served id against `ecosystem/provider-registry.yaml` (a mismatch or no id is a FAIL, an unprobed CLI a named AUTH-ITEM). Repair 1 carries the two `tests/test_provision_legs.py` declaration assertions that follow the agy/grok pins (operator order via the refusal) plus two disclosed fixture lines.
+- `[#1335]` refs cite the lane's run record and its two review records as their governance consumer. The closed merge receipt of lane b2-rulings-landing (`42ba43c2`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `.devcontainer/{provision.sh,provisioning.yaml}`, `scripts/{codespace_parity,dispatch}.py`, their tests, `tasks/1335-…`, one run record and two review records, generated index/counts.
+
+**Next:** W1-3 b2-ci-poll WAITING on the architect's item-4 ruling; W1-11 b2-transport-probe building.
+
+---
+### 2026-10-04 (j) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-rulings-landing merges -- R55-R79 land as STANDING_RULINGS section AR, each carried by a row, and a two-leg rulings gate whose unmeasured leg never reads clean
+
+**Anchors:** `dc9bfb21`, `c499dddb`, `b7a0e503`, `8d74b255`, `eed7071d`, `393bc9a3`, `a3c39142`, `c84d43ab`, `defb2fae`, `82aaafdd`, `4de8c97e`, `167216ee`, `71ace1cf`, `c8c465b0` -- `worktree-b2-rulings-landing` (B2-W1 W1-10, after repair 2)
+
+**Did:**
+- Merged batch B2-W1 lane W1-10 after its repair 2: section AR of `protocols/STANDING_RULINGS.md` (R55-R79), rows `[#1360]`-`[#1379]` carrying them, and `decision_coverage.py rulings` with its `rulings_carried` audit finding. Repair 2 (decided by night rule N2, independent reviewer grok-4.7: REWRITE) makes leg (a)'s "not measured" a truthy `UNMEASURED` sentinel, so `not report.unlanded` never reads an unmeasured leg as clean.
+- `[#1378]` refs cite the lane's three review records as their governance consumer (the `1546090c` precedent). The closed merge receipt of lane b2-handoff-hardening (`1627e74c`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `protocols/STANDING_RULINGS.md`, `scripts/{decision_coverage,audit}.py`, `scripts/audit_checks/{check_rulings_carried,registry}.py`, `ecosystem/doc-code-edge.yaml`, their tests, `tasks/1360-…`-`tasks/1379-…`, three review records, generated index/counts.
+
+**Next:** W1-7's repair 1 and W1-3's first handback; W1-11 is building.
+
+---
+
 ### 2026-10-04 (i) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-handoff-hardening merges -- the boot's defects found by the boot test are fixed, and the Plan row refuses visibly instead of falling back to an old master plan
 
 **Anchors:** `f74d1c4c`, `10565b84`, `a23eaaf3`, `88c77d6f`, `be729b33`, `8a43a1de`, `d7444f89`, `6b8e6911`, `6a26c984`, `bd7a7a53`, `a4327fa6`, `b15b2f67`, `70228c11`, `1c8e97d5`, `464ef70b`, `9bd6c63d`, `29262f24` -- `worktree-b2-handoff-hardening` (B2-W1 W1-9, after repair 1)

@@ -28,6 +28,32 @@ _SHA = "a" * 40
 _TREE = "b" * 40
 
 
+#: A registry reduced to the four seams C1's served-id check reads (b2-codespace-1to1, R61): the
+#: role each model CLI is routed by, and the one `antigravity` model row.
+_REGISTRY = {
+    "roles": {
+        "implement": {"order": [{"provider": "anthropic", "model": "claude-sonnet-5"},
+                                {"provider": "xai", "model": "grok-4.7"}]},
+        "review": {"order": [{"provider": "openai", "model": "gpt-5.6-terra"},
+                             {"provider": "xai", "model": "grok-4.7"}]},
+        "read": {"order": [{"provider": "antigravity", "model": None}]},
+    },
+    "models": {"gemini-3.8-flash": {"provider": "antigravity"},
+               "claude-sonnet-5": {"provider": "anthropic"}},
+}
+_EXPECTED_IDS = {"claude": "claude-sonnet-5", "codex": "gpt-5.6-terra", "grok": "grok-4.7",
+                 "agy": "gemini-3.8-flash"}
+
+
+def _served(**over) -> dict:
+    """The `models` section of a record in which every model CLI answered with the id the
+    registry routes it to (agy serves a tier of its family, as `agy models` lists them)."""
+    ids = dict(_EXPECTED_IDS, agy="gemini-3.8-flash-high")
+    ids.update(over)
+    return {cli: {"state": "served", "served_id": sid, "detail": "fixture"}
+            for cli, sid in ids.items()}
+
+
 def _record(side: str = "local") -> dict:
     """A fully-populated, internally consistent record for one side."""
     linux = side == "codespace"
@@ -47,8 +73,10 @@ def _record(side: str = "local") -> dict:
                 "claude": {"present": True, "version": "2.1.288"},
                 "gh": {"present": True, "version": "2.93.0"},
                 "codex": {"present": True, "version": "0.9.1"},
+                "grok": {"present": True, "version": "1.0.44"},
                 "agy": {"present": True, "version": "1.2.3"},
             },
+            "models": _served(),
             "hooks": ["commit-msg", "pre-commit", "pre-push"],
             "platform": {"system": "Linux" if linux else "Windows",
                          "machine": "x86_64" if linux else "AMD64"},
@@ -849,3 +877,542 @@ def test_a_probe_name_with_a_trailing_newline_is_refused(bad):
     with pytest.raises(ValueError):
         cp.collect_record(fake, probe_write=bad)
     assert all(c[1] != "copyto" for c in fake.calls)
+
+
+# ===================================================================== C1 served model ids
+#
+# b2-codespace-1to1 (R63; R61; R59 §0a item 1). Condition 1 compared `--version` strings. A CLI that
+# prints the pinned version and silently serves another model passes that check, so each model CLI
+# (`claude`, `codex`, `grok`, `agy`) now answers one call carrying a nonce, and the id it SERVED is
+# read from the tool's own record -- never from the model's words -- and compared with what
+# `ecosystem/provider-registry.yaml` routes that CLI's role to.
+#
+# RED on e67f27ac: `scripts/codespace_parity.py` has no `MODEL_CLIS`, `collect_models` or `models`
+# section, and `compare_environment` returns PASS for a record that names no served id at all.
+
+_REPO_REGISTRY = REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+_NONCE = "N0NCE-4F2A"
+
+
+@pytest.fixture(autouse=True)
+def _fixture_registry(tmp_path, monkeypatch):
+    """Every test in this module reads the small registry above through the REAL loader (a yaml
+    file at `cp.REGISTRY_PATH`), so the comparators' registry is not the live file's current pins."""
+    import yaml
+
+    path = tmp_path / "registry-fixture.yaml"
+    path.write_text(yaml.safe_dump(_REGISTRY), encoding="utf-8")
+    monkeypatch.setattr(cp, "REGISTRY_PATH", path, raising=False)
+
+
+def test_the_lane_tools_and_model_clis_are_declared_and_every_model_cli_is_a_lane_tool():
+    assert cp.MODEL_CLIS == ("claude", "codex", "grok", "agy")
+    assert set(cp.MODEL_CLIS) <= set(cp.LANE_TOOLS), "a model CLI is version-compared too"
+    assert "grok" in cp.LANE_TOOLS
+    for cli in cp.MODEL_CLIS:
+        assert cp.AUTH_NEEDS.get(cli), f"{cli}: a login-needing CLI names what it needs"
+
+
+def test_the_expected_ids_come_from_the_registry_roles_and_the_antigravity_model_row():
+    expected = cp.expected_models(cp.load_registry())
+    assert {k: v.id for k, v in expected.items()} == _EXPECTED_IDS
+    assert "review" in expected["codex"].where and "implement" in expected["claude"].where
+
+
+def test_the_live_registry_names_an_id_for_every_model_cli():
+    """Not a pin: the real file must give every probe something to compare against, or the probe
+    would be a check against nothing."""
+    expected = cp.expected_models(cp.load_registry(_REPO_REGISTRY))
+    assert set(expected) == set(cp.MODEL_CLIS)
+    assert all(v.id for v in expected.values()), {k: v.id for k, v in expected.items()}
+
+
+def test_served_ids_that_match_the_registry_pass_c1_and_the_ids_are_shown_as_evidence():
+    verdict = cp.compare_environment(_record("local"), _record("codespace"))
+    assert verdict.status == "PASS", verdict
+    shown = [e for e in verdict.evidence if e.startswith("served model")]
+    assert {e.split()[2] for e in shown} == set(cp.MODEL_CLIS)
+    assert any("gpt-5.6-terra" in e for e in shown)
+
+
+@pytest.mark.parametrize("cli,served", [("claude", "claude-sonnet-5-5"), ("codex", "gpt-5.5"),
+                                        ("grok", "grok-4.6"), ("agy", "gemini-3.7-flash-high")])
+def test_a_served_id_the_registry_does_not_route_to_fails_c1_naming_both_ids(cli, served):
+    remote = _record("codespace")
+    remote["environment"]["models"] = _served(**{cli: served})
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert verdict.status == "FAIL"
+    assert cli in verdict.reason and served in verdict.reason
+    assert _EXPECTED_IDS[cli] in verdict.reason, "the registry's id is named beside the served one"
+    assert "registry routes" in verdict.reason, "the FAIL is the registry comparison, not a diff of records"
+
+
+def test_a_mismatch_on_the_local_side_fails_too():
+    local = _record("local")
+    local["environment"]["models"] = _served(claude="claude-sonnet-5-5")
+    verdict = cp.compare_environment(local, _record("codespace"))
+    assert verdict.status == "FAIL" and "claude-sonnet-5-5" in verdict.reason
+    assert "local" in verdict.reason and "registry routes" in verdict.reason
+
+
+@pytest.mark.parametrize("state", ["no-answer", "probe-error", "no-expected"])
+def test_a_cli_that_gave_no_served_id_fails_c1_instead_of_passing_on_its_version(state):
+    remote = _record("codespace")
+    remote["environment"]["models"]["grok"] = {"state": state, "served_id": None, "detail": "x"}
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert verdict.status == "FAIL"
+    assert "grok" in verdict.reason and "no served model id" in verdict.reason
+
+
+def test_a_record_with_no_models_section_fails_naming_every_model_cli():
+    """The shape e67f27ac records have: versions and auth, no served id for any CLI."""
+    remote = _record("codespace")
+    del remote["environment"]["models"]
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert verdict.status == "FAIL"
+    for cli in cp.MODEL_CLIS:
+        assert cli in verdict.reason, cli
+    assert "no served model id" in verdict.reason
+
+
+def test_a_served_id_with_no_registry_id_to_compare_it_with_fails(monkeypatch, tmp_path):
+    import yaml
+
+    bare = {"roles": {"implement": {"order": [{"provider": "anthropic", "model": "claude-sonnet-5"}]}},
+            "models": {}}
+    path = tmp_path / "bare.yaml"
+    path.write_text(yaml.safe_dump(bare), encoding="utf-8")
+    monkeypatch.setattr(cp, "REGISTRY_PATH", path)
+    verdict = cp.compare_environment(_record("local"), _record("codespace"))
+    assert verdict.status == "FAIL"
+    assert "registry names no model" in verdict.reason
+
+
+def test_an_agy_tier_of_the_registered_family_matches_and_another_family_does_not():
+    assert cp.served_matches("agy", "gemini-3.8-flash-high", "gemini-3.8-flash")
+    assert cp.served_matches("agy", "gemini-3.8-flash", "gemini-3.8-flash")
+    assert not cp.served_matches("agy", "gemini-3.8-flash-ultra", "gemini-3.8-flash")
+    assert not cp.served_matches("agy", "gemini-3.7-flash-high", "gemini-3.8-flash")
+    assert not cp.served_matches("grok", "grok-4.7-fast", "grok-4.7"), "only agy serves tiers"
+    assert not cp.served_matches("codex", None, "gpt-5.6-terra")
+
+
+def test_a_cli_not_logged_in_is_a_named_auth_item_not_a_fail_and_not_a_pass():
+    """Item 4: a login-needing CLI is reported by name with what it needs. Its served id cannot be
+    read, so the check says so on the evidence line instead of printing a bare PASS."""
+    remote = _record("codespace")
+    remote["environment"]["models"]["codex"] = {"state": "not-probed-auth", "served_id": None,
+                                                "detail": "login missing"}
+    remote["environment"]["auth"] = _auth(codex="unauthenticated", agy="authenticated")
+    local = _record("local")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "PASS" and "except named auth items" in verdict.reason, verdict
+    assert "codex" in verdict.reason
+    assert any(e.startswith("AUTH-ITEM codex") and cp.AUTH_NEEDS["codex"] in e
+               for e in verdict.evidence)
+    assert any("codex" in e and "not probed" in e for e in verdict.evidence), \
+        "the unread served id is shown as unread, not omitted"
+
+
+def test_a_model_call_that_found_the_login_missing_is_named_even_when_auth_was_unprobed():
+    """agy has no status command (auth state `unprobed`); its model call is what shows the login."""
+    remote = _record("codespace")
+    remote["environment"]["models"]["agy"] = {"state": "unauthenticated", "served_id": None,
+                                              "detail": "sign in"}
+    remote["environment"]["auth"] = _auth(agy="unprobed")
+    local = _record("local")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "PASS" and "agy" in verdict.reason, verdict
+
+
+def test_the_local_side_must_have_answered_every_cli_itself():
+    """The workstation is the reference. A local CLI that is not logged in has no served id to
+    compare, so it cannot be waved through as an auth exception the way a Codespace one is."""
+    local = _record("local")
+    local["environment"]["models"]["codex"] = {"state": "not-probed-auth", "served_id": None,
+                                               "detail": "login missing"}
+    verdict = cp.compare_environment(local, _record("codespace"))
+    assert verdict.status == "FAIL" and "codex" in verdict.reason and "local" in verdict.reason
+    assert "no served model id" in verdict.reason
+
+
+# ----------------------------------------------------- the readers: the tool's own record, not its words
+
+_CLAUDE_STREAM = "\n".join([
+    json.dumps({"type": "system", "subtype": "init", "model": "claude-sonnet-5"}),
+    json.dumps({"type": "assistant", "message": {"model": "claude-sonnet-5", "role": "assistant",
+                                                  "content": [{"type": "thinking", "thinking": ""},
+                                                              {"type": "text", "text": _NONCE}]}}),
+    json.dumps({"type": "result", "subtype": "success", "result": _NONCE}),
+])
+
+# `codex exec` prints its run header, the echoed prompt and the transcript on STDERR and only the
+# final message on STDOUT (measured 2026-10-04).
+_CODEX_STDERR = f"""Reading additional input from stdin...
+OpenAI Codex v0.155.0
+--------
+workdir: /tmp/probe
+model: gpt-5.6-terra
+provider: openai
+--------
+user
+This is a connectivity check and the check code is {_NONCE}. Please reply with the check code.
+codex
+{_NONCE}
+tokens used
+9,926
+"""
+_CODEX_STDOUT = _NONCE + "\n"
+
+
+def test_claude_reader_takes_the_id_from_the_transcripts_assistant_message():
+    assert cp.read_claude(_CLAUDE_STREAM, _NONCE) == ("claude-sonnet-5", True)
+
+
+def test_claude_reader_does_not_take_a_synthetic_error_message_for_a_served_model():
+    stream = json.dumps({"type": "assistant", "message": {"model": "<synthetic>", "content": [
+        {"type": "text", "text": "Not logged in - Please run /login"}]}})
+    assert cp.read_claude(stream, _NONCE) == (None, False)
+
+
+def test_claude_reader_marks_a_reply_without_the_nonce_unanswered():
+    stream = json.dumps({"type": "assistant", "message": {"model": "claude-sonnet-5", "content": [
+        {"type": "text", "text": "I will not repeat that."}]}})
+    assert cp.read_claude(stream, _NONCE) == ("claude-sonnet-5", False)
+
+
+def test_claude_reader_survives_a_non_json_line():
+    assert cp.read_claude("warning: something\n" + _CLAUDE_STREAM, _NONCE) == ("claude-sonnet-5", True)
+
+
+def test_codex_reader_takes_the_id_from_the_run_header_and_the_answer_from_stdout():
+    assert cp.read_codex(_CODEX_STDERR, _CODEX_STDOUT, _NONCE) == ("gpt-5.6-terra", True)
+    assert cp.read_codex(_CODEX_STDERR, "", _NONCE) == ("gpt-5.6-terra", False), \
+        "the nonce in the echoed prompt on stderr is not an answer"
+    assert cp.read_codex("no header here\n", _CODEX_STDOUT, _NONCE) == (None, True)
+
+
+def test_codex_reader_reads_a_colour_coded_header_as_a_terminal_prints_it():
+    """Measured live 2026-10-04: with a terminal attached `codex exec` colours its stderr header
+    (`ESC[1mmodel:ESC[0m gpt-5.6-terra`), so the plain-text id regex found nothing and the probe
+    reported no served id for a CLI that had answered."""
+    esc = chr(27)
+    coloured = _CODEX_STDERR.replace("model:", f"{esc}[1mmodel:{esc}[0m")
+    assert cp.read_codex(coloured, _CODEX_STDOUT, _NONCE) == ("gpt-5.6-terra", True)
+
+
+def test_codex_reader_cannot_be_given_its_served_id_by_the_models_own_output():
+    """Review P1 (codex terra, 2026-10-04): the id was parsed from stdout and stderr together, so a
+    model that printed `model: <the registry's id>` on stdout passed C1 while a different model
+    served. Only the run header -- the block between the first two rules of STDERR -- is the
+    tool's own record."""
+    forged_stdout = f"model: gpt-5.6-terra\n{_NONCE}\n"
+    real_header = _CODEX_STDERR.replace("model: gpt-5.6-terra", "model: gpt-5.5")
+    assert cp.read_codex(real_header, forged_stdout, _NONCE) == ("gpt-5.5", True)
+    assert cp.read_codex("no header\n", forged_stdout, _NONCE) == (None, True)
+    # a `model:` line the transcript echoes AFTER the header is not the header either
+    echoed = real_header.replace("user\n", "user\nmodel: gpt-5.6-terra\n", 1)
+    assert cp.read_codex(echoed, _CODEX_STDOUT, _NONCE) == ("gpt-5.5", True)
+    headerless = "user\nmodel: gpt-5.6-terra\ncodex\nanswer\n"
+    assert cp.read_codex(headerless, _CODEX_STDOUT, _NONCE) == (None, True)
+
+
+def test_the_codex_call_asks_for_no_colour_and_reads_header_and_answer_from_their_own_streams(tmp_path):
+    argv = cp.model_probe_argv("codex", _NONCE, "gpt-5.6-terra", "x")
+    assert argv[argv.index("--color") + 1] == "never"
+    _grok_usage(tmp_path, "sess-run")
+    out = cp.collect_models(_ModelRun(tmp_path), _tools(), {}, _expected(), home=tmp_path,
+                            nonce=_NONCE)
+    assert out["codex"]["state"] == "served" and out["codex"]["served_id"] == "gpt-5.6-terra"
+
+
+def _grok_json(session: str, text: str = _NONCE) -> str:
+    return json.dumps({"text": text, "stopReason": "end_turn", "sessionId": session})
+
+
+def _grok_usage(home: Path, session: str, primary: str = "grok-4.7", cwd: str = "C%3A%5Cx") -> None:
+    d = home / ".grok" / "sessions" / cwd / session
+    d.mkdir(parents=True)
+    (d / "usage.json").write_text(json.dumps(
+        {"sessionId": session, "session": {"primaryModelId": primary,
+                                           "modelUsage": {primary: {"inputTokens": 1}}}}),
+        encoding="utf-8")
+
+
+def test_grok_reader_takes_the_id_from_the_session_stores_usage_json(tmp_path):
+    _grok_usage(tmp_path, "sess-1")
+    assert cp.read_grok(_grok_json("sess-1"), _NONCE, tmp_path) == ("grok-4.7", True)
+
+
+def test_grok_reader_without_a_session_record_has_no_served_id(tmp_path):
+    assert cp.read_grok(_grok_json("sess-missing"), _NONCE, tmp_path) == (None, True)
+    assert cp.read_grok("not json", _NONCE, tmp_path) == (None, False)
+
+
+def test_grok_reader_does_not_trust_the_models_own_statement_of_what_it_is(tmp_path):
+    _grok_usage(tmp_path, "sess-2", primary="grok-4.6")
+    said = _grok_json("sess-2", text=f"I am grok-4.7. {_NONCE}")
+    assert cp.read_grok(said, _NONCE, tmp_path) == ("grok-4.6", True)
+
+
+_AGY_JSON = json.dumps({"conversation_id": "c1", "status": "SUCCESS", "response": _NONCE + "\n"})
+_AGY_LOG = ('I1004 model_config_manager.go:327] Propagating selected model override to backend: '
+            'label="Gemini 3.8 Flash (High)"\n' * 2)
+
+
+def test_agy_reader_takes_the_id_from_the_run_logs_model_label_as_a_slug():
+    assert cp.read_agy(_AGY_JSON, _AGY_LOG, _NONCE) == ("gemini-3.8-flash-high", True)
+    assert cp.read_agy(_AGY_JSON, "no label here", _NONCE) == (None, True)
+    failed = json.dumps({"status": "ERROR", "response": ""})
+    assert cp.read_agy(failed, _AGY_LOG, _NONCE) == ("gemini-3.8-flash-high", False)
+
+
+# ------------------------------------------------------------------- collect_models, the call itself
+
+class _ModelRun:
+    """A fake `run` seam answering each CLI's probe call the way the real one did on 2026-10-04."""
+
+    def __init__(self, tmp_path, outputs=None, rc=None, stderr=None):
+        self.tmp_path = tmp_path
+        self.calls: list[tuple[list[str], str | None]] = []
+        self.outputs = outputs or {}
+        self.rc = rc or {}
+        self.stderr = {"codex": _CODEX_STDERR, **(stderr or {})}
+
+    def __call__(self, argv, cwd=None, **_kw):
+        import shlex
+
+        argv = list(argv)
+        if argv[:2] == ["bash", "-lc"]:
+            argv = shlex.split(argv[2])
+        self.calls.append((argv, str(cwd) if cwd else None))
+        cli = argv[0]
+        if cli == "agy" and "--log-file" in argv:
+            Path(argv[argv.index("--log-file") + 1]).write_text(_AGY_LOG, encoding="utf-8")
+        out = self.outputs.get(cli, {
+            "claude": _CLAUDE_STREAM, "codex": _CODEX_STDOUT, "agy": _AGY_JSON,
+            "grok": _grok_json("sess-run")}[cli])
+        return cp.CmdResult(self.rc.get(cli, 0), out, self.stderr.get(cli, ""))
+
+
+def _tools(**absent):
+    return {c: {"present": c not in absent, "version": "1.0.0" if c not in absent else None}
+            for c in cp.LANE_TOOLS}
+
+
+def _expected():
+    return cp.expected_models(cp.load_registry())
+
+
+def test_collect_models_runs_one_call_per_cli_with_the_registry_id_in_an_empty_directory(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    run = _ModelRun(tmp_path)
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert {k: (v["state"], v["served_id"]) for k, v in out.items()} == {
+        "claude": ("served", "claude-sonnet-5"), "codex": ("served", "gpt-5.6-terra"),
+        "grok": ("served", "grok-4.7"), "agy": ("served", "gemini-3.8-flash-high")}
+    assert [c[0][0] for c in run.calls] == list(cp.MODEL_CLIS), "one call each, in order"
+    by_cli = {c[0][0]: c for c in run.calls}
+    for cli, want in (("claude", "claude-sonnet-5"), ("codex", "gpt-5.6-terra"), ("grok", "grok-4.7")):
+        argv = by_cli[cli][0]
+        flag = "-m" if cli in ("codex", "grok") else "--model"
+        assert argv[argv.index(flag) + 1] == want, (cli, argv)
+    assert "--model" not in by_cli["agy"][0], "agy's registry row is a family: its default tier answers"
+    for argv, cwd in run.calls:
+        assert _NONCE in " ".join(argv)
+        assert cwd and Path(cwd).resolve() != REPO_ROOT.resolve(), \
+            "the call runs outside the repository so no project context shapes the answer"
+
+
+def test_collect_models_records_no_credential_and_no_model_output(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    out = cp.collect_models(_ModelRun(tmp_path), _tools(), {}, _expected(), home=tmp_path,
+                            nonce=_NONCE)
+    assert all(set(v) == {"state", "served_id", "detail"} for v in out.values())
+    assert _NONCE not in json.dumps(out), "the nonce is checked, not stored"
+
+
+def test_an_absent_cli_is_not_called(tmp_path):
+    run = _ModelRun(tmp_path)
+    out = cp.collect_models(run, _tools(grok=True), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["grok"]["state"] == "tool-absent"
+    assert "grok" not in [c[0][0] for c in run.calls]
+
+
+def test_an_unauthenticated_cli_is_named_not_called(tmp_path):
+    run = _ModelRun(tmp_path)
+    auth = {"codex": {"state": "unauthenticated", "probe": "codex login status"}}
+    out = cp.collect_models(run, _tools(), auth, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "not-probed-auth"
+    assert "codex" not in [c[0][0] for c in run.calls]
+
+
+def test_a_reply_without_the_nonce_is_no_answer_even_when_an_id_was_read(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    run = _ModelRun(tmp_path, outputs={"grok": _grok_json("sess-run", text="I won't output that.")})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["grok"]["state"] == "no-answer" and out["grok"]["served_id"] == "grok-4.7"
+
+
+def test_a_call_that_timed_out_or_would_not_start_is_a_probe_error(tmp_path):
+    run = _ModelRun(tmp_path, rc={"codex": 124, "agy": 127})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "probe-error" and out["agy"]["state"] == "probe-error"
+
+
+@pytest.mark.parametrize("rc", [124, 127])
+def test_a_probe_error_records_a_fixed_category_never_the_clis_stderr(tmp_path, rc):
+    """Review P1 (codex terra, 2026-10-04): the first 80 characters of stderr went into the record.
+    A CLI's stderr is untrusted -- it can carry a token, a URL with a code challenge or model
+    output -- and the record's contract is that none of that is stored."""
+    secret = "sk-SECRET-0123456789 https://accounts.example/o/oauth2/auth?code_challenge=XYZ"
+    run = _ModelRun(tmp_path, rc={"codex": rc, "agy": rc}, stderr={"codex": secret, "agy": secret})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "probe-error" and out["agy"]["state"] == "probe-error"
+    assert "SECRET" not in json.dumps(out) and "oauth2" not in json.dumps(out)
+    assert str(rc) in out["codex"]["detail"]
+
+
+def test_no_detail_the_probe_records_can_carry_the_text_a_cli_printed(tmp_path):
+    secret = "tok-ABC123-should-never-be-stored"
+    for rc, text in ((1, f"Not signed in {secret}"), (1, f"model gpt-5.6-terra unavailable {secret}"),
+                     (0, "")):
+        run = _ModelRun(tmp_path, outputs={"codex": text}, rc={"codex": rc}, stderr={"codex": secret})
+        out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+        assert secret not in json.dumps(out), out["codex"]
+
+
+@pytest.mark.parametrize("text", [
+    "Not logged in - Please run /login", "error: please sign in", "401 Unauthorized",
+    "Missing credentials",
+    # the two read verbatim from a fresh Codespace on 2026-10-04 (grok exit 1, agy exit 1); the
+    # grok one is "signed in", which a `sign in` pattern does not match
+    "Not signed in. To authenticate without a browser, run:\n  grok login --device-code\n",
+    "Authentication required. Please visit the URL to log in:\n  https://accounts.google.com/o/oauth2/auth",
+])
+def test_a_failed_call_that_says_the_login_is_missing_is_unauthenticated(tmp_path, text):
+    run = _ModelRun(tmp_path, outputs={"codex": text}, rc={"codex": 1})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "unauthenticated"
+
+
+def test_every_login_item_names_the_step_that_was_read_from_the_tool_itself():
+    """N5: one exact step each, taken from what the CLI printed -- never a workaround and never an
+    API key (the standing auth ruling forbids one)."""
+    assert "grok login --device-auth" in cp.AUTH_NEEDS["grok"]
+    assert "codex login --device-auth" in cp.AUTH_NEEDS["codex"]
+    assert "gh codespace ssh" in cp.AUTH_NEEDS["agy"] and "URL" in cp.AUTH_NEEDS["agy"]
+    assert "CLAUDE_CODE_OAUTH_TOKEN" in cp.AUTH_NEEDS["claude"]
+    for need in cp.AUTH_NEEDS.values():
+        assert "API_KEY" not in need and "api-key" not in need.lower(), need
+
+
+def test_a_failed_call_with_some_other_message_is_no_answer_not_a_login_item(tmp_path):
+    run = _ModelRun(tmp_path, outputs={"codex": "model gpt-5.6-terra is not available"},
+                    rc={"codex": 1})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "no-answer"
+
+
+def test_a_cli_with_no_registry_id_is_not_called(tmp_path):
+    run = _ModelRun(tmp_path)
+    expected = dict(_expected(), codex=cp.ExpectedModel(None, "role review: no model pinned"))
+    out = cp.collect_models(run, _tools(), {}, expected, home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "no-expected"
+    assert "codex" not in [c[0][0] for c in run.calls]
+
+
+def test_collect_environment_carries_the_models_and_a_successful_call_is_a_login_proof(tmp_path):
+    """agy has no status command, so its auth state was `unprobed` and it was named as an auth item
+    on every run. A model call that answered is the proof of login that was missing."""
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "provider-registry.yaml").write_text(
+        cp.REGISTRY_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+
+    class _Run(_ModelRun):
+        def __call__(self, argv, **kw):
+            import shlex
+
+            flat = list(argv)
+            if flat[:2] == ["bash", "-lc"]:
+                flat = shlex.split(flat[2])
+            if "--version" in flat:
+                return cp.CmdResult(0, "1.0.0\n", "")
+            if flat[:3] == ["claude", "auth", "status"]:
+                return cp.CmdResult(0, '{"loggedIn": true}', "")
+            if flat[1:3] in (["auth", "status"], ["login", "status"]):
+                return cp.CmdResult(0, "ok", "")
+            if flat[0] == "uv":
+                return cp.CmdResult(0, "3.12.10\n", "")
+            return super().__call__(argv, **kw)
+
+    _grok_usage(tmp_path, "sess-run")
+    env = cp.collect_environment(_Run(tmp_path), root=tmp_path, hooks=[], home=tmp_path,
+                                 nonce=_NONCE)
+    assert env["models"]["agy"]["state"] == "served"
+    assert env["auth"]["agy"]["state"] == "authenticated", env["auth"]["agy"]
+    assert env["auth"]["agy"]["probe"], "the proof's own name is recorded"
+
+
+def test_collect_environment_marks_the_auth_the_model_call_found_missing(tmp_path):
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "provider-registry.yaml").write_text(
+        cp.REGISTRY_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+
+    class _Run(_ModelRun):
+        def __call__(self, argv, **kw):
+            import shlex
+
+            flat = list(argv)
+            if flat[:2] == ["bash", "-lc"]:
+                flat = shlex.split(flat[2])
+            if "--version" in flat:
+                return cp.CmdResult(0, "1.0.0\n", "")
+            if "status" in flat:
+                return cp.CmdResult(0, '{"loggedIn": true}', "")
+            if flat[0] == "uv":
+                return cp.CmdResult(0, "3.12.10\n", "")
+            return super().__call__(argv, **kw)
+
+    run = _Run(tmp_path, outputs={"agy": "Please sign in to continue"}, rc={"agy": 1})
+    env = cp.collect_environment(run, root=tmp_path, hooks=[], home=tmp_path, nonce=_NONCE)
+    assert env["models"]["agy"]["state"] == "unauthenticated"
+    assert env["auth"]["agy"]["state"] == "unauthenticated"
+
+
+def test_default_run_gives_the_child_no_stdin_so_codex_exec_cannot_hang_on_it():
+    """`codex exec` prints 'Reading additional input from stdin...' and waits forever when stdin is
+    an open pipe (found while building the probe, 2026-10-04). The one place a subprocess starts
+    closes it. Witnessed with a parent that holds its own stdin pipe OPEN: a child that inherited
+    it would block until `default_run`'s timeout (124)."""
+    import subprocess
+
+    code = "; ".join([
+        "import sys",
+        "from scripts import codespace_parity as cp",
+        "r = cp.default_run([sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'], timeout=8)",
+        "print(r.returncode, r.stdout.strip())",
+    ])
+    proc = subprocess.Popen([sys.executable, "-c", code], cwd=str(REPO_ROOT), text=True,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        proc.wait(timeout=60)
+        out = proc.stdout.read()
+    finally:
+        proc.kill()
+        for stream in (proc.stdin, proc.stdout, proc.stderr):
+            stream.close()
+    assert out.strip() == "0 ''", out
+
+
+def test_the_probe_prompt_is_one_nonce_and_asks_for_nothing_else():
+    prompt = cp.probe_prompt(_NONCE)
+    assert _NONCE in prompt
+    assert "\n" not in prompt, "one line, so it survives a cmd shim and a login shell alike"
+    assert '"' not in prompt and "'" not in prompt, "nothing a shell has to quote"

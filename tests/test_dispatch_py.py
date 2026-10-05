@@ -242,9 +242,10 @@ def test_codespace_plan_ships_a_runner_file_and_never_composes_the_prompt_into_s
     assert any("manifest check" in s.note for s in plan)
 
 
+# [#1335]: the default machine is the 4-core `standardLinux32gb` (lane b2-codespace-1to1, ADR-126 D2).
 def test_codespace_dry_run_through_the_cli_prints_the_cost_line(tmp_path):
     out = _dry(tmp_path, "--repo", "rdwornik/x", substrate="codespace").output
-    assert "basicLinux32gb" in out and "idle-timeout" in out
+    assert "standardLinux32gb" in out and "idle-timeout" in out
 
 
 # --- codex terra review findings: a cap that cannot be observed or enforced is UNGOVERNED -----

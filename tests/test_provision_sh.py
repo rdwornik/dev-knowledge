@@ -200,6 +200,8 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
         "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_pc_login_path", "leg_f1_claude",
         # foundation-13: the lane's toolset, pinned and asserted, after the agent feature's own assert
         "leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone", "leg_f5_agy",
+        # b2-codespace-1to1 (R63): the fourth model CLI, after the other three
+        "leg_f5_grok",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
         # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
         # is LIVE, so every tool it names must already be installed when it is written. Anywhere
@@ -409,6 +411,9 @@ _TOOLSET_LEGS = {
     "leg_f5_codex": ("codex", "@openai/codex@${want}"),
     "leg_f5_rclone": ("rclone", "downloads.rclone.org/v${want}"),
     "leg_f5_agy": ("agy", "antigravity.google/cli/install.sh"),
+    # b2-codespace-1to1 (R63, operator 2026-10-04: "1:1, all models in sync -- Grok, Codex, Gemini"):
+    # xAI's first-party installer, which takes a version (`bash -s <X.Y.Z>`, read 2026-10-04).
+    "leg_f5_grok": ("grok", "x.ai/cli/install.sh"),
 }
 _VERSION_LITERAL = re.compile(r"(?<![\w.$-])\d+\.\d+\.\d+(?![\w.])")
 
@@ -433,7 +438,8 @@ def test_no_tool_leg_types_a_version(leg: str):
     assert not _VERSION_LITERAL.findall(body), (leg, _VERSION_LITERAL.findall(body))
 
 
-@pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone"])
+@pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone",
+                                 "leg_f5_agy", "leg_f5_grok"])
 def test_a_pinned_leg_reads_its_pin_from_the_declaration(leg: str):
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
     tool = _TOOLSET_LEGS[leg][0]
@@ -447,12 +453,69 @@ def test_the_claude_pin_leg_stops_the_container_updating_itself_away_from_the_pi
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")),
                           "leg_f5_claude_pin")
     assert "DISABLE_AUTOUPDATER" in body
-    assert 'bash -s "${want}"' in body, "the documented form: `curl ... | bash -s <version>`"
+    assert 'bash "${installer}" "${want}"' in body, \
+        "the documented `bash -s <version>` form, run from a script `fetch_installer` has checked"
 
 
-def test_agy_is_asserted_present_but_never_given_a_version_the_installer_cannot_honour():
+def test_agy_is_pinned_and_the_leg_asserts_the_pin_its_installer_cannot_honour():
+    """b2-codespace-1to1 (R63): `agy`'s installer takes `--dir` and no version, so it installs the
+    manifest's latest. The leg therefore cannot SELECT the pin, but it still ASSERTS it -- a
+    vendor release that moves past the workstation is then a named refusal, not a silent skew.
+    (Before this lane the row read `version: null`, presence only.)"""
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), "leg_f5_agy")
-    assert "tools get agy" not in body, "agy has no pin to read"
+    assert "tools get agy" in body and "tools check --only agy --login" in body
+
+
+def test_the_grok_leg_installs_the_pinned_version_and_never_carries_a_credential():
+    """The installer's documented forms are `bash -s <version>` (a pin) and `GROK_DEPLOYMENT_KEY=...`
+    (a credential). The leg uses the first and never the second: a login is an OPERATOR-ACTION
+    (R13, N5), never a key typed into a provisioning script."""
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    body = _bash_function(code, "leg_f5_grok")
+    assert 'bash "${installer}" "${want}"' in body, "the version is the installer's first argument"
+    for secret in ("GROK_DEPLOYMENT_KEY", "XAI_API_KEY", "GROK_API_KEY", "auth.json"):
+        assert secret not in code, f"provision.sh names {secret}: a login is an operator act, not a script's"
+
+
+def test_a_vendor_installer_is_fetched_checked_to_be_a_script_and_never_piped_into_bash_blind():
+    """The first fresh-Codespace run of b2-codespace-1to1 (2026-10-04, creation.log) refused at
+
+        bash: line 1: syntax error near unexpected token `)'
+        [provision] REFUSED: L-F5 the Antigravity installer failed
+
+    `curl -fsSL https://antigravity.google/cli/install.sh | bash` had been handed COMPRESSED bytes
+    where the script should be, and bash tried to run them. The same line had passed the run
+    before. A vendor endpoint that answers differently from one run to the next is not a reason to
+    lose a whole container, and a refusal that says 'the installer failed' does not say why: the
+    helper asks for the encoding it will accept, retries, refuses anything that is not a `#!`
+    script, and names what it got."""
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    helper = _bash_function(code, "fetch_installer")
+    assert "--compressed" in helper, "decode what the CDN compresses"
+    assert "--retry" in helper
+    assert "#!" in helper, "refuse a payload that is not a script"
+    assert "first bytes" in helper, "say what was received"
+    # the claude leg is in the list on the reviewer's finding (codex terra, 2026-10-04): it still
+    # piped `curl | bash -s <version>` straight into a shell, past the check the others now have
+    for leg, url in (("leg_f5_agy", "antigravity.google/cli/install.sh"),
+                     ("leg_f5_grok", "x.ai/cli/install.sh"),
+                     ("leg_f5_claude_pin", "claude.ai/install.sh")):
+        body = _bash_function(code, leg)
+        assert 'fetch_installer "https://' + url in body, leg
+        assert "| bash" not in body, f"{leg} pipes a download into bash unchecked"
+
+
+def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version():
+    """Item 2 of the b2-codespace-1to1 contract: claude, codex, grok, agy, gh and rclone are each an
+    exact `x.y.z` string in `provisioning.yaml` `tools:`. RED on `e67f27ac`: no `grok` row, and
+    `agy` is `version: null`."""
+    import yaml
+    tools = yaml.safe_load(
+        (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))["tools"]
+    for name in ("claude", "codex", "grok", "agy", "gh", "rclone"):
+        assert name in tools, f"{name}: no row in provisioning.yaml tools:"
+        version = tools[name].get("version")
+        assert isinstance(version, str) and re.fullmatch(r"\d+\.\d+\.\d+", version), (name, version)
 
 
 def test_tool_legs_follow_the_claude_assert_and_precede_the_provenance_marker():
