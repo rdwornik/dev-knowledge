@@ -128,6 +128,10 @@ from batch_manifest import freeze_manifest_contract_agreement, open_batches  # n
 #: unresolved). Imported BY NAME so this module has no second literal to drift from; a third
 #: implementation here is exactly the defect `[#718]` records, one layer on.
 from gen_handoff import transport_root  # noqa: E402
+#: LANE-B2-W1-b2-dispatch-local-sole item 5 — every contract this module writes goes through
+#: `transport.emit`, which runs `transport_lint` on a transport destination before it writes.
+#: Imported as the module (not by name) so a test patches `transport.emit` where it is called.
+import transport as _transport  # noqa: E402
 #: `[#716]` — THE STEP-0 SYNC RETIRES ITSELF. `worktree_seed` is the repo's worktree-
 #: provisioning organ (live `graph_queries.py process-list`: "no trigger; ON-DEMAND-BY-OPERATOR,
 #: invoked by /lane-boot"), and `base_ref_verdict` is its answer to "does a lane dispatched now
@@ -817,6 +821,26 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
             f'{READER_PROMPTS_DIR_TOKEN}\\{contract_file}"')
 
 
+#: The hub's launcher, as a command the operator types from the target repo root. The `## Dispatch`
+#: fence above is the FIELD SOURCE `dispatch.py` parses (it reads the line, never runs it, and
+#: admits a `claude` head only); this is the line that RUNS the launcher. `dispatch <file>` is the
+#: PATH shim over the same command (`templates/dispatch-shim.ps1`).
+LAUNCH_VERB = "uv run --locked python scripts/dispatch.py launch"
+
+
+def launch_command(contract_file: str, shape: str) -> Optional[str]:
+    """The line that launches `contract_file`, or `None` for a shape `dispatch.py launch` does not
+    carry. Local only: Cloud and Codespace launch through their own emits until their lanes land
+    (THROUGHPUT lanes 2 and 6), and interactive has no launcher at all.
+
+    LANE-B2-W1-b2-dispatch-local-sole: local dispatch is the harness's, so what a local contract
+    hands the operator names `dispatch.py launch` and no other repository's script. The bare file
+    name resolves against the prompts directory inside the launcher itself."""
+    if validate_shape(shape) != "local":
+        return None
+    return f"{LAUNCH_VERB} {contract_file}"
+
+
 def find_command_line(text: str) -> Optional[str]:
     """The dispatch command line a contract carries, or `None` when it carries none.
 
@@ -947,14 +971,13 @@ def render_contract(spec: LaneSpec) -> str:
     if spec.shape == "local":
         parts.append(
             f"**The operator does NOT type the line above.** He types\n"
-            f"`dispatch {fname}` **from the target repo root** — the ruled verb for a local\n"
-            f"lane (PLAYBOOK Ch8's dispatch table, the sole literal-command site). The verb\n"
-            f"reads this `## Dispatch` block and runs it **verbatim**, substituting exactly\n"
-            f"one literal — `{READER_PROMPTS_DIR_TOKEN}` — which is how a frozen contract\n"
-            f"names its own location without hard-coding an absolute path. That spelling is\n"
-            f"load-bearing: it is the only token the reader replaces, and any other\n"
-            f"placeholder is passed through untouched into a real session's prompt.\n"
-            f"The repo root still matters: the worktree\n"
+            f"`{launch_command(fname, 'local')}` **from the target repo root**, or\n"
+            f"`dispatch {fname}`, the hub shim over the same command (PLAYBOOK Ch8's dispatch\n"
+            f"table, the sole literal-command site). The launcher reads this `## Dispatch`\n"
+            f"block for its fields — model, effort, worktree, permission mode — and builds the\n"
+            f"session's own argv; it never runs the block. The `{READER_PROMPTS_DIR_TOKEN}`\n"
+            f"token is how a frozen contract names its own location without hard-coding an\n"
+            f"absolute path. The repo root still matters: the worktree\n"
             f"is created relative to the current repo, so dispatching from the wrong one\n"
             f"lands the lane in it.\n\n"
             f"The line carries every dispatch constant rather than defaulting it:\n"
@@ -970,13 +993,13 @@ def render_contract(spec: LaneSpec) -> str:
             f"{{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused with the enum named,\n"
             f"rather than guessed.\n\n"
             f"**The `claude` head token is required, not stylistic** (`[#675]` clause 1 /\n"
-            f"AX25-2). The verb refuses any other program — *\"this script never runs an\n"
-            f"arbitrary command from a contract file\"* — so a contract's `## Dispatch` block\n"
-            f"is not a place to name a helper. Until 2026-09-12 this generator emitted the\n"
-            f"deprecated `Dispatch-Lane` alias here and **every contract it produced was\n"
-            f"refused by the verb meant to launch it**. That alias still resolves as the\n"
-            f"manual fallback and adds a skip-if-`{branch}`-exists guard the verb path does\n"
-            f"not have; that guard's job is done earlier and more broadly at STEP 0 by\n"
+            f"AX25-2). The launcher admits a `claude`, `codex` or `copilot` head and refuses\n"
+            f"any other program, so a contract's `## Dispatch` block is not a place to name a\n"
+            f"helper. Until 2026-09-12 this generator emitted a different head here and\n"
+            f"**every contract it produced was refused by the reader meant to launch it**;\n"
+            f"`tests/test_dispatch_conformance.py` is the standing witness that the fence this\n"
+            f"generator writes is one `dispatch.py` accepts. A lane already holding `{branch}`\n"
+            f"is refused earlier and more broadly at STEP 0 by\n"
             f"`seat_refusals lane-ceiling --check-worktrees`, which reads the live worktree\n"
             f"list before the first worktree exists.\n")
     elif spec.shape == "cloud":
@@ -1081,7 +1104,12 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append(f"1. `<what {ident} delivers — checkable, not aspirational>`")
     parts.append("2. `<the second done-when, or delete this line>`")
     parts.append("3. Docs and code in English; hyphen-only names; logging rather than print;\n"
-                 "   Click for a CLI where one is warranted; `pytest` green.\n")
+                 "   Click for a CLI where one is warranted; `pytest` green.")
+    # R59, and `transport_lint`'s `lane-contract-no-r59-proof`: a lane contract written to the
+    # transport names, in its close-out, the served model id and the nonce or content hash of the
+    # review read. The generator's own write goes through that lint, so it carries the item.
+    parts.append("4. **Close-out:** the review record carries the served model id from the tool's\n"
+                 "   own log and the nonce or content hash the reviewer returned (R59).\n")
 
     parts.append("## Decision budget\n")
     parts.append(
@@ -1723,6 +1751,16 @@ def _default_out_dir() -> Path:
     return root
 
 
+def _write_contract(target: Path, text: str) -> None:
+    """The one place this module writes a contract: `transport.emit` lints a destination inside
+    the transport before a byte lands (LANE-B2-W1-b2-transport-lint) and writes an operator's
+    scratch `--out-dir` plainly. A refusal is a `ClickException` carrying the lint's findings."""
+    try:
+        _transport.emit("gen_lane_contract", target, text)
+    except _transport.TransportWriteRefused as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:
     """Emit and check batch-lane frozen contracts ([#539])."""
@@ -1787,15 +1825,15 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
         raise click.ClickException(
             f"{target} already exists — a frozen contract is not silently overwritten; "
             f"pass --force to replace it")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(text, encoding="utf-8", newline="\n")
+    _write_contract(target, text)
     logger.info("wrote %s", target)
-    # The operator reads this off the terminal, so it is a dispatch surface too — and it is
-    # built from the SAME `dispatch_command` the file carries, rather than a second literal
-    # that could drift from it.
+    # The operator reads this off the terminal, so it is a dispatch surface too. A local lane's
+    # line is the launcher's (`launch_command`); the other shapes keep the line their contract
+    # carries, built from the SAME `dispatch_command` rather than a second literal that could
+    # drift from it.
     checked = spec.validated()
-    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape,
-                            checked.model)
+    line = launch_command(target.name, checked.shape) or dispatch_command(
+        checked.slug, target.name, checked.effort, checked.shape, checked.model)
     if checked.shape == "interactive":
         logger.info("dispatch with: start `claude`, then send: %s", line)
     else:
@@ -2011,8 +2049,7 @@ def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: O
     target = root / contract_filename(spec.validated().slug)
     if target.exists() and not force:
         raise click.ClickException(f"{target} already exists — pass --force to replace it")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(text, encoding="utf-8", newline="\n")
+    _write_contract(target, text)
     logger.info("distilled %s from (kind=%s, subject=%r)", target, delta_kind, subject)
 
 

@@ -1281,11 +1281,14 @@ def test_the_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
             f"model flag, and it now does -- re-point the fixture rather than deleting it")
 
 
-def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, monkeypatch):
-    """The terminal line the operator reads is a dispatch surface too, and is built from the
-    SAME `dispatch_command` the file carries. A model on one and not the other would be
-    `[#717]` reproduced between the file and the log."""
+def test_the_emit_log_line_launches_the_file_whose_fence_carries_the_model(tmp_path, monkeypatch):
+    """The terminal line the operator reads is a dispatch surface too. Since
+    LANE-B2-W1-b2-dispatch-local-sole it is the launcher's line, which carries no model itself:
+    it reads the model off the file's `## Dispatch` fence. `[#717]`'s property is therefore
+    asserted where it now lives -- the file carries `--model`, and the launcher the log line
+    names RESOLVES that model from it, so the two cannot disagree or drop it silently."""
     import logging
+    import dispatch as d
     prompts = tmp_path / "prompts-root"
     prompts.mkdir()
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
@@ -1297,11 +1300,12 @@ def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, mo
             "--id", "717", "--model", "sonnet"])
     assert result.exit_code == 0, result.output
     logged = "\n".join(records)
-    assert "--model sonnet" in logged, logged
+    assert f"dispatch with: {_LAUNCH_HEAD} {glc.contract_filename('lane-x-717-model-row')}" in logged
 
-    written = (prompts / glc.contract_filename("lane-x-717-model-row")).read_text(
-        encoding="utf-8")
+    path = prompts / glc.contract_filename("lane-x-717-model-row")
+    written = path.read_text(encoding="utf-8")
     assert "--model sonnet" in written
+    assert d.request_from_contract(path).model == "sonnet"
     assert logging  # the import is the fixture's, kept explicit for the reader
 # --- 7. [#716]: the step-0 sync region retires ITSELF ---------------------------------------
 #
@@ -1622,3 +1626,127 @@ def test_graph_dependents_lines_degrades_on_an_unreadable_store_rather_than_cras
     db_path.write_bytes(b"not a sqlite file")
     lines = glc.graph_dependents_lines(repo_root, ("gen_widget.py",))
     assert any("unreadable" in line for line in lines)
+
+
+# --- 9. LANE-B2-W1-b2-dispatch-local-sole: the harness owns local dispatch ------------------
+#
+# Two clauses of that lane's Done-contract live here. Item 1: the LAUNCH LINE a local contract
+# hands the operator runs `dispatch.py launch` and names no win-tooling verb; the `## Dispatch`
+# fence stays `claude ...` because that is the field source `dispatch.py` parses and refuses any
+# other head. Item 5: a contract the transport lint refuses is not written.
+
+import re as _re  # noqa: E402
+
+import transport as _transport  # noqa: E402
+import transport_lint as _transport_lint  # noqa: E402
+
+_WIN_TOOLING = _re.compile(r"pwsh|powershell|Dispatch-|Invoke-Dispatch", _re.IGNORECASE)
+_LAUNCH_HEAD = "uv run --locked python scripts/dispatch.py launch"
+
+
+def test_the_local_launch_line_runs_dispatch_py_launch():
+    line = glc.launch_command("LANE-x.md", "local")
+    assert line == f"{_LAUNCH_HEAD} LANE-x.md"
+    assert not _WIN_TOOLING.search(line), line
+
+
+@pytest.mark.parametrize("shape", ["cloud", "codespace", "interactive"])
+def test_a_shape_that_dispatch_py_does_not_launch_yet_has_no_launch_line(shape):
+    """Cloud and Codespace are the next wave (their emits stay as they are); interactive has no
+    launcher at all. A launch line for them would be a claim the tree does not make true."""
+    assert glc.launch_command("LANE-x.md", shape) is None
+
+
+def test_the_emit_log_line_is_a_dispatch_py_launch_and_names_no_win_tooling(tmp_path, monkeypatch):
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+    with caplog_at_info() as records:
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--kind", "code", "--slug", "lane-x-920-local-sole", "--purpose", "launch line",
+            "--id", "920"])
+    assert result.exit_code == 0, result.output
+    said = [r for r in records if r.startswith("dispatch with:")]
+    assert said == [f"dispatch with: {_LAUNCH_HEAD} LANE-x-920-local-sole.md"], records
+    assert not _WIN_TOOLING.search(said[0])
+
+
+def test_a_rendered_local_contract_hands_the_operator_the_launch_line_and_no_win_tooling():
+    text = glc.render_contract(_spec(shape="local"))
+    assert f"`{_LAUNCH_HEAD} LANE-a-539-ch8-codification.md`" in text
+    assert not _WIN_TOOLING.search(text), _WIN_TOOLING.search(text).group(0)
+
+
+def test_the_fence_stays_a_claude_line_the_launcher_reads_for_its_fields(tmp_path):
+    """Backward compatibility, asserted against the real reader: `dispatch.py` parses the first
+    fence line, admits a `claude` head only, and resolves slug/model/effort from it."""
+    import dispatch as d  # noqa: E402 -- the launcher is the reader this seam serves
+    text = glc.render_contract(_spec(shape="local", model="sonnet"))
+    assert glc.parse_contract(text).ok
+    path = tmp_path / glc.contract_filename("lane-a-539-ch8-codification")
+    path.write_text(text, encoding="utf-8")
+    request = d.request_from_contract(path)
+    assert (request.slug, request.model, request.effort, request.provider) == (
+        "lane-a-539-ch8-codification", "sonnet", "high", "anthropic")
+
+
+@pytest.mark.parametrize("shape", list(glc.SHAPE_ENUM))
+def test_every_generated_contract_passes_the_transport_lint(shape):
+    """The generator's own output is a transport write. A lane contract names its close-out's
+    served model id and the nonce or content hash of the review read (R59), or the write is
+    refused; the generator carries that item so its own contracts are not."""
+    text = glc.render_contract(_spec(shape=shape))
+    name = glc.contract_filename("lane-a-539-ch8-codification")
+    assert _transport_lint.lint_text(name, "root", text) == []
+
+
+def _transport_at(monkeypatch, root: Path) -> None:
+    """Make `root` the transport for this process: the env value, and no User-scope registry
+    value shadowing it (`windows_user_env` is read FIRST on Windows)."""
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(root))
+    monkeypatch.setattr(_transport._tr, "windows_user_env", lambda name: None)
+
+
+def test_a_contract_the_lint_refuses_is_not_written(tmp_path, monkeypatch):
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    _transport_at(monkeypatch, prompts)
+    monkeypatch.chdir(tmp_path)
+    real = glc.render_contract
+    monkeypatch.setattr(glc, "render_contract", lambda spec: real(spec).replace("Close-out", "Wrap-up"))
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-x-920-refused", "--purpose", "lint refusal"])
+    assert result.exit_code != 0
+    assert "lane-contract-no-r59-proof" in result.output, result.output
+    assert not (prompts / glc.contract_filename("lane-x-920-refused")).exists()
+
+
+def test_a_contract_the_lint_passes_is_written_through_the_transport_emit(tmp_path, monkeypatch):
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    _transport_at(monkeypatch, prompts)
+    monkeypatch.chdir(tmp_path)
+    seen: list[tuple[str, Path]] = []
+    real_emit = _transport.emit
+
+    def spy(writer, dest, data, **kw):
+        seen.append((writer, dest))
+        return real_emit(writer, dest, data, **kw)
+
+    monkeypatch.setattr(_transport, "emit", spy)
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-x-920-passed", "--purpose", "lint pass"])
+    assert result.exit_code == 0, result.output
+    target = prompts / glc.contract_filename("lane-x-920-passed")
+    assert seen == [("gen_lane_contract", target)]
+    assert target.is_file()
+
+
+def test_the_distilled_contract_is_written_through_the_same_lint_gate():
+    """The second write site: `cmd_distill` ends in the same transport write as `cmd_emit`, so
+    neither can drift from the lint. Asserted on the source rather than by a second CLI run."""
+    source = (_SCRIPTS / "gen_lane_contract.py").read_text(encoding="utf-8")
+    assert source.count("target.write_text(") == 0, "a bare write bypasses the transport lint"
+    assert source.count("_write_contract(target, text)") == 2   # `emit` and `distill`
+    assert source.count("_transport.emit(") == 1                # the one call both go through
