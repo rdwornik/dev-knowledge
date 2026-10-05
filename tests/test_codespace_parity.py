@@ -2036,3 +2036,34 @@ def test_collect_integration_refuses_an_onto_that_is_not_a_full_sha(tmp_path):
     with pytest.raises(ValueError):
         _collect(run, tmp_path, onto="origin/main")
     assert run.calls == []
+
+
+class _OntoRun:
+    def __init__(self, *, fetch_rc=0, mb_rc=0, mb_out=_ONTO + "\n"):
+        self.calls = []
+        self.fetch_rc, self.mb_rc, self.mb_out = fetch_rc, mb_rc, mb_out
+
+    def __call__(self, argv, cwd=None, timeout=None, **_kw):
+        argv = list(argv)
+        self.calls.append(argv)
+        if argv[:3] == ["git", "fetch", "origin"]:
+            return cp.CmdResult(self.fetch_rc, "", "")
+        if argv[:2] == ["git", "merge-base"]:
+            return cp.CmdResult(self.mb_rc, self.mb_out, "")
+        return cp.CmdResult(127, "", f"unexpected {argv}")
+
+
+def test_the_default_onto_is_the_main_commit_the_lane_is_synced_to(tmp_path):
+    """Run 3 of b2-codespace-green: cut from the CURRENT origin/main, a main that had moved since
+    the lane's sync conflicted on a generated file. The integrator lands a lane it has synced, so
+    the scratch branch is cut from the main commit the base already contains."""
+    run = _OntoRun()
+    assert cp.default_onto(run, root=tmp_path, base=_SHA) == _ONTO
+    assert ["git", "merge-base", "origin/main", _SHA] in run.calls
+
+
+@pytest.mark.parametrize("kw", [dict(fetch_rc=1), dict(mb_rc=1), dict(mb_out="\n"),
+                                dict(mb_out="not-a-sha\n")])
+def test_the_default_onto_refuses_what_it_cannot_read(tmp_path, kw):
+    with pytest.raises(ValueError):
+        cp.default_onto(_OntoRun(**kw), root=tmp_path, base=_SHA)

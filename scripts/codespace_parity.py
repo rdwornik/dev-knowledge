@@ -952,6 +952,24 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         record["cleanup"] = _read_cleanup(run, root, scratch_branch, workdir)
 
 
+def default_onto(run: Runner, *, root: Path, base: str) -> str:
+    """The main commit the integrator cuts its scratch branch from: the one `base` ALREADY contains
+    -- `git merge-base origin/main <base>` after a fetch.
+
+    The integrator lands a lane it has synced to main. Cutting from the CURRENT origin/main instead
+    made every lane that main had outrun conflict on the generated files both sides regenerate
+    (b2-codespace-green run 3: `ecosystem/doc-counts.md`), which says main moved, not that the
+    lane is wrong. A lane that is not synced is the integrator's re-sync, not this tool's guess."""
+    fetched = run(["git", "fetch", "origin", "main"], cwd=root, timeout=300)
+    if fetched.returncode != 0:
+        raise ValueError(f"git fetch origin main exited {fetched.returncode}: pass --onto explicitly")
+    found = run(["git", "merge-base", "origin/main", base], cwd=root, timeout=120)
+    onto = found.stdout.strip() if found.returncode == 0 else ""
+    if not _FULL_SHA_RE.fullmatch(onto):
+        raise ValueError(f"no merge-base of origin/main and {base}: pass --onto explicitly")
+    return onto
+
+
 def _read_ci(sha: str, *, base: str, root: Path, timeout_s: int, interval_s: int,
              verdict_fn: Optional[Callable]) -> dict:
     try:
@@ -1611,9 +1629,9 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
 @click.option("--scratch-branch", required=True, help="worktree-integrate-<slug>; never main.")
 @click.option("--base", required=True, help="Full 40-hex sha the run branch was cut from.")
 @click.option("--onto", default=None,
-              help="Full sha the scratch branch is cut from; default: origin/main as `git "
-                   "ls-remote` reads it now. (Not --base: CI judges the push as if it landed on "
-                   "main.)")
+              help="Full sha the scratch branch is cut from; default: the main commit --base "
+                   "already contains (`git merge-base origin/main <base>`). Not --base itself: "
+                   "CI judges the push as if it landed on main.")
 @click.option("--workdir", required=True, type=click.Path(path_type=Path),
               help="Where the scratch worktree is created (and removed).")
 @click.option("--test", "outcome_test", required=True,
@@ -1628,12 +1646,7 @@ def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optiona
         if not (isinstance(argv, list) and argv and all(isinstance(a, str) for a in argv)):
             raise ValueError("--test must be a non-empty JSON list of strings")
         if onto is None:
-            main = default_run(["git", "ls-remote", "--heads", "origin", "main"], cwd=_REPO_ROOT,
-                               timeout=120)
-            onto = _exact_head(main.stdout, "main") if main.returncode == 0 else None
-            if not onto:
-                raise ValueError("could not read origin/main: pass --onto explicitly")
-            default_run(["git", "fetch", "origin", "main"], cwd=_REPO_ROOT, timeout=300)
+            onto = default_onto(default_run, root=_REPO_ROOT, base=base)
         record = collect_integration(default_run, root=_REPO_ROOT, run_branch=run_branch,
                                      scratch_branch=scratch_branch, base=base, onto=onto,
                                      outcome_test=argv, workdir=workdir,
