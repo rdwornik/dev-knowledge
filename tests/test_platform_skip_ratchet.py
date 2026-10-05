@@ -360,6 +360,7 @@ def test_the_live_tree_has_at_least_one_of_each_known_shape():
     so the predicate is measured against the live tree and not only fixtures."""
     sites = psr.scan_sites(psr.repo_root() / "tests")
     modules = {s.module for s in sites}
-    for expected in ("test_codespace_admission.py", "test_dispatch_launch.py",
-                     "test_dispatch_py.py", "test_dispatch_shim.py"):
+    # test_codespace_admission.py left this list when its Windows skip was fixed at its cause
+    # (b2-codespace-green, item 2) -- a site removed because it was repaired is the ratchet working.
+    for expected in ("test_dispatch_launch.py", "test_dispatch_py.py", "test_dispatch_shim.py"):
         assert expected in modules, f"{expected} no longer carries a platform skip site"
