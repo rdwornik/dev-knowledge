@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-05  
-**Generated:** 2026-10-05T17:40:48  
+**Generated:** 2026-10-05T20:42:11  
 **Repos audited:** 6  
-**Checks:** 826 total — 157 pass, 13 fail, 465 warn, 0 unavailable, 191 n/a
+**Checks:** 826 total — 159 pass, 13 fail, 463 warn, 0 unavailable, 191 n/a
 
 ---
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-jamu7cno\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-0a6lvig4\wt`  
 **Last audit:** 2026-10-05
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 29d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-04; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-04, newest input docs/audits committed 2026-10-04 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 30 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 7 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -101,7 +101,7 @@
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (392 node(s), 30023 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17907 bytes, within its 18000-byte budget |
-| `fleet_audit_replication` | WARN | automation/fleet-audit is 1 commit(s) ahead of origin -- a recent push likely failed; ADR-80's durable record is behind |
+| `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
@@ -616,7 +616,7 @@ History: [`ecosystem\ai-council\history/`](ecosystem\ai-council\history/)
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'corp-monorepo-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 1 of 1 linked worktree(s) look unclosed (horizon 7d): vk/c35d-test [registered but gone from disk - run `git worktree prune`] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | PASS | no linked worktrees registered (primary only) - nothing to close out |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -853,7 +853,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 6 of 6 linked worktree(s) look unclosed (horizon 7d): fix/cloud-models-fail-fast [last commit 40d ago]; feat/cloud-models [last commit 40d ago]; feat/codespace-name-from-stdout [last commit 20d ago]; fix/sanitise-external-text [last commit 40d ago]; fix/check-advisory-unowned-path [last commit 40d ago]; worktree-lane-ab-810-substrate-repair [last commit 19d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 20d ago]; worktree-lane-ab-810-substrate-repair [last commit 19d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -910,9 +910,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 157/826 checks passed
+- 159/826 checks passed
 - **13 failure(s)** — route findings to repo owners
-- 465 warning(s)
+- 463 warning(s)
 - 191 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
