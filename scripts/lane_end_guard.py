@@ -296,7 +296,7 @@ def _write_wake_to(home: Path, name: str, body: str) -> Path:
     for attempt in range(WAKE_WRITE_ATTEMPTS):
         try:
             home.mkdir(parents=True, exist_ok=True)
-            tmp.write_text(body, encoding="utf-8")
+            tmp.write_text(body, encoding="utf-8", newline="\n")
             os.replace(tmp, path)
             return path
         except OSError:
@@ -359,7 +359,7 @@ def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path
                         seen.add(path.name)
                 except OSError:
                     pass   # unreadable now, not old: the polling loop retries it rather than record it as seen
-            ledger.write_text("".join(f"{n}\n" for n in sorted(seen)), encoding="utf-8")
+            ledger.write_text("".join(f"{n}\n" for n in sorted(seen)), encoding="utf-8", newline="\n")
     started = now()
     while True:
         for path in _wake_files(home):
