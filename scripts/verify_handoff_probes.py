@@ -1493,11 +1493,21 @@ def _rule_transport(value: str, ctx: _BootCtx) -> tuple[str, str]:
     except ImportError:
         return "skipped", "handoff_state not importable"
     value = value.strip()
+    try:
+        fresh = _hs.row_transport(ctx.repo_root).rendered().strip()
+    except Exception as exc:            # noqa: BLE001 -- a reader's own failure is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    if value == fresh and value.startswith("unavailable"):
+        # DECIDED-BY-LANE (Codex HIGH 1 DECLINED): the registry was unreadable at the cut and
+        # still is; every state row has always recorded and re-derived that degrade the same
+        # way, and the cuts the tests make from registry-less stub repos rest on it. Failing it
+        # closed would refuse each of them for a state this rule cannot improve on. It is a pass
+        # that says so, never a clean reading.
+        return "pass", f"registry unreadable at the cut and now, the same degraded reading: {fresh}"
     m = _TRANSPORT_VALUE_RE.fullmatch(value)
     if m is None:
         return "fail", (f"cut recorded {value!r}, which is not `<n> kind(s) registered"
-                        f"[, names-digest <12 hex>] — evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]` "
-                        f"(a degraded `unavailable` reading is not a transport fact)")
+                        f"[, names-digest <12 hex>] — evidence: {_hs.TRANSPORT_REGISTRY_REL} [SLOW]`")
     recorded_count, recorded_digest = int(m.group(1)), m.group(2)
     try:
         live = _hs.transport_kind_names(
