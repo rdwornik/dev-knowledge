@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-10-04 (n) - CC (Opus 5.5, integrator seat B2-W1 cycle 8): lane b2-ci-poll merges with Done item 4 UNMET by architect ruling -- the lane-end wait ends on the guard's own outcome instead of idling 300 s, and the Linux leg's 420 s target moves to a row
+
+**Anchors:** `6195258d`, `2166b06a`, `e2d55f77`, `122a8a37`, `05005702`, `f52caf92` -- `worktree-b2-ci-poll` (B2-W1 W1-3)
+
+**Did:**
+- Merged batch B2-W1 lane W1-3: `tests/test_connection_loop.py`'s lane-end wait is condition-based and still bounded at exactly 300 s (Codex terra High fixed: the bound test pins 300, so 301 fails). Its Done item 4 (Linux pytest step at most 420 s on two runs: 384 s and 551 s; main's own step 537-642 s) is UNMET: the architect ruled on 2026-10-05 that it is neither waived nor re-baselined, that the lane merges with the item recorded UNMET, and that B2-W2 lane W2-13 (shards) carries it as `[#1383]`.
+- Filed four rows from the architect's 2026-10-05 rulings in the next commit: `[#1383]` (the 420 s Linux leg), `[#1384]` (STANDING_RULINGS section AR cites the v4 ratification), `[#1385]` (decision_coverage recognises an AMEND carried by its merged lanes), `[#1386]` (the cut generator names every OPEN carrier; a superseded file needs no carrying).
+- `[#889]` refs cite the lane's review record as its governance consumer. The closed merge receipt of lane b2-transport-lint (`cd3ab8a6`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `tests/test_connection_loop.py`, one review record, `tasks/889-…`, `tasks/1383-…`..`tasks/1386-…`, generated index/counts/BACKLOG.
+
+**Next:** W1-8 b2-branch-context-tests is freed (its edge was this lane) and goes first, by ruling: three merges reached `main` by a hand push under N6 because test_A reads NEW until W1-8 lands.
+
+---
+
 ### 2026-10-04 (m) - CC (Opus 5.5, integrator seat B2-W1 cycle 8): lane b2-transport-lint merges after its last repair -- every transport write is linted, a signal and a decision file each have one shape, and the template's R59 proof is checked by content, not by a frozen line number
 
 **Anchors:** `477353aa`, `69ae5bcc`, `40d4f813`, `b16cfebb`, `a4f0fa89`, `5b28f52c`, `7e570c44`, `d7e0e30b` -- `worktree-b2-transport-lint` (B2-W1 W1-6, after repair 2 of 2)
