@@ -24,7 +24,7 @@ import json
 import pytest
 
 import consumer_at_landing as cal
-from branch_context import witness
+from branch_context import names_at_merge_base, witness
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -403,13 +403,27 @@ def test_an_undecodable_artifact_raises_rather_than_undercounting(tree):
 @pytest.mark.live_repo
 def test_the_live_corpus_measures_and_the_baseline_matches_it():
     """The committed baseline is commensurable with a live measurement — a ratchet whose
-    baseline no longer parses is a gate that measures nothing."""
+    baseline no longer parses is a gate that measures nothing.
+
+    SCOPED TO WHAT THIS BRANCH INHERITED. A review record a lane adds has no consumer until the
+    merge writes its `kind: merge` receipt (`logs/MERGE-RECEIPTS.jsonl`), so the unscoped check
+    was red on every lane that landed one -- 61/67 lane runs, and on `main` too (15/21) in the
+    window between a merge and its receipt (`DIGEST-B2-PREP-2026-10-03` Part 4). Now the
+    unconsumed set is compared to the baseline for the corpus at the merge base with
+    `origin/main`: on `main` that is the whole corpus (as strict as before), on a lane it leaves
+    out only the records the lane added. A record with no consumer route after it has been on
+    `main` still fails, and a baseline that no longer parses still fails.
+    """
     root = cal.repo_root()
     m = cal.measure(root)
     baseline = cal.load_baseline(root)
     assert baseline is not None, f"{cal.BASELINE_RELPATH} is absent or malformed"
     assert baseline["detector_id"] == m.detector_id
-    assert set(m.unconsumed) - set(baseline["artifacts"]) == set()
+    owed = set(m.unconsumed) - set(baseline["artifacts"])
+    inherited = names_at_merge_base(root, "docs/audits")
+    if inherited is not None:
+        owed &= {name.rsplit("/", 1)[-1] for name in inherited}
+    assert owed == set()
 
 
 @pytest.mark.xdist_group(name="branch_context")

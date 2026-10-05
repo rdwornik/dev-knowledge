@@ -9,7 +9,7 @@ import pytest
 
 
 import gen_audit_index as gai  # noqa: E402
-from branch_context import witness  # noqa: E402
+from branch_context import names_at_merge_base, witness  # noqa: E402
 
 
 def _audit(d: Path, name: str, title: str | None = "T") -> None:
@@ -108,9 +108,37 @@ def test_check_detects_drift(tmp_path, monkeypatch, capsys):
     assert "stale vs docs/audits/" in capsys.readouterr().err
 
 
+def _live_index_verdict() -> int:
+    """`gai.main(["--check"])`, scoped to the audits the merge base already carried.
+
+    THE DEFECT THIS REPLACES. The live check compared the shipped README to EVERY tracked audit.
+    A lane that adds an audit is barred from regenerating that shared file (`[#590]`: requiring
+    it put the index in 6 of the last 7 conflicted merges), so the check was stale on every such
+    lane and fresh on `main` -- 41/67 lane runs against 0/21 `main` runs, a verdict about the
+    branch rather than the index.
+
+    THE SCOPE. The shipped README must match a render of the audits that existed at the merge
+    base with `origin/main`. On `main` that merge base IS HEAD, so the check is the strict one;
+    on a lane it ignores only the audits the lane itself added, which the integrator indexes at
+    merge. A README the lane DID regenerate matches the full render and is checked by the
+    unchanged `gai.main`. No branch name is read: a stale row for an audit the branch
+    inherited, or a title-less audit anywhere, still fails.
+    """
+    root = gai._REPO_ROOT
+    tracked = gai.tracked_files(root)
+    inherited = names_at_merge_base(root, "docs/audits")
+    if tracked is not None and inherited is not None:
+        lane_added = frozenset(p for p in tracked
+                               if p.startswith("docs/audits/") and p not in inherited)
+        scoped = gai.render_index(tracked=tracked - lane_added)
+        if gai._TARGET.read_text(encoding="utf-8") == scoped:
+            return gai._check_titles()
+    return gai.main(["--check"])
+
+
 def test_live_index_is_fresh():
-    # the shipped docs/audits/README.md matches disk (the generator's own green)
-    assert gai.main(["--check"]) == 0
+    # the shipped docs/audits/README.md matches the audits this branch inherited
+    assert _live_index_verdict() == 0
 
 
 # --- tracked-files-only: the twin of the d5b19a2d F1 fix in generate_organ_index -----
@@ -189,8 +217,9 @@ def test_a_path_outside_the_repo_root_is_never_silently_dropped(tmp_path, monkey
 
 def test_live_index_excludes_nothing_because_every_audit_is_tracked():
     # The result to want, measured rather than assumed: the shipped index is byte-unchanged
-    # by this fix (d5b19a2d recorded the same outcome for its twin).
-    assert gai.main(["--check"]) == 0
+    # by this fix (d5b19a2d recorded the same outcome for its twin). Same scoped verdict as
+    # `test_live_index_is_fresh`: the audits this branch inherited are all indexed.
+    assert _live_index_verdict() == 0
     assert sys.executable  # keep the import honest under ruff
 
 

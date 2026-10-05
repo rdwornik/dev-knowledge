@@ -41,7 +41,7 @@ if str(_SCRIPTS) not in sys.path:
 import audit as aud  # noqa: E402
 import gen_handoff as gh  # noqa: E402
 import graph_queries as gq  # noqa: E402
-from branch_context import witness  # noqa: E402
+from branch_context import pin_journal_spine, witness  # noqa: E402
 
 _RECEIPT_NAMES = {"MOMENT-SEAT-RELEASE-NOTES.json", "MOMENT-SEAT-RELEASE-BUNDLE.json",
                   "MOMENT-SEAT-RELEASE-MANIFEST.json", "MOMENT-SEAT-RELEASE-COPY.json"}
@@ -137,6 +137,10 @@ def dry_bundle(tmp_path_factory) -> Path:
     # already does for the Step 1 fixture).
     _dispatch_drift_pass.__name__ = "check_dispatch_drift"
     mp.setattr(aud, "check_dispatch_drift", _dispatch_drift_pass)
+    # The two JOURNAL-spine organs read the live JOURNAL against `main`: red on any lane whose
+    # tree lags `main`, and on `main` between a merge and its JOURNAL entry. That is not what this
+    # module tests (B2-W1 W1-8; tests/branch_context.py::pin_journal_spine).
+    pin_journal_spine(mp)
     try:
         res = gh.generate(_REPO, mode="architect", dry_cut=True, bundle_root=root,
                           assemble=True, boot_turns=1, boot_dispatch="test", date=today,

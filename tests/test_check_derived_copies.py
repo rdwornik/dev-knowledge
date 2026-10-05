@@ -15,6 +15,7 @@ THE SHAPE OF THIS FILE. Three populations, and the split is deliberate:
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,7 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from scripts import check_derived_copies as cdc  # noqa: E402
-from branch_context import witness  # noqa: E402
+from branch_context import BranchContexts, witness  # noqa: E402
 
 
 # --- the matcher ------------------------------------------------------------------------
@@ -154,15 +155,45 @@ def test_the_l0_routing_row_is_registered_and_self_gated(registry):
     assert row.on_target_absent == "warn"
 
 
-def test_self_gated_rows_pass_on_the_current_tree(registry):
+def _inherited_root(tmp_path_factory) -> Path:
+    """The tree whose self-gated rows this test judges: the tree `main` carried when this branch
+    left it.
+
+    On `main` -- or before the branch has a commit of its own -- the merge base with
+    `origin/main` IS HEAD, and the answer is the live tree, exactly as before. On a lane it is a
+    clone at the merge base. The difference is the whole point: a derived copy such as
+    `ecosystem/doc-counts.md` records a count of the tests the tree collects, and a lane that adds
+    tests changes the count while the regeneration is the integrator's. Judged against the live
+    tree the row was stale on 41/67 lane runs and fresh on `main` (`DIGEST-B2-PREP-2026-10-03`
+    Part 4), a verdict about the branch. Judged against what the branch inherited, a row `main`
+    itself left stale (a merge before the regeneration -- 2/21 `main` runs) still fails here, which
+    is the real signal the live check carried.
+    """
+    try:
+        head = subprocess.run(["git", "-C", str(_REPO_ROOT), "rev-parse", "HEAD"],
+                              capture_output=True, text=True, check=True).stdout.strip()
+        base = subprocess.run(["git", "-C", str(_REPO_ROOT), "merge-base", "HEAD", "origin/main"],
+                              capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return _REPO_ROOT          # cannot tell what was inherited: judge the live tree, strictly
+    if not base or base == head:
+        return _REPO_ROOT
+    return BranchContexts(tmp_path_factory.mktemp("inherited"), base=base).main()
+
+
+def test_self_gated_rows_pass_on_the_current_tree(tmp_path_factory):
     """Every self-gated row is CURRENT right now — so arming the gate refuses nothing
-    that is already committed, which is what makes it landable rather than a wedge."""
+    that is already committed, which is what makes it landable rather than a wedge.
+
+    "Committed" is `main`'s committed state: see `_inherited_root`."""
+    root = _inherited_root(tmp_path_factory)
+    registry = cdc.load_registry(root)
     assert registry.self_gated, "no self-gated row: this test would pass vacuously"
     for cid, copy in registry.self_gated.items():
         findings = cdc.check_rebinds(
             cdc.DerivedCopiesRegistry(schema_version=registry.schema_version,
                                       copies={cid: copy}),
-            _REPO_ROOT,
+            root,
             # a path guaranteed to rebind THIS row: its first literal source, or a
             # constructed one for a glob source
             [_a_path_matching(copy.sources[0])])

@@ -23,7 +23,7 @@ import pytest
 
 import audit as aud
 import gen_handoff as gh
-from branch_context import witness
+from branch_context import pin_journal_spine, witness
 
 # repair U1 follow-up (integrator d9fa78c0, CI run 36945030700): `scripts/audit_checks/
 # check_dispatch_drift.py` resolves its module as `from scripts import dispatch_drift`
@@ -73,6 +73,12 @@ def _run_dry_cut(tmp_path: Path, monkeypatch, *, today: str = "2026-10-01",
     # DIGEST-HANDOFF-UNBLOCK-2026-09-30 §3 measured. Pinned to "none" for determinism
     # (AMEND item 2); its live behaviour has its own test in test_gen_handoff_preflight.py.
     monkeypatch.setattr(gh, "_linked_worktrees", lambda repo_root: [])
+    # Rows 6 (`journal_anchored`) and the ship_gate row's `journal_spine_anchor` organ read the live
+    # JOURNAL against `main`'s spine, so they are red on any lane whose tree lags `main` and on
+    # `main` between a merge and its JOURNAL entry -- a fact about the branch, not about the cut
+    # (B2-W1 W1-8; tests/branch_context.py::pin_journal_spine). Their own behaviour has its own
+    # tests; this one pins them clean.
+    pin_journal_spine(monkeypatch)
     # dispatch_drift (also in the handoff organ set) resolves every literal command in
     # PLAYBOOK Ch8's dispatch table via Get-Command on THIS machine's PATH -- clean on a dev
     # box with codex/agy/etc. installed, a genuine hard-fail on a bare CI runner that carries
