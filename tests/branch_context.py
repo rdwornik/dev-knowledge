@@ -170,10 +170,14 @@ class BranchContexts:
         return self.work
 
     def integration(self, *, branch: str = "worktree-branch-context-probe",
-                    lane_files: "dict[str, str] | None" = None) -> Path:
+                    lane_files: "dict[str, str] | None" = None,
+                    receipt_slug: "str | None" = None) -> Path:
         """The shape the integrator pushes: HEAD is a `--no-ff` merge of a lane onto `origin/main`
         with `docs/audits/README.md` regenerated IN the merge, so the index lists what the lane
         added. HEAD == local `main`'s child; local `main` == `origin/main` is the merge's first parent.
+        The integrator's merge also lands a `kind: merge` receipt for the lane in
+        `logs/MERGE-RECEIPTS.jsonl` (`receipt_slug` names the lane; None writes none), which is the
+        consumer a review record the lane added then has.
         """
         self._reset()
         _git(self.work, "checkout", "-q", "-b", branch, self.base)
@@ -182,6 +186,13 @@ class BranchContexts:
         _git(self.work, "commit", "-q", "-m", "lane: the lane's own work")
         _git(self.work, "checkout", "-q", "-b", "integration", "main")
         _git(self.work, "merge", "-q", "--no-ff", "--no-commit", branch)
+        if receipt_slug:
+            receipts = self.work / "logs" / "MERGE-RECEIPTS.jsonl"
+            receipts.parent.mkdir(parents=True, exist_ok=True)
+            with open(receipts, "a", encoding="utf-8", newline="\n") as fh:
+                if receipts.stat().st_size and not receipts.read_bytes().endswith(b"\n"):
+                    fh.write("\n")
+                fh.write(json.dumps({"kind": "merge", "slug": receipt_slug}) + "\n")
         subprocess.run([sys.executable, str(self.work / "scripts" / "gen_audit_index.py"), "--write"],
                        cwd=str(self.work), check=True, capture_output=True, timeout=300)
         _git(self.work, "add", "-A")

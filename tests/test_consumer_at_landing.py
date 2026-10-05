@@ -24,7 +24,8 @@ import json
 import pytest
 
 import consumer_at_landing as cal
-from branch_context import merge_base_with_main, names_at_merge_base, witness
+from branch_context import (BranchContexts, contexts, merge_base_with_main, names_at_merge_base,
+                            tail, witness)
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -438,3 +439,25 @@ def test_the_live_corpus_verdict_is_the_same_on_a_lane_that_lands_a_review_recor
             "test_the_live_corpus_measures_and_the_baseline_matches_it",
             lane_files={"docs/audits/2026-10-05-codex-lane-probe.md":
                         "# Codex review of a lane\n\nA landed review record.\n"})
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_main_shaped_control_of_an_integration_merge_is_consumer_clean(tmp_path_factory):
+    """The integration shape (repair 1 of B2-W1 W1-8): the integrator's merge indexes the review
+    record the lane added AND lands its `kind: merge` receipt, which is the record's consumer.
+
+    A control built from that tree keeps the record (its README lists it), so the record is
+    inherited there and must be consumed there -- by the receipt, not by luck. The live check
+    must pass in the control exactly as it does on `main` right after such a merge.
+    """
+    record = "docs/audits/2026-10-05-codex-lane-probe.md"
+    integration = contexts(tmp_path_factory).integration(
+        lane_files={record: "# Codex review of a lane\n\nA landed review record.\n"},
+        receipt_slug="lane-probe")
+    inner = BranchContexts(tmp_path_factory.mktemp("integration-source"), source=integration)
+    control = inner.main()
+    assert (control / record).is_file(), "the control dropped a record its README indexes"
+    done = inner.run_node(
+        control, "tests/test_consumer_at_landing.py::"
+        "test_the_live_corpus_measures_and_the_baseline_matches_it")
+    assert done.returncode == 0, tail(done)
