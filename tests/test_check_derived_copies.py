@@ -26,6 +26,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from scripts import check_derived_copies as cdc  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 
 # --- the matcher ------------------------------------------------------------------------
@@ -166,6 +167,16 @@ def test_self_gated_rows_pass_on_the_current_tree(registry):
             # constructed one for a glob source
             [_a_path_matching(copy.sources[0])])
         assert findings == [], f"{cid} is already stale on the current tree: {findings}"
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_self_gated_rows_verdict_is_the_same_on_a_lane_that_adds_a_test(tmp_path_factory):
+    """The witness for the live test above (B2-W1 W1-8): a lane adds a test file, which changes
+    the collected-test count `ecosystem/doc-counts.md` records, and the regeneration is the
+    integrator's. The listed test, run from a clone shaped like that lane, must pass as on `main`."""
+    witness(tmp_path_factory,
+            "tests/test_check_derived_copies.py::test_self_gated_rows_pass_on_the_current_tree",
+            lane_files={"tests/test_lane_probe.py": "def test_probe():\n    assert True\n"})
 
 
 def _a_path_matching(pattern: str) -> str:

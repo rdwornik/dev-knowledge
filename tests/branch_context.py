@@ -63,9 +63,11 @@ def _write(root: Path, files: dict[str, str]) -> None:
 class BranchContexts:
     """One clone of the live repo's HEAD plus a bare `origin`, re-shaped on request."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, base: "str | None" = None) -> None:
         self.root = root
-        self.base = _git(REPO, "rev-parse", "HEAD")
+        #: The commit that is `main` in every shape: the live HEAD, or a commit the caller names
+        #: (an ancestor of it) when the question is about what `main` carried earlier.
+        self.base = base or _git(REPO, "rev-parse", "HEAD")
         self.origin = root / "origin.git"
         self.work = root / "work"
         hooks = root / "no-hooks"
