@@ -64,3 +64,11 @@ The round-2 fixes (first-start lookback, the cycle's in-flight scan) were re-rea
 ## Consumer
 
 This record is the review the contract names (`LANE-B2-W1-b2-integrator-liveness.md`, Done-contract item 5), written to the name the audit grammar admits (`docs/audits/<date>-codex-<slug>.md`). `docs/audits/README.md` is left stale for the integrator (`[#590]`).
+
+## Amendment 2026-10-05 — repair 1 of 2 (dated, append-only)
+
+The integrator refused the merge of `4a9a03cd` (`to-browser/REFUSED-b2-integrator-liveness.md`, repair 1 of 2): `tests/test_order_cycle_rule.py::test_integrator_cycle_section_names_the_handover_interval_and_rebind` still asserted the old `"2 h"` interval that Done-contract item 2 replaced in `templates/integrator-order-template.md`; it was red on both CI legs and one of eight test files that read the template, which the lane's targeted runs had not included.
+
+**The one test change:** in that test, `assert "2 h" in cycle` became `assert "at least every 3 h" in cycle` — the contract's own 3-hour ceiling as the template now states it. The other three assertions are unchanged; `test_dispatcher_cycle_section_names_the_handover_interval_and_rebind` is untouched (the dispatcher template still says 2 h and is not this lane's). A one-assertion re-point to the contract's own number needs no new Codex read (the refusal's fix list, item 5); no code changed in this repair, so none was requested.
+
+**Not changed (refusal item 6, optional):** the P3 on `c0b19118` (the conftest fixture is inert for `tests/test_connection_loop.py`, whose `World.env()` strips every `HARNESS_*` variable; the witness only reads the in-process variable) is left as it stands — making the witness bite is a further test change that would need its own Codex read. It remains the integrator's `ROWS-OWED` line.

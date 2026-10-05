@@ -92,7 +92,7 @@ def test_dispatcher_state_section_writes_after_every_state_change_and_names_the_
 
 def test_integrator_cycle_section_names_the_handover_interval_and_rebind():
     cycle = _cycle_section(INTEGRATOR_TEMPLATE.read_text(encoding="utf-8"))
-    assert "2 h" in cycle
+    assert "at least every 3 h" in cycle
     assert "context" in cycle
     assert "seat_registry.py bind --role integrator" in cycle
     assert "scripts/seat_state.py read" in cycle
