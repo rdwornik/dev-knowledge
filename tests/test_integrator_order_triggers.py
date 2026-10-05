@@ -172,6 +172,15 @@ def test_the_successor_reads_the_receipt_back_three_times_thirty_seconds_apart()
     assert "STATE" in cycle and "SESSION-integrator" in cycle
 
 
+def test_the_successor_scans_the_in_flight_lanes_and_the_outgoing_seat_starts_no_new_merge():
+    """Codex terra P1, round 2: the wake ledger records what a Monitor reported, not what was acted on, and two
+    Monitors overlap while a handover runs. The cycle says who acts: the successor, from a scan of every lane
+    the state file lists as IN-FLIGHT; the outgoing seat starts no merge once the successor has claimed."""
+    cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
+    assert "IN-FLIGHT" in cycle and "HANDBACK" in cycle
+    assert re.search(r"starts no new merge", cycle)
+
+
 def test_the_cycle_runs_the_transport_sweep_and_stops_every_monitor_and_cron_before_handing_over():
     cycle = _cycle_section(TEMPLATE.read_text(encoding="utf-8"))
     assert "scripts/transport_lint.py sweep" in cycle

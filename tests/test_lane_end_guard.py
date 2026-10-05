@@ -708,13 +708,39 @@ def test_a_restarted_watch_reports_a_wake_that_landed_while_no_monitor_ran(lane)
     first = g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
     seen: list[str] = []
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
-    assert seen == [], "the first start only records what is already there: it is the integrator's own initial scan"
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"], (
+        "Codex terra P1, round 2: the FIRST start reports a recent wake too -- the template has no separate initial scan")
     assert first.name in ledger.read_text(encoding="utf-8")
+    seen.clear()
     g.write_wake(lane["wakes"], "lane-b", "HANDBACK worktree-b @ bbbbbbb code")   # no Monitor is running
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
     assert seen == ["WAKE lane-b HANDBACK worktree-b @ bbbbbbb code"]
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
     assert len(seen) == 1, "a third start reports nothing twice"
+
+
+def test_the_first_start_reports_recent_wakes_and_only_records_the_old_ones(lane):
+    g = _guard()
+    stale = g.write_wake(lane["wakes"], "lane-old", "HANDBACK worktree-old @ 0000000 code")
+    long_ago = time.time() - g.FIRST_START_LOOKBACK_S - 600
+    os.utime(stale, (long_ago, long_ago))
+    g.write_wake(lane["wakes"], "lane-new", "HANDBACK worktree-new @ 1111111 code")
+    seen: list[str] = []
+    g.watch_wakes(lane["wakes"], ledger=lane["wakes"] / ".watch-seen", poll_s=0, max_wait_s=0, emit=seen.append)
+    assert seen == ["WAKE lane-new HANDBACK worktree-new @ 1111111 code"], "an earlier batch's wake is not replayed"
+    assert stale.name in (lane["wakes"] / ".watch-seen").read_text(encoding="utf-8")
+
+
+def test_two_monitors_each_report_every_wake_to_their_own_seat(lane):
+    """Codex terra P1, round 2 (overlapping Monitors). Claiming a wake before emitting it would let the OUTGOING
+    seat's Monitor take a wake from the successor at a handover. Each Monitor reports to its own seat; the cycle's
+    in-flight scan, not a lock, is what keeps one seat from acting twice."""
+    g = _guard()
+    first, second = [], []
+    g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=first.append)
+    g.watch_wakes(lane["wakes"], since=time.time() - 60, poll_s=0, max_wait_s=0, emit=second.append)
+    assert first == second and len(first) == 1
 
 
 def test_the_watch_cli_without_since_resumes_from_its_ledger(lane, tmp_path):

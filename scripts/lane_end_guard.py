@@ -72,6 +72,7 @@ WAKE_DIR_NAME = "integrator-wake"
 WATCH_POLL_S = 2.0       # the Monitor sees a wake within one poll of its being written
 WATCH_LEDGER = ".watch-seen"   # the watch's cursor: the wake files it has already reported
 WAKE_WRITE_ATTEMPTS, WAKE_RETRY_S = 3, 0.2
+FIRST_START_LOOKBACK_S = 3 * 3600   # a first watch reports wakes this recent: the cycle ceiling, so nothing of this seat's era is lost
 _STATE_APP_NAME = "dev-knowledge"   # the same per-user state directory `merge_path.py` and `quota_watch.py` use
 
 # Windows creation flags: no console window (the organs' children must not each open one), its own process
@@ -312,8 +313,13 @@ def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path
 
     Two ways to say which wakes count. `since` (epoch s): those written at or after it. `ledger` (a file): the
     CURSOR -- the names already reported are listed in it, a wake not listed is reported whenever it landed, so a
-    restarted Monitor and a successor seat lose nothing and repeat nothing. The first start on a missing ledger
-    only records what is already there (the integrator's own initial scan covers it)."""
+    restarted Monitor and a successor seat lose nothing and repeat nothing that an earlier Monitor reported. The
+    first start on a missing ledger reports every wake from the last `FIRST_START_LOOKBACK_S` and only records the
+    older ones (an earlier batch's), so a handback that landed before the first Monitor is not lost.
+
+    Each Monitor reports to its OWN seat: two overlapping at a handover both report a wake. That is deliberate --
+    claiming a wake before reporting it would let the outgoing seat's Monitor take it from the successor. What stops
+    two seats acting on one handback is the cycle's order (the template), not a lock here."""
     emit = emit or (lambda line: print(line, flush=True))
     seen: set[str] = set()
     if ledger is not None:
@@ -321,7 +327,13 @@ def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path
         if ledger.is_file():
             seen = set(ledger.read_text(encoding="utf-8").split())
         else:
-            seen = {p.name for p in home.glob(f"{WAKE_PREFIX}*.json")}
+            cutoff = time.time() - FIRST_START_LOOKBACK_S
+            for path in home.glob(f"{WAKE_PREFIX}*.json"):
+                try:
+                    if path.stat().st_mtime < cutoff:
+                        seen.add(path.name)
+                except OSError:
+                    seen.add(path.name)
             ledger.write_text("".join(f"{n}\n" for n in sorted(seen)), encoding="utf-8")
     started = now()
     while True:

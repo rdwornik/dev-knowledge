@@ -179,7 +179,11 @@ long session. One session ran 15.7 h in FOUNDATION; the ceiling is what prevents
    did: it claims `INTEGRATOR-<BATCH>-cycle-<n>` (`claim.py claim`; `<n>` counts the handovers),
    binds its own seat (`seat_registry.py bind --role integrator --batch <BATCH>`), and rebinds from
    the state file (`scripts/seat_state.py read --path to-browser/STATE-<batch-slug>.json`) instead of
-   rereading the whole night's receipt. It starts its own Monitor and cron (Waiting, above).
+   rereading the whole night's receipt. It starts its own Monitor and cron (Waiting, above), then
+   reads `to-browser/SESSION-<slug>.md` of every lane the state file lists as IN-FLIGHT for a closing
+   `HANDBACK` line: the wake ledger shows what a Monitor reported, not what was acted on. From the
+   moment the successor has claimed, the outgoing seat starts no new merge; a wake its own Monitor
+   still prints is the successor's to act on.
 3. **The successor reads the receipt back three times, 30 s apart.** The last `STATE` line of
    `to-browser/SESSION-integrator-<batch-slug>.md`: three identical reads show the outgoing seat is
    quiet. A line that changed means it was still merging — wait for the next no-merge point.
