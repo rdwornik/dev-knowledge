@@ -1697,6 +1697,109 @@ def _collect(run, tmp_path, **kw):
     return cp.collect_integration(run, **args)
 
 
+class _Regressed(_Verdict):
+    state = "REGRESSED"
+    reason = "1 new red test(s), 0 non-test failure(s), 0 job(s) broken"
+    new_reds = ("pytest (windows-latest): tests/test_x.py::test_a_timing_flake",)
+
+
+class _RerunRun(_GitRun):
+    """`_GitRun` plus the two `gh` calls a CI re-run makes: `run rerun` and the status poll."""
+
+    def __init__(self, *, rerun_rc=0, statuses=("in_progress",), **kw):
+        super().__init__(**kw)
+        self.rerun_rc, self.statuses = rerun_rc, list(statuses)
+
+    def __call__(self, argv, cwd=None, timeout=None, **kw):
+        if list(argv)[:3] == ["gh", "run", "rerun"]:
+            self.calls.append((list(argv), str(cwd) if cwd else None))
+            return cp.CmdResult(self.rerun_rc, "", "denied" if self.rerun_rc else "")
+        if list(argv)[:3] == ["gh", "run", "view"]:
+            self.calls.append((list(argv), str(cwd) if cwd else None))
+            status = self.statuses.pop(0) if len(self.statuses) > 1 else self.statuses[0]
+            return cp.CmdResult(0, status + "\n", "")
+        return super().__call__(argv, cwd=cwd, timeout=timeout, **kw)
+
+
+def _verdicts(*vs):
+    seq = list(vs)
+    return lambda sha, **k: seq.pop(0) if len(seq) > 1 else seq[0]
+
+
+def _reruns(run):
+    return [c[0] for c in run.calls if c[0][:3] == ["gh", "run", "rerun"]]
+
+
+def test_a_test_only_red_is_re_run_once_and_both_verdicts_stay_in_the_record(tmp_path):
+    """Runs 7 and 8 of b2-codespace-green: a different Windows timing test went red each time and
+    passed alone on the same merge. One bounded re-run of the failed jobs, with the FIRST verdict
+    kept beside the second -- a flake is shown, never hidden."""
+    run = _RerunRun()
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   ci_interval_s=0, sleep_fn=lambda s: None)
+    assert rec["ci"]["state"] == "PASS"
+    assert [a["state"] for a in rec["ci_attempts"]] == ["REGRESSED", "PASS"]
+    assert rec["ci_attempts"][0]["new_reds"] == list(_Regressed.new_reds)
+    assert _reruns(run) == [["gh", "run", "rerun", "77", "--failed"]]
+
+
+def test_the_re_run_is_bounded_and_a_red_that_stays_red_stays_red(tmp_path):
+    run = _RerunRun()
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed()), sleep_fn=lambda s: None)
+    assert rec["ci"]["state"] == "REGRESSED" and len(rec["ci_attempts"]) == 2
+    assert len(_reruns(run)) == 1
+    assert cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec).status == "FAIL"
+
+
+@pytest.mark.parametrize("verdict", [
+    type("V", (_Regressed,), {"reason": "1 new red test(s), 1 non-test failure(s), 0 job(s) broken"}),
+    type("V", (_Regressed,), {"reason": "1 new red test(s), 0 non-test failure(s), 1 job(s) broken"}),
+    type("V", (_Regressed,), {"reason": "5 new red test(s), 0 non-test failure(s), 0 job(s) broken"}),
+    type("V", (_Regressed,), {"missing_contexts": ("pytest (windows-latest)",)}),
+    type("V", (_Regressed,), {"state": "CANCELLED"}),
+    type("V", (_Regressed,), {"run_id": None}),
+])
+def test_only_a_closed_test_only_red_is_ever_re_run(tmp_path, verdict):
+    run = _RerunRun()
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(verdict()), sleep_fn=lambda s: None)
+    assert _reruns(run) == [] and "ci_attempts" not in rec
+
+
+def test_a_verdict_that_is_only_declared_cases_is_not_re_run(tmp_path, monkeypatch):
+    monkeypatch.setitem(cp.DECLARED_CI_CASES, "tests/test_x.py::test_a_timing_flake",
+                        "[#716] declared")
+    run = _RerunRun()
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed()), sleep_fn=lambda s: None)
+    assert _reruns(run) == [] and "ci_attempts" not in rec
+
+
+def test_ci_reruns_zero_never_re_runs_and_a_refused_re_run_keeps_the_first_verdict(tmp_path):
+    run = _RerunRun()
+    _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed()), ci_reruns=0, sleep_fn=lambda s: None)
+    assert _reruns(run) == []
+    run = _RerunRun(rerun_rc=1)
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   sleep_fn=lambda s: None)
+    assert rec["ci"]["state"] == "REGRESSED" and "ci_attempts" not in rec
+    assert "re-run" in rec["ci_rerun_note"]
+
+
+def test_a_re_run_that_never_leaves_completed_keeps_the_first_verdict(tmp_path):
+    run = _RerunRun(statuses=("completed",))
+    rec = _collect(run, tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   sleep_fn=lambda s: None)
+    assert rec["ci"]["state"] == "REGRESSED" and "never started" in rec["ci_rerun_note"]
+
+
+def test_the_evidence_names_the_re_run_so_a_flake_is_visible_in_the_check(tmp_path):
+    rec = _collect(_RerunRun(), tmp_path, verdict_fn=_verdicts(_Regressed(), _Verdict()),
+                   sleep_fn=lambda s: None)
+    verdict = cp.compare_landing(_record("local"), _remote_pushed(_SHA), rec)
+    assert verdict.status == "PASS"
+    assert any("CI re-run" in e and "REGRESSED" in e and "test_a_timing_flake" in e
+               for e in verdict.evidence), verdict.evidence
+
+
 def test_collect_integration_merges_no_ff_on_a_scratch_branch_tests_pushes_reads_ci_and_cleans(tmp_path):
     run = _GitRun()
     rec = _collect(run, tmp_path)

@@ -70,6 +70,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
@@ -893,7 +894,8 @@ def _default_verdict(sha: str, **kw):
 def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_branch: str, base: str,
                         outcome_test: Sequence[str], workdir: Path, ci_timeout_s: int = 3600,
                         ci_interval_s: int = 30, verdict_fn: Optional[Callable] = None,
-                        onto: Optional[str] = None, ci_base: Optional[str] = None) -> dict:
+                        onto: Optional[str] = None, ci_base: Optional[str] = None,
+                        ci_reruns: int = 1, sleep_fn: Callable[[float], None] = time.sleep) -> dict:
     """The integrator's acts on the test lane's pushed branch, on a SCRATCH branch, never on main.
 
     1. read the run branch's tip on origin and fetch it;
@@ -978,6 +980,19 @@ def collect_integration(run: Runner, *, root: Path, run_branch: str, scratch_bra
         if pushed:
             record["ci"] = _read_ci(head, base=ci_base, root=root, timeout_s=ci_timeout_s,
                                     interval_s=ci_interval_s, verdict_fn=verdict_fn)
+            attempts = [record["ci"]]
+            for _ in range(max(0, ci_reruns)):
+                if not _rerunnable(record["ci"]):
+                    break
+                started, why = _rerun_failed(run, root, record["ci"]["run_id"], sleep_fn)
+                if not started:
+                    record["ci_rerun_note"] = why
+                    break
+                record["ci"] = _read_ci(head, base=ci_base, root=root, timeout_s=ci_timeout_s,
+                                        interval_s=ci_interval_s, verdict_fn=verdict_fn)
+                attempts.append(record["ci"])
+            if len(attempts) > 1:
+                record["ci_attempts"] = attempts
         return record
     finally:
         if pushed:
@@ -1024,6 +1039,32 @@ def _read_ci(sha: str, *, base: str, root: Path, timeout_s: int, interval_s: int
             "reason": str(getattr(verdict, "reason", "") or "")[:300],
             "new_reds": [str(r) for r in (getattr(verdict, "new_reds", ()) or ())][:40],
             "flagged": [str(f) for f in (getattr(verdict, "flagged", ()) or ())][:20]}
+
+
+def _rerunnable(ci: Mapping) -> bool:
+    """A verdict worth one re-run: REGRESSED by named TESTS alone (the count closes: N named, N
+    counted, no non-test failure, no broken job, no missing context), with a run to re-run, and not
+    already only declared cases. Anything else is a measured red, not a flake candidate."""
+    counts = _CI_RED_COUNTS_RE.match(str(ci.get("reason") or ""))
+    reds = ci.get("new_reds") or []
+    return bool(ci.get("state") == "REGRESSED" and ci.get("run_id") and counts and reds
+                and int(counts.group(1)) == len(reds) and not ci.get("missing_contexts")
+                and not _declared_only_reds(ci))
+
+
+def _rerun_failed(run: Runner, root: Path, run_id, sleep_fn: Callable[[float], None]) -> tuple[bool, str]:
+    """`gh run rerun <id> --failed`, then wait for the run to leave `completed` -- a verdict read
+    straight after the request would still be the OLD attempt's."""
+    asked = run(["gh", "run", "rerun", str(run_id), "--failed"], cwd=root, timeout=120)
+    if asked.returncode != 0:
+        return False, f"CI re-run of run {run_id} refused (exit {asked.returncode})"
+    for _ in range(24):
+        seen = run(["gh", "run", "view", str(run_id), "--json", "status", "--jq", ".status"],
+                   cwd=root, timeout=60)
+        if seen.returncode == 0 and seen.stdout.strip() not in ("", "completed"):
+            return True, ""
+        sleep_fn(5)
+    return False, f"CI re-run of run {run_id} never started: the run stayed completed"
 
 
 def _read_cleanup(run: Runner, root: Path, scratch_branch: str, workdir: Path) -> dict:
@@ -1298,7 +1339,15 @@ def integration_legs(local: Mapping, integration: Optional[Mapping],
         evidence.append(f"CI: {state or '(no state)'} for {ci.get('sha')} (run {ci.get('run_id')}"
                         f"; missing contexts {list(ci.get('missing_contexts') or [])})")
         merge_sha = (merge or {}).get("sha") if isinstance(merge, Mapping) else None
-        declared = _declared_only_reds(ci) if state == "REGRESSED" else None
+        attempts = integration.get("ci_attempts")
+        if isinstance(attempts, list) and len(attempts) > 1:
+            evidence.append("CI re-run (failed jobs only): " + " -> ".join(
+                f"attempt {i} {a.get('state')} (run {a.get('run_id')})"
+                + (f" [{'; '.join(map(str, a.get('new_reds') or []))}]" if a.get("new_reds") else "")
+                for i, a in enumerate(attempts, 1) if isinstance(a, Mapping)))
+        if integration.get("ci_rerun_note"):
+            evidence.append(f"CI re-run NOT made: {integration['ci_rerun_note']}")
+        declared =_declared_only_reds(ci) if state == "REGRESSED" else None
         if declared:
             evidence.append("declared CI case(s), the ONLY reds: " + "; ".join(
                 f"{k} -> {DECLARED_CI_CASES[k]}" for k in declared))
@@ -1691,10 +1740,13 @@ def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional
 @click.option("--test", "outcome_test", required=True,
               help="The outcome test as a JSON argv list, run on the merged tree.")
 @click.option("--ci-timeout", "ci_timeout_s", default=3600, show_default=True, type=int)
+@click.option("--ci-reruns", "ci_reruns", default=1, show_default=True, type=click.IntRange(0, 2),
+              help="Re-runs of the FAILED jobs when the only reds are named tests (a flake "
+                   "candidate); both verdicts are kept in the record. 0 never re-runs.")
 @click.option("--out", "out", required=True, type=click.Path(path_type=Path))
 def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optional[str],
                   ci_base: Optional[str], workdir: Path, outcome_test: str, ci_timeout_s: int,
-                  out: Path) -> None:
+                  ci_reruns: int, out: Path) -> None:
     """Condition 3's integration legs: merge the run branch on a scratch branch, test, read CI."""
     try:
         argv = json.loads(outcome_test)
@@ -1711,7 +1763,7 @@ def integrate_cmd(run_branch: str, scratch_branch: str, base: str, onto: Optiona
         record = collect_integration(default_run, root=_REPO_ROOT, run_branch=run_branch,
                                      scratch_branch=scratch_branch, base=base, onto=onto,
                                      ci_base=ci_base, outcome_test=argv, workdir=workdir,
-                                     ci_timeout_s=ci_timeout_s)
+                                     ci_timeout_s=ci_timeout_s, ci_reruns=ci_reruns)
     except (ValueError, json.JSONDecodeError) as exc:
         raise click.UsageError(str(exc)) from exc
     write_record(out, record)
