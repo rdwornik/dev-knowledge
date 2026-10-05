@@ -255,7 +255,31 @@ def test_8_passes_a_stopped_job_record_and_names_its_state(hub, jobs):
     assert "0d5e4736" in res.evidence and "stopped" in res.evidence
 
 
-@pytest.mark.parametrize("state", ["working", "blocked", "done", "", None])
+def test_8_passes_a_done_job_record_and_names_its_state(hub, jobs):
+    # LANE-B2-W1-b2-integrator-liveness (Done-contract 4): a finished job reads as finished. R3 keeps the
+    # record of a `done` session exactly as it keeps a `stopped` one -- FOUNDATION's integrator job e60f026d
+    # was `done` and its own close could not pass check 08.
+    _job(jobs, "e60f026d", worktreePath=str(_lane_dir(hub)), worktreeBranch=f"worktree-{SLUG}",
+         state="done")
+    res = _run(hub, jobs)[8]
+    assert res.passed, res.evidence
+    assert "e60f026d" in res.evidence and "done" in res.evidence
+
+
+def test_8_passes_a_done_and_a_stopped_record_together(hub, jobs):
+    _job(jobs, "e60f026d", worktreeBranch=f"worktree-{SLUG}", state="done")
+    _job(jobs, "0d5e4736", worktreeBranch=f"worktree-{SLUG}", state="stopped")
+    assert _run(hub, jobs)[8].passed
+
+
+def test_8_fails_when_a_done_record_sits_beside_a_live_one(hub, jobs):
+    _job(jobs, "e60f026d", worktreeBranch=f"worktree-{SLUG}", state="done")
+    _job(jobs, "1e7dcc41", worktreeBranch=f"worktree-{SLUG}", state="working")
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "1e7dcc41" in res.evidence
+
+
+@pytest.mark.parametrize("state", ["working", "blocked", "", None])
 def test_8_still_fails_a_record_in_a_live_or_unknown_state(hub, jobs, state):
     rec = {"worktreePath": str(_lane_dir(hub)), "worktreeBranch": f"worktree-{SLUG}"}
     if state is not None:

@@ -59,8 +59,10 @@ class _Runner:
 def lane(tmp_path: Path) -> dict:
     session = tmp_path / "SESSION-lane-end-hook.md"
     receipts = tmp_path / "receipts"
-    env = {"HARNESS_LANE": LANE, "HARNESS_SESSION_FILE": str(session), "HARNESS_RECEIPTS_DIR": str(receipts)}
-    return {"session": session, "receipts": receipts, "env": env, "root": tmp_path}
+    wakes = tmp_path / "wakes"   # the integrator wake home: a test never writes the operator's own state directory
+    env = {"HARNESS_LANE": LANE, "HARNESS_SESSION_FILE": str(session), "HARNESS_RECEIPTS_DIR": str(receipts),
+           "HARNESS_WAKE_DIR": str(wakes)}
+    return {"session": session, "receipts": receipts, "env": env, "root": tmp_path, "wakes": wakes}
 
 
 def _receipt(lane: dict) -> dict | None:
@@ -515,7 +517,7 @@ def test_the_guard_finds_the_session_file_by_worktree_slug(tmp_path):
 
     (tmp_path / "to-browser").mkdir()
     (tmp_path / "to-browser" / "SESSION-lane-my-slug.md").write_text(HANDBACK + "\n", encoding="utf-8")
-    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts")}
+    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts"), "HARNESS_WAKE_DIR": str(tmp_path / "wakes")}
     assert g.main([], environ=env, runner=_Runner(), root=root,
                  resolve_transport=fake_resolve_transport) == 0
     assert calls, "the guard resolved the session file through the transport, by the worktree slug"
@@ -550,3 +552,169 @@ def test_the_terminal_receipt_is_always_ok_or_failed_never_running(lane):
     os.utime(receipt_path, (stale, stale))
     assert g.main([], environ=lane["env"], runner=_Runner(), root=lane["root"]) == 0
     assert _receipt(lane)["status"] != "running"
+
+
+# --- LANE-B2-W1-b2-integrator-liveness: a handback wakes the integrator (Done-contract 1) -------------------
+#
+# FOUNDATION's integrator learnt of a handback from a 10-minute cron, so every one waited 1-2 minutes for
+# pickup. The guard already is the event: it fires the moment a lane's closing HANDBACK line lands. These
+# tests hold the wake it now leaves (a file in the R17 private home, never the repository or the
+# transport) and the `watch` command a Monitor consumes (one line per new wake file, blocking).
+
+WAKE_WITHIN_S = 30
+
+
+def _wakes(lane: dict) -> list[Path]:
+    return sorted(lane["wakes"].glob("WAKE-*.json")) if lane["wakes"].is_dir() else []
+
+
+def test_a_handback_writes_a_wake_file_naming_the_lane_and_the_closing_line(lane):
+    lane["session"].write_text(f"# SESSION\n\nwork\n\n{HANDBACK}\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    files = _wakes(lane)
+    assert len(files) == 1, "one closing line, one wake file"
+    wake = json.loads(files[0].read_text(encoding="utf-8"))
+    assert wake["lane"] == LANE and wake["handback"] == HANDBACK
+    assert wake["key"] == _guard().handback_key(HANDBACK)
+    assert wake["handback_branch"] == "worktree-lane-end-hook" and wake["handback_sha"] == "abc1234"
+
+
+def test_no_handback_line_writes_no_wake(lane):
+    lane["session"].write_text("# SESSION\n\nstill working\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert _wakes(lane) == [] and not lane["wakes"].exists()
+
+
+def test_the_wake_is_written_before_the_moment_runs_so_a_slow_moment_cannot_delay_it(lane):
+    """The moment is five organ launches -- minutes. The integrator should not wait for it."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    seen: list[int] = []
+
+    def runner(argv, cwd, log):
+        seen.append(len(_wakes(lane)))
+        return _guard().MomentResult(exit_code=0, duration_ms=1)
+
+    assert _run(lane, runner) == 0
+    assert seen == [1], "the wake file was already there when the moment started"
+
+
+def test_a_failed_moment_still_leaves_its_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner(exit_code=3)) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_second_turn_end_on_the_same_closing_line_writes_no_second_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    runner = _Runner()
+    for _ in range(3):
+        assert _run(lane, runner) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_new_closing_line_is_a_new_wake(lane):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    lane["session"].write_text(HANDBACK + "\nHANDBACK worktree-lane-end-hook @ def5678 code\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert len(_wakes(lane)) == 2
+
+
+def test_the_detached_worker_writes_the_wake_too(lane):
+    """The hook path only claims and spawns; the wake is the worker's, written before its moment."""
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    spawned: list = []
+    assert _guard().main([], environ=lane["env"], runner=_Runner(), root=lane["root"], detach=True,
+                         spawner=lambda argv, cwd, env: spawned.append(argv)) == 0
+    assert len(spawned) == 1 and _wakes(lane) == [], "the hook path itself writes no wake"
+    assert _guard().main(["--worker"], environ=lane["env"], runner=_Runner(), root=lane["root"]) == 0
+    assert len(_wakes(lane)) == 1
+
+
+def test_a_wake_that_cannot_be_written_is_not_a_blocked_session_and_not_a_lost_moment(lane, capsys):
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    runner = _Runner()
+    assert _run(lane, runner) == 0
+    assert len(runner.calls) == 1, "the moment still runs"
+    assert _receipt(lane)["status"] == "ok"
+    assert capsys.readouterr().out == ""
+
+
+def test_the_default_wake_home_is_the_private_state_directory_and_never_inside_this_repo():
+    import platformdirs
+    home = _guard().wake_dir({})
+    assert home.parent == Path(platformdirs.user_state_dir("dev-knowledge", appauthor=False))
+    assert _REPO not in home.parents and home != _REPO
+
+
+def test_the_environment_overrides_the_wake_home(tmp_path):
+    assert _guard().wake_dir({"HARNESS_WAKE_DIR": str(tmp_path / "x")}) == tmp_path / "x"
+
+
+def _watch(tmp_path: Path, *extra: str) -> subprocess.Popen:
+    return subprocess.Popen(
+        [sys.executable, str(_GUARD), "watch", "--wake-dir", str(tmp_path / "wakes"), "--poll", "0.5",
+         "--max-wait", "90", *extra],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(_REPO))
+
+
+def _first_line(proc: subprocess.Popen, within_s: float) -> str | None:
+    import queue
+    import threading
+    q: queue.Queue = queue.Queue()
+    threading.Thread(target=lambda: q.put(proc.stdout.readline()), daemon=True).start()
+    try:
+        return q.get(timeout=within_s) or None
+    except queue.Empty:
+        return None
+
+
+def test_a_handback_reaches_the_watch_command_within_30_seconds(lane, tmp_path):
+    """The outcome: hook turn end -> wake file -> the Monitor's line. `--since 1h` makes the start-up race
+    irrelevant (a wake written before the first scan is still reported); the latency is measured, not claimed."""
+    proc = _watch(tmp_path, "--since", "1h")
+    try:
+        lane["session"].write_text(f"work\n{HANDBACK}\n", encoding="utf-8")
+        started = time.perf_counter()
+        assert _run(lane, _Runner()) == 0
+        line = _first_line(proc, WAKE_WITHIN_S)
+        latency = time.perf_counter() - started
+    finally:
+        proc.kill()
+        proc.communicate()
+    assert line is not None, f"no wake line within {WAKE_WITHIN_S}s"
+    assert line.rstrip("\n") == f"WAKE {LANE} {HANDBACK}"
+    assert latency < WAKE_WITHIN_S
+    print(f"MEASURED handback-to-watch-line latency: {latency:.2f}s")
+
+
+def test_the_watch_command_reports_each_wake_once_and_only_those_after_its_start_by_default(lane):
+    g = _guard()
+    old = g.write_wake(lane["wakes"], "old-lane", "HANDBACK worktree-old @ 1111111 code")   # before the watch starts
+    os.utime(old, (time.time() - 100, time.time() - 100))
+    seen: list[str] = []
+    clock = {"t": 0.0}
+
+    def tick(_s):
+        clock["t"] += 1
+        if clock["t"] == 2:
+            g.write_wake(lane["wakes"], "new-lane", "HANDBACK worktree-new @ 2222222 code")
+
+    g.watch_wakes(lane["wakes"], since=time.time() - 10, poll_s=1, max_wait_s=5, emit=seen.append,
+                  sleep=tick, now=lambda: clock["t"])
+    assert seen == ["WAKE new-lane HANDBACK worktree-new @ 2222222 code"]
+
+
+def test_the_watch_command_exits_when_its_wait_runs_out_without_a_wake(tmp_path):
+    proc = subprocess.run(
+        [sys.executable, str(_GUARD), "watch", "--wake-dir", str(tmp_path / "none"), "--poll", "0.2",
+         "--max-wait", "1"], capture_output=True, text=True, timeout=30, cwd=str(_REPO))
+    assert proc.returncode == 0 and proc.stdout == ""
+
+
+def test_the_watch_subcommand_leaves_the_hook_flags_and_exit_codes_alone():
+    g = _guard()
+    source = _GUARD.read_text(encoding="utf-8")
+    assert (g.EXIT_REFUSED, g.EXIT_FAILED, g.HOOK_LIMIT_S) == (3, 4, 15)
+    assert "--worker" in source and "--moment-json" in source and "--key" in source
