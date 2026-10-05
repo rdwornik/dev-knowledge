@@ -24,6 +24,7 @@ import json
 import pytest
 
 import consumer_at_landing as cal
+from branch_context import witness
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -409,3 +410,15 @@ def test_the_live_corpus_measures_and_the_baseline_matches_it():
     assert baseline is not None, f"{cal.BASELINE_RELPATH} is absent or malformed"
     assert baseline["detector_id"] == m.detector_id
     assert set(m.unconsumed) - set(baseline["artifacts"]) == set()
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_live_corpus_verdict_is_the_same_on_a_lane_that_lands_a_review_record(
+        tmp_path_factory):
+    """The witness for the live test above (B2-W1 W1-8): a lane lands a review record, and its
+    consumer is a merge receipt that does not exist until the lane merges."""
+    witness(tmp_path_factory,
+            "tests/test_consumer_at_landing.py::"
+            "test_the_live_corpus_measures_and_the_baseline_matches_it",
+            lane_files={"docs/audits/2026-10-05-codex-lane-probe.md":
+                        "# Codex review of a lane\n\nA landed review record.\n"})

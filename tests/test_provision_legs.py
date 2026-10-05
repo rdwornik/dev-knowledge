@@ -28,6 +28,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import provision_legs as cp  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 
 # --- fixtures: real repositories, real clone shapes ---------------------------------------
@@ -712,6 +713,17 @@ def test_an_unreadable_declaration_exits_2_not_1(tmp_path: Path) -> None:
 def test_history_check_exits_0_on_this_repo() -> None:
     """The live checkout satisfies its own precondition — the guard is not vacuously red."""
     assert cp.main(["--quiet", "history"]) == cp.EXIT_OK
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_history_check_verdict_is_the_same_when_main_moved_after_the_lane_seeded(
+        tmp_path_factory) -> None:
+    """The witness for the live test above (B2-W1 W1-8): CI seeds local `main` from
+    `origin/main` when the job starts, and a sibling lane can merge before the job reads it."""
+    witness(tmp_path_factory,
+            "tests/test_provision_legs.py::test_history_check_exits_0_on_this_repo",
+            peer_files={"PEER-PROBE.txt": "a sibling lane merged to main\n"},
+            local_main_follows_origin=False)
 
 
 # --- ecosystem -----------------------------------------------------------------------------

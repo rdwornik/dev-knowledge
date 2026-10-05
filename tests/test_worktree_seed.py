@@ -29,6 +29,7 @@ import pytest
 
 
 import worktree_seed as ws  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 
@@ -420,6 +421,15 @@ def test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH():
     """
     verdict = ws.base_ref_verdict(_HUB)
     assert verdict.holds, verdict.why
+
+
+@requires_git
+@pytest.mark.xdist_group(name="branch_context")
+def test_the_dispatch_base_verdict_is_the_same_on_a_lane_branch(tmp_path_factory):
+    """The witness for the live test above (B2-W1 W1-8): the listed test, run from a clone whose
+    HEAD is a lane commit and whose `main` is not HEAD, must pass exactly as it does on `main`."""
+    witness(tmp_path_factory,
+            "tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH")
 
 
 @requires_git

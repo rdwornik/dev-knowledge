@@ -9,6 +9,7 @@ import pytest
 
 
 import gen_audit_index as gai  # noqa: E402
+from branch_context import witness  # noqa: E402
 
 
 def _audit(d: Path, name: str, title: str | None = "T") -> None:
@@ -348,6 +349,28 @@ def test_check_titles_is_reachable_without_the_index(tmp_path, monkeypatch, caps
 
 def test_check_titles_is_green_on_the_live_corpus():
     assert gai.main(["--check-titles"]) == 0
+
+
+# --- the branch-context witnesses (B2-W1 W1-8) ---------------------------------------------
+# A lane that adds an audit is barred from regenerating the shared index (`[#590]`), so the
+# live tests above read stale on EVERY such lane and fresh on `main`. Each witness runs one of
+# them from a clone shaped like that lane and must see the verdict it sees on `main`.
+
+_LANE_AUDIT = {"docs/audits/2026-10-05-technical-lane-probe.md": "# Lane probe\n\nbody\n"}
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_live_index_is_fresh_on_a_lane_that_adds_an_audit(tmp_path_factory):
+    witness(tmp_path_factory, "tests/test_gen_audit_index.py::test_live_index_is_fresh",
+            lane_files=_LANE_AUDIT)
+
+
+@pytest.mark.xdist_group(name="branch_context")
+def test_live_index_excludes_nothing_on_a_lane_that_adds_an_audit(tmp_path_factory):
+    witness(tmp_path_factory,
+            "tests/test_gen_audit_index.py::"
+            "test_live_index_excludes_nothing_because_every_audit_is_tracked",
+            lane_files=_LANE_AUDIT)
 
 
 def test_the_title_hook_is_armed_on_the_audits_tree_not_just_the_index():
