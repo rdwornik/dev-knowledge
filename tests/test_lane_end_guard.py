@@ -690,13 +690,14 @@ def test_the_first_start_does_not_record_a_wake_it_could_not_stat(lane, monkeypa
         return real_stat(self, *args, **kwargs)
 
     monkeypatch.setattr(Path, "stat", flaky)
-    ledger = lane["wakes"] / ".watch-seen"
+    ledger = _ledger(lane)
     seen: list[str] = []
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
-    assert seen == [] and wake.name not in ledger.read_text(encoding="utf-8")
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"], "reported by the loop, not swallowed at init"
+    assert ledger.read_text(encoding="utf-8").split() == [wake.name]
     denied["on"] = False
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
-    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"]
+    assert len(seen) == 1, "and reported once"
 
 
 def test_a_transient_wake_write_failure_is_retried(lane, monkeypatch):
@@ -745,12 +746,26 @@ def test_a_wake_home_inside_the_primary_checkout_or_the_transport_is_refused(tmp
     assert g.wake_dir({"HARNESS_WAKE_DIR": str(tmp_path / "elsewhere")}, root=worktree) == tmp_path / "elsewhere"
 
 
+def _ledger(lane: dict) -> Path:
+    """The watch's cursor: a file BESIDE the wake home, so a home that is itself broken cannot take it down."""
+    return lane["wakes"].with_name(lane["wakes"].name + _guard().WATCH_LEDGER_SUFFIX)
+
+
+def test_the_watch_runs_when_the_wake_home_is_replaced_by_a_file(lane):
+    g = _guard()
+    lane["wakes"].write_text("a file where the wake directory should be", encoding="utf-8")
+    g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")   # lands in the fallback home
+    seen: list[str] = []
+    assert g.watch_wakes(lane["wakes"], ledger=_ledger(lane), poll_s=0, max_wait_s=0, emit=seen.append) == 0
+    assert seen == ["WAKE lane-a HANDBACK worktree-a @ aaaaaaa code"]
+
+
 def test_a_restarted_watch_reports_a_wake_that_landed_while_no_monitor_ran(lane):
     """Codex terra P1: the default `since=now` dropped a wake written just before the Monitor started (a
     restart, or the successor seat's start). The ledger is the cursor: wakes already reported are not
     reported again, wakes not yet reported are, whenever they landed."""
     g = _guard()
-    ledger = lane["wakes"] / ".watch-seen"
+    ledger = _ledger(lane)
     first = g.write_wake(lane["wakes"], "lane-a", "HANDBACK worktree-a @ aaaaaaa code")
     seen: list[str] = []
     g.watch_wakes(lane["wakes"], ledger=ledger, poll_s=0, max_wait_s=0, emit=seen.append)
@@ -772,9 +787,9 @@ def test_the_first_start_reports_recent_wakes_and_only_records_the_old_ones(lane
     os.utime(stale, (long_ago, long_ago))
     g.write_wake(lane["wakes"], "lane-new", "HANDBACK worktree-new @ 1111111 code")
     seen: list[str] = []
-    g.watch_wakes(lane["wakes"], ledger=lane["wakes"] / ".watch-seen", poll_s=0, max_wait_s=0, emit=seen.append)
+    g.watch_wakes(lane["wakes"], ledger=_ledger(lane), poll_s=0, max_wait_s=0, emit=seen.append)
     assert seen == ["WAKE lane-new HANDBACK worktree-new @ 1111111 code"], "an earlier batch's wake is not replayed"
-    assert stale.name in (lane["wakes"] / ".watch-seen").read_text(encoding="utf-8")
+    assert stale.name in _ledger(lane).read_text(encoding="utf-8")
 
 
 def test_two_monitors_each_report_every_wake_to_their_own_seat(lane):
@@ -793,7 +808,7 @@ def test_the_watch_cli_without_since_resumes_from_its_ledger(lane, tmp_path):
     g = _guard()
     args = [sys.executable, str(_GUARD), "watch", "--wake-dir", str(lane["wakes"]), "--poll", "0.2", "--max-wait", "1"]
     out = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=str(_REPO))
-    assert out.returncode == 0 and out.stdout == "" and (lane["wakes"] / ".watch-seen").is_file()
+    assert out.returncode == 0 and out.stdout == "" and _ledger(lane).is_file()
     g.write_wake(lane["wakes"], "lane-c", "HANDBACK worktree-c @ ccccccc code")
     out = subprocess.run(args, capture_output=True, text=True, timeout=30, cwd=str(_REPO))
     assert out.stdout.splitlines() == ["WAKE lane-c HANDBACK worktree-c @ ccccccc code"]

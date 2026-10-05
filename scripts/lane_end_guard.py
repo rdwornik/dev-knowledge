@@ -70,8 +70,9 @@ OUTPUT_NAME = "MOMENT-LANE-END-HOOK-OUTPUT.txt"
 WAKE_PREFIX = "WAKE-"
 WAKE_DIR_NAME = "integrator-wake"
 WATCH_POLL_S = 2.0       # the Monitor sees a wake within one poll of its being written
-WATCH_LEDGER = ".watch-seen"   # the watch's cursor: the wake files it has already reported
+WATCH_LEDGER_SUFFIX = ".watch-seen"   # the watch's cursor, a file BESIDE the homes (`integrator-wake.watch-seen`): the home may be the broken one
 WAKE_WRITE_ATTEMPTS, WAKE_RETRY_S = 3, 0.2
+FALLBACK_SUFFIX = "-fallback"   # `integrator-wake-fallback`, beside `integrator-wake`
 FIRST_START_LOOKBACK_S = 3 * 3600   # a first watch reports wakes this recent: the cycle ceiling, so nothing of this seat's era is lost
 _STATE_APP_NAME = "dev-knowledge"   # the same per-user state directory `merge_path.py` and `quota_watch.py` use
 
@@ -282,15 +283,16 @@ def wake_dir(environ: Mapping[str, str], root: Path = _ROOT) -> Path:
     return Path(platformdirs.user_state_dir(_STATE_APP_NAME, appauthor=False)) / WAKE_DIR_NAME
 
 
-def write_wake(home: Path, lane: str, handback: str) -> Path:
-    """Leave one wake file for one closing line (atomic: a watcher never reads half of it). Idempotent per line.
-    A failed write is tried `WAKE_WRITE_ATTEMPTS` times: on Windows a scanner or a reader can hold a file briefly."""
-    key = handback_key(handback)
-    branch, sha, cls = _parse_handback(handback)
-    path = home / f"{WAKE_PREFIX}{lane}-{key}.json"
-    tmp = home / f".{path.name}.tmp"
-    body = json.dumps({"schema": 1, "lane": lane, "key": key, "handback": handback, "handback_branch": branch,
-                       "handback_sha": sha, "handback_class": cls, "written_at": _stamp()}, indent=2, sort_keys=True)
+def fallback_home(home: Path) -> Path:
+    """The home's private sibling in the same per-user state directory, used when the home itself cannot be
+    written (replaced by a file, a deny ACL). The watch reads both. Not another filesystem: the contract's private
+    home is that state directory, and a temp directory is not it."""
+    return home.with_name(home.name + FALLBACK_SUFFIX)
+
+
+def _write_wake_to(home: Path, name: str, body: str) -> Path:
+    """One home, `WAKE_WRITE_ATTEMPTS` tries: on Windows a scanner or a reader can hold a file briefly."""
+    path, tmp = home / name, home / f".{name}.tmp"
     for attempt in range(WAKE_WRITE_ATTEMPTS):
         try:
             home.mkdir(parents=True, exist_ok=True)
@@ -302,6 +304,29 @@ def write_wake(home: Path, lane: str, handback: str) -> Path:
                 raise
             time.sleep(WAKE_RETRY_S)
     raise AssertionError("unreachable")   # the loop returns or raises
+
+
+def write_wake(home: Path, lane: str, handback: str) -> Path:
+    """Leave one wake file for one closing line (atomic: a watcher never reads half of it). Idempotent per line.
+    The home first; if it stays unwritable, its private sibling (`fallback_home`); if both fail, the home's error."""
+    key = handback_key(handback)
+    branch, sha, cls = _parse_handback(handback)
+    body = json.dumps({"schema": 1, "lane": lane, "key": key, "handback": handback, "handback_branch": branch,
+                       "handback_sha": sha, "handback_class": cls, "written_at": _stamp()}, indent=2, sort_keys=True)
+    name = f"{WAKE_PREFIX}{lane}-{key}.json"
+    try:
+        return _write_wake_to(home, name, body)
+    except OSError as first:
+        try:
+            return _write_wake_to(fallback_home(home), name, body)
+        except OSError:
+            raise first from None
+
+
+def _wake_files(home: Path) -> list[Path]:
+    """Every wake file in the home and its fallback sibling, oldest name first (a missing directory is empty)."""
+    return sorted((p for h in (home, fallback_home(home)) for p in h.glob(f"{WAKE_PREFIX}*.json")),
+                  key=lambda p: p.name)
 
 
 def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path] = None,
@@ -328,16 +353,16 @@ def watch_wakes(home: Path, since: Optional[float] = None, ledger: Optional[Path
             seen = set(ledger.read_text(encoding="utf-8").split())
         else:
             cutoff = time.time() - FIRST_START_LOOKBACK_S
-            for path in home.glob(f"{WAKE_PREFIX}*.json"):
+            for path in _wake_files(home):
                 try:
                     if path.stat().st_mtime < cutoff:
                         seen.add(path.name)
                 except OSError:
-                    seen.add(path.name)
+                    pass   # unreadable now, not old: the polling loop retries it rather than record it as seen
             ledger.write_text("".join(f"{n}\n" for n in sorted(seen)), encoding="utf-8")
     started = now()
     while True:
-        for path in sorted(home.glob(f"{WAKE_PREFIX}*.json")):
+        for path in _wake_files(home):
             if path.name in seen:
                 continue
             try:
@@ -366,7 +391,7 @@ def _watch_cli(args: list[str], environ: Mapping[str, str]) -> int:
     parser.add_argument("--wake-dir", default=None, help="the wake home (default: the per-user state directory)")
     parser.add_argument("--since", default=None, help=(
         "report wakes written since: now, 30m, 2h, 1d or an ISO time. Default: resume from this watch's own ledger "
-        f"({WATCH_LEDGER} in the wake home), so a restart or a successor seat repeats and loses nothing"))
+        f"({WATCH_LEDGER_SUFFIX}, a file beside the wake home), so a restart or a successor seat repeats and loses nothing"))
     parser.add_argument("--poll", type=float, default=WATCH_POLL_S, help="seconds between scans (default 2)")
     parser.add_argument("--max-wait", type=float, default=None, help="exit 0 after this many seconds (default: never)")
     ns = parser.parse_args(args)
@@ -377,7 +402,7 @@ def _watch_cli(args: list[str], environ: Mapping[str, str]) -> int:
         return 2
     since, ledger = None, None
     if ns.since is None:
-        ledger = home / WATCH_LEDGER
+        ledger = home.with_name(home.name + WATCH_LEDGER_SUFFIX)
     elif ns.since == "now":
         since = time.time()
     else:
@@ -399,7 +424,10 @@ def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], Moment
     wake_note = ""
     if handback:
         try:
-            write_wake(wake_dir(wake_env if wake_env is not None else os.environ), lane, str(handback))
+            home = wake_dir(wake_env if wake_env is not None else os.environ)
+            if write_wake(home, lane, str(handback)).parent != home:
+                wake_note = f"wake home {home} unusable; the wake went to the fallback home {fallback_home(home)}"
+                print(f"lane_end_guard: {wake_note}", file=sys.stderr)
         except BaseException as exc:  # noqa: BLE001 -- a lost wake is named in the receipt; the moment still runs
             wake_note = f"wake not written -- {type(exc).__name__}: {exc}"
             print(f"lane_end_guard: {wake_note}", file=sys.stderr)
