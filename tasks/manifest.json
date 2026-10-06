@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0a3bada3bcf68b998bbfc3638bc1e08240804ead9e88289a32e7ad9b8dc775fc",
+  "generated_sha256": "d6f3b4a75174848b4e7b9d4c5b5d29c204d29458eeacb4d501714a6bc1ddf938",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2918,6 +2918,10 @@
     {
       "task": 1420,
       "file": "1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md"
+    },
+    {
+      "task": 1421,
+      "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
     },
     {
       "prose": ""
