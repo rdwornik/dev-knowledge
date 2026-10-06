@@ -21,6 +21,26 @@
 
 ---
 
+### 2026-10-04 (u) - CC (Opus 5.5, integrator seat B2-W1 cycle 14): lane b2-codespace-green merges close-out-only (OR-1) -- items 1-5 land, with the parity check's C3 bound to the run it reads and a Codespace lane's disconnect fate kept on its own clock and recorded; item 6 stays WAITING for a follow-on lane
+
+**Anchors:** `7012346d` -- `worktree-b2-codespace-green` (the lane's commits through repair 2: `3face0cc`, `8ecfd2af`, `f4c65f4d`, `2ea065e9`, `4b294aab`, `7012346d`, plus the origin syncs `a613d3d9`, `c1306845`, `f7a13803`, `d46b84df`, `a09c4fff`); and `6ff1a31e` -- the AMEND-5 rows merge, whose closed merge receipt rides here
+
+**Did:**
+- `scripts/codespace_parity.py`: the parity tool reports five conditions; C3 now reads PASS only for an integration record whose `run_branch`/`run_sha` match the lane branch and tip the Codespace record carries (`stamp-lane`), FAIL on a mismatch, NOT-RUN on an unstamped record.
+- `scripts/dispatch.py` `codespace-observe` (requires `--slug`) and `scripts/codespace_regime.py`: the unreachable duration is derived from a stamp on the regime ledger's fate row, and every fate transition is written through `write_fate`.
+- Lane commands run in a login shell with stdin closed; the Codespace classifier; codex aligned with R82; `.devcontainer/provisioning.yaml`, `ecosystem/provider-registry.yaml`, `ecosystem/routing-table.yaml`.
+- Review: `docs/audits/2026-10-05-codex-b2-codespace-green.md` (Codex terra; one delta P1 declined and the decline upheld by grok-4.7); the 13-run record `docs/audits/2026-10-05-technical-codespace-green-run.md`.
+- `[#1335]` refs cite both records as their governance consumer (the integrator's act at merge, as at `a0bf5cae` and `0db61b7b`); the row stays open.
+- The closed merge receipt of the AMEND-5 rows merge (`6ff1a31e`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** items 1-5 on `main`; item 6 (three consecutive all-green R63 runs) WAITING on codex auth in the Codespace, main's branch-context CI, and claude version skew -- carried by the follow-on lane drafted in `to-browser/SESSION-b2-codespace-green.md`. `[#1335]` stays open. Verdict and evidence in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md` (cycle 14).
+
+**Changes:** `scripts/codespace_parity.py`, `scripts/codespace_regime.py`, `scripts/codespace_state.py`, `scripts/dispatch.py`, `deploy/codex-review.*`, `.devcontainer/provisioning.yaml`, `ecosystem/provider-registry.yaml`, `ecosystem/routing-table.yaml`, `templates/dispatch-shim.ps1`, `tests/` (eleven files), two audit records, `tasks/1335-*.md` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated indices.
+
+**Next:** W1-13 b2-codespace-subscription-auth, then the batch close.
+
+---
+
 ### 2026-10-04 (t) - CC (Opus 5.5, integrator seat B2-W1 cycle 13): AMEND-B2-W1-5's two rows land -- the dispatcher should bound a lane's same-defect attempts in code, and the render should refuse a Done-when item that hangs on outside state not named as a gate
 
 **Anchors:** `082378da` -- `worktree-b2-w1-amend5-rows`; and `7363c99f` -- lane b2-integrator-liveness' merge, whose closed merge receipt rides here

@@ -32,6 +32,7 @@
                          runner in, run it, pull the receipt back.
     codespace-harvest              pull evidence (run log, receipt) out via `ssh ... cat` into a
                          private local copy, and write the manifest `codespace-delete` gates on.
+    codespace-observe              read a codespace lane once: state, progress, fate (R65).
     codespace-stop                 `gh codespace stop` -- ends compute billing, NOT delete.
     codespace-delete                delete -- REFUSED until the harvest manifest verifies.
 

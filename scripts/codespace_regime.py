@@ -199,12 +199,23 @@ def write_receipt(slug: str, batch: str, codespace: str,
     return row
 
 
+#: The closed set of lane fates a fate row may carry (R65) -- `codespace_state.FATES`, restated
+#: here so the ledger writer needs no import of the classifier; a test holds the two equal.
+FATES = ("RUNNING", "HANDBACK", "FAILED", "WAITING", "TORN-DOWN")
+
+
 def open_receipts(ledger_path: Optional[Path] = None) -> list[dict]:
-    """Rows whose container was never recorded as deleted -- our own record of what is live."""
+    """Containers whose LAST container row says they are still live -- our own record of what is.
+
+    THE LAST ROW PER CODESPACE WINS (night leg 5, D5). The ledger is append-only: a deletion is a
+    NEW row for the same codespace, never an edit of the creation row, so reading every row with
+    `open: true` kept a deleted container open forever and `session-start` flagged BREACH on it.
+    Fate rows (`kind: codespace-fate`) describe a lane, not a container, and neither open nor close
+    one."""
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     if not path.is_file():
         return []
-    out: list[dict] = []
+    last: dict[str, dict] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
@@ -213,9 +224,69 @@ def open_receipts(ledger_path: Optional[Path] = None) -> list[dict]:
             row = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if row.get("open"):
-            out.append(row)
-    return out
+        if not isinstance(row, dict) or row.get("kind", "codespace") != "codespace":
+            continue
+        name = row.get("codespace")
+        if name:
+            last[str(name)] = row
+    return [row for row in last.values() if row.get("open")]
+
+
+def last_fate(codespace: str, ledger_path: Optional[Path] = None,
+              slug: Optional[str] = None) -> Optional[dict]:
+    """The newest lane-fate row for `codespace` (and, when given, that lane `slug` -- a reused
+    codespace NAME never inherits another lane's stamp), or None. The observer reads it to tell a
+    TRANSITION (write a row) from a repeat (write none) and to recover the first-unreachable stamp
+    its disconnect clock runs from -- the ledger is the observer's only memory between readings."""
+    path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
+    if not path.is_file():
+        return None
+    found: Optional[dict] = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (isinstance(row, dict) and row.get("kind") == "codespace-fate"
+                and row.get("codespace") == codespace
+                and (slug is None or row.get("slug") == slug)):
+            found = row
+    return found
+
+
+def write_fate(codespace: str, slug: str, fate: str, state: str, reason: str, step: str,
+               ledger_path: Optional[Path] = None, now: Optional[datetime] = None,
+               unreachable_since: Optional[datetime] = None) -> dict:
+    """Append one lane-fate row (R65): the fate a stalled, disconnected, finished or torn-down lane
+    was given, with the reason and the step that failed. `unreachable_since` stamps the moment the
+    current unreachable streak began, so the next reading derives its own duration from it.
+
+    A fate outside `FATES` is refused, and so is a FAILED fate with no reason or no step: 'failed'
+    with nothing said is the unknown fate this row exists to end. Nothing is appended on a refusal."""
+    if fate not in FATES:
+        raise ValueError(f"fate {fate!r} is not one of {', '.join(FATES)}")
+    if fate == "FAILED" and not (reason.strip() and step.strip()):
+        raise ValueError("a FAILED fate carries its reason and the step that failed")
+    row = {
+        "kind": "codespace-fate",
+        "codespace": codespace,
+        "slug": slug,
+        "fate": fate,
+        "state": state,
+        "reason": reason,
+        "step": step,
+        "recorded": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+    }
+    if unreachable_since is not None:
+        row["unreachable_since"] = unreachable_since.isoformat(timespec="seconds")
+    path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+    return row
 
 
 # ============================================================================= the idle policy
@@ -378,6 +449,26 @@ def cmd_receipt(slug: str, batch: str, codespace: str, created: str,
         click.echo(f"REFUSED: {exc}")
         sys.exit(1)
     click.echo(f"receipt written: {row['slug']} {row['uptime_minutes']} min")
+
+
+@cli.command("fate")
+@click.option("--codespace", required=True)
+@click.option("--slug", required=True)
+@click.option("--fate", required=True, type=click.Choice(FATES))
+@click.option("--state", required=True, help="The classifier's lane state, e.g. hung.")
+@click.option("--reason", default="")
+@click.option("--step", default="")
+@click.option("--ledger", "ledger", type=click.Path(path_type=Path), default=None,
+              help=f"Default: {RECEIPT_LEDGER_RELPATH}.")
+def cmd_fate(codespace: str, slug: str, fate: str, state: str, reason: str, step: str,
+             ledger: Optional[Path]) -> None:
+    """Append one lane-fate row. Exit 1 when the fate would say nothing (no reason or step)."""
+    try:
+        row = write_fate(codespace, slug, fate, state, reason, step, ledger_path=ledger)
+    except ValueError as exc:
+        click.echo(f"REFUSED: {exc}")
+        sys.exit(1)
+    click.echo(f"fate written: {row['codespace']} {row['fate']} ({row['state']})")
 
 
 if __name__ == "__main__":

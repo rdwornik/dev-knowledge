@@ -247,9 +247,10 @@ Write-Host "[codex-review] invoking codex exec (this may take a few minutes)..."
 # inherited ~/.codex/config.toml. Combined with the [#431] mixed-diff demotion, a review the
 # operator asked for as terra silently EXECUTED as sol (witnessed 2026-08-01), and nothing in
 # the artifact recorded which model had run. An unpinned reviewer also makes the cross-provider
-# comparisons the portability work depends on unreproducible. terra is the verified-working
-# string -- never a bare gpt-5.6.
-$reviewModel = 'gpt-5.6-terra'
+# comparisons the portability work depends on unreproducible. The pin is the newest model the
+# account serves (R82; `codex debug models` ranks gpt-6-astra first, and the registry's
+# roles.review head is the same id), as the exact string -- never a bare gpt-5.6 or gpt-6.
+$reviewModel = 'gpt-6-astra'
 $modelArgs = @('-c', "model=$reviewModel")
 $prompt | & codex exec --sandbox read-only @modelArgs -c model_reasoning_effort=high --output-last-message $tempFile -
 $codexExit = $LASTEXITCODE

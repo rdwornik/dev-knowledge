@@ -1135,7 +1135,7 @@ def test_the_live_declaration_pins_every_lane_tool() -> None:
 
 def test_agy_is_pinned_although_its_installer_takes_no_version_and_says_why() -> None:
     agy = cp.load_config().tools["agy"]
-    assert agy.version == "1.2.16"
+    assert agy.version == "1.2.17"
     assert "latest" in agy.reason, "the pinned tool records why its installer cannot select the pin"
 
 

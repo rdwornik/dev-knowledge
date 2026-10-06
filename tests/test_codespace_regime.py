@@ -178,3 +178,101 @@ def test_the_cloud_module_declares_no_local_memory_dimension():
     """The contract's rule stated as a property: DO NOT SHARE THRESHOLDS BETWEEN THEM. A
     memory figure here would be the local ceiling leaking into a meter."""
     assert not [u for u in cs.THRESHOLD_UNITS.values() if "memory" in u or "seat" in u]
+
+
+# ------------------------------------------------------------------ the ledger closes (D5)
+
+def _append(path: Path, row: dict) -> None:
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def test_a_deleted_row_closes_the_created_row_for_the_same_codespace(tmp_path):
+    """D5, RED on cd3ab8a6: `open_receipts` returned every row with `open: true`, so appending the
+    deleted row left the created row open and `session-start` flagged BREACH forever."""
+    ledger = tmp_path / "ledger.jsonl"
+    cs.write_receipt("lane-x", "B2-W1", "cs-1", _T0, None, "standardLinux32gb", False, {},
+                     ledger_path=ledger)
+    assert [r["codespace"] for r in cs.open_receipts(ledger)] == ["cs-1"]
+    cs.write_receipt("lane-x", "B2-W1", "cs-1", _T0, _T0 + timedelta(minutes=9),
+                     "standardLinux32gb", False, {}, ledger_path=ledger)
+    assert cs.open_receipts(ledger) == []
+
+
+def test_closing_one_codespace_leaves_another_open(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    for name in ("cs-a", "cs-b"):
+        cs.write_receipt("lane", "B", name, _T0, None, "basicLinux32gb", False, {},
+                         ledger_path=ledger)
+    cs.write_receipt("lane", "B", "cs-a", _T0, _T0 + timedelta(minutes=1), "basicLinux32gb",
+                     False, {}, ledger_path=ledger)
+    assert [r["codespace"] for r in cs.open_receipts(ledger)] == ["cs-b"]
+
+
+def test_the_last_row_wins_so_a_reopened_name_is_open_again(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    _append(ledger, {"kind": "codespace", "codespace": "cs-1", "open": False})
+    _append(ledger, {"kind": "codespace", "codespace": "cs-1", "open": True})
+    assert len(cs.open_receipts(ledger)) == 1
+
+
+def test_a_fate_row_is_not_a_container_row_and_never_opens_or_closes_one(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    cs.write_receipt("lane", "B", "cs-1", _T0, None, "basicLinux32gb", False, {},
+                     ledger_path=ledger)
+    cs.write_fate(codespace="cs-1", slug="lane", fate="FAILED", state="hung",
+                  reason="no progress for 901s (bound 900s)", step="run", ledger_path=ledger,
+                  now=_T0 + timedelta(minutes=20))
+    assert [r["codespace"] for r in cs.open_receipts(ledger)] == ["cs-1"]
+    rows = [json.loads(ln) for ln in ledger.read_text(encoding="utf-8").splitlines()]
+    assert rows[-1]["kind"] == "codespace-fate" and rows[-1]["fate"] == "FAILED"
+    assert rows[-1]["step"] == "run" and "901" in rows[-1]["reason"]
+
+
+def test_a_fate_outside_the_closed_set_is_refused_and_nothing_is_written(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    try:
+        cs.write_fate(codespace="cs-1", slug="l", fate="FINE", state="x", reason="r", step="run",
+                      ledger_path=ledger)
+    except ValueError as exc:
+        assert "FINE" in str(exc)
+    else:
+        raise AssertionError("an unknown fate was written")
+    assert not ledger.exists()
+
+
+def test_a_failed_fate_without_a_reason_or_step_is_refused(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    for kw in ({"reason": ""}, {"step": ""}):
+        args = dict(codespace="cs-1", slug="l", fate="FAILED", state="hung", reason="r",
+                    step="run", ledger_path=ledger)
+        args.update(kw)
+        try:
+            cs.write_fate(**args)
+        except ValueError:
+            continue
+        raise AssertionError("a FAILED fate with no reason or step was written")
+    assert not ledger.exists()
+
+
+def test_the_regime_fates_are_the_classifiers_fates():
+    from scripts import codespace_state as state
+    assert tuple(cs.FATES) == tuple(state.FATES)
+
+
+def test_last_fate_is_the_newest_fate_row_of_that_codespace_and_carries_the_unreachable_stamp(tmp_path):
+    """The observer's memory between readings (review P1-2): a container row, another codespace's
+    fate and a torn line are never the answer; the stamp round-trips."""
+    ledger = tmp_path / "ledger.jsonl"
+    assert cs.last_fate("cs-1", ledger) is None
+    cs.write_receipt("lane", "B", "cs-1", _T0, None, "basicLinux32gb", False, {}, ledger_path=ledger)
+    cs.write_fate("cs-1", "lane", "WAITING", "unknown", "waiting on a probe", "observe",
+                  ledger_path=ledger, now=_T0, unreachable_since=_T0)
+    cs.write_fate("cs-2", "other", "RUNNING", "working", "progress", "", ledger_path=ledger, now=_T0)
+    with ledger.open("a", encoding="utf-8") as fh:
+        fh.write("not json\n")
+    row = cs.last_fate("cs-1", ledger)
+    assert row["fate"] == "WAITING" and row["unreachable_since"] == _T0.isoformat(timespec="seconds")
+    cs.write_fate("cs-1", "lane", "RUNNING", "working", "progress", "", ledger_path=ledger, now=_T0)
+    assert cs.last_fate("cs-1", ledger)["fate"] == "RUNNING"
+    assert "unreachable_since" not in cs.last_fate("cs-1", ledger)

@@ -57,14 +57,22 @@ class _StubRunProbe(ca.Probe):
 
 # --- executable bit (codex terra review, 2026-09-26, [HIGH]) --------------------------------
 
-@pytest.mark.skipif(sys.platform == "win32",
-                     reason="POSIX exec bit only -- Windows has no X_OK concept to violate")
-def test_present_but_not_executable_is_treated_as_absent(tmp_path):
+def test_present_but_not_executable_is_treated_as_absent(tmp_path, monkeypatch):
+    """Runs on EVERY platform (b2-codespace-green, R63 C2). It was skipped on Windows, so the
+    parity check read `local=skipped codespace=passed` and FAILED condition 2 on all three runs
+    of the night: the difference was the skip, not a behaviour. Windows has no exec bit and
+    `os.access(..., X_OK)` answers true for any file there, so the POSIX answer for a mode-644
+    file is stated to the code under test; on POSIX the real `chmod 644` answers it itself."""
     bindir = tmp_path / "bin"
     bindir.mkdir()
     stub = bindir / "claude"
     stub.write_text("", encoding="utf-8")
     stub.chmod(0o644)
+    if sys.platform == "win32":
+        real_access = os.access
+        monkeypatch.setattr(
+            ca.os, "access",
+            lambda path, mode, **kw: False if mode == os.X_OK else real_access(path, mode, **kw))
     probe = ca.Probe(env={"PATH": str(bindir)})
     assert probe.which("claude") is None
 

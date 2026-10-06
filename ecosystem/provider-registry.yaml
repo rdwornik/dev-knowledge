@@ -728,9 +728,12 @@ roles:
     routing_table_role: reviewer
     order:
       - provider: openai
-        model: gpt-5.6-terra
+        model: gpt-6-astra
         note: >-
-          The standing reviewer (`ecosystem/routing-table.yaml` reviewer row, the AUTHORITY for
+          MOVED from `gpt-5.6-terra` 2026-10-05 (`b2-codespace-green`, R82 -- the newest model per
+          role). SERVED evidence: `codex debug models` (codex-cli 0.155.0) lists `gpt-6-astra` at
+          priority 2, the head of the list, and `codex exec -m gpt-6-astra` answered on this account
+          with the run header `model: gpt-6-astra`, `provider: openai`. The standing reviewer (`ecosystem/routing-table.yaml` reviewer row, the AUTHORITY for
           role -> CLI under Z-G3 A2) and NOT ADMITTED, which is not a contradiction and is worth
           stating because it reads like one. Half A's contract names Codex terra among the four
           entries whose admission state is recorded NOT ADMITTED; AX22-1's >= 8-of-10 bar has
@@ -984,12 +987,29 @@ models:
       output: 5.0
     pinned_at: []
 
+  gpt-6-astra:
+    provider: openai
+    # The newest codex model and the review role's head since 2026-10-05 (R82). The L0 install
+    # (`~/.claude/bin/codex-review.ps1`, `~/.codex/config.toml`) is the operator's act and is not
+    # asserted from this repo; the repo's own pin is `deploy/codex-review.ps1` `$reviewModel`.
+    roles: [reviewer]
+    pinned_at: []
+    # R61: read as SERVED on 2026-10-05 -- `codex exec -m gpt-6-astra` ran on this account and the
+    # run's own header read `model: gpt-6-astra`, `provider: openai` (codex-cli 0.155.0);
+    # `codex debug models` ranks it first (priority 2) of the models this account lists. The
+    # provider's own model guide (https://developers.openai.com/api/docs/guides/latest-model,
+    # read 2026-10-05) names it the current flagship.
+    last_verified: 2026-10-05
+    evidence:
+      - docs/audits/2026-10-05-technical-codespace-green-run.md
+
   gpt-5.6-terra:
     provider: openai
-    # The doctrinal review lane (PLAYBOOK). The PIN lives at L0
-    # (`~/.claude/bin/codex-review.ps1`, S19) and is therefore NOT asserted from this repo —
-    # the id is registered so a provenance attribution naming it resolves.
-    roles: [reviewer]
+    # The doctrinal review lane until 2026-10-05, when `gpt-6-astra` superseded it (R82). Kept
+    # registered so a provenance attribution naming it (older review records, `reviewed_by`
+    # telemetry) still resolves; it holds no live role.
+    roles: [provenance]
+    attribution_token: "gpt-5.6-terra"
     pinned_at: []
     # R61: read as SERVED on 2026-10-03 -- lane 6's second review ran `codex exec -c
     # model=gpt-5.6-terra` and the run's own header read `model: gpt-5.6-terra`, `provider:
