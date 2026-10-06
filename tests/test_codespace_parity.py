@@ -1213,8 +1213,6 @@ class _ModelRun:
         self.stderr = {"codex": _CODEX_STDERR, **(stderr or {})}
 
     def __call__(self, argv, cwd=None, **_kw):
-        import shlex
-
         argv = _unwrap(argv)
         self.calls.append((argv, str(cwd) if cwd else None))
         cli = argv[0]

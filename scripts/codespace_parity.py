@@ -271,6 +271,7 @@ class SignIn:
     refresh: str = "unknown"
     renew: str = ""
     why: str = ""
+    fallback: str = ""
 
 
 #: DECIDED-BY-LANE (b2-codespace-subscription-auth): measured on the laptop 2026-10-06 (booleans and
@@ -291,13 +292,18 @@ SIGN_IN: dict[str, SignIn] = {
         renew="run `codex login` on the laptop (browser ChatGPT sign-in) and relaunch",
         why="OpenAI documents copying ~/.codex/auth.json to a headless machine; it also says not to "
             "share the file across concurrent machines, so the copy is made only while it is "
-            "fresh enough that the Codespace never has to refresh it (`credential_expiry`)"),
+            "fresh enough that the Codespace never has to refresh it (`credential_expiry`)",
+        fallback="seed a SEPARATE ChatGPT login for Codespaces: `codex login --device-auth` with "
+                 "CODEX_HOME pointing at an empty scratch folder, then `gh secret set CODEX_AUTH_JSON "
+                 "--user < <scratch>/auth.json` (the launch writes it to ~/.codex/auth.json)"),
     "gemini": SignIn(
         (".gemini/oauth_creds.json", ".gemini/google_accounts.json", ".gemini/settings.json"),
         ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
         route="mirror", refresh="unknown",
         renew="run `gemini` on the laptop and sign in again",
-        why="the Gemini CLI docs: headless mode uses the cached credential"),
+        why="the Gemini CLI docs: headless mode uses the cached credential",
+        fallback="no separate credential exists for this CLI: the vendor retired the client the "
+                 "laptop signs in with (`IneligibleTierError`, 2026-10-06)"),
     "grok": SignIn(
         (), ("XAI_API_KEY",), route="env-key", refresh="none",
         renew="issue a new XAI_API_KEY at console.x.ai and run `gh secret set XAI_API_KEY --user`",
@@ -335,7 +341,7 @@ AUTH_EQUIVALENT: frozenset[tuple[str, str]] = frozenset()
 #: The refresh interval after which Codex refreshes `~/.codex/auth.json` on its next call (OpenAI's
 #: CI/CD auth docs: "approximately 8 days"), and the margin kept so a Codespace's copy can never reach it.
 CODEX_REFRESH_DAYS = 8.0
-CODEX_MIRROR_MAX_AGE_DAYS = 6.0
+CODEX_MIRROR_MAX_AGE_DAYS = 7.0
 
 #: The folders a probe may write into besides the transport root: exactly one, `to-browser/`, where
 #: the lanes' own handbacks go. A probe addresses ONE file there -- never a deeper path, never a
