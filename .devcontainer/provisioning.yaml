@@ -239,7 +239,7 @@ tools:
       b2-codespace-green: `L-F5 FAILED -- agy is not the pinned 1.2.16`), became a recovery
       container, and the workstation's own `agy --version` read 1.2.17.
   grok:
-    version: "1.0.44"
+    version: "1.0.46"
     method: >-
       xAI first-party installer with a version argument: curl -fsSL https://x.ai/cli/install.sh | bash -s <version>;
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
