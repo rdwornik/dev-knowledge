@@ -1,5 +1,7 @@
 # Codespace sign-in mirror -- run record (b2-codespace-subscription-auth, batch B2-W1, lane W1-13)
 
+Consumer and contract: `LANE-B2-W1-b2-codespace-subscription-auth` (batch B2-W1, lane W1-13; ADR-126, R63, R65, R82, R83, R87; related rows [#1335], [#1379], [#1410], [#1411]). This record is the run record Done-item 6 asks for; it files and closes no row.
+
 > **Status: run 1 complete and read; run 2 (a codex diagnostic) was killed by the host's memory reaper
 > four minutes in, before its runner started, and its Codespace was harvested and deleted.** Nothing in
 > this record is a value: names, paths, modes, booleans and served model ids only (R13).
