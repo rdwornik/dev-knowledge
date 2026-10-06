@@ -73,7 +73,7 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
@@ -99,14 +99,85 @@ DEFAULT_REMOTE_FILE = "/tmp/parity-remote.json"
 
 # ============================================================ what is declared, in code
 
-#: The tools a lane's close-out needs on EITHER substrate (`claude` runs the lane, `gh` lands it,
-#: `codex` and `grok` are the review routes, `agy` the other read route). Declared here
-#: rather than argued in prose: a tool absent on one side, absent on both, or at two versions is
-#: a FAIL naming it.
-LANE_TOOLS: tuple[str, ...] = ("claude", "gh", "codex", "grok", "agy")
+#: Where the non-model tools a lane needs (`gh` lands it, `rclone` reads the transport) are DECLARED:
+#: the Codespace's own provisioning file. Read at call time so a test can point it elsewhere.
+PROVISIONING_PATH = _REPO_ROOT / ".devcontainer" / "provisioning.yaml"
 
-#: The model CLIs among them: each answers one call and reports the id it SERVED (R61, R63).
-MODEL_CLIS: tuple[str, ...] = ("claude", "codex", "grok", "agy")
+#: The provider registry's own location (the served-id comparison reads it too -- see below).
+#: Declared first because the tool sets below are READ from it, never typed (R70, W1-13 item 1).
+REGISTRY_PATH = _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+
+
+def load_registry(path: Optional[Path] = None) -> dict:
+    """The provider registry as a plain mapping; `{}` when it cannot be read (every expected id is
+    then absent, which the comparison reports by name rather than skipping)."""
+    target = Path(path) if path is not None else REGISTRY_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def registry_for(root: Optional[Path] = None) -> dict:
+    """The registry under `root` when it has one, else the module's own (`REGISTRY_PATH`)."""
+    if root is not None:
+        candidate = Path(root) / "ecosystem" / "provider-registry.yaml"
+        if candidate.is_file():
+            return load_registry(candidate)
+    return load_registry()
+
+
+def model_clis(registry: Optional[Mapping] = None) -> tuple[str, ...]:
+    """The CLIs of the registry's providers, in registry order -- the set C1 probes for a served
+    model id (R61, R63). READ from `providers:` and never typed: a provider added to the registry
+    is probed with no edit here (W1-13 item 1, R70)."""
+    registry = load_registry() if registry is None else registry
+    out: list[str] = []
+    for row in (registry.get("providers") or {}).values():
+        cli = row.get("cli") if isinstance(row, Mapping) else None
+        if cli and cli not in out:
+            out.append(str(cli))
+    return tuple(out)
+
+
+def providers_without_cli(registry: Optional[Mapping] = None) -> tuple[str, ...]:
+    """Registry providers that name no CLI (`deepseek` today): nothing to mirror or probe, and said
+    so by name instead of being dropped without a word."""
+    registry = load_registry() if registry is None else registry
+    return tuple(name for name, row in (registry.get("providers") or {}).items()
+                 if not (isinstance(row, Mapping) and row.get("cli")))
+
+
+def declared_tools(path: Optional[Path] = None) -> tuple[str, ...]:
+    """The tool names `provisioning.yaml` `tools:` declares -- where `gh` and `rclone` come from,
+    since they serve no model and so are not registry providers."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return ()
+    tools = (data or {}).get("tools") if isinstance(data, dict) else None
+    return tuple(str(k) for k in tools) if isinstance(tools, Mapping) else ()
+
+
+def lane_tools(registry: Optional[Mapping] = None, provisioning: Optional[Path] = None
+               ) -> tuple[str, ...]:
+    """The tools a lane's close-out needs on EITHER substrate: every registry CLI, then every other
+    tool the Codespace declares (`gh` lands the lane, `rclone` reads the transport). A tool absent
+    on one side, absent on both, or at two versions is a FAIL naming it."""
+    models = model_clis(registry)
+    return models + tuple(t for t in declared_tools(provisioning) if t not in models)
+
+
+def __getattr__(name: str):  # noqa: N807 -- module attribute, resolved at access time
+    """`MODEL_CLIS` and `LANE_TOOLS` stay importable names, but they are the registry's answer NOW,
+    not tuples frozen when this file was written (b2-codespace-subscription-auth, R70)."""
+    if name == "MODEL_CLIS":
+        return model_clis()
+    if name == "LANE_TOOLS":
+        return lane_tools()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 #: Condition-1 manifest entries that legitimately differ by OS, each with its reason. Everything
 #: else in the manifest must be equal. `platform` is the OS and CPU by definition.
@@ -158,19 +229,113 @@ AUTH_PROBES: dict[str, Optional[tuple[str, ...]]] = {
     "codex": None,
     "grok": None,
     "agy": None,
+    # a CLI the registry names that has no status command is `unprobed` until its served-id call
+    # answers; `gemini` and `copilot` are such (W1-13). `rclone` answers its own listing.
+    "gemini": None,
+    "copilot": None,
+    "rclone": ("rclone", "lsd", "gdrive:", "--max-depth", "0"),
 }
 
 AUTH_NEEDS: dict[str, str] = {
     "claude": "the CLAUDE_CODE_OAUTH_TOKEN Codespaces secret (from `claude setup-token`)",
     "gh": "GITHUB_TOKEN or GH_TOKEN in the environment, or `gh auth login`",
-    "codex": "`codex login --device-auth` run once in the Codespace (ChatGPT device sign-in; "
-             "no Codespaces secret holds it)",
-    "grok": "`grok login --device-auth` run once in the Codespace (xAI device sign-in for a headless "
-            "host; no Codespaces secret holds it)",
+    "codex": "the laptop's ChatGPT sign-in cache `~/.codex/auth.json`, mirrored at launch (R87); "
+             "`codex login --device-auth` is manual recovery only",
+    "grok": "the XAI_API_KEY Codespaces secret (the laptop signs grok in with that key)",
     "agy": "an `agy` sign-in: run `agy` once in the Codespace (`gh codespace ssh`), open the Google "
            "URL it prints in a browser and complete the sign-in (no login subcommand, no Codespaces "
            "secret; its model call is what shows the login)",
+    "gemini": "the laptop's Gemini CLI sign-in cache `~/.gemini/oauth_creds.json`, mirrored at launch",
+    "copilot": "a Copilot CLI sign-in: the laptop's lives in the OS keyring (service `copilot-cli`), "
+               "which the Codespace cannot hold; `copilot login` once in the Codespace, or a "
+               "COPILOT_GITHUB_TOKEN secret",
+    "rclone": "the RCLONE_CONFIG_GDRIVE_TOKEN Codespaces secret (the Drive token, `[#1379]`)",
 }
+
+
+# ---- the laptop's own sign-in, per CLI (W1-13, R87): what is mirrored, what is not, and why ----
+
+@dataclass(frozen=True)
+class SignIn:
+    """What one CLI signs in with. `files` are paths relative to HOME (the first is the PRIMARY
+    cache); `env_keys` are the API-key variables the CLI honours; `route` is how a Codespace gets
+    the same sign-in: `mirror` (copy the file at launch), `secret-token` (a long-lived token held
+    as a Codespaces secret -- a separate credential the laptop never refreshes), `env-key` (the
+    laptop itself uses the key) or `waiting` (no file to copy). `refresh` is the vendor's refresh
+    behaviour (`safe`: refresh tokens do not rotate; `guarded`: they rotate, so the copy is made only
+    while the Codespace can never need a refresh; `rotates`: never mirror; `unknown`; `none`)."""
+
+    files: tuple[str, ...] = ()
+    env_keys: tuple[str, ...] = ()
+    route: str = "waiting"
+    refresh: str = "unknown"
+    renew: str = ""
+    why: str = ""
+
+
+#: DECIDED-BY-LANE (b2-codespace-subscription-auth): measured on the laptop 2026-10-06 (booleans and
+#: paths only), vendor docs retrieved the same day and quoted in the run record. A CLI absent from
+#: this table is NAMED by C1 as having no declared sign-in, never skipped.
+SIGN_IN: dict[str, SignIn] = {
+    "claude": SignIn(
+        (".claude/.credentials.json",), ("CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"),
+        route="secret-token", refresh="rotates",
+        renew="run `claude setup-token` on the laptop, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN "
+              "--user` with its output",
+        why="the laptop signs in by its OAuth file, whose refresh token rotates (the access token "
+            "lasts 8 h); the Codespace uses the long-lived setup token of the same subscription, a "
+            "credential the laptop never refreshes"),
+    "codex": SignIn(
+        (".codex/auth.json",), ("CODEX_API_KEY", "OPENAI_API_KEY"),
+        route="mirror", refresh="guarded",
+        renew="run `codex login` on the laptop (browser ChatGPT sign-in) and relaunch",
+        why="OpenAI documents copying ~/.codex/auth.json to a headless machine; it also says not to "
+            "share the file across concurrent machines, so the copy is made only while it is "
+            "fresh enough that the Codespace never has to refresh it (`credential_expiry`)"),
+    "gemini": SignIn(
+        (".gemini/oauth_creds.json", ".gemini/google_accounts.json", ".gemini/settings.json"),
+        ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+        route="mirror", refresh="unknown",
+        renew="run `gemini` on the laptop and sign in again",
+        why="the Gemini CLI docs: headless mode uses the cached credential"),
+    "grok": SignIn(
+        (), ("XAI_API_KEY",), route="env-key", refresh="none",
+        renew="issue a new XAI_API_KEY at console.x.ai and run `gh secret set XAI_API_KEY --user`",
+        why="the laptop has no grok sign-in file and no keyring entry: it uses XAI_API_KEY itself"),
+    "agy": SignIn(
+        (), (), route="waiting", refresh="unknown",
+        renew="BLOCKED-AUTH: sign in to agy in the Codespace once (`gh codespace ssh`, open the URL it prints)",
+        why="the laptop's sign-in is the Windows Credential Manager entry `gemini:antigravity`; the "
+            "vendor docs name only the OS keyring, or GEMINI_API_KEY with modelProvider=gemini, "
+            "which the laptop does not use -- there is no file to mirror"),
+    "copilot": SignIn(
+        (), ("COPILOT_GITHUB_TOKEN",), route="waiting", refresh="unknown",
+        renew="run `copilot login` once in the Codespace (`gh codespace ssh`)",
+        why="the laptop's sign-in is the Windows Credential Manager entry `copilot-cli`; GitHub's docs "
+            "store it in the keychain and fall back to a plaintext config only on a headless host "
+            "with no keychain -- there is no laptop file to mirror"),
+    "gh": SignIn(
+        (), ("GH_TOKEN", "GITHUB_TOKEN"), route="env-key", refresh="none",
+        renew="`gh auth refresh` on the laptop; the Codespace's GITHUB_TOKEN is issued by Codespaces",
+        why="the laptop's token is in the OS keyring; gh's documented headless path is the "
+            "GITHUB_TOKEN the Codespace is issued, which answers `gh auth status` by itself"),
+    "rclone": SignIn(
+        (), ("RCLONE_CONFIG_GDRIVE_TOKEN",), route="secret-token", refresh="none",
+        renew="`rclone config reconnect gdrive:` on the laptop, then `gh secret set "
+              "RCLONE_CONFIG_GDRIVE_TOKEN --user` (`[#1379]` owns the expiry)",
+        why="the laptop's rclone.conf also holds other remotes (an employer drive), which must not be "
+            "copied; the Codespace reads the Drive by its own token secret"),
+}
+
+#: Pairs of mechanism classes that are the SAME sign-in for a CLI: claude's file and its long-lived
+#: token are one subscription. Anything else that differs between the laptop and the Codespace is
+#: the R87 failure -- a provider answering through a credential the laptop does not use.
+AUTH_EQUIVALENT: frozenset[tuple[str, str]] = frozenset()
+
+#: The refresh interval after which Codex refreshes `~/.codex/auth.json` on its next call (OpenAI's
+#: CI/CD auth docs: "approximately 8 days"), and the margin kept so a Codespace's copy can never reach it.
+CODEX_REFRESH_DAYS = 8.0
+CODEX_MIRROR_MAX_AGE_DAYS = 6.0
 
 #: The folders a probe may write into besides the transport root: exactly one, `to-browser/`, where
 #: the lanes' own handbacks go. A probe addresses ONE file there -- never a deeper path, never a
@@ -379,11 +544,12 @@ def _status_probe(argv: Sequence[str]) -> list[str]:
     return ["bash", "-lc", shlex.join(argv)]
 
 
-def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REPO_ROOT) -> dict:
+def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REPO_ROOT,
+                 names: Optional[Sequence[str]] = None) -> dict:
     """Each lane tool's login state, from its own status command. The command's output is read
     for one boolean and discarded; the record carries only the state and the command's name."""
     auth: dict[str, dict] = {}
-    for name in LANE_TOOLS:
+    for name in (names if names is not None else lane_tools(registry_for(root))):
         cmd = AUTH_PROBES.get(name)
         label = " ".join(cmd) if cmd else "(no non-interactive status command)"
         if not (tools.get(name) or {}).get("present"):
@@ -408,19 +574,37 @@ def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REP
 
 # ====================================================== C1 served model ids (b2-codespace-1to1)
 
-#: The registry file the served ids are compared with -- the declared home of every provider, CLI
-#: and model string on the live surface. Read at call time so a test can point it elsewhere.
-REGISTRY_PATH = _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+#: The registry file the served ids are compared with is `REGISTRY_PATH` (declared above, beside the
+#: tool sets read from it).
 
-#: Where the registry says each model CLI's id lives: (provider id, role). `claude` is the lane's
-#: runner (`implement`); `codex` and `grok` are the review routes; `agy` has no role-level model
-#: (its `read` entry pins none), so its id is the one `antigravity` row under `models:`.
-_MODEL_SEAMS: dict[str, tuple[str, Optional[str]]] = {
-    "claude": ("anthropic", "implement"),
-    "codex": ("openai", "review"),
-    "grok": ("xai", "review"),
-    "agy": ("antigravity", None),
+#: Where the registry says a model CLI's id lives when the CLI's role is NOT simply the first one
+#: that pins a model for its provider: (role, or None for the provider's single `models:` row).
+#: `claude` is the lane's runner (`implement`); `codex` and `grok` are the review routes; `agy` has no
+#: role-level model, so its id is the one `antigravity` row under `models:`. A CLI absent here takes
+#: the default rule in `_seam_for` -- so a provider added to the registry needs no edit.
+_SEAM_ROLE_OVERRIDES: dict[str, Optional[str]] = {
+    "claude": "implement",
+    "codex": "review",
+    "grok": "review",
+    "agy": None,
 }
+
+
+def _seam_for(registry: Mapping, cli: str) -> tuple[Optional[str], Optional[str]]:
+    """`(provider id, role)` for `cli`: the provider the registry gives that CLI, and the role whose
+    order pins its model (an override, else the first role in registry order that pins one for it,
+    else None: the provider's single `models:` row)."""
+    provider = next((name for name, row in (registry.get("providers") or {}).items()
+                     if isinstance(row, Mapping) and row.get("cli") == cli), None)
+    if provider is None:
+        return None, None
+    if cli in _SEAM_ROLE_OVERRIDES:
+        return provider, _SEAM_ROLE_OVERRIDES[cli]
+    for role, row in (registry.get("roles") or {}).items():
+        for entry in (row or {}).get("order") or []:
+            if isinstance(entry, Mapping) and entry.get("provider") == provider and entry.get("model"):
+                return provider, role
+    return provider, None
 
 #: agy lists each family in tiers (`agy models`: gemini-3.8-flash-{high,medium,low}); the registry
 #: row is the family, so a served tier of that family is the registered model.
@@ -448,21 +632,12 @@ class ExpectedModel:
     where: str
 
 
-def load_registry(path: Optional[Path] = None) -> dict:
-    """The provider registry as a plain mapping; `{}` when it cannot be read (every expected id is
-    then absent, which the comparison reports by name rather than skipping)."""
-    target = Path(path) if path is not None else REGISTRY_PATH
-    try:
-        data = yaml.safe_load(target.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError):
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
 def expected_models(registry: Mapping) -> dict[str, ExpectedModel]:
-    """cli -> the id the registry routes that CLI to, and where the registry says so."""
+    """cli -> the id the registry routes that CLI to, and where the registry says so. The CLI set is
+    the registry's own (`model_clis`), so a provider added there is compared with no edit here."""
     out: dict[str, ExpectedModel] = {}
-    for cli, (provider, role) in _MODEL_SEAMS.items():
+    for cli in model_clis(registry):
+        provider, role = _seam_for(registry, cli)
         if role is not None:
             order = ((registry.get("roles") or {}).get(role) or {}).get("order") or []
             entry = next((e for e in order if isinstance(e, Mapping)
@@ -511,7 +686,38 @@ def model_probe_argv(cli: str, nonce: str, model: str, log_file: str) -> list[st
         return ["grok", "-m", model, "-p", prompt, "--output-format", "json", "--max-turns", "1"]
     if cli == "agy":
         return ["agy", "-p", prompt, "--output-format", "json", "--log-file", log_file]
+    if cli == "gemini":
+        return ["gemini", "-p", prompt, "-m", model, "-o", "json"]
+    if cli == "copilot":
+        return ["copilot", "-p", prompt, "--model", model, "--output-format", "json"]
     raise ValueError(f"no served-id probe is declared for {cli!r}")
+
+
+def read_gemini(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). The id is the model the CLI's own `stats.models` record names (headless
+    `-o json`: `{"response": ..., "stats": {"models": {<id>: {...}}}}`); the answer is the nonce in
+    `response`. UNVERIFIED LIVE on 2026-10-06: the laptop's own call was refused with
+    `IneligibleTierError` (the vendor retired this client), so the shape is the documented one."""
+    obj = _json_object(stdout) or {}
+    models = ((obj.get("stats") or {}).get("models") or {})
+    served = next(iter(models), None) if isinstance(models, Mapping) else None
+    return (str(served) if served else None), nonce in str(obj.get("response") or "")
+
+
+def read_copilot(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). `copilot --output-format json` is JSONL; the id is the `model` of the
+    `assistant.message` event -- the tool's own record of the reply -- and the answer is the nonce in
+    that event's `content` (measured 2026-10-06 on `--model auto`: `gpt-6-luna`)."""
+    served: Optional[str] = None
+    texts: list[str] = []
+    for obj in _json_lines(stdout):
+        if obj.get("type") != "assistant.message":
+            continue
+        data = obj.get("data") or {}
+        if data.get("model") and served is None:
+            served = str(data["model"])
+        texts.append(str(data.get("content") or ""))
+    return served, nonce in "\n".join(texts)
 
 
 def _json_lines(text: str) -> list[dict]:
@@ -611,15 +817,44 @@ def read_agy(stdout: str, log_text: str, nonce: str) -> tuple[Optional[str], boo
     return (_label_slug(labels[-1]) if labels else None), answered
 
 
+#: The CLIs `model_probe_argv` and the readers know. A registry CLI outside this set is probed by
+#: name and FAILS by name (`no-probe-declared`) -- present in the record, never dropped.
+_PROBE_DECLARED = ("claude", "codex", "grok", "agy", "gemini", "copilot")
+
+
+def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]:
+    """The API-key variables of `cli` that are set in `env` although the CLI has its sign-in CACHE on
+    this side -- a key the laptop does not use for it (R87). A CLI with no cache (grok) keeps its key:
+    the laptop itself signs in with it."""
+    spec = SIGN_IN.get(cli)
+    if spec is None or not spec.files:
+        return ()
+    if not (Path(home) / spec.files[0]).is_file():
+        return ()
+    return tuple(k for k in spec.env_keys if env.get(k))
+
+
 def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[ExpectedModel],
-               nonce: str, home: Path, timeout: int) -> dict:
+               nonce: str, home: Path, timeout: int,
+               env: Optional[Mapping[str, str]] = None) -> dict:
     log_file = workdir / "agy.log"
+    if cli not in _PROBE_DECLARED:
+        return {"state": "no-probe-declared", "served_id": None,
+                "detail": f"no served-id probe is declared for {cli}: add its argv and reader here"}
     if expected is None or not expected.id:
         why = expected.where if expected else "no registry entry"
         return {"state": "no-expected", "served_id": None,
                 "detail": f"the registry names no model for {cli} ({why}); the call was not made"}
-    res = run(_status_probe(model_probe_argv(cli, nonce, expected.id, str(log_file))),
-              cwd=workdir, timeout=timeout)
+    argv = model_probe_argv(cli, nonce, expected.id, str(log_file))
+    base_env = dict(os.environ if env is None else env)
+    strip = unused_keys(cli, home, base_env)
+    for key in strip:
+        base_env.pop(key, None)
+    if strip and os.name != "nt":
+        # a login shell re-reads the profile that exports the Codespaces secrets, so the unset has
+        # to happen INSIDE it (`env -u` runs the CLI with those names removed)
+        argv = ["env", *[x for k in strip for x in ("-u", k)], *argv]
+    res = run(_status_probe(argv), cwd=workdir, timeout=timeout, env=base_env)
     if res.returncode in (124, 127):
         how = "timed out" if res.returncode == 124 else "could not start"
         return {"state": "probe-error", "served_id": None,
@@ -631,6 +866,10 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         served, answered = read_codex(res.stderr or "", out, nonce)
     elif cli == "grok":
         served, answered = read_grok(out, nonce, home)
+    elif cli == "gemini":
+        served, answered = read_gemini(out, nonce)
+    elif cli == "copilot":
+        served, answered = read_copilot(out, nonce)
     else:
         try:
             log_text = log_file.read_text(encoding="utf-8", errors="replace")
@@ -655,29 +894,125 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
 
 def collect_models(run: Runner, tools: Mapping[str, Mapping], auth: Mapping[str, Mapping],
                    expected: Mapping[str, ExpectedModel], *, home: Optional[Path] = None,
-                   nonce: Optional[str] = None, timeout: int = PROBE_TIMEOUT) -> dict:
+                   nonce: Optional[str] = None, timeout: int = PROBE_TIMEOUT,
+                   clis: Optional[Sequence[str]] = None,
+                   env: Optional[Mapping[str, str]] = None) -> dict:
     """Each model CLI's served id, from ONE call each, run in an empty directory so no project
     context shapes the answer. The record keeps state, id and a one-line detail only -- never the
-    model's output, the nonce or any credential."""
+    model's output, the nonce or any credential. `clis` defaults to the registry's own set."""
     home = Path(home) if home is not None else Path.home()
     nonce = nonce or "CHK-" + secrets.token_hex(4).upper()
     out: dict[str, dict] = {}
     with tempfile.TemporaryDirectory(prefix="parity-probe-") as tmp:
-        for cli in MODEL_CLIS:
+        for cli in (clis if clis is not None else model_clis()):
             if not (tools.get(cli) or {}).get("present"):
                 out[cli] = {"state": "tool-absent", "served_id": None, "detail": f"{cli} is not installed"}
             elif ((auth.get(cli) or {}).get("state")) == "unauthenticated":
                 out[cli] = {"state": "not-probed-auth", "served_id": None,
                             "detail": "login missing -- a named auth item; the call was not made"}
             else:
-                out[cli] = _probe_one(cli, run, Path(tmp), expected.get(cli), nonce, home, timeout)
+                out[cli] = _probe_one(cli, run, Path(tmp), expected.get(cli), nonce, home, timeout,
+                                      env)
     return out
 
 
-def _fold_model_proof_into_auth(auth: dict, models: Mapping[str, Mapping]) -> None:
+def measure_mechanism(cli: str, home: Path, env: Mapping[str, str]) -> dict:
+    """How `cli` is signed in on THIS side, measured -- the class (`subscription` for a sign-in cache
+    or claude's long-lived setup token, `api-key` for an API-key variable alone, `none`), the way
+    (a path or variable NAME) and whether an API-key variable is set. Booleans, paths and names
+    only: no value is ever read into the record (R13)."""
+    spec = SIGN_IN.get(cli)
+    if spec is None:
+        return {"class": "none", "via": "no sign-in declared", "api_key_env_present": False}
+    keys_set = [k for k in spec.env_keys if env.get(k)]
+    if cli == "claude" and env.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        return {"class": "subscription", "via": "env CLAUDE_CODE_OAUTH_TOKEN",
+                "api_key_env_present": bool(env.get("ANTHROPIC_API_KEY"))}
+    if spec.files and (Path(home) / spec.files[0]).is_file():
+        return {"class": "subscription", "via": f"file {spec.files[0]}",
+                "api_key_env_present": bool(keys_set)}
+    if keys_set:
+        return {"class": "api-key", "via": "env " + ", ".join(keys_set), "api_key_env_present": True}
+    return {"class": "none", "via": "no cache file and no key variable", "api_key_env_present": False}
+
+
+def collect_auth_mechanism(names: Sequence[str], home: Path, env: Mapping[str, str],
+                           models: Mapping[str, Mapping]) -> dict:
+    """The measured mechanism per CLI. A CLI whose served-id call ANSWERED with no file and no key
+    on this side signs in through something this code cannot see -- the OS keyring -- and is recorded
+    as `keyring`, never as `none`."""
+    out: dict[str, dict] = {}
+    for cli in names:
+        mech = measure_mechanism(cli, home, env)
+        if mech["class"] == "none" and (models.get(cli) or {}).get("state") == "served":
+            mech = {"class": "keyring", "via": "answered with no cache file and no key variable",
+                    "api_key_env_present": False}
+        out[cli] = mech
+    return out
+
+
+def _iso(text: object) -> Optional[datetime]:
+    try:
+        parsed = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _ms(value: object) -> Optional[datetime]:
+    try:
+        return datetime.fromtimestamp(float(value) / 1000.0, tz=timezone.utc)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def credential_expiry(cli: str, home: Path, *, now: Optional[datetime] = None) -> dict:
+    """Is the sign-in cache of `cli` on this side usable? `{"state", "renew", "detail"}` from the
+    file's own timestamps -- no value is read out of it. `ok`: it can serve or renew itself;
+    `due`: its next call refreshes it (Codex, past `CODEX_REFRESH_DAYS`); `expired`: neither the
+    access nor the refresh token can serve any more; `not-a-file`: the CLI has no cache to read here.
+    `renew` is the ONE step that fixes it (R59, R65)."""
+    now = now or datetime.now(timezone.utc)
+    spec = SIGN_IN.get(cli)
+    if spec is None or not spec.files:
+        return {"state": "not-a-file", "renew": spec.renew if spec else "", "detail": "no cache file"}
+    path = Path(home) / spec.files[0]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"state": "expired", "renew": spec.renew, "detail": f"{spec.files[0]} is missing or unreadable"}
+    if cli == "claude":
+        oauth = data.get("claudeAiOauth") or {}
+        access, refresh = _ms(oauth.get("expiresAt")), _ms(oauth.get("refreshTokenExpiresAt"))
+        if refresh is not None and refresh <= now:
+            return {"state": "expired", "renew": spec.renew, "detail": "the refresh token has expired"}
+        if access is not None and access <= now and refresh is None:
+            return {"state": "expired", "renew": spec.renew, "detail": "the access token has expired"}
+        return {"state": "ok", "renew": spec.renew, "detail": "the refresh token is live"}
+    if cli == "gemini":
+        if not data.get("refresh_token"):
+            return {"state": "expired", "renew": spec.renew, "detail": "no refresh token in the cache"}
+        return {"state": "ok", "renew": spec.renew, "detail": "a refresh token renews the access token"}
+    if cli == "codex":
+        if str(data.get("auth_mode")) != "chatgpt":
+            return {"state": "expired", "renew": spec.renew, "detail": "the cache is not a ChatGPT sign-in"}
+        refreshed = _iso(data.get("last_refresh"))
+        if refreshed is None:
+            return {"state": "due", "renew": spec.renew, "detail": "no last_refresh recorded"}
+        age = (now - refreshed).total_seconds() / 86400.0
+        if age >= CODEX_REFRESH_DAYS:
+            return {"state": "due", "renew": spec.renew, "age_days": round(age, 2),
+                    "detail": f"last refreshed {age:.1f} days ago; the next call refreshes it"}
+        return {"state": "ok", "renew": spec.renew, "age_days": round(age, 2),
+                "detail": f"last refreshed {age:.1f} days ago"}
+    return {"state": "ok", "renew": spec.renew, "detail": "cache present"}
+
+
+def _fold_model_proof_into_auth(auth: dict, models: Mapping[str, Mapping],
+                                clis: Optional[Sequence[str]] = None) -> None:
     """A model call is the only login probe `grok` and `agy` have: an answered call proves the login,
     and one that said the login is missing names it. Status-command verdicts are left alone."""
-    for cli in MODEL_CLIS:
+    for cli in (clis if clis is not None else model_clis()):
         entry, model = auth.get(cli), models.get(cli) or {}
         if entry is None:
             continue
@@ -710,24 +1045,32 @@ def installed_hooks(run: Runner, root: Path) -> list[str]:
 def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
                         hooks: Optional[Sequence[str]] = None, home: Optional[Path] = None,
                         nonce: Optional[str] = None) -> dict:
-    """Condition 1's manifest, built in the environment this runs in."""
+    """Condition 1's manifest, built in the environment this runs in. The tools probed are the
+    registry's CLIs plus the non-model tools the Codespace declares (`lane_tools`), read here and
+    never typed (R70)."""
     uv = run(["uv", "--version"], cwd=root)
     sync = run(["uv", "sync", "--locked"], cwd=root)
     py = run(["uv", "run", "--locked", "python", "-c",
               "import platform;print(platform.python_version())"], cwd=root)
     lock = root / "uv.lock"
+    registry = registry_for(root)
+    names = lane_tools(registry)
+    clis = model_clis(registry)
     tools = {}
-    for name in LANE_TOOLS:
+    for name in names:
         res = run(_tool_probe(name), cwd=root, timeout=60)
         present = res.returncode == 0
         first = (res.stdout.strip().splitlines() or [""])[0]
         tools[name] = {"present": present,
                        "version": (_semver(first) or first or None) if present else None}
-    auth = collect_auth(run, tools, root=root)
-    models = collect_models(run, tools, auth,
-                            expected_models(load_registry(root / "ecosystem" / "provider-registry.yaml")),
-                            home=home, nonce=nonce)
-    _fold_model_proof_into_auth(auth, models)
+    auth = collect_auth(run, tools, root=root, names=names)
+    side_home = Path(home) if home is not None else Path.home()
+    models = collect_models(run, tools, auth, expected_models(registry), home=side_home,
+                            nonce=nonce, clis=clis)
+    _fold_model_proof_into_auth(auth, models, clis)
+    mechanism = collect_auth_mechanism(names, side_home, os.environ, models)
+    expiry = {cli: credential_expiry(cli, side_home) for cli in names
+              if (tools.get(cli) or {}).get("present") and SIGN_IN.get(cli) and SIGN_IN[cli].files}
     return {
         "python": py.stdout.strip() or None if py.returncode == 0 else None,
         "uv": _semver(uv.stdout) if uv.returncode == 0 else None,
@@ -736,6 +1079,8 @@ def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
         "tools": tools,
         "auth": auth,
         "models": models,
+        "auth_mech": mechanism,
+        "credential_expiry": expiry,
         "hooks": sorted(hooks) if hooks is not None else installed_hooks(run, root),
         "platform": {"system": platform.system(), "machine": platform.machine()},
     }
@@ -1252,6 +1597,8 @@ def compare_environment(local: Mapping, remote: Mapping,
                         registry: Optional[Mapping] = None) -> Verdict:
     le, re_ = local["environment"], remote["environment"]
     registry = load_registry() if registry is None else registry
+    names = lane_tools(registry)
+    clis = model_clis(registry)
     problems: list[str] = []
     evidence: list[str] = []
     for key in sorted(set(le) | set(re_)):
@@ -1259,7 +1606,8 @@ def compare_environment(local: Mapping, remote: Mapping,
             evidence.append(f"{key}: declared OS-specific ({OS_SPECIFIC_ENTRIES[key]}) -- "
                             f"local={le.get(key)} codespace={re_.get(key)}")
             continue
-        if key in ("tools", "uv_sync_exit", "hooks", "auth", "models"):
+        if key in ("tools", "uv_sync_exit", "hooks", "auth", "models", "auth_mech",
+                   "credential_expiry"):
             continue    # compared below, each with its own verdict wording
         lv, rv = le.get(key), re_.get(key)
         evidence.append(f"{key}: local={lv} codespace={rv}")
@@ -1269,7 +1617,7 @@ def compare_environment(local: Mapping, remote: Mapping,
         evidence.append(f"uv sync --locked exit ({side})={env.get('uv_sync_exit')}")
         if env.get("uv_sync_exit") != 0:
             problems.append(f"uv sync --locked exit {env.get('uv_sync_exit')} on {side}")
-    for name in LANE_TOOLS:
+    for name in names:
         lt = le.get("tools", {}).get(name, {"present": False, "version": None})
         rt = re_.get("tools", {}).get(name, {"present": False, "version": None})
         evidence.append(f"{name} version local={lt.get('version')} codespace={rt.get('version')}")
@@ -1286,8 +1634,10 @@ def compare_environment(local: Mapping, remote: Mapping,
     if sorted(lh) != sorted(rh) or not lh:
         problems.append(f"hook set differs (local={lh} codespace={rh})")
     model_named = _compare_models(le, re_, registry, problems, evidence)
-    auth_items = _auth_items(le, re_, evidence, model_named)
-    for name in LANE_TOOLS:     # an auth probe that never ran is a FAIL, not a named exception
+    _compare_auth_mechanism(le, re_, clis, problems, evidence)
+    _compare_credential_expiry(le, re_, problems, evidence)
+    auth_items = _auth_items(le, re_, evidence, model_named, names)
+    for name in names:     # an auth probe that never ran is a FAIL, not a named exception
         if ((re_.get("auth") or {}).get(name) or {}).get("state") == "probe-error":
             problems.append(f"the auth probe for {name} could not run on the codespace -- its "
                             "login state is unknown")
@@ -1304,8 +1654,12 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
     CODESPACE could not probe for want of a login: they are named as auth items, never failed, never
     passed silently. The workstation is the reference, so a local CLI with no served id fails."""
     expected = expected_models(registry)
+    clis = model_clis(registry)
     named: set[str] = set()
-    for cli in MODEL_CLIS:
+    if not clis:
+        problems.append("the registry names no provider with a CLI: C1 would probe nothing, and a "
+                        "check that probes nothing proves nothing")
+    for cli in clis:
         if not expected[cli].id:
             problems.append(f"the registry names no model for {cli} ({expected[cli].where}): "
                             "its served id cannot be checked")
@@ -1313,9 +1667,9 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
         models = env.get("models")
         if not isinstance(models, Mapping):
             problems.append(f"no served model id on the {side}: the record has no model probe "
-                            f"({', '.join(MODEL_CLIS)})")
+                            f"({', '.join(clis)})")
             continue
-        for cli in MODEL_CLIS:
+        for cli in clis:
             rec = models.get(cli) or {}
             state, served, exp = rec.get("state"), rec.get("served_id"), expected[cli]
             if state == "tool-absent":
@@ -1338,8 +1692,49 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
     return named
 
 
+def _compare_auth_mechanism(le: Mapping, re_: Mapping, clis: Sequence[str], problems: list[str],
+                            evidence: list[str]) -> None:
+    """R87: a model CLI must sign in on the Codespace the way it signs in on the laptop. A CLI that
+    answers there through an API key the laptop does not use -- or through any mechanism class the
+    laptop does not -- is a FAIL naming both, even when its served id matches the registry. A record
+    that carries no mechanism section on EITHER side is an older record and is not judged; a laptop
+    that recorded one against a Codespace that did not is a FAIL (no vacuous pass)."""
+    lm, rm = le.get("auth_mech"), re_.get("auth_mech")
+    if not isinstance(lm, Mapping) and not isinstance(rm, Mapping):
+        return
+    if not isinstance(lm, Mapping) or not isinstance(rm, Mapping):
+        where = "codespace" if isinstance(lm, Mapping) else "local"
+        problems.append(f"no auth mechanism recorded on the {where}: the sign-in each CLI uses "
+                        "cannot be compared with the other side's")
+        return
+    for cli in clis:
+        ours, theirs = lm.get(cli) or {}, rm.get(cli) or {}
+        lc, rc = ours.get("class"), theirs.get("class")
+        evidence.append(f"auth mechanism {cli}: local={lc} ({ours.get('via')}) "
+                        f"codespace={rc} ({theirs.get('via')})")
+        if lc is None or rc is None:
+            problems.append(f"no auth mechanism recorded for {cli} on the "
+                            f"{'local' if lc is None else 'codespace'} side")
+        elif lc != rc and (lc, rc) not in AUTH_EQUIVALENT:
+            problems.append(f"{cli} signs in by {rc} on the codespace but by {lc} on the laptop: not "
+                            "the laptop's own sign-in (R87)")
+
+
+def _compare_credential_expiry(le: Mapping, re_: Mapping, problems: list[str],
+                               evidence: list[str]) -> None:
+    """A recorded `expired` credential on either side is a FAIL that names the ONE renew step
+    (R59, R65): the failure is reported before a lane runs on it."""
+    for side, env in (("local", le), ("codespace", re_)):
+        for cli, rec in sorted((env.get("credential_expiry") or {}).items()):
+            state = (rec or {}).get("state")
+            evidence.append(f"credential {cli} {side}: {state} ({(rec or {}).get('detail', '')})")
+            if state == "expired":
+                problems.append(f"the {cli} credential on the {side} side has expired -- "
+                                f"OPERATOR-ACTION: {(rec or {}).get('renew') or 'renew its sign-in'}")
+
+
 def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
-                model_named: Sequence[str] = ()) -> list[str]:
+                model_named: Sequence[str] = (), names: Optional[Sequence[str]] = None) -> list[str]:
     """The tools the Codespace has installed but not logged in, each named with what it needs.
 
     An exception is only ever NAMED here -- it neither fails condition 1 (installation is what
@@ -1348,7 +1743,7 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
     model call found the login missing (`model_named`) is named even where its auth state was
     `unprobed`, which is the only state `grok` and `agy` can have before they answer."""
     named: list[str] = []
-    for name in LANE_TOOLS:
+    for name in (names if names is not None else lane_tools()):
         theirs = (re_.get("auth") or {}).get(name)
         if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits"):
             continue    # a call that ran and gave nothing is its own FAIL, never a login item
@@ -1357,7 +1752,7 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
             continue    # tool-absent and probe-error are each their own FAIL, not an exception
         ours = ((le.get("auth") or {}).get(name) or {}).get("state")
         evidence.append(f"AUTH-ITEM {name}: codespace={(theirs or {}).get('state', 'unprobed')} "
-                        f"local={ours} -- needs {AUTH_NEEDS[name]}")
+                        f"local={ours} -- needs {AUTH_NEEDS.get(name, 'a sign-in for ' + name)}")
         named.append(name)
     return named
 
