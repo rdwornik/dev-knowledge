@@ -232,8 +232,10 @@ def open_receipts(ledger_path: Optional[Path] = None) -> list[dict]:
     return [row for row in last.values() if row.get("open")]
 
 
-def last_fate(codespace: str, ledger_path: Optional[Path] = None) -> Optional[dict]:
-    """The newest lane-fate row for `codespace`, or None. The observer reads it to tell a
+def last_fate(codespace: str, ledger_path: Optional[Path] = None,
+              slug: Optional[str] = None) -> Optional[dict]:
+    """The newest lane-fate row for `codespace` (and, when given, that lane `slug` -- a reused
+    codespace NAME never inherits another lane's stamp), or None. The observer reads it to tell a
     TRANSITION (write a row) from a repeat (write none) and to recover the first-unreachable stamp
     its disconnect clock runs from -- the ledger is the observer's only memory between readings."""
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
@@ -249,7 +251,8 @@ def last_fate(codespace: str, ledger_path: Optional[Path] = None) -> Optional[di
         except json.JSONDecodeError:
             continue
         if (isinstance(row, dict) and row.get("kind") == "codespace-fate"
-                and row.get("codespace") == codespace):
+                and row.get("codespace") == codespace
+                and (slug is None or row.get("slug") == slug)):
             found = row
     return found
 

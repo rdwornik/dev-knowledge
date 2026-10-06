@@ -1031,13 +1031,14 @@ def test_a_receipt_on_the_box_reads_finished_and_a_handback():
     assert seen["state"] == "finished" and seen["fate"] == "HANDBACK"
 
 
-def test_the_observe_cli_prints_the_reading_as_json(monkeypatch):
+def test_the_observe_cli_prints_the_reading_as_json(monkeypatch, tmp_path):
     from click.testing import CliRunner
 
     monkeypatch.setattr(d, "run_gh", lambda argv, **kw: _ObserveGh(
         listing=[{"name": "cs-1", "state": "Available"}],
         probe="now=1000 log=990 hb=995 receipt=0\n")(argv))
-    out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1"])
+    out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1", "--slug", "lane-x",
+                                     "--ledger", str(tmp_path / "receipts.jsonl")])
     assert out.exit_code == 0, out.output
     assert json.loads(out.output)["state"] == "working"
 
@@ -1179,3 +1180,54 @@ def test_the_observe_cli_records_the_fate_in_the_ledger(tmp_path, monkeypatch):
     assert out.exit_code == 0, out.output
     assert json.loads(out.output)["fate"] == "RUNNING"
     assert [(r["slug"], r["fate"]) for r in _fates(ledger)] == [("lane-x", "RUNNING")]
+
+
+# ---- review of the repair-2 delta (Codex terra, nonce c4837ade7279): two further P1s ------------------
+
+def test_the_observe_cli_refuses_a_reading_with_no_slug_so_the_line_never_runs_unrecorded(tmp_path):
+    """Delta P1 (dispatch.py:2319): `codespace-observe --name X` could report FAILED and record
+    nothing. The line's entry point now REQUIRES the lane slug; the pure-read primitive stays a
+    function seam (tested above) and is not reachable from the CLI."""
+    from click.testing import CliRunner
+
+    ledger = tmp_path / "receipts.jsonl"
+    out = CliRunner().invoke(d.cli, ["codespace-observe", "--name", "cs-1", "--ledger", str(ledger)])
+    assert out.exit_code == 2 and "slug" in out.output.lower()
+    assert not ledger.exists()
+
+
+def test_an_unreadable_listing_between_unreachable_readings_keeps_the_disconnect_stamp(tmp_path):
+    """Delta P1 (dispatch.py:2358): an intermittent `gh codespace list` failure cleared the stamp, so
+    a box whose ssh stayed dead never reached the bound. The stamp survives an INDETERMINATE reading
+    and ends only on an affirmative recovery or a terminal state."""
+    ledger = tmp_path / "receipts.jsonl"
+    _observe(_unreachable(), ledger, 0)
+    blind = _ObserveGh(listing=[], list_ok=False)
+    mid = _observe(blind, ledger, 100)
+    assert (mid["state"], mid["fate"]) == ("unknown", "WAITING")
+    last = _observe(_unreachable(), ledger, cs.DISCONNECT_AFTER_S + 10)
+    assert (last["state"], last["fate"]) == ("disconnected", "FAILED")
+    assert last["unreachable_since"] == _T0.isoformat(timespec="seconds")
+    rows = _fates(ledger)
+    assert [(r["fate"], r["state"]) for r in rows] == [("WAITING", "unknown"),
+                                                     ("FAILED", "disconnected")], rows
+
+
+def test_a_terminal_reading_ends_the_streak_and_a_later_box_starts_a_new_clock(tmp_path):
+    ledger = tmp_path / "receipts.jsonl"
+    _observe(_unreachable(), ledger, 0)
+    gone = _observe(_ObserveGh(listing=[]), ledger, 50, expected_gone=True)
+    assert gone["fate"] == "TORN-DOWN" and gone["unreachable_since"] is None
+    assert "unreachable_since" not in _fates(ledger)[-1]
+
+
+def test_the_prior_fate_is_looked_up_by_codespace_and_slug(tmp_path):
+    """Delta P2 (codespace_regime.py:251): a reused codespace NAME must not inherit another lane's
+    stamp or suppress the new lane's first row."""
+    ledger = tmp_path / "receipts.jsonl"
+    d.regime.write_fate("cs-1", "lane-old", "WAITING", "unknown", "waiting", "observe",
+                        ledger_path=ledger, now=_t(0), unreachable_since=_t(0))
+    seen = d.codespace_observe("cs-1", invoker=_unreachable(), slug="lane-new", ledger_path=ledger,
+                               now=_t(cs.DISCONNECT_AFTER_S + 50))
+    assert seen["fate"] == "WAITING" and seen["unreachable_for_s"] == 0
+    assert [r["slug"] for r in _fates(ledger)] == ["lane-old", "lane-new"]

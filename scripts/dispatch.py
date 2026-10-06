@@ -2356,25 +2356,29 @@ def codespace_observe(name: str, *, workdir: str = "/workspaces/dispatch",
                    cs.ProgressReading(reachable=False,
                                       error=f"ssh exited {probe.exit_code}"))
     streak = container == "Available" and reading is not None and not reading.reachable
-    prev = regime.last_fate(name, ledger_path) if slug is not None else None
+    prev = regime.last_fate(name, ledger_path, slug=slug) if slug is not None else None
+    prior_since: Optional[datetime] = None
+    if (prev or {}).get("unreachable_since"):
+        try:
+            prior_since = datetime.fromisoformat(prev["unreachable_since"])
+        except (TypeError, ValueError):
+            prior_since = None
     since: Optional[datetime] = None
     if streak:
-        since = stamp
-        prior = (prev or {}).get("unreachable_since")
-        if prior:
-            try:
-                since = min(stamp, datetime.fromisoformat(prior))
-            except (TypeError, ValueError):
-                since = stamp
+        since = min(stamp, prior_since) if prior_since else stamp
         if slug is not None:
             unreachable_for_s = max(unreachable_for_s, (stamp - since).total_seconds())
+    elif container is None and prior_since is not None:
+        # an INDETERMINATE reading (the listing could not be read) says nothing about the box:
+        # the stamp survives it, and ends only on an affirmative recovery or a terminal state
+        since = prior_since
     assessed = cs.assess_lane(container, reading, unreachable_for_s=unreachable_for_s,
                               expected_gone=expected_gone)
     recorded = False
     if slug is not None:
         changed = (prev is None
                    or (prev.get("fate"), prev.get("state")) != (assessed.fate, assessed.state.value)
-                   or bool(prev.get("unreachable_since")) != streak)
+                   or bool(prev.get("unreachable_since")) != (since is not None))
         if changed:
             regime.write_fate(name, slug, assessed.fate, assessed.state.value, assessed.reason,
                               assessed.step, ledger_path=ledger_path, now=stamp,
@@ -2647,16 +2651,17 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
 @click.option("--unreachable-for-s", type=float, default=0.0, show_default=True,
               help="An override for a caller with a longer unreachable clock of its own; with "
                    "--slug the line derives the duration itself, from the stamp it stored.")
-@click.option("--slug", default=None,
-              help="The lane's slug: record every fate TRANSITION in the regime ledger "
-                   "(`write_fate`). Omit it and the read records nothing.")
+@click.option("--slug", required=True,
+              help="The lane's slug: every fate TRANSITION is recorded in the regime ledger "
+                   "(`write_fate`) and the unreachable clock runs from its stored stamp -- the "
+                   "line never reads a lane unrecorded.")
 @click.option("--ledger", "ledger", type=click.Path(path_type=Path), default=None,
               help=f"Default: {regime.RECEIPT_LEDGER_RELPATH}.")
 def codespace_observe_cmd(name: str, workdir: str, expected_gone: bool,
-                          unreachable_for_s: float, slug: Optional[str],
+                          unreachable_for_s: float, slug: str,
                           ledger: Optional[Path]) -> None:
-    """Read a Codespace lane once: state, progress, fate. Starts nothing; with --slug it appends
-    the fate row when the fate changed (the only write)."""
+    """Read a Codespace lane once: state, progress, fate. Starts nothing; appends the fate row
+    when the fate changed (the only write)."""
     click.echo(json.dumps(codespace_observe(name, workdir=workdir, expected_gone=expected_gone,
                                             unreachable_for_s=unreachable_for_s, slug=slug,
                                             ledger_path=ledger)))
