@@ -40,3 +40,47 @@ Neither P1 is declined, so nothing goes to N2's independent reviewer. Neither is
 ## Not read
 
 The review read the diff and the changed files. It did not run any code. The reviewer reported no P2 or P3; that is its answer to the prompt above (correctness defects, N1 parity-leg vacuity, classifier and heartbeat fates, secret leakage, the login-shell change, the four-seam re-point, vacuous tests), not a proof that none exist.
+
+---
+
+## Amendment 2026-10-06 — repair 2 answers the integrator's refusal (`to-browser/REFUSED-b2-codespace-green.md`, repair 1 of 2)
+
+Consumer and contract unchanged: row [#1335] and `LANE-B2-W1-b2-codespace-green`; read by `LANE-B2-W1-b2-codespace-green-repair-2`. The integrator refused the handback `86a8d744` because the two P1s above were neither fixed nor declined (order step 3(g)). This repair built only those two fixes, then had Codex terra read the delta.
+
+**P1 1 (C3 bound to the run) — FIXED** at `3face0cc`. RED first (14 failed at the synced tip), then GREEN. The Codespace record carries `lane` = branch and tip (`stamp-lane`); `integration_legs` FAILs a record for another branch or another tip, and reads NOT-RUN when the record names no lane.
+
+**P1 2 (the fate has its own clock and the line records it) — FIXED** at `8ecfd2af`. RED first (6 failed), then GREEN. `codespace_observe` derives the unreachable duration from a stamp stored on the regime ledger's fate row and appends every fate transition through `write_fate`.
+
+### The delta review
+
+```
+reviewer        Codex, model gpt-5.6-terra, the common rules' route
+served model    gpt-5.6-terra   -- the tool's own run header ("OpenAI Codex v0.155.0 ... model: gpt-5.6-terra, provider: openai, sandbox: read-only, reasoning effort: high")
+call            codex exec -m gpt-5.6-terra -c model_reasoning_effort=high --skip-git-repo-check -s read-only <prompt>   (stdin from null)
+folder          an empty folder under the job tmp: delta.diff, the six changed files at the tip, refusal.md, nonce.txt
+```
+
+```
+read 1   a09c4fff..8ecfd2af   delta sha256 a333a2b6fc99175dff758a9c773e21d75a394e6932c364934978c0421d5a2274   session 01a10e7d-b91c-7c70-a654-e336afe5f0c4   nonce c4837ade7279 (returned)
+         the first attempt (session 01a10e7c-...) answered "inputs inaccessible": my prompt forbade it every command, so it could not read the folder; no finding, nonce not returned; re-run with reads allowed
+         VERDICT: FAIL   P1 dispatch.py:2319 slug optional, an unrecorded observation is possible   P1 dispatch.py:2358 an unreadable listing clears the stamp   P2 codespace_regime.py:251 last_fate ignores the slug
+read 2   a09c4fff..f4c65f4d   delta sha256 29da055bef8d05bdfcffce8125443f50383610f571456bb12bdd899b84066617   session 01a10e84-b65b-7371-b16e-bf04239dbe5a   nonce 07d6dfb67a66 (returned)
+         VERDICT: FAIL   P1 dispatch.py:2371 `container is None` keeps the stamp even for a confirmed teardown
+```
+
+**Read 1 — all three findings were right and are FIXED** at `f4c65f4d`, RED first (3 failed): the `codespace-observe` CLI now REQUIRES `--slug` (the line never reads a lane unrecorded; the one-shot read stays a function seam, covered by its own test); an unreadable listing keeps the stamp, which ends only on an affirmative recovery or a terminal reading; `last_fate` is looked up by codespace and slug.
+
+**Read 2 — the one P1 is DECLINED (N2).** The reporter's claim is that a confirmed teardown is recorded with a carried `unreachable_since`. Author's position: `container is None` happens only when `gh codespace list` failed or its JSON did not parse; a readable listing without the box gives `"Absent"` (`codespace_state.state_from_listing`), which is not `None`, so a confirmed teardown never takes the carry branch. `test_a_terminal_reading_ends_the_streak_and_a_later_box_starts_a_new_clock` already asserted that and passed at the tip it was filed against.
+
+Sent read-only to `grok-4.7` (told it cannot execute; the code, the claim and the test inline), nonce `97937798389b`:
+
+```
+served          grok-4.7   -- the tool's own usage record ("modelUsage": {"grok-4.7": ...}), session 01a10e8a-6cc8-7301-9fd3-53b83573364f, request f1c3968b-99dd-4523-9e6a-f1899b168c80
+                           (the reply's own "SERVED:" line said grok-4.5; the tool's record is the evidence, the self-report is not)
+nonce           97937798389b (returned)
+VERDICT: REJECTED   "A confirmed absence is not recorded with a carried unreachable_since ... the unreadable-vs-empty distinction the finding asks for is already in this control flow."
+```
+
+Both positions are recorded; the independent verdict decides, so no fix. One test was added for the edge the finding pointed at (`test_an_unreadable_listing_is_never_read_as_a_confirmed_teardown_even_when_one_is_expected`, `2ea065e9`): an unreadable listing with `expected_gone` reads WAITING with the stamp kept, and only the readable empty listing reads TORN-DOWN with no stamp.
+
+**Not read.** Neither read ran code; reads 1 and 2 saw the delta from `a09c4fff` (the sync merge), not the whole lane again. The decision is the reviewers' answers to the prompt, not a proof that no defect remains.
