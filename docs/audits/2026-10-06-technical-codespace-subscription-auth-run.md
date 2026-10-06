@@ -3,7 +3,9 @@
 Consumer and contract: `LANE-B2-W1-b2-codespace-subscription-auth` (batch B2-W1, lane W1-13; ADR-126, R63, R65, R82, R83, R87; related rows [#1335], [#1379], [#1410], [#1411]). This record is the run record Done-item 6 asks for; it files and closes no row.
 
 > **Status: run 1 complete and read; run 2 (a codex diagnostic) was killed by the host's memory reaper
-> four minutes in, before its runner started, and its Codespace was harvested and deleted.** Nothing in
+> four minutes in, before its runner started, and its Codespace was harvested and deleted; run 3 (repair 1, the same
+> diagnostic) was refused by the recovery-container check on an agy installer/pin skew before any runner started, and
+> was deleted too (see "Run 3").** Nothing in
 > this record is a value: names, paths, modes, booleans and served model ids only (R13).
 
 ## What the laptop signs in with (measured 2026-10-06; booleans and paths only, no value read)
@@ -135,11 +137,30 @@ A codex diagnostic (the CLI's own message under lane conditions). The host's mem
 process while the box was still being set up; `codespace-observe` read `runner_alive: false, receipt_present: false`,
 so no head command ever ran. Harvested (creation log only) and deleted; `gh codespace list` was empty afterwards.
 
-### Cost and cleanup, both runs
+### Run 3 (repair 1) -- `b2-sub-auth-run3-q945j7g69vqf69v`, created 09:27:35Z, deleted 09:39:50Z
 
-- Wall time 14.1 min (run 1) and 7.7 min (run 2) on an 8-core machine: about 1.9 + 1.0 = **2.9 core-hours** (the
-  projection was 16). Both `verify-cleanup` records read `codespace_listed_after: false`; `git ls-remote --heads origin`
-  shows no run or scratch branch (the only `worktree-b2-codespace-subscription-auth` is this lane's deliverable).
+The one extra Codespace the dispatcher allowed (3rd of 6): the codex diagnostic, run through `dispatch.py codespace-exec` after
+`quota_watch.py check --projected-core-hours 16` -> `OK: 44.30 used + 16.00 projected = 60.30 of 180`.
+
+- **Result: the launch was refused by its own recovery-container check; no runner started, so codex was not read.** The creation
+  log shows `provision.sh` ending `REFUSED: L-F5 FAILED -- agy is not the pinned 1.2.17 in a login shell` (`agy is 1.3.0`): the
+  Antigravity installer "takes no version" (the pin's own comment), serves its latest, and the vendor has moved from 1.2.17 to 1.3.0
+  since the pin was typed. The laptop still reads `agy --version` 1.2.17. The legs before it passed (claude re-pinned to 2.1.290,
+  gh 2.93.0, codex 0.155.0, rclone 1.73.2); the gemini and copilot legs come after agy and were **not reached**, so this run says
+  nothing about them.
+- This is not caused by this lane's diff: `origin/main` carries the same agy pin and the same installer, so **any fresh Codespace on
+  `main` fails the same leg today.** The same class was recorded once before (W1-12: `agy is not the pinned 1.2.16`, re-typed to
+  1.2.17). Not worked around here: re-typing the pin to 1.3.0 makes C1 read an agy version skew against the laptop (1.2.17), and
+  whether the pin follows the vendor's latest or the laptop is not this lane's call -- it is the WAITING gate below.
+- The mirror's record before the box existed read the same as run 1: codex `mirrored` (last refreshed 2.7 days ago, verdict `guarded`).
+- Harvest (creation log only), `codespace-delete` (exit 0, manifest verified), `verify-cleanup`: `codespace_listed_after: false`; no run
+  branch on origin.
+
+### Cost and cleanup, all three runs
+
+- Wall time 14.1 min (run 1), 7.7 min (run 2) and 12.3 min (run 3) on an 8-core machine: about 1.9 + 1.0 + 1.6 = **4.5 core-hours**
+  (the projection was 16 per run). All three `verify-cleanup` records read `codespace_listed_after: false`; `git ls-remote --heads origin`
+  shows no run or scratch branch (the only `worktree-b2-codespace-subscription-auth` is this lane's deliverable). 3 of 6 Codespaces used.
 
 ## DECIDED-BY-LANE
 
@@ -154,6 +175,11 @@ so no head command ever ran. Harvested (creation log only) and deleted; `gh code
 
 ## QUESTION (functional; operator or architect)
 
+0. **agy installer vs pin (found by run 3, blocks every fresh Codespace, not only this lane's):** the vendor installer serves agy 1.3.0 and
+   takes no version; the pin and the laptop read 1.2.17. Which is the rule: the pin follows the laptop (then the installer cannot meet it
+   until the laptop updates agy, or the leg takes a versioned binary URL if the vendor has one), or the pin follows the vendor's latest
+   (then C1's agy equality needs a ruling)? Until ruled, no fresh Codespace provisions, so the codex run cannot be repeated.
+
 1. codex in the Codespace answered `no-credits` on the mirrored subscription while the laptop's same cache answers. Is
    the ChatGPT plan's Codex allowance the cause? Until it is read in the box, codex is not proven (item 1 and 5 for codex unmet).
 2. copilot's Codespace uses a PAT secret while the laptop uses the keyring: accept the secret as the laptop-equivalent, or leave it WAITING?
@@ -165,3 +191,4 @@ so no head command ever ran. Harvested (creation log only) and deleted; `gh code
 - OPERATOR-ACTION: run `copilot login` once in the Codespace (`gh codespace ssh`), or rule that `COPILOT_GITHUB_TOKEN` is the laptop-equivalent.
 - OPERATOR-ACTION: sign in to agy in the Codespace once (`gh codespace ssh`, open the URL it prints) -- `BLOCKED-AUTH` stays (R83).
 - OPERATOR-ACTION: turn the laptop's claude and grok auto-update off, or accept that each launch re-derives claude to the laptop's version (laptop claude moved 2.1.290 -> 2.1.291 and grok 1.0.44 -> 1.0.46 during this lane).
+- OPERATOR-ACTION: rule the agy pin (QUESTION 0): either update the laptop's agy to the version the vendor installer serves (1.3.0) so the pin and the laptop agree, or tell the lane that the pin follows the vendor installer; until then every fresh Codespace refuses at `provision.sh` leg L-F5.
