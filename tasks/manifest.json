@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d6f3b4a75174848b4e7b9d4c5b5d29c204d29458eeacb4d501714a6bc1ddf938",
+  "generated_sha256": "6ac1831264021082fcc96babb888fdc21fb8cb38f7d9bdb695dcf31922ebec9f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2922,6 +2922,10 @@
     {
       "task": 1421,
       "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
+    },
+    {
+      "task": 1422,
+      "file": "1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md"
     },
     {
       "prose": ""

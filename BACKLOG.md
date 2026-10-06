@@ -770,6 +770,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
 - [#1420] [P2][S] The next rulings-landing run lands R88, the operator's Codespace sign-in rulings of 2026-10-06 · tasks/1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md
 - [#1421] [P2][S] Each seat cycle tears down its own worktree and branch at CYCLE-END · tasks/1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md
+- [#1422] [P1][S] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset · tasks/1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md
 
 ---
 
