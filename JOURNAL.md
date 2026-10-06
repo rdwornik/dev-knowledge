@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-10-04 (v) - CC (Opus 5.5, integrator seat B2-W1 cycle 17): batch B2-W1 closes -- twelve lanes merged, W1-13 b2-codespace-subscription-auth WAITING under the operator's 12:00 bound (R88) with two follow-on lanes drafted; the close ledgers and the R88 row land
+
+**Anchors:** `88150399` -- `chore/b2-w1-close-ledgers` (`9123e5d7` the ledgers, `88150399` the row); and `84ee7e90` -- lane b2-codespace-green's merge, whose closed merge receipt rides here
+
+**Did:**
+- `logs/MERGE-RECEIPTS.jsonl`: b2-codespace-green's closed receipt (carried since cycle 14). `logs/LANE-COSTS.jsonl`: thirteen lane rows and eighteen integrator seat rows (cycles 0-17); the lanes ran on claude-sonnet-5-5, which is unpriced, so their USD reads 0.00 over counted tokens -- a floor.
+- `[#1420]` filed on the operator's order: the next rulings-landing run lands R88 (a)-(d) -- Copilot via `COPILOT_GITHUB_TOKEN` accepted, google's cli -> null, agy BLOCKED-AUTH with a headless follow-on, no refresh probe that could sign the laptop out.
+- W1-13 ends WAITING (R65) at 10:00Z: repair 1 of 2 reached `407b17e0` (dated vendor quotes, doc-counts, run 3 refused by the agy install pin before any runner) and never handed back; its branch and worktree are kept as the follow-on's carrier.
+
+**Result:** 12 MERGED, 1 WAITING. Follow-on lanes drafted in the integrator receipt: `b2-codespace-subscription-auth-w2` and `b2-agy-headless-auth`. Fates, evidence and the digest: `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`, `to-browser/DIGEST-B2-W1-2026-10-04.md`.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl`, `tasks/1420-*.md`, `tasks/manifest.json`, `BACKLOG.md`.
+
+**Next:** render the two follow-on lanes; the rulings-landing run for R80, R81, ADR-121 C6, R82-R86 and R88.
+
+---
+
 ### 2026-10-04 (u) - CC (Opus 5.5, integrator seat B2-W1 cycle 14): lane b2-codespace-green merges close-out-only (OR-1) -- items 1-5 land, with the parity check's C3 bound to the run it reads and a Codespace lane's disconnect fate kept on its own clock and recorded; item 6 stays WAITING for a follow-on lane
 
 **Anchors:** `7012346d` -- `worktree-b2-codespace-green` (the lane's commits through repair 2: `3face0cc`, `8ecfd2af`, `f4c65f4d`, `2ea065e9`, `4b294aab`, `7012346d`, plus the origin syncs `a613d3d9`, `c1306845`, `f7a13803`, `d46b84df`, `a09c4fff`); and `6ff1a31e` -- the AMEND-5 rows merge, whose closed merge receipt rides here

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "36ace2e5eb2bb8acf8f07b85614be564dccde5ab4d8fa0264cb7407edb684062",
+  "generated_sha256": "0a3bada3bcf68b998bbfc3638bc1e08240804ead9e88289a32e7ad9b8dc775fc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2914,6 +2914,10 @@
     {
       "task": 1411,
       "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
+    },
+    {
+      "task": 1420,
+      "file": "1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md"
     },
     {
       "prose": ""

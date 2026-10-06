@@ -768,6 +768,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
 - [#1410] [P1][M] The dispatcher enforces a lane's same-defect attempt bound in code, not by the lane's reading of its contract · tasks/1410-the-dispatcher-enforces-a-same-defect-attempt-bound-in-code.md
 - [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
+- [#1420] [P2][S] The next rulings-landing run lands R88, the operator's Codespace sign-in rulings of 2026-10-06 · tasks/1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md
 
 ---
 
