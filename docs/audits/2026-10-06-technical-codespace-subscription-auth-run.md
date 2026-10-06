@@ -19,23 +19,70 @@
 - Versions at the run: claude 2.1.291, codex 0.155.0, copilot 1.0.92, grok 1.0.46, gemini 0.56.0, agy 1.2.17,
   gh 2.93.0, rclone 1.73.2.
 
-## Vendor documentation (retrieved 2026-10-06)
+## Vendor documentation (retrieved 2026-10-06; passages exactly as the fetch returned them)
 
-Read, not quoted here word for word -- the exact passages are in the lane's session transcript, and this
-section is therefore a **paraphrase with the page named**, which is a gap against the contract's "dated quotes":
+Each passage is a short quote from the vendor page named; none is a credential. A fetch that returned a summary rather than
+page text is marked **(fetch summary)**: it is evidence of what the page says, not a verbatim quote. Page names are as fetched
+on 2026-10-06 (`developers.openai.com/codex/auth` answered 308 to `learn.chatgpt.com/docs/auth`).
 
-- OpenAI Codex auth (`https://developers.openai.com/codex/auth`, `.../auth/ci-cd-auth`): a ChatGPT sign-in is
-  stored in `~/.codex/auth.json`, copying it to a headless machine is a documented path, and the same page
-  says not to share that file across concurrent machines because the refresh token is single-use. This is why
-  codex is mirrored only while the file is fresh (under 7 days; the vendor refreshes at 8), so the Codespace
-  never has to refresh it.
-- Claude Code (`https://code.claude.com/docs/en/setup`, `claude setup-token`): a long-lived token for headless
-  use, supplied as `CLAUDE_CODE_OAUTH_TOKEN`. The laptop's OAuth file rotates its refresh token, so it is not copied.
-- Gemini CLI (`https://github.com/google-gemini/gemini-cli`): headless mode uses the cached credential.
-- GitHub Copilot CLI (`https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli`):
-  the sign-in lives in the OS keychain, with a plaintext config fallback only on a host that has none.
-- agy (`https://codelabs.developers.google.com/antigravity-cli-hands-on`): the OS keyring, or `GEMINI_API_KEY`
-  with `modelProvider=gemini`, which the laptop does not use.
+**OpenAI Codex auth** -- `https://learn.chatgpt.com/docs/auth`:
+
+> "Codex caches login details locally in a plaintext file at `~/.codex/auth.json` or in your OS-specific credential store."
+
+> "`file` stores credentials in `auth.json` under `CODEX_HOME` (defaults to `~/.codex`). `keyring` stores credentials in your operating system credential store and fails if it is unavailable. `auto` uses the OS credential store when available, otherwise falls back to `auth.json`. `ephemeral` keeps credentials in memory only for the current process."
+
+> "Treat `~/.codex/auth.json` like a password: it contains access tokens. Don't commit it, paste it into tickets, or share it in chat."
+
+> "In the terminal where you're running Codex, choose one of these options: In the interactive login UI, select **Sign in with Device Code**. Run `codex login --device-auth`."
+
+> "On a machine where you can use the browser-based login flow, run `codex login`. Confirm the login cache exists at `~/.codex/auth.json`. Copy `~/.codex/auth.json` to `~/.codex/auth.json` on the headless machine."
+
+> "Codex refreshes tokens automatically during use before they expire, so active sessions usually continue without requiring another browser login."
+
+**OpenAI Codex CI/CD auth** -- `https://learn.chatgpt.com/docs/auth/ci-cd-auth` **(fetch summary** of the page's bolded rules**)**:
+
+> "Do not share the same file across concurrent jobs or multiple machines."
+
+> "Use one `auth.json` per runner or per serialized workflow stream."
+
+> "another machine or concurrent job rotated the token first" (given as a reason a refresh stops working)
+
+The same fetch states the page "does not explicitly address whether refresh tokens are single-use or rotating" and names about 8 days
+as when a ChatGPT session goes stale. **This is the point the review record addresses:** the lane copies the laptop's file to each
+Codespace launch, which puts a second machine on the same file, guarded only by a cache age under 7 days.
+
+**GitHub Copilot CLI authenticate** -- `https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli`:
+
+> "the CLI stores your OAuth token in your operating system's keychain under the service name `copilot-cli`"
+
+> "If the system keychain is unavailable for example, on a headless Linux server without `libsecret` installed the CLI prompts you to store the token in a plaintext configuration file at `~/.copilot/config.json`"
+
+Token precedence on the page: `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, `GITHUB_TOKEN`, the keychain OAuth token, the GitHub CLI fallback.
+Supported: `gho_` OAuth, `github_pat_` fine-grained PAT, `ghu_` App user-to-server; classic `ghp_` is not supported.
+
+**GitHub Copilot CLI install** -- `https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli`: `npm install -g @github/copilot`; "Node.js 22 or later".
+
+**Gemini CLI authentication** -- `https://geminicli.com/docs/get-started/authentication.md` **(fetch summary)**:
+
+> "Headless mode will use your existing authentication method, if an existing authentication credential is cached."
+
+> "Your credentials will be cached locally for future sessions" (the page does not name the path, and the fetch found nothing on copying credentials to another machine)
+
+**Gemini CLI install** -- `https://github.com/google-gemini/gemini-cli`: `npm install -g @google/gemini-cli` (no Node version stated in the fetched text).
+
+**Antigravity CLI (agy)** -- `https://antigravity.google/docs/cli/install`:
+
+> "When launching `agy` on your local machine, the CLI attempts to access your operating system's native secure keyring (such as Apple Keychain, Linux Secret Service/D-Bus, or Windows Credential Manager)."
+
+Same page (fetch summary): a headless/SSH host gets "a manual URL loop"; `GEMINI_API_KEY` works only with `modelProvider` set to `gemini` in
+`~/.gemini/antigravity-cli/settings.json` ("Setting a `GEMINI_API_KEY` environment variable on its own has no effect"); that settings file holds configuration, not a credential.
+
+**Claude Code setup token** (`claude setup-token`, `https://code.claude.com/docs/en/setup`): the page fetch is not among the tool results
+recovered from transcript `2ee71b9b`, so the earlier sentence (a long-lived token for headless use, supplied as `CLAUDE_CODE_OAUTH_TOKEN`) stands as a
+**paraphrase, not a quote**. This is the one passage still owed: `ROWS-OWED` (re-fetch and quote it).
+
+**xAI grok** (a web-search result summary; no vendor page was fetched): the xAI CLI authenticates by `--api-key` or `XAI_API_KEY`, and
+"In a headless environment, you can run `grok login --device-code`." The laptop itself uses the key variable, so the Codespace uses the same env key (R87: a key only where the laptop uses one).
 
 ## The run
 
