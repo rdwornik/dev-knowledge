@@ -915,6 +915,12 @@ def _fixture_registry(tmp_path, monkeypatch):
     path = tmp_path / "registry-fixture.yaml"
     path.write_text(yaml.safe_dump(_REGISTRY), encoding="utf-8")
     monkeypatch.setattr(cp, "REGISTRY_PATH", path, raising=False)
+    # the same for the Codespace's declared tools: the live file now also installs the registry's
+    # gemini and copilot, which this small registry does not name
+    prov = tmp_path / "provisioning-fixture.yaml"
+    prov.write_text(yaml.safe_dump({"tools": {n: {} for n in (
+        "claude", "gh", "codex", "grok", "agy", "rclone")}}), encoding="utf-8")
+    monkeypatch.setattr(cp, "PROVISIONING_PATH", prov, raising=False)
 
 
 def test_the_lane_tools_and_model_clis_are_declared_and_every_model_cli_is_a_lane_tool():
@@ -2788,6 +2794,29 @@ def test_c1_fails_on_a_recorded_expired_credential_naming_the_renew_step():
     verdict = cp.compare_environment(local, remote)
     assert verdict.status == "FAIL"
     assert "codex" in verdict.reason and "expired" in verdict.reason and "codex login" in verdict.reason
+
+
+def test_a_cache_file_the_codespace_never_receives_is_not_an_expired_credential():
+    """Measured on the 2026-10-06 live run: the Codespace's claude signs in by the setup-token env
+    variable, so `.claude/.credentials.json` is ABSENT there by design and the reader said
+    `expired` -- a FAIL naming a renew step that cannot help. Only a cache the launch MIRRORS can
+    expire on the Codespace side; the laptop side is read for every cache."""
+    local, remote = _record("local"), _record("codespace")
+    missing = {"state": "expired", "renew": "run `claude setup-token` on the laptop",
+               "detail": ".claude/.credentials.json is missing or unreadable"}
+    remote["environment"]["credential_expiry"] = {"claude": dict(missing)}
+    verdict = cp.compare_environment(local, remote)
+    assert "expired" not in verdict.reason, verdict.reason
+    # the same record on the LAPTOP side is a real dead sign-in and still fails
+    local["environment"]["credential_expiry"] = {"claude": dict(missing)}
+    again = cp.compare_environment(local, _record("codespace"))
+    assert again.status == "FAIL" and "claude" in again.reason and "expired" in again.reason
+    # and a mirrored cache (codex) that is missing on the Codespace is still an expired one
+    remote2 = _record("codespace")
+    remote2["environment"]["credential_expiry"] = {
+        "codex": {"state": "expired", "renew": "run `codex login` on the laptop",
+                  "detail": ".codex/auth.json is missing or unreadable"}}
+    assert "codex" in cp.compare_environment(_record("local"), remote2).reason
 
 
 def test_c1_fails_on_claude_version_skew_between_laptop_and_codespace():

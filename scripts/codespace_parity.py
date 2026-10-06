@@ -1734,6 +1734,12 @@ def _compare_credential_expiry(le: Mapping, re_: Mapping, problems: list[str],
         for cli, rec in sorted((env.get("credential_expiry") or {}).items()):
             state = (rec or {}).get("state")
             evidence.append(f"credential {cli} {side}: {state} ({(rec or {}).get('detail', '')})")
+            spec = SIGN_IN.get(cli)
+            if side == "codespace" and not (spec and spec.route == "mirror"
+                                            and spec.refresh in ("safe", "guarded")):
+                # a cache the launch never copies is absent there by design (claude signs in by the
+                # setup-token variable): its mechanism is compared by `_compare_auth_mechanism`
+                continue
             if state == "expired":
                 problems.append(f"the {cli} credential on the {side} side has expired -- "
                                 f"OPERATOR-ACTION: {(rec or {}).get('renew') or 'renew its sign-in'}")
