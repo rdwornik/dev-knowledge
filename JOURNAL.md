@@ -21,6 +21,26 @@
 
 ---
 
+### 2026-10-04 (w) - CC (Opus 5.5, integrator seat B2-W1 cycle 17): the close under the operator's 14:00Z bound -- OT-M ends 2/4, the ruleset goes back to disabled, the seat-cycle worktrees are torn down, and two rows land
+
+**Anchors:** `cf9220b7` -- `chore/b2-w1-close-rows` (`1787b983` row [#1421], `d0535b02` the carried receipt, `cf9220b7` row [#1422])
+
+**Did:**
+- The operator bound the close to 16:00 local (14:00Z). OT-M, run in an isolated session, proved case (2), where GitHub rejects an unchecked sha pushed to `main` with GH013, and case (4), where an in-progress run reads IN-PROGRESS and never as a pass. Cases (1) and (3) were still in CI at the bound and are WAITING.
+- Arming waits on all four cases, so ruleset 24579242 was set back to `enforcement: disabled` at 14:07Z and read back. Re-arming is [#1422].
+- OT-M finding F1: pytest goes red on `epic/**` for a tree that is green on `main` and on `worktree-integrate-*`. [#1422] owns it.
+- Thirteen clean, merged seat-cycle worktrees and branches were torn down (dispatcher 13-20, integrator 11-15). The primary checkout was clean and was fast-forwarded e67f27ac -> b1cf3e49.
+- [#1421] filed: each seat cycle tears down its own worktree at CYCLE-END.
+- b2-w1-close-ledgers' closed merge receipt rides here.
+
+**Result:** B2-W1's close is complete apart from STATE-BATCH, the trial-cut re-run and the handback. Evidence: `to-browser/SESSION-integrator-b2-w1-2026-10-04.md` and `to-browser/EVAL-otm-b2-w1-2026-10-04.md`.
+
+**Changes:** `tasks/1421-*.md`, `tasks/1422-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** [#1422] in W2, where OT-M (1) and (3) finish and the ruleset is re-armed; [#1421]; [#1420].
+
+---
+
 ### 2026-10-04 (v) - CC (Opus 5.5, integrator seat B2-W1 cycle 17): batch B2-W1 closes -- twelve lanes merged, W1-13 b2-codespace-subscription-auth WAITING under the operator's 12:00 bound (R88) with two follow-on lanes drafted; the close ledgers and the R88 row land
 
 **Anchors:** `88150399` -- `chore/b2-w1-close-ledgers` (`9123e5d7` the ledgers, `88150399` the row); and `84ee7e90` -- lane b2-codespace-green's merge, whose closed merge receipt rides here
