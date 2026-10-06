@@ -1231,3 +1231,16 @@ def test_the_prior_fate_is_looked_up_by_codespace_and_slug(tmp_path):
                                now=_t(cs.DISCONNECT_AFTER_S + 50))
     assert seen["fate"] == "WAITING" and seen["unreachable_for_s"] == 0
     assert [r["slug"] for r in _fates(ledger)] == ["lane-old", "lane-new"]
+
+
+def test_an_unreadable_listing_is_never_read_as_a_confirmed_teardown_even_when_one_is_expected(tmp_path):
+    """Declined delta P1 (Codex terra, nonce 07d6dfb67a66; rejected by grok-4.7, nonce 97937798389b):
+    `container is None` is an UNREADABLE listing, a readable one without the box is "Absent". Only
+    the latter is a confirmed absence, so only the latter ends the streak and reads TORN-DOWN."""
+    ledger = tmp_path / "receipts.jsonl"
+    _observe(_unreachable(), ledger, 0)
+    blind = _observe(_ObserveGh(listing=[], list_ok=False), ledger, 50, expected_gone=True)
+    assert (blind["state"], blind["fate"]) == ("unknown", "WAITING")
+    assert blind["unreachable_since"] == _T0.isoformat(timespec="seconds")
+    sure = _observe(_ObserveGh(listing=[]), ledger, 60, expected_gone=True)
+    assert (sure["state"], sure["fate"], sure["unreachable_since"]) == ("absent", "TORN-DOWN", None)
