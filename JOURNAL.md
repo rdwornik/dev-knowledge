@@ -21,6 +21,25 @@
 
 ---
 
+### 2026-10-08 (a) - CC (Opus 5.5, background seat, B+ step 2): the twelve P13 decisions are disposed from evidence, the handoff tooling defects and R90's three fixes are rows, and [#1376] is superseded
+
+**Anchors:** `58258ce0` -- `worktree-b-plus-step-2` (`35719144` decision_carriage.py + the nine register entries, `8e7db834` rows [#1423]-[#1437], `e2b9d4a7` R78 re-carried by [#1423], `58258ce0` the collected-test count)
+
+**Did:**
+- R90 (operator, option B+) and the seat's P13 rulings (`to-browser/RATIFICATION-2026-10-08.md`), on the evidence of `to-browser/DIGEST-HANDOFF-READINESS-2026-10-07.md`.
+- `scripts/decision_carriage.py` derives a decision's carriage from evidence (lane merges reachable from main, a lane tip landed inside another merge, tags, signals, successors, render records) and renders `DECISION_DISPOSITIONS` entries for the stems the seat ruled ESTABLISHED. The nine entries in `scripts/decision_coverage.py` were rendered by it. It is the seed of [#1437].
+- D4 is carried by [#1366] (`implements:`), D5 by [#1423] (W1-13 from its archive tag, R87/R88; supersedes [#1376]), D12 by [#1424] (FOUNDATION lane 12).
+- Tooling-defect rows [#1425]-[#1434]; [#1435] write-time validators; [#1436] readiness gate; [#1437] batch-close dispositions gate.
+- Superseding [#1376] orphaned R78, which the readiness dry run's preflight caught (`rulings_carried` hard-fail); R78's `Carried by:` now names [#1423].
+
+**Result:** readiness dry run #2 on `e2b9d4a7`: preflight rc=0; probes 41 of 42 pass, the one fail BD-manifest (waivable by design); the organ set's one fail the same BD-manifest. `58258ce0` clears its `doc_claims` WARN.
+
+**Changes:** `scripts/decision_carriage.py`, `tests/test_decision_carriage.py`, `scripts/decision_coverage.py`, `protocols/STANDING_RULINGS.md` (R78 carrier), `tasks/1366-*`, `tasks/1376-*`, `tasks/1423-*`..`tasks/1437-*`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`.
+
+**Next:** the 2026-10-08 architect handoff cut on this state; W2 renders [#1423], [#1424] and the R90 rows.
+
+---
+
 ### 2026-10-04 (w) - CC (Opus 5.5, integrator seat B2-W1 cycle 17): the close under the operator's 14:00Z bound -- OT-M ends 2/4, the ruleset goes back to disabled, the seat-cycle worktrees are torn down, and two rows land
 
 **Anchors:** `cf9220b7` -- `chore/b2-w1-close-rows` (`1787b983` row [#1421], `d0535b02` the carried receipt, `cf9220b7` row [#1422])
