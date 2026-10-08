@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-08 (b) - CC (Opus 5.5, background seat): the 2026-10-08 architect handoff bundle, cut on the pinned input (main 350c07f7 + CI run 37790704091), and rows [#1438]-[#1442]
+
+**Anchors:** `16e310d2` -- `worktree-handoff-bundle-2026-10-08` (`609c87d9` the bundle + rows [#1438]-[#1441], `16e310d2` row [#1442])
+
+**Did:**
+- RATIFICATION-2026-10-08 v2 withdrew "BD-ci must equal dry run #2". Landing step 2 moved `main`, so that condition could never hold. The cut was pinned instead to `350c07f7` and its completed run 37790704091.
+- Every red of that run was classified from its logs (`to-browser/DIGEST-CI-REDS-350c07f-2026-10-08.md`). The NEW reds are 3 tests on both OS, 14 ship-gate hard-fails and 3 commit-gate findings. Step 2 caused all of them, and [#1441] owns them. They are the residual's first open thread.
+- The real cut ran on the local date with no `--date`. Every stage was rc=0. After `--filled`, the probes passed 42/42. BD-ci recorded the pinned run.
+- Rows filed: [#1438] W2-22 boot teaching, [#1439] R91 seat ids, [#1440] pinned readiness, [#1441] the NEW reds, [#1442] every landing on main passes the merge gate. [#1442] was filed by operator order because step 2 bypassed that gate.
+
+**Result:** the bundle is `docs/handoffs/2026-10-08-dev-knowledge-architect/`. The paste is on the transport as `to-browser/PASTE_THIS-2026-10-08-dev-knowledge-architect.md`.
+
+**Changes:** `docs/handoffs/2026-10-08-dev-knowledge-architect/`, `tasks/1438-*`..`tasks/1442-*`, `tasks/manifest.json`, `BACKLOG.md`.
+
+**Next:** the incoming seat triages the NEW reds first ([#1441]), then W2's first wave.
+
+---
+
 ### 2026-10-08 (a) - CC (Opus 5.5, background seat, B+ step 2): the twelve P13 decisions are disposed from evidence, the handoff tooling defects and R90's three fixes are rows, and [#1376] is superseded
 
 **Anchors:** `58258ce0` -- `worktree-b-plus-step-2` (`35719144` decision_carriage.py + the nine register entries, `8e7db834` rows [#1423]-[#1437], `e2b9d4a7` R78 re-carried by [#1423], `58258ce0` the collected-test count)
