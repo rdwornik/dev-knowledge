@@ -5996,7 +5996,7 @@ Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-20
 
 - **R78 — Codespace model credentials: load them now, harden later** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:125` (v4)). In force as: the credentials for codex, grok and agy are loaded from the operator's secrets folder into the account's Codespaces secrets, with device-login where a CLI needs it; values are not printed, logged or written to a repository or transport file (R13); hardening comes later; status 2026-10-04: `CODEX_API_KEY` and `XAI_API_KEY` set, agy still needs a Google sign-in per Codespace, an open gap. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** [#1376]
+  **Carried by:** [#1423]
 
   ```verbatim to-browser/RATIFICATION-2026-10-04.md:125-136
   ## R78 — Codespace model credentials: load them now, harden later

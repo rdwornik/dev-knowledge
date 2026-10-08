@@ -759,7 +759,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1373] [P1][L] Every handoff is boot-tested before the cut and teaches: SEAT-LESSONS, the seat exam and the teach-back are part of it · tasks/1373-every-handoff-is-boot-tested-before-the-cut-and-te.md
 - [#1374] [P1][L] All dispatch lives in the hub for local, Codespace and cloud, win-tooling keeps at most a shim, and an ADR amends R11(3) · tasks/1374-all-dispatch-lives-in-the-hub-for-local-codespace.md
 - [#1375] [P2][M] Skills and commands are kept by the problem they solve, and Anthropic's built-ins are reviewed on a routine · tasks/1375-skills-and-commands-are-kept-by-the-problem-they-s.md
-- [#1376] [P2][M] Codespace model credentials for codex, grok and agy are loaded from the secrets folder, and the agy sign-in gap is closed or recorded · tasks/1376-codespace-model-credentials-for-codex-grok-and-agy.md
 - [#1377] [P1][L] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness · tasks/1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md
 - [#1378] [P1][S] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded · tasks/1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md
 - [#1379] [P2][S] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds · tasks/1379-the-rclone-drive-token-expiry-row-has-a-named-owne.md
@@ -771,6 +770,21 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1420] [P2][S] The next rulings-landing run lands R88, the operator's Codespace sign-in rulings of 2026-10-06 · tasks/1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md
 - [#1421] [P2][S] Each seat cycle tears down its own worktree and branch at CYCLE-END · tasks/1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md
 - [#1422] [P1][S] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset · tasks/1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md
+- [#1423] [P1][L] W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376] · tasks/1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md
+- [#1424] [P2][M] W2 carries FOUNDATION lane 12: the commit-time hooks R66 moved to CI run as CI jobs · tasks/1424-w2-carries-foundation-lane-12-the-commit-time-hooks-r66-moved-to-ci-run-as-ci-jo.md
+- [#1425] [P1][S] The handoff Dates row takes the cut's declared date, not the local clock · tasks/1425-the-handoff-dates-row-takes-the-cut-s-declared-date-not-the-local-clock.md
+- [#1426] [P2][S] BD-ci gives a different answer for the same sha within twenty minutes · tasks/1426-bd-ci-gives-a-different-answer-for-the-same-sha-within-twenty-minutes.md
+- [#1427] [P2][S] BD-ci counts pre-existing gate-job reds as new reds because it reads CI with no baseline · tasks/1427-bd-ci-counts-pre-existing-gate-job-reds-as-new-reds-because-it-reads-ci-with-no.md
+- [#1428] [P1][S] The --filled waiver drops BD-manifest's waiver whenever any second check fails · tasks/1428-the-filled-waiver-drops-bd-manifest-s-waiver-whenever-any-second-check-fails.md
+- [#1429] [P1][M] The handoff preflight and the batch-close trial cut cannot see P13 because they judge the previous bundle · tasks/1429-the-handoff-preflight-and-the-batch-close-trial-cut-cannot-see-p13-because-they.md
+- [#1430] [P2][S] verify_handoff_probes crashes on a cp1252 console when its output is redirected · tasks/1430-verify-handoff-probes-crashes-on-a-cp1252-console-when-its-output-is-redirected.md
+- [#1431] [P2][S] The handoff cut takes the repository's name from its folder name · tasks/1431-the-handoff-cut-takes-the-repository-s-name-from-its-folder-name.md
+- [#1432] [P2][S] The post-fill order of the handoff cut lives in prose: --filled before assemble_paste refuses · tasks/1432-the-post-fill-order-of-the-handoff-cut-lives-in-prose-filled-before-assemble-pas.md
+- [#1433] [P2][M] A background seat has no sanctioned way to fill a handoff bundle · tasks/1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md
+- [#1434] [P2][M] ADR-129's 120-second handoff preflight bound does not hold on the operator's laptop · tasks/1434-adr-129-s-120-second-handoff-preflight-bound-does-not-hold-on-the-operator-s-lap.md
+- [#1435] [P1][M] transport_lint checks the seat-written handoff inputs when they are written: PLAN-HANDOFF section 4, the LEDGER token, RATIFICATION names · tasks/1435-transport-lint-checks-the-seat-written-handoff-inputs-when-they-are-written-plan.md
+- [#1436] [P1][L] One handoff-readiness command runs the whole cut pipeline in a scratch clone and gates every real cut · tasks/1436-one-handoff-readiness-command-runs-the-whole-cut-pipeline-in-a-scratch-clone-and.md
+- [#1437] [P1][M] Batch close generates and requires a disposition for every decision of its batch · tasks/1437-batch-close-generates-and-requires-a-disposition-for-every-decision-of-its-batch.md
 
 ---
 
