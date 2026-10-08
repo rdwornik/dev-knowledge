@@ -1,0 +1,13 @@
+---
+id: "[#1423]"
+title: "W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376]"
+status: open
+priority: P1
+size: L
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+implements: "AMEND-B2-W1-5-2026-10-05"
+generates: BACKLOG.md
+---
+
+- [#1423] [P1][L] **W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376]** - R87 (operator, 2026-10-05): Codex in the Codespace signs in with the operator's ChatGPT/Codex subscription exactly as it does on the laptop, never with the API key, and Claude Code is pinned against auto-update skew. R88 (2026-10-06): Copilot signs in through the `COPILOT_GITHUB_TOKEN` secret; the retired gemini CLI leaves the registry's expectations; agy is BLOCKED-AUTH in the Codespace (one OPERATOR-ACTION line, a headless method is follow-on work); no refresh probe that could sign the laptop out is run. Lane W1-13 `b2-codespace-subscription-auth` built toward R87 but never merged: its work is only on tag `archive/b2-w1-13-codespace-subscription-auth` (407b17e0, not an ancestor of main; R65 WAITING). [#1376]'s Done-when requires `CODEX_API_KEY` to be present, the opposite of R87/R88, so this row supersedes it (seat ruling D5, 2026-10-08) · implements: AMEND-B2-W1-5-2026-10-05 · Done when: (1) a W2 lane resumes from the tag and its merge is on main; (2) in a fresh Codespace with `CODEX_API_KEY` unset, codex returns a nonce signed in by the subscription mirrored from the laptop, shown in the run receipt; (3) Copilot signs in through `COPILOT_GITHUB_TOKEN`, and the parity check passes with no gemini expectation; (4) the agy leg reads BLOCKED-AUTH with its one OPERATOR-ACTION line, never a pass; (5) `claude` in the Codespace reports the laptop's pinned version; (6) no step runs a sign-in refresh probe, and a grep of the run's receipts and logs for any secret value returns nothing · owner: a W2 lane (the W2 render writes its contract); the operator for the secrets themselves · touches: `scripts/codespace_parity.py`, the provisioning script, the devcontainer, `ecosystem/provider-registry.yaml`, tests · kill-candidates: `[#1376]` -- superseded by this row; `[#1420]` lands R88's text in the rulings register, this row executes it · refs `[#1376]`, `[#1420]`, `[#1366]`, `archive/b2-w1-13-codespace-subscription-auth`, `to-cc/AMEND-B2-W1-5-2026-10-05.md` · source: `to-browser/RATIFICATION-2026-10-08.md` (R90 + the seat's P13 rulings and the tooling-defect table), evidence `to-browser/DIGEST-HANDOFF-READINESS-2026-10-07.md`

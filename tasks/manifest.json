@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6ac1831264021082fcc96babb888fdc21fb8cb38f7d9bdb695dcf31922ebec9f",
+  "generated_sha256": "78f55da144f6d369ff2f7260ad85cfe0c762f07adb3c0b19b4b79e0f0d81cc83",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2880,10 +2880,6 @@
       "file": "1375-skills-and-commands-are-kept-by-the-problem-they-s.md"
     },
     {
-      "task": 1376,
-      "file": "1376-codespace-model-credentials-for-codex-grok-and-agy.md"
-    },
-    {
       "task": 1377,
       "file": "1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md"
     },
@@ -2926,6 +2922,66 @@
     {
       "task": 1422,
       "file": "1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md"
+    },
+    {
+      "task": 1423,
+      "file": "1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md"
+    },
+    {
+      "task": 1424,
+      "file": "1424-w2-carries-foundation-lane-12-the-commit-time-hooks-r66-moved-to-ci-run-as-ci-jo.md"
+    },
+    {
+      "task": 1425,
+      "file": "1425-the-handoff-dates-row-takes-the-cut-s-declared-date-not-the-local-clock.md"
+    },
+    {
+      "task": 1426,
+      "file": "1426-bd-ci-gives-a-different-answer-for-the-same-sha-within-twenty-minutes.md"
+    },
+    {
+      "task": 1427,
+      "file": "1427-bd-ci-counts-pre-existing-gate-job-reds-as-new-reds-because-it-reads-ci-with-no.md"
+    },
+    {
+      "task": 1428,
+      "file": "1428-the-filled-waiver-drops-bd-manifest-s-waiver-whenever-any-second-check-fails.md"
+    },
+    {
+      "task": 1429,
+      "file": "1429-the-handoff-preflight-and-the-batch-close-trial-cut-cannot-see-p13-because-they.md"
+    },
+    {
+      "task": 1430,
+      "file": "1430-verify-handoff-probes-crashes-on-a-cp1252-console-when-its-output-is-redirected.md"
+    },
+    {
+      "task": 1431,
+      "file": "1431-the-handoff-cut-takes-the-repository-s-name-from-its-folder-name.md"
+    },
+    {
+      "task": 1432,
+      "file": "1432-the-post-fill-order-of-the-handoff-cut-lives-in-prose-filled-before-assemble-pas.md"
+    },
+    {
+      "task": 1433,
+      "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
+    },
+    {
+      "task": 1434,
+      "file": "1434-adr-129-s-120-second-handoff-preflight-bound-does-not-hold-on-the-operator-s-lap.md"
+    },
+    {
+      "task": 1435,
+      "file": "1435-transport-lint-checks-the-seat-written-handoff-inputs-when-they-are-written-plan.md"
+    },
+    {
+      "task": 1436,
+      "file": "1436-one-handoff-readiness-command-runs-the-whole-cut-pipeline-in-a-scratch-clone-and.md"
+    },
+    {
+      "task": 1437,
+      "file": "1437-batch-close-generates-and-requires-a-disposition-for-every-decision-of-its-batch.md"
     },
     {
       "prose": ""
