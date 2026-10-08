@@ -785,6 +785,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1435] [P1][M] transport_lint checks the seat-written handoff inputs when they are written: PLAN-HANDOFF section 4, the LEDGER token, RATIFICATION names · tasks/1435-transport-lint-checks-the-seat-written-handoff-inputs-when-they-are-written-plan.md
 - [#1436] [P1][L] One handoff-readiness command runs the whole cut pipeline in a scratch clone and gates every real cut · tasks/1436-one-handoff-readiness-command-runs-the-whole-cut-pipeline-in-a-scratch-clone-and.md
 - [#1437] [P1][M] Batch close generates and requires a disposition for every decision of its batch · tasks/1437-batch-close-generates-and-requires-a-disposition-for-every-decision-of-its-batch.md
+- [#1438] [P1][S] W2-22 adds to-browser/SEAT-LESSONS-2026-10-04.md and the seat exam to HANDOFF_BOOT's reading path · tasks/1438-w2-22-adds-seat-lessons-and-the-seat-exam-to-handoff-boot-s-reading-path.md
+- [#1439] [P1][M] Every transport file names the seat that wrote it, and the generated transport index groups files by seat (R91) · tasks/1439-every-transport-file-names-the-seat-that-wrote-it-and-the-index-groups-by-seat-r91.md
+- [#1440] [P1][M] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates · tasks/1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md
+- [#1441] [P1][S] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) · tasks/1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md
 
 ---
 

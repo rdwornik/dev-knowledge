@@ -1,0 +1,12 @@
+---
+id: "[#1438]"
+title: "W2-22 adds to-browser/SEAT-LESSONS-2026-10-04.md and the seat exam to HANDOFF_BOOT's reading path"
+status: open
+priority: P1
+size: S
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1438] [P1][S] **W2-22 adds to-browser/SEAT-LESSONS-2026-10-04.md and the seat exam to HANDOFF_BOOT's reading path** - Evidence: `to-browser/SEAT-EXAM-RESULT-2026-10-05.md` -- the seat exam graded BAR NOT MET, 0 of the 6 questions asked passing, with the grader's pattern note: every answer was sound in posture but missed specific doctrine the lessons hold (the R59 §0a retry/stop count, the merge gate's non-pass-check leg, the 10-03 lane measurement, the lessons-first order), so SEAT-LESSONS content is not reaching the seat. The test seat never had SEAT-LESSONS because `protocols/HANDOFF_BOOT.md` does not point to it (`to-cc/PLAN-HANDOFF-2026-10-04.md` v5 §1). The outgoing seat's contingency: if the exam fails again, do not dispatch until W2-22 lands boot teaching · Done when: (1) `protocols/HANDOFF_BOOT.md`'s reading path names `to-browser/SEAT-LESSONS-2026-10-04.md` (or its successor) and the seat exam `to-browser/SEAT-EXAM-2026-10-04.md`, in the order the outgoing seat set (lessons first), and a test over the file finds both; (2) `protocols/HANDOFF_BOOT.md` stays within its byte budget; (3) a retest of the seat exam on a fresh seat booted from the changed file is graded by an isolated session against the frozen key, and its result file is kept · kill-candidates: [#1373] [#1364] -- both touch the handoff boot's teaching (R73's boot test and exam; R60/R76's role statement), neither puts SEAT-LESSONS or the exam on HANDOFF_BOOT's reading path; fold this row into [#1373] if W2 lands them as one lane · refs `protocols/HANDOFF_BOOT.md`, `protocols/HANDOFF_PROCESS.md`, `protocols/STANDING_RULINGS.md` section AR (R73) · source: operator order `to-cc/BATCH-HANDOFF-CUT-2026-10-06.md` step 5, filed at the 2026-10-08 architect cut (`docs/handoffs/2026-10-08-dev-knowledge-architect/`)

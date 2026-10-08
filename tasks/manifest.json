@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "78f55da144f6d369ff2f7260ad85cfe0c762f07adb3c0b19b4b79e0f0d81cc83",
+  "generated_sha256": "c055f1ddffaa92f97ca79aa51e20c95d59ab456205b7889b405a47e9b87f2ceb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2982,6 +2982,22 @@
     {
       "task": 1437,
       "file": "1437-batch-close-generates-and-requires-a-disposition-for-every-decision-of-its-batch.md"
+    },
+    {
+      "task": 1438,
+      "file": "1438-w2-22-adds-seat-lessons-and-the-seat-exam-to-handoff-boot-s-reading-path.md"
+    },
+    {
+      "task": 1439,
+      "file": "1439-every-transport-file-names-the-seat-that-wrote-it-and-the-index-groups-by-seat-r91.md"
+    },
+    {
+      "task": 1440,
+      "file": "1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md"
+    },
+    {
+      "task": 1441,
+      "file": "1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md"
     },
     {
       "prose": ""
