@@ -789,6 +789,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1439] [P1][M] Every transport file names the seat that wrote it, and the generated transport index groups files by seat (R91) · tasks/1439-every-transport-file-names-the-seat-that-wrote-it-and-the-index-groups-by-seat-r91.md
 - [#1440] [P1][M] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates · tasks/1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md
 - [#1441] [P1][S] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) · tasks/1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md
+- [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
 
 ---
 
