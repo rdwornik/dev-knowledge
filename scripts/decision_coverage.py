@@ -423,6 +423,41 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
     "declare:AMEND-INTEGRATOR-MERGE-PATH-2026-09-29-withdrawn": Disposition(
         reason="REFUSED in writing: withdrawn by R37.2 -- a withdrawn order is not executed.",
         owner="to-browser/RATIFICATION-2026-09-29.md (R37.2 withdrawn; R53 (2), 2026-10-02)"),
+
+    # -- B2-W1 and FOUNDATION amendments, GENERATED from evidence -- R90 + the seat's P13 rulings --
+    # The 2026-10-07 handoff readiness dry run found these twelve undisposed; the B2-W1 integrator
+    # had ruled them (seat ruling 3, 2026-10-05) and the ruling never reached this register. The
+    # entries below are rendered by `scripts/decision_carriage.py render` from its `evidence` leg
+    # for the NINE the seat ruled ESTABLISHED (RATIFICATION-2026-10-08). The other three are
+    # carried by OPEN implementing rows, never by a Disposition: AMEND-B2-W1-4 by [#1366],
+    # AMEND-B2-W1-5 and AMEND-BATCH-FOUNDATION-5 by the W2 rows filed with this register edit.
+    "declare:AMEND-B2-W1-1-2026-10-04": Disposition(
+        reason="EXECUTED: lane b2-handoff-hardening merged 1627e74c (reachable from main); SIGNAL-B2-W1-AMEND-1-GREEN-2026-10-04.md present; applied at render (to-browser/SESSION-gen-b2-w1-record-2026-10-04.md:116). Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-B2-W1-2-2026-10-04": Disposition(
+        reason="EXECUTED: lane b2-rulings-landing merged 42ba43c2 (reachable from main); SIGNAL-B2-W1-AMEND-2-GREEN-2026-10-04.md present; applied at render (to-browser/SESSION-gen-b2-w1-record-2026-10-04.md:163). Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-B2-W1-3-2026-10-04": Disposition(
+        reason="EXECUTED: lane b2-handoff-hardening merged 1627e74c (reachable from main); lane b2-transport-lint merged cd3ab8a6 (reachable from main); SIGNAL-B2-W1-AMEND-3-GREEN-2026-10-04.md present; applied at render (to-browser/SESSION-gen-b2-w1-record-2026-10-04.md:209); route changed: the BD-transport probe was built as its own lane W1-11 b2-transport-probe (merge e89e16d3), not inside W1-9. Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-2026-10-03": Disposition(
+        reason="EXECUTED: lane foundation-4-merge-gate tip 2dd2067d is an ancestor of main (landed inside another merge); applied at render (to-browser/SESSION-gen-foundation-record-2026-10-03.md:8); lane 4's tip 2dd2067d landed inside the b2-merge-gate merge 1546090c; the OT-M acceptance remainder is scheduled with [#1422]. Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-2-2026-10-03": Disposition(
+        reason="EXECUTED: lane foundation-1-honest-green merged ce6ecb08 (reachable from main); lane foundation-4-merge-gate tip 2dd2067d is an ancestor of main (landed inside another merge); applied at render (to-browser/SESSION-gen-foundation-record-2026-10-03.md:118, to-browser/SESSION-gen-foundation-record-2026-10-03.md:122); seat ruling 3 (SESSION-integrator-b2-w1-2026-10-04.md:744) also cites lane merges 13fc203a and 9683a655. Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-2-2026-10-03-v1-superseded": Disposition(
+        reason="SUPERSEDED, never pasted; successor to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03.md. Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-2-2026-10-03-v2-superseded": Disposition(
+        reason="SUPERSEDED, never pasted; successor to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03.md. Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-3-2026-10-03": Disposition(
+        reason="EXECUTED: applied at render (to-browser/SESSION-gen-foundation-record-2026-10-03.md:194, to-browser/SESSION-gen-foundation-record-2026-10-03.md:216); the review route ran through Grok, verified as served (DIGEST-FOUNDATION-2026-10-03-close-lines.md:105 served id grok-4.6 from usage.json; :82 two of three lanes reviewed through Grok; record :216 BATCH-COMMON lines 63 and 100 moved to grok-4.7). Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
+    "declare:AMEND-BATCH-FOUNDATION-4-2026-10-03": Disposition(
+        reason="EXECUTED: lane foundation-5-codespace-parity merged 31c791ae (reachable from main); lane foundation-6-ci-speed merged 3157d69b (reachable from main); applied at render (to-browser/SESSION-gen-foundation-record-2026-10-03.md:233); the local cap raised to 4 (DIGEST-FOUNDATION-2026-10-03-close-lines.md:122, the dispatcher plan names cap 4). Carriage accepted by the 2026-10-02-dev-knowledge-architect seat's P13 rulings, to-browser/RATIFICATION-2026-10-08.md (R90); derived by scripts/decision_carriage.py",
+        owner="the closing integrator of the decision's batch; re-open if a later reader finds the cited merge or record does not carry the decision's own text"),
 }
 
 
