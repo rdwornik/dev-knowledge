@@ -458,21 +458,45 @@ class CmdResult:
 Runner = Callable[..., CmdResult]
 
 
+#: The two prerequisites OUTSIDE the lane that a NOT-RUN may wait on (Done 5, P-L5-3): the integrator's
+#: merge, and a probe path a contract names. Anything the lane can do itself is not a gate.
+GATE_MERGE = "the merge gate (the integrator's local --no-ff merge and the CI push verdict)"
+GATE_PROBE_PATH = "a contract-named probe path (`collect --probe-write NAME`)"
+
+
 @dataclass(frozen=True)
 class Verdict:
+    """One condition's RAW outcome (`status`: PASS | FAIL | NOT-RUN), never rewritten. `gate` names the
+    outside prerequisite a NOT-RUN waits on; `disposition` is DERIVED from the two and is `WAITING
+    <gate>` only for a raw NOT-RUN that names one -- a raw FAIL is never relabelled, whatever `gate` says."""
+
     condition: int
     name: str
     status: str  # PASS | FAIL | NOT-RUN
     reason: str
     evidence: tuple[str, ...] = ()
+    gate: str = ""
+
+    @property
+    def disposition(self) -> str:
+        return f"WAITING {self.gate}" if self.status == "NOT-RUN" and self.gate else self.status
 
     def render(self) -> str:
         head = f"{self.status} cond={self.condition} {self.name}"
         return f"{head} {self.reason}".rstrip() if self.reason else head
 
 
-def _verdict(n: int, status: str, reason: str = "", evidence: Sequence[str] = ()) -> Verdict:
-    return Verdict(n, CONDITION_NAMES[n], status, reason, tuple(evidence))
+def _verdict(n: int, status: str, reason: str = "", evidence: Sequence[str] = (),
+             gate: str = "") -> Verdict:
+    return Verdict(n, CONDITION_NAMES[n], status, reason, tuple(evidence), gate)
+
+
+def verdict_records(verdicts: Sequence[Verdict], command: str, code: int) -> list[dict]:
+    """One record per condition for the run record: the RAW outcome, the derived disposition, the gate,
+    the reason, and the command and exit code of the `check` that produced them (P-L5-3)."""
+    return [{"condition": v.condition, "name": v.name, "raw": v.status, "disposition": v.disposition,
+             "gate": v.gate if v.status == "NOT-RUN" else "", "reason": v.reason,
+             "command": command, "exit_code": code} for v in verdicts]
 
 
 class Leg(enum.Enum):
@@ -2006,7 +2030,11 @@ def compare_landing(local: Mapping, remote: Mapping,
                 LegResult(Leg.NOT_RUN, f"push leg not exercised (the Codespace pushed no branch; "
                           f"push exit {landing.get('push_exit')})"))
     status, reason = fold_legs([push_leg, *integration_legs(local, integration, evidence, remote)])
-    return _verdict(3, status, reason, evidence)
+    # WAITING only for the leg no lane can run: with the lane's own push done and NO integration record
+    # at all, what is missing is the integrator's merge. A leg a lane could still run is not a gate.
+    gate = (GATE_MERGE if status == "NOT-RUN" and push_leg.leg is Leg.PASS
+            and not isinstance(integration, Mapping) else "")
+    return _verdict(3, status, reason, evidence, gate)
 
 
 def compare_transport(local: Mapping, remote: Mapping) -> Verdict:
@@ -2029,7 +2057,7 @@ def compare_transport(local: Mapping, remote: Mapping) -> Verdict:
         evidence.append(f"write: NOT-RUN -- {TRANSPORT_WRITE_NOT_RUN_REASON}")
         if problems:
             return _verdict(4, "FAIL", "; ".join(problems), evidence)
-        return _verdict(4, "NOT-RUN", TRANSPORT_WRITE_NOT_RUN_REASON, evidence)
+        return _verdict(4, "NOT-RUN", TRANSPORT_WRITE_NOT_RUN_REASON, evidence, GATE_PROBE_PATH)
     # The write leg ran (`collect --probe-write`): it is judged on its own steps, and a good write
     # never rescues a failed read.
     name = write.get("name")
@@ -2175,6 +2203,8 @@ def render_report(verdicts: Sequence[Verdict]) -> str:
     lines = []
     for v in verdicts:
         lines.append(v.render())
+        if v.disposition != v.status:
+            lines.append(f"    disposition: {v.disposition}")
         lines.extend(f"    {e}" for e in v.evidence)
     return "\n".join(lines)
 
@@ -2183,8 +2213,11 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
               codespace: Optional[str] = None, remote_file: str = DEFAULT_REMOTE_FILE,
               cleanup_path: Optional[Path] = None, run: Optional[Runner] = None,
               save_remote: Optional[Path] = None,
-              integration_path: Optional[Path] = None) -> tuple[int, str]:
+              integration_path: Optional[Path] = None,
+              json_out: Optional[Path] = None, command: str = "") -> tuple[int, str]:
     """Compare the two records. Returns (exit code, report text); never raises.
+
+    `json_out` also writes `verdict_records` (raw outcome, disposition, reason, `command`, exit code).
 
     `integration_path` is the record `integrate` wrote: condition 3's merge, outcome-test and CI
     legs. Without it those legs are NOT-RUN and the check cannot exit 0.
@@ -2232,6 +2265,8 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
     if integration_problem:
         verdicts[2] = _verdict(3, "FAIL", integration_problem)
     code = exit_code(verdicts)
+    if json_out is not None:
+        write_record(json_out, verdict_records(verdicts, command, code))
     return code, render_report(verdicts) + f"\nexit={code}"
 
 
@@ -2469,13 +2504,16 @@ def collect_cmd(out: Path, side: str, push_branch: Optional[str], via_gate: bool
               help="Keep the record read over gh, so the evidence outlives the Codespace.")
 @click.option("--integration", "integration_path", default=None, type=click.Path(path_type=Path),
               help="The record `integrate` wrote: condition 3's merge / outcome-test / CI legs.")
+@click.option("--json-out", "json_out", default=None, type=click.Path(path_type=Path),
+              help="Also write one record per condition: raw outcome, disposition, command, exit code.")
 def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional[str],
               remote_file: str, cleanup_path: Optional[Path], save_remote: Optional[Path],
-              integration_path: Optional[Path]) -> None:
+              integration_path: Optional[Path], json_out: Optional[Path]) -> None:
     """One verdict per condition; exit 0 all PASS | 1 FAIL | 2 NOT-RUN | 3 remote unavailable."""
     code, text = run_check(local_path, remote_path=remote_path, codespace=codespace,
                            remote_file=remote_file, cleanup_path=cleanup_path,
-                           save_remote=save_remote, integration_path=integration_path)
+                           save_remote=save_remote, integration_path=integration_path,
+                           json_out=json_out, command=" ".join(["codespace_parity.py", *sys.argv[1:]]))
     click.echo(text)
     sys.exit(code)
 

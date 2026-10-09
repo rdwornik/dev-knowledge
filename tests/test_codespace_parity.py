@@ -3058,3 +3058,72 @@ def test_the_live_declaration_carries_a_pins_record_equal_to_its_typed_pins():
     assert cp.pin_record_findings(live) == []
     data = yaml.safe_load(live.read_text(encoding="utf-8"))
     assert set(data["pins_record"]["versions"]) == set(data["tools"])
+
+
+# ============================== b2w2-codespace-finish (Done 5, P-L5-3) -- RAW outcome, derived WAITING
+#
+# A condition keeps its RAW outcome (PASS | FAIL | NOT-RUN) unchanged, plus the command and exit code
+# that produced it. `WAITING <gate>` is a DERIVED disposition, available only to a raw NOT-RUN whose
+# prerequisite lies outside the lane and is named: C3's integrator leg (the merge gate) and C4's write
+# leg (a contract-named probe path). A raw FAIL is never relabelled, whatever gate a record names.
+
+def test_a_condition_waiting_on_the_integrators_merge_keeps_its_raw_not_run():
+    verdict = cp.compare_landing(_record("local"), _record("codespace"))
+    assert verdict.status == "NOT-RUN", "the raw outcome is unchanged"
+    assert verdict.gate == cp.GATE_MERGE and verdict.disposition == f"WAITING {cp.GATE_MERGE}"
+    assert cp.exit_code([verdict]) == 2, "the exit codes are unchanged"
+
+
+def test_the_write_leg_waits_on_a_contract_named_probe_path_and_the_report_says_so():
+    verdict = cp.compare_transport(_record("local"), _record("codespace"))
+    assert verdict.status == "NOT-RUN" and verdict.gate == cp.GATE_PROBE_PATH
+    report = cp.render_report([verdict])
+    assert report.splitlines()[0].startswith("NOT-RUN cond=4"), "the raw outcome leads the line"
+    assert f"disposition: WAITING {cp.GATE_PROBE_PATH}" in report
+
+
+def test_a_raw_fail_is_never_relabelled_waiting_even_when_a_gate_is_named():
+    planted = cp._verdict(3, "FAIL", "the trees differ", gate=cp.GATE_MERGE)
+    assert planted.status == "FAIL" and planted.disposition == "FAIL"
+    assert "disposition: WAITING" not in cp.render_report([planted])
+    remote = _record("codespace")
+    remote["tree_sha"] = "f" * 40
+    real = cp.compare_landing(_record("local"), remote)
+    assert real.status == "FAIL" and real.disposition == "FAIL" and real.gate == ""
+    assert cp.exit_code([real]) == 1
+
+
+def test_a_not_run_whose_prerequisite_is_inside_the_lane_names_no_gate():
+    """The lane did not push, or has not torn down: those it can do itself, so no outside gate
+    excuses them -- they stay a NOT-RUN with its reason."""
+    remote = _record("codespace")
+    remote["landing"] = {"pushed_branch": None, "pushed_sha": None}
+    unpushed = cp.compare_landing(_record("local"), remote)
+    assert unpushed.status == "NOT-RUN" and unpushed.gate == "" and unpushed.disposition == "NOT-RUN"
+    untorn = cp.compare_cleanup(None)
+    assert untorn.status == "NOT-RUN" and untorn.gate == "" and untorn.reason
+
+
+def test_the_verdict_records_keep_the_raw_outcome_the_command_and_the_exit_code():
+    verdicts = [cp.compare_landing(_record("local"), _record("codespace")),
+                cp.compare_cleanup(None)]
+    records = cp.verdict_records(verdicts, "codespace_parity.py check --local l.json", 2)
+    assert [r["raw"] for r in records] == ["NOT-RUN", "NOT-RUN"]
+    assert records[0]["disposition"] == f"WAITING {cp.GATE_MERGE}" and records[1]["disposition"] == "NOT-RUN"
+    for rec in records:
+        assert rec["command"] == "codespace_parity.py check --local l.json" and rec["exit_code"] == 2
+        assert rec["reason"], "a NOT-RUN is never recorded without its reason"
+    json.dumps(records)
+
+
+def test_check_writes_the_condition_records_beside_the_report(tmp_path):
+    local = _write(tmp_path / "local.json", _record("local"))
+    remote = _write(tmp_path / "remote.json", _record("codespace"))
+    out = tmp_path / "conditions.json"
+    code, text = cp.run_check(local, remote_path=remote, json_out=out, command="check --local x")
+    written = json.loads(out.read_text(encoding="utf-8"))
+    assert [r["condition"] for r in written] == [1, 2, 3, 4, 5]
+    assert all(r["exit_code"] == code and r["command"] == "check --local x" for r in written)
+    assert {r["raw"] for r in written} <= {"PASS", "FAIL", "NOT-RUN"}
+    landing = next(r for r in written if r["condition"] == 3)
+    assert landing["raw"] == "NOT-RUN" and landing["disposition"].startswith("WAITING")
