@@ -672,6 +672,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "`scripts/lane_digest.py`; the former is this same population (row above), so "
                "the import inherits handback.py's own gap rather than closing it",
         owner="lane-transport-registry, jointly with the handback.py row above; manual_until 2026-10-15"),
+    "scripts/decision_carriage.py": Disposition(
+        reason="harness.yaml fates: R90 / [#1437], the seed of the batch-close dispositions gate, "
+               "run by hand by the integrator at batch close (`evidence`, `propose`, `render`) and "
+               "wired to no moment. Row [#1437]'s Done-when wires `propose --batch` into batch "
+               "close, after which this row and the fates line are deleted in that same act",
+        owner="[#1437]"),
 }
 
 
@@ -1252,6 +1258,16 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "could hold (the batch-Z close-packet's 'Defect three' finding is exactly that "
         "fragility). There is no relation here for a W-G3 lane to migrate, because FPG-1 has "
         "nowhere to hold what was extracted"),
+    "scripts/decision_carriage.py": _not_an_edge(
+        "R90's decision-carriage deriver ([#1437]). The shape matched on `LANE_RE` and "
+        "`SIGNAL_RE`, which pull the lane names and `SIGNAL-*.md` files a decision file NAMES. "
+        "The class does not apply because every endpoint of that relation lives on the TRANSPORT "
+        "(`to-cc/` decision files, `LANE-*.md` contracts, `to-browser/SIGNAL-*` and `STATE-*`), "
+        "which is not this repo's corpus, plus git merge subjects and tags (history, not files). "
+        "FPG-1 holds repo-tree paths only, so it has nowhere to hold a decision -> lane edge and "
+        "there is nothing for a W-G3 lane to migrate; the in-repo leg it feeds is "
+        "`decision_coverage.DECISION_DISPOSITIONS`, which `decision_coverage.py` above already "
+        "reads. Re-verdict as private if the transport ever becomes a graph input"),
     "scripts/provision_legs.py": _not_an_edge(
         "the Codespace provisioning legs (foundation-13, docs/audits/2026-10-04-technical-"
         "codespace-toolset-run.md). The shape matched when it grew its two version regexes -- "
