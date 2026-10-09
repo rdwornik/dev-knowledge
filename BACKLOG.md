@@ -790,6 +790,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1440] [P1][M] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates · tasks/1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md
 - [#1441] [P1][S] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) · tasks/1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md
 - [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
+- [#1444] [P1][M] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) · tasks/1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md
+- [#1445] [P1][S] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date · tasks/1445-a-dated-item-warns-three-days-before-its-date.md
+- [#1446] [P1][M] Rulings R80-R92 land in STANDING_RULINGS before B2-W2 closes · tasks/1446-rulings-r80-r92-land-in-standing-rulings.md
+- [#1447] [P2][S] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape · tasks/1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md
 - [#1450] [P1][S] HANDOFF_BOOT teaches the browser's triage-then-sequence order (R80) and names the generated transport INDEX as the first read (R84) · tasks/1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md
 - [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
 - [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
