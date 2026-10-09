@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2f8e097a278de5ff39caf65c08d3d3c1464d0cce8d0afddd8fb6ee6e83cad35f",
+  "generated_sha256": "0e98ffa07d705d43691aece3c139242b63aed8ffe116d8623e2f3439a93cf075",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3002,6 +3002,14 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1480,
+      "file": "1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md"
+    },
+    {
+      "task": 1481,
+      "file": "1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md"
     },
     {
       "prose": ""
