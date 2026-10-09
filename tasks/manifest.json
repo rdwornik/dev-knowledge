@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2f8e097a278de5ff39caf65c08d3d3c1464d0cce8d0afddd8fb6ee6e83cad35f",
+  "generated_sha256": "1753e6f1e1fba5b9256bbfdf552c0529d1fc02400e59461f0ef125ea43320cb4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3002,6 +3002,18 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1444,
+      "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
+    },
+    {
+      "task": 1445,
+      "file": "1445-a-dated-item-warns-three-days-before-its-date.md"
+    },
+    {
+      "task": 1446,
+      "file": "1446-rulings-r80-r92-and-seat-rulings-s-1-to-s-3-land-in-standing-rulings.md"
     },
     {
       "prose": ""
