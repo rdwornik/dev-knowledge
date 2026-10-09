@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2f8e097a278de5ff39caf65c08d3d3c1464d0cce8d0afddd8fb6ee6e83cad35f",
+  "generated_sha256": "3af0522228e405cdce43ffaf75a1d593a5ae54ca018866c23ba5f9346be981a2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3002,6 +3002,10 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1443,
+      "file": "1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md"
     },
     {
       "prose": ""
