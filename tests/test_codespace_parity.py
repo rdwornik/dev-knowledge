@@ -2826,6 +2826,28 @@ def test_a_codex_probe_runs_with_the_unused_api_keys_stripped_from_its_environme
         "grok's key is the laptop's own sign-in, so it stays"
 
 
+def test_a_codex_probe_never_sees_an_api_key_even_where_the_cache_is_missing(tmp_path):
+    """R87.3: the keys are removed from EVERY codex invocation, not only where a ChatGPT cache is
+    present. With no auth.json a key would otherwise answer the call -- the failure the lane exists
+    to expose -- so the call is made without it and reports a missing login instead."""
+    seen = {}
+
+    class Run(_ModelRun):
+        def __call__(self, argv, cwd=None, env=None, **kw):
+            seen[_unwrap(argv)[0]] = None if env is None else dict(env)
+            return super().__call__(argv, cwd=cwd, **kw)
+
+    _grok_usage(tmp_path, "sess-run")
+    base_env = {"CODEX_API_KEY": "k1", "OPENAI_API_KEY": "k2", "XAI_API_KEY": "k3", "PATH": "/bin"}
+    cp.collect_models(Run(tmp_path), _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE,
+                      clis=cp.model_clis(), env=base_env)
+    assert seen["codex"] is not None
+    assert "CODEX_API_KEY" not in seen["codex"] and "OPENAI_API_KEY" not in seen["codex"]
+    assert seen["grok"].get("XAI_API_KEY") == "k3", "grok's key is the laptop's own sign-in"
+    assert cp.unused_keys("codex", tmp_path, {"CODEX_API_KEY": "k"}) == ("CODEX_API_KEY",)
+    assert cp.unused_keys("codex", tmp_path, {}) == ()
+
+
 def test_credential_expiry_is_read_from_the_cache_file_and_names_the_renew_step(tmp_path):
     """C1's expiry check (item 3): an access token past its time with a refresh token also past
     its time is `expired` and names ONE renew step; one that can still refresh is `ok`."""

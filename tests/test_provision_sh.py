@@ -204,6 +204,9 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
     assert steps == [
         "leg1_uv", "leg2_unshallow", "refresh_source_tree", "sync_environment",
         "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_pc_login_path", "leg_f1_claude",
+        # b2w2-codespace-finish (R87.3): codex's subscription policy and the login-shell key unset
+        # land BEFORE the first leg that starts a codex process (`scrub_model_keys` is the prologue)
+        "leg_f6_codex_subscription",
         # foundation-13: the lane's toolset, pinned and asserted, after the agent feature's own assert
         "leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone", "leg_f5_agy",
         # b2-codespace-1to1 (R63): the fourth model CLI, after the other three
@@ -406,6 +409,179 @@ def test_self_digest_actually_distinguishes_a_replaced_script(tmp_path: Path):
     assert digest() == before, "the digest is not stable across two reads of one file"
     target.write_text("#!/usr/bin/env bash\n# replaced by a fast-forward\n", encoding="utf-8")
     assert digest() != before
+
+
+# --- b2w2-codespace-finish (R87.3, plan M4): codex is signed in by subscription, never a key -------
+#
+# Launch paths 4 and 5 of the five the plan enumerates (1-3 are in test_dispatch_codespace.py and
+# test_codespace_parity.py). Each runs the extracted function bodies in a genuine bash against a
+# stub `codex` that records BOOLEANS ONLY -- whether each key variable reached it.
+
+_NEVER_A, _NEVER_B = "SENTINEL-SECRET-CODEX-0001", "SENTINEL-SECRET-OPENAI-0002"
+_CODEX_STUB = (
+    "#!/usr/bin/env bash\n"
+    'rec="${CODEX_STUB_RECORD:?}"\n'
+    '{ for n in CODEX_API_KEY OPENAI_API_KEY; do\n'
+    '    if [ -n "${!n:-}" ]; then echo "$n=yes"; else echo "$n=no"; fi\n'
+    '  done; echo "argv=$*"; } >> "$rec"\n'
+    'echo "codex-cli 0.0.0"\n'
+)
+
+
+def _stub_dir(bash_exe: str, tmp_path: Path) -> tuple[str, Path, str]:
+    """(the stub's directory spelled as bash sees it, the record file, the record spelled for bash)."""
+    stub_dir = tmp_path / "stubbin"
+    stub_dir.mkdir()
+    stub = stub_dir / "codex"
+    stub.write_text(_CODEX_STUB, encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    record = tmp_path / "record.txt"
+    return _canon_path(bash_exe, stub_dir), record, _canon_path(bash_exe, tmp_path) + "/record.txt"
+
+
+def _canon_path(bash_exe: str, p: Path) -> str:
+    r = subprocess.run([bash_exe, "-c", f'cd "{p.as_posix()}" && pwd'], capture_output=True, text=True,
+                       timeout=_BASH_SPAWN_TIMEOUT_S)
+    assert r.returncode == 0, f"could not resolve {p} through bash: {r.stderr!r}"
+    return r.stdout.strip()
+
+
+def _saw(record: Path) -> dict:
+    out = {}
+    for line in record.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition("=")
+        out[key] = value
+    return out
+
+
+def test_main_scrubs_the_model_keys_first_and_writes_the_codex_policy_before_any_codex_call():
+    code = _uncommented(_bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "main"))
+    calls = [ln.strip() for ln in code.splitlines() if ln.strip() and not ln.strip().startswith(("say", "case"))]
+    assert "scrub_model_keys" in calls and "leg1_uv" in calls
+    assert calls.index("scrub_model_keys") < calls.index("leg1_uv"), "the scrub is the prologue"
+    assert calls.index("leg_f6_codex_subscription") < calls.index("leg_f5_codex"), (
+        "the login shells that probe codex's version must already unset the keys")
+
+
+def test_provision_scrubs_the_keys_before_any_child_it_starts(tmp_path: Path):
+    """Launch path 5: provision.sh's own legs start `codex --version` through a login shell
+    (`provision_legs.py tools check --login` builds `bash -lc 'command -v codex && codex --version'`).
+    Seeded with both keys, that child sees neither once `scrub_model_keys` has run, and sees both
+    without it -- the control that shows the harness isolates what it claims to."""
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "scrub_model_keys")
+    home = tmp_path / "home"
+    home.mkdir()
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    (home / ".profile").write_text(f'export PATH="{stub_c}:$PATH"\n', encoding="utf-8", newline="\n")
+    probe = "bash -lc 'command -v codex >/dev/null 2>&1 && codex --version'"
+
+    def run(with_scrub: bool) -> dict:
+        record.unlink(missing_ok=True)
+        harness = tmp_path / "harness.sh"
+        harness.write_text(
+            "set -euo pipefail\n"
+            f'HOME="{home_c}"\n'
+            'say() { printf "[t] %s\\n" "$*"; }\n'
+            f"scrub_model_keys() {{{body}\n}}\n"
+            + ("scrub_model_keys\n" if with_scrub else "")
+            + f"{probe}\n", encoding="utf-8", newline="\n")
+        env = {**os.environ, "HOME": home_c, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+               "CODEX_STUB_RECORD": record_c}
+        res = subprocess.run([bash_exe, str(harness)], env=env, capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        assert _NEVER_A not in res.stdout + res.stderr and _NEVER_B not in res.stdout + res.stderr
+        if with_scrub:
+            assert "CODEX_API_KEY was set" in res.stdout, "the scrub says which NAME it removed"
+        return _saw(record)
+
+    assert run(with_scrub=False)["CODEX_API_KEY"] == "yes", "control: without the scrub the key arrives"
+    seen = run(with_scrub=True)
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
+
+
+def test_leg_f6_makes_every_login_shell_unset_the_keys_and_forces_the_chatgpt_sign_in(tmp_path: Path):
+    """Launch path 4. The Codespaces secrets are exported by the login chain before `~/.profile`
+    (simulated here by exporting them FIRST in `~/.profile`); the leg's marked block comes after and
+    removes them, so a login shell -- the shell every lane head runs in -- hands `codex` neither.
+    The same leg forces the ChatGPT sign-in in `~/.codex/config.toml`, merging into an existing
+    file and idempotent on a second run."""
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    (home / ".profile").write_text(
+        f'export PATH="{stub_c}:$PATH"\n'
+        f"export CODEX_API_KEY={_NEVER_A}\nexport OPENAI_API_KEY={_NEVER_B}\n",
+        encoding="utf-8", newline="\n")
+    existing = '[projects."/workspaces/x"]\ntrust_level = "trusted"\n'
+    (home / ".codex" / "config.toml").write_text(existing, encoding="utf-8", newline="\n")
+
+    def login_probe() -> dict:
+        record.unlink(missing_ok=True)
+        env = {**os.environ, "HOME": home_c, "PATH": "/usr/bin:/bin", "CODEX_STUB_RECORD": record_c}
+        res = subprocess.run([bash_exe, "-lc", "codex login status"], env=env, capture_output=True,
+                             text=True, timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        return _saw(record)
+
+    assert login_probe()["CODEX_API_KEY"] == "yes", "control: the login chain exports the secrets"
+
+    def run_leg() -> str:
+        harness = tmp_path / "harness.sh"
+        harness.write_text(
+            "set -euo pipefail\n"
+            f'HOME="{home_c}"\nCHANGED=0\n'
+            'say() { printf "[t] %s\\n" "$*"; }\n'
+            'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+            'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+            f"leg_f6_codex_subscription() {{{body}\n}}\n"
+            "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+        res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        return res.stdout
+
+    run_leg()
+    seen = login_probe()
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
+    config = (home / ".codex" / "config.toml").read_text(encoding="utf-8")
+    assert config.splitlines()[0] == 'forced_login_method = "chatgpt"', "a top-level key precedes every table"
+    assert config.endswith(existing), "the existing config is merged into, never replaced"
+    profile_once = (home / ".profile").read_text(encoding="utf-8")
+    again = run_leg()
+    assert "(no-op)" in again
+    assert (home / ".codex" / "config.toml").read_text(encoding="utf-8") == config
+    assert (home / ".profile").read_text(encoding="utf-8") == profile_once, "the marked block is added once"
+
+
+def test_leg_f6_rewrites_a_forced_api_login_and_keeps_the_rest_of_the_file(tmp_path: Path):
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    home_c = _canon_path(bash_exe, home)
+    cfg = home / ".codex" / "config.toml"
+    cfg.write_text('model = "x"\nforced_login_method = "api"\n[tui]\nnotifications = true\n',
+                   encoding="utf-8", newline="\n")
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "set -euo pipefail\n"
+        f'HOME="{home_c}"\nCHANGED=0\n'
+        'say() { printf "[t] %s\\n" "$*"; }\n'
+        'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+        'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+        f"leg_f6_codex_subscription() {{{body}\n}}\n"
+        "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+    res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                         timeout=_BASH_SPAWN_TIMEOUT_S)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert cfg.read_text(encoding="utf-8") == (
+        'model = "x"\nforced_login_method = "chatgpt"\n[tui]\nnotifications = true\n')
 
 
 # --- foundation-13-codespace-toolset (R63 step 1): the five tool legs ------------------------

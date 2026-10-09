@@ -1521,3 +1521,127 @@ def test_the_codespace_exec_verb_builds_a_real_mirror_by_default(tmp_path, monke
                                      "--argv-json", '["claude"]'])
     assert res.exit_code == 0, res.output
     assert isinstance(seen.get("mirror"), d.MirrorConfig)
+
+
+# ============================== b2w2-codespace-finish (R87.3, plan M4) -- codex never sees an API key
+#
+# DERIVED FROM OpenAI's documentation (read 2026-10-09, Codex "Authentication"): `forced_login_method`
+# takes `chatgpt | api`, `CODEX_API_KEY` is the non-interactive API route, and a key's precedence over a
+# ChatGPT sign-in is NOT documented -- so the lane does not leave it to precedence: neither variable
+# is in the environment of any codex invocation. Each test below launches a stub `codex` that records
+# BOOLEANS ONLY (whether each variable reached it); a value is never written anywhere.
+
+_NEVER_A, _NEVER_B = "SENTINEL-CODEX-KEY-0001", "SENTINEL-OPENAI-KEY-0002"
+
+_CODEX_STUB = (
+    "#!/usr/bin/env bash\n"
+    'rec="${CODEX_STUB_RECORD:?}"\n'
+    '{ for n in CODEX_API_KEY OPENAI_API_KEY; do\n'
+    '    if [ -n "${!n:-}" ]; then echo "$n=yes"; else echo "$n=no"; fi\n'
+    '  done; echo "argv=$*"; } >> "$rec"\n'
+    'echo "codex-cli 0.0.0"\n'
+)
+
+
+def _bash_exe() -> str:
+    """The first `bash` that runs a command (a Windows PATH can lead with the WSL launcher)."""
+    import os
+    import shutil
+
+    candidates = [shutil.which("bash", path=p) for p in os.environ.get("PATH", "").split(os.pathsep) if p]
+    git = shutil.which("git")
+    if git:
+        root = Path(git).resolve().parent.parent
+        candidates += [str(root / "bin" / "bash.exe"), str(root / "usr" / "bin" / "bash.exe")]
+    for candidate in candidates:
+        if candidate is None or not Path(candidate).is_file():
+            continue
+        try:
+            probe = subprocess.run([candidate, "-c", "echo bash-ok"], capture_output=True, text=True,
+                                   timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0 and probe.stdout.strip() == "bash-ok":
+            return candidate
+    raise AssertionError("no bash on PATH can run a command")
+
+
+def _codex_stub(tmp_path):
+    bin_dir = tmp_path / "stubbin"
+    bin_dir.mkdir()
+    stub = bin_dir / "codex"
+    stub.write_text(_CODEX_STUB, encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    return bin_dir, stub, tmp_path / "codex-record.txt"
+
+
+def _what_the_stub_saw(record) -> dict:
+    seen = {}
+    for line in record.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition("=")
+        seen[key] = value
+    return seen
+
+
+def test_codex_api_key_is_no_runner_secret_and_the_never_set_names_are_the_two_keys():
+    assert "CODEX_API_KEY" not in d.RUNNER_SECRETS, "it is probed as a boolean, not carried as a lane secret"
+    assert d.RUNNER_NEVER_SET == ("CODEX_API_KEY", "OPENAI_API_KEY")
+
+
+@pytest.mark.parametrize("unset", [(), ("CODEX_API_KEY", "OPENAI_API_KEY")],
+                         ids=["no-mirror", "mirror-configured"])
+def test_the_runner_hands_a_codex_head_neither_api_key_with_or_without_a_mirror(tmp_path, unset):
+    """Launch path 1. Seeded with both keys in the environment, the runner reports the PRESENCE of
+    each as a boolean in the run log, removes it, and the head -- a stub `codex` -- sees neither."""
+    import os
+
+    bin_dir, stub, record = _codex_stub(tmp_path)
+    workdir, checkout = tmp_path / "work", tmp_path / "checkout"
+    workdir.mkdir()
+    checkout.mkdir()
+    runner = workdir / "run-lane.sh"
+    runner.write_text(
+        d._codespace_runner_script(workdir.as_posix(), checkout.as_posix(),
+                                   [stub.as_posix(), "exec", "hello"], unset=unset),
+        encoding="utf-8", newline="\n")
+    env = {**os.environ, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+           "CODEX_STUB_RECORD": record.as_posix()}
+    console = tmp_path / "console.txt"
+    with open(console, "wb") as sink:       # a file, not a pipe: the runner's watchdog outlives it
+        subprocess.run([_bash_exe(), runner.as_posix()], env=env, stdout=sink,
+                       stderr=subprocess.STDOUT, timeout=180)
+    assert _what_the_stub_saw(record) == {"CODEX_API_KEY": "no", "OPENAI_API_KEY": "no",
+                                          "argv": "exec hello"}
+    log = (workdir / "run.log").read_text(encoding="utf-8", errors="replace")
+    for name in ("CODEX_API_KEY", "OPENAI_API_KEY"):
+        assert f"[runner] api-key {name} present-before-unset=yes" in log, log
+    for text in (log, console.read_text(encoding="utf-8", errors="replace"),
+                 record.read_text(encoding="utf-8")):
+        assert _NEVER_A not in text and _NEVER_B not in text, "a value reached an artefact"
+
+
+def test_the_runner_script_unsets_the_two_keys_on_every_launch_and_never_expands_them():
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert re.search(r"^unset CODEX_API_KEY OPENAI_API_KEY$", body, re.MULTILINE), body
+    assert "present-before-unset" in body
+    for name in ("CODEX_API_KEY", "OPENAI_API_KEY"):
+        assert f"${name}" not in body and f"${{{name}}}" not in body
+
+
+def test_the_credential_tools_status_call_runs_codex_without_either_key(tmp_path):
+    """Launch path 2: `credential-tools.sh status codex` is the Codespace's own sign-in check; it
+    must not be answered by a key. Run for real against a stub `codex`, with both keys seeded."""
+    import os
+
+    bin_dir, _stub, record = _codex_stub(tmp_path)
+    script = tmp_path / d.CREDENTIAL_TOOLS_NAME
+    script.write_text(d._credential_tools_script([]), encoding="utf-8", newline="\n")
+    env = {**os.environ, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+           "CODEX_STUB_RECORD": record.as_posix(),
+           "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", "")}
+    run = subprocess.run([_bash_exe(), script.as_posix(), "status", "codex"], env=env,
+                         capture_output=True, text=True, timeout=120)
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert _what_the_stub_saw(record) == {"CODEX_API_KEY": "no", "OPENAI_API_KEY": "no",
+                                          "argv": "login status"}
+    assert _NEVER_A not in run.stdout + run.stderr and _NEVER_B not in run.stdout + run.stderr
