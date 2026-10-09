@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0e98ffa07d705d43691aece3c139242b63aed8ffe116d8623e2f3439a93cf075",
+  "generated_sha256": "afd72fce4abb0f9290bb0c4d032dd8ae263a87e20e51d64afa4f6638807c85a1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3002,6 +3002,22 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1444,
+      "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
+    },
+    {
+      "task": 1445,
+      "file": "1445-a-dated-item-warns-three-days-before-its-date.md"
+    },
+    {
+      "task": 1446,
+      "file": "1446-rulings-r80-r92-land-in-standing-rulings.md"
+    },
+    {
+      "task": 1447,
+      "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
     },
     {
       "task": 1480,

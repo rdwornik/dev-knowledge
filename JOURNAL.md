@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-09 (b) - CC (Opus 5.5, integrator seat B2-W2): the B2-W2 render's rows land -- [#1444]-[#1447] filed, [#1446] narrowed to R80-R92, [#1366] given its S-2 start condition; lane 1 landed under seat ruling S-15
+
+**Anchors:** `45e40b2b`, `feb170af` -- `worktree-b2w2-render`, merged `--no-ff` through `worktree-integrate-b2-w2`; `aaf43867` (lane 1's merge, pushed to `main` once under S-15 choice A).
+
+**Did:**
+- Landed lane 1's merge `aaf43867` on `main` by the one recorded push S-15 allows (operator's "Lane 1: A"): `merge_path.py land` could not attribute, because `actions_verdict` validates the known-reds registry at the base sha against today's date and the base's 40 `[#912]` entries had expired. The manual verdict: ubuntu 0 NEW; windows 1 NEW, attributed pre-existing by a paired base/merge local run.
+- Merged the render's rows branch (S-4 position 2): purity exactly `45e40b2b`, `feb170af` on `03d21ff8`; `validate_backlog` 0 FAIL; `gen_task_tree --emit-source` a no-op; `[#1444]`-`[#1447]` resolve.
+
+**Result:** rows `[#1444]` (merge clock), `[#1445]` (dated-item warning), `[#1446]` (R80-R92 landing), `[#1447]` (lane-contract check agrees with plan lint and R82) are on the tree; `[#1366]` carries its S-2 start condition (R79).
+
+**Changes:** `tasks/1444-*`, `tasks/1445-*`, `tasks/1446-*`, `tasks/1447-*` (new), `tasks/1366-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `logs/MERGE-RECEIPTS.jsonl` (the merge's receipt).
+
+**Next:** this merge through `land` is S-15.4's witness that the gate attributes again. Two rows are owed at close (S-15.5): `actions_verdict` on an expired base registry (recurs 2026-10-16), and the non-hermetic `test_filled_waiver_refuses_a_malformed_seats_row`.
+
 ### 2026-10-09 (a) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-main-comparable merges after repair 1 -- `main`'s CI verdict is comparable again: the 40 expired [#912] entries are re-dated by seat ruling S-1 and the three [#1441] reds are fixed by recording what is true
 
 **Anchors:** `1e834146`, `438b0c08`, `9b33d3f9`, `7bfc4a73`, `4ccb6c71` -- `worktree-b2w2-main-comparable`, merged `--no-ff` through `worktree-integrate-b2-w2`.
