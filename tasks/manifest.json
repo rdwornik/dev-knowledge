@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c13807c23589ed444ad44dac167f2624868b9f50f26cfa8461657f718548ca1f",
+  "generated_sha256": "a662cd5d1d9baf56e5691b58f675482504ce277c08835949749d1048166d89ea",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3018,6 +3018,34 @@
     {
       "task": 1447,
       "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
+    },
+    {
+      "task": 1450,
+      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
+    },
+    {
+      "task": 1451,
+      "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
+    },
+    {
+      "task": 1452,
+      "file": "1452-every-role-pin-names-the-newest-served-model-r82.md"
+    },
+    {
+      "task": 1453,
+      "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
+    },
+    {
+      "task": 1454,
+      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
+    },
+    {
+      "task": 1455,
+      "file": "1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md"
+    },
+    {
+      "task": 1456,
+      "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
     },
     {
       "prose": ""

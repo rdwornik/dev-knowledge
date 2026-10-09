@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-09 (c) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-rulings-landing merges -- rulings R80-R92 land in `STANDING_RULINGS.md` section AS, each carried by a row or a written disposition, so the rulings gate passes once B2-W2 is closed
+
+**Anchors:** `06626a2b`, `3188a66d`, `3e341c8d`, `e035d77f`, `52479ee5`, `143b142d` -- `worktree-b2w2-rulings-landing`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Merged batch B2-W2 lane 6 (S-4 position 6, the close condition). Section AS carries R80-R92 in section AR's shape: 13 bullets, 14 verbatim blocks diffed against their RATIFICATION sources, each with a `**Carried by:**` line; rows `[#1450]`-`[#1456]` filed as carriers; `[#1420]` folded by its kill-candidates clause.
+- The id-block test in `tests/test_decision_coverage.py` is scoped to R55-R79 as its docstring states, under the seat's one-line ownership extension S-29 (`to-cc/AMEND-BATCH-B2-W2-LANE6-2026-10-09.md`); the lane's Codex review (0/2/0/0) records both HIGH findings fixed.
+
+**Result:** `decision_coverage.py rulings` under a simulated B2-W2 close exits 0 with 0 unlanded; at `03d21ff8` it refused R80-R86.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AS), `tests/test_standing_rulings_sources.py`, `tests/test_decision_coverage.py` (one bound), `tasks/1450-*`..`tasks/1456-*` (new), `tasks/1420-*`, `tasks/manifest.json`, `docs/audits/2026-10-10-codex-b2w2-rulings-landing.md`, generated `BACKLOG.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** B2-W2's close (lane 6 MERGED; lanes 3, 4 carried; lanes 2 and 5 on Codex after its reset).
+
 ### 2026-10-09 (b) - CC (Opus 5.5, integrator seat B2-W2): the B2-W2 render's rows land -- [#1444]-[#1447] filed, [#1446] narrowed to R80-R92, [#1366] given its S-2 start condition; lane 1 landed under seat ruling S-15
 
 **Anchors:** `45e40b2b`, `feb170af` -- `worktree-b2w2-render`, merged `--no-ff` through `worktree-integrate-b2-w2`; `aaf43867` (lane 1's merge, pushed to `main` once under S-15 choice A).
