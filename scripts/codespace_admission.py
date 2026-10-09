@@ -39,7 +39,10 @@ THE CONDITIONS, gating (each flips admission to REFUSED) unless marked non-gatin
                           simply ABSENT (psm1:3093, psm1:3154-3161: gh absence is a measured
                           "container fit to run the work", `lane-632-longrun-a-54r7jgp5qprh766p`);
                           gating only when gh is present and `gh auth status` fails, because that
-                          is a broken tool rather than an absent one.
+                          is a broken tool rather than an absent one. ADDED (beyond the deployed
+                          test, [#1423] S-20): still non-gating when NO token is offered at all
+                          (GH_TOKEN / GITHUB_TOKEN / GH_ENTERPRISE_TOKEN unset) -- a credential-free
+                          build, such as the heartbeat's container job, is not a broken tool.
   contract resolved       psm1:3115-3121 (computed), psm1:3153 (gated) — NON-GATING here when no
                           `--contract` is given. The deployed test checks that a PARTICULAR lane
                           contract, copied in for THIS dispatch, landed at its path; a heartbeat
@@ -212,6 +215,10 @@ def check_git_remote_reachable(root: Path, probe: Probe) -> Condition:
     return Condition("git_remote_reachable", ok, detail, f"{DEPLOYED_MODULE}:3101-3102,3151")
 
 
+#: The variables gh reads a token from. All unset (or empty) means no credential is offered.
+_GH_TOKEN_VARS = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN")
+
+
 def check_gh_not_broken(probe: Probe) -> Condition:
     found = probe.which("gh")
     if found is None:
@@ -223,6 +230,17 @@ def check_gh_not_broken(probe: Probe) -> Condition:
                          f"{DEPLOYED_MODULE}:3086-3096,3154-3161", gates=False)
     proc = probe.run(["gh", "auth", "status"])
     ok = proc is not None and proc.returncode == 0
+    if not ok and not any(probe.env.get(k) for k in _GH_TOKEN_VARS):
+        # ADDED (beyond the deployed test), b2w2-codespace-finish [#1423], seat ruling S-20. A build that
+        # offers gh NO token on purpose -- the heartbeat's container job is credential-free, and the
+        # pinned toolset installs gh -- cannot authenticate it. That is an absent credential, not a broken
+        # tool. A token that WAS offered and is rejected still gates, below; so does a Codespace, which
+        # always carries GITHUB_TOKEN.
+        return Condition("gh_not_broken", True,
+                         "gh is installed and `gh auth status` fails, but no token is offered in this "
+                         "environment (GH_TOKEN, GITHUB_TOKEN and GH_ENTERPRISE_TOKEN are all unset) -- a "
+                         "credential-free build, not a broken tool: not gated",
+                         f"{DEPLOYED_MODULE}:3094-3096 [ADDED: no-token carve-out]", gates=False)
     detail = ("gh is installed and gh auth status succeeds" if ok else
               "gh is installed but gh auth status fails -- an unauthenticated gh is a broken "
               "tool, not an absent one")
