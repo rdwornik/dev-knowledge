@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-09 (a) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-main-comparable merges after repair 1 -- `main`'s CI verdict is comparable again: the 40 expired [#912] entries are re-dated by seat ruling S-1 and the three [#1441] reds are fixed by recording what is true
+
+**Anchors:** `1e834146`, `438b0c08`, `9b33d3f9`, `7bfc4a73`, `4ccb6c71` -- `worktree-b2w2-main-comparable`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Merged batch B2-W2 lane 1 (position 1 of the S-4 order). The 40 `[#912]` known-reds entries that expired on 2026-10-08 carry `expiry: 2026-10-16` and a reason citing `RATIFICATION-2026-10-09` S-1; no other registry entry moved. `scripts/decision_carriage.py` has its `fates:` line, an `EDGE_COMPUTATIONS` verdict and one `ORPHAN_DISPOSITIONS` entry (owner `[#1437]`). Rows `[#1425]`-`[#1437]` each carry a `· refs` clause; the id-block test's `pre_existing` set names `[#1423]` (R78).
+- Repair 1 (integrator refusal, step 3 (g)): the lane's Codex review record now lives at `docs/audits/2026-10-09-codex-b2w2-main-comparable.md`, not in a job tmp.
+
+**Result:** the verdict, S-7 classification and the independent checks are in the integrator receipt `to-browser/SESSION-integrator-b2-w2-2026-10-09.md`.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `scripts/graph_queries.py`, `ecosystem/harness.yaml`, `tasks/1425-…`-`tasks/1437-…`, `tests/test_decision_coverage.py`, one review record, generated index/counts.
+
+**Next:** the render's rows branch `worktree-b2w2-render` (rows [#1444]-[#1447]) merges second.
+
+---
+
 ### 2026-10-08 (b) - CC (Opus 5.5, background seat): the 2026-10-08 architect handoff bundle, cut on the pinned input (main 350c07f7 + CI run 37790704091), and rows [#1438]-[#1442]
 
 **Anchors:** `16e310d2` -- `worktree-handoff-bundle-2026-10-08` (`609c87d9` the bundle + rows [#1438]-[#1441], `16e310d2` row [#1442])
