@@ -243,7 +243,8 @@ tools:
     doc: https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
     reason: >-
       Pinned to the workstation's `copilot --version` read 2026-10-06 (1.0.92). Its sign-in is an
-      OS-keyring entry on the workstation and is NOT mirrored (b2-codespace-subscription-auth).
+      OS-keyring entry on the workstation and is NOT mirrored (b2-codespace-subscription-auth); the
+      Codespace signs in through the COPILOT_GITHUB_TOKEN secret (R88a).
 
 # --- B1: history sufficiency ---------------------------------------------------------------
 #

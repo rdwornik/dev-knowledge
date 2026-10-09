@@ -2022,11 +2022,13 @@ class ExecResult:
     mirror: tuple = ()
 
 
-#: The five Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
+#: The Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
 #: enters a file or a log). `claude -p` needs the first, `gh` and `git push` the second, the two
 #: review heads the next two, and the transport read/write the last.
 RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY",
                                    "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN",
+                                   # R88a: Copilot signs in through this token, not a keyring login
+                                   "COPILOT_GITHUB_TOKEN",
                                    # R87 fallback: a SEPARATE ChatGPT login's auth.json, written to
                                    # ~/.codex/auth.json only when the mirror put nothing there
                                    "CODEX_AUTH_JSON")
@@ -2057,8 +2059,9 @@ RUN_TIMEOUT_SECONDS = 3 * 3600
 #
 # DECIDED-BY-LANE (what is mirrored): measured on the laptop 2026-10-06, per CLI, in
 # `codespace_parity.SIGN_IN` (route, files, refresh verdict, why). A CLI whose sign-in is an OS keyring
-# entry (agy, copilot) has no file to copy and ends WAITING with its renew step -- never a workaround.
-# An env API key is used in the Codespace only where the laptop itself uses one (grok).
+# entry and has no token route (agy) has no file to copy and ends WAITING with its renew step -- never
+# a workaround. Copilot signs in through its COPILOT_GITHUB_TOKEN secret (R88a). An env API key is used
+# in the Codespace only where the laptop itself uses one (grok).
 
 #: Where the shipped helper lives in the box, and how long its calls may run.
 CREDENTIAL_TOOLS_NAME = "credential-tools.sh"

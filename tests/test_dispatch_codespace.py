@@ -792,6 +792,15 @@ def test_the_runner_records_the_five_secrets_as_booleans_and_never_a_value():
             f"a line could expand {name}'s value"
 
 
+def test_the_runner_records_the_copilot_token_as_a_boolean_and_never_a_value():
+    """R88a, RED-first: Copilot signs in through COPILOT_GITHUB_TOKEN, so the runner names it in its
+    presence probe (yes/no) like the other secrets, and no line can expand its value."""
+    assert "COPILOT_GITHUB_TOKEN" in d.RUNNER_SECRETS
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert "COPILOT_GITHUB_TOKEN" in body
+    assert "$COPILOT_GITHUB_TOKEN" not in body and "${COPILOT_GITHUB_TOKEN}" not in body
+
+
 # ---- item 5: heartbeat, stall watchdog, and a hangup that does not kill the lane ----------------
 
 def test_the_runner_survives_a_dropped_ssh_connection():
@@ -1477,6 +1486,16 @@ def test_decisions_name_every_registry_cli_and_a_provider_without_one(tmp_path):
     assert by["agy"].action == "waiting" and "keyring" in by["agy"].detail
     assert by["claude"].route == "secret-token" and by["claude"].action == "not-mirrored"
     assert [i.cli for i in items if i.action == "no-cli"] == ["deepseek"]
+
+
+def test_copilot_is_decided_by_its_token_route_and_is_not_left_waiting(tmp_path):
+    """R88a, RED-first: Copilot signs in through the COPILOT_GITHUB_TOKEN secret, so the launch has
+    nothing to mirror and nothing to wait on -- it is not an OPERATOR-ACTION line of its own."""
+    registry = {"providers": {**_MIRROR_REGISTRY["providers"], "github": {"cli": "copilot"}},
+                "roles": {}, "models": {}}
+    by = {i.cli: i for i in d.credential_decisions(_cfg(tmp_path, registry=registry))}
+    assert by["copilot"].route == "secret-token" and by["copilot"].action == "not-mirrored"
+    assert by["copilot"].operator_action == ""
 
 
 def test_a_cli_the_laptop_has_no_cache_for_is_recorded_absent_not_mirrored(tmp_path):

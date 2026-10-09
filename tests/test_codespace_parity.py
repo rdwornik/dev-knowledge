@@ -2662,6 +2662,50 @@ def test_the_registry_names_no_gemini_cli_and_google_is_named_as_cli_less():
     assert "gemini" not in cp.model_clis(live) and "gemini" not in cp.lane_tools(live)
 
 
+# ============================== b2w2-codespace-finish (R88a) -- copilot signs in through COPILOT_GITHUB_TOKEN
+#
+# GitHub's "Authenticate Copilot CLI" (read 2026-10-09): a fine-grained PAT with the account permission
+# "Copilot Requests" is a supported token, `COPILOT_GITHUB_TOKEN` is checked first, and the variable
+# form is "recommended for CI/CD pipelines, containers, and non-interactive environments".
+
+def test_copilot_signs_in_through_the_copilot_github_token_secret_and_names_the_renew_step():
+    spec = cp.SIGN_IN["copilot"]
+    assert spec.route == "secret-token" and spec.env_keys == ("COPILOT_GITHUB_TOKEN",)
+    assert spec.refresh == "none", "a fine-grained token is not refreshed by the CLI"
+    assert "gh secret set COPILOT_GITHUB_TOKEN --user" in spec.renew
+    assert "Copilot Requests" in spec.renew, "the one renew step names the permission the token needs"
+    assert "COPILOT_GITHUB_TOKEN" in cp.AUTH_NEEDS["copilot"]
+    assert "copilot login" not in cp.AUTH_NEEDS["copilot"] and "copilot login" not in spec.renew
+
+
+def test_the_copilot_token_is_a_subscription_measured_by_name_never_value(tmp_path):
+    """A Copilot token is the account's seat, not a metered API key: it must not be classed `api-key`
+    (the R87 failure) and its value never enters the record."""
+    mech = cp.measure_mechanism("copilot", tmp_path, {"COPILOT_GITHUB_TOKEN": "SENTINEL-COPILOT-TOKEN"})
+    assert mech["class"] == "subscription" and mech["via"] == "env COPILOT_GITHUB_TOKEN"
+    assert mech["api_key_env_present"] is False
+    assert "SENTINEL-COPILOT-TOKEN" not in json.dumps(mech)
+    assert cp.measure_mechanism("copilot", tmp_path, {})["class"] == "none"
+
+
+def _mech_pair(cli: str, laptop: str, codespace: str):
+    problems, evidence = [], []
+    cp._compare_auth_mechanism({"auth_mech": _mech({cli: laptop})}, {"auth_mech": _mech({cli: codespace})},
+                               (cli,), problems, evidence)
+    return problems
+
+
+def test_copilot_keyring_on_the_laptop_equals_its_token_in_the_codespace_for_copilot_only():
+    """The laptop's Copilot sign-in is an OS keyring entry; the Codespace's is the token of the same
+    account (R88a). That pairing is equivalent for copilot and for no other CLI, and it never
+    excuses an API key."""
+    assert _mech_pair("copilot", "keyring", "subscription") == []
+    assert _mech_pair("copilot", "keyring", "api-key") != [], "an API key is still the R87 failure"
+    for cli in ("codex", "claude", "grok", "agy"):
+        problems = _mech_pair(cli, "keyring", "subscription")
+        assert problems and "R87" in problems[0], cli
+
+
 def test_no_gemini_row_survives_in_the_parity_tables():
     """The auth probes, needs and sign-in table are keyed by registry CLI; a gemini row left behind
     would be an expectation for a CLI the registry no longer names."""
