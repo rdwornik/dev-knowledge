@@ -145,6 +145,21 @@ say()  { printf '[provision] %s\n' "$*"; }
 noop() { printf '[provision] %s (no-op)\n' "$*"; }
 die()  { printf '[provision] REFUSED: %s\n' "$*" >&2; exit 1; }
 
+# R87.3 (b2w2-codespace-finish): codex signs in by the ChatGPT subscription and never by an API key.
+# OpenAI documents `forced_login_method` (`chatgpt` | `api`) and a non-interactive key route but not
+# which wins when both are present, so the keys are not left to precedence: they are removed from
+# this process before any leg runs, and every child it starts (the version probes included) inherits
+# the scrubbed environment. Only the NAME is said, never a value.
+scrub_model_keys() {
+  local n
+  for n in CODEX_API_KEY OPENAI_API_KEY; do
+    if [ -n "${!n:-}" ]; then
+      say "scrub: ${n} was set in the environment and is now unset (R87.3)"
+    fi
+    unset "${n}"
+  done
+}
+
 # --- pin readers: the single-source discipline, in code ------------------------------------------
 
 # pyproject.toml [tool.uv] required-version, section-scoped. Section scoping is not decoration:
@@ -732,6 +747,61 @@ fetch_installer() {
   echo "${dest}"
 }
 
+# --- F6: codex signs in by subscription, never by an API key (R87.3) -----------------------------
+# Two writes, both idempotent and both MERGED into what is already there. (1) `~/.codex/config.toml`
+# gets the top-level key `forced_login_method = "chatgpt"` (OpenAI's documented values are `chatgpt`
+# and `api`; on mismatched credentials Codex logs out and exits rather than falling back), placed
+# first because a top-level key written below a `[table]` would belong to it. (2) A marked block in the
+# FIRST existing login-startup file (the resolution `leg_pc_login_path` documents) unsets the two key
+# variables: the Codespaces secrets are exported by the login chain, and a lane head runs in a login
+# shell (`bash -l`), so the unset has to come after that chain, in `~/.profile`. It runs BEFORE
+# `leg_f5_codex` so the login-shell version probe that leg makes is already keyless.
+leg_f6_codex_subscription() {
+  local cfg="${HOME}/.codex/config.toml" want='forced_login_method = "chatgpt"'
+  local marker='# dev-knowledge provision: codex signs in by subscription, never an API key (R87.3)'
+  local login_rc="" candidate
+
+  mkdir -p "${HOME}/.codex"
+  if [ -f "${cfg}" ] && grep -Eq '^[[:space:]]*forced_login_method[[:space:]]*=' "${cfg}"; then
+    if grep -Fxq "${want}" "${cfg}"; then
+      noop "L-F6 codex config already forces the ChatGPT sign-in"
+    else
+      sed -i -E "s|^[[:space:]]*forced_login_method[[:space:]]*=.*|${want}|" "${cfg}"
+      CHANGED=$((CHANGED + 1))
+      say "L-F6 codex config now forces the ChatGPT sign-in (the forced method was rewritten)"
+    fi
+  else
+    { printf '%s\n' "${want}"; [ ! -f "${cfg}" ] || cat "${cfg}"; } > "${cfg}.tmp.$$" \
+      && mv -f "${cfg}.tmp.$$" "${cfg}"
+    CHANGED=$((CHANGED + 1))
+    say "L-F6 codex config now forces the ChatGPT sign-in"
+  fi
+
+  for candidate in "${HOME}/.bash_profile" "${HOME}/.bash_login" "${HOME}/.profile"; do
+    if [ -f "${candidate}" ]; then
+      login_rc="${candidate}"
+      break
+    fi
+  done
+  [ -n "${login_rc}" ] || login_rc="${HOME}/.profile"
+  if ! grep -Fq "${marker}" "${login_rc}" 2>/dev/null; then
+    { echo ''
+      echo "${marker}"
+      echo 'unset CODEX_API_KEY OPENAI_API_KEY'
+    } >> "${login_rc}"
+    CHANGED=$((CHANGED + 1))
+    say "L-F6 login shells now unset the codex API keys (${login_rc})"
+  else
+    noop "L-F6 login shells already unset the codex API keys"
+  fi
+
+  grep -Fxq "${want}" "${cfg}" \
+    || die "L-F6 FAILED — ${cfg} does not carry '${want}' after the write"
+  grep -Fq "${marker}" "${login_rc}" \
+    || die "L-F6 FAILED — ${login_rc} does not carry the codex key unset after the write"
+  say "L-F6 OK — codex is forced to the ChatGPT sign-in and no login shell carries a codex API key"
+}
+
 # --- F5a: claude, PINNED -------------------------------------------------------------------------
 # Anthropic's setup doc (code.claude.com/docs/en/setup, "Install a specific version"):
 #   curl -fsSL https://claude.ai/install.sh | bash -s 2.1.89
@@ -1157,6 +1227,7 @@ refresh() {
 }
 
 main() {
+  scrub_model_keys
   case "${1:-}" in
     --gate) gate; return 0 ;;
     --refresh) refresh; return 0 ;;
@@ -1181,6 +1252,7 @@ main() {
   leg3_hooks
   leg_pc_login_path
   leg_f1_claude
+  leg_f6_codex_subscription
   leg_f5_claude_pin
   leg_f5_gh
   leg_f5_codex

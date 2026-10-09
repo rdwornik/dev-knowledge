@@ -2025,13 +2025,19 @@ class ExecResult:
 #: The Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
 #: enters a file or a log). `claude -p` needs the first, `gh` and `git push` the second, the two
 #: review heads the next two, and the transport read/write the last.
-RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY",
+RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN",
                                    "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN",
                                    # R88a: Copilot signs in through this token, not a keyring login
                                    "COPILOT_GITHUB_TOKEN",
                                    # R87 fallback: a SEPARATE ChatGPT login's auth.json, written to
                                    # ~/.codex/auth.json only when the mirror put nothing there
                                    "CODEX_AUTH_JSON")
+
+#: The API keys NO codex invocation may see (R87.3, b2w2-codespace-finish). The runner records each one's
+#: presence as a boolean (`present-before-unset`) and removes it from the environment on EVERY launch,
+#: mirror configured or not: OpenAI does not document a key's precedence over a ChatGPT sign-in, so the
+#: lane does not leave it to precedence. They are no lane secret, so they are not in `RUNNER_SECRETS`.
+RUNNER_NEVER_SET: tuple[str, ...] = ("CODEX_API_KEY", "OPENAI_API_KEY")
 
 #: The runner's own bounds, from the classifier's: a head whose run log is quiet for longer than
 #: this is killed and its receipt says why.
@@ -2229,7 +2235,7 @@ def _credential_tools_script(allowed: Sequence[str]) -> str:
         "    ;;",
         "  status)",
         '    case "${2:-}" in',
-        "      codex) codex login status 2>&1 ;;",
+        "      codex) env -u CODEX_API_KEY -u OPENAI_API_KEY codex login status 2>&1 ;;",
         "      claude) claude auth status 2>&1 ;;",
         "      gh) gh auth status 2>&1 ;;",
         '      *) echo "no status command" >&2; exit 64 ;;',
@@ -2446,6 +2452,8 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
     heartbeat = shlex.quote(f"{workdir}/heartbeat")
     stalled = shlex.quote(f"{workdir}/stalled")
     names = " ".join(RUNNER_SECRETS)
+    never = " ".join(RUNNER_NEVER_SET)
+    removed = " ".join([*RUNNER_NEVER_SET, *(n for n in unset if n not in RUNNER_NEVER_SET)])
     return "\n".join([
         "#!/usr/bin/env bash",
         "set -uo pipefail",
@@ -2458,13 +2466,19 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
         '  echo "[runner] secret $n set=$v"',
         f"done > {shlex.quote(run_log)} 2>&1",
+        # the keys no codex call may see (R87.3): a boolean per name, then removed on EVERY launch
+        f"for n in {never}; do",
+        '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
+        '  echo "[runner] api-key $n present-before-unset=$v"',
+        f"done >> {shlex.quote(run_log)} 2>&1",
         # the fallback sign-in (R87): a separate login's auth.json from a secret, only where the
         # mirror put nothing -- written owner-only, its value never echoed
         'if [ -n "${CODEX_AUTH_JSON:-}" ] && [ ! -f "$HOME/.codex/auth.json" ]; then '
         'umask 077; mkdir -p "$HOME/.codex"; printf "%s" "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"; '
         'chmod 600 "$HOME/.codex/auth.json"; fi',
-        # a key the laptop does not use for a mirrored CLI is not in the lane's environment (R87)
-        *([f"unset {' '.join(unset)}"] if unset else []),
+        # no codex invocation sees an API key, and a key the laptop does not use for a mirrored CLI is
+        # not in the lane's environment either (R87, R87.3)
+        f"unset {removed}",
         # the heartbeat says the runner PROCESS lives (the run log's age says the lane works)
         f"( while :; do date +%s > {heartbeat}; sleep {cs.HEARTBEAT_S}; done ) &",
         "hb=$!",

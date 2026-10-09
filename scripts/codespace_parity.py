@@ -815,16 +815,25 @@ def read_agy(stdout: str, log_text: str, nonce: str) -> tuple[Optional[str], boo
 _PROBE_DECLARED = ("claude", "codex", "grok", "agy", "copilot")
 
 
+#: The API-key variables no invocation of a CLI may see, whatever else is on this side (R87.3,
+#: b2w2-codespace-finish). Codex only: OpenAI documents `forced_login_method` (`chatgpt` | `api`) and
+#: a non-interactive API-key route, but not which wins when both are present, so the call is made
+#: without the keys and says "not logged in" instead of being answered by one.
+NEVER_KEYS: dict[str, tuple[str, ...]] = {"codex": ("CODEX_API_KEY", "OPENAI_API_KEY")}
+
+
 def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]:
-    """The API-key variables of `cli` that are set in `env` although the CLI has its sign-in CACHE on
-    this side -- a key the laptop does not use for it (R87). A CLI with no cache (grok) keeps its key:
-    the laptop itself signs in with it."""
+    """The API-key variables of `cli` that are set in `env` and must not reach its call: every
+    `NEVER_KEYS` name (R87.3), and any key the CLI has a sign-in CACHE on this side to make
+    unnecessary -- a key the laptop does not use for it (R87). A CLI with no cache (grok) keeps its
+    key: the laptop itself signs in with it."""
+    forced = tuple(k for k in NEVER_KEYS.get(cli, ()) if env.get(k))
     spec = SIGN_IN.get(cli)
     if spec is None or not spec.files:
-        return ()
+        return forced
     if not (Path(home) / spec.files[0]).is_file():
-        return ()
-    return tuple(k for k in spec.env_keys if env.get(k))
+        return forced
+    return forced + tuple(k for k in spec.env_keys if env.get(k) and k not in forced)
 
 
 def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[ExpectedModel],
