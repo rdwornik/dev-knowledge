@@ -244,9 +244,8 @@ AUTH_NEEDS: dict[str, str] = {
     "agy": "an `agy` sign-in: run `agy` once in the Codespace (`gh codespace ssh`), open the Google "
            "URL it prints in a browser and complete the sign-in (no login subcommand, no Codespaces "
            "secret; its model call is what shows the login)",
-    "copilot": "a Copilot CLI sign-in: the laptop's lives in the OS keyring (service `copilot-cli`), "
-               "which the Codespace cannot hold; `copilot login` once in the Codespace, or a "
-               "COPILOT_GITHUB_TOKEN secret",
+    "copilot": "the COPILOT_GITHUB_TOKEN Codespaces secret (a fine-grained token with the "
+               "'Copilot Requests' account permission; R88a)",
     "rclone": "the RCLONE_CONFIG_GDRIVE_TOKEN Codespaces secret (the Drive token, `[#1379]`)",
 }
 
@@ -305,11 +304,14 @@ SIGN_IN: dict[str, SignIn] = {
             "vendor docs name only the OS keyring, or GEMINI_API_KEY with modelProvider=gemini, "
             "which the laptop does not use -- there is no file to mirror"),
     "copilot": SignIn(
-        (), ("COPILOT_GITHUB_TOKEN",), route="waiting", refresh="unknown",
-        renew="run `copilot login` once in the Codespace (`gh codespace ssh`)",
-        why="the laptop's sign-in is the Windows Credential Manager entry `copilot-cli`; GitHub's docs "
-            "store it in the keychain and fall back to a plaintext config only on a headless host "
-            "with no keychain -- there is no laptop file to mirror"),
+        (), ("COPILOT_GITHUB_TOKEN",), route="secret-token", refresh="none",
+        renew="create a fine-grained personal access token owned by your personal account with the "
+              "'Copilot Requests' account permission, then `gh secret set COPILOT_GITHUB_TOKEN --user` "
+              "with it",
+        why="the laptop's sign-in is the Windows Credential Manager entry `copilot-cli`, which the "
+            "Codespace cannot hold; GitHub's docs name an environment token as the form for "
+            "containers and non-interactive environments, and check COPILOT_GITHUB_TOKEN first "
+            "(R88a). The token is the same account's Copilot seat, not a metered key"),
     "gh": SignIn(
         (), ("GH_TOKEN", "GITHUB_TOKEN"), route="env-key", refresh="none",
         renew="`gh auth refresh` on the laptop; the Codespace's GITHUB_TOKEN is issued by Codespaces",
@@ -323,10 +325,18 @@ SIGN_IN: dict[str, SignIn] = {
             "copied; the Codespace reads the Drive by its own token secret"),
 }
 
-#: Pairs of mechanism classes that are the SAME sign-in for a CLI: claude's file and its long-lived
-#: token are one subscription. Anything else that differs between the laptop and the Codespace is
-#: the R87 failure -- a provider answering through a credential the laptop does not use.
+#: Pairs of mechanism classes that are the SAME sign-in for EVERY CLI. None: what is equivalent is a
+#: fact about one CLI's vendor, so it lives in `AUTH_EQUIVALENT_FOR` below. Anything that differs
+#: between the laptop and the Codespace and is in neither is the R87 failure -- a provider answering
+#: through a credential the laptop does not use.
 AUTH_EQUIVALENT: frozenset[tuple[str, str]] = frozenset()
+
+#: (laptop class, codespace class) pairs that are the same sign-in for ONE named CLI. Copilot only
+#: (R88a): the laptop holds its login in the OS keyring, the Codespace the token of that same
+#: account's Copilot seat in COPILOT_GITHUB_TOKEN. An `api-key` there stays the R87 failure.
+AUTH_EQUIVALENT_FOR: dict[str, frozenset[tuple[str, str]]] = {
+    "copilot": frozenset({("keyring", "subscription")}),
+}
 
 #: The refresh interval after which Codex refreshes `~/.codex/auth.json` on its next call (OpenAI's
 #: CI/CD auth docs: "approximately 8 days"), and the margin kept so a Codespace's copy can never reach it.
@@ -909,6 +919,9 @@ def measure_mechanism(cli: str, home: Path, env: Mapping[str, str]) -> dict:
     if cli == "claude" and env.get("CLAUDE_CODE_OAUTH_TOKEN"):
         return {"class": "subscription", "via": "env CLAUDE_CODE_OAUTH_TOKEN",
                 "api_key_env_present": bool(env.get("ANTHROPIC_API_KEY"))}
+    if cli == "copilot" and env.get("COPILOT_GITHUB_TOKEN"):
+        # the account's Copilot seat through a token (R88a), not a metered API key
+        return {"class": "subscription", "via": "env COPILOT_GITHUB_TOKEN", "api_key_env_present": False}
     if spec.files and (Path(home) / spec.files[0]).is_file():
         return {"class": "subscription", "via": f"file {spec.files[0]}",
                 "api_key_env_present": bool(keys_set)}
@@ -1692,7 +1705,7 @@ def _compare_auth_mechanism(le: Mapping, re_: Mapping, clis: Sequence[str], prob
         if lc is None or rc is None:
             problems.append(f"no auth mechanism recorded for {cli} on the "
                             f"{'local' if lc is None else 'codespace'} side")
-        elif lc != rc and (lc, rc) not in AUTH_EQUIVALENT:
+        elif lc != rc and (lc, rc) not in AUTH_EQUIVALENT | AUTH_EQUIVALENT_FOR.get(cli, frozenset()):
             problems.append(f"{cli} signs in by {rc} on the codespace but by {lc} on the laptop: not "
                             "the laptop's own sign-in (R87)")
 

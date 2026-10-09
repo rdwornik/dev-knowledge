@@ -923,7 +923,8 @@ leg_f5_grok() {
 # --- F5h: copilot --------------------------------------------------------------------------------
 # docs.github.com "Install Copilot CLI": `npm install -g @github/copilot` (Node 22+); the pin is the
 # npm version tag. b2-codespace-subscription-auth: the registry names this CLI. Its sign-in is an
-# OS-keyring entry on the workstation and is not mirrored, so a Codespace copilot is WAITING (R83).
+# OS-keyring entry on the workstation and is not mirrored: the Codespace signs in through the
+# COPILOT_GITHUB_TOKEN secret (R88a), which this script never reads or writes.
 leg_f5_copilot() {
   local want ok=1
   want="$(uv run --no-sync python scripts/provision_legs.py tools get copilot)" \
