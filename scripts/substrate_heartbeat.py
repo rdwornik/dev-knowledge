@@ -42,6 +42,10 @@ class that actually killed the container:
       protection cannot regress silently underneath this.
   D5  `provision.sh` still writes AND verifies the L1 marker — because a provision.sh that
       stopped writing it would make every later `verify` refuse a container that is fine.
+  D6  the Codespace's tool pins are GENERATED, not typed (R70): `provisioning.yaml` carries a
+      `pins_record:` whose digest is right and which every typed `tools.*.version` equals — the
+      claude pin included. The laptop half (the record equals what the tools print) can only run
+      where the tools are: `codespace_parity.py pin check`.
 
 WHAT IT CANNOT ASSERT, and the honest limit bounds what a green reading means: it does not
 BUILD the container. A declaration can be perfectly coherent and the image still fail to build,
@@ -213,7 +217,28 @@ def declaration_findings(repo_root: Path) -> list[str]:
                     f"D5 provision.sh no longer runs `substrate_provenance.py {verb}` — L1 is "
                     f"unwired, so either no container can prove its identity or every "
                     f"container is refused for a marker nothing writes")
+
+    # --- D6: the pins are generated from one source, not typed (R70) ------------------------
+    #
+    # Judged only where a declaration exists: a tree with no provisioning.yaml has no pins to be
+    # typed. The FILE half of `pin check` is reused, not restated, so the heartbeat and the laptop
+    # command cannot disagree about what "consistent" means.
+    pins = root / ".devcontainer" / "provisioning.yaml"
+    if pins.is_file():
+        parity = _parity()
+        try:
+            findings.extend(f"D6 {f}" for f in parity.pin_record_findings(pins))
+        except parity.PinError as exc:
+            findings.append(f"D6 {exc}")
     return findings
+
+
+def _parity():
+    try:
+        from scripts import codespace_parity as module
+    except ImportError:  # pragma: no cover - exercised by the alternate launch path
+        import codespace_parity as module
+    return module
 
 
 def probe(repo_root: Path, substrate: str, *, now: dt.datetime | None = None,

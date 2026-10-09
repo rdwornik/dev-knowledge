@@ -124,6 +124,63 @@ def test_the_LIVE_repo_declaration_probes_green():
     assert reading.status == "live", reading.findings
 
 
+# --- D6 (b2w2-codespace-finish, R70, Done 1): the Codespace's pins are generated, not typed -----
+
+_PINS = (
+    "schema: 1\n"
+    "tools:\n"
+    "  claude:\n"
+    '    version: "2.1.290"\n'
+    "  gh:\n"
+    '    version: "2.93.0"\n'
+)
+
+
+def _with_pins(tmp_path, *, record: bool = True, edit: str | None = None) -> Path:
+    from scripts import codespace_parity as cp
+
+    root = _mini_repo(tmp_path)
+    target = root / ".devcontainer" / "provisioning.yaml"
+    target.write_text(_PINS, encoding="utf-8", newline="\n")
+    if record:
+        cp.pin_write(target, {"claude": "2.1.295", "gh": "2.93.0"}, now=NOW)
+    if edit:
+        old, new = edit.split("|")     # the FIRST occurrence only: the typed pin, not the record's copy
+        target.write_text(target.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8",
+                          newline="\n")
+    return root
+
+
+def test_a_declaration_whose_pins_equal_its_generated_record_probes_LIVE(tmp_path):
+    reading = hb.probe(_with_pins(tmp_path), "codespace", now=NOW)
+    assert reading.status == "live", reading.findings
+
+
+def test_a_declaration_with_typed_pins_and_no_record_is_DEAD_with_a_D6_finding(tmp_path):
+    reading = hb.probe(_with_pins(tmp_path, record=False), "codespace", now=NOW)
+    assert reading.status == "dead"
+    assert any(f.startswith("D6 ") and "no pins_record" in f for f in reading.findings), reading.findings
+
+
+def test_a_hand_edited_claude_pin_is_DEAD_and_names_the_tool(tmp_path):
+    """The claude pin must equal the record's claude reading: a hand edit of it is the typed pin
+    R70 replaces, and it is caught without a container, a credential or the laptop."""
+    reading = hb.probe(_with_pins(tmp_path, edit='"2.1.295"|"2.1.299"'), "codespace", now=NOW)
+    assert reading.status == "dead"
+    assert any(f.startswith("D6 ") and "claude" in f and "hand edit" in f for f in reading.findings), \
+        reading.findings
+
+
+def test_a_repo_with_no_provisioning_yaml_is_not_judged_by_D6(tmp_path):
+    reading = hb.probe(_mini_repo(tmp_path), "codespace", now=NOW)
+    assert reading.status == "live" and not [f for f in reading.findings if f.startswith("D6")]
+
+
+def test_the_live_declaration_has_no_D6_finding():
+    findings = hb.declaration_findings(REPO_ROOT)
+    assert not [f for f in findings if f.startswith("D6")], findings
+
+
 # --- the receipt --------------------------------------------------------------------------
 
 def test_a_receipt_round_trips(tmp_path, state):
