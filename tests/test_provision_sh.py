@@ -464,18 +464,27 @@ def test_main_scrubs_the_model_keys_first_and_writes_the_codex_policy_before_any
 
 
 def test_provision_scrubs_the_keys_before_any_child_it_starts(tmp_path: Path):
-    """Launch path 5: provision.sh's own legs start `codex --version` through a login shell
-    (`provision_legs.py tools check --login` builds `bash -lc 'command -v codex && codex --version'`).
-    Seeded with both keys, that child sees neither once `scrub_model_keys` has run, and sees both
-    without it -- the control that shows the harness isolates what it claims to."""
+    """Launch path 5: the processes provision.sh itself starts (`provision_legs.py tools check` runs
+    `codex --version`, `uv run`, the hooks) inherit its environment. Seeded with both keys, a child
+    started after `scrub_model_keys` sees neither, and sees both without it -- the control that shows
+    the harness isolates what it claims to.
+
+    WHAT THIS DOES NOT CLAIM, and why: a LOGIN shell child (`bash -lc`) re-reads the login chain, and in
+    a real Codespace that chain re-exports the user secrets from
+    /workspaces/.codespaces/shared/user-secrets-envs.json no matter what the parent unset. The first
+    version of this test asserted that too; the live parity run's gates leg (2026-10-09, Codespace
+    `b2w2-codespace-finish-parity-...`) failed it there and passed it on the laptop, and a login shell
+    under a bare HOME printed `CODEX_API_KEY=yes` while the real HOME, carrying leg_f6's block, printed
+    `no`. So the login-shell guarantee belongs to `leg_f6_codex_subscription`, tested by launch path 4,
+    and this test states only what the scrub itself guarantees.
+    """
     bash_exe = _working_bash()
     body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "scrub_model_keys")
     home = tmp_path / "home"
     home.mkdir()
     stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
     home_c = _canon_path(bash_exe, home)
-    (home / ".profile").write_text(f'export PATH="{stub_c}:$PATH"\n', encoding="utf-8", newline="\n")
-    probe = "bash -lc 'command -v codex >/dev/null 2>&1 && codex --version'"
+    probe = "bash -c 'command -v codex >/dev/null 2>&1 && codex --version'"
 
     def run(with_scrub: bool) -> dict:
         record.unlink(missing_ok=True)
@@ -483,6 +492,7 @@ def test_provision_scrubs_the_keys_before_any_child_it_starts(tmp_path: Path):
         harness.write_text(
             "set -euo pipefail\n"
             f'HOME="{home_c}"\n'
+            f'export PATH="{stub_c}:$PATH"\n'
             'say() { printf "[t] %s\\n" "$*"; }\n'
             f"scrub_model_keys() {{{body}\n}}\n"
             + ("scrub_model_keys\n" if with_scrub else "")
