@@ -1088,9 +1088,10 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
 import re  # noqa: E402
 
 TOOLS = ("claude", "gh", "codex", "agy", "grok", "rclone")
-#: the live declaration also carries the two registry CLIs added by b2-codespace-subscription-auth;
-#: the fixtures above keep the original six, so the LIVE-file assertions use the longer tuple
-_LIVE_TOOLS = TOOLS + ("gemini", "copilot")
+#: the live declaration also carries the registry CLI added by b2-codespace-subscription-auth
+#: (copilot; its sibling gemini left with R88b); the fixtures above keep the original six, so the
+#: LIVE-file assertions use the longer tuple
+_LIVE_TOOLS = TOOLS + ("copilot",)
 _PINNED = ("claude", "gh", "codex", "agy", "grok", "rclone")  # agy's installer takes no version: the leg installs the latest and asserts the pin
 
 

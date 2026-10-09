@@ -920,31 +920,6 @@ leg_f5_grok() {
   say "L-F5 OK — grok ${want}"
 }
 
-# --- F5g: gemini ---------------------------------------------------------------------------------
-# google-gemini/gemini-cli README: `npm install -g @google/gemini-cli`; the pin is the npm version
-# tag. Node is the devcontainer `node` feature's (asserted in L-F1). b2-codespace-subscription-auth:
-# the registry names this CLI, so the box carries it; its sign-in is mirrored at launch, not here.
-leg_f5_gemini() {
-  local want ok=1
-  want="$(uv run --no-sync python scripts/provision_legs.py tools get gemini)" \
-    || die "L-F5 cannot read the gemini pin from .devcontainer/provisioning.yaml"
-  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no gemini pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gemini --login || ok=0
-  if [ "${ok}" -eq 1 ]; then
-    noop "L-F5 gemini already at the pinned ${want}"
-  else
-    say "L-F5 installing gemini ${want}"
-    npm install -g "@google/gemini-cli@${want}" >/dev/null 2>&1 \
-      || sudo -n env "PATH=${PATH}" npm install -g "@google/gemini-cli@${want}" >/dev/null \
-      || die "L-F5 npm could not install @google/gemini-cli@${want}"
-    CHANGED=$((CHANGED + 1))
-  fi
-  ensure_login_resolvable gemini
-  uv run --no-sync python scripts/provision_legs.py tools check --only gemini --login \
-    || die "L-F5 FAILED — gemini is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves gemini)"
-  say "L-F5 OK — gemini ${want}"
-}
-
 # --- F5h: copilot --------------------------------------------------------------------------------
 # docs.github.com "Install Copilot CLI": `npm install -g @github/copilot` (Node 22+); the pin is the
 # npm version tag. b2-codespace-subscription-auth: the registry names this CLI. Its sign-in is an
@@ -1211,7 +1186,6 @@ main() {
   leg_f5_rclone
   leg_f5_agy
   leg_f5_grok
-  leg_f5_gemini
   leg_f5_copilot
   leg_f2_git_credential
   leg_f4_workspace_trust

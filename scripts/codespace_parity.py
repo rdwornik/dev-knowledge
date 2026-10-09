@@ -230,8 +230,7 @@ AUTH_PROBES: dict[str, Optional[tuple[str, ...]]] = {
     "grok": None,
     "agy": None,
     # a CLI the registry names that has no status command is `unprobed` until its served-id call
-    # answers; `gemini` and `copilot` are such (W1-13). `rclone` answers its own listing.
-    "gemini": None,
+    # answers; `copilot` is such (W1-13). `rclone` answers its own listing.
     "copilot": None,
     "rclone": ("rclone", "lsd", "gdrive:", "--max-depth", "0"),
 }
@@ -245,7 +244,6 @@ AUTH_NEEDS: dict[str, str] = {
     "agy": "an `agy` sign-in: run `agy` once in the Codespace (`gh codespace ssh`), open the Google "
            "URL it prints in a browser and complete the sign-in (no login subcommand, no Codespaces "
            "secret; its model call is what shows the login)",
-    "gemini": "the laptop's Gemini CLI sign-in cache `~/.gemini/oauth_creds.json`, mirrored at launch",
     "copilot": "a Copilot CLI sign-in: the laptop's lives in the OS keyring (service `copilot-cli`), "
                "which the Codespace cannot hold; `copilot login` once in the Codespace, or a "
                "COPILOT_GITHUB_TOKEN secret",
@@ -296,14 +294,6 @@ SIGN_IN: dict[str, SignIn] = {
         fallback="seed a SEPARATE ChatGPT login for Codespaces: `codex login --device-auth` with "
                  "CODEX_HOME pointing at an empty scratch folder, then `gh secret set CODEX_AUTH_JSON "
                  "--user < <scratch>/auth.json` (the launch writes it to ~/.codex/auth.json)"),
-    "gemini": SignIn(
-        (".gemini/oauth_creds.json", ".gemini/google_accounts.json", ".gemini/settings.json"),
-        ("GEMINI_API_KEY", "GOOGLE_API_KEY"),
-        route="mirror", refresh="unknown",
-        renew="run `gemini` on the laptop and sign in again",
-        why="the Gemini CLI docs: headless mode uses the cached credential",
-        fallback="no separate credential exists for this CLI: the vendor retired the client the "
-                 "laptop signs in with (`IneligibleTierError`, 2026-10-06)"),
     "grok": SignIn(
         (), ("XAI_API_KEY",), route="env-key", refresh="none",
         renew="issue a new XAI_API_KEY at console.x.ai and run `gh secret set XAI_API_KEY --user`",
@@ -692,22 +682,9 @@ def model_probe_argv(cli: str, nonce: str, model: str, log_file: str) -> list[st
         return ["grok", "-m", model, "-p", prompt, "--output-format", "json", "--max-turns", "1"]
     if cli == "agy":
         return ["agy", "-p", prompt, "--output-format", "json", "--log-file", log_file]
-    if cli == "gemini":
-        return ["gemini", "-p", prompt, "-m", model, "-o", "json"]
     if cli == "copilot":
         return ["copilot", "-p", prompt, "--model", model, "--output-format", "json"]
     raise ValueError(f"no served-id probe is declared for {cli!r}")
-
-
-def read_gemini(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
-    """(served id, answered). The id is the model the CLI's own `stats.models` record names (headless
-    `-o json`: `{"response": ..., "stats": {"models": {<id>: {...}}}}`); the answer is the nonce in
-    `response`. UNVERIFIED LIVE on 2026-10-06: the laptop's own call was refused with
-    `IneligibleTierError` (the vendor retired this client), so the shape is the documented one."""
-    obj = _json_object(stdout) or {}
-    models = ((obj.get("stats") or {}).get("models") or {})
-    served = next(iter(models), None) if isinstance(models, Mapping) else None
-    return (str(served) if served else None), nonce in str(obj.get("response") or "")
 
 
 def read_copilot(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
@@ -825,7 +802,7 @@ def read_agy(stdout: str, log_text: str, nonce: str) -> tuple[Optional[str], boo
 
 #: The CLIs `model_probe_argv` and the readers know. A registry CLI outside this set is probed by
 #: name and FAILS by name (`no-probe-declared`) -- present in the record, never dropped.
-_PROBE_DECLARED = ("claude", "codex", "grok", "agy", "gemini", "copilot")
+_PROBE_DECLARED = ("claude", "codex", "grok", "agy", "copilot")
 
 
 def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]:
@@ -872,8 +849,6 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         served, answered = read_codex(res.stderr or "", out, nonce)
     elif cli == "grok":
         served, answered = read_grok(out, nonce, home)
-    elif cli == "gemini":
-        served, answered = read_gemini(out, nonce)
     elif cli == "copilot":
         served, answered = read_copilot(out, nonce)
     else:
@@ -995,10 +970,6 @@ def credential_expiry(cli: str, home: Path, *, now: Optional[datetime] = None) -
         if access is not None and access <= now and refresh is None:
             return {"state": "expired", "renew": spec.renew, "detail": "the access token has expired"}
         return {"state": "ok", "renew": spec.renew, "detail": "the refresh token is live"}
-    if cli == "gemini":
-        if not data.get("refresh_token"):
-            return {"state": "expired", "renew": spec.renew, "detail": "no refresh token in the cache"}
-        return {"state": "ok", "renew": spec.renew, "detail": "a refresh token renews the access token"}
     if cli == "codex":
         if str(data.get("auth_mode")) != "chatgpt":
             return {"state": "expired", "renew": spec.renew, "detail": "the cache is not a ChatGPT sign-in"}

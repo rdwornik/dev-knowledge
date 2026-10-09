@@ -208,8 +208,9 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
         "leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone", "leg_f5_agy",
         # b2-codespace-1to1 (R63): the fourth model CLI, after the other three
         "leg_f5_grok",
-        # b2-codespace-subscription-auth: the two model CLIs the registry names that had no leg
-        "leg_f5_gemini", "leg_f5_copilot",
+        # b2-codespace-subscription-auth: the model CLI the registry names that had no leg
+        # (b2w2-codespace-finish, R88b: its sibling `leg_f5_gemini` was removed with the gemini CLI)
+        "leg_f5_copilot",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
         # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
         # is LIVE, so every tool it names must already be installed when it is written. Anywhere
@@ -423,9 +424,8 @@ _TOOLSET_LEGS = {
     # b2-codespace-1to1 (R63, operator 2026-10-04: "1:1, all models in sync -- Grok, Codex, Gemini"):
     # xAI's first-party installer, which takes a version (`bash -s <X.Y.Z>`, read 2026-10-04).
     "leg_f5_grok": ("grok", "x.ai/cli/install.sh"),
-    # b2-codespace-subscription-auth: each vendor's documented npm install, pinned to the laptop's
-    # version (gemini-cli README and docs.github.com "Install Copilot CLI", read 2026-10-06).
-    "leg_f5_gemini": ("gemini", "@google/gemini-cli@${want}"),
+    # b2-codespace-subscription-auth: the vendor's documented npm install, pinned to the laptop's
+    # version (docs.github.com "Install Copilot CLI", read 2026-10-06).
     "leg_f5_copilot": ("copilot", "@github/copilot@${want}"),
 }
 _VERSION_LITERAL = re.compile(r"(?<![\w.$-])\d+\.\d+\.\d+(?![\w.])")
@@ -452,8 +452,7 @@ def test_no_tool_leg_types_a_version(leg: str):
 
 
 @pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone",
-                                 "leg_f5_agy", "leg_f5_grok", "leg_f5_gemini",
-                                 "leg_f5_copilot"])
+                                 "leg_f5_agy", "leg_f5_grok", "leg_f5_copilot"])
 def test_a_pinned_leg_reads_its_pin_from_the_declaration(leg: str):
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
     tool = _TOOLSET_LEGS[leg][0]
@@ -519,6 +518,20 @@ def test_a_vendor_installer_is_fetched_checked_to_be_a_script_and_never_piped_in
         assert "| bash" not in body, f"{leg} pipes a download into bash unchecked"
 
 
+def test_no_gemini_leg_tool_row_or_feature_survives_the_registry_dropping_the_cli():
+    """R88b, RED-first (b2w2-codespace-finish): the gemini CLI is gone from the registry, so
+    `provisioning.yaml` declares no `tools.gemini` / `features.leg_f5_gemini` and `provision.sh`
+    installs, calls and asserts nothing for it. A leg left behind would install a CLI nothing
+    signs in and would fail the container build on a tool no check expects."""
+    import yaml
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    assert "leg_f5_gemini" not in code and "gemini-cli" not in code
+    cfg = yaml.safe_load(
+        (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))
+    assert "gemini" not in cfg["tools"]
+    assert "leg_f5_gemini" not in (cfg.get("features") or {})
+
+
 def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version():
     """Item 2 of the b2-codespace-1to1 contract: claude, codex, grok, agy, gh and rclone are each an
     exact `x.y.z` string in `provisioning.yaml` `tools:`. RED on `e67f27ac`: no `grok` row, and
@@ -526,7 +539,7 @@ def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version()
     import yaml
     tools = yaml.safe_load(
         (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))["tools"]
-    for name in ("claude", "codex", "grok", "agy", "gh", "rclone", "gemini", "copilot"):
+    for name in ("claude", "codex", "grok", "agy", "gh", "rclone", "copilot"):
         assert name in tools, f"{name}: no row in provisioning.yaml tools:"
         version = tools[name].get("version")
         assert isinstance(version, str) and re.fullmatch(r"\d+\.\d+\.\d+", version), (name, version)
