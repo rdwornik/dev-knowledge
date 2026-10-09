@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-09  
-**Generated:** 2026-10-09T19:57:36  
+**Generated:** 2026-10-09T20:55:53  
 **Repos audited:** 6  
 **Checks:** 876 total — 161 pass, 27 fail, 492 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-10jn01pu\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-5yl_ubzf\wt`  
 **Last audit:** 2026-10-09
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 33d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-08; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-06, newest input docs/audits committed 2026-10-06 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 12 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 11 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -555,7 +555,7 @@
 | `organ_truth` | WARN | 1 organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: scripts/desired_state_loader.py |
 | `model_currency` | WARN | 8 flag(s) over 14 pinned ids -- unverified x8: claude-haiku-4-5-20251001, claude-opus-4-8, claude-opus-5, claude-sonnet-5 +4 more (list: uv run --locked python scripts/check_model_currency.py) |
 | `rulings_carried` | PASS | 25 of 25 gated ruling(s) (R55 on) carried by a row or a written 'no implementation required'; 60 older entries counted, not refused (decision_coverage.py rulings) |
-| `rulings_carried` | PASS | every ruling in 25 non-superseded RATIFICATION file(s) (92 read) is landed or inside the 1-batch grace period |
+| `rulings_carried` | PASS | every ruling in 0 non-superseded RATIFICATION file(s) (0 read) is landed or inside the 1-batch grace period |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
