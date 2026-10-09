@@ -1263,7 +1263,7 @@ def test_collect_models_records_no_credential_and_no_model_output(tmp_path):
     _grok_usage(tmp_path, "sess-run")
     out = cp.collect_models(_ModelRun(tmp_path), _tools(), {}, _expected(), home=tmp_path,
                             nonce=_NONCE)
-    assert all(set(v) == {"state", "served_id", "detail"} for v in out.values())
+    assert all(set(v) == {"state", "served_id", "detail", "command", "exit_code"} for v in out.values())
     assert _NONCE not in json.dumps(out), "the nonce is checked, not stored"
 
 
@@ -3127,3 +3127,52 @@ def test_check_writes_the_condition_records_beside_the_report(tmp_path):
     assert {r["raw"] for r in written} <= {"PASS", "FAIL", "NOT-RUN"}
     landing = next(r for r in written if r["condition"] == 3)
     assert landing["raw"] == "NOT-RUN" and landing["disposition"].startswith("WAITING")
+
+
+# ============================== b2w2-codespace-finish (P-L5-1, P-L5-2) -- the witnessed command
+#
+# A served model id is only a witness when the record also says WHICH command asked and what it exited
+# with. The probe record keeps both, with the probe prompt (it carries the nonce) shown as a
+# placeholder, so the record can be pasted whole and still holds no nonce, no output and no credential.
+
+def test_a_probe_record_carries_the_command_that_was_run_and_its_raw_exit_code(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    out = cp.collect_models(_ModelRun(tmp_path, rc={"codex": 0}), _tools(), {}, _expected(),
+                            home=tmp_path, nonce=_NONCE)
+    codex = out["codex"]
+    assert codex["state"] == "served" and codex["exit_code"] == 0
+    assert codex["command"].startswith("codex exec "), codex["command"]
+    assert "-m gpt-5.6-terra" in codex["command"] and "<probe-prompt>" in codex["command"]
+    assert _NONCE not in json.dumps(out), "the nonce is shown as a placeholder, never stored"
+
+
+def test_the_witnessed_exit_code_is_the_calls_own_even_when_the_call_failed(tmp_path):
+    """A raw exit code that is rewritten is not a witness: a call that exited 3 and said nothing
+    useful records 3 beside its state, and the state is not `served`."""
+    _grok_usage(tmp_path, "sess-run")
+    run = _ModelRun(tmp_path, outputs={"codex": ""}, rc={"codex": 3}, stderr={"codex": "boom"})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["exit_code"] == 3 and out["codex"]["state"] != "served"
+
+
+def test_the_command_names_the_keys_it_ran_without_and_never_their_values(tmp_path):
+    import os
+
+    (tmp_path / ".codex").mkdir()
+    (tmp_path / ".codex" / "auth.json").write_text("{}", encoding="utf-8")
+    _grok_usage(tmp_path, "sess-run")
+    env = {"CODEX_API_KEY": "SENTINEL-KEY-VALUE", "PATH": "/bin"}
+    out = cp.collect_models(_ModelRun(tmp_path), _tools(), {}, _expected(), home=tmp_path,
+                            nonce=_NONCE, clis=cp.model_clis(), env=env)
+    blob = json.dumps(out)
+    assert "SENTINEL-KEY-VALUE" not in blob and _NONCE not in blob
+    if os.name != "nt":
+        assert "env -u CODEX_API_KEY" in out["codex"]["command"]
+
+
+def test_a_probe_that_could_not_run_still_records_its_command_and_exit_code(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    out = cp.collect_models(_ModelRun(tmp_path, rc={"codex": 124}), _tools(), {}, _expected(),
+                            home=tmp_path, nonce=_NONCE)
+    assert out["codex"]["state"] == "probe-error" and out["codex"]["exit_code"] == 124
+    assert out["codex"]["command"].startswith("codex exec ")
