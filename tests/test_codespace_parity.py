@@ -2623,7 +2623,8 @@ def test_c1s_model_cli_set_is_the_registrys_cli_set_with_no_hand_typed_list():
     live = cp.load_registry(_REAL_REGISTRY)
     from_registry = tuple(p["cli"] for p in live["providers"].values() if p.get("cli"))
     assert cp.model_clis(live) == from_registry
-    assert {"copilot", "gemini"} <= set(cp.model_clis(live)), "the two CLIs the old tuples dropped"
+    assert "copilot" in cp.model_clis(live), "the CLI the old tuples dropped"
+    assert "gemini" not in cp.model_clis(live), "R88b: the gemini CLI left the registry's expectations"
     declared = cp.declared_tools()
     assert {"gh", "rclone"} <= set(declared)
     assert cp.lane_tools(live) == from_registry + tuple(
@@ -2645,6 +2646,28 @@ def test_a_provider_with_no_cli_is_named_not_dropped_silently():
     live = cp.load_registry(_REAL_REGISTRY)
     assert "deepseek" in cp.providers_without_cli(live)
     assert "deepseek" not in cp.model_clis(live)
+
+
+# ============================== b2w2-codespace-finish (R88b) -- the gemini CLI leaves the registry
+
+def test_the_registry_names_no_gemini_cli_and_google_is_named_as_cli_less():
+    """R88b, RED-first: `providers.google.cli` is null (the vendor refuses the CLIENT, so there is
+    nothing to sign in), C1 probes no gemini, and C1 names `google` as a CLI-less provider instead
+    of dropping it. The registry KEY stays: the council alias and the models still hang on it."""
+    live = cp.load_registry(_REAL_REGISTRY)
+    google = live["providers"]["google"]
+    assert google.get("cli") is None, "providers.google.cli is the selector R88b nulls"
+    assert google.get("version_command") is None
+    assert "google" in cp.providers_without_cli(live)
+    assert "gemini" not in cp.model_clis(live) and "gemini" not in cp.lane_tools(live)
+
+
+def test_no_gemini_row_survives_in_the_parity_tables():
+    """The auth probes, needs and sign-in table are keyed by registry CLI; a gemini row left behind
+    would be an expectation for a CLI the registry no longer names."""
+    for table in (cp.AUTH_PROBES, cp.AUTH_NEEDS, cp.SIGN_IN):
+        assert "gemini" not in table, table.keys()
+    assert "gemini" not in cp._PROBE_DECLARED
 
 
 def test_a_provider_added_to_the_registry_is_probed_and_fails_by_name_with_no_code_edit(tmp_path):
@@ -2775,10 +2798,6 @@ def test_credential_expiry_is_read_from_the_cache_file_and_names_the_renew_step(
         "expiresAt": ms(now - timedelta(hours=1)),
         "refreshTokenExpiresAt": ms(now + timedelta(days=3))}}), encoding="utf-8")
     assert cp.credential_expiry("claude", home, now=now)["state"] == "ok"
-    (home / ".gemini").mkdir()
-    (home / ".gemini" / "oauth_creds.json").write_text(json.dumps(
-        {"expiry_date": ms(now - timedelta(days=1)), "refresh_token": "R"}), encoding="utf-8")
-    assert cp.credential_expiry("gemini", home, now=now)["state"] == "ok", "a refresh token renews it"
     (home / ".codex").mkdir()
     (home / ".codex" / "auth.json").write_text(json.dumps(
         {"auth_mode": "chatgpt", "last_refresh": (now - timedelta(days=9)).isoformat()}), encoding="utf-8")

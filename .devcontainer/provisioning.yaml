@@ -163,13 +163,6 @@ features:
       pin can use, and `GROK_DEPLOYMENT_KEY`, which is a credential and is never passed here.
       Added by b2-codespace-1to1 on the operator's order (2026-10-04): "1:1, all models in sync
       -- Grok, Codex, Gemini".
-  leg_f5_gemini:
-    verdict: no-feature
-    reason: >-
-      No published devcontainer feature installs the Gemini CLI; its README names
-      `npm install -g @google/gemini-cli`, and node is already declared as a feature. Added by
-      b2-codespace-subscription-auth so the registry's `gemini` CLI exists in the box that is
-      to sign in to it.
   leg_f5_copilot:
     verdict: no-feature
     reason: >-
@@ -244,13 +237,6 @@ tools:
       xAI first-party installer with a version argument: curl -fsSL https://x.ai/cli/install.sh | bash -s <version>;
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
     doc: https://github.com/xai-org/grok-build
-  gemini:
-    version: "0.56.0"
-    method: npm install -g @google/gemini-cli@<version>
-    doc: https://github.com/google-gemini/gemini-cli
-    reason: >-
-      Installed so the registry's gemini CLI exists in the box; a sign-in is mirrored from the
-      workstation, never created here (b2-codespace-subscription-auth).
   copilot:
     version: "1.0.92"
     method: npm install -g @github/copilot@<version>
