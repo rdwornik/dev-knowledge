@@ -109,6 +109,11 @@ try:  # pragma: no cover -- the regime ledger: the ONE writer of a lane's fate r
 except ImportError:  # pragma: no cover
     import codespace_regime as regime
 
+try:  # pragma: no cover -- the sign-in table and the expiry reader the launch-time mirror shares with C1
+    from scripts import codespace_parity as cpar
+except ImportError:  # pragma: no cover
+    import codespace_parity as cpar
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
 
@@ -1956,15 +1961,29 @@ def format_gh_line(argv: Sequence[str]) -> str:
     return "gh " + " ".join(parts)
 
 
-def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
-           timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
+def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[..., GhResult]] = None,
+           timeout: float = GH_TIMEOUT_SECONDS, input_bytes: Optional[bytes] = None) -> GhResult:
     """The single seam every `gh` call in the codespace legs goes through -- ported from
     `Invoke-CodespaceGh`. Returns ok/exit_code/stdout rather than raising: a non-zero `gh` exit is
     data this domain reasons about (unauthenticated, no such codespace, quota), never an
     exception. `invoker` is the test seam -- every test below hands in a recording stand-in and
-    asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`."""
+    asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`.
+
+    `input_bytes` is the one way bytes reach a remote command without being an argument: they go on
+    the command's STDIN, so a credential never appears in an argv, a log line or a process listing
+    (b2-codespace-subscription-auth, R13). The seam receives them only when there are some."""
     if invoker is not None:
-        return invoker(argv)
+        return invoker(argv) if input_bytes is None else invoker(argv, input_bytes)
+    if input_bytes is not None:  # pragma: no cover -- real gh
+        try:
+            raw = subprocess.run(["gh", *argv], capture_output=True, input=input_bytes, timeout=timeout)
+        except OSError as exc:
+            return GhResult(ok=False, exit_code=127, stdout=f"gh could not be run: {exc}")
+        except subprocess.TimeoutExpired:
+            return GhResult(ok=False, exit_code=124, stdout=f"gh timed out after {timeout}s")
+        return GhResult(ok=(raw.returncode == 0), exit_code=raw.returncode,
+                        stdout=(raw.stdout or b"").decode("utf-8", "replace"),
+                        stderr=(raw.stderr or b"").decode("utf-8", "replace"))
     # `timeout` is per call: an observer's read is bounded in seconds, a whole lane's run step in
     # hours, and neither is the 900 s default. stdin is closed so a `gh` prompt can only fail,
     # never wait on a pipe nobody writes to.
@@ -1998,13 +2017,19 @@ class ExecResult:
     failure: str = ""
     #: A failed lane's fate (R65): `{"fate": "FAILED", "step": ..., "reason": ...}`. Empty on success.
     fate: dict = field(default_factory=dict)
+    #: The credential mirror's record, one dict per CLI: names, paths, modes and booleans -- never a
+    #: value (R13). Empty when the launch ran without a mirror.
+    mirror: tuple = ()
 
 
 #: The five Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
 #: enters a file or a log). `claude -p` needs the first, `gh` and `git push` the second, the two
 #: review heads the next two, and the transport read/write the last.
 RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY",
-                                   "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN")
+                                   "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN",
+                                   # R87 fallback: a SEPARATE ChatGPT login's auth.json, written to
+                                   # ~/.codex/auth.json only when the mirror put nothing there
+                                   "CODEX_AUTH_JSON")
 
 #: The runner's own bounds, from the classifier's: a head whose run log is quiet for longer than
 #: this is killed and its receipt says why.
@@ -2020,8 +2045,342 @@ CREATION_LOG_WAIT_S = 20
 RUN_TIMEOUT_SECONDS = 3 * 3600
 
 
+# ----- the credential mirror (b2-codespace-subscription-auth, R87) ----------------------------------
+#
+# DECIDED-BY-LANE (channel): a cache file travels as the STDIN of `gh codespace ssh -- bash -l
+# credential-tools.sh install <relpath>`, not through `gh codespace cp`. `cp` needs a local file
+# path the bytes would have to be staged under (a second copy of a credential on this disk) and its
+# failures have been measured three ways on this transport (`codespace_plan`'s docstring); stdin
+# puts the bytes in no argv, no temp file and no listing. The remote script is a constant shipped
+# by `cp` (it holds no secret), takes ONLY a path from the declared allow-list, writes umask 077,
+# `chmod 700` on the directory and `600` on the file, and prints the mode -- never a byte.
+#
+# DECIDED-BY-LANE (what is mirrored): measured on the laptop 2026-10-06, per CLI, in
+# `codespace_parity.SIGN_IN` (route, files, refresh verdict, why). A CLI whose sign-in is an OS keyring
+# entry (agy, copilot) has no file to copy and ends WAITING with its renew step -- never a workaround.
+# An env API key is used in the Codespace only where the laptop itself uses one (grok).
+
+#: Where the shipped helper lives in the box, and how long its calls may run.
+CREDENTIAL_TOOLS_NAME = "credential-tools.sh"
+CREDENTIAL_CALL_TIMEOUT_S = 300
+
+_SEMVER_STRICT = re.compile(r"^\d+\.\d+\.\d+$")
+
+#: What a status call says when the sign-in is dead -- classified from OUTPUT TEXT only (a refresh
+#: that failed, a token already used, a login that is gone). Exit status alone is read too: a
+#: mirrored credential that the CLI cannot use is expired for the lane's purposes.
+_CREDENTIAL_DEAD = re.compile(
+    r"expired|could not be refreshed|refresh token (?:was )?(?:already )?(?:used|reused|invalid|revoked)"
+    r"|refresh_token_reused|invalid_grant|log ?in again|logged out|not logged in|please (?:run )?log ?in"
+    r"|\b401\b|unauthori[sz]ed", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class MirrorConfig:
+    """What the launch-time mirror reads: the laptop's HOME and environment (booleans are taken from
+    it, never values -- the bytes of a cache file are read only to be shipped), the provider registry
+    that names the CLIs, and the clock. `local_versions` is the laptop's `claude --version`; None
+    means "read it now". `verdicts` overrides a CLI's recorded refresh verdict (`SIGN_IN.refresh`)."""
+
+    home: Path
+    env: Mapping[str, str]
+    registry: Mapping
+    now: Optional[datetime] = None
+    local_versions: Optional[Mapping[str, str]] = None
+    verdicts: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class MirrorItem:
+    """One CLI's launch decision. `action`: mirrored | not-mirrored | waiting | fallback | absent |
+    refused | no-cli | undeclared. `files` are paths relative to HOME that WILL be copied."""
+
+    cli: str
+    route: str = ""
+    action: str = ""
+    files: tuple[str, ...] = ()
+    detail: str = ""
+    operator_action: str = ""
+
+
+def default_mirror_config(env: Optional[Mapping[str, str]] = None) -> MirrorConfig:
+    """The launcher's own: this laptop's HOME and environment and the repository's registry."""
+    return MirrorConfig(home=Path.home(), env=dict(os.environ if env is None else env),
+                        registry=cpar.load_registry())
+
+
+def credential_decisions(cfg: MirrorConfig) -> list[MirrorItem]:
+    """Decide, per registry provider and per declared non-model tool, what the launch does with its
+    sign-in -- from the laptop's own files and the recorded refresh verdicts, offline, before any box
+    exists. A `refused` item carries the ONE `OPERATOR-ACTION` line that renews it (R59, R65)."""
+    now = cfg.now or datetime.now(timezone.utc)
+    items: list[MirrorItem] = []
+    for provider in cpar.providers_without_cli(cfg.registry):
+        items.append(MirrorItem(provider, "none", "no-cli",
+                                detail="the registry names no CLI for this provider: nothing to mirror"))
+    for cli in cpar.lane_tools(cfg.registry):
+        spec = cpar.SIGN_IN.get(cli)
+        if spec is None:
+            items.append(MirrorItem(cli, "none", "undeclared",
+                                    detail=f"no sign-in is declared for {cli} in codespace_parity.SIGN_IN"))
+            continue
+        refresh = str(cfg.verdicts.get(cli, spec.refresh))
+        if spec.route in ("secret-token", "env-key"):
+            items.append(MirrorItem(cli, spec.route, "not-mirrored", detail=spec.why))
+        elif spec.route == "waiting":
+            items.append(MirrorItem(cli, "waiting", "waiting", detail=spec.why,
+                                    operator_action=f"OPERATOR-ACTION: {spec.renew}"))
+        elif spec.route == "mirror":
+            present = tuple(rel for rel in spec.files if (cfg.home / rel).is_file())
+            if not present or present[0] != spec.files[0]:
+                items.append(MirrorItem(cli, "mirror", "absent",
+                                        detail=f"the laptop has no {spec.files[0]} to copy",
+                                        operator_action=f"OPERATOR-ACTION: {spec.renew}"))
+            elif refresh in ("rotates", "unknown"):
+                items.append(MirrorItem(
+                    cli, "secret-fallback", "fallback",
+                    detail=f"refresh verdict {refresh!r}: a copy could sign the other side out, so the "
+                           f"cache is not copied. {spec.why}",
+                    operator_action="OPERATOR-ACTION: " + (spec.fallback or f"no fallback is declared for {cli}")))
+            else:
+                state = cpar.credential_expiry(cli, cfg.home, now=now)
+                too_old = (refresh == "guarded" and cli == "codex"
+                           and float(state.get("age_days", 0.0)) >= cpar.CODEX_MIRROR_MAX_AGE_DAYS)
+                if state["state"] == "expired":
+                    items.append(MirrorItem(
+                        cli, "mirror", "refused", files=present,
+                        detail=f"the laptop's {cli} sign-in has expired: {state['detail']}",
+                        operator_action=f"OPERATOR-ACTION: {state['renew']}"))
+                elif state["state"] == "due" or too_old:
+                    items.append(MirrorItem(
+                        cli, "mirror", "refused", files=present,
+                        detail=f"the laptop's {cli} cache is {state.get('age_days', '?')} days old, past "
+                               f"the {cpar.CODEX_MIRROR_MAX_AGE_DAYS:g}-day window: a copy would reach its "
+                               "refresh while the laptop may refresh it too",
+                        operator_action=f"OPERATOR-ACTION: run any `{cli} exec` call on the laptop so it "
+                                        f"refreshes its own cache, or {state['renew']}, then relaunch"))
+                else:
+                    items.append(MirrorItem(cli, "mirror", "mirrored", files=present,
+                                            detail=f"{state['detail']}; refresh verdict {refresh!r}"))
+        else:
+            items.append(MirrorItem(cli, spec.route, "undeclared", detail=f"unknown route {spec.route!r}"))
+    return items
+
+
+def leak_check(credentials: Mapping[str, bytes], artefacts: Iterable[str]) -> list[str]:
+    """The NAMES of the credentials whose bytes reached any artefact (R13): the whole file's sha-256,
+    any of its string values of twelve characters or more, or the file itself. Compared in memory;
+    neither the credential nor the artefact is ever returned, printed or logged."""
+    texts = [a for a in artefacts if a]
+    hits: list[str] = []
+    for name, blob in sorted(credentials.items()):
+        needles = {hashlib.sha256(blob).hexdigest()}
+        text = blob.decode("utf-8", "replace")
+        if len(text) >= 12:
+            needles.add(text)
+        try:
+            tree = json.loads(text)
+        except json.JSONDecodeError:
+            tree = None
+
+        def leaves(node):
+            if isinstance(node, str):
+                yield node
+            elif isinstance(node, Mapping):
+                for v in node.values():
+                    yield from leaves(v)
+            elif isinstance(node, (list, tuple)):
+                for v in node:
+                    yield from leaves(v)
+
+        needles.update(v for v in leaves(tree) if len(v) >= 12)
+        if any(n in t for n in needles for t in texts):
+            hits.append(name)
+    return hits
+
+
+def _credential_tools_script(allowed: Sequence[str]) -> str:
+    """The helper shipped into the box: `install <relpath>` (stdin -> HOME/<relpath>, mode 600, the
+    path from the allow-list only), `status <cli>`, `claude-version`, `claude-install <x.y.z>`. It
+    prints modes, versions and each CLI's own status text -- never a credential."""
+    paths = "|".join(shlex.quote(p) for p in allowed) or "__none__"
+    return "\n".join([
+        "#!/usr/bin/env bash",
+        "# shipped by dispatch.py (b2-codespace-subscription-auth): holds no secret, prints no secret",
+        "set -u",
+        'sub="${1:-}"',
+        'case "$sub" in',
+        "  install)",
+        '    rel="${2:-}"',
+        '    case "$rel" in',
+        f"      {paths}) ;;",
+        '      *) echo "refused: not a declared sign-in cache path" >&2; exit 64 ;;',
+        "    esac",
+        "    umask 077",
+        '    dest="$HOME/$rel"; dir="$(dirname "$dest")"',
+        '    mkdir -p "$dir" && chmod 700 "$dir" || exit 65',
+        '    tmp="$dest.tmp.$$"',
+        '    cat > "$tmp" || { rm -f "$tmp"; exit 66; }',
+        '    chmod 600 "$tmp" && mv -f "$tmp" "$dest" || exit 67',
+        '    echo "mode $(stat -c %a "$dest")"',
+        "    ;;",
+        "  status)",
+        '    case "${2:-}" in',
+        "      codex) codex login status 2>&1 ;;",
+        "      claude) claude auth status 2>&1 ;;",
+        "      gh) gh auth status 2>&1 ;;",
+        '      *) echo "no status command" >&2; exit 64 ;;',
+        "    esac",
+        "    ;;",
+        "  claude-version) claude --version 2>&1 ;;",
+        "  claude-install)",
+        '    ver="${2:-}"',
+        '    [[ "$ver" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || { echo "refused: not x.y.z" >&2; exit 64; }',
+        '    curl -fsSL https://claude.ai/install.sh | bash -s "$ver" 2>&1 | tail -3',
+        '    exit "${PIPESTATUS[0]}"',
+        "    ;;",
+        '  *) echo "unknown subcommand" >&2; exit 64 ;;',
+        "esac",
+        "",
+    ])
+
+
+def _local_claude_version(cfg: MirrorConfig) -> Optional[str]:
+    if cfg.local_versions is not None:
+        return cfg.local_versions.get("claude")
+    res = cpar.default_run(["claude", "--version"], timeout=60)
+    return cpar._semver((res.stdout or "").splitlines()[0]) if res.returncode == 0 and res.stdout else None
+
+
+def _refusal(step: str, failure: str, mirror: Sequence[dict], name: str = "",
+             commands: Sequence[str] = (), fate: str = "WAITING") -> "ExecResult":
+    return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+                      fate={"fate": fate, "step": step, "reason": failure}, mirror=tuple(mirror))
+
+
+def _mirror_record(item: MirrorItem, **extra) -> dict:
+    rec = {"cli": item.cli, "route": item.route, "action": item.action, "present": bool(item.files),
+           "files": list(item.files), "mode": None, "detail": item.detail,
+           "operator_action": item.operator_action}
+    rec.update(extra)
+    return rec
+
+
+def _runner_unset(items: Sequence[MirrorItem]) -> tuple[str, ...]:
+    """The API-key variables the lane must NOT see because the sign-in cache is mirrored: a key the
+    laptop does not use for that CLI (R87). Taken from the same table the mirror reads."""
+    names: list[str] = []
+    for item in items:
+        if item.action == "mirrored":
+            names.extend(k for k in cpar.SIGN_IN[item.cli].env_keys if k not in names)
+    return tuple(names)
+
+
+def _status_is_dead(cli: str, res: GhResult) -> bool:
+    """Is the sign-in the Codespace's own status call reports unusable? A non-zero exit or any of the
+    dead-credential phrases in what the CLI printed; claude's JSON says `loggedIn` outright."""
+    text = f"{res.stdout}\n{res.stderr}"
+    if cli == "claude" and re.search(r'"loggedIn"\s*:\s*false', text):
+        return True
+    return (not res.ok) or bool(_CREDENTIAL_DEAD.search(text))
+
+
+def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: list[dict], name: str,
+                     workdir: str, call: Callable[..., GhResult], artefacts: list[str],
+                     commands: Sequence[str], tmp: Path) -> Optional["ExecResult"]:
+    """The box-side half of the mirror. Returns None when every step held, else the refusal (the box
+    exists and is named for teardown). Order: ship the helper; copy each mirrorable cache over stdin;
+    leak-check what came back; have the Codespace's own status calls confirm each sign-in; make the
+    Codespace's claude the laptop's. Nothing here prints, logs or records a byte of a credential."""
+    tools_remote = f"{workdir}/{CREDENTIAL_TOOLS_NAME}"
+    allowed = sorted({rel for i in items if i.action == "mirrored" for rel in i.files})
+    helper = tmp / CREDENTIAL_TOOLS_NAME
+    helper.write_text(_credential_tools_script(allowed), encoding="utf-8", newline="\n")
+    shipped = call(["codespace", "cp", "-c", name, "-e", str(helper), f"remote:{tools_remote}"])
+    if not shipped.ok:
+        return _refusal("credentials", f"shipping the credential helper in exited {shipped.exit_code}",
+                        records, name, commands, fate="FAILED")
+
+    def tool(*args: str, stdin: Optional[bytes] = None) -> GhResult:
+        return call(["codespace", "ssh", "-c", name, "--", "bash", "-l", tools_remote, *args],
+                    timeout=CREDENTIAL_CALL_TIMEOUT_S, input_bytes=stdin)
+
+    by_cli = {r["cli"]: r for r in records}
+    credentials: dict[str, bytes] = {}
+
+    def leaked(names: Sequence[str]) -> "ExecResult":
+        return _refusal("credentials",
+                        f"credential leak: the bytes of {', '.join(names)} reached a command line or an "
+                        "output (compared by hash and value; nothing was printed) -- REFUSED before the runner",
+                        records, name, commands, fate="FAILED")
+
+    for item in items:
+        if item.action != "mirrored":
+            continue
+        for index, rel in enumerate(item.files):
+            blob = (cfg.home / rel).read_bytes()
+            credentials[item.cli if index == 0 else f"{item.cli}:{rel}"] = blob
+            res = tool("install", rel, stdin=blob)
+            echoed = leak_check({item.cli: blob}, [res.stdout, res.stderr])
+            if echoed:     # judged before anything else: the box answered with the credential
+                return leaked(echoed)
+            mode = (re.search(r"^mode (\d+)\s*$", res.stdout or "", re.MULTILINE) or [None, None])[1]
+            if not res.ok or mode != "600":
+                return _refusal("credentials",
+                                f"copying the {item.cli} sign-in cache ({rel}) into the box exited "
+                                f"{res.exit_code} with mode {mode or 'unread'}; owner-only is the bar",
+                                records, name, commands, fate="FAILED")
+            if index == 0:
+                by_cli[item.cli]["mode"] = mode
+    leaks = leak_check(credentials, [*artefacts, *commands])
+    if leaks:
+        return leaked(leaks)
+
+    # the Codespace's own status call decides whether a sign-in is usable there (R59, R65)
+    dead: list[str] = []
+    for item in items:
+        spec = cpar.SIGN_IN.get(item.cli)
+        if spec is None or item.cli not in ("codex", "claude", "gh"):
+            continue
+        if item.action not in ("mirrored", "not-mirrored"):
+            continue
+        res = tool("status", item.cli)
+        by_cli[item.cli]["remote_status"] = "dead" if _status_is_dead(item.cli, res) else "ok"
+        if by_cli[item.cli]["remote_status"] == "dead":
+            dead.append(f"OPERATOR-ACTION: {spec.renew}")
+    if dead:
+        return _refusal("credentials", "\n".join(dead), records, name, commands)
+
+    # the Codespace's claude is the laptop's, derived at every launch -- never a hand-typed pin
+    local = _local_claude_version(cfg)
+    if not local or not _SEMVER_STRICT.match(local):
+        return _refusal("claude-version", "the laptop's claude version could not be read: the "
+                        "Codespace's cannot be made equal to it", records, name, commands, fate="FAILED")
+
+    def remote_claude() -> Optional[str]:
+        first = (tool("claude-version").stdout or "").strip().splitlines()
+        return cpar._semver(first[0]) if first else None
+
+    remote = remote_claude()
+    if remote != local:
+        tool("claude-install", local)
+        remote = remote_claude()
+    claude = by_cli.get("claude")
+    if claude is None:
+        claude = {"cli": "claude"}
+        records.append(claude)
+    claude.update({"local_version": local, "codespace_version": remote})
+    if remote != local:
+        return _refusal("claude-version",
+                        f"claude version skew: the laptop runs {local} and the Codespace {remote or 'none'} "
+                        "even after installing the laptop's version -- REFUSED before the runner",
+                        records, name, commands, fate="FAILED")
+    return None
+
+
 def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str],
-                             stall_after_s: int = RUNNER_STALL_AFTER_S) -> str:
+                             stall_after_s: int = RUNNER_STALL_AFTER_S,
+                             unset: Sequence[str] = ()) -> str:
     """The bash script shipped in and run as `bash <path>` -- never a string crossing the ssh
     boundary (the same measured failure `codespace_plan`'s own docstring names for the contract
     prompt: a command travels as a FILE, not an argument). `head_argv` runs with `checkout_dir`
@@ -2096,6 +2455,13 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
         '  echo "[runner] secret $n set=$v"',
         f"done > {shlex.quote(run_log)} 2>&1",
+        # the fallback sign-in (R87): a separate login's auth.json from a secret, only where the
+        # mirror put nothing -- written owner-only, its value never echoed
+        'if [ -n "${CODEX_AUTH_JSON:-}" ] && [ ! -f "$HOME/.codex/auth.json" ]; then '
+        'umask 077; mkdir -p "$HOME/.codex"; printf "%s" "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"; '
+        'chmod 600 "$HOME/.codex/auth.json"; fi',
+        # a key the laptop does not use for a mirrored CLI is not in the lane's environment (R87)
+        *([f"unset {' '.join(unset)}"] if unset else []),
         # the heartbeat says the runner PROCESS lives (the run log's age says the lane works)
         f"( while :; do date +%s > {heartbeat}; sleep {cs.HEARTBEAT_S}; done ) &",
         "hb=$!",
@@ -2128,9 +2494,10 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
 def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
                     *, machine: str = "standardLinux32gb", idle_timeout: str = "240m",
                     retention: str = "24h", workdir: str = "/workspaces/dispatch",
-                    invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+                    invoker: Optional[Callable[..., GhResult]] = None,
                     sleep: Callable[[float], None] = time.sleep,
-                    run_timeout_s: float = RUN_TIMEOUT_SECONDS) -> ExecResult:
+                    run_timeout_s: float = RUN_TIMEOUT_SECONDS,
+                    mirror: Optional[MirrorConfig] = None) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
     of `Start-DispatchCodespace` (create, read the NAME back, read the creation log and refuse a
     recovery container, ship the contract and a generated runner script in, run it, pull
@@ -2143,12 +2510,29 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     PS verb did, what `codespace_admission` and `codespace_parity` already assume ("PATH is only
     complete there"), and what the night's workaround proved; an equivalent (sourcing a profile
     by hand) would be a second spelling of the same fact. The runner closes the head's stdin (D8)
-    and records the five secrets as booleans (R13)."""
+    and records the five secrets as booleans (R13).
+
+    THE CREDENTIAL MIRROR (b2-codespace-subscription-auth, R87). With a `mirror` config the launch
+    decides every CLI's sign-in from the laptop's own files BEFORE a box exists (a dead credential
+    refuses here, WAITING, with its one renew line and no `gh` call), copies each mirrorable cache in
+    over stdin once the box is up, has the Codespace's own status call confirm it, makes the
+    Codespace's claude the laptop's version, and proves by hash that no credential reached any
+    artefact -- all before the runner starts. The CLI verb always passes one; `None` (a library
+    caller's seam) skips it and says so in the result's empty `mirror`."""
     if not head_argv:
         # Codex terra P1 (2026-09-27): an empty argv made `_codespace_runner_script` emit a
         # redirection-only shell command -- `> run.log 2>&1` with no left-hand side -- that exits
         # 0 and writes a success receipt having run no agent at all.
         return ExecResult(False, failure="head_argv is empty -- nothing to run in the codespace")
+    items: list[MirrorItem] = []
+    records: list[dict] = []
+    if mirror is not None:
+        items = credential_decisions(mirror)
+        records = [_mirror_record(i) for i in items]
+        refused = [i for i in items if i.action == "refused"]
+        if refused:
+            failure = "\n".join(i.operator_action for i in refused)
+            return _refusal("credentials", failure, records)
     # RESOLVE TO ABSOLUTE, matching `plan` cmd's own `path.resolve()` before it builds the prompt
     # embedded in `head_argv` (line ~1792). Codex terra P1 (2026-09-27): a caller following the
     # documented `plan` -> `codespace-exec --argv-json` flow with a RELATIVE contract argument
@@ -2157,14 +2541,19 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     contract = Path(contract).resolve()
     commands: list[str] = []
 
-    def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
+    artefacts: list[str] = []   # every string a `gh` call returned, for the leak check
+
+    def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS,
+             input_bytes: Optional[bytes] = None) -> GhResult:
         commands.append(format_gh_line(argv))
-        return run_gh(argv, invoker=invoker, timeout=timeout)
+        res = run_gh(argv, invoker=invoker, timeout=timeout, input_bytes=input_bytes)
+        artefacts.extend((res.stdout, res.stderr))
+        return res
 
     created = call(["codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
                     "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug])
     if not created.ok:
-        return ExecResult(False, commands=tuple(commands),
+        return ExecResult(False, commands=tuple(commands), mirror=tuple(records),
                            failure=f"create exited {created.exit_code}")
     # THE NAME IS RETURNED BY CREATE -- IT IS NEVER RECONSTRUCTED (measured, `[CLI-SRC]`:
     # `gh codespace create` writes `codespace.Name` via `fmt.Fprintln`,
@@ -2175,7 +2564,7 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     # orphaned untracked on a list failure or a match miss.
     name = created.stdout.strip()
     if not name:
-        return ExecResult(False, commands=tuple(commands),
+        return ExecResult(False, commands=tuple(commands), mirror=tuple(records),
                            failure="`gh codespace create` returned no name on stdout")
 
     # THE CREATION LOG IS READ BEFORE ANYTHING SHIPS (item 3, D3). A recovery container is
@@ -2185,7 +2574,7 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     # failed creation, REFUSES the run -- the box exists and is named for teardown.
     refusal = _creation_log_refusal(name, call, sleep)
     if refusal:
-        return ExecResult(False, name=name, commands=tuple(commands), failure=refusal)
+        return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=refusal)
 
     # REWRITE THE CONTRACT PATH. `head_argv` (built by `plan` from `build_plan`) carries the
     # prompt "Read and execute the frozen contract at <LOCAL path>" -- a path on the machine that
@@ -2202,7 +2591,8 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
 
     with tempfile.TemporaryDirectory() as tmp:
         runner_local = Path(tmp) / f"run-{slug}.sh"
-        runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv),
+        runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv,
+                                                         unset=_runner_unset(items)),
                                  encoding="utf-8", newline="\n")
         receipt_local = Path(tmp) / "receipt.json"
         runner_remote = f"{workdir}/run-{slug}.sh"
@@ -2213,19 +2603,25 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
         # every fresh codespace because the directory had never existed.
         mkdir = call(["codespace", "ssh", "-c", name, "--", "mkdir", "-p", workdir])
         if not mkdir.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"creating {workdir} exited {mkdir.exit_code}")
 
         cp1 = call(["codespace", "cp", "-c", name, "-e", str(contract),
                     f"remote:{workdir}/{Path(contract).name}"])
         if not cp1.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"shipping the contract in exited {cp1.exit_code}")
+
+        if mirror is not None:
+            stop = _mirror_into_box(mirror, items, records, name, workdir, call, artefacts, commands,
+                                    Path(tmp))
+            if stop is not None:
+                return stop
 
         cp2 = call(["codespace", "cp", "-c", name, "-e", str(runner_local),
                     f"remote:{runner_remote}"])
         if not cp2.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"shipping the runner in exited {cp2.exit_code}")
 
         # THE RECEIPT IS PULLED REGARDLESS OF `ran.ok` (codex terra P1, 2026-09-27): the runner
@@ -2256,13 +2652,13 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
             if not ran.ok:
                 failure = f"the runner exited {ran.exit_code}; {failure}"
             fate = transport_fate or {"fate": "FAILED", "step": "receipt", "reason": failure}
-            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=failure,
                               fate=fate)
         try:
             receipt = json.loads(receipt_local.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             failure = f"receipt.json did not parse: {exc}"
-            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=failure,
                               fate={"fate": "FAILED", "step": "receipt", "reason": failure})
 
         # a stalled head's receipt carries the runner's own fate (reason + step), written there
@@ -2273,7 +2669,7 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
             fate = transport_fate or receipt_fate or {
                 "fate": "FAILED", "step": "run",
                 "reason": f"{failure}; the receipt reports status={receipt.get('status')!r}"}
-            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
+            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands), mirror=tuple(records),
                                failure=failure, fate=fate)
         # THE RECEIPT'S OWN VERDICT GATES SUCCESS TOO (codex terra P1, 2026-09-27): the ssh call
         # can exit 0 while the agent it ran reports `is_error: true` or a non-success status --
@@ -2282,10 +2678,10 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
             failure = (f"the lane's own receipt reports failure: "
                        f"is_error={receipt.get('is_error')!r} status={receipt.get('status')!r}")
             fate = receipt_fate or {"fate": "FAILED", "step": "run", "reason": failure}
-            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
+            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands), mirror=tuple(records),
                                failure=failure, fate=fate)
 
-    return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands))
+    return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands), mirror=tuple(records))
 
 
 def _creation_log_refusal(name: str, call: Callable[..., GhResult],
@@ -2636,8 +3032,10 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
         raise DispatchRefused("--argv-json must be a JSON list of strings")
     if not head_argv:
         raise DispatchRefused("--argv-json is empty -- nothing to run in the codespace")
+    # the launcher always mirrors the laptop's own sign-ins (R87): this verb is the launcher
     result = codespace_exec(repo, branch, slug, Path(contract), head_argv, machine=machine,
-                            idle_timeout=idle_timeout, retention=retention, workdir=workdir)
+                            idle_timeout=idle_timeout, retention=retention, workdir=workdir,
+                            mirror=default_mirror_config())
     click.echo(json.dumps(asdict(result)))
     if not result.ok:
         sys.exit(EXIT_REFUSED)

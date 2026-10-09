@@ -32,6 +32,14 @@ _TREE = "b" * 40
 #: A registry reduced to the four seams C1's served-id check reads (b2-codespace-1to1, R61): the
 #: role each model CLI is routed by, and the one `antigravity` model row.
 _REGISTRY = {
+    # the providers with a CLI -- C1's probed set is READ from here (R70), in this order
+    "providers": {
+        "anthropic": {"cli": "claude"},
+        "openai": {"cli": "codex"},
+        "xai": {"cli": "grok"},
+        "antigravity": {"cli": "agy"},
+        "deepseek": {"cli": None},
+    },
     "roles": {
         "implement": {"order": [{"provider": "anthropic", "model": "claude-sonnet-5"},
                                 {"provider": "xai", "model": "grok-4.7"}]},
@@ -76,6 +84,7 @@ def _record(side: str = "local") -> dict:
                 "codex": {"present": True, "version": "0.9.1"},
                 "grok": {"present": True, "version": "1.0.44"},
                 "agy": {"present": True, "version": "1.2.3"},
+                "rclone": {"present": True, "version": "1.73.2"},
             },
             "models": _served(),
             "hooks": ["commit-msg", "pre-commit", "pre-push"],
@@ -906,10 +915,17 @@ def _fixture_registry(tmp_path, monkeypatch):
     path = tmp_path / "registry-fixture.yaml"
     path.write_text(yaml.safe_dump(_REGISTRY), encoding="utf-8")
     monkeypatch.setattr(cp, "REGISTRY_PATH", path, raising=False)
+    # the same for the Codespace's declared tools: the live file now also installs the registry's
+    # gemini and copilot, which this small registry does not name
+    prov = tmp_path / "provisioning-fixture.yaml"
+    prov.write_text(yaml.safe_dump({"tools": {n: {} for n in (
+        "claude", "gh", "codex", "grok", "agy", "rclone")}}), encoding="utf-8")
+    monkeypatch.setattr(cp, "PROVISIONING_PATH", prov, raising=False)
 
 
 def test_the_lane_tools_and_model_clis_are_declared_and_every_model_cli_is_a_lane_tool():
-    assert cp.MODEL_CLIS == ("claude", "codex", "grok", "agy")
+    # READ from the fixture registry's `providers:` (the file is dumped key-sorted), never typed
+    assert set(cp.MODEL_CLIS) == {"claude", "codex", "grok", "agy"}
     assert set(cp.MODEL_CLIS) <= set(cp.LANE_TOOLS), "a model CLI is version-compared too"
     assert "grok" in cp.LANE_TOOLS
     for cli in cp.MODEL_CLIS:
@@ -925,8 +941,9 @@ def test_the_expected_ids_come_from_the_registry_roles_and_the_antigravity_model
 def test_the_live_registry_names_an_id_for_every_model_cli():
     """Not a pin: the real file must give every probe something to compare against, or the probe
     would be a check against nothing."""
-    expected = cp.expected_models(cp.load_registry(_REPO_REGISTRY))
-    assert set(expected) == set(cp.MODEL_CLIS)
+    live = cp.load_registry(_REPO_REGISTRY)
+    expected = cp.expected_models(live)
+    assert set(expected) == set(cp.model_clis(live))
     assert all(v.id for v in expected.values()), {k: v.id for k, v in expected.items()}
 
 
@@ -981,7 +998,8 @@ def test_a_record_with_no_models_section_fails_naming_every_model_cli():
 def test_a_served_id_with_no_registry_id_to_compare_it_with_fails(monkeypatch, tmp_path):
     import yaml
 
-    bare = {"roles": {"implement": {"order": [{"provider": "anthropic", "model": "claude-sonnet-5"}]}},
+    bare = {"providers": _REGISTRY["providers"],
+            "roles": {"implement": {"order": [{"provider": "anthropic", "model": "claude-sonnet-5"}]}},
             "models": {}}
     path = tmp_path / "bare.yaml"
     path.write_text(yaml.safe_dump(bare), encoding="utf-8")
@@ -1174,6 +1192,22 @@ def test_agy_reader_takes_the_id_from_the_run_logs_model_label_as_a_slug():
 
 # ------------------------------------------------------------------- collect_models, the call itself
 
+def _unwrap(argv):
+    """The CLI's own argv: a POSIX call runs as `bash -lc '<cmd>'`, and a CLI whose API key must
+    not reach it is run as `env -u KEY ... <cmd>` inside that shell."""
+    import shlex
+
+    argv = list(argv)
+    if argv[:2] == ["bash", "-lc"]:
+        argv = shlex.split(argv[2])
+    if argv[:1] == ["env"]:
+        i = 1
+        while argv[i:i + 1] == ["-u"]:
+            i += 2
+        argv = argv[i:]
+    return argv
+
+
 class _ModelRun:
     """A fake `run` seam answering each CLI's probe call the way the real one did on 2026-10-04."""
 
@@ -1185,18 +1219,14 @@ class _ModelRun:
         self.stderr = {"codex": _CODEX_STDERR, **(stderr or {})}
 
     def __call__(self, argv, cwd=None, **_kw):
-        import shlex
-
-        argv = list(argv)
-        if argv[:2] == ["bash", "-lc"]:
-            argv = shlex.split(argv[2])
+        argv = _unwrap(argv)
         self.calls.append((argv, str(cwd) if cwd else None))
         cli = argv[0]
         if cli == "agy" and "--log-file" in argv:
             Path(argv[argv.index("--log-file") + 1]).write_text(_AGY_LOG, encoding="utf-8")
         out = self.outputs.get(cli, {
             "claude": _CLAUDE_STREAM, "codex": _CODEX_STDOUT, "agy": _AGY_JSON,
-            "grok": _grok_json("sess-run")}[cli])
+            "grok": _grok_json("sess-run")}.get(cli, ""))   # a non-model tool (rclone) prints nothing
         return cp.CmdResult(self.rc.get(cli, 0), out, self.stderr.get(cli, ""))
 
 
@@ -1304,12 +1334,15 @@ def test_a_failed_call_that_says_the_login_is_missing_is_unauthenticated(tmp_pat
 def test_every_login_item_names_the_step_that_was_read_from_the_tool_itself():
     """N5: one exact step each, taken from what the CLI printed -- never a workaround and never an
     API key (the standing auth ruling forbids one)."""
-    assert "grok login --device-auth" in cp.AUTH_NEEDS["grok"]
-    assert "codex login --device-auth" in cp.AUTH_NEEDS["codex"]
+    # W1-13 (R87, the operator's revision): an API key is the step ONLY where the laptop itself signs
+    # in with one (grok); codex is the laptop's own sign-in cache, device code its manual recovery.
+    assert "XAI_API_KEY" in cp.AUTH_NEEDS["grok"] and cp.SIGN_IN["grok"].route == "env-key"
+    assert "~/.codex/auth.json" in cp.AUTH_NEEDS["codex"] and "codex login --device-auth" in cp.AUTH_NEEDS["codex"]
     assert "gh codespace ssh" in cp.AUTH_NEEDS["agy"] and "URL" in cp.AUTH_NEEDS["agy"]
     assert "CLAUDE_CODE_OAUTH_TOKEN" in cp.AUTH_NEEDS["claude"]
-    for need in cp.AUTH_NEEDS.values():
-        assert "API_KEY" not in need and "api-key" not in need.lower(), need
+    for cli, need in cp.AUTH_NEEDS.items():
+        if cp.SIGN_IN[cli].route != "env-key" and cli not in ("rclone",):
+            assert "CODEX_API_KEY" not in need and "OPENAI_API_KEY" not in need, (cli, need)
 
 
 def test_a_failed_call_with_some_other_message_is_no_answer_not_a_login_item(tmp_path):
@@ -2567,3 +2600,229 @@ def test_stamp_lane_refuses_a_branch_it_cannot_resolve_and_a_tip_that_is_not_a_f
         cp.stamp_lane(lambda a, **k: cp.CmdResult(0, "abc123\n", ""), root=tmp_path,
                       record_path=record, branch=_LANE_BRANCH)
     assert "lane" not in json.loads(record.read_text(encoding="utf-8"))
+
+
+# ============================== b2-codespace-subscription-auth (W1-13, R87) -- C1 on the laptop's own auth
+#
+# RED on 84ee7e90 (origin/main when this lane started): C1 hand-types `LANE_TOOLS` and `MODEL_CLIS`
+# (`copilot` and `gemini` are never probed, and a provider added to the registry is invisible), and a
+# CLI that answers through an API key the laptop does not use is not told from one that answers on the
+# laptop's own sign-in.
+
+_REAL_REGISTRY = REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+
+
+def _registry_with(extra_providers: dict) -> dict:
+    reg = copy.deepcopy(_REGISTRY)
+    reg["providers"].update(extra_providers)
+    return reg
+
+
+def test_c1s_model_cli_set_is_the_registrys_cli_set_with_no_hand_typed_list():
+    """Item 1, RED-first: the probed set equals the registry's CLI set plus the declared gh/rclone."""
+    live = cp.load_registry(_REAL_REGISTRY)
+    from_registry = tuple(p["cli"] for p in live["providers"].values() if p.get("cli"))
+    assert cp.model_clis(live) == from_registry
+    assert {"copilot", "gemini"} <= set(cp.model_clis(live)), "the two CLIs the old tuples dropped"
+    declared = cp.declared_tools()
+    assert {"gh", "rclone"} <= set(declared)
+    assert cp.lane_tools(live) == from_registry + tuple(
+        t for t in declared if t not in from_registry)
+    assert set(cp.lane_tools(live)) >= {"gh", "rclone"}
+
+
+def test_a_registry_with_no_provider_cli_fails_c1_instead_of_probing_nothing(monkeypatch, tmp_path):
+    import yaml
+
+    path = tmp_path / "noprov.yaml"
+    path.write_text(yaml.safe_dump({"roles": {}, "models": {}}), encoding="utf-8")
+    monkeypatch.setattr(cp, "REGISTRY_PATH", path)
+    verdict = cp.compare_environment(_record("local"), _record("codespace"))
+    assert verdict.status == "FAIL" and "no provider with a CLI" in verdict.reason
+
+
+def test_a_provider_with_no_cli_is_named_not_dropped_silently():
+    live = cp.load_registry(_REAL_REGISTRY)
+    assert "deepseek" in cp.providers_without_cli(live)
+    assert "deepseek" not in cp.model_clis(live)
+
+
+def test_a_provider_added_to_the_registry_is_probed_and_fails_by_name_with_no_code_edit(tmp_path):
+    reg = _registry_with({"newco": {"cli": "newcli"}})
+    reg["models"]["newco-1"] = {"provider": "newco"}
+    assert "newcli" in cp.model_clis(reg) and "newcli" in cp.lane_tools(reg)
+    assert cp.expected_models(reg)["newcli"].id == "newco-1", "its id is derived from the registry"
+    calls = []
+
+    def run(argv, **kw):
+        calls.append(list(argv))
+        return cp.CmdResult(127, "", "not found")
+
+    tools = {c: {"present": c == "newcli", "version": "1.0"} for c in cp.lane_tools(reg)}
+    out = cp.collect_models(run, tools, {}, cp.expected_models(reg), home=tmp_path,
+                            nonce=_NONCE, clis=cp.model_clis(reg))
+    assert "newcli" in out, "the new provider's CLI is probed (or named), never absent from the record"
+    assert out["newcli"]["state"] in ("no-probe-declared", "probe-error")
+    local, remote = _record("local"), _record("codespace")
+    for rec in (local, remote):
+        rec["environment"]["tools"]["newcli"] = {"present": True, "version": "1.0"}
+    verdict = cp.compare_environment(local, remote, reg)
+    assert verdict.status == "FAIL" and "newcli" in verdict.reason, verdict.reason
+
+
+def test_collect_environment_probes_every_registry_cli_plus_gh_and_rclone(tmp_path):
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    seen = []
+
+    def run(argv, **kw):
+        seen.append(" ".join(argv))
+        return cp.CmdResult(0, "1.2.3\n", "")
+
+    reg_path = tmp_path / "ecosystem" / "provider-registry.yaml"
+    reg_path.parent.mkdir()
+    import yaml
+    reg_path.write_text(yaml.safe_dump(_registry_with({"newco": {"cli": "newcli"}})), encoding="utf-8")
+    env = cp.collect_environment(run, root=tmp_path, hooks=["pre-commit"], home=tmp_path)
+    assert set(env["tools"]) == {"claude", "codex", "grok", "agy", "newcli", "gh", "rclone"}
+
+
+def _mech(cli_class: dict) -> dict:
+    return {c: {"class": k, "via": "fixture", "api_key_env_present": k == "api-key"}
+            for c, k in cli_class.items()}
+
+
+def test_codex_that_answers_only_through_codex_api_key_is_a_fail_not_a_pass():
+    """Item 1, RED-first (R87): the laptop signs codex in with the ChatGPT subscription file; a
+    Codespace whose call is served by CODEX_API_KEY alone is the failure R87 names, even though the
+    served id matches the registry."""
+    classes = {"claude": "subscription", "codex": "subscription", "grok": "api-key", "agy": "keyring"}
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth_mech"] = _mech(classes)
+    remote["environment"]["auth_mech"] = _mech(dict(classes, codex="api-key"))
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL"
+    assert "codex" in verdict.reason and "R87" in verdict.reason and "api-key" in verdict.reason
+
+
+def test_the_same_mechanism_on_both_sides_passes_and_claude_token_is_the_same_subscription():
+    classes = {"claude": "subscription", "codex": "subscription", "grok": "api-key", "agy": "keyring"}
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth_mech"] = _mech(classes)
+    remote["environment"]["auth_mech"] = _mech(dict(classes, agy="keyring"))
+    assert cp.compare_environment(local, remote).status == "PASS"
+
+
+def test_a_codespace_record_with_no_auth_mechanism_fails_when_the_laptop_recorded_one():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth_mech"] = _mech({"codex": "subscription"})
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL" and "auth mechanism" in verdict.reason
+
+
+def test_measure_mechanism_reads_files_and_env_names_never_values(tmp_path):
+    codex_home = tmp_path / ".codex"
+    codex_home.mkdir()
+    (codex_home / "auth.json").write_text(json.dumps({"auth_mode": "chatgpt", "tokens": {"refresh_token": "SENTINEL-SECRET-1"}}),
+                                          encoding="utf-8")
+    env = {"CODEX_API_KEY": "SENTINEL-SECRET-2"}
+    with_file = cp.measure_mechanism("codex", tmp_path, env)
+    assert with_file["class"] == "subscription" and with_file["via"] == "file .codex/auth.json"
+    assert with_file["api_key_env_present"] is True, "the key's PRESENCE is a boolean; it is not the mechanism"
+    without = cp.measure_mechanism("codex", tmp_path / "empty", env)
+    assert without["class"] == "api-key" and without["via"] == "env CODEX_API_KEY"
+    assert cp.measure_mechanism("codex", tmp_path / "empty", {})["class"] == "none"
+    blob = json.dumps([with_file, without])
+    assert "SENTINEL-SECRET" not in blob
+
+
+def test_a_codex_probe_runs_with_the_unused_api_keys_stripped_from_its_environment(tmp_path):
+    """The Codespace must prove the SUBSCRIPTION answers: when auth.json is present the call's own
+    environment holds neither CODEX_API_KEY nor OPENAI_API_KEY (a key the laptop does not use)."""
+    (tmp_path / ".codex").mkdir()
+    (tmp_path / ".codex" / "auth.json").write_text("{}", encoding="utf-8")
+    seen = {}
+
+    class Run(_ModelRun):
+        def __call__(self, argv, cwd=None, env=None, **kw):
+            cli = _unwrap(argv)[0]
+            seen[cli] = None if env is None else dict(env)
+            return super().__call__(argv, cwd=cwd, **kw)
+
+    _grok_usage(tmp_path, "sess-run")
+    base_env = {"CODEX_API_KEY": "k1", "OPENAI_API_KEY": "k2", "XAI_API_KEY": "k3", "PATH": "/bin"}
+    out = cp.collect_models(Run(tmp_path), _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE,
+                            clis=cp.model_clis(), env=base_env)
+    assert out["codex"]["state"] == "served"
+    assert seen["codex"] is not None, "the probe was given an explicit environment"
+    assert "CODEX_API_KEY" not in seen["codex"] and "OPENAI_API_KEY" not in seen["codex"]
+    assert seen["grok"] is not None and seen["grok"].get("XAI_API_KEY") == "k3", \
+        "grok's key is the laptop's own sign-in, so it stays"
+
+
+def test_credential_expiry_is_read_from_the_cache_file_and_names_the_renew_step(tmp_path):
+    """C1's expiry check (item 3): an access token past its time with a refresh token also past
+    its time is `expired` and names ONE renew step; one that can still refresh is `ok`."""
+    now = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
+    ms = lambda dt: int(dt.timestamp() * 1000)  # noqa: E731
+    home = tmp_path
+    (home / ".claude").mkdir()
+    (home / ".claude" / ".credentials.json").write_text(json.dumps({"claudeAiOauth": {
+        "accessToken": "A", "refreshToken": "R", "expiresAt": ms(now - timedelta(hours=1)),
+        "refreshTokenExpiresAt": ms(now - timedelta(minutes=1))}}), encoding="utf-8")
+    state = cp.credential_expiry("claude", home, now=now)
+    assert state["state"] == "expired" and state["renew"] and "setup-token" in state["renew"]
+    (home / ".claude" / ".credentials.json").write_text(json.dumps({"claudeAiOauth": {
+        "expiresAt": ms(now - timedelta(hours=1)),
+        "refreshTokenExpiresAt": ms(now + timedelta(days=3))}}), encoding="utf-8")
+    assert cp.credential_expiry("claude", home, now=now)["state"] == "ok"
+    (home / ".gemini").mkdir()
+    (home / ".gemini" / "oauth_creds.json").write_text(json.dumps(
+        {"expiry_date": ms(now - timedelta(days=1)), "refresh_token": "R"}), encoding="utf-8")
+    assert cp.credential_expiry("gemini", home, now=now)["state"] == "ok", "a refresh token renews it"
+    (home / ".codex").mkdir()
+    (home / ".codex" / "auth.json").write_text(json.dumps(
+        {"auth_mode": "chatgpt", "last_refresh": (now - timedelta(days=9)).isoformat()}), encoding="utf-8")
+    assert cp.credential_expiry("codex", home, now=now)["state"] == "due", \
+        "past the 8-day refresh interval the next call refreshes it"
+    assert cp.credential_expiry("grok", home, now=now)["state"] == "not-a-file"
+
+
+def test_c1_fails_on_a_recorded_expired_credential_naming_the_renew_step():
+    local, remote = _record("local"), _record("codespace")
+    remote["environment"]["credential_expiry"] = {
+        "codex": {"state": "expired", "renew": "run `codex login` on the laptop"}}
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL"
+    assert "codex" in verdict.reason and "expired" in verdict.reason and "codex login" in verdict.reason
+
+
+def test_a_cache_file_the_codespace_never_receives_is_not_an_expired_credential():
+    """Measured on the 2026-10-06 live run: the Codespace's claude signs in by the setup-token env
+    variable, so `.claude/.credentials.json` is ABSENT there by design and the reader said
+    `expired` -- a FAIL naming a renew step that cannot help. Only a cache the launch MIRRORS can
+    expire on the Codespace side; the laptop side is read for every cache."""
+    local, remote = _record("local"), _record("codespace")
+    missing = {"state": "expired", "renew": "run `claude setup-token` on the laptop",
+               "detail": ".claude/.credentials.json is missing or unreadable"}
+    remote["environment"]["credential_expiry"] = {"claude": dict(missing)}
+    verdict = cp.compare_environment(local, remote)
+    assert "expired" not in verdict.reason, verdict.reason
+    # the same record on the LAPTOP side is a real dead sign-in and still fails
+    local["environment"]["credential_expiry"] = {"claude": dict(missing)}
+    again = cp.compare_environment(local, _record("codespace"))
+    assert again.status == "FAIL" and "claude" in again.reason and "expired" in again.reason
+    # and a mirrored cache (codex) that is missing on the Codespace is still an expired one
+    remote2 = _record("codespace")
+    remote2["environment"]["credential_expiry"] = {
+        "codex": {"state": "expired", "renew": "run `codex login` on the laptop",
+                  "detail": ".codex/auth.json is missing or unreadable"}}
+    assert "codex" in cp.compare_environment(_record("local"), remote2).reason
+
+
+def test_c1_fails_on_claude_version_skew_between_laptop_and_codespace():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["tools"]["claude"]["version"] = "2.1.290"
+    remote["environment"]["tools"]["claude"]["version"] = "2.1.289"
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL" and "claude version skew" in verdict.reason
+    assert "2.1.290" in verdict.reason and "2.1.289" in verdict.reason

@@ -1244,3 +1244,261 @@ def test_an_unreadable_listing_is_never_read_as_a_confirmed_teardown_even_when_o
     assert blind["unreachable_since"] == _T0.isoformat(timespec="seconds")
     sure = _observe(_ObserveGh(listing=[]), ledger, 60, expected_gone=True)
     assert (sure["state"], sure["fate"], sure["unreachable_since"]) == ("absent", "TORN-DOWN", None)
+
+
+# =====================================================================================================
+# b2-codespace-subscription-auth (W1-13, R87): the launcher MIRRORS each CLI's own sign-in cache
+# =====================================================================================================
+#
+# RED on 84ee7e90 (origin/main when the lane started): `codespace_exec` has no `mirror`, no
+# `MirrorConfig`, no `leak_check` -- it creates the box, ships the contract and runs the lane with
+# whatever the Codespaces secrets hold, and nothing reads the laptop's sign-ins, checks them for
+# expiry, compares the claude versions or proves that no credential reached an artefact.
+#
+# Every credential below is a SENTINEL: the tests assert that the sentinel's bytes never reach an
+# argv, a result, a runner script or a record -- by comparing, never by printing.
+
+_SENTINEL_CODEX = "SENTINEL-CODEX-REFRESH-0123456789abcdef"
+_SENTINEL_GEMINI = "SENTINEL-GEMINI-REFRESH-0123456789abcdef"
+_NOW = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
+
+_MIRROR_REGISTRY = {"providers": {"openai": {"cli": "codex"}, "anthropic": {"cli": "claude"},
+                                  "antigravity": {"cli": "agy"}, "deepseek": {"cli": None}},
+                    "roles": {}, "models": {}}
+
+
+def _codex_auth(age_days: float, token: str = _SENTINEL_CODEX) -> str:
+    return json.dumps({"auth_mode": "chatgpt", "OPENAI_API_KEY": None,
+                       "tokens": {"id_token": "i", "access_token": "a", "refresh_token": token,
+                                  "account_id": "acc"},
+                       "last_refresh": (_NOW - timedelta(days=age_days)).isoformat()})
+
+
+def _home(tmp_path, *, codex_age: float | None = 2.0) -> Path:
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    if codex_age is not None:
+        (home / ".codex" / "auth.json").write_text(_codex_auth(codex_age), encoding="utf-8")
+    return home
+
+
+def _cfg(tmp_path, *, home=None, env=None, verdicts=None, local_versions=None, registry=None):
+    return d.MirrorConfig(home=home or _home(tmp_path), env=dict(env or {}),
+                          registry=registry or _MIRROR_REGISTRY, now=_NOW,
+                          local_versions=dict(local_versions or {"claude": "2.1.290"}),
+                          verdicts=dict(verdicts or {}))
+
+
+class _MirrorGh(_FakeGh):
+    """`_FakeGh` that understands the credential tools script: it records the bytes each `install`
+    receives on stdin, answers the mode, the status calls and the claude version, and keeps the
+    runner script the launcher shipped."""
+
+    def __init__(self, *, remote_claude="2.1.290", reinstall_fixes=True, status=None,
+                 echo_stdin=False, **kw):
+        super().__init__(**kw)
+        self.stdin: list[tuple[list[str], bytes]] = []
+        self.remote_claude = remote_claude
+        self.reinstall_fixes = reinstall_fixes
+        self.status = status or {}
+        self.echo_stdin = echo_stdin
+        self.runner_body = ""
+
+    def __call__(self, argv, input_bytes=None):
+        argv = list(argv)
+        tool = next((a for a in argv if a.endswith("credential-tools.sh")), None)
+        if argv[:2] == ["codespace", "ssh"] and tool is not None:
+            self.calls.append(argv)
+            if input_bytes is not None:
+                self.stdin.append((argv, input_bytes))
+            return self._tools(argv[argv.index(tool) + 1:], input_bytes)
+        if argv[:2] == ["codespace", "cp"] and argv[-1].startswith("remote:") and "/run-" in argv[-1]:
+            self.runner_body = Path(argv[-2]).read_text(encoding="utf-8")
+        return super().__call__(argv)
+
+    def _tools(self, tail, input_bytes):
+        verb = tail[0]
+        if verb == "install":
+            echoed = input_bytes.decode("utf-8", "replace") if self.echo_stdin and input_bytes else ""
+            return d.GhResult(True, 0, echoed + "mode 600\n")
+        if verb == "status":
+            text, rc = self.status.get(tail[1], ("Logged in", 0))
+            return d.GhResult(rc == 0, rc, text)
+        if verb == "claude-version":
+            return d.GhResult(True, 0, f"{self.remote_claude} (Claude Code)\n")
+        if verb == "claude-install":
+            if self.reinstall_fixes:
+                self.remote_claude = tail[1]
+            return d.GhResult(True, 0, "installed\n")
+        raise AssertionError(f"unexpected credential tool call: {tail}")
+
+
+def _run_mirrored(tmp_path, fake, cfg):
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    fake.receipt_written = {"exit_code": 0, "is_error": False, "status": "success"}
+    return d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
+                            invoker=fake, mirror=cfg)
+
+
+def _ran(fake) -> bool:
+    """Did the lane's runner start (`bash -l <workdir>/run-<slug>.sh`)?"""
+    return any(c[:2] == ["codespace", "ssh"] and "-l" in c and c[-1].endswith("/run-lane-x.sh")
+               for c in fake.calls)
+
+
+def _as_dict(result) -> dict:
+    from dataclasses import asdict
+
+    return asdict(result)
+
+
+def test_the_launcher_copies_the_laptops_codex_cache_through_stdin_owner_only_and_never_in_argv(tmp_path):
+    cfg = _cfg(tmp_path)
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, cfg)
+    assert result.ok, result.failure
+    installs = [(a, b) for a, b in fake.stdin if "install" in a]
+    assert len(installs) == 1, "exactly the primary cache file is mirrored"
+    argv, body = installs[0]
+    assert argv[argv.index("install") + 1] == ".codex/auth.json"
+    assert body == (cfg.home / ".codex" / "auth.json").read_bytes(), "the bytes travel on stdin"
+    assert not any(_SENTINEL_CODEX in " ".join(c) for c in fake.calls), "never in an argv"
+    assert _ran(fake), "the runner started after the mirror"
+    codex = next(i for i in result.mirror if i["cli"] == "codex")
+    assert codex["action"] == "mirrored" and codex["mode"] == "600" and codex["present"] is True
+    assert _SENTINEL_CODEX not in json.dumps(_as_dict(result))
+
+
+def test_a_key_the_laptop_does_not_use_is_unset_for_the_lane_when_codex_is_mirrored(tmp_path):
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, env={"CODEX_API_KEY": "k"}))
+    assert result.ok, result.failure
+    assert "unset CODEX_API_KEY" in fake.runner_body and "OPENAI_API_KEY" in fake.runner_body
+
+
+def test_an_expired_credential_refuses_before_any_box_exists_with_one_operator_action(tmp_path):
+    """Item 3, RED-first: on 84ee7e90 this launches (creates a box, runs the lane); on the tip it
+    refuses with the WAITING fate and ONE exact renew line, and `gh` is never called."""
+    home = _home(tmp_path, codex_age=None)
+    (home / ".codex" / "auth.json").write_text(json.dumps({"auth_mode": "apikey"}), encoding="utf-8")
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, home=home))
+    assert not result.ok and fake.calls == [], "no box was created for a credential known dead"
+    assert result.fate["fate"] == "WAITING" and result.fate["step"] == "credentials"
+    lines = [x for x in result.failure.split("\n") if x.startswith("OPERATOR-ACTION:")]
+    assert len(lines) == 1 and "codex login" in lines[0]
+
+
+def test_a_codex_cache_past_the_refresh_window_refuses_rather_than_let_two_machines_refresh_it(tmp_path):
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, home=_home(tmp_path, codex_age=7.5)))
+    assert not result.ok and fake.calls == []
+    assert result.fate["fate"] == "WAITING"
+    assert "OPERATOR-ACTION:" in result.failure and "refresh" in result.failure
+
+
+def test_a_credential_the_codespace_reports_expired_after_the_mirror_refuses_before_the_runner(tmp_path):
+    fake = _MirrorGh(status={"codex": ("Your access token could not be refreshed: refresh token was "
+                                       "already used", 1)})
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and not _ran(fake)
+    assert result.fate["fate"] == "WAITING"
+    assert result.failure.count("OPERATOR-ACTION:") == 1 and "codex login" in result.failure
+
+
+def test_the_leak_check_fails_a_runner_that_echoes_a_credential_and_names_only_the_credential(tmp_path):
+    """Item 2, RED-first: the fixture echoes the sentinel on stdout; the check compares hashes and
+    strings in memory and reports a NAME -- the sentinel appears nowhere in the result."""
+    fake = _MirrorGh(echo_stdin=True)
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and "leak" in result.failure.lower()
+    assert "codex" in result.failure
+    blob = json.dumps(_as_dict(result)) + "\n".join(" ".join(c) for c in fake.calls)
+    assert _SENTINEL_CODEX not in blob and "refresh_token" not in blob
+    assert not _ran(fake), "a leaking mirror never reaches the runner"
+
+
+def test_leak_check_unit_matches_values_and_the_whole_file_hash_without_returning_either():
+    import hashlib
+
+    cred = _codex_auth(1.0).encode()
+    assert d.leak_check({"codex": cred}, ["nothing here", "still nothing"]) == []
+    assert d.leak_check({"codex": cred}, [f"x {_SENTINEL_CODEX} y"]) == ["codex"]
+    assert d.leak_check({"codex": cred}, ["sha " + hashlib.sha256(cred).hexdigest()]) == ["codex"]
+    other = json.dumps({"a": _SENTINEL_GEMINI}).encode()
+    assert d.leak_check({"codex": cred, "gemini": other}, [_SENTINEL_GEMINI]) == ["gemini"]
+
+
+def test_a_codespace_claude_older_than_the_laptops_is_re_derived_before_the_runner(tmp_path):
+    """Item 4, RED-first: on 84ee7e90 the box launches at whatever the pin said (2.1.289 against a
+    laptop at 2.1.290); on the tip the launcher installs the laptop's version and re-reads it."""
+    fake = _MirrorGh(remote_claude="2.1.289")
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, local_versions={"claude": "2.1.290"}))
+    assert result.ok, result.failure
+    installs = [c for c in fake.calls if "claude-install" in c]
+    assert installs and installs[0][-1] == "2.1.290", "the version comes from the laptop, not a pin"
+    assert fake.remote_claude == "2.1.290"
+    claude = next(i for i in result.mirror if i["cli"] == "claude")
+    assert claude["local_version"] == "2.1.290" and claude["codespace_version"] == "2.1.290"
+
+
+def test_a_claude_skew_that_the_install_does_not_fix_refuses_before_the_runner(tmp_path):
+    fake = _MirrorGh(remote_claude="2.1.289", reinstall_fixes=False)
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and not _ran(fake)
+    assert "claude version skew" in result.failure and "2.1.289" in result.failure
+    assert "2.1.290" in result.failure
+
+
+def test_equal_claude_versions_install_nothing(tmp_path):
+    fake = _MirrorGh(remote_claude="2.1.290")
+    assert _run_mirrored(tmp_path, fake, _cfg(tmp_path)).ok
+    assert not any("claude-install" in c for c in fake.calls)
+
+
+def test_a_refresh_token_that_rotates_makes_the_launch_choose_the_fallback_not_the_mirror(tmp_path):
+    """Item 5, RED-first: the second refresher's old token is refused (the recorded verdict is
+    `rotates`), so the cache is NOT copied; the item names the fallback and the one step that
+    creates it, and the launch goes on (the lane's head does not need codex)."""
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, verdicts={"codex": "rotates"}))
+    assert result.ok, result.failure
+    assert not any("install" in a for a, _ in fake.stdin), "nothing was copied"
+    codex = next(i for i in result.mirror if i["cli"] == "codex")
+    assert codex["action"] == "fallback" and codex["route"] == "secret-fallback"
+    assert "OPERATOR-ACTION:" in codex["operator_action"]
+
+
+def test_decisions_name_every_registry_cli_and_a_provider_without_one(tmp_path):
+    items = d.credential_decisions(_cfg(tmp_path))
+    by = {i.cli: i for i in items}
+    assert {"codex", "claude", "agy"} <= set(by)
+    assert by["agy"].action == "waiting" and "keyring" in by["agy"].detail
+    assert by["claude"].route == "secret-token" and by["claude"].action == "not-mirrored"
+    assert [i.cli for i in items if i.action == "no-cli"] == ["deepseek"]
+
+
+def test_a_cli_the_laptop_has_no_cache_for_is_recorded_absent_not_mirrored(tmp_path):
+    cfg = _cfg(tmp_path, home=_home(tmp_path, codex_age=None))
+    by = {i.cli: i for i in d.credential_decisions(cfg)}
+    assert by["codex"].action == "absent" and by["codex"].files == ()
+
+
+def test_the_codespace_exec_verb_builds_a_real_mirror_by_default(tmp_path, monkeypatch):
+    """The CLI is the launcher: it hands `codespace_exec` a mirror, so no launch skips it."""
+    from click.testing import CliRunner
+
+    seen = {}
+
+    def fake_exec(*a, **kw):
+        seen.update(kw)
+        return d.ExecResult(True, name="n")
+
+    monkeypatch.setattr(d, "codespace_exec", fake_exec)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
+                                     "--argv-json", '["claude"]'])
+    assert res.exit_code == 0, res.output
+    assert isinstance(seen.get("mirror"), d.MirrorConfig)

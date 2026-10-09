@@ -163,6 +163,19 @@ features:
       pin can use, and `GROK_DEPLOYMENT_KEY`, which is a credential and is never passed here.
       Added by b2-codespace-1to1 on the operator's order (2026-10-04): "1:1, all models in sync
       -- Grok, Codex, Gemini".
+  leg_f5_gemini:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature installs the Gemini CLI; its README names
+      `npm install -g @google/gemini-cli`, and node is already declared as a feature. Added by
+      b2-codespace-subscription-auth so the registry's `gemini` CLI exists in the box that is
+      to sign in to it.
+  leg_f5_copilot:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature installs the GitHub Copilot CLI; docs.github.com
+      "Install Copilot CLI" (read 2026-10-06) names `npm install -g @github/copilot` (Node 22+,
+      which the declared node feature provides). Added by b2-codespace-subscription-auth.
 
 # --- foundation-13: THE LANE'S TOOLSET, pinned in one place --------------------------------------
 #
@@ -226,11 +239,25 @@ tools:
       b2-codespace-green: `L-F5 FAILED -- agy is not the pinned 1.2.16`), became a recovery
       container, and the workstation's own `agy --version` read 1.2.17.
   grok:
-    version: "1.0.44"
+    version: "1.0.46"
     method: >-
       xAI first-party installer with a version argument: curl -fsSL https://x.ai/cli/install.sh | bash -s <version>;
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
     doc: https://github.com/xai-org/grok-build
+  gemini:
+    version: "0.56.0"
+    method: npm install -g @google/gemini-cli@<version>
+    doc: https://github.com/google-gemini/gemini-cli
+    reason: >-
+      Installed so the registry's gemini CLI exists in the box; a sign-in is mirrored from the
+      workstation, never created here (b2-codespace-subscription-auth).
+  copilot:
+    version: "1.0.92"
+    method: npm install -g @github/copilot@<version>
+    doc: https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
+    reason: >-
+      Pinned to the workstation's `copilot --version` read 2026-10-06 (1.0.92). Its sign-in is an
+      OS-keyring entry on the workstation and is NOT mirrored (b2-codespace-subscription-auth).
 
 # --- B1: history sufficiency ---------------------------------------------------------------
 #

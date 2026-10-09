@@ -1088,6 +1088,9 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
 import re  # noqa: E402
 
 TOOLS = ("claude", "gh", "codex", "agy", "grok", "rclone")
+#: the live declaration also carries the two registry CLIs added by b2-codespace-subscription-auth;
+#: the fixtures above keep the original six, so the LIVE-file assertions use the longer tuple
+_LIVE_TOOLS = TOOLS + ("gemini", "copilot")
 _PINNED = ("claude", "gh", "codex", "agy", "grok", "rclone")  # agy's installer takes no version: the leg installs the latest and asserts the pin
 
 
@@ -1125,8 +1128,8 @@ def test_a_banner_without_a_version_parses_to_none() -> None:
 
 def test_the_live_declaration_pins_every_lane_tool() -> None:
     cfg = cp.load_config()
-    assert set(cfg.tools) == set(TOOLS)
-    for name in _PINNED:
+    assert set(cfg.tools) == set(_LIVE_TOOLS)
+    for name in _LIVE_TOOLS:
         assert re.fullmatch(r"\d+\.\d+\.\d+", cfg.tools[name].version or ""), name
     for name, tool in cfg.tools.items():
         assert tool.doc.startswith("https://"), f"{name}: the install method cites its doc"

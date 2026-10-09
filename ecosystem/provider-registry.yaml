@@ -1114,6 +1114,19 @@ models:
   # which is why the row sits under `antigravity` while its predecessor `gemini-3.7-flash`
   # sits under `google`. The label agy printed was "Gemini 3.8 Flash (High)" on every run of
   # the B2-prep digest; `agy models` lists the family as `gemini-3.8-flash-{high,medium,low}`.
+  # ADDED 2026-10-06 BY `b2-codespace-subscription-auth` (W1-13, R82: a pin on SERVED evidence only).
+  # `copilot --model auto --output-format json` on the laptop served `gpt-6-luna` on 2026-10-06
+  # (the `assistant.message` event's `model`, and `session.auto_mode_resolved` listed it as the one
+  # model available to the seat). No `roles:` entry pins it -- copilot's role entries still name the
+  # provider only -- so the row exists so C1's served-id probe has an id to compare with.
+  gpt-6-luna:
+    provider: copilot-enterprise
+    roles: []
+    pinned_at: []
+    last_verified: 2026-10-06
+    evidence:
+      - docs/audits/2026-10-06-technical-codespace-subscription-auth-run.md
+
   gemini-3.8-flash:
     provider: antigravity
     roles: []
