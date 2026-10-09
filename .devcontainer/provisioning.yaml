@@ -169,6 +169,14 @@ features:
       No published devcontainer feature installs the GitHub Copilot CLI; docs.github.com
       "Install Copilot CLI" (read 2026-10-06) names `npm install -g @github/copilot` (Node 22+,
       which the declared node feature provides). Added by b2-codespace-subscription-auth.
+  leg_f6_codex_subscription:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature writes a Codex configuration or a login-shell environment
+      policy. The leg merges `forced_login_method = "chatgpt"` (a value OpenAI documents, read
+      2026-10-09) into `~/.codex/config.toml` and adds a marked block to the first login-startup
+      file that unsets the codex API keys, so a login shell hands codex neither (R87.3,
+      b2w2-codespace-finish).
 
 # --- foundation-13: THE LANE'S TOOLSET, pinned in one place --------------------------------------
 #
@@ -200,7 +208,7 @@ features:
 # name instead of being hidden by a tool that floats.
 tools:
   claude:
-    version: "2.1.290"
+    version: "2.1.296"
     method: >-
       native installer with a version argument: curl -fsSL https://claude.ai/install.sh | bash -s <version>;
       auto-update off via DISABLE_AUTOUPDATER in settings.json env
@@ -220,14 +228,16 @@ tools:
       precompiled binary: downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip
     doc: https://rclone.org/install/
   agy:
-    version: "1.2.17"
+    version: "1.3.2"
     method: curl -fsSL https://antigravity.google/cli/install.sh | bash
     doc: https://codelabs.developers.google.com/antigravity-cli-hands-on
     reason: >-
       PINNED BUT NOT SELECTABLE (b2-codespace-1to1, R63): the vendor installer takes only --dir and
       installs the manifest's latest release, so the leg cannot choose this version. It ASSERTS it:
-      a release the vendor publishes past the workstation's 1.2.17 is a named skew refusal here
-      and a C1 version-skew FAIL, never a silent one. The manifest read 2026-10-04 named 1.2.16;
+      a release the vendor publishes past the laptop's pin is a named skew in the build log and a C1
+      version-skew FAIL, never a silent one -- and since b2w2-codespace-finish (R88c) it is a RECORDED
+      state (`present, BLOCKED-AUTH`, one OPERATOR-ACTION line), no longer a refusal that turns the
+      container into a recovery container; only an agy a login shell cannot resolve still refuses. The manifest read 2026-10-04 named 1.2.16;
       it named 1.2.17 on 2026-10-05, when a Codespace created at the 1.2.16 pin refused (run 1 of
       b2-codespace-green: `L-F5 FAILED -- agy is not the pinned 1.2.16`), became a recovery
       container, and the workstation's own `agy --version` read 1.2.17.
@@ -238,7 +248,7 @@ tools:
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
     doc: https://github.com/xai-org/grok-build
   copilot:
-    version: "1.0.92"
+    version: "1.0.94"
     method: npm install -g @github/copilot@<version>
     doc: https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
     reason: >-
@@ -403,3 +413,18 @@ prebuild:
   # CONTEXT of a ref and a region, so both are sent; asking without them asks a different
   # question. The default branch is the one a prebuild is built from.
   ref: main
+
+# ---- BEGIN generated: pins_record (scripts/codespace_parity.py pin write) -- do not hand-edit ----
+pins_record:
+  source: laptop
+  measured_at: "2026-10-09T19:29:42Z"
+  versions:
+    agy: "1.3.2"
+    claude: "2.1.296"
+    codex: "0.155.0"
+    copilot: "1.0.94"
+    gh: "2.93.0"
+    grok: "1.0.46"
+    rclone: "1.73.2"
+  sha256: "7dbfa0c6630968d28b4f3c7c1abfede21c899357bf1c2f27c226ae2806b39d93"
+# ---- END generated: pins_record ----

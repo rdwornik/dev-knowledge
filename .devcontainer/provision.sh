@@ -829,7 +829,7 @@ else:
     print("set")
 PY
 
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only claude --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only claude --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 claude already at the pinned ${want}"
   else
@@ -855,7 +855,7 @@ leg_f5_gh() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get gh)" \
     || die "L-F5 cannot read the gh pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no gh pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gh --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gh --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 gh already at the pinned ${want}"
   else
@@ -883,7 +883,7 @@ leg_f5_codex() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get codex)" \
     || die "L-F5 cannot read the codex pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no codex pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only codex --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only codex --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 codex already at the pinned ${want}"
   else
@@ -909,7 +909,7 @@ leg_f5_rclone() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get rclone)" \
     || die "L-F5 cannot read the rclone pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no rclone pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only rclone --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only rclone --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 rclone already at the pinned ${want}"
   else
@@ -935,12 +935,20 @@ leg_f5_rclone() {
 # It accepts --dir and NO version, so this leg cannot SELECT the pin; it ASSERTS it (b2-codespace-
 # 1to1, R63). A release the vendor publishes past the pin in `provisioning.yaml` `tools:` is then a
 # named refusal here, and a version-skew FAIL in parity condition 1, rather than a tool that floats.
+#
+# b2w2-codespace-finish (M3, R88c): what the leg cannot choose it cannot be made to `die` over. The pin
+# is now generated from the laptop (`codespace_parity.py pin write`, R70), so a skew means the vendor
+# published a release between that reading and this build. A container that has agy, and a login shell
+# that resolves it, is not a recovery container for that: the skew is RECORDED -- the leg says
+# `present, BLOCKED-AUTH` with exactly one OPERATOR-ACTION line -- and parity C1 still names it. An agy
+# that does not resolve in a login shell is still a refusal. Sign-in to agy is an operator act either
+# way (no login subcommand, no secret; its model call shows the login).
 leg_f5_agy() {
-  local want ok=1 installer
+  local want ok=1 installer have
   want="$(uv run --no-sync python scripts/provision_legs.py tools get agy)" \
     || die "L-F5 cannot read the agy pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no agy pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 agy already at the pinned ${want}"
   else
@@ -953,9 +961,15 @@ leg_f5_agy() {
     CHANGED=$((CHANGED + 1))
   fi
   ensure_login_resolvable agy
-  uv run --no-sync python scripts/provision_legs.py tools check --only agy --login \
-    || die "L-F5 FAILED — agy is not the pinned ${want} in a login shell (its installer takes no version, so a release past the pin shows up here). A login shell resolves: $(login_resolves agy)"
-  say "L-F5 OK — agy ${want}"
+  if uv run --no-sync python scripts/provision_legs.py tools check --only agy --login; then
+    say "L-F5 OK — agy ${want}"
+    return 0
+  fi
+  have="$(bash -lc 'command -v agy >/dev/null 2>&1 && agy --version' 2>/dev/null | head -n 1)" || true
+  [ -n "${have}" ] \
+    || die "L-F5 FAILED — agy does not resolve in a login shell. A login shell resolves: $(login_resolves agy)"
+  say "L-F5 agy ${have} (pin ${want}; the vendor installer serves only its latest) -- present, BLOCKED-AUTH"
+  say "OPERATOR-ACTION: sign in to agy in the Codespace once (gh codespace ssh, open the URL it prints)"
 }
 
 # --- F5f: grok -----------------------------------------------------------------------------------
@@ -970,7 +984,7 @@ leg_f5_grok() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get grok)" \
     || die "L-F5 cannot read the grok pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no grok pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only grok --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only grok --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 grok already at the pinned ${want}"
   else
@@ -1000,7 +1014,7 @@ leg_f5_copilot() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get copilot)" \
     || die "L-F5 cannot read the copilot pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no copilot pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only copilot --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only copilot --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 copilot already at the pinned ${want}"
   else

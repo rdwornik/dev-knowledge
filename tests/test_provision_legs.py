@@ -1067,7 +1067,9 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
         _, sep, tail = line.partition("provision_legs.py ")
         if not sep:
             continue
-        argv = [tok for tok in tail.split("||")[0].split() if not tok.startswith("\\")]
+        # a shell redirection (`2>/dev/null`) and a `; then` are the shell's syntax, not arguments
+        argv = [tok for tok in tail.split("||")[0].split(";")[0].split()
+                if not tok.startswith("\\") and not re.match(r"^\d*>", tok)]
         if argv:
             calls.append(argv)
     # Four: the read-only check and the repair in each of `leg2b_history` and `leg5_ecosystem`.
@@ -1139,7 +1141,9 @@ def test_the_live_declaration_pins_every_lane_tool() -> None:
 
 def test_agy_is_pinned_although_its_installer_takes_no_version_and_says_why() -> None:
     agy = cp.load_config().tools["agy"]
-    assert agy.version == "1.2.17"
+    record = yaml.safe_load(cp.CONFIG_PATH.read_text(encoding="utf-8"))["pins_record"]["versions"]
+    assert re.fullmatch(r"\d+\.\d+\.\d+", agy.version or "")
+    assert agy.version == record["agy"], "R70: the pin is the generated reading, not a typed number"
     assert "latest" in agy.reason, "the pinned tool records why its installer cannot select the pin"
 
 

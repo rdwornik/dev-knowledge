@@ -916,7 +916,7 @@ def _fixture_registry(tmp_path, monkeypatch):
     path.write_text(yaml.safe_dump(_REGISTRY), encoding="utf-8")
     monkeypatch.setattr(cp, "REGISTRY_PATH", path, raising=False)
     # the same for the Codespace's declared tools: the live file now also installs the registry's
-    # gemini and copilot, which this small registry does not name
+    # copilot, which this small registry does not name
     prov = tmp_path / "provisioning-fixture.yaml"
     prov.write_text(yaml.safe_dump({"tools": {n: {} for n in (
         "claude", "gh", "codex", "grok", "agy", "rclone")}}), encoding="utf-8")
@@ -2911,3 +2911,150 @@ def test_c1_fails_on_claude_version_skew_between_laptop_and_codespace():
     verdict = cp.compare_environment(local, remote)
     assert verdict.status == "FAIL" and "claude version skew" in verdict.reason
     assert "2.1.290" in verdict.reason and "2.1.289" in verdict.reason
+
+
+# ============================== b2w2-codespace-finish (R70, Done 1) -- the pins are GENERATED from the laptop
+#
+# The Codespace's tool pins were typed by hand ("the values are what the workstation printed when this
+# block was written"), so the claude pin read 2.1.290 on a laptop at 2.1.295 and every container build
+# opened with a SKEW line. `pin write` reads each declared tool's own `--version` on the laptop and
+# rewrites only the version lines that differ, plus a generated `pins_record:` (source, time, one
+# version per tool, a sha-256 over the sorted `name=version` lines) that the heartbeat's D6 checks.
+
+import yaml  # noqa: E402
+
+_PINS_YAML = (
+    "# a comment the rewrite must keep\n"
+    "schema: 1\n"
+    "tools:\n"
+    "  claude:\n"
+    '    version: "2.1.290"\n'
+    "    method: >-\n"
+    "      native installer\n"
+    "    doc: https://example.org/claude\n"
+    "  gh:\n"
+    '    version: "2.93.0"\n'
+    "    method: prebuilt\n"
+    "    reason: >-\n"
+    '      version: "not a pin line" -- this is prose and stays\n'
+    "# --- B1: another section ---\n"
+    "history:\n"
+    "  disposition: repair\n"
+)
+
+
+def _pins_file(tmp_path, text=_PINS_YAML):
+    path = tmp_path / "provisioning.yaml"
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+_LAPTOP = {"claude": "2.1.295", "gh": "2.93.0"}
+_WHEN = datetime(2026, 10, 9, 18, 0, 0, tzinfo=timezone.utc)
+
+
+def test_pin_write_rewrites_only_the_differing_versions_and_records_the_reading(tmp_path):
+    path = _pins_file(tmp_path)
+    changes = cp.pin_write(path, _LAPTOP, now=_WHEN)
+    text = path.read_text(encoding="utf-8")
+    assert changes == ["claude 2.1.290 -> 2.1.295"], changes
+    assert "# a comment the rewrite must keep" in text and "native installer" in text
+    assert '      version: "not a pin line" -- this is prose and stays' in text
+    data = yaml.safe_load(text)
+    assert data["tools"]["claude"]["version"] == "2.1.295" and data["tools"]["gh"]["version"] == "2.93.0"
+    record = data["pins_record"]
+    assert record["source"] == "laptop" and record["measured_at"] == "2026-10-09T18:00:00Z"
+    assert record["versions"] == _LAPTOP
+    assert record["sha256"] == cp.pins_digest(_LAPTOP)
+    assert cp.declared_tools(path) == ("claude", "gh"), "the record is no tool: a tool reader never sees it"
+
+
+def test_a_second_pin_write_changes_nothing_not_even_the_timestamp(tmp_path):
+    path = _pins_file(tmp_path)
+    cp.pin_write(path, _LAPTOP, now=_WHEN)
+    first = path.read_bytes()
+    assert cp.pin_write(path, _LAPTOP, now=_WHEN + timedelta(days=3)) == []
+    assert path.read_bytes() == first
+
+
+def test_the_pins_digest_is_over_the_sorted_name_equals_version_lines():
+    import hashlib
+
+    want = hashlib.sha256(b"claude=2.1.295\ngh=2.93.0\n").hexdigest()
+    assert cp.pins_digest({"gh": "2.93.0", "claude": "2.1.295"}) == want
+
+
+def test_pin_check_exit_codes_clean_drift_and_could_not_look(tmp_path):
+    path = _pins_file(tmp_path)
+    cp.pin_write(path, _LAPTOP, now=_WHEN)
+    assert cp.pin_check(path, _LAPTOP) == (0, [])
+    # the laptop moved on: the record no longer equals what it prints
+    code, lines = cp.pin_check(path, dict(_LAPTOP, claude="2.1.296"))
+    assert code == 1 and any("claude" in ln and "2.1.296" in ln and "pin write" in ln for ln in lines), lines
+    # a hand edit of a typed pin that the record does not carry
+    path.write_text(path.read_text(encoding="utf-8").replace('"2.1.295"', '"2.1.299"', 1),
+                    encoding="utf-8", newline="\n")
+    code, lines = cp.pin_check(path, _LAPTOP)
+    assert code == 1 and any("hand edit" in ln and "claude" in ln for ln in lines), lines
+
+
+def test_pin_check_exits_2_when_the_laptop_cannot_be_read(tmp_path):
+    path = _pins_file(tmp_path)
+    cp.pin_write(path, _LAPTOP, now=_WHEN)
+    code, lines = cp.pin_check(path, {"claude": None, "gh": "2.93.0"})
+    assert code == 2 and any("claude" in ln and "could not be read" in ln for ln in lines), lines
+
+
+def test_a_record_with_a_wrong_digest_or_a_missing_tool_is_drift(tmp_path):
+    path = _pins_file(tmp_path)
+    cp.pin_write(path, _LAPTOP, now=_WHEN)
+    findings = cp.pin_record_findings(path)
+    assert findings == []
+    path.write_text(path.read_text(encoding="utf-8").replace("sha256: ", "sha256: 0", 1),
+                    encoding="utf-8", newline="\n")
+    assert any("digest" in f for f in cp.pin_record_findings(path))
+    path.write_text(_PINS_YAML, encoding="utf-8", newline="\n")
+    assert any("no pins_record" in f for f in cp.pin_record_findings(path))
+
+
+def test_pin_write_refuses_to_write_when_any_tool_could_not_be_read(tmp_path):
+    path = _pins_file(tmp_path)
+    before = path.read_bytes()
+    with pytest.raises(cp.PinError):
+        cp.pin_write(path, {"claude": "2.1.295", "gh": None}, now=_WHEN)
+    assert path.read_bytes() == before, "no partial pin set is ever written"
+
+
+def test_read_laptop_versions_takes_each_tools_own_version_from_stdout(tmp_path):
+    outputs = {"claude": cp.CmdResult(0, "2.1.295 (Claude Code)\n", "'m' is not recognized\n"),
+               "gh": cp.CmdResult(0, "gh version 2.93.0 (2026-05-27)\nhttps://github.com/cli\n", ""),
+               "copilot": cp.CmdResult(0, "GitHub Copilot CLI 1.0.94.\nRun 'copilot update'\n", ""),
+               "agy": cp.CmdResult(127, "", "agy: not found on PATH")}
+    got = cp.read_laptop_versions(("claude", "gh", "copilot", "agy"),
+                                  lambda argv, **kw: outputs[argv[0]])
+    assert got == {"claude": "2.1.295", "gh": "2.93.0", "copilot": "1.0.94", "agy": None}
+
+
+def test_the_pin_commands_show_check_and_write_through_the_cli(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    path = _pins_file(tmp_path)
+    monkeypatch.setattr(cp, "read_laptop_versions", lambda names, run=None: dict(_LAPTOP))
+    runner = CliRunner()
+    res = runner.invoke(cp.cli, ["pin", "check", "--file", str(path)])
+    assert res.exit_code == 1, res.output       # the typed claude pin is behind the laptop
+    res = runner.invoke(cp.cli, ["pin", "write", "--file", str(path)])
+    assert res.exit_code == 0 and "claude 2.1.290 -> 2.1.295" in res.output, res.output
+    res = runner.invoke(cp.cli, ["pin", "check", "--file", str(path)])
+    assert res.exit_code == 0, res.output
+    res = runner.invoke(cp.cli, ["pin", "show", "--file", str(path)])
+    assert res.exit_code == 0 and "claude" in res.output and "2.1.295" in res.output
+
+
+def test_the_live_declaration_carries_a_pins_record_equal_to_its_typed_pins():
+    """Done 1: the live file's record is consistent with the pins it generated (the laptop half
+    of `pin check` runs on the laptop, not here -- an Actions runner cannot read it)."""
+    live = REPO_ROOT / ".devcontainer" / "provisioning.yaml"   # the module's fixture redirects cp.PROVISIONING_PATH
+    assert cp.pin_record_findings(live) == []
+    data = yaml.safe_load(live.read_text(encoding="utf-8"))
+    assert set(data["pins_record"]["versions"]) == set(data["tools"])

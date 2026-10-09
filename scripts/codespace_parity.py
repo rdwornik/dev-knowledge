@@ -2272,6 +2272,164 @@ def verify_cleanup(name: str, branch: str, created: str, deleted: str, machine: 
     return record
 
 
+# =========================================================== generated pins (b2w2-codespace-finish, R70)
+#
+# The Codespace's tool versions are declared in `provisioning.yaml` `tools:`. They used to be typed
+# ("what the workstation printed when this block was written"), so a laptop that moved on left the
+# container opening every build with a SKEW line. R70 (a volatile fact is generated from ONE source)
+# makes the laptop that source: `pin write` reads each declared tool's own `--version` and rewrites
+# ONLY the `version:` lines that differ, then states what it read in a generated `pins_record:` block
+# (source, time, one version per tool, a sha-256 over the sorted `name=version` lines). The record is a
+# top-level key beside `tools:`, never inside it: `declared_tools` and `provision_legs` read every key
+# under `tools:` as a tool name. `pin check` has two halves: the FILE half (typed pins == record,
+# digest right) runs anywhere, including the heartbeat's declaration job (D6); the LAPTOP half
+# (record == what the tools print now) can only run where the tools are.
+
+PINS_RECORD_KEY = "pins_record"
+_PINS_BEGIN = "# ---- BEGIN generated: pins_record (scripts/codespace_parity.py pin write) -- do not hand-edit ----"
+_PINS_END = "# ---- END generated: pins_record ----"
+_TOOL_HEADER = re.compile(r"^  ([A-Za-z0-9_][A-Za-z0-9_-]*):\s*$")
+_VERSION_LINE = re.compile(r"^    version:\s*(?P<v>.*?)\s*$")
+
+
+class PinError(RuntimeError):
+    """A pin set that cannot be written or read; nothing is written when it is raised."""
+
+
+def pins_digest(versions: Mapping[str, str]) -> str:
+    """The sha-256 of the sorted `name=version` lines -- what the record's `sha256` states."""
+    body = "".join(f"{name}={versions[name]}\n" for name in sorted(versions))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def typed_pins(path: Optional[Path] = None) -> dict[str, Optional[str]]:
+    """`{tool: the version typed under tools.<tool>.version}` (None for a null or missing one)."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise PinError(f"{target} is unreadable: {exc}") from exc
+    tools = (data or {}).get("tools") if isinstance(data, dict) else None
+    if not isinstance(tools, Mapping):
+        raise PinError(f"{target} declares no tools: block")
+    out: dict[str, Optional[str]] = {}
+    for name, row in tools.items():
+        version = row.get("version") if isinstance(row, Mapping) else None
+        out[str(name)] = str(version) if version is not None else None
+    return out
+
+
+def read_laptop_versions(names: Sequence[str], run: Optional[Runner] = None) -> dict[str, Optional[str]]:
+    """Each tool's own `--version` on THIS machine, parsed from its first stdout line (a stderr banner
+    is ignored: the laptop's `claude.cmd` shim prints noise there). None when the tool did not answer."""
+    run = run or default_run
+    out: dict[str, Optional[str]] = {}
+    for name in names:
+        res = run([name, "--version"], timeout=60)
+        text = (res.stdout or "").strip()
+        out[name] = _semver(text.splitlines()[0]) if res.returncode == 0 and text else None
+    return out
+
+
+def pin_record_findings(path: Optional[Path] = None) -> list[str]:
+    """The FILE half of `pin check`: the record exists, its digest is right, and every typed pin equals
+    the record. Empty means the declaration is internally consistent. Raises `PinError` when the file
+    cannot be read."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    typed = typed_pins(target)
+    data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    record = data.get(PINS_RECORD_KEY) if isinstance(data, dict) else None
+    if not isinstance(record, Mapping) or not isinstance(record.get("versions"), Mapping):
+        return [f"{target.name} has no pins_record: the pins are typed, not generated "
+                "(run `pin write` on the laptop)"]
+    versions = {str(k): str(v) for k, v in record["versions"].items()}
+    findings: list[str] = []
+    if record.get("sha256") != pins_digest(versions):
+        findings.append("the pins_record digest does not match its own versions (the record was edited)")
+    for name in sorted(set(typed) | set(versions)):
+        if typed.get(name) != versions.get(name):
+            findings.append(f"hand edit: tools.{name}.version is {typed.get(name)!r} but the record "
+                            f"says {versions.get(name)!r} (run `pin write` on the laptop)")
+    return findings
+
+
+def pin_check(path: Optional[Path], laptop: Optional[Mapping[str, Optional[str]]]) -> tuple[int, list[str]]:
+    """`(exit code, finding lines)`: 0 clean, 1 drift, 2 could not look. `laptop=None` checks the file
+    half only. A tool the laptop could not print is `could not be read` (2), never silently clean."""
+    findings = pin_record_findings(path)
+    unreadable: list[str] = []
+    if laptop is not None:
+        record = yaml.safe_load(Path(path or PROVISIONING_PATH).read_text(encoding="utf-8")).get(
+            PINS_RECORD_KEY) or {}
+        recorded = {str(k): str(v) for k, v in (record.get("versions") or {}).items()}
+        for name in sorted(laptop):
+            have = laptop[name]
+            if have is None:
+                unreadable.append(f"{name} could not be read on the laptop (`{name} --version` gave no version)")
+            elif recorded.get(name) != have:
+                findings.append(f"the laptop prints {name} {have} but the record says "
+                                f"{recorded.get(name)!r} (run `pin write`)")
+    if findings:
+        return 1, findings + unreadable
+    return (2, unreadable) if unreadable else (0, [])
+
+
+def pin_write(path: Optional[Path], laptop: Mapping[str, Optional[str]], *,
+              now: Optional[datetime] = None) -> list[str]:
+    """Make the typed pins and the record equal `laptop`. Rewrites only the `version:` line of a tool
+    whose pin differs, keeps every comment and every other line, and returns one `name old -> new`
+    line per change (empty, and the file untouched, when nothing differs). Raises `PinError`, writing
+    nothing, when any declared tool has no reading."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    typed = typed_pins(target)
+    missing = sorted(n for n in typed if laptop.get(n) is None)
+    if missing:
+        raise PinError("no version could be read for " + ", ".join(missing)
+                       + ": no partial pin set is written")
+    versions = {n: str(laptop[n]) for n in typed}
+    lines = target.read_text(encoding="utf-8").split("\n")
+    changes: list[str] = []
+    in_tools, tool = False, None
+    for i, line in enumerate(lines):
+        if line.startswith("tools:"):
+            in_tools, tool = True, None
+            continue
+        if in_tools and line and not line.startswith((" ", "#")):
+            in_tools = False
+        if not in_tools:
+            continue
+        header = _TOOL_HEADER.match(line)
+        if header:
+            tool = header.group(1)
+            continue
+        if tool and _VERSION_LINE.match(line) and tool in versions:
+            old = typed.get(tool)
+            if old != versions[tool]:
+                lines[i] = f'    version: "{versions[tool]}"'
+                changes.append(f"{tool} {old} -> {versions[tool]}")
+            tool = None            # only the tool's FIRST version line is the pin
+    text = "\n".join(lines)
+    record = (yaml.safe_load(text) or {}).get(PINS_RECORD_KEY) or {}
+    current = {str(k): str(v) for k, v in (record.get("versions") or {}).items()}
+    if current != versions or record.get("sha256") != pins_digest(versions):
+        stamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        block = "\n".join([
+            _PINS_BEGIN, f"{PINS_RECORD_KEY}:", "  source: laptop", f'  measured_at: "{stamp}"', "  versions:",
+            *[f'    {n}: "{versions[n]}"' for n in sorted(versions)],
+            f'  sha256: "{pins_digest(versions)}"', _PINS_END])
+        if _PINS_BEGIN in text:
+            head, _, rest = text.partition(_PINS_BEGIN)
+            _, _, tail = rest.partition(_PINS_END)
+            text = head + block + tail
+        else:
+            text = text.rstrip("\n") + "\n\n" + block + "\n"
+        changes = changes or ["pins_record written"]
+    if text == target.read_text(encoding="utf-8"):
+        return []
+    target.write_text(text, encoding="utf-8", newline="\n")
+    return changes
+
+
 # ============================================================================================ CLI
 
 @click.group()
@@ -2403,6 +2561,62 @@ def verify_cleanup_cmd(name: str, branch: str, created: str, deleted: str, machi
         sys.exit(3)
     write_record(out, record)
     click.echo(json.dumps(record, sort_keys=True))
+
+
+@cli.group("pin")
+def pin_group() -> None:
+    """The Codespace's tool pins, generated from this laptop (R70): show | check | write."""
+
+
+_PIN_FILE = click.option("--file", "file", default=None, type=click.Path(path_type=Path),
+                         help="provisioning.yaml; default: .devcontainer/provisioning.yaml.")
+
+
+@pin_group.command("show")
+@_PIN_FILE
+def pin_show_cmd(file: Optional[Path]) -> None:
+    """Typed pin, recorded pin and what this laptop prints, per tool (flat lines)."""
+    try:
+        typed = typed_pins(file)
+        data = yaml.safe_load(Path(file or PROVISIONING_PATH).read_text(encoding="utf-8"))
+    except PinError as exc:
+        click.echo(f"could not look: {exc}")
+        sys.exit(2)
+    recorded = ((data.get(PINS_RECORD_KEY) or {}).get("versions") or {})
+    laptop = read_laptop_versions(tuple(typed))
+    for name in typed:
+        click.echo(f"{name}: typed={typed[name]} record={recorded.get(name)} laptop={laptop.get(name)}")
+
+
+@pin_group.command("check")
+@_PIN_FILE
+@click.option("--record-only", is_flag=True, help="The file half only (no tool is run).")
+def pin_check_cmd(file: Optional[Path], record_only: bool) -> None:
+    """Exit 0 clean · 1 drift (a hand edit, a wrong digest, or a laptop that moved on) · 2 could not look."""
+    try:
+        laptop = None if record_only else read_laptop_versions(tuple(typed_pins(file)))
+        code, lines = pin_check(file, laptop)
+    except PinError as exc:
+        click.echo(f"could not look: {exc}")
+        sys.exit(2)
+    for line in lines:
+        click.echo(line)
+    click.echo("pins: clean" if code == 0 else f"pins: {'DRIFT' if code == 1 else 'COULD NOT LOOK'}")
+    sys.exit(code)
+
+
+@pin_group.command("write")
+@_PIN_FILE
+def pin_write_cmd(file: Optional[Path]) -> None:
+    """Rewrite the differing pins and the generated pins_record from this laptop's own tool versions."""
+    try:
+        changes = pin_write(file, read_laptop_versions(tuple(typed_pins(file))))
+    except PinError as exc:
+        click.echo(f"could not write: {exc}")
+        sys.exit(2)
+    for line in changes:
+        click.echo(line)
+    click.echo("pins: written" if changes else "pins: already equal to the laptop (no change)")
 
 
 if __name__ == "__main__":

@@ -708,6 +708,88 @@ def test_no_gemini_leg_tool_row_or_feature_survives_the_registry_dropping_the_cl
     assert "leg_f5_gemini" not in (cfg.get("features") or {})
 
 
+# --- b2w2-codespace-finish (M3, R88c, Done 1): agy -----------------------------------------------
+#
+# The vendor installer takes no version, so it serves its LATEST. A pin that a vendor release has
+# passed cannot be met by this leg; it used to `die`, which turned a container that has agy (and a
+# perfectly good toolchain) into a recovery container (heartbeat run 37968009244: "agy is 1.3.2,
+# pinned 1.2.17"). The leg still dies when agy does not resolve in a login shell; a version skew is a
+# RECORDED state -- present, BLOCKED-AUTH, one OPERATOR-ACTION line -- and parity C1 still names it.
+
+_AGY_HARNESS = (
+    "set -uo pipefail\n"
+    'say() { printf "[t] %s\\n" "$*"; }\n'
+    'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+    'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+    "CHANGED=0\n"
+    "UV_BIN_DIR=/nonexistent\n"
+    # the pin reader and the version check, answered from the harness's own variables
+    "uv() {\n"
+    '  case "$*" in\n'
+    '    *"tools get agy"*) echo "$PIN" ;;\n'
+    '    *"tools check"*) [ "$INSTALLED" = "$PIN" ] ;;\n'
+    "  esac\n"
+    "}\n"
+    "fetch_installer() { echo /dev/null; }\n"
+    "ensure_login_resolvable() { :; }\n"
+    'login_resolves() { echo "agy is /stub/agy"; }\n'
+)
+
+
+def _run_agy_leg(tmp_path: Path, *, pin: str, installed: str | None) -> subprocess.CompletedProcess:
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f5_agy")
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    stub_dir = tmp_path / "stubbin"
+    stub_dir.mkdir(exist_ok=True)
+    if installed is not None:
+        stub = stub_dir / "agy"
+        stub.write_text(f'#!/usr/bin/env bash\necho "{installed}"\n', encoding="utf-8", newline="\n")
+        stub.chmod(0o755)
+    stub_c = _canon_path(bash_exe, stub_dir)
+    (home / ".profile").write_text(f'export PATH="{stub_c}:$PATH"\n', encoding="utf-8", newline="\n")
+    harness = tmp_path / "agy-harness.sh"
+    harness.write_text(_AGY_HARNESS + f"leg_f5_agy() {{{body}\n}}\nleg_f5_agy\n", encoding="utf-8",
+                       newline="\n")
+    env = {**os.environ, "HOME": _canon_path(bash_exe, home), "PIN": pin,
+           "INSTALLED": installed or "", "PATH": stub_c + ":/usr/bin:/bin"}
+    return subprocess.run([bash_exe, str(harness)], env=env, capture_output=True, text=True,
+                          timeout=_BASH_SPAWN_TIMEOUT_S)
+
+
+def test_an_agy_skew_is_a_recorded_blocked_auth_state_with_one_operator_action(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.2.17", installed="1.3.2")
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert "agy 1.3.2 (pin 1.2.17" in run.stdout and "present, BLOCKED-AUTH" in run.stdout
+    actions = [ln for ln in run.stdout.splitlines() if "OPERATOR-ACTION:" in ln]
+    assert len(actions) == 1 and "sign in to agy in the Codespace once" in actions[0], run.stdout
+
+
+def test_an_agy_at_its_pin_is_the_ordinary_ok_with_no_operator_action(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.3.2", installed="1.3.2")
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert "OK" in run.stdout and "OPERATOR-ACTION" not in run.stdout
+
+
+def test_an_agy_that_does_not_resolve_in_a_login_shell_still_refuses(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.2.17", installed=None)
+    assert run.returncode == 1 and "REFUSED" in run.stderr and "agy" in run.stderr, (run.stdout, run.stderr)
+
+
+@pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone",
+                                 "leg_f5_agy", "leg_f5_grok", "leg_f5_copilot"])
+def test_a_pre_install_probe_leaves_no_skew_or_absent_line_in_the_container_log(leg: str):
+    """Done 1 reads `SKEW`/`ABSENT` lines in the heartbeat log as END states. The probe that decides
+    whether to install is not one: its stderr is discarded, so only the final assertion can print them."""
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
+    tool = _TOOLSET_LEGS[leg][0]
+    probes = [ln for ln in body.splitlines() if "--quiet tools check" in ln]
+    assert probes, leg
+    assert all("2>/dev/null" in ln for ln in probes), (leg, probes)
+    assert tool in probes[0]
+
+
 def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version():
     """Item 2 of the b2-codespace-1to1 contract: claude, codex, grok, agy, gh and rclone are each an
     exact `x.y.z` string in `provisioning.yaml` `tools:`. RED on `e67f27ac`: no `grok` row, and
