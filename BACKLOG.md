@@ -792,7 +792,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
 - [#1444] [P1][M] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) · tasks/1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md
 - [#1445] [P1][S] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date · tasks/1445-a-dated-item-warns-three-days-before-its-date.md
-- [#1446] [P1][M] Rulings R80-R92 and the seat rulings S-1 to S-3 of 2026-10-09 land in STANDING_RULINGS before B2-W2 closes · tasks/1446-rulings-r80-r92-and-seat-rulings-s-1-to-s-3-land-in-standing-rulings.md
+- [#1446] [P1][M] Rulings R80-R92 land in STANDING_RULINGS before B2-W2 closes · tasks/1446-rulings-r80-r92-land-in-standing-rulings.md
+- [#1447] [P2][S] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape · tasks/1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md
 
 ---
 
