@@ -790,6 +790,13 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1440] [P1][M] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates · tasks/1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md
 - [#1441] [P1][S] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) · tasks/1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md
 - [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
+- [#1450] [P1][S] HANDOFF_BOOT teaches the browser's triage-then-sequence order (R80) and names the generated transport INDEX as the first read (R84) · tasks/1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md
+- [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
+- [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
+- [#1453] [P1][M] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) · tasks/1453-the-codespace-reaches-production-on-three-green-runs-r83.md
+- [#1454] [P1][M] The generated transport index is built first in B2 W2 and groups files by the seat that wrote them (R84, R91) · tasks/1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md
+- [#1455] [P1][L] Handback to main takes at most 15 minutes at the median, and the four first-wave levers are built or disposed (R85) · tasks/1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md
+- [#1456] [P1][M] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) · tasks/1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md
 
 ---
 

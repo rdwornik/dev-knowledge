@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2f8e097a278de5ff39caf65c08d3d3c1464d0cce8d0afddd8fb6ee6e83cad35f",
+  "generated_sha256": "0a8b1b5b9af852dd7cbd93d9b7d519c96362ef3c8a6f8d583d0928f4b9a047b3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3002,6 +3002,34 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1450,
+      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
+    },
+    {
+      "task": 1451,
+      "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
+    },
+    {
+      "task": 1452,
+      "file": "1452-every-role-pin-names-the-newest-served-model-r82.md"
+    },
+    {
+      "task": 1453,
+      "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
+    },
+    {
+      "task": 1454,
+      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
+    },
+    {
+      "task": 1455,
+      "file": "1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md"
+    },
+    {
+      "task": 1456,
+      "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
     },
     {
       "prose": ""
