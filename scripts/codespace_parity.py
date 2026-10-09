@@ -860,6 +860,13 @@ def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]
     return forced + tuple(k for k in spec.env_keys if env.get(k) and k not in forced)
 
 
+def _witness(argv: Sequence[str], nonce: str, exit_code: int) -> dict:
+    """The command that was run and its RAW exit code (P-L5-1, P-L5-2). The probe prompt carries the
+    nonce, so it is shown as a placeholder; no output and no credential value is ever part of it."""
+    shown = ["<probe-prompt>" if nonce in a else a for a in argv]
+    return {"command": " ".join(shlex.quote(a) for a in shown), "exit_code": exit_code}
+
+
 def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[ExpectedModel],
                nonce: str, home: Path, timeout: int,
                env: Optional[Mapping[str, str]] = None) -> dict:
@@ -881,10 +888,11 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         # to happen INSIDE it (`env -u` runs the CLI with those names removed)
         argv = ["env", *[x for k in strip for x in ("-u", k)], *argv]
     res = run(_status_probe(argv), cwd=workdir, timeout=timeout, env=base_env)
+    witness = _witness(argv, nonce, res.returncode)
     if res.returncode in (124, 127):
         how = "timed out" if res.returncode == 124 else "could not start"
         return {"state": "probe-error", "served_id": None,
-                "detail": f"the call did not run (exit {res.returncode}: {how})"}
+                "detail": f"the call did not run (exit {res.returncode}: {how})", **witness}
     out = res.stdout or ""
     if cli == "claude":
         served, answered = read_claude(out, nonce)
@@ -902,18 +910,19 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         served, answered = read_agy(out, log_text, nonce)
     if served and answered:
         return {"state": "served", "served_id": served,
-                "detail": "served id read from the tool's own record; the nonce came back"}
+                "detail": "served id read from the tool's own record; the nonce came back", **witness}
     said = out + "\n" + (res.stderr or "")
     if not answered and _NO_CREDITS.search(said):
         return {"state": "no-credits", "served_id": None,
                 "detail": (f"OPERATOR-ACTION: add credits to the account that issued the {cli} key "
-                           "(the call said none remain); not a login item")}
+                           "(the call said none remain); not a login item"), **witness}
     if not answered and _LOGIN_MISSING.search(said):
         return {"state": "unauthenticated", "served_id": None,
-                "detail": "the call said the login is missing"}
+                "detail": "the call said the login is missing", **witness}
     return {"state": "no-answer", "served_id": served,
             "detail": (f"exit {res.returncode}; "
-                       + ("the nonce did not come back" if served else "no served id in the tool's record"))}
+                       + ("the nonce did not come back" if served else "no served id in the tool's record")),
+            **witness}
 
 
 def collect_models(run: Runner, tools: Mapping[str, Mapping], auth: Mapping[str, Mapping],
