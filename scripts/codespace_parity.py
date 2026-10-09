@@ -653,6 +653,12 @@ _LOGIN_MISSING = re.compile(
 _NO_CREDITS = re.compile(r"no credits remaining|insufficient[_ ]quota|exceeded your current quota"
                          r"|add credits to continue", re.IGNORECASE)
 
+#: What a refused call says when the ACCOUNT's subscription window is spent (WITNESSED 2026-10-09, the
+#: Codex CLI: "You've hit your usage limit ... try again at <time>"). Not a missing login and not an API
+#: credit, and it names when it clears -- so it is its own state, checked before both.
+_USAGE_LIMIT = re.compile(r"hit your usage limit|usage limit (?:has been )?(?:reached|exceeded)", re.IGNORECASE)
+_RESET_AT = re.compile(r"(?:try again|resets?) (?:at|on|after) ([^\r\n]+)", re.IGNORECASE)
+
 PROBE_TIMEOUT = 240
 
 
@@ -912,6 +918,13 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         return {"state": "served", "served_id": served,
                 "detail": "served id read from the tool's own record; the nonce came back", **witness}
     said = out + "\n" + (res.stderr or "")
+    if not answered and _USAGE_LIMIT.search(said):
+        when = _RESET_AT.search(said)
+        return {"state": "usage-limit", "served_id": None,
+                "detail": (f"the {cli} plan's usage window is spent"
+                           + (f"; the CLI says it clears {when.group(1).strip().rstrip('.')}" if when else "")
+                           + " -- a subscription limit, not a login and not an API credit; the call is"
+                             " repeated after that time"), **witness}
     if not answered and _NO_CREDITS.search(said):
         return {"state": "no-credits", "served_id": None,
                 "detail": (f"OPERATOR-ACTION: add credits to the account that issued the {cli} key "
@@ -1783,7 +1796,7 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
     named: list[str] = []
     for name in (names if names is not None else lane_tools()):
         theirs = (re_.get("auth") or {}).get(name)
-        if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits"):
+        if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits", "usage-limit"):
             continue    # a call that ran and gave nothing is its own FAIL, never a login item
         if name not in model_named and (
                 not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error")):

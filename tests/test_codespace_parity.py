@@ -3176,3 +3176,48 @@ def test_a_probe_that_could_not_run_still_records_its_command_and_exit_code(tmp_
                             home=tmp_path, nonce=_NONCE)
     assert out["codex"]["state"] == "probe-error" and out["codex"]["exit_code"] == 124
     assert out["codex"]["command"].startswith("codex exec ")
+
+
+# ============================== b2w2-codespace-finish (live run 1, 2026-10-09) -- a spent usage window
+#
+# WITNESSED: the live parity run's codex probe exited 1 on BOTH sides and the record read `no-answer`.
+# Run by hand, the CLI said "You've hit your usage limit ... try again at <time>": the ChatGPT plan's
+# Codex window was spent. That is neither a missing login nor an API credit, and it names a reset time.
+# The old classes could not say so, which reads as "codex is broken in the Codespace" -- the very
+# misdiagnosis the seat ruling on R88 warns about for "no-credits".
+
+_USAGE_LIMIT_SAID = ("ERROR: You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), "
+                     "visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again "
+                     "at Oct 10th, 2026 12:38 AM.")
+
+
+def test_a_spent_usage_window_is_its_own_state_and_names_when_it_resets(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    run = _ModelRun(tmp_path, outputs={"codex": ""}, rc={"codex": 1}, stderr={"codex": _USAGE_LIMIT_SAID})
+    out = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)
+    codex = out["codex"]
+    assert codex["state"] == "usage-limit" and codex["served_id"] is None
+    assert "Oct 10th, 2026 12:38 AM" in codex["detail"], codex["detail"]
+    assert codex["exit_code"] == 1, "the raw exit code of the call that said so"
+
+
+def test_a_spent_usage_window_is_neither_a_missing_login_nor_a_missing_credit(tmp_path):
+    _grok_usage(tmp_path, "sess-run")
+    run = _ModelRun(tmp_path, outputs={"codex": ""}, rc={"codex": 1}, stderr={"codex": _USAGE_LIMIT_SAID})
+    codex = cp.collect_models(run, _tools(), {}, _expected(), home=tmp_path, nonce=_NONCE)["codex"]
+    assert codex["state"] not in ("unauthenticated", "no-credits", "no-answer")
+    assert "add credits" not in codex["detail"], "no credit is missing"
+
+
+def test_a_usage_limit_is_not_named_as_a_login_item_and_stays_a_failed_condition():
+    local, remote = _record("local"), _record("codespace")
+    for rec in (local, remote):
+        rec["environment"]["models"]["codex"] = {
+            "state": "usage-limit", "served_id": None, "exit_code": 1,
+            "command": "codex exec -m gpt-6-astra <probe-prompt>",
+            "detail": "usage window spent; the CLI says it resets Oct 10th, 2026 12:38 AM"}
+    remote["environment"]["auth"] = {"codex": {"state": "unauthenticated"}}
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL", "a call that ran and gave nothing is a FAIL, never relabelled"
+    assert "codex returned no served model id on the codespace (usage-limit" in verdict.reason
+    assert not any(e.startswith("AUTH-ITEM codex") for e in verdict.evidence)
