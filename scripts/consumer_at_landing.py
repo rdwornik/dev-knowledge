@@ -120,7 +120,13 @@ MERGE_RECEIPTS_RELPATH = "logs/MERGE-RECEIPTS.jsonl"
 #: `undeclared()` with no route to clear it (R42.2/R42.4) are the reason: `docs/audits/` is
 #: immutable, so the ONLY way to clear a FAIL born from a gap in this predicate is to fix the
 #: predicate, re-measure, and re-stamp -- never to edit the audit or add an exclusion entry.
-DETECTOR_ID = "consumer-at-landing/v3"
+#:
+#: v3 -> v4 ([#1341], 2026-10-10, S-54): the same route also reads the Copilot-route review
+#: record `<date>-verification-<lane-slug>-review.md`. A lane whose close-out review ran on the
+#: Copilot CLI (Codex limit-refused) lands exactly that name, so on merge it was UNDECLARED
+#: and reddened three tests of this module. Fixed here, per the rule above: the predicate,
+#: re-measured and re-stamped -- no exclusion entry, no audit edit.
+DETECTOR_ID = "consumer-at-landing/v4"
 
 #: New landings only. The row: *"the 290 historical orphans are exempt by date cutoff."*
 ARM_DATE = _dt.date(2026, 8, 27)
@@ -174,6 +180,15 @@ _DATED_NAME_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-")
 #: lane slug for the merge-receipt route below -- never to invent a lane for a name that does
 #: not carry this shape.
 _LANE_AUDIT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-codex-(?P<rest>.+)\.md$")
+
+#: The Copilot-route review record's grammar (`[#1341]`, S-54): `<date>-verification-<lane-slug>-review.md`,
+#: the name a lane's close-out review takes when Codex is limited (`copilot` is not an audit
+#: class -- `validate_hermetization.AUDIT_CLASS_ENUM`). `rest` is the part between
+#: `verification-` and `-review`, and is matched against the receipt slugs exactly as a
+#: `-codex-` record's `rest` is. ONLY this shape: any other `-verification-` name is unaffected.
+_LANE_VERIFICATION_AUDIT_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}-verification-(?P<rest>.+)-review\.md$")
+_LANE_AUDIT_RES: tuple[re.Pattern[str], ...] = (_LANE_AUDIT_RE, _LANE_VERIFICATION_AUDIT_RE)
 
 
 class ConsumerScanError(RuntimeError):
@@ -354,16 +369,18 @@ def merge_receipt_slugs(repo_path: Path) -> set[str]:
 
 def receipt_linked_identifiers(names: list[str], slugs: set[str]) -> dict[str, str]:
     """Audit name -> the lane slug that names it, for every `<date>-codex-<slug>[-suffix].md`
-    audit whose lane has a `kind: merge` integrator receipt.
+    or `<date>-verification-<slug>[-suffix]-review.md` audit whose lane has a `kind: merge`
+    integrator receipt.
 
-    Matched by PREFIX of `rest` (the part after `<date>-codex-`), never bare substring --
+    Matched by PREFIX of `rest` (the part after `<date>-codex-`, or between
+    `<date>-verification-` and `-review`), never bare substring --
     `_AUDIT_NAME_RE`'s both-sided-boundary lesson applied here: `rest` must equal the slug or
     continue with `-`, so a slug that merely appears inside a longer, unrelated `rest` cannot
     bind to it.
     """
     out: dict[str, str] = {}
     for name in names:
-        match = _LANE_AUDIT_RE.match(name)
+        match = next((m for pattern in _LANE_AUDIT_RES if (m := pattern.match(name))), None)
         if not match:
             continue
         rest = match.group("rest")

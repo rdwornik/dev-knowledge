@@ -29,6 +29,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -184,6 +185,83 @@ def test_wal_concurrency_smoke_real_processes(tmp_path: Path) -> None:
     assert len(rows) == 60, f"expected 60 events from 4x15, got {len(rows)}"
     assert len({r["id"] for r in rows}) == 60, "row ids collided"
     assert {r["name"] for r in rows} == {f"organ-{w}" for w in range(4)}
+
+
+def _fail_the_wal_switch(monkeypatch: pytest.MonkeyPatch, failures: int, message: str) -> type:
+    """Make the first `failures` `PRAGMA journal_mode=WAL` statements raise `message`.
+
+    The real race (several processes opening a fresh store at once, [#1023]) does not reproduce
+    on demand, so the refusal is injected at the one statement CI's traceback names. Returns the
+    connection class; its `calls` counts the journal-mode statements it saw.
+    """
+    real_connect = sqlite3.connect
+
+    class _Refusing(sqlite3.Connection):
+        calls = 0
+
+        def execute(self, sql, *args):
+            if sql.startswith("PRAGMA journal_mode"):
+                type(self).calls += 1
+                if type(self).calls <= failures:
+                    raise sqlite3.OperationalError(message)
+            return super().execute(sql, *args)
+
+    monkeypatch.setattr(
+        sqlite3, "connect",
+        lambda path, timeout=5.0, **kw: real_connect(path, timeout=timeout, factory=_Refusing, **kw))
+    return _Refusing
+
+
+def test_a_locked_wal_switch_is_retried_and_the_store_still_opens(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """[#1023]: `database is locked` on `PRAGMA journal_mode=WAL` is the loser's half of a race
+    for a fresh file, and the loser's event used to be lost. It is retried; the file ends in WAL."""
+    db = tmp_path / "T.db"
+    refusing = _fail_the_wal_switch(monkeypatch, failures=2, message="database is locked")
+
+    te.emit_check_run("x", "pass", db_path=db)
+
+    assert refusing.calls == 3
+    monkeypatch.undo()
+    assert sqlite3.connect(str(db)).execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+    assert len(_rows(db)) == 1
+
+
+def test_a_wal_switch_failure_that_is_not_a_lock_propagates_at_once(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The retry is for the lock only: any other `OperationalError` is a real fault."""
+    refusing = _fail_the_wal_switch(monkeypatch, failures=10, message="disk I/O error")
+
+    with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
+        te.emit_check_run("x", "pass", db_path=tmp_path / "T.db")
+
+    assert refusing.calls == 1
+
+
+def test_a_wal_switch_that_stays_locked_gives_up_when_the_window_ends(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bounded: a lock that never clears re-raises once `JOURNAL_SWITCH_WINDOW_S` has passed on
+    the clock, instead of retrying for ever. The clock is a fake that advances by what is slept,
+    and it is hard-capped, so an unbounded loop fails here rather than hanging the suite."""
+    now = [0.0]
+    sleeps: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        now[0] += seconds
+        assert len(sleeps) <= 1000, "the retry is not bounded"
+
+    # The module's own binding is replaced, not the `time` module: pytest and xdist keep using
+    # the real clock while this test runs.
+    monkeypatch.setattr(te, "time", types.SimpleNamespace(
+        monotonic=lambda: now[0], sleep=sleep, time=te.time.time))
+    refusing = _fail_the_wal_switch(monkeypatch, failures=10 ** 9, message="database is locked")
+
+    with pytest.raises(sqlite3.OperationalError, match="database is locked"):
+        te.emit_check_run("x", "pass", db_path=tmp_path / "T.db")
+
+    assert now[0] >= te.JOURNAL_SWITCH_WINDOW_S
+    assert refusing.calls == len(sleeps) + 1
 
 
 def test_store_is_created_on_first_emit_in_a_fresh_tree(tmp_path: Path) -> None:
