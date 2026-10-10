@@ -205,24 +205,35 @@ def test_the_mutmut_copy_carries_the_data_files_the_import_chain_reads():
         assert (_ROOT / entry).exists(), f"also_copy names a path that is not in the repo: {entry}"
 
 
-def test_a_file_entry_of_also_copy_follows_a_directory_entry_that_creates_its_parent():
-    """[#1103] S-56, shown by dispatched run 38072722475: mutmut 3.7.0's `copy_also_copy_files`
-    copies a FILE with a bare `shutil.copy2`, which does not create `mutants/<parent>/`, and
-    `mutants/ecosystem/` does not exist (only the source paths are copied first), so a lone
-    `ecosystem/fleet-shape-spec.yaml` entry crashed the run with FileNotFoundError. A DIRECTORY
-    entry goes through `copytree`, which does create the parents. So a file entry works only
-    after a directory entry at or below its parent."""
+def _file_entries_without_a_parent(entries: list[str]) -> list[str]:
+    """The FILE entries of an `also_copy` list whose `mutants/<parent>/` does not exist yet when
+    mutmut 3.7.0 reaches them: its `copy_also_copy_files` copies a file with a bare `shutil.copy2`
+    (no parent created) and a directory with `copytree` (parents created), in list order, and
+    `mutants/` holds only the source paths and tests before the loop starts."""
     seen: list[Path] = []
-    for entry in _mutmut_table().get("also_copy", []):
+    missing: list[str] = []
+    for entry in entries:
         path = Path(entry)
         if (_ROOT / path).is_dir():
             seen.append(path)
-            continue
-        parent = path.parent
-        if parent != Path("."):
-            assert any(parent == d or parent in d.parents for d in seen), (
-                f"{entry}: mutants/{parent.as_posix()} does not exist when this file is copied; "
-                "list a directory entry at or below it first")
+        elif path.parent != Path(".") and not any(path.parent == d or path.parent in d.parents for d in seen):
+            missing.append(entry)
+    return missing
+
+
+def test_a_file_entry_of_also_copy_follows_a_directory_entry_that_creates_its_parent():
+    """[#1103] S-56, shown by dispatched run 38072722475: a lone `ecosystem/fleet-shape-spec.yaml`
+    entry crashed the run with FileNotFoundError, because `mutants/ecosystem/` did not exist. A
+    file entry works only after a directory entry at or below its parent. The real table must
+    carry that file entry (an absent table would pass an empty loop), and the helper must be able
+    to say no: a lone file, and a file listed before its directory, are both refused."""
+    entries = _mutmut_table().get("also_copy", [])
+    assert "ecosystem/fleet-shape-spec.yaml" in entries
+    assert _file_entries_without_a_parent(entries) == []
+    spec = "ecosystem/fleet-shape-spec.yaml"
+    assert _file_entries_without_a_parent([spec]) == [spec]
+    assert _file_entries_without_a_parent([spec, "ecosystem/schema"]) == [spec]
+    assert _file_entries_without_a_parent(["ecosystem/schema", spec]) == []
 
 
 def _copy_the_way_mutmut_does(dest: Path) -> None:
@@ -287,9 +298,11 @@ def _run_pilot_check(tmp_path: Path, mutmut_out: str | None) -> subprocess.Compl
 @pytest.mark.parametrize("label,out", [
     ("the failed run's own output", _FAILED_TO_COLLECT),
     ("a progress line with 0 executed", "\r⠋ 0/84  " + _KILLED + _REST + "0\n"),
+    ("every mutant checked, none executed (all no-tests)",
+     "\r⠋ 2291/2291  " + _KILLED + " 0 \U0001FAE5 2291  ⏰ 0  \U0001F914 0  \U0001F641 0\n"),
     ("no progress line at all", "done\n"),
     ("no mutmut.out at all", None),
-], ids=["failed-run-output", "zero-executed", "no-progress-line", "no-file"])
+], ids=["failed-run-output", "zero-executed", "only-no-tests", "no-progress-line", "no-file"])
 def test_a_pilot_that_executed_no_mutant_fails_the_job(tmp_path, label, out):
     """[#1103] S-56 Done 4c. A check that passes while checking nothing is a false positive: every
     measured step is `continue-on-error`, so the job read `success` on run 38061081144 with 0
@@ -321,8 +334,13 @@ _SEED_SUMMARY = (
     "⠹ 2291/2291  \U0001f389 863 \U0001fae5 214  ⏰ 4  \U0001f914 0  "
     "\U0001f641 1210  \U0001f507 0  \U0001f9d9 0"
 )
+_SEED_RUN_ID = 38073707389
+_SEED_SHA = "3c923880e33faa7fd86945c8cbafb1edad65b9d5"
 _SEED_REFERENCE = {"killed": 865, "survived": 1210}   # docs/audits/2026-08-18-technical-502-mutmut-attribution.md:220-227
 _TOLERANCE_PCT = 5
+
+
+_EXECUTED = ("🎉", "🙁", "⏰", "🤔")   # killed, survived, timeout, suspicious
 
 
 def _summary_totals(line: str) -> tuple[int, int, dict[str, int]]:
@@ -333,12 +351,21 @@ def _summary_totals(line: str) -> tuple[int, int, dict[str, int]]:
     return int(head.group(1)), int(head.group(2)), {emoji: int(n) for emoji, n in counts}
 
 
+def _executed(totals: dict[str, int]) -> int:
+    """Mutants a test run decided: killed, survived, timeout, suspicious. `checked` (the N of
+    N/M) also counts `no tests` (a mutant no test reaches), so a run of only those has checked
+    every mutant and executed none (Copilot close-out review, HIGH)."""
+    return sum(totals.get(emoji, 0) for emoji in _EXECUTED)
+
+
 def _assert_a_valid_seed(seed: dict, summary: str = _SEED_SUMMARY) -> None:
     """The seed's contract (Done 4a, S-43.2, S-46): it names its run and the sha that run tested,
     carries every total the artifact summary emitted under mutmut's own key, those totals EQUAL
     the summary saved here as a fixture, and they show at least one executed mutant."""
-    assert isinstance(seed.get("run_id"), int) and seed["run_id"] > 0, "run id missing"
-    assert re.fullmatch(r"[0-9a-f]{40}", str(seed.get("sha", ""))), "sha missing"
+    assert seed.get("run_id") == _SEED_RUN_ID, "the seed names a different run"
+    assert seed.get("sha") == _SEED_SHA, "the seed names a different tested commit"
+    assert str(seed["run_id"]) in str(seed.get("run_url", "")), "run url and run id disagree"
+    assert seed.get("artifact") == f"mutation-pilot-{_SEED_SHA}", "artifact name and sha disagree"
     assert seed.get("job_conclusion") == "success", "the seeding job did not conclude success"
     checked, mutants, counts = _summary_totals(summary)
     assert seed.get("artifact_summary") == summary, "the seed does not carry the artifact summary"
@@ -346,7 +373,7 @@ def _assert_a_valid_seed(seed: dict, summary: str = _SEED_SUMMARY) -> None:
     assert isinstance(totals, dict) and set(totals) == set(counts), "a total is missing or extra"
     assert totals == counts, "the seed totals differ from the artifact summary"
     assert (seed.get("checked"), seed.get("mutants")) == (checked, mutants)
-    assert sum(totals.values()) >= 1 and checked >= 1, "the seed shows no executed mutant"
+    assert _executed(totals) >= 1, "the seed shows no executed mutant"
 
 
 def test_the_seed_baseline_is_a_complete_run_with_an_executed_mutant():
@@ -365,7 +392,8 @@ def test_the_seed_baseline_is_a_complete_run_with_an_executed_mutant():
     assert seed["within_tolerance"] is True
 
 
-@pytest.mark.parametrize("damage", ["empty", "partial", "all-zero", "no-run-id"])
+@pytest.mark.parametrize("damage", ["empty", "partial", "all-zero", "only-no-tests", "no-run-id",
+                                    "wrong-run-id", "wrong-sha"])
 def test_an_empty_or_partial_seed_fails(damage):
     """The seed test must be able to fail: an empty seed, one missing a total, one whose totals
     show no executed mutant (the run-38061081144 shape), and one that names no run, all raise."""
@@ -382,6 +410,19 @@ def test_an_empty_or_partial_seed_fails(damage):
         with pytest.raises(AssertionError, match="no executed mutant"):
             _assert_a_valid_seed(seed, summary=zero)
         return
+    elif damage == "only-no-tests":
+        # every mutant checked, none decided by a test: `checked` is 2291, `executed` is 0
+        only = ("⠹ 2291/2291  \U0001f389 0 \U0001fae5 2291  ⏰ 0  \U0001f914 0  "
+                "\U0001f641 0  \U0001f507 0  \U0001f9d9 0")
+        checked, mutants, counts = _summary_totals(only)
+        seed.update(artifact_summary=only, totals=counts, checked=checked, mutants=mutants)
+        with pytest.raises(AssertionError, match="no executed mutant"):
+            _assert_a_valid_seed(seed, summary=only)
+        return
+    elif damage == "wrong-run-id":
+        seed["run_id"] = 1                       # well-formed, wrong
+    elif damage == "wrong-sha":
+        seed["sha"] = "0" * 40                   # well-formed, wrong
     else:
         del seed["run_id"]
     with pytest.raises(AssertionError):
