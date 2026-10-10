@@ -545,7 +545,7 @@ def test_leg_f6_makes_every_login_shell_unset_the_keys_and_forces_the_chatgpt_si
         harness = tmp_path / "harness.sh"
         harness.write_text(
             "set -euo pipefail\n"
-            f'HOME="{home_c}"\nCHANGED=0\n'
+            f'HOME="{home_c}"\nPATH="{_python3_dir(bash_exe, tmp_path)}:$PATH"\nCHANGED=0\n'
             'say() { printf "[t] %s\\n" "$*"; }\n'
             'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
             'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
@@ -581,7 +581,7 @@ def test_leg_f6_rewrites_a_forced_api_login_and_keeps_the_rest_of_the_file(tmp_p
     harness = tmp_path / "harness.sh"
     harness.write_text(
         "set -euo pipefail\n"
-        f'HOME="{home_c}"\nCHANGED=0\n'
+        f'HOME="{home_c}"\nPATH="{_python3_dir(bash_exe, tmp_path)}:$PATH"\nCHANGED=0\n'
         'say() { printf "[t] %s\\n" "$*"; }\n'
         'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
         'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
@@ -592,6 +592,166 @@ def test_leg_f6_rewrites_a_forced_api_login_and_keeps_the_rest_of_the_file(tmp_p
     assert res.returncode == 0, (res.stdout, res.stderr)
     assert cfg.read_text(encoding="utf-8") == (
         'model = "x"\nforced_login_method = "chatgpt"\n[tui]\nnotifications = true\n')
+
+
+# --- b2w3 close-out review (Codex gpt-6-astra, 2026-10-10), HIGH: L-F6 ignored TOML scope --------
+#
+# RED on 2fee6fce: the leg proved `forced_login_method = "chatgpt"` with a whole-file `grep -Fx` and
+# rewrote with a whole-file `sed`, so the same text inside a `[table]` or a multiline string passed
+# as the TOP-LEVEL policy (provisioning reported success with the policy absent) and a sed hit
+# inside a string or table corrupted unrelated settings. The leg now parses the file (tomllib),
+# edits only the top-level key, re-parses, and refuses rather than claim a result it cannot show.
+
+_F6_KEY = "forced_login_method"
+
+
+def _python3_dir(bash_exe: str, tmp_path: Path) -> str:
+    """A directory holding a `python3` that is THIS interpreter (tomllib, 3.11+), spelled for bash.
+
+    The leg runs `python3` as the Codespace image provides it; a workstation's PATH may carry none,
+    an older one, or a Store alias, and a verdict that depends on that is the host's, not the code's.
+    """
+    import sys
+
+    exe = Path(sys.executable)
+    bin_dir = tmp_path / "pybin"
+    bin_dir.mkdir(exist_ok=True)
+    shim = bin_dir / "python3"
+    shim.write_text(f'#!/usr/bin/env bash\nexec "{_canon_path(bash_exe, exe.parent)}/{exe.name}" "$@"\n',
+                    encoding="utf-8", newline="\n")
+    shim.chmod(0o755)
+    return _canon_path(bash_exe, bin_dir)
+
+
+def _run_f6(tmp_path: Path, config: str | None, *, again: bool = False):
+    """Run the leg in a genuine bash over `tmp_path/home`; `again=True` re-runs over what is there."""
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    cfg = home / ".codex" / "config.toml"
+    if not again:
+        (home / ".codex").mkdir(parents=True)
+        if config is not None:
+            cfg.write_bytes(config.encode("utf-8"))
+    home_c = _canon_path(bash_exe, home)
+    py_c = _python3_dir(bash_exe, tmp_path)
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "set -euo pipefail\n"
+        f'HOME="{home_c}"\nPATH="{py_c}:$PATH"\nCHANGED=0\n'
+        'say() { printf "[t] %s\\n" "$*"; }\n'
+        'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+        'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+        f"leg_f6_codex_subscription() {{{body}\n}}\n"
+        "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+    res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                         timeout=_BASH_SPAWN_TIMEOUT_S)
+    return res, cfg
+
+
+def _toml(text: str) -> dict:
+    import tomllib
+
+    return tomllib.loads(text)
+
+
+def test_leg_f6_does_not_mistake_a_nested_table_for_the_top_level_policy(tmp_path: Path):
+    """The same key under a `[table]` is a different setting: the top-level one must still be added."""
+    existing = f'[profiles.work]\n{_F6_KEY} = "chatgpt"\nmodel = "x"\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    new = cfg.read_text(encoding="utf-8")
+    assert _toml(new)[_F6_KEY] == "chatgpt", "the TOP-LEVEL key is now present"
+    assert new.endswith(existing), "the nested table is untouched"
+    assert "(no-op)" not in res.stdout.split("L-F6 OK")[0], "adding the key is a change, not a no-op"
+
+
+def test_leg_f6_does_not_mistake_a_multiline_string_for_the_top_level_policy(tmp_path: Path):
+    existing = f'notes = """\n{_F6_KEY} = "chatgpt"\n"""\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    new = cfg.read_text(encoding="utf-8")
+    parsed = _toml(new)
+    assert parsed[_F6_KEY] == "chatgpt" and parsed["notes"] == f'{_F6_KEY} = "chatgpt"\n'
+    assert new.endswith(existing)
+
+
+def test_leg_f6_rewrites_only_the_top_level_key_not_a_nested_or_quoted_copy(tmp_path: Path):
+    existing = (f'notes = """\n{_F6_KEY} = "api"\n"""\n{_F6_KEY} = "api"  \n'
+                f'[profiles.work]\n{_F6_KEY} = "api"\nmodel = "x"\n')
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    parsed = _toml(cfg.read_text(encoding="utf-8"))
+    assert parsed[_F6_KEY] == "chatgpt"
+    assert parsed["notes"] == f'{_F6_KEY} = "api"\n', "a copy inside a string is data, not the setting"
+    assert parsed["profiles"]["work"][_F6_KEY] == "api", "a nested table's own setting is left alone"
+    assert parsed["profiles"]["work"]["model"] == "x"
+
+
+def test_leg_f6_keeps_crlf_and_is_idempotent(tmp_path: Path):
+    existing = f'{_F6_KEY} = "api"\r\nmodel = "x"\r\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert cfg.read_bytes() == f'{_F6_KEY} = "chatgpt"\r\nmodel = "x"\r\n'.encode()
+    once = cfg.read_bytes()
+    again, _ = _run_f6(tmp_path, None, again=True)
+    assert again.returncode == 0, (again.stdout, again.stderr)
+    assert cfg.read_bytes() == once and "already forces the ChatGPT sign-in" in again.stdout
+
+
+def test_leg_f6_refuses_an_invalid_config_and_leaves_it_untouched(tmp_path: Path):
+    """A file the leg cannot parse is not one it can safely edit: refuse, say why, change nothing."""
+    broken = f'{_F6_KEY} = "api\n[unclosed\n'
+    res, cfg = _run_f6(tmp_path, broken)
+    assert res.returncode != 0
+    assert "REFUSED" in res.stderr and "L-F6" in res.stderr
+    assert cfg.read_text(encoding="utf-8") == broken
+
+
+def test_leg_f6_creates_the_config_when_there_is_none(tmp_path: Path):
+    res, cfg = _run_f6(tmp_path, None)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert _toml(cfg.read_text(encoding="utf-8")) == {_F6_KEY: "chatgpt"}
+
+
+def test_a_parity_version_probe_is_keyless_even_when_a_login_shell_exports_the_keys(tmp_path: Path):
+    """Done 2 on the parity side (Codex Critical, 2026-10-10). The probe is `bash -lc`, so a profile
+    that exports the secrets AFTER the parent's env was scrubbed re-injects them -- the old probe
+    printed codex's version with both keys set. The stub records BOOLEANS only; the sentinels
+    must also never appear in anything the probe printed."""
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT))
+    from scripts import codespace_parity as cp
+
+    bash_exe = _working_bash()
+    home = tmp_path / "home"
+    home.mkdir()
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    (home / ".profile").write_text(
+        f'export PATH="{stub_c}:$PATH"\n'
+        f"export CODEX_API_KEY={_NEVER_A}\nexport OPENAI_API_KEY={_NEVER_B}\n",
+        encoding="utf-8", newline="\n")
+    env = {**os.environ, "HOME": home_c, "PATH": "/usr/bin:/bin", "CODEX_STUB_RECORD": record_c}
+
+    def probe(argv: list[str]) -> "subprocess.CompletedProcess[str]":
+        record.unlink(missing_ok=True)
+        res = subprocess.run([bash_exe, *argv[1:]], env=env, capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert _NEVER_A not in res.stdout + res.stderr and _NEVER_B not in res.stdout + res.stderr
+        return res
+
+    control = probe(["bash", "-lc", "command -v codex >/dev/null 2>&1 && codex --version"])
+    assert control.returncode == 0 and _saw(record)["CODEX_API_KEY"] == "yes", \
+        "control: the login chain re-exports the keys, so an un-guarded probe does reach codex with them"
+
+    argv = cp._tool_probe("codex", posix=True)
+    assert argv[0] == "bash" and argv[1] == "-lc"
+    res = probe(argv)
+    assert res.returncode == 0 and "codex-cli" in res.stdout, (res.stdout, res.stderr)
+    seen = _saw(record)
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
 
 
 # --- foundation-13-codespace-toolset (R63 step 1): the five tool legs ------------------------
