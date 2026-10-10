@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-10 (b) - CC (Opus 5.5, integrator seat B2-W3): the B2-W3 rows branch lands first -- rows [#1480]-[#1483] and intake 106
+
+**Anchors:** `1f7eff4c` `daff3c78` -- the render's rows branch `worktree-b2w3-render`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Bound the B2-W3 integrator seat (13:00Z) on base `0bb0962b`; merged the render's rows branch first (S-34 P-INT-1, merge position 0 of S-39).
+- Carried B2-W2's `b2-w2-close-ledgers` merge receipt into `logs/MERGE-RECEIPTS.jsonl` verbatim (it was written after its own landing).
+
+**Result:** rows `[#1480]`-`[#1483]` and intake 106 on main; `validate_backlog` OK, `gen_task_tree --emit-source`, `gen_intake_index --check` and `gen_intake_tree --check` byte-clean on the merge.
+
+**Changes:** `tasks/1480-*`..`tasks/1483-*` (new), evidence clauses on `tasks/946-*`, `947-*`, `1006-*`, `1024-*`, `1445-*`, `1452-*`, `1453-*`; `docs/intake/2026-10-10-tech-b2w2-session-review-seeds.md`, `docs/intake/README.md`, `docs/intake/manifest.json`; `tasks/manifest.json`, `BACKLOG.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** none.
+
+**Next:** lane merges in the S-39 order, `b2w3-verdict-base` first (by the end of 2026-10-16). Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (a) - CC (Opus 5.5, integrator seat B2-W2): batch B2-W2 closes -- three merges on main, four lanes carried to B2-W3, rows [#1446] and [#1420] closed
 
 **Anchors:** `bd05a0d5` -- `chore/b2-w2-close-ledgers`, merged `--no-ff` through `worktree-integrate-b2-w2`.
