@@ -1020,3 +1020,450 @@ def test_B2R1_an_unreadable_log_of_a_SUCCESS_base_leg_is_UNATTRIBUTED_never_an_e
 
     assert verdict.state == av.STATE_UNATTRIBUTED
     assert verdict.new_tests == ()
+
+
+# =====================================================================================
+# LANE-1480 (b2w3-verdict-base) -- an EXPIRED entry at the BASE must not blind the verdict
+#
+# In the S-15 incident every B2-W2 merge stopped: `land` could not judge a single test because the
+# registry AT THE BASE held expired `[#912]` entries (`_load_registry_at` validated it with
+# `registry_problems`, expiry included), and a lane landed only by a one-time operator ruling
+# (S-15). The base read is now STRUCTURAL only: an absent, malformed, unowned or ill-dated
+# registry is still UNATTRIBUTED, and only an entry past its date stops refusing. Expiry keeps its
+# teeth on the HEAD -- the head read in `ci_verdict.verdict_for` (its tests are in
+# tests/test_ci_verdict.py and in the block at the end of this file).
+#
+# THE HARNESS is a real temporary git repo (a base commit A holding the registry, a lane branch,
+# `git merge --no-ff` giving the merge M) and the PRODUCTION wiring of `land`: the stub CI is
+# installed by patching the module-level defaults of `ci_verdict`, not by injecting `_fn`
+# arguments, so `merge_path.read_verdict` reaches `ci_verdict.verdict_for` exactly as it does in
+# production -- the real default registry loader, `git show` against the fixture. Every date is
+# computed from today (lesson (o)): a typed date turns red on its own.
+# =====================================================================================
+
+import datetime as _dt  # noqa: E402
+
+from click.testing import CliRunner  # noqa: E402
+
+import ci_verdict as _cv  # noqa: E402
+import merge_path as _mp  # noqa: E402
+
+_REGISTRY_RELPATH = "logs/KNOWN-REDS-REGISTRY.json"
+_ABSENT = object()          # the registry file is not there at all
+
+
+def _iso(days: int) -> str:
+    """A date RELATIVE TO TODAY: -1 is expired, 0 is the last valid day, 30 is in date."""
+    return (_dt.date.today() + _dt.timedelta(days=days)).isoformat()
+
+
+def _stamp(minutes: int) -> str:
+    """A run timestamp RELATIVE TO NOW, in the shape the Actions API returns."""
+    now = _dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(minutes=minutes)
+    return now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+#: the fixture registry's `baseline_id` -- an opaque label, deliberately not date-shaped
+_BASELINE_ID = "fixture-registry-baseline"
+
+
+def _registry_text(known_days: int, *, extra=None) -> str:
+    """The registry file as committed: one owned member, `_KNOWN`, expiring `known_days` from today."""
+    members = {_KNOWN: {"attribution": kr.PRE_FREEZE, "task": "[#912]", "owner": "rob",
+                        "expiry": _iso(known_days)}}
+    members.update(extra or {})
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id=_BASELINE_ID, measured_at_sha="s",
+                           measured_via="ci", workers=4, members=members)
+    return json.dumps(registry.to_json(), indent=2, ensure_ascii=False) + "\n"
+
+
+def _git(repo, *args) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=lane", "-c", "user.email=lane@example.invalid",
+         "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", *args],
+        capture_output=True, text=True, check=False)
+    assert proc.returncode == 0, (args, proc.stdout, proc.stderr)
+    return proc.stdout.strip()
+
+
+def _write_registry(repo, text) -> None:
+    path = repo / _REGISTRY_RELPATH
+    if text is _ABSENT:
+        if path.exists():
+            path.unlink()
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _merge_fixture(tmp_path, *, base, head=None):
+    """A real two-parent merge. Commit A holds the BASE registry (`_ABSENT`: no file); a lane
+    branch commits `lane.txt` -- so M is a real merge even when the lane leaves the registry as it
+    was -- and, when `head` is given, replaces the registry with it (`_ABSENT` deletes it).
+    `git merge --no-ff` gives M, whose first parent is A. Returns `(repo, A, M)`."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "README.md").write_text("fixture\n", encoding="utf-8", newline="\n")
+    _write_registry(repo, base)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    a = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", "-b", "lane")
+    (repo / "lane.txt").write_text("the lane's work\n", encoding="utf-8", newline="\n")
+    if head is not None:
+        _write_registry(repo, head)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "lane")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "--no-ff", "-q", "-m", "merge lane", "lane")
+    return repo, a, _git(repo, "rev-parse", "HEAD")
+
+
+def _install_ci(monkeypatch, *, tip, base, kind="both-red", tip_ids=(), base_ids=()):
+    """A stub CI behind the PRODUCTION defaults of `ci_verdict` (nothing is injected into
+    `verdict_for`). `kind`: `both-red` -- both pytest legs red at tip and base, so the registry IS
+    read; `green` -- every job success; `ruff-red` -- the pytest legs success, `ruff` red on both
+    sides. `fetch_run` is patched on the module `ci_verdict` actually holds (`scripts/` is a
+    namespace package, so that is not necessarily the top-level `actions_verdict` this file
+    imports)."""
+    pytest_c, ruff_c, run_c = {"both-red": ("failure", "success", "failure"),
+                               "green": ("success", "success", "success"),
+                               "ruff-red": ("success", "failure", "failure")}[kind]
+
+    def jobs(first_id):
+        return [{"name": n, "databaseId": first_id + i,
+                 "conclusion": (pytest_c if n in (_LEG_U, _LEG_W)
+                                else ruff_c if n == "ruff" else "success")}
+                for i, n in enumerate(av.REQUIRED_CONTEXTS)]
+
+    def run(sha, run_id):
+        return {"databaseId": run_id, "headSha": sha, "status": "completed", "conclusion": run_c,
+                "event": "push", "displayTitle": "a merge",
+                "url": f"https://github.com/x/x/actions/runs/{run_id}",
+                "createdAt": _stamp(-8), "updatedAt": _stamp(0)}
+
+    tip_jobs, base_run = jobs(100), {**run(base, 2), "jobs": jobs(300)}
+
+    def job_log(run_id, job_id, *, repo_root):
+        ids = tip_ids if job_id < 300 else base_ids
+        leg = _LEG_U if job_id % 100 == 0 else _LEG_W
+        return "\n".join(f"{leg}\tRun\t{_TS} FAILED {i} - AssertionError: x" for i in ids)
+
+    monkeypatch.setattr(_cv, "list_runs",
+                        lambda *, repo_root, workflow=_cv.WORKFLOW, **_: [run(tip, 1)])
+    monkeypatch.setattr(_cv, "fetch_jobs", lambda run_id, *, repo_root: tip_jobs)
+    monkeypatch.setattr(_cv, "fetch_job_log", job_log)
+    monkeypatch.setattr(_cv._actions_verdict(), "fetch_run",
+                        lambda sha, *, repo_root=None, workflow=None:
+                        base_run if sha == base else None)
+    monkeypatch.delenv(_mp.EVENTS_PATH_ENV, raising=False)    # no run event under pytest
+
+
+def _cli_land(repo, a, m):
+    return CliRunner().invoke(_mp.cli, ["--repo-root", str(repo), "land", "--batch", "b",
+                                        "--sha", m, "--base", a, "--no-push"])
+
+
+def _verdict_level(repo, a, *, tip_jobs=None, base_jobs=None, tip_ids=(_KNOWN,), base_ids=(_KNOWN,)):
+    """`actions_verdict.verdict_for` with the DEFAULT registry loader against the fixture repo."""
+    tip_jobs = tip_jobs or {_LEG_U: "failure"}
+    base_jobs = base_jobs or {_LEG_U: "failure"}
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", tip_jobs),
+                 a: _run_with_logs(a, "failure", base_jobs)})
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {i: "AssertionError: k" for i in tip_ids}),
+                  (a, _LEG_U): _gh_log(_LEG_U, {i: "AssertionError: k" for i in base_ids})})
+    return av.verdict_for("tip", baseline=a, fetch=fetch, fetch_logs=logs, repo_root=repo)
+
+
+# --- Done 1: `land` returns a verdict on an expired base ------------------------------------
+
+def test_T1a_land_returns_a_verdict_when_the_BASE_registry_holds_an_expired_entry(
+        tmp_path, monkeypatch):
+    """The repair merge (S-51.6): the base is expired, the head is in date. Before this lane `land`
+    printed `UNATTRIBUTED -- the known-reds registry at the baseline could not be read`."""
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1), head=_registry_text(30))
+    _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN], base_ids=[_KNOWN])
+
+    result = _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+
+    assert result.state == "PRE-EXISTING", result.reason      # the control: the registry WAS read
+    assert result.would_land is True
+    assert "could not be read" not in result.reason
+    assert not result.verdict.new_reds
+
+
+def test_T1a_cli_the_printed_refusal_is_gone_and_the_exit_code_is_zero(tmp_path, monkeypatch):
+    """Done 6: the printing path, not a hand-built string. At the base sha the output is exactly
+    `land: NO-PUSH UNATTRIBUTED -- the known-reds registry at the baseline could not be read ...`
+    and the exit code is 1."""
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1), head=_registry_text(30))
+    _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN], base_ids=[_KNOWN])
+
+    out = _cli_land(repo, a, m)
+
+    assert out.exit_code == 0, out.output
+    assert "land: NO-PUSH PRE-EXISTING --" in out.output, out.output
+    assert "land: would land: YES" in out.output, out.output
+    assert "could not be read" not in out.output, out.output
+
+
+def test_T1b_land_names_the_NEW_tests_against_an_expired_base(tmp_path, monkeypatch):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1), head=_registry_text(30))
+    _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN, _NEW], base_ids=[_KNOWN])
+
+    result = _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert f"{_LEG_U}: {_NEW}" in result.verdict.new_reds, result.verdict.new_reds
+    assert f"{_LEG_W}: {_NEW}" in result.verdict.new_reds, result.verdict.new_reds
+    assert not any(_KNOWN in name for name in result.verdict.new_reds)
+
+
+def test_T1b_verdict_level_reads_an_expired_base_and_names_the_new_test_by_field(tmp_path):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1))
+
+    verdict = _verdict_level(repo, a, tip_ids=(_KNOWN, _NEW), base_ids=(_KNOWN,))
+
+    assert verdict.state == av.STATE_REGRESSED, verdict.reason
+    assert verdict.new_tests == (f"{_LEG_U}: {_NEW}",)
+    assert verdict.registry_baseline_id == _BASELINE_ID           # the registry was read
+
+
+def test_T1b_verdict_level_an_expired_base_with_nothing_new_is_PRE_EXISTING(tmp_path):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1))
+
+    verdict = _verdict_level(repo, a)
+
+    assert verdict.state == av.STATE_PRE_EXISTING, verdict.reason
+    assert verdict.registry_baseline_id == _BASELINE_ID
+
+
+# --- what STAYS UNATTRIBUTED: a base registry that is not sound, expired or not --------------
+
+def _breaker(kind: str):
+    """The base registry text for one way of being unsound (not merely expired)."""
+    def mutated(fn):
+        data = json.loads(_registry_text(30))
+        fn(data)
+        return json.dumps(data, indent=2) + "\n"
+
+    member = lambda d: d["members"][_KNOWN]                              # noqa: E731
+    return {
+        "absent": _ABSENT,
+        "not-json": "{this is not json",
+        "legacy-schema": mutated(lambda d: d.update(schema="known-reds-registry/1")),
+        "no-owner": mutated(lambda d: member(d).pop("owner")),
+        "malformed-task": mutated(lambda d: member(d).update(task="912")),
+        "malformed-date": mutated(lambda d: member(d).update(expiry="soon")),
+        "ceiling-without-growth": mutated(lambda d: member(d).update(
+            ceiling={"pattern": r"(?P<n>\d+)", "max": 3})),
+    }[kind]
+
+
+@pytest.mark.parametrize("kind", ["absent", "not-json", "legacy-schema", "no-owner",
+                                  "malformed-task", "malformed-date", "ceiling-without-growth"])
+def test_T1c_a_base_registry_that_is_not_sound_stays_UNATTRIBUTED(tmp_path, kind):
+    """A pin: green before and after. Only an entry PAST ITS DATE stops refusing at the base; a
+    lane still cannot launder a red by leaving the base registry unreadable."""
+    repo, a, m = _merge_fixture(tmp_path, base=_breaker(kind))
+
+    verdict = _verdict_level(repo, a)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED, verdict.reason
+    assert "registry" in verdict.reason
+
+
+def test_T1e_an_independent_regression_still_wins_over_an_expired_base(tmp_path):
+    """A pin (BUILD-NOTE F2): a job this merge broke is REGRESSED whatever the base registry says."""
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1))
+
+    verdict = _verdict_level(repo, a, tip_jobs={_LEG_U: "failure", "ruff": "failure"},
+                             base_jobs={_LEG_U: "failure", "ruff": "success"})
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert verdict.newly_failing == ("ruff",)
+
+
+# --- the head reader (Done 2b's primitive) --------------------------------------------------
+
+def _head_reader():
+    """`head_registry_problems` on the module `ci_verdict` holds -- the production one."""
+    return _cv._actions_verdict().head_registry_problems
+
+
+def test_T2bf_head_registry_problems_applies_the_full_check_at_the_sha(tmp_path):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(30), head=_registry_text(-1))
+    read = _head_reader()
+
+    assert read(a, repo_root=repo) == []                        # the base: in date
+    problems = read(m, repo_root=repo)                          # the merge: past its date
+    assert any("EXPIRED" in p and "[#912]" in p for p in problems), problems
+
+
+def test_T2bf_head_registry_problems_counts_the_boundary_day_as_in_date(tmp_path):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(30), head=_registry_text(0))
+
+    assert _head_reader()(m, repo_root=repo) == []
+
+
+@pytest.mark.parametrize("kind", ["deleted", "not-json", "unknown-sha"])
+def test_T2bf_head_registry_problems_RAISES_when_it_cannot_read(tmp_path, kind):
+    """Unread is a fact about the read, not an accusation: the caller decides what it means."""
+    head = {"deleted": _ABSENT, "not-json": "{this is not json", "unknown-sha": None}[kind]
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(30), head=head)
+    target = "0" * 40 if kind == "unknown-sha" else m
+
+    with pytest.raises(Exception) as caught:
+        _head_reader()(target, repo_root=repo)
+
+    assert type(caught.value).__name__ == "KnownRedsError", caught.value
+
+
+# --- Done 2b: `land` refuses a merge whose HEAD registry carries an expired entry -------------
+#
+# The base read stopped refusing on expiry (above); the gate keeps its expiry enforcement here, on
+# the head. `ci_verdict.verdict_for` reads the registry AT THE MERGE SHA once, after the run and
+# its jobs are read and before either way out that lets `land` proceed (R38: no weakened check).
+# These tests run `land` itself on the production wiring, so each is also the before/after of
+# the verb: at the previous sha every refusal below was a landing.
+
+from pathlib import Path  # noqa: E402
+
+_HEAD_LINE = "known-reds registry at the head"
+
+
+def _land_case(tmp_path, monkeypatch, *, base, head=None, kind="both-red",
+               tip_ids=(_KNOWN,), base_ids=(_KNOWN,)):
+    repo, a, m = _merge_fixture(tmp_path, base=base, head=head)
+    _install_ci(monkeypatch, tip=m, base=a, kind=kind, tip_ids=tip_ids, base_ids=base_ids)
+    return _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+
+
+def test_T2ba_land_refuses_a_merge_whose_HEAD_registry_has_an_expired_entry(
+        tmp_path, monkeypatch):
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1))
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) for line in result.verdict.new_reds), \
+        result.verdict.new_reds
+    assert _HEAD_LINE in result.reason
+    assert "EXPIRED" in result.reason
+
+
+def test_T2b_green_a_fully_GREEN_run_is_refused_when_the_head_registry_has_lapsed(
+        tmp_path, monkeypatch):
+    """The F1 hole: a green run never reached the classifier, so a registry that lapsed between
+    CI and `land` landed as PASS."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1),
+                        kind="green", tip_ids=(), base_ids=())
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert result.verdict.verdict == _cv.STATE_RED
+    assert result.verdict.new_reds[0].startswith(_HEAD_LINE)
+
+
+def test_T2b_ruff_a_run_with_only_a_NON_PYTEST_job_red_on_both_sides_is_refused_too(
+        tmp_path, monkeypatch):
+    """R2-1's case: the pytest legs are success, `ruff` is red on both sides, so the classifier
+    reads PRE-EXISTING without ever opening the registry. The head read sits before it."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1),
+                        kind="ruff-red", tip_ids=(), base_ids=())
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) for line in result.verdict.new_reds)
+
+
+def test_T2b_b_the_LAST_valid_day_still_lands(tmp_path, monkeypatch):
+    """Strictly after the expiry, as `known_reds.py` reads it (`due < today`)."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(0))
+
+    assert result.state == "PRE-EXISTING", result.reason
+    assert result.would_land is True
+
+
+def test_T2b_c_control_a_head_registry_in_date_lands(tmp_path, monkeypatch):
+    """The vacuity guard: 2b is not a blanket refusal."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(30))
+
+    assert result.state == "PRE-EXISTING", result.reason
+    assert result.would_land is True
+
+
+def test_T2b_d_a_lane_cannot_launder_by_DELETING_the_head_registry(tmp_path, monkeypatch):
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_ABSENT)
+
+    assert result.state == "UNATTRIBUTED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) and "could not be read" in line
+               for line in result.verdict.new_reds), result.verdict.new_reds
+
+
+def test_T2b_d_a_head_registry_with_an_UNOWNED_member_is_refused(tmp_path, monkeypatch):
+    unowned = {"tests/x.py::t": {"attribution": kr.PRE_FREEZE}}
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30),
+                        head=_registry_text(30, extra=unowned))
+
+    assert result.state == "REGRESSED", result.reason
+    assert any(line.startswith(_HEAD_LINE) and "3 problem(s)" in line and "no task" in line
+               for line in result.verdict.new_reds), result.verdict.new_reds
+
+
+def test_T1d_an_INHERITED_expired_entry_is_refused_on_the_head_leg_no_exemption(
+        tmp_path, monkeypatch):
+    """S-51.5: the first ordinary merge after the base's entries lapse carries them into its head.
+    It is refused -- now on the head leg (REGRESSED), where it used to be refused on the base leg
+    (UNATTRIBUTED). An exemption for inherited entries would be a weaker check (R38); this test
+    makes adding one a conscious act."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(-1), head=None)
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert result.verdict.new_reds[-1].startswith(_HEAD_LINE), result.verdict.new_reds
+    assert not any(_KNOWN in name and _HEAD_LINE not in name for name in result.verdict.new_reds)
+
+
+def test_T2b_cli_the_printed_line_names_the_head_registry_and_the_exit_code_is_one(
+        tmp_path, monkeypatch):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(30), head=_registry_text(-1))
+    _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN], base_ids=[_KNOWN])
+
+    out = _cli_land(repo, a, m)
+
+    assert out.exit_code == 1, out.output
+    assert f"land: NO-PUSH REGRESSED -- {_HEAD_LINE}" in out.output, out.output
+    assert "land: would land: NO" in out.output, out.output
+
+
+_INJECTION_SEAMS = {"list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base", "registry_loader",
+                    "head_check"}
+
+
+@pytest.mark.parametrize("run_id", [None, 7])
+def test_the_production_reader_hands_the_ci_verdict_no_injection_seam(monkeypatch, run_id):
+    """The head read is wired ON when nothing is injected into `ci_verdict.verdict_for`, and
+    `merge_path.read_verdict` is the ONE function `land` reads a verdict through. A seam passed
+    from there would switch the read off without a word, so this runs the function itself and
+    records what it hands over: an alias, a `**` unpack or a renamed variable cannot hide from
+    it, as they could from a scan of the source. It also pins `baseline`: with none the head read
+    has nothing to read the registry against."""
+    seen = {}
+
+    def recorder(sha, **kwargs):
+        seen["sha"], seen["kwargs"] = sha, kwargs
+        return "a verdict"
+
+    monkeypatch.setattr(_cv, "verdict_for", recorder)
+    sha, base = "a" * 40, "b" * 40
+
+    out = _mp.read_verdict(sha, base=base, root=Path("."), timeout_s=1, interval_s=1, run_id=run_id)
+
+    assert out == "a verdict"
+    assert seen["sha"] == sha
+    assert _INJECTION_SEAMS.isdisjoint(seen["kwargs"]), seen["kwargs"]
+    assert seen["kwargs"]["baseline"] == base
+    assert ("run_id" in seen["kwargs"]) == (run_id is not None)

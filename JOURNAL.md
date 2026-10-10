@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-10-10 (d) - CC (Opus 5.5, integrator seat B2-W3, cycle 1): lane b2w3-verdict-base merges -- an expired known-reds entry at the base no longer blinds the merge verdict, and land refuses a merge whose HEAD registry has lapsed
+
+**Anchors:** `102a2175` `8a138863` `1c38d08e` `e9c40eaa` `8ed21201` `84d58be0` `6a27cfb8` `8dd18f5d` -- branch `worktree-b2w3-verdict-base`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Merged lane `b2w3-verdict-base` (`[#1480]`; build job a56f2753, resume-1 job 1a6ef037; claude-sonnet-5-5) at S-39 position 1, after its S-51 resume (one fresh plan cycle: Copilot `gpt-6.1-sol` PASS before the first build commit).
+- Base read structural-only (`known_reds.registry_structural_problems`, `actions_verdict._load_registry_at`): an expired base entry still labels pre-existing reds; an unreadable or ill-formed base still reads UNATTRIBUTED. Head read (`ci_verdict.verdict_for`, through `actions_verdict.head_registry_problems`, full validator): a lapsed head registry is REGRESSED.
+- Carried the four row closes of the red-burn-down merge (`[#1342]` `[#1345]` `[#1346]` `[#1023]`, closed after its land with merge `3659ff3a` and CI run 38069733517 as evidence) and its post-land merge receipt.
+
+**Result:** the 2026-10-17 stop (40 `[#912]` entries dated 2026-10-16) no longer turns every merge into `NO-PUSH UNATTRIBUTED` through the base; the same entries now refuse at the HEAD from 2026-10-17 unless removed or re-dated by a recorded ruling (the lane's QUESTION Q2). Registry untouched. Close-out review Copilot `gpt-6.1-sol` 0/1/2/1 then 0/0/2/2 (the HIGH fixed); Codex limit-refused.
+
+**Changes:** `scripts/actions_verdict.py`, `scripts/ci_verdict.py`, `scripts/known_reds.py`, `tests/test_actions_verdict.py`, `tests/test_ci_verdict.py`, `tests/test_known_reds.py`, `docs/audits/2026-10-10-verification-b2w3-verdict-base-review.md`, regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`; the four closed rows, `BACKLOG.md`, `tasks/manifest.json`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** none.
+
+**Next:** Done 5 (the live witness on a base holding an expired entry) is the integrator's at close; the remaining lanes in the S-39 order. Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (c) - CC (Opus 5.5, integrator seat B2-W3, cycle 1): lane b2w3-red-burn-down merges after its S-54 repair -- four registry reds repaired, [#1481] registered, and the merge-receipt consumer route reads the Copilot-route review record
 
 **Anchors:** `01cc0709` `4674ee21` `261e5d85` `a1fc570e` `8933e2df` `a03c3020` `a7327ebe` `b01b9301` -- branch `worktree-b2w3-red-burn-down`, merged `--no-ff` through `worktree-integrate-b2-w3`.
