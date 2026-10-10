@@ -1238,9 +1238,20 @@ def test_janitor_apply_moves_exactly_the_plan_with_bytes_unchanged_and_counts_eq
     def boom(*a, **k):
         raise AssertionError("a delete or an overwrite was attempted")
 
+    real_unlink = os.unlink
+
+    def unlink_only_the_lock_sentinel(path, *a, **k):
+        """The one unlink a move makes is the removal of its own writer-lock sentinel (a dot-name that is
+        no transport file and not a live file); an unlink of anything else is the failure this test holds."""
+        name = os.path.basename(os.fspath(path))
+        if name.startswith(".") and name.endswith(".append.lock"):
+            return real_unlink(path, *a, **k)
+        return boom()
+
     with monkeypatch.context() as mp:
-        for target in ("remove", "unlink", "replace"):
+        for target in ("remove", "replace"):
             mp.setattr(os, target, boom)
+        mp.setattr(os, "unlink", unlink_only_the_lock_sentinel)
         mp.setattr(shutil, "rmtree", boom)
         mp.setattr(shutil, "move", boom)
         report = t.janitor_apply(root, plan["manifest_sha256"], seats=SEATS)
@@ -1399,7 +1410,11 @@ def test_index_trigger_append_that_changes_the_head_equals_a_full_rebuild(t, wor
     text = live["index"].read_text(encoding="utf-8")
     assert text == _full_rebuild_like(t, live)
     t.append("lane", dest, "later block\n" * 3)
-    assert live["index"].read_text(encoding="utf-8") == text         # head unchanged -> no refresh
+    # lines 6-8 land inside the 30-line window, so the refresh fires; the rows it keeps are the same, and the
+    # `regenerated:` stamp may tick (it has one-second resolution), so the rows are compared, not the bytes.
+    again = live["index"].read_text(encoding="utf-8")
+    assert t.parse_index(again)["entries"] == t.parse_index(text)["entries"]
+    assert again == _full_rebuild_like(t, live)
 
 
 def test_an_attribution_signal_appended_at_line_15_moves_an_unattributed_row(t, world, live):

@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import re
 import sys
 import time
@@ -150,10 +151,20 @@ def inventory_key(folder: str, name: str) -> str:
 
 def file_class(rel: str, sha256: Optional[str], inventory: Optional[dict]) -> str:
     """`new` (the path is absent from the inventory, or there is none: fail closed),
-    `pre-existing` (present, same sha256) or `edited` (present, a different or unreadable one)."""
-    if not inventory or rel not in inventory:
+    `pre-existing` (present, same sha256) or `edited` (present, a different or unreadable one).
+    A path is looked up as spelled first, then by the filesystem's own case rules (`os.path.normcase`:
+    on a Windows drive `DIGEST-ALPHA.md` is the inventoried `DIGEST-alpha.md`; on a case-sensitive one
+    it is another file)."""
+    if not inventory:
         return "new"
-    return "pre-existing" if sha256 is not None and sha256 == inventory[rel] else "edited"
+    if rel in inventory:
+        recorded = inventory[rel]
+    else:
+        folded = {os.path.normcase(k): v for k, v in inventory.items()}
+        recorded = folded.get(os.path.normcase(rel))
+        if recorded is None:
+            return "new"
+    return "pre-existing" if sha256 is not None and sha256 == recorded else "edited"
 
 
 def _role_written(kind) -> bool:
@@ -176,6 +187,12 @@ def _by_findings(name: str, kind, text: str, cls, refuse_by: Optional[bool]) -> 
         return [Finding(name, "no-by",
                         f"a new file carries a flush-left `by: <writer>` with a value in its first "
                         f"{BY_HEAD_LINES} lines (who wrote it; the INDEX groups by it)")]
+    if _role_written(kind):
+        roles = "/".join(w for w in kind.writers if w in _t.ROLE_WRITERS)
+        return [Finding(name, "no-by-generated-kind",
+                        f"a script wrote a new file of kind {kind.name} with no `by:` in its first "
+                        f"{BY_HEAD_LINES} lines; the role ({roles}) that writes this kind too is refused "
+                        "for that, and a lint sweep refuses the file unless it carries `by:`", "report")]
     return [Finding(name, "no-by-generated-kind",
                     f"a new file of a script-written kind ({'/'.join(kind.writers)}) carries no "
                     f"`by:` in its first {BY_HEAD_LINES} lines", "report")]

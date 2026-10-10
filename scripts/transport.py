@@ -505,6 +505,8 @@ class JanitorRefused(Exception):
 HEAD_LINES = 12          # the lines the head keys (`by:`, `date:`, `summary:`, `supersedes:`) are read from
 WINDOW_LINES = 30        # the attribution window; a row depends on ALL of it, never just the head
 INDEX_LOCK_TIMEOUT_S = 10.0
+JANITOR_LOCK_TIMEOUT_S = 10.0   # how long a move waits for a writer that holds the source's append lock
+STALE_MARGIN_S = 5.0            # a cached INDEX row is trusted only for a file older than the INDEX by this much
 INDEX_SUMMARY = "Generated index of the current transport files, by kind and writer, newest first."
 INDEX_BY = "transport.py index (generated)"
 UNKNOWN = "UNKNOWN"
@@ -528,6 +530,15 @@ _EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
 def _utc_now() -> str:
     from datetime import datetime, timezone
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _stamp_epoch(stamp: Optional[str]) -> Optional[float]:
+    """Seconds since the epoch of a `regenerated:` stamp, or None when it does not parse."""
+    from datetime import datetime, timezone
+    try:
+        return datetime.strptime(stamp or "", "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+    except ValueError:
+        return None
 
 
 def seatmap_digest(seats: list[dict]) -> str:
@@ -797,6 +808,7 @@ def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = 
     if not seats:
         raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
     reg = registry if registry is not None else load_registry()
+    stamp = generated_at or _utc_now()      # taken before any file is read: no later edit can predate it
     files = [(rel, p) for rel, p in live_files(Path(root)) if rel != _INDEX_REL]
     attr = _Attr(files, seats, reg)
     rows: list[_Row] = []
@@ -808,7 +820,7 @@ def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = 
         else:
             rows.append(_scan_row(rel, path, kind, attr))
     return _assemble(rows, n_unclassified=n_unclassified, veto=attr.veto, digest=seatmap_digest(seats),
-                     slug_to_seat=attr.slug_to_seat, stamp=generated_at or _utc_now(), trigger=trigger)
+                     slug_to_seat=attr.slug_to_seat, stamp=stamp, trigger=trigger)
 
 
 def _rows_from_index(parsed: dict) -> dict[str, _Row]:
@@ -825,12 +837,26 @@ def _is_same_file(a: Path, b: Path) -> bool:
         return False
 
 
+def _older_than(path: Path, cutoff: Optional[float]) -> bool:
+    """True when `path` was last modified before `cutoff` (epoch seconds). The mtime only decides whether a
+    cached INDEX row can be trusted; it is never read as a date (the INDEX dates come from the file's
+    own head or name). No cutoff, or an unreadable file, is not older: the row is scanned afresh."""
+    if cutoff is None:
+        return False
+    try:
+        return path.stat().st_mtime < cutoff
+    except OSError:
+        return False
+
+
 def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
                   registry: Optional[list[Kind]] = None, stamp: Optional[str] = None) -> bool:
     """Bring an EXISTING INDEX up to date after `dest` was written. Reads no head but `dest`'s (and a
     new file's), so it is cheap enough for every writer; but it is no shortcut around the rule: the
     header records `inputs:` (the veto set and the seat-map digest) and ANY difference rebuilds in
-    full, so a new `LEDGER-<other>` re-evaluates every row. The result equals a full rebuild at the
+    full, so a new `LEDGER-<other>` re-evaluates every row. A cached row is reused only for a file not
+    modified since the INDEX was made (its `regenerated:` stamp, less `STALE_MARGIN_S`): an edit an
+    earlier, failed refresh never saw is scanned afresh here. The result equals a full rebuild at the
     same stamp and trigger (a test holds it). False when there is no INDEX to refresh."""
     index_path = Path(root) / "to-browser" / INDEX_NAME
     if not index_path.is_file():
@@ -848,6 +874,8 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
             new = build_index(root, seats=seats, generated_at=stamp, trigger=trigger, registry=reg)
         else:
             old = _rows_from_index(parsed)
+            since = _stamp_epoch(parsed["header"].get("regenerated"))
+            cutoff = None if since is None else since - STALE_MARGIN_S
             rows: list[_Row] = []
             n_unclassified = 0
             for rel, path in files:
@@ -856,7 +884,8 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
                     n_unclassified += 1
                     continue
                 prev = old.get(rel)
-                if prev is not None and prev.kind == kind.name and not _is_same_file(path, dest):
+                if (prev is not None and prev.kind == kind.name and not _is_same_file(path, dest)
+                        and _older_than(path, cutoff)):
                     rows.append(prev)
                 else:
                     rows.append(_scan_row(rel, path, kind, attr))
@@ -1018,6 +1047,37 @@ def janitor_plan(root: Path, *, seats: list[dict], registry: Optional[list[Kind]
             "manifest_sha256": _manifest_hash(moves), "census": census}
 
 
+def _move_one(src: Path, dst: Path, m: dict) -> None:
+    """One reviewed move. It runs under the source's append lock -- the lock `append()` holds while it
+    adds to a file -- so no append lands between the hash check and the rename; then it re-checks the
+    bytes, checks that the destination is absent and renames. On Windows `os.rename` onto an existing
+    name raises, so a destination that appears after the check is a refusal and not an overwrite. On a
+    POSIX filesystem `os.rename` would replace it: the window between the check and the rename is the
+    residual there, and the post-move verification would only report the damage. Raises
+    `JanitorRefused`, with the source untouched, for every fault before the rename."""
+    try:
+        with _DestinationLock(src, JANITOR_LOCK_TIMEOUT_S):
+            if hashlib.sha256(src.read_bytes()).hexdigest() != m["sha256"]:
+                raise JanitorRefused(f"{m['source']} changed after the plan was made; nothing further moved")
+            if os.path.lexists(dst):
+                raise JanitorRefused(f"{m['destination']} appeared after the plan was made; nothing further moved")
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                os.rename(src, dst)
+            except FileExistsError as exc:
+                raise JanitorRefused(f"{m['destination']} appeared after the plan was made (the rename "
+                                     "found it); nothing further moved") from exc
+            except OSError as exc:
+                raise JanitorRefused(f"{m['source']}: the rename failed ({type(exc).__name__}: {exc}); "
+                                     "nothing further moved") from exc
+    except TransportWriteRefused as exc:       # the lock could not be taken: a writer holds the source
+        raise JanitorRefused(f"{m['source']}: could not take its writer lock ({exc}); nothing further "
+                             "moved") from exc
+    if src.exists() or hashlib.sha256(dst.read_bytes()).hexdigest() != m["sha256"]:
+        raise JanitorRefused(f"{m['source']}: the move did not verify (source still present or "
+                             "destination bytes differ)")
+
+
 def janitor_apply(root: Path, expect_manifest: str, *, seats: list[dict],
                   registry: Optional[list[Kind]] = None, trigger_stamp: Optional[str] = None) -> dict:
     """Move exactly the plan the reviewed `expect_manifest` (at least 12 hex) names. Raises
@@ -1035,16 +1095,7 @@ def janitor_apply(root: Path, expect_manifest: str, *, seats: list[dict],
     before, shas_before = _census(root), _tree_shas(root)
     moved = 0
     for m in plan["moves"]:
-        src, dst = root / m["source"], root / m["destination"]
-        if hashlib.sha256(src.read_bytes()).hexdigest() != m["sha256"]:
-            raise JanitorRefused(f"{m['source']} changed after the plan was made; nothing further moved")
-        if os.path.lexists(dst):
-            raise JanitorRefused(f"{m['destination']} appeared after the plan was made; nothing further moved")
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        os.rename(src, dst)
-        if src.exists() or hashlib.sha256(dst.read_bytes()).hexdigest() != m["sha256"]:
-            raise JanitorRefused(f"{m['source']}: the move did not verify (source still present or "
-                                 "destination bytes differ)")
+        _move_one(root / m["source"], root / m["destination"], m)
         moved += 1
     after = _census(root)
     if (after["live"] != before["live"] - moved or after["archive"] != before["archive"] + moved
@@ -1412,11 +1463,37 @@ def _cmd_seat_ids(args: argparse.Namespace) -> int:
     return 0
 
 
+def _manifest_out_problem(target: Path, root: Path) -> Optional[str]:
+    """Why `--manifest-out` may not write `target`, or None. A dry run is read-only toward the
+    transport: it never replaces a file that exists (a live or archived transport file included) and
+    never creates one anywhere under the transport root, the named one or the environment's."""
+    if os.path.lexists(target):
+        return f"names {target}, which exists; a plan file is never written over another file"
+    homes = [Path(root)]
+    known = known_root()
+    if known is not None:
+        homes.append(known)
+    try:
+        resolved = os.path.normcase(str(Path(target).resolve()))
+        for home in homes:
+            base = os.path.normcase(str(Path(home).resolve()))
+            if resolved == base or resolved.startswith(base.rstrip("\\/") + os.sep):
+                return f"names {target}, inside the transport {home}; the plan file goes elsewhere"
+    except OSError as exc:
+        return f"could not be resolved ({type(exc).__name__}: {exc})"
+    return None
+
+
 def _cmd_janitor(args: argparse.Namespace) -> int:
     got = _root_and_seats(args)
     if got is None:
         return 2
     root, seats = got
+    if args.manifest_out:
+        problem = _manifest_out_problem(Path(args.manifest_out), root)
+        if problem:
+            print(f"janitor: refused: --manifest-out {problem}", file=sys.stderr)
+            return 2
     if args.apply:
         if not args.expect_manifest:
             print("janitor: --apply needs --expect-manifest <the dry run's manifest-sha256, at least "
@@ -1447,8 +1524,13 @@ def _cmd_janitor(args: argparse.Namespace) -> int:
     for s in plan["skipped"]:
         print(f"skipped: {s['path']} ({s['reason']})")
     if args.manifest_out:
-        Path(args.manifest_out).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n",
-                                           encoding="utf-8", newline="\n")
+        try:
+            with open(args.manifest_out, "x", encoding="utf-8", newline="\n") as fh:   # "x": never replace
+                fh.write(json.dumps(plan, indent=2, sort_keys=True) + "\n")
+        except OSError as exc:
+            print(f"janitor: refused: --manifest-out could not be created ({type(exc).__name__}: {exc})",
+                  file=sys.stderr)
+            return 2
     return 0
 
 
