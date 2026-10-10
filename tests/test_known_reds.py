@@ -1625,3 +1625,103 @@ def test_b2_a_set_mixing_a_file_name_and_another_value_is_not_masked(kr):
     tip = "AssertionError: assert {'2026-10-04-x.md', 'real-value-b'} == set()"
 
     assert kr.normalize_signature(base) != kr.normalize_signature(tip)
+
+
+# --- LANE-1480 (b2w3-verdict-base): the structural validator, and the head side pinned ---------
+#
+# THE SEAM (N3). `registry_problems` is structure + expiry and stays so for every caller that is
+# not the BASE-side read of `actions_verdict`: `load_registry`, `refresh`, CI's `compare` and the
+# head-side check. `registry_structural_problems` is the same walk with the expiry comparison
+# left out, a separate function so that no caller can pass a flag to relax it. Every date below is
+# computed from today (lesson (o)): a typed date turns red on its own.
+
+import ast  # noqa: E402
+
+
+def _days(n: int) -> str:
+    return (dt.date.today() + dt.timedelta(days=n)).isoformat()
+
+
+def test_the_head_side_is_unchanged_compare_exits_uncomparable_on_an_EXPIRED_entry(
+        kr, tmp_path, capsys):
+    """Done 2, pinned. CI's `compare` loads the registry through `load_registry`; an entry past its
+    date is refused with exit 2 and the reason. Both are asserted, so an unrelated argparse
+    failure cannot pass for the refusal. (`test_compare_exits_uncomparable_on_a_registry_with_an_
+    unowned_entry` covers the unowned entry only.)"""
+    path = _write_raw(tmp_path, kr, members={
+        "tests/a.py::t1": {**_owned(), "expiry": _days(-1), "task": "[#912]"}})
+    out = tmp_path / "pytest.out"
+    out.write_text("FAILED tests/a.py::t1 - x\n", encoding="utf-8", newline="\n")
+
+    rc = kr.main(["compare", "--pytest-output", str(out), "--workers", "4",
+                  "--registry", str(path), "--os", "ubuntu-latest"])
+    err = capsys.readouterr().err
+
+    assert rc == kr.EXIT_UNCOMPARABLE
+    assert "EXPIRED" in err and "[#912]" in err, err
+
+
+def test_registry_structural_problems_is_registry_problems_minus_the_expiry_lines(kr):
+    """The two validators differ by exactly the EXPIRED lines. Compared as SETS: the per-entry
+    order puts an entry's EXPIRED line before its ceiling lines, so a concatenation is not equal."""
+    expired_and_bad_ceiling = {**_owned(), "expiry": _days(-1),
+                               "ceiling": {"pattern": r"(?P<n>\d+)", "max": 3}}   # no `growth`
+    unowned = {"attribution": "pre-freeze"}
+    malformed_date = {**_owned(), "expiry": "soon"}
+    fine = _owned()
+    registry = kr.Registry(
+        schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s", measured_via="local", workers=4,
+        members={"t::expired_bad_ceiling": expired_and_bad_ceiling, "t::unowned": unowned,
+                 "t::fine": fine},
+        members_by_os={"windows-latest": {"t::bad_date": malformed_date}},
+        hooks={"h": {**_owned(), "expiry": _days(-3)}})
+    today = dt.date.today()
+
+    structural = kr.registry_structural_problems(registry)
+    full = kr.registry_problems(registry, today)
+    expired = [line for line in full if "EXPIRED" in line]
+
+    assert len(expired) == 2, full                     # the member and the hook
+    assert not any("EXPIRED" in line for line in structural)
+    assert any("no owner" in line for line in structural)             # the unowned entry
+    assert any("not an ISO date" in line for line in structural)      # the malformed date
+    assert any("growth" in line for line in structural)               # the ceiling
+    assert set(full) == set(structural) | set(expired)
+    assert kr.registry_problems(registry) == full                     # `today=None` is today
+
+
+def test_registry_structural_problems_has_no_clock_to_read(kr):
+    """A registry whose every entry is dated yesterday is structurally clean: the validator has
+    no date to compare against, so there is nothing to override."""
+    registry = kr.Registry(
+        schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s", measured_via="local", workers=4,
+        members={"t::a": {**_owned(), "expiry": _days(-1)}})
+
+    assert kr.registry_structural_problems(registry) == []
+    assert any("EXPIRED" in line for line in kr.registry_problems(registry))
+
+
+def _scripts_python_files():
+    return sorted(p for p in (_REPO / "scripts").rglob("*.py") if "__pycache__" not in p.parts)
+
+
+def test_only_the_base_side_read_calls_the_structural_validator():
+    """The tripwire for D1: the relaxation is reachable from ONE place, the BASE-side registry
+    read of `actions_verdict`. A new caller is a conscious act, not an accident. The scan asserts
+    the definition and the call EXIST (an allowlist-only scan would pass vacuously on a tree that
+    has neither)."""
+    name = "registry_structural_problems"
+    defined_in, called_from = [], []
+    for path in _scripts_python_files():
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == name:
+                defined_in.append(path.name)
+            elif isinstance(node, ast.Call):
+                func = node.func
+                called = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+                if called == name:
+                    called_from.append(path.name)
+
+    assert defined_in == ["known_reds.py"], defined_in
+    assert called_from == ["actions_verdict.py"], called_from
