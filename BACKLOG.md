@@ -666,7 +666,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1020] [P2][S] ci-commit-gate: a ship-gate rerun is owed, and the commit-gate job's first live reds need triage · tasks/1020-ci-commit-gate-a-ship-gate-rerun-is-owed-and-the-commit.md
 - [#1021] [P3][S] trial-gh-issues: stage-2 prior-art scan has no CONTENT_ROOTS entry for decisions/intake · tasks/1021-trial-gh-issues-stage-2-prior-art-scan-has-no-content-r.md
 - [#1022] [P2][S] trial-gh-issues: test_citation_regex_strips_only_real_dated_artifact_identifiers is red on base · tasks/1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md
-- [#1023] [P2][S] integrator: test_wal_concurrency_smoke_real_processes flaked once on CI, not in the known-reds registry · tasks/1023-integrator-test-wal-concurrency-smoke-real-processes-fl.md
 - [#1024] [P3][S] integrator: merge_receipt.py reports unknown-tier for every explicit model id · tasks/1024-integrator-merge-receipt-py-reports-unknown-tier-for-ev.md
 - [#1025] [P3][S] integrator: batch_janitor.py has no per-lane scope and resolves receipts under its own checkout · tasks/1025-integrator-batch-janitor-py-has-no-per-lane-scope-and-r.md
 - [#1026] [P3][S] integrator: batch_janitor.py reads a removed job as live · tasks/1026-integrator-batch-janitor-py-reads-a-removed-job-as-live.md
@@ -734,11 +733,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1339] [P3][S] P8a: a SUPPLEMENT answer cites a ruling, not a path · tasks/1339-p8a-a-supplement-answer-cites-a-ruling-not-a-pat.md
 - [#1340] [P2][S] tests/test_boot_retrieval.py: the tracked boot base is 41,174 B against a 40,000 B ceiling and still growing · tasks/1340-tests-test-boot-retrieval-py-the-tracked-boot-ba.md
 - [#1341] [P2][S] tests/test_generator_newlines.py: 15 text writes in scripts/ inherit platform newline translation, and the count is growing · tasks/1341-tests-test-generator-newlines-py-15-text-writes.md
-- [#1342] [P2][S] tests/test_floor_mechanisms.py: the test expects 21 plain floor components and the manifest declares 23 · tasks/1342-tests-test-floor-mechanisms-py-the-test-expects.md
 - [#1343] [P2][S] The graph-spine orphan census names .claude/commands/decide.md, which no wiring surface reaches · tasks/1343-the-graph-spine-orphan-census-names-claude-comma.md
 - [#1344] [P2][S] Two graph-spine lock tests flake on the windows runner · tasks/1344-two-graph-spine-lock-tests-flake-on-the-windows.md
-- [#1345] [P2][S] The desired-state schema lags the parity surfaces: a settings_hook_script probe type is not in its enum · tasks/1345-the-desired-state-schema-lags-the-parity-surface.md
-- [#1346] [P2][S] The surface_triage SessionStart hook has no stated posture in bounded_hook · tasks/1346-the-surface-triage-sessionstart-hook-has-no-stat.md
 - [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md

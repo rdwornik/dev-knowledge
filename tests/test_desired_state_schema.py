@@ -534,6 +534,15 @@ def test_lifecycle_role_unknown_raises():
         m.lifecycle_from_parity_role("superhub")
 
 
+def test_probe_type_enum_equals_the_probe_types_the_parity_loader_validates():
+    """[#1345]: the schema enum and `fleet_parity._PROBE_REQUIRED_FIELDS` are the two halves of
+    one vocabulary. The on-disk test below only proves the enum covers what the surfaces file
+    uses today; this one is two-sided, so a type added to either half without the other reds."""
+    import fleet_parity
+    m = _m()
+    assert {e.value for e in m.ProbeType} == set(fleet_parity._PROBE_REQUIRED_FIELDS)
+
+
 @pytest.mark.live_repo
 def test_enums_match_parity_surfaces_on_disk():
     """grok M9: lock the enum↔disk coincidence — silent vocabulary drift is the failure mode

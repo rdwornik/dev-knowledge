@@ -402,6 +402,45 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
         sleep_fn(interval_s)
 
 
+def _resolve_head_check(head_check: Optional[Callable], injected: dict,
+                        baseline: Optional[str]) -> Optional[Callable]:
+    """Which function reads the known-reds registry at the HEAD (the merge sha), or None for none.
+
+    Never without a `baseline` (`handoff_state.row_ci` passes none, so BD-ci reads nothing new).
+    An explicit `head_check` is used as given. Otherwise it is ON by default -- `actions_verdict.
+    head_registry_problems` -- only when NONE of the CI-fetch seams (`injected`: list_fn, view_fn,
+    jobs_fn, log_fn, fetch_base, registry_loader) was passed, which is production: `merge_path.
+    read_verdict` injects nothing. A test that injects a fetch function keeps its verdict and
+    names a `head_check` when it wants the read. This is a library-level trust seam, the same
+    standing as every `_fn` injection here, not an access control; a tripwire in tests/test_
+    actions_verdict.py pins that no production caller passes one."""
+    if not baseline:
+        return None
+    if head_check is not None:
+        return head_check
+    if any(value is not None for value in injected.values()):
+        return None
+    return _actions_verdict().head_registry_problems
+
+
+def _head_state(check: Callable, sha: str, root: Path) -> Optional[tuple]:
+    """The HEAD registry read as a refusal: `("problems", line)` when it reads and is not in date
+    or not sound, `("unreadable", line)` when it cannot be read, None when it reads clean. The
+    check is the identical predicate CI's `known_reds compare` applies, so `land` refuses exactly
+    what CI's own comparator refuses to load; an unreadable registry is never a pass."""
+    short = sha[:12]
+    try:
+        problems = check(sha, repo_root=root)
+    except Exception as exc:                          # KnownRedsError, and anything git raises
+        return ("unreadable", f"known-reds registry at the head {short} could not be read ({exc}): "
+                              f"a merge whose head registry cannot be read is not judged")
+    if problems:
+        return ("problems", f"known-reds registry at the head {short}: {len(problems)} problem(s), "
+                            f"first: {problems[0]} -- CI's known_reds compare refuses a registry "
+                            f"like this, so land does too")
+    return None
+
+
 def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = WORKFLOW,
                 timeout_s: int = POLL_TIMEOUT_S, interval_s: int = POLL_INTERVAL_S,
                 list_fn: Optional[Callable] = None, view_fn: Optional[Callable] = None,
@@ -411,7 +450,8 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                 baseline: Optional[str] = None, required_contexts: tuple = (),
                 fetch_base: Optional[Callable] = None,
                 registry_loader: Optional[Callable] = None,
-                run_id: Optional[int] = None) -> CiVerdict:
+                run_id: Optional[int] = None,
+                head_check: Optional[Callable] = None) -> CiVerdict:
     """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
 
     `run_id` pins the read to ONE run (see `wait_for_run`); omitted, the newest push run wins.
@@ -440,8 +480,21 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     CLI, a test) that monkeypatches `ci_verdict.list_runs` et al. would silently keep calling
     the un-patched one. Resolving inside the body re-reads the module's current attribute on
     every call, which is what makes the CLI's own defaults patchable at all.
+
+    THE HEAD REGISTRY (LANE-1480, S-34 Done 2b, S-51.1). With a `baseline`, the known-reds registry
+    AT THIS SHA is read once -- after the run and its jobs are read, before either way out that
+    lets `land` proceed (the GREEN return and the classification) -- through `head_check`
+    (`actions_verdict.head_registry_problems` in production; see `_resolve_head_check` for when it
+    is on). The base side no longer refuses on expiry (`actions_verdict._load_registry_at`), so
+    this is where an entry past its date is refused, by the identical predicate CI's `known_reds
+    compare` applies. A head with problems is REGRESSED; one that cannot be read is UNATTRIBUTED;
+    an earlier refusal above keeps its own state; the head line is appended AFTER the classifier's
+    names, so an independent regression is never hidden and nothing at `new_reds[0]` moves.
     """
     root = repo_root or _REPO_ROOT
+    head_fn = _resolve_head_check(head_check, {
+        "list_fn": list_fn, "view_fn": view_fn, "jobs_fn": jobs_fn, "log_fn": log_fn,
+        "fetch_base": fetch_base, "registry_loader": registry_loader}, baseline)
     list_fn = list_fn or list_runs
     view_fn = view_fn or fetch_run_status
     jobs_fn = jobs_fn or fetch_jobs
@@ -533,7 +586,18 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
             regressions += [r if leg == PYTEST_JOB else f"{leg}: {r}"
                             for r in block["regressions"]]
 
+    # THE HEAD REGISTRY, read once, here: after every earlier refusal above (each keeps its own
+    # state), before either way out that lets `land` proceed. See the docstring.
+    head = _head_state(head_fn, sha, root) if head_fn is not None else None
+
     if not failing and not workflow_level_failure and not missing:
+        if head is not None:
+            kind, line = head
+            return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                             duration_seconds=duration, baseline_id=baseline_id,
+                             state=(av.STATE_REGRESSED if kind == "problems"
+                                    else av.STATE_UNATTRIBUTED),
+                             new_reds=(line,), reason=line)
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_GREEN, run_id=run_id, run_url=run_url,
                          duration_seconds=duration, baseline_id=baseline_id, state="PASS",
                          reason="every job concluded success or skipped"
@@ -545,13 +609,27 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                                fetch_base=fetch_base, registry_loader=registry_loader)
         names = (classified.new_tests + classified.signature_changed + classified.non_test
                  + classified.newly_failing)
+        state = classified.state
+        reason = (classified.reason or f"classified {classified.state} against "
+                  f"baseline {baseline[:12]}")
+        if head is not None:
+            # Appended AFTER the classifier's names: an independent regression, or a changed
+            # signature, is never hidden by the head line. A head with problems is a fact read at
+            # the merge sha, so it makes a landable or merely-unattributed read REGRESSED; a head
+            # that cannot be read makes a landable read UNATTRIBUTED and changes nothing else.
+            kind, line = head
+            names = names + (line,)
+            reason = f"{line}; {reason}"
+            if kind == "problems" and state in (av.STATE_PASS, av.STATE_PRE_EXISTING,
+                                                av.STATE_UNATTRIBUTED):
+                state = av.STATE_REGRESSED
+            elif kind == "unreadable" and state in (av.STATE_PASS, av.STATE_PRE_EXISTING):
+                state = av.STATE_UNATTRIBUTED
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
                          duration_seconds=duration,
                          baseline_id=classified.registry_baseline_id or baseline_id,
-                         new_reds=names, missing_contexts=missing, state=classified.state,
-                         flagged=classified.flagged,
-                         reason=(classified.reason or f"classified {classified.state} against "
-                                 f"baseline {baseline[:12]}"))
+                         new_reds=names, missing_contexts=missing, state=state,
+                         flagged=classified.flagged, reason=reason)
 
     if regressions:
         new_reds = tuple(regressions)

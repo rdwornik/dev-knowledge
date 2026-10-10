@@ -7,6 +7,7 @@ IN-PROGRESS-then-completes and the timeout-while-waiting cases run in test time 
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import subprocess
 
@@ -711,3 +712,205 @@ def test_repair2_fetch_job_log_is_NONE_for_a_blank_api_body_never_an_empty_strin
         command, 0, stdout=blank, stderr=""))
 
     assert cv.fetch_job_log(7, 5, repo_root=tmp_path) is None
+
+
+# --- LANE-1480 (b2w3-verdict-base): the HEAD registry read ------------------------------------
+#
+# `verdict_for(.., baseline=)` reads the known-reds registry AT THE MERGE SHA once -- after the run
+# and its jobs are read, before either way out that lets `land` proceed (the GREEN return and the
+# classification) -- through `head_check` (`actions_verdict.head_registry_problems` in production).
+# These tests inject a recording stub as `head_check`, so they need no git; the real reader and the
+# whole of `land` are exercised against a temporary repo in tests/test_actions_verdict.py. Every
+# existing test above injects a fetch function and no `head_check`, so none of them acquires the
+# read (D4) -- the differential in the lane's handback runs them at the base and at the tip.
+
+_PROBLEM = "members[tests/a.py::t1]: EXPIRED (task [#912]) -- fix it, or re-date it by a recorded ruling"
+_HEAD = "known-reds registry at the head"
+_SIG_ID = "tests/test_sig.py::test_changes_why"
+_NEW_ID = "tests/test_brand_new.py::test_new_red"
+_OLD_ID = "tests/test_old.py::test_old_red"
+
+
+class _HeadStub:
+    """A recording `head_check`: returns the problems, or raises the exception it was given."""
+
+    def __init__(self, result):
+        self.result, self.calls = result, []
+
+    def __call__(self, sha, *, repo_root=None):
+        self.calls.append((sha, repo_root))
+        if isinstance(self.result, Exception):
+            raise self.result
+        return list(self.result)
+
+
+_HEADS = {"ok": [], "problems": [_PROBLEM], "unreadable": RuntimeError("git said no")}
+
+
+def _log_ts() -> str:
+    """A job-log timestamp RELATIVE TO NOW, in the shape the Actions log prints."""
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z")
+
+
+def _six(first_id, *, pytest_c, ruff_c="success"):
+    return [{"name": n, "databaseId": first_id + i,
+             "conclusion": pytest_c if n in (_LEG_U, _LEG_W) else (ruff_c if n == "ruff" else "success")}
+            for i, n in enumerate(_ALL_SIX)]
+
+
+_SCENARIOS = {            # (pytest legs, ruff, run conclusion, tip ids, base ids, tip msg, base msg)
+    "green": ("success", "success", "success", [], [], "", ""),
+    "pre-existing": ("failure", "success", "failure", [_OLD_ID], [_OLD_ID], "x", "x"),
+    "regressed": ("failure", "success", "failure", [_OLD_ID, _NEW_ID], [_OLD_ID], "x", "x"),
+    "unattributed": ("failure", "success", "failure", [_OLD_ID], [_OLD_ID], "x", "x"),
+    "ruff-red": ("success", "failure", "failure", [], [], "", ""),
+    "sig-changed": ("failure", "success", "failure", [_SIG_ID], [_SIG_ID],
+                    "AssertionError: expected apples", "AssertionError: expected pears"),
+}
+
+
+def _head_case(scenario, head, **extra):
+    """`verdict_for("tip", baseline="base")` on one scenario with a recording `head_check`."""
+    pytest_c, ruff_c, run_c, tip_ids, base_ids, tip_msg, base_msg = _SCENARIOS[scenario]
+    base_run = {**_run("base", conclusion=run_c), "jobs": _six(300, pytest_c=pytest_c, ruff_c=ruff_c)}
+
+    def log_fn(run_id, job_id, *, repo_root):
+        ids, msg = (tip_ids, tip_msg) if job_id < 300 else (base_ids, base_msg)
+        leg = _LEG_U if job_id % 100 == 0 else _LEG_W
+        return "\n".join(f"{leg}\tRun\t{_log_ts()} FAILED {i} - {msg}" for i in ids)
+
+    def broken_loader(ref, *, repo_root=None):
+        raise RuntimeError("no registry at the base")
+
+    stub = _HeadStub(_HEADS[head])
+    kwargs = dict(
+        repo_root=None, list_fn=_list_fn([_run("tip", conclusion=run_c)]),
+        jobs_fn=_jobs_fn(_six(100, pytest_c=pytest_c, ruff_c=ruff_c)), log_fn=log_fn,
+        sleep_fn=_no_sleep, required_contexts=_ALL_SIX, baseline="base",
+        fetch_base=lambda sha, *, repo_root=None, workflow=None: base_run,
+        registry_loader=broken_loader if scenario == "unattributed"
+        else (lambda ref, *, repo_root=None: _empty_registry()),
+        head_check=stub)
+    kwargs.update(extra)
+    return cv.verdict_for("tip", **kwargs), stub
+
+
+#: (scenario, head read) -> (state, whether the head line is in `new_reds`). Reachable scenarios
+#: only: from `verdict_for` a non-green run always has a failing job or a workflow-level failure,
+#: so the classifier answers REGRESSED, UNATTRIBUTED or PRE-EXISTING.
+_TABLE_B = {
+    ("green", "ok"): ("PASS", False),
+    ("green", "problems"): ("REGRESSED", True),
+    ("green", "unreadable"): ("UNATTRIBUTED", True),
+    ("pre-existing", "ok"): ("PRE-EXISTING", False),
+    ("pre-existing", "problems"): ("REGRESSED", True),
+    ("pre-existing", "unreadable"): ("UNATTRIBUTED", True),
+    ("sig-changed", "ok"): ("PRE-EXISTING", False),
+    ("sig-changed", "problems"): ("REGRESSED", True),
+    ("sig-changed", "unreadable"): ("UNATTRIBUTED", True),
+    ("ruff-red", "ok"): ("PRE-EXISTING", False),
+    ("ruff-red", "problems"): ("REGRESSED", True),
+    ("ruff-red", "unreadable"): ("UNATTRIBUTED", True),
+    ("regressed", "ok"): ("REGRESSED", False),
+    ("regressed", "problems"): ("REGRESSED", True),
+    ("regressed", "unreadable"): ("REGRESSED", True),
+    ("unattributed", "ok"): ("UNATTRIBUTED", False),
+    ("unattributed", "problems"): ("REGRESSED", True),
+    ("unattributed", "unreadable"): ("UNATTRIBUTED", True),
+}
+
+
+@pytest.mark.parametrize("scenario,head", list(_TABLE_B))
+def test_head_read_table_B_every_cell(scenario, head):
+    state, has_line = _TABLE_B[(scenario, head)]
+
+    verdict, stub = _head_case(scenario, head)
+
+    assert verdict.state == state, (verdict.state, verdict.new_reds, verdict.reason)
+    assert verdict.verdict == (cv.STATE_GREEN if state == "PASS" else cv.STATE_RED)
+    assert len(stub.calls) == 1 and stub.calls[0][0] == "tip", stub.calls    # once, at the sha
+    if has_line:
+        line = verdict.new_reds[-1]                        # appended AFTER the classifier's names
+        assert line.startswith(_HEAD), line
+        assert ("1 problem(s)" in line) if head == "problems" else ("could not be read" in line)
+        assert verdict.reason.startswith(_HEAD), verdict.reason   # what `land` prints first
+    else:
+        assert not any(_HEAD in name for name in verdict.new_reds)
+        assert _HEAD not in verdict.reason
+    if scenario == "green":
+        assert verdict.new_reds == ((verdict.new_reds[-1],) if has_line else ())
+    if scenario == "regressed":                            # an independent regression is never hidden
+        assert any(_NEW_ID in name for name in verdict.new_reds), verdict.new_reds
+    if scenario == "sig-changed":                          # nor is a classified name (BUILD-NOTE F1)
+        assert any(_SIG_ID in name for name in verdict.new_reds), verdict.new_reds
+
+
+@pytest.mark.parametrize("early,expected", [
+    ("cancelled", "CANCELLED"), ("timed-out", "TIMED-OUT"), ("jobs-unreadable", "JOBS-UNREADABLE"),
+    ("context-skipped", "SKIPPED"), ("no-run", "NO-RUN"), ("in-progress", "IN-PROGRESS")])
+def test_an_earlier_refusal_keeps_its_own_state_and_the_head_is_never_read(early, expected):
+    """Rows of table A: a run that is missing, in progress, cancelled or timed out, an unreadable
+    job list, and a required context in a non-pass state are refused in their OWN state before the
+    head read; the head line never replaces them."""
+    clock_fn, sleep_fn = _fake_time()
+    stub = _HeadStub([_PROBLEM])
+    jobs = _jobs_all_success()
+    runs = {"cancelled": [_run("tip", conclusion="cancelled")],
+            "timed-out": [_run("tip", conclusion="timed_out")],
+            "no-run": [], "in-progress": [_run("tip", status="in_progress")]}.get(
+                early, [_run("tip")])
+    if early == "context-skipped":
+        jobs[3] = {**jobs[3], "conclusion": "skipped"}
+
+    verdict = cv.verdict_for(
+        "tip", repo_root=None, list_fn=_list_fn(runs),
+        view_fn=lambda run_id, *, repo_root: _run("tip", status="in_progress"),
+        jobs_fn=(lambda run_id, *, repo_root: None) if early == "jobs-unreadable"
+        else _jobs_fn(jobs),
+        log_fn=_log_fn({}), timeout_s=10, interval_s=5, sleep_fn=sleep_fn, clock_fn=clock_fn,
+        required_contexts=_ALL_SIX, baseline="base", head_check=stub,
+        fetch_base=lambda sha, *, repo_root=None, workflow=None: None)
+
+    assert verdict.state == expected, (verdict.state, verdict.reason)
+    assert stub.calls == []
+    assert not any(_HEAD in name for name in verdict.new_reds)
+
+
+def test_no_baseline_means_no_head_read_even_when_a_head_check_is_injected():
+    """BD-ci (`handoff_state.row_ci`) passes no baseline: it reads nothing new."""
+    stub = _HeadStub([_PROBLEM])
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc")]),
+        jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX, head_check=stub)
+
+    assert verdict.state == "PASS" and stub.calls == []
+
+
+@pytest.mark.parametrize("name", ["list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base",
+                                  "registry_loader"])
+def test_injecting_any_one_fetch_function_switches_the_default_head_read_off(name):
+    """D4: the default head read is wired ON only when NONE of the six is injected -- production,
+    where `merge_path.read_verdict` injects nothing -- so every test that injects a fetch function
+    keeps its verdict. `_resolve_head_check` is the one place the rule lives."""
+    assert cv._resolve_head_check(None, {name: object()}, "base") is None
+    assert cv._resolve_head_check(None, {name: None}, "base") is not None   # nothing injected
+
+
+def test_the_default_head_read_is_the_actions_verdict_reader_and_only_with_a_baseline():
+    none_injected = dict.fromkeys(("list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base",
+                                   "registry_loader"))
+    reader = cv._actions_verdict().head_registry_problems
+
+    assert cv._resolve_head_check(None, none_injected, "base") is reader
+    assert cv._resolve_head_check(None, none_injected, None) is None            # no baseline
+    assert cv._resolve_head_check(None, none_injected, "") is None
+
+
+def test_an_explicit_head_check_wins_over_an_injected_fetch_function():
+    stub = _HeadStub([])
+    injected = {"list_fn": object(), "jobs_fn": object()}
+
+    assert cv._resolve_head_check(stub, injected, "base") is stub
+    assert cv._resolve_head_check(stub, injected, None) is None                 # still needs a baseline

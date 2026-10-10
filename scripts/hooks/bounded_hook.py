@@ -160,10 +160,26 @@ POSTURES: tuple[Posture, ...] = (
     Posture("fleet-health-session-start", "fleet_health.py\"", "fail-open", False,
             "SessionStart surfacing: a SessionStart hook cannot refuse (measured 2026-09-06), so "
             "a bypass loses a digest line, never a gate. The per-call prompts guard is separate."),
-    Posture("surface-triage", "surface_triage.ps1", "fail-open", False,
+    # The two entries below match the script stem plus its dot, not an extension: the settings
+    # now run the `.py` ports while earlier transcripts carry the `.ps1` commands, and one hook
+    # id must hold both spellings so its rate is read as one hook.
+    Posture("surface-triage", "surface_triage.", "fail-open", False,
             "SessionStart surfacing only; cannot refuse."),
-    Posture("billing-leak-sentinel", "billing_leak_sentinel.ps1", "fail-open", False,
+    Posture("billing-leak-sentinel", "billing_leak_sentinel.", "fail-open", False,
             "SessionStart sentinel; cannot refuse. A bypass loses one warning for one session."),
+    Posture("quota-daily", "quota_daily.py", "fail-open", False,
+            "SessionStart trigger for the quota_watch organ: it only claims and detaches the "
+            "network read, never runs it inline, and fails open on every error by its own guard "
+            "contract. It cannot refuse; a bypass loses one day's quota read."),
+    Posture("lane-end-guard", "lane_end_guard.py", "fail-open", False,
+            "Stop hook that starts the lane-end moment once per closing HANDBACK line. It never "
+            "blocks the session by design (DECLARE-NIGHT N3: returns 0 on every path); a bypass "
+            "loses one trigger and a later turn end re-fires on the same closing line."),
+    Posture("lane-handback-gate", "lane_handback_gate.py", "fail-open", False,
+            "The one Stop hook that can block, and only on a positively-detected bad closing "
+            "line, once per fresh stop attempt; its own header states fail-CLOSED on that and "
+            "fail-OPEN on everything else, and that a missing safety mechanism fails toward "
+            "inert. A timeout detects nothing, so a bypass loses one refusal, never a lane."),
     Posture("changelog-sentinel", "changelog_sentinel.py", "fail-open", False,
             "SessionStart nudge, local and fail-soft by its own design."),
     Posture("arm-hooks", "arm_hooks.py", "fail-open", False,
