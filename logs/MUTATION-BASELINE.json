@@ -1,0 +1,45 @@
+{
+  "run_id": 38073707389,
+  "run_url": "https://github.com/rdwornik/dev-knowledge/actions/runs/38073707389",
+  "event": "workflow_dispatch",
+  "ref": "worktree-b2w3-ci-schedules",
+  "sha": "3c923880e33faa7fd86945c8cbafb1edad65b9d5",
+  "job": "mutation-pilot",
+  "job_conclusion": "success",
+  "mutmut_version": "3.7.0",
+  "scope": "scripts/fleet_analytics.py, tests/test_fleet_analytics.py",
+  "artifact": "mutation-pilot-3c923880e33faa7fd86945c8cbafb1edad65b9d5",
+  "artifact_summary": "⠹ 2291/2291  🎉 863 🫥 214  ⏰ 4  🤔 0  🙁 1210  🔇 0  🧙 0",
+  "checked": 2291,
+  "mutants": 2291,
+  "totals": {
+    "🎉": 863,
+    "🫥": 214,
+    "⏰": 4,
+    "🤔": 0,
+    "🙁": 1210,
+    "🔇": 0,
+    "🧙": 0
+  },
+  "legend": {
+    "🎉": "killed",
+    "🫥": "no tests",
+    "⏰": "timeout",
+    "🤔": "suspicious",
+    "🙁": "survived",
+    "🔇": "skipped",
+    "🧙": "caught by type check"
+  },
+  "reference": {
+    "killed": 865,
+    "survived": 1210,
+    "tolerance_pct": 5
+  },
+  "reference_source": "docs/audits/2026-08-18-technical-502-mutmut-attribution.md:220-227 (865 killed / 1210 survived of 2291)",
+  "delta_pct": {
+    "killed": -0.23,
+    "survived": 0.0
+  },
+  "within_tolerance": true,
+  "record_note": "Seed from one dispatched run (S-34 P-L3-1). Nightly runs keep only their artifact and step summary; this file is not rewritten by CI."
+}
