@@ -218,6 +218,23 @@ def test_a_copilot_route_review_record_with_no_receipt_for_its_slug_stays_undecl
     assert m.unconsumed == [name]
 
 
+def test_a_copilot_route_repair_record_binds_to_its_lanes_receipt_like_a_codex_one(tree):
+    """The route is the `-codex-` route's, prefix rule included: a repair's record
+    (`...-<lane-slug>-repair-1-review.md`) binds to the lane's own receipt, as
+    `2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md` does, because the integrator
+    writes ONE receipt per lane and no per-repair slug. An exact-equality rule for this grammar
+    only would leave every repair's review record undeclared on merge. A slug that merely
+    appears inside a longer, unrelated `rest` still does not bind."""
+    repair = "2026-10-10-verification-b2w3-red-burn-down-repair-1-review.md"
+    unrelated = "2026-10-10-verification-xb2w3-red-burn-down-review.md"
+    _audit(tree, repair)
+    _audit(tree, unrelated)
+    _receipts(tree, [{"kind": "merge", "slug": "b2w3-red-burn-down", "merge_sha": None}])
+    m = cal.measure(tree)
+    assert m.receipt_linked == {repair: "b2w3-red-burn-down"}
+    assert [a.name for a in cal.undeclared(m)] == [unrelated]
+
+
 def test_a_verification_record_not_ending_in_review_is_not_attributed_to_a_lane(tree):
     """Only `<date>-verification-<slug>-review.md` is read; any other `-verification-` name
     falls through to its own text, as before -- no other grammar is opened by S-54."""
