@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-10-04
+last_reviewed: 2026-10-09
 status: active
 owner: Rob
 ---
@@ -6038,6 +6038,242 @@ Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-20
   ```
 
 **Expiry:** none of R55–R79 expire on their own, except R67 (the night of 2026-10-03/04, elapsed); the entries above land text, and each Carried-by line names what is and is not built.
+
+## AS. RATIFICATION 2026-10-05 → 2026-10-09 R80–R92 — landed verbatim from their sources, each carried by a row or by a written "no implementation required" (operator, 2026-10-04 evening → 2026-10-09)
+
+Landed by `b2w2-rulings-landing` (batch B2-W2, lane 6, row [#1446]; the seat accepted the lane in `to-cc/AMEND-BATCH-B2-W2-2026-10-09.md` section 2.1, ruling P1). R1–R79 are landed at §AM to §AR above and are not repeated here. The shape is §AR's: each entry carries its ruling's **source section byte for byte** in a fenced block whose info string is `verbatim <source>:<first line>-<last line>`, and `tests/test_standing_rulings_sources.py` diffs every block against its source range wherever the transport is reachable, naming each source it could not reach.
+
+**Two lines of every entry are read by a gate.** The bullet `- **R<n> — …` is how `scripts/handoff_state.py` counts landed ids. The line `**Carried by:**` names what carries the ruling: one or more backlog rows `[#id]` (each has to exist, hold a carrying status, name the ruling, state a Done-when and name an `owner:`), or `no implementation required — <why> (owner: <who>)`. `scripts/decision_coverage.py rulings` refuses while an entry from R55 on has neither, and while a ruling in a non-superseded RATIFICATION file is not landed here for more than one closed batch. R80 to R86 date from 2026-10-05, so once `STATE-BATCH-B2-W2` reads CLOSED the gate would have refused them; this section lands them before that.
+
+**Sources.** The live files are rewritten in place (`RATIFICATION-2026-10-05.md` is v5, `RATIFICATION-2026-10-08.md` is v2; `-10-06.md` and `-10-09.md` carry no version), so a range cited in a live file is valid for the version named in its entry. R81.3 has its own heading in the 2026-10-05 file and lands inside R81's entry as its second block.
+
+**Carriers.** R87, R88 and R90 are carried by rows that already named them. For R80 to R86, R89 and R91 the candidates on file (the old landing row [#1420], [#1439], and the B2-W2 rows that name R80, R84 and R85) state no `owner:`, which the gate reads as not carrying; rows [#1450] to [#1456] were filed here, from the block 1450–1479, for exactly those rulings. R92 is a written "no implementation required".
+
+**Not landed here, by the seat's ruling P1.** The unnumbered sections of the same files are not R-rulings and stay on the transport, carried by the batch: the ADR-121 amendments (C6 accepted, C4 reconfirmed) and the night-of-2026-10-04 confirmation in `RATIFICATION-2026-10-05.md`; the seat rulings on the P13 decisions, the tooling-defect table, the ruling on the cut option and the cut-day dating in `RATIFICATION-2026-10-08.md`; and the seat rulings S-1 to S-3 in `RATIFICATION-2026-10-09.md`, with S-4 to S-7 in `to-cc/AMEND-BATCH-B2-W2-2026-10-09.md`.
+
+- **R80 — the browser triages, then works in sequence** (operator, ruled 2026-10-04 evening and filed 2026-10-05; full text `RATIFICATION-2026-10-05.md:12` (v5)). In force as: when the operator raises many topics, the browser sorts them, sets their priority and shows that ordered list as the plan, then takes one topic per turn, advanced by "dalej"; this is how every window works, and it goes into HANDOFF_BOOT (R84, W2-22) and the seat's memory. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1450]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:12-18
+  ## R80 — the browser triages, then works in sequence (ruled 2026-10-04 evening)
+
+  **Original:** "Nie musisz tego wszystkiego robić jednocześnie… nie jesteś dobry w robieniu wiele rzeczy jednocześnie… powiedz, jaki masz plan, nad czym chcesz się zastanowić sekwencyjnie i zrobimy to dalej, dalej… To w ogóle powinien być sposób pracy każdego czatu i może to powinno być w handoffie, w handboocie… ja mówię wiele tematów, ale ja oczekuję od przeglądarki, że ona te tematy posegreguje, nada im priorytet i potem po kolei się zajmie, a nie wszystko jednocześnie."
+
+  1. **Sort and plan first.** When the operator raises many topics, the browser sorts them, sets their priority, and shows that ordered list as the plan.
+  2. **Then one topic per turn,** in order, advanced by "dalej". Never all at once.
+  3. **This is how every window works.** It goes into HANDOFF_BOOT (R84, W2-22) and into the seat's memory.
+  ```
+
+- **R81 — mutation testing with mutmut, and R81.3: in CI, nothing installed on the laptop** (operator, ruled 2026-10-04 evening and filed 2026-10-05; full text `RATIFICATION-2026-10-05.md:20` (v5), sub-ruling R81.3 at `:44`). In force as: mutmut is approved and runs where Linux is. R81.3 places it in CI: the existing `mutation-pilot` workflow ([#502], mutmut 3.7.0) on Linux runners, on demand and nightly, free on the public hub, with no WSL2 for now; a Linux place on the laptop is a research item, and the operator decides on any installation. **R81.3 is a sub-ruling of R81 and lands inside this entry**, so the register counts one id; its block follows R81's. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1451]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:20-25
+  ## R81 — mutation testing with mutmut (ruled 2026-10-04 evening)
+
+  **Original:** "mutmut to w ogóle swoją drogą to już dawno powinien zostać wdrożony, jak najbardziej tak, tylko problem był, żeby tylko na linuksie… może konteneryzacja…"
+
+  1. **mutmut is approved.** It runs where Linux is — see R81.3.
+  2. **A Linux place on the laptop** is a research item. The operator decides on any installation.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:44-49
+  ## R81.3 — mutmut in CI; nothing installed on the laptop for now
+
+  **Original:** "jeżeli można to zrobić bez instalacji… to tak, tak by było najlepiej."
+
+  - **Where it runs:** the existing `mutation-pilot` workflow ([#502], mutmut 3.7.0), on Linux runners, on demand and nightly. It is free on the public hub.
+  - **No WSL2 for now.**
+  ```
+
+- **R82 — the newest model per role, not chosen to save tokens** (operator, ruled 2026-10-04 and filed 2026-10-05; full text `RATIFICATION-2026-10-05.md:34` (v5)). In force as: each role uses the newest model its provider serves for it (R61), verified from the provider's own list, after which the registry is re-pointed or the CLI pinned; a model is not chosen to save tokens. **Refines R61** (section AR). The first named case, `gpt-5.6-terra` to `gpt-6-astra`, is in `ecosystem/provider-registry.yaml` since 2026-10-05; the claude role pins are not moved (see its carrier row). **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1452]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:34-42
+  ## R82 — the newest model per role, never token-optimised
+
+  **Original:** "Najnowszy model, oczywiście, że tak, tylko że musimy po prostu uważać, żeby nie było optymalizować tokeny, ale tak, generalnie najnowszy model."
+
+  1. **Each role uses the newest model its provider serves for it** (R61).
+     - The registry names `gpt-5.6-terra`; `gpt-6-astra` was served.
+     - CC verifies which is newer from the provider's own list.
+     - Then it either re-points the registry or pins the CLI.
+  2. **Never choose a model to save tokens.**
+  ```
+
+- **R83 — finish the Codespace to production now** (operator, 2026-10-05; full text `RATIFICATION-2026-10-05.md:51` (v5)). In force as: the Codespace is finished to production now, on R63's bar of three consecutive all-green end-to-end runs; the fix-first list is D1, D2, C3/C4, the classifier, the codex pin and the heartbeat; the agy sign-in stays an operator action until it is automated. The source names W1-12 (`to-cc/AMEND-B2-W1-4-2026-10-05.md`) as its carrier. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1453]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:51-58
+  ## R83 — finish the Codespace to production now
+
+  **Original:** "No dobrze, ale skończmy ten Codespace, przetestujmy, no bo ile można trwać."
+
+  - **The bar:** R63, three consecutive all-green end-to-end runs.
+  - **Fix first:** D1, D2, C3/C4, the classifier, the codex pin, and the heartbeat.
+  - **agy sign-in** stays an operator action until it is automated.
+  - **Carried by:** W1-12 (`to-cc/AMEND-B2-W1-4-2026-10-05.md`).
+  ```
+
+- **R84 — the transport index and the boot lane go first in B2 W2** (operator, 2026-10-05; full text `RATIFICATION-2026-10-05.md:60` (v5)). In force as: `b2-transport-index` (R79.1) and W2-22 run in W2's first wave, in parallel with the spine's L10; W2-22 puts R73, R76 and R80 into HANDOFF_BOOT with a version bump, and the boot names the index as the first read. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1450], [#1454]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:60-65
+  ## R84 — the transport index and the boot lane go first in B2 W2
+
+  **Original:** "indeks i boot na start W2 tak"
+
+  - **`b2-transport-index`** (R79.1) and **W2-22** run in W2's first wave, in parallel with the spine's L10.
+  - **W2-22's content:** R73, R76 and R80 go into HANDOFF_BOOT, with a version bump, and the boot names INDEX as the first read.
+  ```
+
+- **R85 — merge latency is a systemic defect; W2's first wave fixes it** (operator, 2026-10-05; full text `RATIFICATION-2026-10-05.md:67` (v5)). In force as: R62's target stands, a handback to `main` median of at most 15 minutes against 98 today, the clock starting at handback; W2's first wave carries the merge clock (W2-24) first, W2-12 extended so a registered flaky test is not rerun, W2-25 a pre-handback verdict identical to the integrator's, and W2-13a Windows shards; the single serial integrator is the main bottleneck, so parallel integration or batching several handbacks per CI run is a first-class lever; paid options are the operator's decision. **Refines R62** (section AR). **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1455]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:67-82
+  ## R85 — merge latency is a systemic defect; W2's first wave fixes it
+
+  **Original:** "merge trwają 102 minuty. To jest niemożliwe… to musi być jakaś naprawa systemowa… 20 minut na każdy push? Czy tak się nie da funkcjonować?"
+
+  1. **The target stands:** R62's handback → `main` median ≤ 15 min, against 98 min today.
+     - The 98 min break down as: queue behind the single integrator 38.5; flaky reruns 23.7; Windows CI 19; prep 11.
+     - About 25 min is unexplained.
+     - Source: `DIGEST-DECIDE-MERGE-LATENCY-2026-10-05`.
+  2. **W2's first wave carries these lanes,** evaluated by the incoming seat with CC (R76):
+     - W2-24, the merge clock, first;
+     - W2-12, extended so a registered flaky test is never rerun;
+     - W2-25, a pre-handback verdict identical to the integrator's;
+     - W2-13a, Windows shards.
+  3. **The clock starts at handback,** as R62 says.
+  4. **The single serial integrator is the main bottleneck.** Parallel integration, or batching several handbacks per CI run, is a first-class lever.
+  5. **Paid options are the operator's decision.** Larger runners and GitHub's merge queue need an organization account; the repository is on a personal account.
+  ```
+
+- **R86 — pytest-split and the coverage gate** (operator, carried from 2026-10-04 and filed 2026-10-05; full text `RATIFICATION-2026-10-05.md:84` (v5)). In force as: `pytest-split` is approved, and coverage is approved as a blocking no-drop gate on changed modules; the decisions were held only in the LEDGER (lesson 17) until this entry. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1451]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-05.md:84-90
+  ## R86 — carried from 2026-10-04: pytest-split and the coverage gate
+
+  **Original (10-04):** "split tak, coverage tak", "library-first… za Twoją rekomendacją".
+
+  1. **`pytest-split` is APPROVED.**
+  2. **Coverage is APPROVED** as a blocking no-drop gate on changed modules.
+  3. **Why this is filed now:** these decisions were held only in the LEDGER (lesson 17). The `rulings_carried` gate now holds them.
+  ```
+
+- **R87 — codex in the Codespace authenticates with the operator's subscription, not the API** (operator, ruled 2026-10-05 night, filed 2026-10-06; full text `RATIFICATION-2026-10-06.md:10`). In force as: every model CLI in the Codespace authenticates the way it does on the laptop, for codex the ChatGPT/Codex subscription; no API-key path for codex and no operator step per Codespace; CC derives each method from official documentation (R41, R76); removing `CODEX_API_KEY` is authorized once the subscription path is proven. **Narrows R78** (section AR). **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1423]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-06.md:10-18
+  ## R87 — codex in the Codespace authenticates with the operator's subscription, never the API (ruled 2026-10-05 night)
+
+  **Original:** "mam subskrypcję na codex, nie będziemy iść po API, tylko musimy autoryzować codex tak samo jak mam lokalnie… nie może być tak, że tak trywialna sprawa jak autoryzacja mojego konta OpenAI nie daje nam możliwości pracować z Codespace… podejście systemowe."
+
+  1. **Every model CLI in the Codespace authenticates the way it does on the laptop.** For codex that is the ChatGPT/Codex subscription: OpenAI documents copying `~/.codex/auth.json` to a headless machine, or `codex login --device-auth`.
+  2. **No API-key path for codex,** and no operator step per Codespace.
+  3. **CC derives each method from official documentation** (R41, R76).
+  4. **Removing `CODEX_API_KEY` is authorized** once the subscription path is proven.
+  5. **Previously filed only in `to-cc/AMEND-B2-W1-5-2026-10-05.md`;** filed here per lesson 17.
+  ```
+
+- **R88 — the remaining providers in the Codespace** (operator, 2026-10-06; full text `RATIFICATION-2026-10-06.md:20`). In force as: (a) Copilot signs in through the `COPILOT_GITHUB_TOKEN` secret, accepted as the laptop-equivalent sign-in; (b) the retired gemini CLI leaves the registry's expectations; (c) agy is BLOCKED-AUTH in the Codespace, with one OPERATOR-ACTION line and a follow-on W2 lane for a headless method; (d) no refresh probe that could sign the laptop out. The seat ruling recorded for carriage: codex "no-credits" in the Codespace is most likely `CODEX_API_KEY` steering codex onto the API path, so the key is unset for every codex invocation and the secret is not deleted until the fix is proven. **Narrows R78** (section AR). **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1423]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-06.md:20-28
+  ## R88 — the remaining providers in the Codespace (2026-10-06)
+
+  **Original:** "2 tak, 3 tak" (the seat's recommendations), and "Nie no, mówię tak i tak na to co powiedziałeś."
+
+  - **(a) Copilot:** in the Codespace it signs in through the `COPILOT_GITHUB_TOKEN` secret. This is accepted as the laptop-equivalent sign-in: the same subscription, because the laptop's OS keyring cannot be mirrored.
+  - **(b) gemini:** the retired gemini CLI leaves the registry's expectations (provider google's cli becomes null), so the parity check stops requiring it.
+  - **(c) agy:** BLOCKED-AUTH in the Codespace, because its OS-keyring sign-in cannot be mirrored. Record one OPERATOR-ACTION line, plus a follow-on W2 lane to find a headless method.
+  - **(d) No refresh probe** that could sign the laptop out. Rely on the expiry check; a lost laptop sign-in is one OPERATOR-ACTION to re-login.
+  - **Seat ruling, recorded for carriage:** codex "no-credits" in the Codespace is most likely caused by `CODEX_API_KEY` still being present in the environment, steering codex onto the API path. The fix is to unset it for every codex invocation and set ChatGPT as the preferred auth. Do not delete the secret until the fix is proven.
+  ```
+
+- **R89 — the order before a handoff** (operator, 2026-10-06; full text `RATIFICATION-2026-10-06.md:30`). In force as: a handoff cut comes only after four steps in order: open emergencies are closed (the batch is CLOSED and every lane has a known fate, R65), the repositories are clean (no stale worktrees or branches; unfinished work kept as annotated archive tags), the boot test passes (R73), and the cut runs in a fresh session; every open loop gets a deadline before the handoff; the two B2-W1 carriers are the tags `archive/b2-w1-13-codespace-subscription-auth` and `archive/b2-w1-dispatcher-seat-row-cycle-22`. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1456]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-06.md:30-42
+  ## R89 — the order before a handoff (2026-10-06)
+
+  **Original:** "najpierw musimy domknąć wszystkie emergency, czyścić całe repozytoria… testujemy, sprawdzamy, że działa, ale jeszcze go nie robimy"; "lepiej jakby handoff miał świeży kontekst"; "upewnij się, że one są posprzątane, żeby puścić handoff".
+
+  1. **A handoff cut comes only after these four steps,** in this order:
+     - (a) open emergencies are closed — the batch is CLOSED, and every lane has a known fate (R65);
+     - (b) the repositories are clean — no stale worktrees or branches; unfinished work is kept as **annotated archive tags**, not branches;
+     - (c) the boot test passes (R73);
+     - (d) the cut runs **in a fresh session**, never inside a long working session.
+  2. **Every open loop gets a deadline before the handoff.** B2-W1's W1-13 was bounded at 12:00 and then recorded as WAITING (lesson 21).
+  3. **The two B2-W1 carriers are tags, not branches:**
+     - `archive/b2-w1-13-codespace-subscription-auth` → 407b17e0;
+     - `archive/b2-w1-dispatcher-seat-row-cycle-22` → 4c717ecb.
+  ```
+
+- **R90 — the handoff runs through option B+** (operator, 2026-10-08; full text `RATIFICATION-2026-10-08.md:10` (v2)). In force as: a dry run of the whole pipeline reports every failure at once (done: `DIGEST-HANDOFF-READINESS-2026-10-07`); all of it is fixed at once, through mechanisms (dispositions generated from evidence by the carriage organ, `scripts/decision_carriage.py`, on `main` at 350c07f7); the cut runs once; and it is made systemic through three W2 lanes: a readiness command that gates the cut, batch close that requires dispositions, and write-time validators for the seat's inputs. The seat rulings on the P13 decisions, the tooling-defect table and the cut-option ruling that follow R90 in the source are technical rulings carried by their own rows ([#1423], [#1424], [#1425] to [#1437]) and are not landed here. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1435], [#1436], [#1437]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-08.md:10-18
+  ## R90 — the handoff runs through option B+ (operator: "B+ tak")
+
+  1. **Diagnose fully first.** A dry run of the whole pipeline reports every failure at once. Done: `DIGEST-HANDOFF-READINESS-2026-10-07`.
+  2. **Fix all of it at once, through mechanisms.** Dispositions are generated from evidence by `carriage.py`, which has landed on `main` at 350c07f7.
+  3. **Cut once.**
+  4. **Make it systemic** through these W2 lanes:
+     - (a) a readiness command that gates the cut;
+     - (b) batch close requires dispositions;
+     - (c) write-time validators for the seat's inputs.
+  ```
+
+- **R91 — every transport file names the seat that wrote it, with a per-seat index** (operator, 2026-10-08; full text `RATIFICATION-2026-10-08.md:43` (v2)). In force as: every seat has a stable id (architect seats are numbered, CC-run sessions are named by their session name); every transport file a seat or session writes carries that id in its head (`by:`) and in its name where the grammar allows; the generated `INDEX.md` (R79) groups files by seat and session; it is a backlog row in W2's first wave with `b2-transport-index` (R84). **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1454], [#1439]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-08.md:43-50
+  ## R91 — every transport file names the seat that wrote it, with a per-seat index (operator, 2026-10-08)
+
+  **Original:** "Google Drive powinno być rzeczy zapisywane per sesję… Ty jesteś techarchitekt43 i wszystkie rzeczy, które Ty wpisujesz, powinny mieć na przykład tag na początku techarchitekt43 odpowiadający numer sesji, żeby było wiadomo, co zrobiłeś i jaki raport tego dotyczył… zrewiduj to do backlogu, do części procesu, tak żeby o niczym nie zapomnieć."
+
+  1. **Every seat has a stable ID.** The architect seats are numbered (this seat is **Tech-Architect-43**), and CC-run sessions are identified by their session name.
+  2. **Every transport file a seat or session writes carries that ID** — in the head (`by:`), and in the name where the grammar allows it.
+  3. **The generated `INDEX.md` (R79) groups files by seat and session.** One read shows what each seat wrote and which report belongs to which decision.
+  4. **This is a backlog row in W2's first wave,** together with `b2-transport-index` (R84). Until it lands, a one-off index of this seat's window is generated (`INDEX-TECH-ARCHITECT-43`).
+  ```
+
+- **R92 — the exam gate (R73) is set aside for one bootstrap batch, under controls** (operator, 2026-10-09; full text `RATIFICATION-2026-10-09.md:11`). In force as: exactly batch B2-W2 runs without the R73 exam gate, under five controls (CC challenges every lane, an isolated agent on a different model checks every Done-when, the render is GREEN, the operator's paste of each seat order is the GO, and after the boot-teaching lane merges a fresh seat sits a new exam); for any batch after B2-W2 the R73 gate applies again, until a seat passes or the operator rules otherwise; the SMART dates of plan v5 section 1 are not ratified. **Bounds R73** (section AR) for one batch. **Status:** landed as text by `b2w2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a one-batch exception that is spent when batch B2-W2 closes: its five controls are the batch's own rules (the B2-W2 common rules, section 0, and the render and closure reports), control (e) is the boot-teaching lane's own Done-when, and from the next batch R73 applies as written, its mechanism being [#1373] (owner: the B2-W2 integrator, who states the five controls MET or NOT MET in the batch CLOSE report; reopen if a batch after B2-W2 dispatches without a passed seat exam)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-09.md:11-25
+  ## R92 — the exam gate (R73) is set aside for one bootstrap batch, under controls (operator, 2026-10-09)
+
+  **Original:** "GO". It was given in reply to `to-browser/QUESTION-session-plan-tech-architect-44-2026-10-09.md` v5 §10, which stated: "Your GO is your own decision E: R73's exam gate is set aside for this one batch, under the controls in §8."
+
+  **Context:** the seat failed the seat exam twice — 4/12, then 7/12 with the critical questions 3/3 — and passed the dispatch exam 8/8 (`SEAT-EXAM-RESULT-2026-10-09`, `-2`). Two seats in a row failed their first exam because the boot does not teach what the exam tests.
+
+  1. **Scope.** Exactly batch **B2-W2**, as designed in plan v5 §3–§4: five lanes and one parallel read-only session. Nothing else is dispatched by this seat under R92.
+  2. **Controls:**
+     - (a) CC challenges every lane's intent and frozen closure (R41) before the render.
+     - (b) An isolated agent on a different model checks that every Done-when is measurable, with a RED-first test and a vacuity check.
+     - (c) The render is GREEN.
+     - (d) The operator's pastes of the seat orders are the GO.
+     - (e) After the boot-teaching lane merges, a fresh seat sits a new exam (S2).
+     For any batch after B2-W2, the R73 gate applies again, until a seat passes or the operator rules otherwise.
+  3. **Not ratified:** the SMART dates in plan v5 §1 stay proposals; the operator did not confirm them.
+  ```
+
+**Expiry:** none of R80–R92 expire on their own, except R92, which is bounded to batch B2-W2 and spent when it closes; the entries above land text, and each Carried-by line names what is and is not built.
 
 ## Editing note (read before adding an entry)
 

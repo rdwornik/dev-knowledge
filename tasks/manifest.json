@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3af0522228e405cdce43ffaf75a1d593a5ae54ca018866c23ba5f9346be981a2",
+  "generated_sha256": "c4052c8cb580c8d216ed3e42d763426e6fe555a9512601b85f51aace45a96a41",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2912,10 +2912,6 @@
       "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
     },
     {
-      "task": 1420,
-      "file": "1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md"
-    },
-    {
       "task": 1421,
       "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
     },
@@ -3006,6 +3002,62 @@
     {
       "task": 1443,
       "file": "1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md"
+    },
+    {
+      "task": 1444,
+      "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
+    },
+    {
+      "task": 1445,
+      "file": "1445-a-dated-item-warns-three-days-before-its-date.md"
+    },
+    {
+      "task": 1447,
+      "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
+    },
+    {
+      "task": 1450,
+      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
+    },
+    {
+      "task": 1451,
+      "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
+    },
+    {
+      "task": 1452,
+      "file": "1452-every-role-pin-names-the-newest-served-model-r82.md"
+    },
+    {
+      "task": 1453,
+      "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
+    },
+    {
+      "task": 1454,
+      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
+    },
+    {
+      "task": 1455,
+      "file": "1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md"
+    },
+    {
+      "task": 1456,
+      "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
+    },
+    {
+      "task": 1480,
+      "file": "1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md"
+    },
+    {
+      "task": 1481,
+      "file": "1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md"
+    },
+    {
+      "task": 1482,
+      "file": "1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md"
+    },
+    {
+      "task": 1483,
+      "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
     },
     {
       "prose": ""
