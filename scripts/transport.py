@@ -27,8 +27,14 @@ immediately followed by a placeholder (`{`, `<`, `*`) or the end of the literal 
 A concrete, already-resolved filename cited in a docstring (`DIGEST-AUDIT-CROSSCHECK-
 2026-09-23.md`, no placeholder after the prefix) does not match; only a live template does.
 
-READ-ONLY BY DEFAULT. `write()`/`append()` are the only functions that touch the drive; the
-report command (`report`) and every registry query below are pure reads.
+READ-ONLY BY DEFAULT. `write()`/`append()` are the only functions that write a TRANSPORT file for
+a caller; the report command (`report`) and every registry query below are pure reads. The one
+other writer is this module's own generated surface (LANE-1439-b2w2-transport-index): the
+`index` command writes `to-browser/INDEX.md` (and `write()`/`append()` refresh it after a
+classified write), `inventory` and `seat-ids` rewrite their sections of `ecosystem/seat-ids.yaml`,
+and `janitor --apply --expect-manifest <hash>` MOVES -- never deletes or overwrites -- the
+`-superseded` files of registered, attributable kinds into `<folder>/archive/YYYY-MM/`. The
+`janitor` without `--apply` is a dry run that prints the move list and its hash.
 """
 from __future__ import annotations
 
