@@ -19,6 +19,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # [#1103] / R81.3: the mutation pilot runs "on demand and nightly". A schedule runs from the
+  # default branch only, and GitHub may delay it; the minute is off the hour on purpose. The
+  # `record` job has no `if`, so the nightly run also records the wall (free on the public hub).
+  schedule:
+    - cron: "37 3 * * *"
 
 permissions:
   contents: read          # least privilege; no issues:write -- this organ records, it does not emit
@@ -220,13 +225,21 @@ jobs:
   # WORKFLOW-level filter and would gate the record job too -- the record job must fire on
   # every push or the wall stops being a wall. So the equivalent is expressed per-job via
   # `dorny/paths-filter`-free plumbing: a cheap `changed` step below plus this `if`.
-  # UNGATE WHEN [#502] LANDS ITS VERDICT: a pilot that has produced ADOPT/REJECT either
-  # becomes real infrastructure (widen deliberately) or is deleted.
+  # [#1103] (R81.3): [#502] is closed, and the ratified shape is "on demand and nightly". The
+  # `schedule` arm below is that nightly run; on a schedule `changes` answers false (there is no
+  # `event.before`), so only the event-name arm can admit it. Still report-only: the result is
+  # this job's step summary and its artifact, no write-back (`contents: read` above).
   mutation-pilot:
     needs: changes
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       needs.changes.outputs.pilot_subject == 'true'
+    # Job-level group (S-34 P-L3-3): the pilot queues behind its own earlier run and never
+    # cancels one; it shares no group with the workflow-level `record` group above.
+    concurrency:
+      group: report-only-wall-mutation-pilot
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30       # DECLARED WALL-CLOCK BUDGET, not a guess at the true cost.
                               # The pilot's own brief makes a declared budget a precondition;

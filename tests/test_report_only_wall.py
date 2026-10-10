@@ -97,6 +97,34 @@ def test_the_mutation_pilot_is_gated_until_502_has_a_verdict():
     gate = doc["jobs"]["changes"]
     assert gate["outputs"]["pilot_subject"], "the filter job must publish its verdict"
 
+    # [#1103] / R81.3: "on demand and nightly". The schedule arm is a third admitted event, added
+    # beside the two above (neither is weakened). On a schedule the `changes` job answers
+    # pilot_subject=false (no `event.before`), so only the event-name arm can admit the nightly run.
+    on = doc["on"]
+    assert on.get("schedule"), "the wall must carry a nightly schedule (R81.3)"
+    crons = [entry["cron"] for entry in on["schedule"]]
+    assert len(crons) == 1, "one nightly run, not several"
+    minute, hour = crons[0].split()[:2]
+    assert minute.isdigit() and hour.isdigit(), "a fixed nightly time, not a */N cadence"
+    assert minute != "0", "an off-hour minute: GitHub drops on-the-hour schedule load"
+    assert "github.event_name == 'schedule'" in cond, "the pilot must admit the scheduled event"
+
+    # P-L3-3 (S-34): a scheduled run must not displace a pending push `record` run, so the pilot
+    # carries its own job-level concurrency group, distinct from the workflow's.
+    pilot_group = (pilot.get("concurrency") or {}).get("group", "")
+    assert pilot_group and pilot_group != doc["concurrency"]["group"]
+    assert pilot["concurrency"].get("cancel-in-progress") is False
+
+
+@requires_workflow
+def test_the_nightly_pilot_keeps_only_its_artifact_and_summary():
+    """[#1103] Done 4b. R81.3 does not authorise a write-back: the nightly run records to its
+    step summary and its artifact, and the workflow's token stays read-only."""
+    doc = _load()
+    assert doc["permissions"] == {"contents": "read"}
+    for name, job in doc["jobs"].items():
+        assert "permissions" not in job or "write" not in str(job["permissions"]), name
+
 
 @requires_workflow
 def test_the_pilot_filter_answers_false_when_it_cannot_tell():
