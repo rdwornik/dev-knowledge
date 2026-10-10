@@ -1187,6 +1187,24 @@ def test_the_pasted_header_section_carries_no_boot_name_at_all(tmp_path: Path) -
     assert _labels(paste)[0] == "SESSION HEADER (this bundle, not the Project knowledge file)"
 
 
+def test_the_pasted_header_carries_no_boot_name_outside_a_table_row_either(tmp_path: Path) -> None:
+    """Copilot close-out review, Medium 2: dropping the table rows left a title or a prose line
+    that spells the file name. The whole pasted header is name-free; the rest of it survives."""
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+    boot = _REAL_SHAPE_BOOT.replace(
+        "# HANDOFF_BOOT — fixture bundle header",
+        "# HANDOFF_BOOT.md — fixture bundle header\n\nSee HANDOFF_BOOT.md for the role.")
+    assert boot.count(_BOOT_NAME) >= 4, "premise: the name now also sits in a title and a prose line"
+    (bundle / _BOOT_NAME).write_text(boot, encoding="utf-8", newline="\n")
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    header = _section(paste, "SESSION HEADER")
+    assert _BOOT_NAME not in header, header
+    assert "fixture bundle header" in header and "| **Slug** | test |" in header
+    assert (bundle / _BOOT_NAME).read_text(encoding="utf-8") == boot       # the file itself, untouched
+
+
 def test_the_role_pin_section_still_names_the_canonical_file(tmp_path: Path) -> None:
     bundle, script = _real_shape_bundle(tmp_path)
     assert _run(script, bundle).returncode == 0

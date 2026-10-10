@@ -1305,3 +1305,65 @@ def test_a_file_named_as_an_exam_whose_kind_is_a_result_is_skipped(tmp_path):
 
 
 _RESULT_AS_EXAM = "carried-by: OPEN\nkind: SEAT-EXAM-RESULT\n\n# SEAT-EXAM — questions only\n\nGraded.\n"
+
+
+# ---- Copilot close-out review (gpt-6.1-sol, 2026-10-10), High 1 and High 3: the key test was a
+# plain-line test, and the accept test looked at the directory-entry NAME only. -------------------
+
+_EXAM_HEAD_ONLY = ("carried-by: OPEN\nkind: SEAT-EXAM\ndate: 2026-10-11\n\n"
+                   "# SEAT-EXAM — questions only (paste these; never paste the key)\n\n"
+                   "1. A question?\n\n")
+
+
+@pytest.mark.parametrize("key_form", [
+    "## Answer key\n\n1. launch\n",          # a heading: the words that follow are bare list items
+    "### Answers\n- 1: launch\n",
+    "- **Answer:** launch\n",                 # a list item
+    "1. Answer: launch\n",
+    "> Key: 1=a\n",                           # a blockquote
+    "**Expected:** the answer\n",             # the bold plain-line form the first predicate caught
+])
+def test_a_markdown_key_in_any_line_form_never_passes_either_exam_slot(tmp_path, key_form):
+    t = _reading_transport(tmp_path)
+    (t / "to-browser" / "SEAT-EXAM-2026-10-11.md").write_text(
+        _EXAM_HEAD_ONLY + key_form, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+    bad = _reading_transport(tmp_path / "keyed")
+    p = bad / "to-browser" / "DIGEST-DISPATCH-ONBOARDING-2026-10-09.md"
+    # the Dispatch exam is the digest's last, level-2 section: a key INSIDE it sits under a deeper
+    # heading (a level-2 heading would start a sibling section the reading path does not point at)
+    inside = re.sub(r"(?m)^##(?!#)", "###", key_form)
+    p.write_text(p.read_text(encoding="utf-8") + "\n" + inside, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(bad))["dispatch-exam"].status == "HAS-KEY"
+
+
+def test_the_live_shaped_exam_text_is_not_flagged_as_a_key(tmp_path):
+    """The widened predicate must not turn an honest question into a key: a numbered question,
+    a bullet and a heading whose first word is not a key label all stay clean."""
+    t = _reading_transport(tmp_path)
+    ok = _EXAM_HEAD_ONLY + ("## Q2. Which verb starts a lane?\n- Keep it short; name the verb.\n"
+                            "3. What does the map mark a substrate with only a live flag?\n")
+    (t / "to-browser" / "SEAT-EXAM-2026-10-11.md").write_text(ok, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-11.md"
+
+
+@pytest.mark.parametrize("leg", ["is_symlink", "resolve"])
+def test_an_exam_named_alias_of_another_file_never_wins_the_exam_slot(tmp_path, monkeypatch, leg):
+    """A directory entry named like an exam that is really something else -- a symlink, or a name
+    that resolves elsewhere (here: to a RESULT file) -- is not read as an exam. The two legs are
+    simulated so the proof runs on a box without symlink privilege."""
+    t = _reading_transport(tmp_path)
+    alias = t / "to-browser" / "SEAT-EXAM-2099-01-01.md"
+    alias.write_text(_EXAM_HEAD_ONLY.replace("2026-10-11", "2099-01-01"), encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == alias.name, (
+        "premise: with no alias test the crafted entry wins on its date")
+    if leg == "is_symlink":
+        real = Path.is_symlink
+        monkeypatch.setattr(Path, "is_symlink", lambda self: self.name == alias.name or real(self))
+    else:
+        real_resolve = Path.resolve
+        monkeypatch.setattr(
+            Path, "resolve", lambda self, strict=False: (
+                self.with_name("SEAT-EXAM-RESULT-2099-01-01.md") if self.name == alias.name
+                else real_resolve(self, strict=strict)))
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"

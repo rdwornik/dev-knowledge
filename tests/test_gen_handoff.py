@@ -2582,10 +2582,16 @@ _MAP_HARNESS = {"moments": [
     {"name": "merge", "organs": [{"id": "not_in_the_map"}]}]}
 
 
-def _evidence_repo(tmp_path, *, function="test_y"):
+def _evidence_repo(tmp_path, *, function="test_y", track=True):
+    """A tiny repo holding `tests/test_x.py`. Evidence counts only from the git index (Copilot
+    close-out review, High 2), so the file is `git add`ed unless `track=False`."""
     repo = tmp_path / "evidence-repo"
     (repo / "tests").mkdir(parents=True)
     (repo / "tests" / "test_x.py").write_text(f"def {function}():\n    pass\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, capture_output=True)
+    if track:
+        subprocess.run(["git", "add", "--", "tests/test_x.py"], cwd=repo, check=True,
+                       capture_output=True)
     return repo
 
 
@@ -2645,6 +2651,24 @@ def test_evidence_resolves_only_for_an_existing_test_function(tmp_path):
     assert gh.evidence_resolves("test:../outside.py::test_y", repo) is False
 
 
+def test_evidence_in_a_file_git_does_not_track_is_declared(tmp_path):
+    """Copilot close-out review, High 2: the cited test must be in the tracked tree. An untracked
+    file with the cited function -- or one whose row was removed from the index -- is no proof."""
+    token = "test:tests/test_x.py::test_y"
+    untracked = _evidence_repo(tmp_path / "a", track=False)
+    assert gh.evidence_resolves(token, untracked) is False
+    assert "state: DECLARED" in _block(_map(untracked, {"local": (token,)}), "local")
+    removed = _evidence_repo(tmp_path / "b")
+    assert gh.evidence_resolves(token, removed) is True
+    subprocess.run(["git", "rm", "-q", "--cached", "--", "tests/test_x.py"], cwd=removed,
+                   check=True, capture_output=True)
+    assert gh.evidence_resolves(token, removed) is False         # the file is still on disk
+    no_git = tmp_path / "c"
+    (no_git / "tests").mkdir(parents=True)
+    (no_git / "tests" / "test_x.py").write_text("def test_y():\n    pass\n", encoding="utf-8")
+    assert gh.evidence_resolves(token, no_git) is False          # not a repository: fail closed
+
+
 def test_the_live_map_covers_every_registry_substrate_once_and_every_proven_one_cites_a_resolving_test():
     import yaml
     registry = yaml.safe_load((gh._REPO_ROOT / "ecosystem" / "substrate-registry.yaml")
@@ -2697,6 +2721,34 @@ def test_dispatch_map_write_creates_the_map_file_in_the_transport_and_refuses_wi
     assert res.exit_code == 1 and "transport" in res.output.lower()
     res = _invoke(["--write"], t)
     assert res.exit_code != 0                                      # --write belongs to --dispatch-map
+
+
+def test_the_map_write_stages_in_a_unique_temp_file_and_cleans_up_when_it_fails(
+        tmp_path, monkeypatch):
+    """Copilot close-out review, Medium 1: a shared `MAP-DISPATCH.md.tmp` lets two overlapping
+    writers publish each other's text. Each write stages in its own file; a failed replace leaves
+    no stage behind and the last good map in place."""
+    t = _reading_transport(tmp_path)
+    seen: list[str] = []
+    real_replace = os.replace
+
+    def spy(src, dst):
+        seen.append(os.path.basename(src))
+        return real_replace(src, dst)
+    monkeypatch.setattr(os, "replace", spy)
+    gh.write_dispatch_map(t, "first\n")
+    gh.write_dispatch_map(t, "second\n")
+    assert len(seen) == 2 and seen[0] != seen[1], seen
+    assert "MAP-DISPATCH.md.tmp" not in seen, "the shared stage name is the defect"
+
+    def refuse(src, dst):
+        raise OSError("replace refused")
+    monkeypatch.setattr(os, "replace", refuse)
+    with pytest.raises(OSError):
+        gh.write_dispatch_map(t, "third\n")
+    names = sorted(p.name for p in (t / "to-browser").iterdir() if p.name.startswith("MAP-DISPATCH"))
+    assert names == ["MAP-DISPATCH.md"], names                     # no orphaned stage
+    assert (t / "to-browser" / "MAP-DISPATCH.md").read_text(encoding="utf-8") == "second\n"
 
 
 def test_reading_path_cli_exits_0_when_all_five_resolve(tmp_path, monkeypatch):

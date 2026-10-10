@@ -43,6 +43,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -3593,7 +3594,7 @@ def evidence_resolves(token: str, repo_root: "Path | str") -> bool:
         path.relative_to(root)
     except ValueError:
         return False
-    if not path.is_file():
+    if not path.is_file() or not _git_tracks(root, path.relative_to(root).as_posix()):
         return False
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -3601,6 +3602,20 @@ def evidence_resolves(token: str, repo_root: "Path | str") -> bool:
         return False
     return any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == func
                for n in ast.walk(tree))
+
+
+def _git_tracks(root: Path, rel: str) -> bool:
+    """True iff `rel` is in the git index of the repository at `root`. Evidence is a test the
+    repository carries, not a file that happens to sit on this disk (Copilot close-out review,
+    High 2): an untracked file, or one removed from the index, proves nothing. Exit status only
+    (no text decoding); git missing, or `root` not a repository, is False -- fail closed."""
+    try:
+        done = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel], cwd=root,
+                              capture_output=True, check=False,
+                              env={**os.environ, "GIT_LITERAL_PATHSPECS": "1"})
+    except OSError:
+        return False
+    return done.returncode == 0
 
 
 def dispatch_map_text(repo_root: "Path | str | None" = None, *, help_runner=None,
@@ -3676,9 +3691,19 @@ def write_dispatch_map(transport: "Path | None", text: str) -> Path:
     dest = Path(transport) / DISPATCH_MAP_REL
     if not dest.parent.is_dir():
         raise ValueError(f"{dest.parent} does not exist; refusing to create it")
-    tmp = dest.with_name(dest.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8", newline="\n")
-    os.replace(tmp, dest)
+    # A stage of its own per write: a shared `MAP-DISPATCH.md.tmp` lets two overlapping writers
+    # publish each other's text (Copilot close-out review, Medium 1). Cleaned up if the write fails.
+    fd, stage = tempfile.mkstemp(prefix=dest.name + ".", suffix=".tmp", dir=dest.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+        os.replace(stage, dest)
+    except BaseException:
+        try:
+            os.unlink(stage)
+        except OSError:
+            pass
+        raise
     return dest
 
 

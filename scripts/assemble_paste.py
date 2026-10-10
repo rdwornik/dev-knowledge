@@ -178,12 +178,14 @@ _BOOT_NAME = "HANDOFF_BOOT.md"
 
 
 def _drop_boot_name_rows(header: str) -> str:
-    """The header with every table row that names `HANDOFF_BOOT.md` removed (today: the `Role`
-    row). The pasted header then carries the Project knowledge file's name nowhere; the ROLE PIN
+    """The header with the name `HANDOFF_BOOT.md` gone: every table row that names it is removed
+    (today: the `Role` row), and in any other line -- a title, a prose line -- the name is replaced
+    by "the session header", so the rest of that line survives (Copilot close-out review, Medium
+    2). The pasted header then carries the Project knowledge file's name nowhere; the ROLE PIN
     section and the INSTALL lines are where the paste names it. Only the PASTE changes: the
     bundle's own file, its `Role` row and every reader of it (BD-manifest, the probe verifier)
     are untouched."""
-    kept = [ln for ln in header.splitlines()
+    kept = [ln.replace(_BOOT_NAME, "the session header") for ln in header.splitlines()
             if not (ln.lstrip().startswith("|") and _BOOT_NAME in ln)]
     return "\n".join(kept)
 

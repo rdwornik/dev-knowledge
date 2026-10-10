@@ -851,16 +851,28 @@ def coverage_line(repo_root: "Path | str", transport: "Path | None") -> str:
 # HONEST LIMITS
 #   * The resolver returns NAMES and a SECTION title, never a body: the boot's reading path is a
 #     list of things CC pulls, and a body copied into a report would be a second, stale copy.
-#   * `HAS-KEY` is a line-start test (`Answer`, `Key`, `Expected`), the same predicate the exam
-#     tests use. It catches the shapes the exam files take; it is not a proof that no answer is
-#     ever written in prose, which is why the reading path also carries "questions only" in words.
+#   * `HAS-KEY` is a line-start test for a key label (`Answer`, `Answer key`, `Key`, `Expected`,
+#     `Solution`, `Correct answer`) after any heading hashes, list marker, blockquote or bold mark,
+#     the same predicate the exam tests use. It catches the shapes the exam files take; it is not
+#     a proof that no answer is ever written in prose, which is why the reading path also carries
+#     "questions only" in words.
+#   * A directory entry that is a symlink, or resolves to a file whose own name is not a dated name
+#     of the same item, is skipped (`_is_alias`); a hard link or a copy of a key file under an exam
+#     name is a file like any other and is judged by its content, not its history.
 #   * A map file that exists but differs from a fresh generation is the CLI's `STALE`, not this
 #     module's: generating the map needs `dispatch.py --help`, which this module does not call.
 
 #: The reading-path item statuses. `OK` is the only pass.
 READING_STATUSES = ("OK", "MISSING", "NO-SECTION", "HAS-KEY")
 
-_KEY_LINE_RE = re.compile(r"(?mi)^[ \t]*(?:\*\*)?(?:answers?|key|expected)\b")
+# A key label at the start of a line AFTER any markdown framing: blockquote `>`, heading hashes, a
+# list marker (`-` `*` `+` `1.` `1)`) and bold/italic marks. The first predicate saw only a bare or
+# bold label, so `## Answer key`, `- **Answer:** x` and `> Key: x` passed (Copilot close-out
+# review, High 1, 2026-10-10).
+_KEY_LABEL = (r"(?:answer[ \t]+key|answers?|key|expected(?:[ \t]+answers?)?|solutions?"
+              r"|correct[ \t]+answers?)")
+_KEY_LINE_RE = re.compile(
+    rf"(?mi)^[ \t>]*(?:(?:#{{1,6}}|[-*+]|\d+[.)])[ \t]+)*(?:\*\*|__|\*|_)*[ \t]*{_KEY_LABEL}\b")
 _EXAM_KIND_RE = re.compile(r"(?m)^kind:\s*SEAT-EXAM\s*$")
 _QUESTIONS_ONLY_RE = re.compile(r"(?mi)^# .*questions only")
 _HEAD_LINES_READING = 12
@@ -913,6 +925,18 @@ def _read_text(path: Path) -> "str | None":
         return None
 
 
+def _is_alias(path: Path, name_re: "re.Pattern[str]") -> bool:
+    """True when the directory entry `path` is a symlink, or resolves to a file whose own name is
+    not a dated name of the same item. The accept test looks at the entry NAME and the read follows
+    links, so an entry named `SEAT-EXAM-<date>.md` pointing at a `SEAT-EXAM-RESULT-<date>.md` read
+    the key file under an exam's name (Copilot close-out review, High 3). Unresolvable is an alias:
+    the posture is fail-closed."""
+    try:
+        return path.is_symlink() or name_re.fullmatch(path.resolve().name) is None
+    except (OSError, RuntimeError):
+        return True
+
+
 def _exam_slot_ok(path: Path) -> bool:
     """A SEAT-EXAM edition: `kind: SEAT-EXAM`, a `questions only` title, and no key line."""
     text = _read_text(path)
@@ -944,7 +968,8 @@ def _resolve_item(transport: "Path | None", item: ReadingItem) -> ReadingResult:
         name_re = _dated_name_re(item.prefix)
 
         def accept(p: Path, name_re=name_re, exam=item.exam) -> bool:
-            return name_re.fullmatch(p.name) is not None and (_exam_slot_ok(p) if exam else True)
+            return (name_re.fullmatch(p.name) is not None and not _is_alias(p, name_re)
+                    and (_exam_slot_ok(p) if exam else True))
         path = _newest_transport_doc(transport, item.prefix, accept=accept)
     if path is None:
         return ReadingResult(item.key, item.boot_anchor, None, None, "MISSING")
