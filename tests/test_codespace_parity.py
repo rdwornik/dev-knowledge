@@ -2844,8 +2844,10 @@ def test_a_codex_probe_never_sees_an_api_key_even_where_the_cache_is_missing(tmp
     assert seen["codex"] is not None
     assert "CODEX_API_KEY" not in seen["codex"] and "OPENAI_API_KEY" not in seen["codex"]
     assert seen["grok"].get("XAI_API_KEY") == "k3", "grok's key is the laptop's own sign-in"
-    assert cp.unused_keys("codex", tmp_path, {"CODEX_API_KEY": "k"}) == ("CODEX_API_KEY",)
-    assert cp.unused_keys("codex", tmp_path, {}) == ()
+    # both forbidden names are stripped unconditionally -- a login shell can inject either one later
+    both = ("CODEX_API_KEY", "OPENAI_API_KEY")
+    assert cp.unused_keys("codex", tmp_path, {"CODEX_API_KEY": "k"}) == both
+    assert cp.unused_keys("codex", tmp_path, {}) == both
 
 
 def test_credential_expiry_is_read_from_the_cache_file_and_names_the_renew_step(tmp_path):
@@ -3221,3 +3223,73 @@ def test_a_usage_limit_is_not_named_as_a_login_item_and_stays_a_failed_condition
     assert verdict.status == "FAIL", "a call that ran and gave nothing is a FAIL, never relabelled"
     assert "codex returned no served model id on the codespace (usage-limit" in verdict.reason
     assert not any(e.startswith("AUTH-ITEM codex") for e in verdict.evidence)
+
+
+# ============================== b2w3 close-out review (Codex gpt-6-astra, 2026-10-10): CRITICAL, scripts/codespace_parity.py
+#
+# "Codex key isolation is incomplete": `unused_keys` removed only the keys SET in the parent, so a probe
+# whose parent held neither key got no `env -u`, and a login shell that re-exports the Codespaces secrets
+# then handed codex the key; and the version reads (`_tool_probe`, `read_laptop_versions`) ran codex
+# with the ambient environment. R87.3 / Done 2 say EVERY invocation. The names are now applied
+# unconditionally at every process boundary of this module that starts codex.
+
+def test_unused_keys_names_the_never_keys_even_when_the_parent_environment_carries_neither(tmp_path):
+    assert cp.unused_keys("codex", tmp_path, {}) == ("CODEX_API_KEY", "OPENAI_API_KEY"), \
+        "set-in-the-parent is not the test: a login shell can export them after the parent is clean"
+    assert cp.unused_keys("grok", tmp_path, {}) == (), "grok's key is the laptop's own sign-in"
+    assert cp.unused_keys("claude", tmp_path, {}) == ()
+
+
+def test_a_posix_codex_command_is_wrapped_in_env_u_whatever_the_parent_holds():
+    assert cp.keyless_command("codex", ["codex", "--version"], posix=True) == [
+        "env", "-u", "CODEX_API_KEY", "-u", "OPENAI_API_KEY", "codex", "--version"]
+    assert cp.keyless_command("codex", ["codex", "--version"], posix=False) == ["codex", "--version"]
+    assert cp.keyless_command("claude", ["claude", "--version"], posix=True) == ["claude", "--version"], \
+        "no other CLI is wrapped"
+
+
+def test_the_codex_version_probe_runs_keyless_inside_its_login_shell():
+    probe = cp._tool_probe("codex", posix=True)
+    assert probe[:2] == ["bash", "-lc"]
+    assert "env -u CODEX_API_KEY -u OPENAI_API_KEY codex --version" in probe[2], probe[2]
+    assert "env -u" not in cp._tool_probe("claude", posix=True)[2]
+    assert cp._tool_probe("codex", posix=False) == ["codex", "--version"]
+
+
+def test_the_probe_hands_codex_and_only_codex_an_environment_without_either_key(monkeypatch):
+    monkeypatch.setenv("CODEX_API_KEY", "k-sentinel-1")
+    monkeypatch.setenv("OPENAI_API_KEY", "k-sentinel-2")
+    assert "CODEX_API_KEY" not in cp.probe_env("codex") and "OPENAI_API_KEY" not in cp.probe_env("codex")
+    assert cp.probe_env("claude") is None, "no other CLI is given a changed environment"
+
+
+def test_the_laptop_version_reader_runs_codex_without_either_key(monkeypatch):
+    monkeypatch.setenv("CODEX_API_KEY", "k-sentinel-1")
+    monkeypatch.setenv("OPENAI_API_KEY", "k-sentinel-2")
+    seen = {}
+
+    def run(argv, **kw):
+        seen[argv[0]] = kw.get("env")
+        return cp.CmdResult(0, f"{argv[0]} 1.2.3\n", "")
+
+    assert cp.read_laptop_versions(["codex", "claude"], run=run) == {"codex": "1.2.3", "claude": "1.2.3"}
+    assert seen["codex"] is not None
+    assert "CODEX_API_KEY" not in seen["codex"] and "OPENAI_API_KEY" not in seen["codex"]
+    assert seen["claude"] is None
+
+
+def test_collect_environment_probes_the_codex_version_without_either_key(tmp_path, monkeypatch):
+    monkeypatch.setenv("CODEX_API_KEY", "k-sentinel-1")
+    monkeypatch.setenv("OPENAI_API_KEY", "k-sentinel-2")
+    seen = {}
+
+    class Run(_ModelRun):
+        def __call__(self, argv, cwd=None, env=None, **kw):
+            if "--version" in " ".join(argv) and "codex" in " ".join(argv):
+                seen["version_env"] = None if env is None else dict(env)
+            return super().__call__(argv, cwd=cwd, **kw)
+
+    _grok_usage(tmp_path, "sess-run")
+    cp.collect_environment(Run(tmp_path), root=tmp_path, hooks=[], home=tmp_path, nonce=_NONCE)
+    assert seen.get("version_env") is not None, "the version probe was given an explicit environment"
+    assert "CODEX_API_KEY" not in seen["version_env"] and "OPENAI_API_KEY" not in seen["version_env"]

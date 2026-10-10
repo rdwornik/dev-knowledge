@@ -559,12 +559,16 @@ def _semver(text: str) -> Optional[str]:
 
 # =============================================================================== collectors
 
-def _tool_probe(name: str) -> list[str]:
+def _tool_probe(name: str, posix: Optional[bool] = None) -> list[str]:
     """A lane runs under a LOGIN shell on a Codespace (`codespace_admission.py`: PATH is only
-    complete there), so on POSIX a tool is probed through `bash -lc`."""
-    if os.name == "nt":
+    complete there), so on POSIX a tool is probed through `bash -lc`. A CLI with never-keys
+    (`NEVER_KEYS`: codex) is run as `env -u KEY ... <cli> --version` INSIDE that shell, so a login
+    chain that re-exports the Codespaces secrets cannot hand it a key (R87.3, every invocation)."""
+    posix = (os.name != "nt") if posix is None else posix
+    if not posix:
         return [name, "--version"]
-    return ["bash", "-lc", f"command -v {name} >/dev/null 2>&1 && {name} --version"]
+    version = shlex.join(keyless_command(name, [name, "--version"], posix=True))
+    return ["bash", "-lc", f"command -v {name} >/dev/null 2>&1 && {version}"]
 
 
 def _status_probe(argv: Sequence[str]) -> list[str]:
@@ -852,12 +856,35 @@ _PROBE_DECLARED = ("claude", "codex", "grok", "agy", "copilot")
 NEVER_KEYS: dict[str, tuple[str, ...]] = {"codex": ("CODEX_API_KEY", "OPENAI_API_KEY")}
 
 
+def keyless_command(cli: str, argv: Sequence[str], *, posix: Optional[bool] = None) -> list[str]:
+    """`argv` run so that no `NEVER_KEYS` name of `cli` can reach it from ANY source: on POSIX
+    `env -u NAME ...` is applied UNCONDITIONALLY -- whether or not the parent holds the name, because
+    the login shell a Codespace command runs in re-exports the user secrets after the parent was
+    cleaned (close-out review, 2026-10-10). Windows has no login chain: the environment is stripped
+    (`probe_env`) instead. A CLI with no never-keys is returned unchanged."""
+    posix = (os.name != "nt") if posix is None else posix
+    names = NEVER_KEYS.get(cli, ())
+    if not names or not posix:
+        return list(argv)
+    return ["env", *[part for key in names for part in ("-u", key)], *argv]
+
+
+def probe_env(cli: str, env: Optional[Mapping[str, str]] = None) -> Optional[dict[str, str]]:
+    """The environment `cli`'s call is given: this process's without its `NEVER_KEYS` names; None for
+    a CLI with none (it keeps the ambient environment, so nothing else changes)."""
+    names = NEVER_KEYS.get(cli, ())
+    if not names:
+        return None
+    return {k: v for k, v in (os.environ if env is None else env).items() if k not in names}
+
+
 def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]:
-    """The API-key variables of `cli` that are set in `env` and must not reach its call: every
-    `NEVER_KEYS` name (R87.3), and any key the CLI has a sign-in CACHE on this side to make
-    unnecessary -- a key the laptop does not use for it (R87). A CLI with no cache (grok) keeps its
-    key: the laptop itself signs in with it."""
-    forced = tuple(k for k in NEVER_KEYS.get(cli, ()) if env.get(k))
+    """The API-key variables of `cli` that must not reach its call: every `NEVER_KEYS` name,
+    UNCONDITIONALLY (R87.3) -- not only the ones set in `env`, because a login shell can export them
+    after the parent was clean -- and any key the CLI has a sign-in CACHE on this side to make
+    unnecessary -- a key the laptop does not use for it (R87), when set. A CLI with no cache (grok)
+    keeps its key: the laptop itself signs in with it."""
+    forced = tuple(NEVER_KEYS.get(cli, ()))
     spec = SIGN_IN.get(cli)
     if spec is None or not spec.files:
         return forced
@@ -1103,7 +1130,9 @@ def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
     clis = model_clis(registry)
     tools = {}
     for name in names:
-        res = run(_tool_probe(name), cwd=root, timeout=60)
+        keyless = probe_env(name)
+        res = (run(_tool_probe(name), cwd=root, timeout=60, env=keyless) if keyless is not None
+               else run(_tool_probe(name), cwd=root, timeout=60))
         present = res.returncode == 0
         first = (res.stdout.strip().splitlines() or [""])[0]
         tools[name] = {"present": present,
@@ -2382,7 +2411,9 @@ def read_laptop_versions(names: Sequence[str], run: Optional[Runner] = None) -> 
     run = run or default_run
     out: dict[str, Optional[str]] = {}
     for name in names:
-        res = run([name, "--version"], timeout=60)
+        keyless = probe_env(name)      # codex is never given an API key, even to print its version
+        res = (run([name, "--version"], timeout=60, env=keyless) if keyless is not None
+               else run([name, "--version"], timeout=60))
         text = (res.stdout or "").strip()
         out[name] = _semver(text.splitlines()[0]) if res.returncode == 0 and text else None
     return out
