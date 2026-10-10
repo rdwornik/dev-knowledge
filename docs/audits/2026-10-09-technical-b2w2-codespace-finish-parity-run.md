@@ -38,3 +38,33 @@ Every figure below is copied from `check` output, the runner's own log or a comm
 ## What is not done, and why
 
 - **Run 2 (a clean five-condition record), the codex served-id witness and the Codex review record** wait on one outside gate: the ChatGPT plan's Codex usage window (reset about 22:38Z), which falls after the 4 h cycle cap of this lane (21:41Z). Each is recorded `WAITING codex-usage-limit` in the lane's handback; none is relabelled from a FAIL.
+
+---
+
+## Amendment 1 (2026-10-10) -- run 2 was attempted and stopped at the credentials gate: the reason it waits has changed
+
+The "What is not done, and why" section above is left as written. The Codex usage window it waited on reopened, and the dispatcher
+(cycle-3, 21:14Z) released the pass. Two things were found, none of them a code change in this pass (the order: fix no code).
+
+- **No Codespace was created and no condition of run 2 was run.** `dispatch.py codespace-exec` (head = `codespace_parity.py collect --side codespace`)
+  was launched twice (2026-10-10T21:15:07Z and 21:19:08Z) and refused both times before creating anything (`"name": ""`, empty receipt,
+  `fate: WAITING`, `step: credentials`). The mirror decision for codex was `action: refused`: *the laptop's codex cache is 7.19 days old, past
+  the 7-day window: a copy would reach its refresh while the laptop may refresh it too*. `gh codespace list` printed nothing after each; no
+  scratch branch was pushed (`git ls-remote --heads origin "worktree-b2w2-codespace-finish*"` lists only the lane branch).
+- **The refusal's own remedy cannot work in the band it fired in.** The text says to run any `codex exec` on the laptop so it refreshes its own
+  cache. `credential_expiry` shows `CODEX_MIRROR_MAX_AGE_DAYS = 7.0` but `CODEX_REFRESH_DAYS = 8.0`: codex rewrites its cache only from 8 days
+  of age, so between 7 and 8 days a `codex exec` leaves it unchanged. Measured: a laptop `codex exec` probe ran at 21:16:09Z (rollout
+  `rollout-2026-10-10T23-16-09-01a127ac-5b76-7080-b24f-00788dd75f33`, served `gpt-6-astra`, replied the check code, 4.4 s), and at 21:36:47Z
+  `last_refresh` was still 2026-10-03T16:48:43Z (age 7.20 days). The 7-day window closed at 2026-10-10T16:48:43Z; codex's own 8-day refresh
+  falls at **2026-10-11T16:48:43Z**. Run 1 (2026-10-09T20:10Z) was inside the window (6.1 days). Until then only `codex login` on the laptop (a
+  browser ChatGPT sign-in, the operator's act) refreshes the cache, and any `codex exec` on the laptop from 2026-10-11T16:48:43Z does.
+  Raw status: **WAITING the laptop's codex cache age** -- an unexecuted prerequisite with a named gate, not a relabelled FAIL; the five
+  conditions of run 2 are each `NOT-RUN` for that reason and run 1's record above stands unchanged.
+- **The laptop side runs.** `collect --out ...` without the gates leg (2026-10-10T21:21:22Z to about 21:36Z, exit 0, base `54289422bce8`)
+  recorded all five model probes served: claude `claude-sonnet-5`, codex `gpt-6-astra` (command `codex exec --skip-git-repo-check --color never
+  -m gpt-6-astra -s read-only '<probe-prompt>'`, exit 0, the nonce came back), copilot `gpt-6-luna`, grok `grok-4.7`, agy `gemini-3.8-flash-high`.
+  This is the laptop half only, not the Codespace witness (P-L5-1) and not a parity record.
+- **One transient defect observed, not reproduced.** The first laptop `collect --via-gate` (21:15:13Z) aborted with `PermissionError: [WinError 32]`
+  in the temp-directory cleanup of `collect_models` (`tempfile.TemporaryDirectory(prefix="parity-probe-")`, `scripts/codespace_parity.py`
+  line 979) right after a codex probe that ran to completion (run 1's codex probe had failed fast on the usage limit); the directory was empty and removable
+  two minutes later, and the repeat run (same probe code, no gates leg) did not fail. Recorded for a row (clean up tolerantly, `ignore_cleanup_errors=True` or a retry); not fixed here.
