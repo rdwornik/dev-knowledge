@@ -3137,13 +3137,42 @@ def test_check_writes_the_condition_records_beside_the_report(tmp_path):
 # with. The probe record keeps both, with the probe prompt (it carries the nonce) shown as a
 # placeholder, so the record can be pasted whole and still holds no nonce, no output and no credential.
 
-def test_a_probe_record_carries_the_command_that_was_run_and_its_raw_exit_code(tmp_path):
+class _AsPlatform:
+    """`os` as `scripts.codespace_parity` sees it, answering `name` as the platform under test.
+
+    Only the module's own reference is swapped, so pathlib and the rest of the interpreter keep the
+    real platform: a Windows box can therefore run the POSIX branch of the probe (and the reverse),
+    which is what makes the assertion below bite on the host that is NOT the one CI runs on."""
+
+    def __init__(self, real, name):
+        self._real, self.name = real, name
+
+    def __getattr__(self, attr):
+        return getattr(self._real, attr)
+
+
+#: the start of a recorded codex probe command on each platform: POSIX always runs codex behind
+#: `env -u` for both forbidden names (a login shell can re-export either), Windows has no login chain
+_CODEX_EXEC_PREFIX = {"nt": "codex exec ",
+                      "posix": "env -u CODEX_API_KEY -u OPENAI_API_KEY codex exec "}
+
+
+def _as_platform(monkeypatch, name):
+    import os
+
+    monkeypatch.setattr(cp, "os", _AsPlatform(os, name))
+
+
+@pytest.mark.parametrize("platform_name", ["nt", "posix"])
+def test_a_probe_record_carries_the_command_that_was_run_and_its_raw_exit_code(
+        tmp_path, monkeypatch, platform_name):
+    _as_platform(monkeypatch, platform_name)
     _grok_usage(tmp_path, "sess-run")
     out = cp.collect_models(_ModelRun(tmp_path, rc={"codex": 0}), _tools(), {}, _expected(),
                             home=tmp_path, nonce=_NONCE)
     codex = out["codex"]
     assert codex["state"] == "served" and codex["exit_code"] == 0
-    assert codex["command"].startswith("codex exec "), codex["command"]
+    assert codex["command"].startswith(_CODEX_EXEC_PREFIX[platform_name]), codex["command"]
     assert "-m gpt-5.6-terra" in codex["command"] and "<probe-prompt>" in codex["command"]
     assert _NONCE not in json.dumps(out), "the nonce is shown as a placeholder, never stored"
 
@@ -3172,12 +3201,15 @@ def test_the_command_names_the_keys_it_ran_without_and_never_their_values(tmp_pa
         assert "env -u CODEX_API_KEY" in out["codex"]["command"]
 
 
-def test_a_probe_that_could_not_run_still_records_its_command_and_exit_code(tmp_path):
+@pytest.mark.parametrize("platform_name", ["nt", "posix"])
+def test_a_probe_that_could_not_run_still_records_its_command_and_exit_code(
+        tmp_path, monkeypatch, platform_name):
+    _as_platform(monkeypatch, platform_name)
     _grok_usage(tmp_path, "sess-run")
     out = cp.collect_models(_ModelRun(tmp_path, rc={"codex": 124}), _tools(), {}, _expected(),
                             home=tmp_path, nonce=_NONCE)
     assert out["codex"]["state"] == "probe-error" and out["codex"]["exit_code"] == 124
-    assert out["codex"]["command"].startswith("codex exec ")
+    assert out["codex"]["command"].startswith(_CODEX_EXEC_PREFIX[platform_name])
 
 
 # ============================== b2w2-codespace-finish (live run 1, 2026-10-09) -- a spent usage window
