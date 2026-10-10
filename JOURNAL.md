@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-10 (a) - CC (Opus 5.5, integrator seat B2-W2): batch B2-W2 closes -- three merges on main, four lanes carried to B2-W3, rows [#1446] and [#1420] closed
+
+**Anchors:** `bd05a0d5` -- `chore/b2-w2-close-ledgers`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Closed batch B2-W2 under the integrator order's Close section and NIGHT S-26. Main moved `03d21ff8` -> `aaf43867` (lane 1 b2w2-main-comparable, S-15 manual landing) -> `9b706759` (the render's rows branch) -> `ed8c1387` (lane 6 b2w2-rulings-landing).
+- Trial cut (`moment:batch-close`, ADR-129) exit 0 on `ed8c1387`; one carried WARN (`journal_spine_anchor`).
+- Lanes 2 b2w2-merge-clock and 5 b2w2-codespace-finish close WAITING on Codex (S-22 limit); lanes 3 b2w2-transport-index and 4 b2w2-boot-teaching are carried to B2-W3 (ROUND2 S-16/S-18). Branches kept (S-26); tips archived as `archive/b2-w2-b2w2-merge-clock`, `-boot-teaching`, `-codespace-finish` (R89; lane 3 has no lane commit).
+- Rows: `[#1446]` closed by `row_close.py`; `[#1420]` closed by `gen_task_tree.py --close-row` as folded into `[#1446]` (S-30). `[#1441]` stays open: Done-when (4) unmet (windows REGRESSION 1, a flake on the identical tree).
+
+**Result:** 3 merges, 0 FAILED, 4 lanes carried. Cost floor: seats USD 59.26; the six lanes' claude-sonnet-5-5 tokens are UNPRICED (no `rates:` block).
+
+**Changes:** `logs/LANE-COSTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `tasks/1420-*`, `tasks/1446-*`, `tasks/manifest.json`, `BACKLOG.md`. The `bd05a0d5` subject also names the rows-branch post-land receipt; that line was already inside `ed8c1387`, and only lane 6's is new here.
+
+**Abandoned:** none.
+
+**Next:** B2-W3 launches only on the operator's GO (S-26). Digest: `to-browser/DIGEST-B2-W2-2026-10-10.md` (transport).
+
 ### 2026-10-09 (c) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-rulings-landing merges -- rulings R80-R92 land in `STANDING_RULINGS.md` section AS, each carried by a row or a written disposition, so the rulings gate passes once B2-W2 is closed
 
 **Anchors:** `06626a2b`, `3188a66d`, `3e341c8d`, `e035d77f`, `52479ee5`, `143b142d` -- `worktree-b2w2-rulings-landing`, merged `--no-ff` through `worktree-integrate-b2-w2`.
