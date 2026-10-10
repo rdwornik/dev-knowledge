@@ -17,6 +17,7 @@ gate both. A future edit reaching for the simpler `paths:` would quietly disarm 
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -200,6 +201,62 @@ def test_the_mutmut_copy_carries_the_data_files_the_import_chain_reads():
     assert "ecosystem/fleet-shape-spec.yaml" in also
     for entry in also:
         assert (_ROOT / entry).exists(), f"also_copy names a path that is not in the repo: {entry}"
+
+
+def test_a_file_entry_of_also_copy_follows_a_directory_entry_that_creates_its_parent():
+    """[#1103] S-56, shown by dispatched run 38072722475: mutmut 3.7.0's `copy_also_copy_files`
+    copies a FILE with a bare `shutil.copy2`, which does not create `mutants/<parent>/`, and
+    `mutants/ecosystem/` does not exist (only the source paths are copied first), so a lone
+    `ecosystem/fleet-shape-spec.yaml` entry crashed the run with FileNotFoundError. A DIRECTORY
+    entry goes through `copytree`, which does create the parents. So a file entry works only
+    after a directory entry at or below its parent."""
+    seen: list[Path] = []
+    for entry in _mutmut_table().get("also_copy", []):
+        path = Path(entry)
+        if (_ROOT / path).is_dir():
+            seen.append(path)
+            continue
+        parent = path.parent
+        if parent != Path("."):
+            assert any(parent == d or parent in d.parents for d in seen), (
+                f"{entry}: mutants/{parent.as_posix()} does not exist when this file is copied; "
+                "list a directory entry at or below it first")
+
+
+def _copy_the_way_mutmut_does(dest: Path) -> None:
+    """mutmut 3.7.0, `copy_src_dir` then `copy_also_copy_files`, for this table's `source_paths`
+    and the files it always copies. The also_copy loop is mutmut's own, bug included."""
+    table = _mutmut_table()
+    ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+    for name in (*table["source_paths"], "tests"):
+        shutil.copytree(_ROOT / name, dest / name, ignore=ignore)
+    for name in ("pyproject.toml", "uv.lock"):
+        shutil.copy2(_ROOT / name, dest / name)
+    for entry in table.get("also_copy", []):
+        src, dst = _ROOT / entry, dest / entry
+        if not src.exists():
+            continue
+        if src.is_file():
+            shutil.copy2(src, dst)        # no parent created: mutmut's behaviour
+        else:
+            shutil.copytree(src, dst, dirs_exist_ok=True, ignore=ignore)
+
+
+def test_the_mutants_copy_collects_the_pilots_tests(tmp_path):
+    """[#1103] S-56, the outcome the pilot needs before it can execute one mutant: in the copy
+    mutmut builds, the selected tests COLLECT. This is the step that failed on run 38061081144
+    ("failed to collect stats", 0 mutants executed) and, with the shape spec alone, would fail on
+    the next data file the import chain reads. The directory is named `mutants`: the suite
+    itself branches on that name (test_hub_is_included_as_a_mining_target)."""
+    mutants = tmp_path / "mutants"
+    mutants.mkdir()
+    _copy_the_way_mutmut_does(mutants)
+    selected = _mutmut_table()["pytest_add_cli_args_test_selection"]
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-o", "addopts=", "-n", "0",
+         "-p", "no:cacheprovider", *selected],
+        cwd=mutants, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+    assert proc.returncode == 0, (proc.stdout + proc.stderr)[-1500:]
 
 
 def _pilot_check_script() -> str:
