@@ -12,6 +12,7 @@ Everything drives a synthetic transport in `tmp_path`; nothing here touches the 
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib
 import os
 import re
@@ -526,3 +527,323 @@ def test_the_template_proof_check_refuses_unrelated_prose_adjacent_to_a_numbered
           "   a nonce or content hash.\n\n## Do not\n")
     item = _r59_item_in_done_contract(ok)
     assert "R59 proof of read" in item and "nonce or content hash" in item
+
+
+# =====================================================================================================
+# lane b2w2-transport-index ([#1439], batch B2-W3): the `by:` rule, in three classes.
+#
+# A NEW file of a role-written kind with no `by:` in its head is refused; a file that was already on
+# the transport when the landing inventory was generated is only REPORTED (`no-by-predates-landing`
+# when its sha256 still equals the inventory's, `EDITED-UNSIGNED` when it changed); a new file of a
+# script-only kind is REPORTED (`no-by-generated-kind`). The inventory is written by
+# `transport.py inventory --write` alone, never by the lint. Every test drives a synthetic transport
+# in `tmp_path`; nothing here touches the real drive.
+# =====================================================================================================
+
+TA44 = "Tech-Architect-44 (R91)"
+UNSIGNED = "plain text, no by line\n"
+
+
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _signed(line_no: int = 3) -> str:
+    """A body whose flush-left `by:` sits on line `line_no` (1-based)."""
+    lines = [f"filler {i}" for i in range(1, line_no)] + [f"by: {TA44}", "", "# body"]
+    return "\n".join(lines) + "\n"
+
+
+def _land(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(text.encode("utf-8"))
+    return path
+
+
+def _inventory_file(t, world, tmp_path: Path, name: str = "seat-ids.yaml") -> Path:
+    """The generated landing inventory of everything currently on the fixture transport."""
+    path = tmp_path / name
+    t.write_seat_ids(path, seats=[], inventory=t.build_inventory(world["root"]))
+    return path
+
+
+# --- the finding carries a level; the rule is opt-in at the library level ----------------------------
+
+def test_a_finding_has_a_level_that_defaults_to_refuse(lint):
+    assert lint.Finding("a.md", "no-by", "why").level == "refuse"
+    assert lint.Finding("a.md", "no-by-predates-landing", "why", "report").level == "report"
+    assert lint.Finding("a.md", "no-by", "why").render() == "a.md: no-by: why"
+
+
+def test_lint_text_without_require_by_is_unchanged(lint, registry):
+    """`gen_lane_contract` and every other lint_text caller keep today's behaviour."""
+    assert lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", UNSIGNED, registry) == []
+    assert lint.lint_text("PLAN-x-v1.md", "to-cc", UNSIGNED, registry) == []
+    assert lint.lint_text("LEDGER-x.md", "to-browser", UNSIGNED, registry) == []
+
+
+# --- class (i): a NEW unsigned file -------------------------------------------------------------------
+
+@pytest.mark.parametrize("name,folder", [
+    ("PLAN-x-v1.md", "to-cc"),                  # a role-written hub kind
+    ("GO-demo-2026-10-10.md", "to-cc"),
+    ("DIGEST-x-2026-10-10.md", "to-browser"),   # a role-written `any` kind
+    ("SESSION-lane-one.md", "to-browser"),
+    ("QUESTION-seat1.md", "to-browser"),
+])
+def test_lint_by_new_unsigned_file_of_a_role_written_kind_is_refused(lint, registry, name, folder):
+    found = lint.lint_text(name, folder, UNSIGNED, registry, require_by=True)
+    assert [(f.code, f.level) for f in found] == [("no-by", "refuse")]
+    assert "by:" in found[0].reason
+
+
+@pytest.mark.parametrize("name,folder", [
+    ("LEDGER-demo.md", "to-browser"),            # gen_ledger only
+    ("LANE-END-demo.md", "to-browser"),          # transport_report only
+    ("SEAT-BOOT-demo.md", "to-browser"),
+])
+def test_lint_by_new_unsigned_file_of_a_script_only_kind_is_reported_not_refused(lint, registry, name, folder):
+    found = lint.lint_text(name, folder, UNSIGNED, registry, require_by=True)
+    assert [(f.code, f.level) for f in found] == [("no-by-generated-kind", "report")]
+
+
+@pytest.mark.parametrize("line_no,clean", [(1, True), (3, True), (11, True), (12, True), (13, False)])
+def test_lint_by_reads_the_twelve_line_head(lint, registry, line_no, clean):
+    found = lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", _signed(line_no), registry, require_by=True)
+    assert (found == []) is clean
+
+
+@pytest.mark.parametrize("text", [
+    "by:\n# empty value\n",
+    "by:    \n# blank value\n",
+    "  by: indented\n# indented key\n",
+    "> by: quoted\n# not flush-left\n",
+    "<!-- by: comment -->\n# in a comment\n",
+])
+def test_lint_by_needs_a_flush_left_key_with_a_value(lint, registry, text):
+    found = lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", text, registry, require_by=True)
+    assert [f.code for f in found] == ["no-by"]
+
+
+def test_lint_by_does_not_ask_a_non_md_file(lint, registry):
+    for name in ("DIGEST-x.json", "DIGEST-x.yaml", "LANE-demo.CLAIMED-ab12cd"):
+        folder = "to-cc" if name.startswith("LANE") else "to-browser"
+        assert lint.lint_text(name, folder, "{}\n", registry, require_by=True) == [], name
+
+
+def test_lint_by_composes_with_the_existing_findings(lint, registry):
+    """A decision file with no `carried-by:` AND no `by:` reports both; the old finding is untouched."""
+    found = lint.lint_text("AMEND-x-2026-10-10.md", "to-cc", "no heads here\nsecond line\n", registry,
+                           require_by=True)
+    assert sorted(f.code for f in found) == ["no-by", "no-carried-by"]
+    ok = lint.lint_text("AMEND-x-2026-10-10.md", "to-cc", CONFORMING_DECISION.replace(
+        "carried-by: OPEN\n", f"carried-by: OPEN\nby: {TA44}\n"), registry, require_by=True)
+    assert ok == []
+
+
+# --- the class of a path is decided by the inventory's path and sha256 --------------------------------
+
+def test_file_class_is_new_pre_existing_or_edited(lint):
+    inv = {"to-cc/A.md": "a" * 64, "ROOT.md": "b" * 64}
+    assert lint.file_class("to-cc/A.md", "a" * 64, inv) == "pre-existing"
+    assert lint.file_class("to-cc/A.md", "c" * 64, inv) == "edited"
+    assert lint.file_class("to-cc/A.md", None, inv) == "edited"          # unreadable counts as edited
+    assert lint.file_class("to-cc/B.md", "a" * 64, inv) == "new"
+    assert lint.file_class("ROOT.md", "b" * 64, inv) == "pre-existing"   # the root's files carry no folder
+    assert lint.file_class("to-cc/A.md", "a" * 64, None) == "new"        # no inventory: fail closed
+    assert lint.file_class("to-cc/A.md", "a" * 64, {}) == "new"
+
+
+@pytest.mark.parametrize("cls,name,code", [
+    ("pre-existing", "DIGEST-x-2026-10-10.md", "no-by-predates-landing"),
+    ("pre-existing", "LEDGER-demo.md", "no-by-predates-landing"),
+    ("edited", "DIGEST-x-2026-10-10.md", "EDITED-UNSIGNED"),
+    ("edited", "LEDGER-demo.md", "EDITED-UNSIGNED"),
+])
+def test_lint_by_pre_existing_and_edited_unsigned_files_are_reported_never_refused(lint, registry, cls, name, code):
+    folder = "to-browser"
+    found = lint.lint_text(name, folder, UNSIGNED, registry, require_by=True, file_class=cls)
+    assert [(f.code, f.level) for f in found] == [(code, "report")]
+    assert lint.lint_text(name, folder, _signed(), registry, require_by=True, file_class=cls) == []
+
+
+def test_the_class_is_evaluated_only_for_an_unsigned_file(lint, registry):
+    """The sha256 of a file is computed only when the file is unsigned AND in the inventory."""
+    def boom():
+        raise AssertionError("the class of a signed file was computed")
+
+    assert lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", _signed(), registry,
+                          require_by=True, file_class=boom) == []
+    calls = []
+    lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", UNSIGNED, registry, require_by=True,
+                   file_class=lambda: calls.append(1) or "pre-existing")
+    assert calls == [1]
+
+
+def test_refuse_by_override_lets_the_gate_decide_from_the_writer(lint, registry):
+    as_script = lint.lint_text("DIGEST-x-2026-10-10.md", "to-browser", UNSIGNED, registry,
+                               require_by=True, refuse_by=False)
+    assert [(f.code, f.level) for f in as_script] == [("no-by-generated-kind", "report")]
+    as_role = lint.lint_text("LEDGER-demo.md", "to-browser", UNSIGNED, registry,
+                             require_by=True, refuse_by=True)
+    assert [(f.code, f.level) for f in as_role] == [("no-by", "refuse")]
+
+
+# --- `check`: the three classes end to end ------------------------------------------------------------
+
+def _by_world(t, world, tmp_path):
+    """Four files landed, then the inventory generated, then one edited and three added:
+
+    pre-existing unsigned DIGEST, edited unsigned DIGEST, edited unsigned LEDGER, signed-then-edited PLAN,
+    then a NEW unsigned DIGEST, a NEW unsigned LEDGER and a NEW signed DIGEST."""
+    _land(world["browser"] / "DIGEST-old-2026-10-01.md", UNSIGNED)
+    _land(world["browser"] / "DIGEST-edited-2026-10-02.md", UNSIGNED)
+    _land(world["browser"] / "LEDGER-edited.md", UNSIGNED)
+    _land(world["cc"] / "PLAN-signed-v1.md", _signed())
+    inv_path = _inventory_file(t, world, tmp_path)
+    _land(world["browser"] / "DIGEST-edited-2026-10-02.md", UNSIGNED + "an edit\n")
+    _land(world["browser"] / "LEDGER-edited.md", UNSIGNED + "an edit\n")
+    _land(world["cc"] / "PLAN-signed-v1.md", _signed() + "an edit\n")
+    _land(world["browser"] / "DIGEST-new-2026-10-10.md", UNSIGNED)
+    _land(world["browser"] / "LEDGER-new.md", UNSIGNED)
+    _land(world["browser"] / "DIGEST-new-signed-2026-10-10.md", _signed())
+    return inv_path
+
+
+def _check(lint, world, inv_path, name, capsys, *extra):
+    folder = "to-cc" if name.startswith(("PLAN", "GO")) else "to-browser"
+    path = world["root"] / folder / name
+    rc = lint.main(["check", "--inventory", str(inv_path), *extra, str(path)])
+    return rc, capsys.readouterr().out
+
+
+def test_check_classifies_a_path_by_the_inventory_and_exits_1_only_for_a_new_unsigned_role_file(
+        t, lint, world, tmp_path, capsys):
+    inv = _by_world(t, world, tmp_path)
+    rc, out = _check(lint, world, inv, "DIGEST-new-2026-10-10.md", capsys)
+    assert rc == 1 and "no-by" in out and "predates" not in out
+    rc, out = _check(lint, world, inv, "DIGEST-old-2026-10-01.md", capsys)
+    assert rc == 0 and "no-by-predates-landing" in out
+    rc, out = _check(lint, world, inv, "DIGEST-edited-2026-10-02.md", capsys)
+    assert rc == 0 and "EDITED-UNSIGNED" in out
+    rc, out = _check(lint, world, inv, "LEDGER-edited.md", capsys)
+    assert rc == 0 and "EDITED-UNSIGNED" in out                     # a script-only kind, edited
+    rc, out = _check(lint, world, inv, "LEDGER-new.md", capsys)
+    assert rc == 0 and "no-by-generated-kind" in out
+    rc, out = _check(lint, world, inv, "PLAN-signed-v1.md", capsys)
+    assert rc == 0 and "ok" in out                                   # signed, edited: clean
+    rc, out = _check(lint, world, inv, "DIGEST-new-signed-2026-10-10.md", capsys)
+    assert rc == 0 and "ok" in out
+
+
+def test_check_exits_1_when_a_refused_file_sits_among_reported_ones(t, lint, world, tmp_path, capsys):
+    inv = _by_world(t, world, tmp_path)
+    files = [world["browser"] / n for n in ("DIGEST-old-2026-10-01.md", "LEDGER-new.md", "DIGEST-new-2026-10-10.md")]
+    assert lint.main(["check", "--inventory", str(inv), *map(str, files)]) == 1
+    out = capsys.readouterr().out
+    assert "no-by-predates-landing" in out and "no-by-generated-kind" in out and "DIGEST-new-2026-10-10.md: no-by" in out
+    assert lint.main(["check", "--inventory", str(inv), *map(str, files[:2])]) == 0
+
+
+def test_a_missing_or_unreadable_inventory_fails_closed(t, lint, world, tmp_path, capsys):
+    """No readable inventory means every file counts as new, so the pre-existing unsigned role file is refused."""
+    _land(world["browser"] / "DIGEST-old-2026-10-01.md", UNSIGNED)
+    old = world["browser"] / "DIGEST-old-2026-10-01.md"
+    assert lint.main(["check", "--inventory", str(tmp_path / "missing.yaml"), str(old)]) == 1
+    captured = capsys.readouterr()
+    assert "no-by" in captured.out and "inventory" in captured.err
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("landing_inventory: [\n", encoding="utf-8")
+    assert lint.main(["check", "--inventory", str(bad), str(old)]) == 1
+    nomap = tmp_path / "nomap.yaml"
+    nomap.write_text("seats: []\n", encoding="utf-8")
+    assert lint.main(["check", "--inventory", str(nomap), str(old)]) == 1
+
+
+def test_the_by_rule_is_off_outside_the_known_transport_unless_an_inventory_is_named(
+        t, lint, world, tmp_path, capsys, monkeypatch):
+    """Today's `check` and `sweep` behaviour for a scratch tree is unchanged."""
+    monkeypatch.setattr(t, "known_root", lambda: tmp_path / "elsewhere")
+    f = _land(world["browser"] / "DIGEST-plain-2026-10-10.md", UNSIGNED)
+    assert lint.main(["check", str(f)]) == 0
+    assert "ok" in capsys.readouterr().out
+    assert lint.main(["sweep", "--transport-root", str(world["root"])]) == 0
+    capsys.readouterr()
+
+
+def test_the_by_rule_is_on_inside_the_known_transport_with_the_default_inventory(
+        t, lint, world, tmp_path, capsys, monkeypatch):
+    old = _land(world["browser"] / "DIGEST-old-2026-10-01.md", UNSIGNED)
+    inv = _inventory_file(t, world, tmp_path)
+    new = _land(world["browser"] / "DIGEST-new-2026-10-10.md", UNSIGNED)
+    monkeypatch.setattr(t, "known_root", lambda: world["root"])
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", inv)
+    assert lint.main(["check", str(old)]) == 0
+    assert "no-by-predates-landing" in capsys.readouterr().out
+    assert lint.main(["check", str(new)]) == 1
+    capsys.readouterr()
+    assert lint.main(["sweep", "--transport-root", str(world["root"])]) == 1
+    assert "DIGEST-new-2026-10-10.md" in capsys.readouterr().out
+
+
+# --- `sweep` ---------------------------------------------------------------------------------------------
+
+def test_sweep_reports_by_findings_with_levels(t, lint, registry, world, tmp_path):
+    inv_path = _by_world(t, world, tmp_path)
+    inv = t.load_inventory(inv_path)
+    found = lint.sweep(world["root"], registry=registry, require_by=True, inventory=inv)
+    by_path = {f.path: f for f in found}
+    assert (by_path["to-browser/DIGEST-new-2026-10-10.md"].code,
+            by_path["to-browser/DIGEST-new-2026-10-10.md"].level) == ("no-by", "refuse")
+    assert (by_path["to-browser/LEDGER-new.md"].code, by_path["to-browser/LEDGER-new.md"].level) == (
+        "no-by-generated-kind", "report")
+    assert by_path["to-browser/DIGEST-old-2026-10-01.md"].code == "no-by-predates-landing"
+    assert by_path["to-browser/DIGEST-edited-2026-10-02.md"].code == "EDITED-UNSIGNED"
+    assert by_path["to-browser/LEDGER-edited.md"].code == "EDITED-UNSIGNED"
+    assert "to-cc/PLAN-signed-v1.md" not in by_path and "to-browser/DIGEST-new-signed-2026-10-10.md" not in by_path
+    assert {f.path for f in found if f.level == "refuse"} == {"to-browser/DIGEST-new-2026-10-10.md"}
+    assert lint.sweep(world["root"], registry=registry) == []             # the default is the old sweep
+
+
+def test_sweep_cli_counts_predating_files_and_prints_them_with_the_flag(t, lint, world, tmp_path, capsys):
+    inv = _by_world(t, world, tmp_path)
+    (world["browser"] / "DIGEST-new-2026-10-10.md").unlink()              # leave no refused file
+    args = ["sweep", "--transport-root", str(world["root"]), "--inventory", str(inv)]
+    assert lint.main(args) == 0
+    captured = capsys.readouterr()
+    assert "no-by-predates-landing" not in captured.out                  # counted, not listed
+    assert "EDITED-UNSIGNED" in captured.out and "no-by-generated-kind" in captured.out
+    assert re.search(r"1 .*predat", captured.err)
+    assert lint.main([*args, "--report-predating"]) == 0
+    assert "DIGEST-old-2026-10-01.md: no-by-predates-landing" in capsys.readouterr().out
+
+
+# --- the inventory is generated, deterministic, and never rewritten by the lint ----------------------------
+
+def test_the_inventory_is_never_rewritten_by_check_sweep_or_the_gate(t, lint, world, tmp_path, monkeypatch, capsys):
+    inv = _by_world(t, world, tmp_path)
+    before = inv.read_bytes()
+    lint.main(["check", "--inventory", str(inv), str(world["browser"] / "DIGEST-new-2026-10-10.md")])
+    lint.main(["sweep", "--transport-root", str(world["root"]), "--inventory", str(inv)])
+    monkeypatch.setattr(t, "known_root", lambda: world["root"])
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", inv)
+    t.write("operator", world["browser"] / "DIGEST-gated-2026-10-10.md", _signed())
+    with pytest.raises(t.TransportWriteRefused):
+        t.write("operator", world["browser"] / "DIGEST-refused-2026-10-10.md", UNSIGNED)
+    capsys.readouterr()
+    assert inv.read_bytes() == before
+
+
+def test_the_inventory_command_output_equals_a_fresh_generation_and_is_byte_stable(t, world, tmp_path):
+    _by_world(t, world, tmp_path)
+    seat_file = tmp_path / "gen.yaml"
+    t.write_seat_ids(seat_file, seats=[], inventory={})
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    assert t.main(["inventory", "--write", *args]) == 0
+    first = seat_file.read_bytes()
+    assert t.main(["inventory", "--write", *args]) == 0
+    assert seat_file.read_bytes() == first
+    fresh = tmp_path / "fresh.yaml"
+    t.write_seat_ids(fresh, seats=[], inventory=t.build_inventory(world["root"]))
+    assert fresh.read_bytes() == first
+    assert t.load_inventory(seat_file)["to-browser/DIGEST-new-2026-10-10.md"] == _sha(UNSIGNED)

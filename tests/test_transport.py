@@ -16,7 +16,11 @@ touches the real drive.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib
+import os
+import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -514,3 +518,985 @@ def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_sk
         test_concurrent_appends_to_the_same_destination_serialize_without_interleaving,
         "pytestmark", [])}
     assert not marks & {"skip", "skipif", "xfail"}
+
+
+# =====================================================================================================
+# lane b2w2-transport-index ([#1439], batch B2-W3): the generated INDEX, the attribution rule, the
+# seat-ID map, the landing inventory, the janitor and the INDEX trigger.
+#
+# Every test drives a synthetic transport in `tmp_path`; nothing here touches the real drive. The
+# oracles below are written from the contract, the seat's AMENDs and the lane's plan (revision 7),
+# in this file, and are NOT imported from `transport`: a test that borrowed the module's own
+# predicate could not show the module agrees with the AMEND's words.
+# =====================================================================================================
+
+STAMP = "2026-10-10T12:00:00Z"
+TA44 = "Tech-Architect-44 (R91)"
+TA43 = "Tech-Architect-43 (R91)"
+SEAT_43 = {"seat": "Tech-Architect-43", "session": "2026-10-02-dev-knowledge-architect",
+           "provenance": "to-cc/AMEND-seed-43.md", "stated_in": 1}
+SEAT_44 = {"seat": "Tech-Architect-44", "session": "2026-10-08-dev-knowledge-architect",
+           "provenance": "to-cc/AMEND-seed-44.md", "stated_in": 1}
+SEATS = [SEAT_43, SEAT_44]
+
+
+def _put(root: Path, rel: str, text: str = "x\n") -> Path:
+    """Write `text` (LF bytes) at `rel` under `root`; `rel` is `to-cc/NAME`, `to-browser/NAME` or a bare
+    NAME for the transport root, the convention `scan()` reports paths in."""
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(text.encode("utf-8"))
+    return path
+
+
+def _head(*, by=None, date=None, summary=None, supersedes=None, heading=None, body=("dev-knowledge",)) -> str:
+    lines = []
+    for key, value in (("by", by), ("date", date), ("summary", summary), ("supersedes", supersedes)):
+        if value is not None:
+            lines.append(f"{key}: {value}")
+    lines.append("")
+    if heading:
+        lines.append(f"# {heading}")
+    lines.extend(body)
+    return "\n".join(lines) + "\n"
+
+
+def _seatmap_digest(seats) -> str:
+    text = "\n".join(sorted(f"{s['seat']}={s['session']}" for s in seats))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def _seat_file(tmp_path: Path, seats=SEATS, inventory=None) -> Path:
+    import transport
+    path = tmp_path / "seat-ids.yaml"
+    transport.write_seat_ids(path, seats=list(seats), inventory=dict(inventory or {}))
+    return path
+
+
+def _index(t, root: Path, seats=SEATS, stamp: str = STAMP, trigger: str = "index") -> str:
+    return t.build_index(root, seats=list(seats), generated_at=stamp, trigger=trigger)
+
+
+def _entries(t, text: str) -> list[dict]:
+    return t.parse_index(text)["entries"]
+
+
+# --- the registry row ---------------------------------------------------------------------------------
+
+def test_the_index_kind_is_registered_and_the_row_avoids_the_three_silent_rule_words(t, registry):
+    kind = t.classify("INDEX.md", registry)
+    assert kind is not None and kind.name == "INDEX"
+    assert kind.folder == "to-browser" and kind.writers == ("transport",)
+    assert kind.repo_scope == "hub" and kind.decision is False
+    raw = REGISTRY_PATH.read_text(encoding="utf-8")
+    row = raw.split("kind: INDEX", 1)[1].split("\n  - kind:", 1)[0].lower()
+    for word in ("must", "shall", "never"):
+        assert not re.search(rf"\b{word}\b", row), f"the INDEX row carries the word {word!r}"
+    assert t.classify("INDEX.md.bak", registry) is None
+
+
+# --- Done 1: the generated INDEX ------------------------------------------------------------------------
+
+def _snapshot_world(world) -> None:
+    root = world["root"]
+    _put(root, "to-browser/DIGEST-alpha-2026-10-08.md",
+         _head(by=TA44, date="2026-10-08", summary="Alpha digest"))
+    _put(root, "to-browser/DIGEST-beta-2026-10-09.md",
+         _head(by=TA44, date="2026-10-09", summary="Beta digest"))
+    _put(root, "to-browser/DIGEST-delta-2026-10-09.md",
+         _head(by=TA44, date="2026-10-09", summary="Delta digest"))
+    _put(root, "to-browser/DIGEST-gamma-2026-10-09.md",
+         _head(by=TA43, date="2026-10-09", summary="Gamma digest"))
+    _put(root, "to-browser/DIGEST-nosigner-2026-10-07.md", _head(heading="Unsigned digest"))
+    _put(root, "to-browser/DIGEST-undated.md", _head(by=TA44))
+    _put(root, "to-browser/DIGEST-old-2026-10-01-superseded.md",
+         _head(by=TA44, date="2026-10-01", summary="Old digest"))
+    _put(root, "to-browser/DIGEST-nosignal-2026-10-03.md", _head(body=()))
+    _put(root, "to-cc/PLAN-x-v1.md", _head(by=TA44, date="2026-10-05", summary="Plan one"))
+    _put(root, "to-cc/PLAN-x-v2.md",
+         _head(by=TA44, date="2026-10-06", summary="Plan two", supersedes="PLAN-x-v1.md"))
+    _put(root, "to-cc/notes.txt", "a stray\n")
+    _put(root, "to-browser/.hidden.tmp", "dotfile\n")
+    _put(root, "to-browser/desktop.ini", "[.ShellClassInfo]\n")
+
+
+def _golden_snapshot() -> str:
+    row = "- {path} | {kind} | {subject} | {date} | by: {by}".format
+    return "\n".join([
+        "by: transport.py index (generated)",
+        "date: 2026-10-10",
+        "summary: Generated index of the current transport files, by kind and writer, newest first.",
+        "regenerated: 2026-10-10T12:00:00Z",
+        "trigger: index",
+        f"inputs: veto=- seatmap={_seatmap_digest(SEATS)}",
+        "",
+        "# INDEX — current files on the transport",
+        "",
+        "Generated by `transport.py index --write`. Regenerate it; do not edit it by hand.",
+        "",
+        "repository: dev-knowledge",
+        "live: 12",
+        "classified: 11",
+        "listed: 10",
+        "current: 8",
+        "superseded: 2",
+        "UNATTRIBUTED: 1",
+        "unclassified: 1",
+        "UNATTRIBUTED by kind: DIGEST=1",
+        "",
+        "## Current",
+        "",
+        "### DIGEST (6)",
+        "",
+        "#### Tech-Architect-43 (1)",
+        "",
+        row(path="to-browser/DIGEST-gamma-2026-10-09.md", kind="DIGEST", subject="Gamma digest",
+            date="2026-10-09", by=TA43),
+        "",
+        "#### Tech-Architect-44 (4)",
+        "",
+        row(path="to-browser/DIGEST-beta-2026-10-09.md", kind="DIGEST", subject="Beta digest",
+            date="2026-10-09", by=TA44),
+        row(path="to-browser/DIGEST-delta-2026-10-09.md", kind="DIGEST", subject="Delta digest",
+            date="2026-10-09", by=TA44),
+        row(path="to-browser/DIGEST-alpha-2026-10-08.md", kind="DIGEST", subject="Alpha digest",
+            date="2026-10-08", by=TA44),
+        row(path="to-browser/DIGEST-undated.md", kind="DIGEST", subject="(no subject)",
+            date="undated", by=TA44),
+        "",
+        "#### UNKNOWN (1)",
+        "",
+        row(path="to-browser/DIGEST-nosigner-2026-10-07.md", kind="DIGEST", subject="Unsigned digest",
+            date="2026-10-07", by="UNKNOWN"),
+        "",
+        "### INDEX (1)",
+        "",
+        "#### transport.py index (1)",
+        "",
+        row(path="to-browser/INDEX.md", kind="INDEX",
+            subject="Generated index of the current transport files, by kind and writer, newest first.",
+            date="2026-10-10", by="transport.py index (generated)"),
+        "",
+        "### PLAN (1)",
+        "",
+        "#### Tech-Architect-44 (1)",
+        "",
+        row(path="to-cc/PLAN-x-v2.md", kind="PLAN", subject="Plan two", date="2026-10-06", by=TA44),
+        "",
+        "## Superseded",
+        "",
+        "### DIGEST (1)",
+        "",
+        row(path="to-browser/DIGEST-old-2026-10-01-superseded.md", kind="DIGEST", subject="Old digest",
+            date="2026-10-01", by=TA44),
+        "",
+        "### PLAN (1)",
+        "",
+        row(path="to-cc/PLAN-x-v1.md", kind="PLAN", subject="Plan one", date="2026-10-05", by=TA44),
+        "",
+        "## UNATTRIBUTED",
+        "",
+        "### DIGEST (1)",
+        "",
+        row(path="to-browser/DIGEST-nosignal-2026-10-03.md", kind="DIGEST", subject="(no subject)",
+            date="2026-10-03", by="UNKNOWN"),
+        "",
+        "## Supersedes edges",
+        "",
+        "- to-cc/PLAN-x-v2.md supersedes PLAN-x-v1.md",
+        "",
+    ])
+
+
+def test_index_snapshot_matches_the_stored_text(t, world):
+    """Done 1: grouped by kind then writer, newest first, ties by path, `by: UNKNOWN`, `undated`,
+    a superseded section, the UNATTRIBUTED section and its count by kind, the INDEX's own row."""
+    _snapshot_world(world)
+    assert _index(t, world["root"]) == _golden_snapshot()
+
+
+def test_index_is_deterministic_and_independent_of_listing_order(t, world, monkeypatch):
+    _snapshot_world(world)
+    first = _index(t, world["root"])
+    orig = t.live_files
+    monkeypatch.setattr(t, "live_files", lambda root: list(reversed(orig(root))))
+    assert _index(t, world["root"]) == first
+
+
+def test_index_says_the_rule_for_current_and_the_sort_key(t, world):
+    """No mtime anywhere: a file whose mtime is changed lands in the same place."""
+    _snapshot_world(world)
+    before = _index(t, world["root"])
+    path = world["root"] / "to-browser" / "DIGEST-undated.md"
+    os.utime(path, (978307200, 978307200))   # 2001-01-01
+    assert _index(t, world["root"]) == before
+
+
+def _oracle_names(root: Path, registry, t) -> dict:
+    """The classified live files, split into listed / UNATTRIBUTED by an independent walk."""
+    live = []
+    for folder, sub in (("to-cc", root / "to-cc"), ("to-browser", root / "to-browser"), ("root", root)):
+        for p in sorted(sub.iterdir()):
+            if p.is_file() and not p.name.startswith(".") and p.name != "desktop.ini" and p.name != "INDEX.md":
+                live.append((folder, p))
+    ledger_names = set()
+    for folder, p in live:
+        m = re.match(r"LEDGER-(.+)\.md$", p.name)
+        if m:
+            tok = m.group(1).lower().replace("_", "-")
+            while True:
+                new = re.sub(r"(-\d{4}-\d{2}-\d{2}|-superseded|-v\d+)$", "", tok)
+                if new == tok:
+                    break
+                tok = new
+            if tok != "dev-knowledge":
+                ledger_names.add(tok)
+    listed, unattributed, strays = [], [], 0
+    for folder, p in live:
+        kind = t.classify(p.name, registry)
+        if kind is None:
+            strays += 1
+            continue
+        rel = p.name if folder == "root" else f"{folder}/{p.name}"
+        text = p.read_text(encoding="utf-8", errors="replace") if p.suffix == ".md" else ""
+        window = "\n".join(text.splitlines()[:30]).lower().replace("_", "-")
+        lname = p.name.lower().replace("_", "-")
+        vetoed = any(re.search(rf"(?<![a-z0-9]){re.escape(tok)}(?![a-z0-9])", lname + "\n" + window)
+                     for tok in ledger_names)
+        stem = re.sub(r"\.[A-Za-z0-9]{1,6}$", "", p.name).lower()
+        vetoed = vetoed or "cv" in stem.split("-")
+        cited = [c for c in re.findall(r"[A-Za-z0-9._-]+\.md", "\n".join(text.splitlines()[:30]))
+                 if c != p.name and (t.classify(c, registry) is not None)
+                 and t.classify(c, registry).repo_scope == "hub"]
+        signal = bool(re.search(r"\bdev-knowledge\b", "\n".join(text.splitlines()[:30]))
+                      or re.search(r"Tech-Architect-\d+", "\n".join(text.splitlines()[:30]))
+                      or cited)
+        (listed if (signal and not vetoed) else unattributed).append(rel)
+    return {"listed": sorted(listed), "unattributed": sorted(unattributed), "strays": strays}
+
+
+def test_index_entries_equal_the_classified_live_files_attributable_to_this_repo(t, world, registry):
+    """P-L3-1: entries equal, in number and identity, an oracle that walks the fixture on its own; the
+    INDEX's own row is one of them; a file not attributable is UNATTRIBUTED, not dropped."""
+    root = world["root"]
+    _snapshot_world(world)
+    _put(root, "to-browser/LEDGER-dev-knowledge.md", _head(by="gen_ledger.py", date="2026-10-09"))
+    _put(root, "to-browser/LEDGER-acme-ops.md", _head(by="gen_ledger.py", date="2026-10-09"))
+    _put(root, "to-browser/DIGEST-mentions-acme-ops-2026-10-09.md", _head(by=TA44, body=("acme-ops notes",)))
+    _put(root, "to-cc/CONTRACT-cv-build-2026-09-10.md", _head(by=TA44))
+    _put(root, "to-cc/GO-demo-2026-10-09.md", _head(by=TA44, date="2026-10-09"))
+    _put(root, "to-cc/GO-bare-2026-10-09.md", "just text\n")
+    _put(root, "LANE-demo.md", _head(by=TA44, date="2026-10-09"))
+    _put(root, "to-cc/LANE-demo.CLAIMED-ab12cd", "claim\n")
+    text = _index(t, root)
+    entries = _entries(t, text)
+    oracle = _oracle_names(root, registry, t)
+    got_listed = sorted(e["path"] for e in entries if e["status"] in ("current", "superseded")
+                        and e["path"] != "to-browser/INDEX.md")
+    got_unattr = sorted(e["path"] for e in entries if e["status"] == "unattributed")
+    assert got_listed == oracle["listed"]
+    assert got_unattr == oracle["unattributed"]
+    assert any(e["path"] == "to-browser/INDEX.md" and e["kind"] == "INDEX" for e in entries)
+    assert "to-cc/CONTRACT-cv-build-2026-09-10.md" in got_unattr
+    assert "to-browser/LEDGER-acme-ops.md" in got_unattr            # the derived veto: its own name
+    assert "to-browser/DIGEST-mentions-acme-ops-2026-10-09.md" in got_unattr
+    assert "to-cc/GO-bare-2026-10-09.md" in got_unattr               # a hub kind earns nothing by scope
+    assert "LANE-demo.md" in got_listed
+    assert "to-cc/LANE-demo.CLAIMED-ab12cd" in got_unattr            # a claim marker has no head signal
+    assert t.parse_index(text)["header"]["unclassified"] == str(oracle["strays"])
+
+
+def test_every_entry_carries_kind_subject_date_and_by(t, world, registry):
+    """P-L3-1 (grok review of revision 4): the four fields on every listed and UNATTRIBUTED entry,
+    each equal to the oracle's value, never empty."""
+    _snapshot_world(world)
+    entries = _entries(t, _index(t, world["root"]))
+    assert len(entries) == 11                              # ten listed (the INDEX's own row among them) + one
+    by_path = {e["path"]: e for e in entries}
+    for e in entries:
+        assert e["kind"] and e["subject"] and e["date"] and e["by"], e
+        assert t.classify(Path(e["path"]).name, registry).name == e["kind"]
+    assert by_path["to-browser/DIGEST-alpha-2026-10-08.md"]["subject"] == "Alpha digest"
+    assert by_path["to-browser/DIGEST-alpha-2026-10-08.md"]["date"] == "2026-10-08"
+    assert by_path["to-browser/DIGEST-alpha-2026-10-08.md"]["by"] == TA44
+    assert by_path["to-browser/DIGEST-nosigner-2026-10-07.md"]["subject"] == "Unsigned digest"   # heading
+    assert by_path["to-browser/DIGEST-nosigner-2026-10-07.md"]["date"] == "2026-10-07"            # name date
+    assert by_path["to-browser/DIGEST-nosigner-2026-10-07.md"]["by"] == "UNKNOWN"
+    assert by_path["to-browser/DIGEST-undated.md"]["subject"] == "(no subject)"
+    assert by_path["to-browser/DIGEST-undated.md"]["date"] == "undated"
+    assert by_path["to-browser/DIGEST-nosignal-2026-10-03.md"]["by"] == "UNKNOWN"
+    assert by_path["to-browser/DIGEST-nosignal-2026-10-03.md"]["status"] == "unattributed"
+
+
+def test_a_long_or_pipe_bearing_subject_stays_one_row(t, world):
+    _put(world["root"], "to-browser/DIGEST-pipes-2026-10-09.md",
+         _head(by=TA44, date="2026-10-09", summary="a | b | " + "x" * 200))
+    entries = {e["path"]: e for e in _entries(t, _index(t, world["root"]))}
+    e = entries["to-browser/DIGEST-pipes-2026-10-09.md"]
+    assert len(e["subject"]) <= 100 and "|" not in e["subject"]
+
+
+def test_index_check_cli_exits_1_with_no_index_and_0_after_the_index_is_written(t, world, tmp_path, capsys):
+    _snapshot_world(world)
+    seat_file = _seat_file(tmp_path)
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    assert t.main(["index", "--check", *args]) == 1                      # no INDEX
+    assert not (world["browser"] / "INDEX.md").exists()                  # --check writes nothing
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    written = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    assert written == _golden_snapshot()
+    assert t.main(["index", "--check", *args]) == 0
+    _put(world["root"], "to-browser/DIGEST-late-2026-10-10.md", _head(by=TA44, date="2026-10-10"))
+    assert t.main(["index", "--check", *args]) == 1                      # a new file makes it stale
+    capsys.readouterr()
+    assert t.main(["index", *args]) == 0                                  # no flag: prints, writes nothing
+    out = capsys.readouterr().out
+    assert "UNATTRIBUTED" in out and (world["browser"] / "INDEX.md").read_text(encoding="utf-8") == written
+
+
+def test_an_empty_seat_map_fails_the_index_run(t, world, tmp_path):
+    """Done 4: an empty map cannot pass; the INDEX run refuses and writes nothing."""
+    _snapshot_world(world)
+    with pytest.raises(t.EmptySeatMap):
+        t.build_index(world["root"], seats=[], generated_at=STAMP, trigger="index")
+    empty = _seat_file(tmp_path, seats=[])
+    rc = t.main(["index", "--write", "--transport-root", str(world["root"]), "--seat-ids", str(empty)])
+    assert rc == 2 and not (world["browser"] / "INDEX.md").exists()
+
+
+# --- Done 1 / S-10: the attribution rule, oracle written from the AMEND's own words -----------------------
+
+SEATS_OTHER = [{"seat": "Tech-Architect-12", "session": "2026-09-01-other-architect",
+                "provenance": "to-cc/AMEND-seed-12.md", "stated_in": 1}]
+
+
+def _attr_case(world, name, text, extra=()):
+    """The attribution status of every file on a fixture transport holding `to-browser/<name>`."""
+    root = world["root"]
+    for rel, body in extra:
+        _put(root, rel, body)
+    _put(root, f"to-browser/{name}", text)
+    mod = _mod("transport")
+    return {e["path"]: e["status"] for e in _entries(mod, _index(mod, root, seats=SEATS_OTHER))}
+
+
+def _lines(n_before: int, line: str) -> str:
+    """A head with `line` on line n_before + 1 and filler everywhere else."""
+    return "\n".join(["filler"] * n_before + [line]) + "\n"
+
+
+@pytest.mark.parametrize("name,text,expected", [
+    # accepted signals (S-10 C3): the repository token, word-bounded, in the first 30 lines
+    ("DIGEST-tok-line-1.md", "dev-knowledge notes\n", "listed"),
+    ("DIGEST-tok-line-30.md", _lines(29, "see dev-knowledge"), "listed"),
+    ("DIGEST-tok-line-31.md", _lines(30, "see dev-knowledge"), "unattributed"),
+    ("DIGEST-tok-substring.md", "mydev-knowledgebase\n", "unattributed"),
+    # a Tech-Architect-NN id, any, or a session slug present in the seat map
+    ("DIGEST-ta-id.md", "by: Tech-Architect-77 (R91)\n", "listed"),
+    ("DIGEST-seat-slug.md", "from: 2026-09-01-other-architect\n", "listed"),
+    ("DIGEST-unmapped-slug.md", "from: 2026-09-02-unmapped-architect\n", "unattributed"),
+    # a cited transport file name that classifies as a hub-scope kind
+    ("DIGEST-cites-hub.md", "see GO-demo-2026-10-09.md for the order\n", "listed"),
+    ("DIGEST-cites-any.md", "see DIGEST-other-2026-10-09.md\n", "unattributed"),
+    # rejected by the AMEND: a name-only signal, and a path that exists under the repository root
+    ("DIGEST-dev-knowledge-name-only.md", "plain text\n", "unattributed"),
+    ("DIGEST-cites-a-repo-path.md", "see scripts/transport.py and ecosystem/transport-registry.yaml\n", "unattributed"),
+    # a hub-scope kind with no head signal earns nothing by its scope
+    ("SIGNAL-hub-bare.md", "plain text\n", "unattributed"),
+])
+def test_attribution_follows_the_amend_table(t, world, name, text, expected):
+    status = _attr_case(world, name, text)
+    got = status[f"to-browser/{name}"]
+    assert (got != "unattributed") == (expected == "listed"), (name, got)
+
+
+def test_the_derived_veto_removes_a_file_that_carries_an_accepted_signal(t, world):
+    status = _attr_case(
+        world, "DIGEST-about-acme-ops-2026-10-09.md", "dev-knowledge and Tech-Architect-44\n",
+        extra=[("to-browser/LEDGER-acme-ops.md", _head(by="gen_ledger.py")),
+               ("to-browser/LEDGER-acme-ops-v1-superseded-2026-09-10.md", _head(by="gen_ledger.py")),
+               ("to-browser/LEDGER-Acme_Ops2.md", _head(by="gen_ledger.py"))])
+    assert status["to-browser/DIGEST-about-acme-ops-2026-10-09.md"] == "unattributed"
+    assert status["to-browser/LEDGER-acme-ops.md"] == "unattributed"
+
+
+def test_a_ledger_of_this_repo_does_not_veto(t, world):
+    status = _attr_case(world, "DIGEST-fine-2026-10-09.md", "dev-knowledge\n",
+                        extra=[("to-browser/LEDGER-dev-knowledge.md", _head(by="gen_ledger.py"))])
+    assert status["to-browser/DIGEST-fine-2026-10-09.md"] != "unattributed"
+
+
+def test_known_limit_witness_a_foreign_contract_naming_this_repo_is_attributed(t, world):
+    """Pinned as documented behaviour (D5's stated limit, S-17): no head signal tells a foreign file that
+    names this repository from a dev-knowledge file; the janitor's exposure is removed by the no-live-apply
+    ruling and the seat's review of the dry-run list, not by this heuristic."""
+    root = world["root"]
+    _put(root, "to-cc/CONTRACT-foreign-2026-09-10.md", "committed in dev-knowledge\nsome other workstream\n")
+    status = {e["path"]: e["status"] for e in _entries(t, _index(t, root))}
+    assert status["to-cc/CONTRACT-foreign-2026-09-10.md"] != "unattributed"
+
+
+# --- Done 1 / S-40: the `cv` name segment ---------------------------------------------------------------
+
+#: The 14 files `SESSION-b2w2-transport-index.md` :486 lists as naming the CV repo, by their real names.
+CV_FILES = (
+    "to-browser/LEDGER-robert-dwornik-cv.md",
+    "to-browser/LEDGER-robert-dwornik-cv-v1-superseded-2026-09-10.md",
+    "to-browser/LEDGER-robert-dwornik-cv-v2-superseded-2026-09-10.md",
+    "to-browser/LEDGER-robert-dwornik-cv-v3-superseded-2026-09-10.md",
+    "to-browser/DECISION-SHEET-cv-f2-2026-09-10.md",
+    "to-cc/CONTRACT-cv-build-2026-09-10.md",
+    "to-cc/CONTRACT-cv-review-2026-09-10.md",
+    "to-cc/CONTRACT-cv-copy-apply-2026-09-10.md",
+    "to-cc/CONTRACT-cv-copy-fix-2026-09-10.md",
+    "to-cc/CONTRACT-cv-rewrite-v4-2026-09-10.md",
+    "to-cc/CONTRACT-cv-v5-2026-09-10.md",
+    "to-cc/CONTRACT-cv-v8-build-2026-09-10.md",
+    "to-cc/CONTRACT-cv-v9-layout-2026-09-10.md",
+    "to-cc/CONTRACT-cv-v10-2026-09-10.md",
+)
+_CV_HEAD = _head(by=TA44, date="2026-09-10", body=("dev-knowledge", "see GO-demo-2026-10-09.md"))
+
+
+def test_the_cv_witness_is_14_files(t):
+    assert len(CV_FILES) == 14 and len(set(CV_FILES)) == 14
+
+
+@pytest.mark.parametrize("rel", CV_FILES)
+def test_cv_segment_veto_each_of_the_14_files_reads_unattributed(t, world, rel):
+    """S-40 (the lane's fourth named fix): every one of the 14 files carries accepted signals in its head
+    (the repository token, a Tech-Architect id, a cited hub-kind file name) and still reads UNATTRIBUTED."""
+    for other in CV_FILES:
+        _put(world["root"], other, _CV_HEAD)
+    status = {e["path"]: e["status"] for e in _entries(t, _index(t, world["root"]))}
+    assert status[rel] == "unattributed"
+
+
+@pytest.mark.parametrize("rel", [r for r in CV_FILES if not r.startswith("to-browser/LEDGER")])
+def test_cv_segment_alone_vetoes_with_no_ledger_on_the_transport(t, world, rel):
+    """The segment is its own veto: with no LEDGER of another workstream (the derived part empty) the
+    DECISION-SHEET and the nine CONTRACT-cv-* are still UNATTRIBUTED."""
+    for other in CV_FILES:
+        if not other.startswith("to-browser/LEDGER"):
+            _put(world["root"], other, _CV_HEAD)
+    status = {e["path"]: e["status"] for e in _entries(t, _index(t, world["root"]))}
+    assert status[rel] == "unattributed"
+
+
+def test_a_cv_vetoed_file_is_never_a_janitor_candidate(t, world):
+    root = world["root"]
+    for rel in CV_FILES:
+        _put(root, rel, _CV_HEAD)
+    _put(root, "to-cc/CONTRACT-cv-old-v1-superseded.md", _CV_HEAD)
+    _put(root, "to-browser/DIGEST-cv-old-2026-09-10-superseded.md", _CV_HEAD)
+    plan = t.janitor_plan(root, seats=SEATS)
+    assert plan["moves"] == []
+    reasons = {s["path"]: s["reason"] for s in plan["skipped"]}
+    assert reasons["to-cc/CONTRACT-cv-old-v1-superseded.md"] == "UNATTRIBUTED"
+    assert reasons["to-browser/DIGEST-cv-old-2026-09-10-superseded.md"] == "UNATTRIBUTED"
+
+
+@pytest.mark.parametrize("name,expected", [
+    ("CONTRACT-cv-build-2026-09-10.md", True), ("DRAFT-cv.md", True), ("cv-first.md", True),
+    ("LEDGER-robert-dwornik-cv.md", True), ("DIGEST-CV-notes.md", True),
+    ("DIGEST-recv-2026-09-10.md", False), ("DIGEST-cvs-notes-2026-09-10.md", False),
+    ("DIGEST-devcv-2026-09-10.md", False), ("DIGEST-cv_notes.md", False), ("DIGEST-x.cv", False),
+])
+def test_the_cv_segment_matches_a_whole_hyphen_delimited_segment_only(t, name, expected):
+    assert t.name_has_cv_segment(name) is expected
+
+
+def test_whole_segment_negatives_stay_attributed_and_a_head_mention_does_not_veto(t, world):
+    root = world["root"]
+    for name in ("DIGEST-recv-2026-09-10.md", "DIGEST-cvs-notes-2026-09-10.md", "DIGEST-devcv-2026-09-10.md"):
+        _put(root, f"to-browser/{name}", _head(by=TA44))
+    _put(root, "to-browser/DIGEST-headcv-2026-09-10.md", _head(by=TA44, body=("my cv notes", "dev-knowledge")))
+    status = {e["path"]: e["status"] for e in _entries(t, _index(t, root))}
+    for name in ("DIGEST-recv-2026-09-10.md", "DIGEST-cvs-notes-2026-09-10.md",
+                 "DIGEST-devcv-2026-09-10.md", "DIGEST-headcv-2026-09-10.md"):
+        assert status[f"to-browser/{name}"] != "unattributed", name
+
+
+# --- Done 4: the seat-ID map -------------------------------------------------------------------------------
+
+def _seat_world(world) -> None:
+    root = world["root"]
+    _put(root, "to-cc/AMEND-seat-a.md",       # form 1: two keys, the seat on `by:`, the session on `from:`
+         "carried-by: OPEN\nfrom: 2026-10-08-dev-knowledge-architect (Layer-1 browser seat, SEQ 1)\n"
+         "by: Tech-Architect-44 (R91)\n\n# A\n")
+    _put(root, "to-cc/AMEND-seat-b.md",       # form 2: one line, the session inside the seat's parentheses
+         "carried-by: OPEN\nfrom: Tech-Architect-43 (2026-10-02-dev-knowledge-architect, SEQ 1)\n\n# B\n")
+    _put(root, "to-browser/DIGEST-seat-c.md",  # a distinct third pair, form 1
+         "from: 2026-09-20-ops-architect\nby: Tech-Architect-41 (R91)\n\n# C\n")
+    _put(root, "to-browser/DIGEST-seat-a2.md",  # the first pair stated again by another file
+         "from: 2026-10-08-dev-knowledge-architect\nby: Tech-Architect-44 (R91)\n\n# A2\n")
+    _put(root, "to-browser/DIGEST-only-seat.md", "by: Tech-Architect-45 (R91)\n\n# only the seat side\n")
+    _put(root, "to-browser/DIGEST-only-slug.md", "from: 2026-10-05-lonely-architect\n\n# only the session side\n")
+
+
+def test_seat_ids_hold_exactly_the_three_stated_pairs_with_provenance(t, world):
+    _seat_world(world)
+    got = t.build_seat_map(world["root"])
+    pairs = {(s["seat"], s["session"]): s for s in got["seats"]}
+    assert set(pairs) == {("Tech-Architect-44", "2026-10-08-dev-knowledge-architect"),
+                          ("Tech-Architect-43", "2026-10-02-dev-knowledge-architect"),
+                          ("Tech-Architect-41", "2026-09-20-ops-architect")}
+    assert len(got["seats"]) == 3                                   # neither one-sided file is a pair
+    assert pairs[("Tech-Architect-44", "2026-10-08-dev-knowledge-architect")]["provenance"] == "to-cc/AMEND-seat-a.md"
+    assert pairs[("Tech-Architect-44", "2026-10-08-dev-knowledge-architect")]["stated_in"] == 2
+    assert pairs[("Tech-Architect-43", "2026-10-02-dev-knowledge-architect")]["provenance"] == "to-cc/AMEND-seat-b.md"
+    assert pairs[("Tech-Architect-41", "2026-09-20-ops-architect")]["provenance"] == "to-browser/DIGEST-seat-c.md"
+    assert got["conflicts"] == []
+
+
+def test_seat_ids_are_byte_identical_on_regeneration_and_under_a_reversed_listing(t, world, monkeypatch):
+    _seat_world(world)
+    one = t.render_seat_ids(t.build_seat_map(world["root"])["seats"], {})
+    assert t.render_seat_ids(t.build_seat_map(world["root"])["seats"], {}) == one
+    orig = t.live_files
+    monkeypatch.setattr(t, "live_files", lambda root: list(reversed(orig(root))))
+    assert t.render_seat_ids(t.build_seat_map(world["root"])["seats"], {}) == one
+    assert "generated" in one.lower()
+
+
+def test_a_conflicting_pair_is_reported_and_excluded_and_an_ambiguous_head_is_skipped(t, world):
+    root = world["root"]
+    _put(root, "to-cc/AMEND-c1.md", "from: 2026-10-01-one-architect\nby: Tech-Architect-50 (R91)\n\n# 1\n")
+    _put(root, "to-cc/AMEND-c2.md", "from: 2026-10-02-two-architect\nby: Tech-Architect-50 (R91)\n\n# 2\n")
+    _put(root, "to-cc/AMEND-two-seats.md",
+         "from: Tech-Architect-60 (2026-10-03-three-architect)\nby: Tech-Architect-61 (R91)\n\n# two ids\n")
+    got = t.build_seat_map(root)
+    assert got["seats"] == []
+    assert [c["seat"] for c in got["conflicts"]] == ["Tech-Architect-50"]
+
+
+def test_an_empty_transport_gives_a_map_the_check_refuses(t, world, tmp_path):
+    seat_file = tmp_path / "seat-ids.yaml"
+    assert t.build_seat_map(world["root"])["seats"] == []
+    rc = t.main(["seat-ids", "--check", "--transport-root", str(world["root"]), "--seat-ids", str(seat_file)])
+    assert rc == 1
+
+
+def test_seat_ids_write_then_check_round_trip_and_keep_the_inventory_section(t, world, tmp_path):
+    _seat_world(world)
+    seat_file = tmp_path / "seat-ids.yaml"
+    t.write_seat_ids(seat_file, inventory={"to-cc/A.md": "ab" * 32})
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    assert t.main(["seat-ids", "--write", *args]) == 0
+    seats, inventory = t.load_seat_ids(seat_file)
+    assert len(seats) == 3 and inventory == {"to-cc/A.md": "ab" * 32}      # only its own key was rewritten
+    assert t.main(["seat-ids", "--check", *args]) == 0
+    _put(world["root"], "to-cc/AMEND-seat-new.md", "from: 2026-10-09-new-architect\nby: Tech-Architect-46 (R91)\n")
+    assert t.main(["seat-ids", "--check", *args]) == 1
+
+
+def test_a_file_whose_by_names_only_the_session_slug_is_grouped_under_its_seat(t, world):
+    root = world["root"]
+    _put(root, "to-browser/DIGEST-slug-writer-2026-10-09.md",
+         _head(by="2026-10-08-dev-knowledge-architect (Layer-1 browser seat)", date="2026-10-09"))
+    text = _index(t, root)
+    block = text.split("#### Tech-Architect-44", 1)[1].split("\n####", 1)[0]
+    assert "DIGEST-slug-writer-2026-10-09.md" in block
+    assert "by: 2026-10-08-dev-knowledge-architect (Layer-1 browser seat)" in block   # shown as written
+
+
+def test_the_shipped_seat_ids_file_holds_stated_pairs_with_provenance_and_says_it_is_generated():
+    path = _REPO / "ecosystem" / "seat-ids.yaml"
+    assert path.is_file(), "ecosystem/seat-ids.yaml is generated and committed by the lane (S6)"
+    import yaml
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert len(data["seats"]) >= 2
+    for s in data["seats"]:
+        assert re.fullmatch(r"Tech-Architect-\d+", s["seat"]) and s["session"] and s["provenance"]
+    head = "\n".join(path.read_text(encoding="utf-8").splitlines()[:6]).lower()
+    assert "generated" in head
+    assert isinstance(data["landing_inventory"], dict) and data["landing_inventory"]
+
+
+# --- Done 2: the landing inventory (the generator; the classes are tested in test_transport_lint) -----------
+
+def test_the_inventory_is_generated_byte_identical_and_lists_the_reading_path_files(t, world, tmp_path):
+    root = world["root"]
+    _snapshot_world(world)
+    _put(root, "LANE-demo.md", _head(by=TA44))
+    inv = t.build_inventory(root)
+    assert inv["to-cc/PLAN-x-v1.md"] == hashlib.sha256((root / "to-cc" / "PLAN-x-v1.md").read_bytes()).hexdigest()
+    assert "LANE-demo.md" in inv and "to-cc/notes.txt" in inv              # unclassified files are inventoried
+    assert not [k for k in inv if k.split("/")[-1].startswith(".") or k.endswith("desktop.ini")]
+    assert t.build_inventory(root) == inv
+    one, two = tmp_path / "one.yaml", tmp_path / "two.yaml"
+    for path in (one, two):
+        t.write_seat_ids(path, seats=list(SEATS), inventory=inv)
+    assert one.read_bytes() == two.read_bytes()
+    assert t.load_inventory(one) == inv
+    assert t.load_inventory(tmp_path / "missing.yaml") is None
+    (tmp_path / "bad.yaml").write_text("seats: [\n", encoding="utf-8")
+    assert t.load_inventory(tmp_path / "bad.yaml") is None
+
+
+def test_the_inventory_command_rewrites_only_its_own_section(t, world, tmp_path):
+    _snapshot_world(world)
+    seat_file = _seat_file(tmp_path)
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    before_seats, _ = t.load_seat_ids(seat_file)
+    assert t.main(["inventory", "--write", *args]) == 0
+    seats, inv = t.load_seat_ids(seat_file)
+    assert seats == before_seats and inv == t.build_inventory(world["root"])
+    first = seat_file.read_bytes()
+    assert t.main(["inventory", "--write", *args]) == 0
+    assert seat_file.read_bytes() == first
+
+
+# --- Done 3: the janitor ---------------------------------------------------------------------------------
+
+def _janitor_world(world) -> dict:
+    root = world["root"]
+    sig = _head(by=TA44, date="2026-09-01")
+    files = {
+        "to-browser/DIGEST-s1-2026-09-01-superseded.md": sig,                          # head date -> 2026-09
+        "to-cc/PLAN-p1-v1-superseded.md": _head(by=TA44),                              # no date -> undated
+        "to-browser/QUESTION-seat9-superseded.md": _head(by="lane-x (job 1)", date="2026-09-20"),
+        "to-cc/ANSWER-seat9-superseded.md": _head(by=TA44, date="2026-09-20"),
+        "to-browser/DIGEST-name-date-2026-07-15-superseded.md": _head(by=TA44),         # name date -> 2026-07
+        "to-browser/LEDGER-acme-ops.md": _head(by="gen_ledger.py"),
+        "to-browser/LEDGER-acme-ops-v1-superseded-2026-09-10.md": _head(by=TA44, date="2026-09-10"),
+        "to-browser/DIGEST-cv-old-2026-09-10-superseded.md": sig,
+        "to-cc/CONTRACT-nosignal-v1-superseded.md": "plain\n",
+        "to-browser/ODD-thing-superseded.md": sig,
+        "to-browser/DIGEST-live-2026-10-01.md": sig,
+        "to-cc/LANE-x.CLAIMED-ab12cd": "claim\n",
+        "to-cc/DIGEST-wrongfolder-superseded.md": sig,
+        "to-browser/DIGEST-coll-2026-08-01-superseded.md": _head(by=TA44, date="2026-08-01", summary="new"),
+        "to-browser/archive/2026-09-05/old-day-file.md": "kept\n",
+        "to-browser/archive/flat-old.md": "kept\n",
+        "to-browser/archive/2026-08/DIGEST-coll-2026-08-01-superseded.md": "different bytes\n",
+    }
+    for rel, text in files.items():
+        _put(root, rel, text)
+    return files
+
+
+def _tree_census(root: Path) -> dict:
+    """live (direct children of the three homes) + archive (everything under an archive/ folder), and the
+    multiset of every file's sha256 on the whole tree."""
+    live = archive = 0
+    shas = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        shas.append(hashlib.sha256(p.read_bytes()).hexdigest())
+        if "archive" in p.relative_to(root).parts:
+            archive += 1
+        elif p.parent in (root, root / "to-cc", root / "to-browser") and not p.name.startswith("."):
+            live += 1
+    return {"live": live, "archive": archive, "shas": sorted(shas)}
+
+
+def test_janitor_dry_run_lists_exactly_the_movable_set_and_moves_nothing(t, world):
+    root = world["root"]
+    _janitor_world(world)
+    before = _tree_census(root)
+    plan = t.janitor_plan(root, seats=SEATS)
+    moved = {m["source"]: m for m in plan["moves"]}
+    assert set(moved) == {
+        "to-browser/DIGEST-s1-2026-09-01-superseded.md", "to-cc/PLAN-p1-v1-superseded.md",
+        "to-browser/QUESTION-seat9-superseded.md", "to-cc/ANSWER-seat9-superseded.md",
+        "to-browser/DIGEST-name-date-2026-07-15-superseded.md",
+    }
+    m = moved["to-browser/DIGEST-s1-2026-09-01-superseded.md"]
+    assert m["destination"] == "to-browser/archive/2026-09/DIGEST-s1-2026-09-01-superseded.md"
+    assert m["month"] == "2026-09" and m["month_source"] == "head"
+    assert m["sha256"] == hashlib.sha256((root / m["source"]).read_bytes()).hexdigest() and m["bytes"] > 0
+    assert moved["to-cc/PLAN-p1-v1-superseded.md"]["destination"] == "to-cc/archive/undated/PLAN-p1-v1-superseded.md"
+    assert moved["to-cc/PLAN-p1-v1-superseded.md"]["month_source"] == "undated"
+    nd = moved["to-browser/DIGEST-name-date-2026-07-15-superseded.md"]
+    assert nd["month"] == "2026-07" and nd["month_source"] == "name"
+    reasons = {s["path"]: s["reason"] for s in plan["skipped"]}
+    assert reasons["to-browser/LEDGER-acme-ops-v1-superseded-2026-09-10.md"] == "UNATTRIBUTED"   # the veto
+    assert reasons["to-browser/DIGEST-cv-old-2026-09-10-superseded.md"] == "UNATTRIBUTED"         # the cv segment
+    assert reasons["to-cc/CONTRACT-nosignal-v1-superseded.md"] == "UNATTRIBUTED"
+    assert reasons["to-browser/ODD-thing-superseded.md"] == "unregistered"
+    assert reasons["to-cc/DIGEST-wrongfolder-superseded.md"] == "misfoldered"
+    assert reasons["to-browser/DIGEST-coll-2026-08-01-superseded.md"] == "COLLISION"
+    assert _tree_census(root) == before                                        # a dry run moves nothing
+    expect = hashlib.sha256("\n".join(sorted(
+        f"{m['source']}|{m['destination']}|{m['sha256']}" for m in plan["moves"])).encode("utf-8")).hexdigest()
+    assert plan["manifest_sha256"] == expect
+    live = before["live"]
+    assert len(plan["moves"]) + len(plan["skipped"]) + plan["untouched"] == live
+
+
+def test_janitor_apply_moves_exactly_the_plan_with_bytes_unchanged_and_counts_equal(t, world, monkeypatch):
+    root = world["root"]
+    _janitor_world(world)
+    before = _tree_census(root)
+    plan = t.janitor_plan(root, seats=SEATS)
+    collision_src = root / "to-browser" / "DIGEST-coll-2026-08-01-superseded.md"
+    collision_dst = root / "to-browser" / "archive" / "2026-08" / "DIGEST-coll-2026-08-01-superseded.md"
+    src_bytes, dst_bytes = collision_src.read_bytes(), collision_dst.read_bytes()
+
+    def boom(*a, **k):
+        raise AssertionError("a delete or an overwrite was attempted")
+
+    with monkeypatch.context() as mp:
+        for target in ("remove", "unlink", "replace"):
+            mp.setattr(os, target, boom)
+        mp.setattr(shutil, "rmtree", boom)
+        mp.setattr(shutil, "move", boom)
+        report = t.janitor_apply(root, plan["manifest_sha256"], seats=SEATS)
+    after = _tree_census(root)
+    assert after["shas"] == before["shas"]                                     # no byte lost, none gained
+    assert after["live"] + after["archive"] == before["live"] + before["archive"]
+    assert after["live"] == before["live"] - len(plan["moves"])
+    assert after["archive"] == before["archive"] + len(plan["moves"])
+    assert report["moved"] == len(plan["moves"]) and report["census_after"]["live"] == after["live"]
+    for m in plan["moves"]:
+        assert not (root / m["source"]).exists()
+        assert hashlib.sha256((root / m["destination"]).read_bytes()).hexdigest() == m["sha256"]
+    assert collision_src.read_bytes() == src_bytes and collision_dst.read_bytes() == dst_bytes
+    for kept in ("to-browser/archive/2026-09-05/old-day-file.md", "to-browser/archive/flat-old.md",
+                 "to-browser/LEDGER-acme-ops-v1-superseded-2026-09-10.md", "to-browser/DIGEST-live-2026-10-01.md",
+                 "to-cc/LANE-x.CLAIMED-ab12cd"):
+        assert (root / kept).exists(), kept
+
+
+def test_janitor_month_is_never_read_from_mtime(t, world):
+    root = world["root"]
+    _put(root, "to-browser/DIGEST-m-2026-06-01-superseded.md", _head(by=TA44))
+    before = t.janitor_plan(root, seats=SEATS)
+    os.utime(root / "to-browser" / "DIGEST-m-2026-06-01-superseded.md", (978307200, 978307200))
+    after = t.janitor_plan(root, seats=SEATS)
+    assert before["moves"] == after["moves"] and after["moves"][0]["month"] == "2026-06"
+
+
+def test_janitor_apply_is_bound_to_the_reviewed_manifest(t, world, capsys):
+    root = world["root"]
+    _janitor_world(world)
+    before = _tree_census(root)
+    seat_file = _seat_file(world["root"].parent)
+    args = ["--transport-root", str(root), "--seat-ids", str(seat_file)]
+    assert t.main(["janitor", *args]) == 0                                     # the dry run
+    out = capsys.readouterr().out
+    manifest = re.search(r"manifest-sha256: ([0-9a-f]{64})", out).group(1)
+    assert sum(1 for ln in out.splitlines() if " | " in ln and "archive/" in ln) == 5
+    assert _tree_census(root) == before
+    assert t.main(["janitor", "--apply", *args]) == 2                           # no hash: refused
+    assert t.main(["janitor", "--apply", "--expect-manifest", "0" * 12, *args]) == 2
+    assert t.main(["janitor", "--apply", "--expect-manifest", manifest[:8], *args]) == 2   # under 12 hex
+    assert _tree_census(root) == before                                         # nothing moved by a refusal
+    assert t.main(["janitor", "--apply", "--expect-manifest", manifest[:12], *args]) == 0
+    assert _tree_census(root)["live"] == before["live"] - 5
+
+
+def test_janitor_apply_refuses_when_the_list_changed_since_it_was_read(t, world):
+    root = world["root"]
+    _janitor_world(world)
+    plan = t.janitor_plan(root, seats=SEATS)
+    _put(root, "to-browser/DIGEST-extra-2026-09-02-superseded.md", _head(by=TA44, date="2026-09-02"))
+    with pytest.raises(t.JanitorRefused):
+        t.janitor_apply(root, plan["manifest_sha256"], seats=SEATS)
+    assert (root / "to-browser" / "DIGEST-extra-2026-09-02-superseded.md").exists()
+
+
+def test_gen_handoff_still_reads_the_moved_question_and_answer(t, world):
+    """P-L3-3: `archive/<YYYY-MM>/` is one level down, where gen_handoff's globs look."""
+    root = world["root"]
+    _janitor_world(world)
+    plan = t.janitor_plan(root, seats=SEATS)
+    t.janitor_apply(root, plan["manifest_sha256"], seats=SEATS)
+    gh = _mod("gen_handoff")
+    questions = gh._question_files(root)
+    moved_q = root / "to-browser" / "archive" / "2026-09" / "QUESTION-seat9-superseded.md"
+    assert moved_q in questions
+    verdict = gh._question_disposition_verdict(moved_q, root, None)
+    assert verdict[0] is True and "ANSWERED by ANSWER-seat9-superseded.md" in verdict[1]
+
+
+def test_janitor_apply_ends_with_a_full_index_run_when_an_index_exists(t, world, tmp_path):
+    root = world["root"]
+    _janitor_world(world)
+    seat_file = _seat_file(tmp_path)
+    args = ["--transport-root", str(root), "--seat-ids", str(seat_file)]
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    plan = t.janitor_plan(root, seats=SEATS)
+    t.janitor_apply(root, plan["manifest_sha256"], seats=SEATS, trigger_stamp=STAMP)
+    assert t.main(["index", "--check", *args]) == 0                             # fresh after the moves
+
+
+# --- Done 5: the INDEX trigger -----------------------------------------------------------------------------
+
+@pytest.fixture()
+def live(t, world, tmp_path, monkeypatch):
+    """A fixture transport with an INDEX, the module told this root is the known transport and this
+    seat-ids file its landing data."""
+    seat_file = _seat_file(tmp_path)
+    monkeypatch.setattr(t, "known_root", lambda: world["root"])
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", seat_file)
+    monkeypatch.setattr(t, "INDEX_LOCK_TIMEOUT_S", 0.2)
+    _snapshot_world(world)
+    index = world["browser"] / "INDEX.md"
+    index.write_text(_index(t, world["root"]), encoding="utf-8", newline="\n")
+    return {"index": index, "seat_file": seat_file, "root": world["root"]}
+
+
+def _full_rebuild_like(t, live_ctx) -> str:
+    """The full rebuild at the stamp and trigger the INDEX itself recorded."""
+    header = t.parse_index(live_ctx["index"].read_text(encoding="utf-8"))["header"]
+    return t.build_index(live_ctx["root"], seats=list(SEATS), generated_at=header["regenerated"],
+                         trigger=header["trigger"])
+
+
+def test_index_trigger_write_of_a_new_file_adds_its_row_and_records_the_trigger(t, world, live):
+    dest = world["browser"] / "DIGEST-new-2026-10-10.md"
+    t.write("operator", dest, _head(by=TA44, date="2026-10-10", summary="New digest"))
+    text = live["index"].read_text(encoding="utf-8")
+    parsed = t.parse_index(text)
+    assert parsed["header"]["trigger"] == "write:to-browser/DIGEST-new-2026-10-10.md"
+    assert parsed["header"]["regenerated"] != STAMP
+    row = {e["path"]: e for e in parsed["entries"]}["to-browser/DIGEST-new-2026-10-10.md"]
+    assert row["status"] == "current" and row["subject"] == "New digest" and row["by"] == TA44
+    assert text == _full_rebuild_like(t, live)                     # the incremental result is the full rebuild
+
+
+def test_index_trigger_with_no_index_creates_nothing(t, world, tmp_path, monkeypatch):
+    seat_file = _seat_file(tmp_path)
+    monkeypatch.setattr(t, "known_root", lambda: world["root"])
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", seat_file)
+    t.write("operator", world["browser"] / "DIGEST-new-2026-10-10.md", _head(by=TA44, date="2026-10-10"))
+    assert not (world["browser"] / "INDEX.md").exists()
+
+
+def test_index_trigger_does_nothing_for_a_root_that_is_not_the_known_transport(t, world, live, tmp_path, monkeypatch):
+    other = tmp_path / "scratch" / "to-browser"
+    other.mkdir(parents=True)
+    before = live["index"].read_bytes()
+    t.write("operator", other / "DIGEST-x-2026-10-10.md", _head(by=TA44))
+    assert live["index"].read_bytes() == before
+
+
+def test_writing_the_index_itself_does_not_recurse(t, world, live):
+    body = _index(t, world["root"], stamp="2026-10-11T00:00:00Z")
+    t.write("transport", live["index"], body)
+    assert live["index"].read_text(encoding="utf-8") == body
+
+
+def test_index_trigger_supersedes_changes_the_status_and_equals_a_full_rebuild(t, world, live):
+    t.write("operator", world["cc"] / "PLAN-x-v3.md",
+            _head(by=TA44, date="2026-10-09", summary="Plan three", supersedes="PLAN-x-v2.md"))
+    text = live["index"].read_text(encoding="utf-8")
+    status = {e["path"]: e["status"] for e in t.parse_index(text)["entries"]}
+    assert status["to-cc/PLAN-x-v2.md"] == "superseded" and status["to-cc/PLAN-x-v3.md"] == "current"
+    assert text == _full_rebuild_like(t, live)
+    t.write("operator", world["cc"] / "PLAN-x-v3.md", _head(by=TA44, date="2026-10-09", summary="Plan three"))
+    text = live["index"].read_text(encoding="utf-8")                # the supersedes line is gone: v2 is current
+    assert {e["path"]: e["status"] for e in t.parse_index(text)["entries"]}["to-cc/PLAN-x-v2.md"] == "current"
+    assert text == _full_rebuild_like(t, live)
+
+
+def test_index_trigger_append_that_changes_the_head_equals_a_full_rebuild(t, world, live):
+    dest = world["browser"] / "SESSION-lane-one.md"
+    t.append("lane", dest, "by: lane-one (job abc12345)\ndate: 2026-10-09\nsummary: first block\n\n# S\n")
+    text = live["index"].read_text(encoding="utf-8")
+    assert text == _full_rebuild_like(t, live)
+    t.append("lane", dest, "later block\n" * 3)
+    assert live["index"].read_text(encoding="utf-8") == text         # head unchanged -> no refresh
+
+
+def test_an_attribution_signal_appended_at_line_15_moves_an_unattributed_row(t, world, live):
+    """Fix 1 (the Codex HIGH on revision 5): the row depends on the whole 30-line attribution window, not on
+    the 12-line head. The signal lands beyond line 12 and inside line 30 of a file with 13 filler lines."""
+    dest = world["browser"] / "SESSION-late-signal.md"
+    t.append("lane", dest, "\n".join(f"filler {i}" for i in range(1, 14)) + "\n")      # lines 1-13, no signal
+    status = {e["path"]: e["status"] for e in t.parse_index(live["index"].read_text(encoding="utf-8"))["entries"]}
+    assert status["to-browser/SESSION-late-signal.md"] == "unattributed"
+    t.append("lane", dest, "dev-knowledge cited here\n")                              # line 15 (after the separator)
+    lines = dest.read_text(encoding="utf-8").splitlines()
+    assert lines.index("dev-knowledge cited here") + 1 == 15
+    text = live["index"].read_text(encoding="utf-8")
+    status = {e["path"]: e["status"] for e in t.parse_index(text)["entries"]}
+    assert status["to-browser/SESSION-late-signal.md"] == "current"
+    assert text == _full_rebuild_like(t, live)
+
+
+def test_an_append_past_line_30_leaves_the_index_untouched(t, world, live):
+    dest = world["browser"] / "SESSION-far-signal.md"
+    t.append("lane", dest, "\n".join(f"filler {i}" for i in range(1, 31)) + "\n")     # 30 filler lines
+    before = live["index"].read_bytes()
+    t.append("lane", dest, "dev-knowledge cited far away\n")
+    assert live["index"].read_bytes() == before
+
+
+def test_a_new_ledger_changes_the_veto_set_so_the_refresh_rebuilds_in_full(t, world, live):
+    mention = world["browser"] / "DIGEST-mentions-acme-ops-2026-10-09.md"
+    t.write("operator", mention, _head(by=TA44, date="2026-10-09", summary="mentions", body=("acme-ops notes",)))
+    status = {e["path"]: e["status"] for e in t.parse_index(live["index"].read_text(encoding="utf-8"))["entries"]}
+    assert status["to-browser/DIGEST-mentions-acme-ops-2026-10-09.md"] == "current"
+    assert "acme-ops" not in t.parse_index(live["index"].read_text(encoding="utf-8"))["header"]["inputs"]
+    t.write("gen_ledger", world["browser"] / "LEDGER-acme-ops.md", _head(by="gen_ledger.py", date="2026-10-10"))
+    text = live["index"].read_text(encoding="utf-8")
+    parsed = t.parse_index(text)
+    assert {e["path"]: e["status"] for e in parsed["entries"]}[
+        "to-browser/DIGEST-mentions-acme-ops-2026-10-09.md"] == "unattributed"
+    assert "acme-ops" in parsed["header"]["inputs"]
+    assert text == _full_rebuild_like(t, live)
+
+
+def test_a_held_lock_or_a_permission_error_skips_the_refresh_and_the_write_succeeds(
+        t, world, live, capsys, monkeypatch):
+    before = live["index"].read_bytes()
+    (world["browser"] / ".INDEX.md.append.lock").write_text("held", encoding="utf-8")
+    dest = world["browser"] / "DIGEST-locked-2026-10-10.md"
+    t.write("operator", dest, _head(by=TA44, date="2026-10-10"))
+    assert dest.exists() and live["index"].read_bytes() == before
+    assert "INDEX refresh skipped" in capsys.readouterr().err
+    (world["browser"] / ".INDEX.md.append.lock").unlink()
+
+    def deny(self):
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(t._DestinationLock, "__enter__", deny)
+    dest2 = world["browser"] / "DIGEST-denied-2026-10-10.md"
+    t.write("operator", dest2, _head(by=TA44, date="2026-10-10"))
+    assert dest2.exists() and live["index"].read_bytes() == before
+    assert "INDEX refresh skipped" in capsys.readouterr().err
+
+
+def test_a_refresh_failure_never_fails_the_callers_write(t, world, live, monkeypatch, capsys):
+    monkeypatch.setattr(t, "refresh_index", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    dest = world["browser"] / "DIGEST-boom-2026-10-10.md"
+    t.write("operator", dest, _head(by=TA44, date="2026-10-10"))
+    assert dest.exists() and "INDEX refresh skipped" in capsys.readouterr().err
+
+
+# --- Done 2: the write gate's by: rule ----------------------------------------------------------------------
+
+def test_the_gate_refuses_a_role_writers_new_unsigned_md_and_advises_a_script_writer(
+        t, world, live, capsys):
+    unsigned = "plain text, no by line\n"
+    with pytest.raises(t.TransportWriteRefused, match="by:"):
+        t.write("operator", world["browser"] / "DIGEST-unsigned-2026-10-10.md", unsigned)
+    assert not (world["browser"] / "DIGEST-unsigned-2026-10-10.md").exists()
+    with pytest.raises(t.TransportWriteRefused, match="by:"):
+        t.append("lane", world["browser"] / "SESSION-unsigned.md", unsigned)
+    ok = t.write("gen_ledger", world["browser"] / "LEDGER-unsigned-repo.md", unsigned)   # a script writer
+    assert ok.exists() and "no `by:`" in capsys.readouterr().err
+    t.write("operator", world["browser"] / "DIGEST-signed-2026-10-10.md", _head(by=TA44))
+
+
+def test_the_gate_lets_an_inventoried_path_through_and_fails_closed_without_an_inventory(
+        t, world, live, tmp_path, monkeypatch):
+    dest = world["browser"] / "DIGEST-old-unsigned-2026-10-02.md"
+    dest.write_text("plain text\n", encoding="utf-8")
+    inv = t.build_inventory(world["root"])
+    seat_file = tmp_path / "with-inventory.yaml"
+    t.write_seat_ids(seat_file, seats=list(SEATS), inventory=inv)
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", seat_file)
+    t.write("operator", dest, "plain text, edited\n")                  # in the inventory: not new, not refused
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", tmp_path / "no-such-file.yaml")
+    with pytest.raises(t.TransportWriteRefused, match="inventory"):
+        t.write("operator", dest, "plain text, edited again\n")        # no readable inventory: fail closed
+
+
+def test_the_gate_leaves_a_destination_outside_the_known_transport_alone(t, world, tmp_path):
+    # no `known_root` patch: the fixture is not the real transport, so the by: rule does not engage
+    t.write("operator", world["browser"] / "DIGEST-plain-2026-10-10.md", "plain\n")
