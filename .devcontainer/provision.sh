@@ -757,24 +757,79 @@ fetch_installer() {
 # shell (`bash -l`), so the unset has to come after that chain, in `~/.profile`. It runs BEFORE
 # `leg_f5_codex` so the login-shell version probe that leg makes is already keyless.
 leg_f6_codex_subscription() {
-  local cfg="${HOME}/.codex/config.toml" want='forced_login_method = "chatgpt"'
+  local cfg="${HOME}/.codex/config.toml"
   local marker='# dev-knowledge provision: codex signs in by subscription, never an API key (R87.3)'
-  local login_rc="" candidate
+  local login_rc="" candidate state
+
+  # The config is TOML, so "does it force the sign-in" is a question about the TOP-LEVEL key, and a
+  # grep/sed over the whole file cannot answer it: the same text under a `[table]` or inside a
+  # multiline string is a different setting (Codex close-out review, 2026-10-10, HIGH). The helper
+  # parses the file (stdlib tomllib; the image's python3 is 3.12), edits only the top-level key,
+  # parses the result and compares it with the original plus that one key. It refuses, touching
+  # nothing, when it cannot show that -- an invalid file, or a layout it cannot edit safely.
+  f6_config() {
+    python3 - "$@" <<'PY'
+import os, re, sys, tomllib
+
+sys.stdout.reconfigure(newline="\n")   # the shell compares the printed word; no CR from a Windows python
+KEY, VALUE = "forced_login_method", "chatgpt"
+mode, path = sys.argv[1], sys.argv[2]
+try:
+    with open(path, encoding="utf-8", newline="") as handle:
+        text = handle.read()
+except FileNotFoundError:
+    text = ""
+try:
+    data = tomllib.loads(text)
+except tomllib.TOMLDecodeError as exc:
+    sys.exit(f"{path} is not valid TOML ({exc}); not editing it")
+if data.get(KEY) == VALUE:
+    print("already")
+    sys.exit(0)
+if mode == "check":
+    sys.exit(f"the top-level {KEY} in {path} is {data.get(KEY)!r}, not {VALUE!r}")
+
+want = f'{KEY} = "{VALUE}"'
+expected = {**data, KEY: VALUE}
+key_line = re.compile(r'^\s*["\']?' + KEY + r'["\']?\s*=')
+table_line = re.compile(r'^\s*\[\[?[\sA-Za-z0-9_."\'-]+\]\]?\s*(#.*)?$')
+candidates = []
+if KEY in data:
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if table_line.match(line.rstrip("\r\n")):
+            break
+        if key_line.match(line):
+            eol = "\r\n" if line.endswith("\r\n") else "\n"
+            candidates.append("".join(lines[:index]) + want + eol + "".join(lines[index + 1:]))
+    verb = "rewritten"
+else:
+    candidates.append(want + "\n" + text)
+    verb = "added"
+for new in candidates:
+    try:
+        ok = tomllib.loads(new) == expected
+    except tomllib.TOMLDecodeError:
+        ok = False
+    if ok:
+        tmp = f"{path}.tmp.{os.getpid()}"
+        with open(tmp, "w", encoding="utf-8", newline="") as handle:
+            handle.write(new)
+        os.replace(tmp, path)
+        print(verb)
+        sys.exit(0)
+sys.exit(f"cannot set the top-level {KEY} in {path} without changing another setting; edit it by hand")
+PY
+  }
 
   mkdir -p "${HOME}/.codex"
-  if [ -f "${cfg}" ] && grep -Eq '^[[:space:]]*forced_login_method[[:space:]]*=' "${cfg}"; then
-    if grep -Fxq "${want}" "${cfg}"; then
-      noop "L-F6 codex config already forces the ChatGPT sign-in"
-    else
-      sed -i -E "s|^[[:space:]]*forced_login_method[[:space:]]*=.*|${want}|" "${cfg}"
-      CHANGED=$((CHANGED + 1))
-      say "L-F6 codex config now forces the ChatGPT sign-in (the forced method was rewritten)"
-    fi
+  state="$(f6_config ensure "${cfg}")" \
+    || die "L-F6 FAILED — could not force the ChatGPT sign-in in ${cfg} (the reason is printed above)"
+  if [ "${state}" = "already" ]; then
+    noop "L-F6 codex config already forces the ChatGPT sign-in"
   else
-    { printf '%s\n' "${want}"; [ ! -f "${cfg}" ] || cat "${cfg}"; } > "${cfg}.tmp.$$" \
-      && mv -f "${cfg}.tmp.$$" "${cfg}"
     CHANGED=$((CHANGED + 1))
-    say "L-F6 codex config now forces the ChatGPT sign-in"
+    say "L-F6 codex config now forces the ChatGPT sign-in (top-level key ${state})"
   fi
 
   for candidate in "${HOME}/.bash_profile" "${HOME}/.bash_login" "${HOME}/.profile"; do
@@ -795,8 +850,8 @@ leg_f6_codex_subscription() {
     noop "L-F6 login shells already unset the codex API keys"
   fi
 
-  grep -Fxq "${want}" "${cfg}" \
-    || die "L-F6 FAILED — ${cfg} does not carry '${want}' after the write"
+  [ "$(f6_config check "${cfg}")" = "already" ] \
+    || die "L-F6 FAILED — the top-level forced_login_method in ${cfg} is not \"chatgpt\" after the write"
   grep -Fq "${marker}" "${login_rc}" \
     || die "L-F6 FAILED — ${login_rc} does not carry the codex key unset after the write"
   say "L-F6 OK — codex is forced to the ChatGPT sign-in and no login shell carries a codex API key"
