@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a662cd5d1d9baf56e5691b58f675482504ce277c08835949749d1048166d89ea",
+  "generated_sha256": "fbcaafa2f1d1f192b781ebb6925c67aa9a430a2a278dee1fc597b80e19bce165",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2912,10 +2912,6 @@
       "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
     },
     {
-      "task": 1420,
-      "file": "1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md"
-    },
-    {
       "task": 1421,
       "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
     },
@@ -3010,10 +3006,6 @@
     {
       "task": 1445,
       "file": "1445-a-dated-item-warns-three-days-before-its-date.md"
-    },
-    {
-      "task": 1446,
-      "file": "1446-rulings-r80-r92-land-in-standing-rulings.md"
     },
     {
       "task": 1447,
