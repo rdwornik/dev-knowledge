@@ -157,7 +157,10 @@ jobs:
           # up to three workers blocked on its lock file. Measured (paired round): Linux test step
           # about -45 s on the same failing set; Windows no measurable change (the record:
           # docs/audits/2026-10-03-codex-foundation-6-ci-speed.md).
-          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup 2>&1 | tee pytest.out
+          # [#1103] (R81.3): `-m "not operator_host"` deselects the tests that read the operator's
+          # own disk (tests/conftest.py registers the marker). One selector for both legs; the
+          # windows leg never collected them, so only the ubuntu leg's set changes.
+          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup -m "not operator_host" 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
         id: gate

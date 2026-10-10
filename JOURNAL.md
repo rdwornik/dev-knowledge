@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-10 (e) - CC (Opus 5.5, integrator seat B2-W3, cycle 2): lane b2w3-ci-schedules merges -- CI deselects the operator-host tests, the mutation pilot runs nightly, and a pilot that executes no mutant fails instead of reading green
+
+**Anchors:** `ff57acc4` `ea9b0603` `c399a1f7` `82b91cff` `8959760c` `52d0d047` `6e91230b` `3c923880` `5fb4ba26` `028b1f58` `0d3178d7` `f43f95b2` `4ebf6b68` `1bca304b` `fddb5884` `9bee78b5` -- branch `worktree-b2w3-ci-schedules`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Merged lane `b2w3-ci-schedules` (`[#1103]`; build job 9fc87d9c, S-56 resume-1 job 6a1cf8de, repair-1 job 944de6c0; claude-sonnet-5-5). Refused once at `1bca304b` (S-11: the resume's review record sat outside Files you own); the repair moved it byte-for-byte to the contract's path.
+- `conductor.yml` runs pytest with `-m "not operator_host"`; the six `[#1103]` ubuntu registry entries leave in the same change. `report-only-wall.yml` gains a nightly `schedule:` and a job-level concurrency group on `mutation-pilot`.
+- S-56: `pyproject.toml` `[tool.mutmut]` `also_copy` (`ecosystem/schema`, then `ecosystem/fleet-shape-spec.yaml`); the pilot's last step fails on 0 executed mutants or "failed to collect stats". Seed `logs/MUTATION-BASELINE.json` from dispatched run 38073707389 (killed 863, survived 1210; within 5 % of 865/1210).
+- Carried the `[#1480]` row close of the verdict-base merge (`a61ca631`, CI run 38073927824) and its post-land merge receipt.
+
+**Result:** the six operator-host reds are deselected, not repaired (`compare` reports them "fixed"; they are not counted as repairs). Reviews: Copilot `gpt-6.1-sol` 0/1/2/0 (all fixed), then Codex `gpt-6-astra` 0/0/0/0 on the fixed tip.
+
+**Changes:** `.github/workflows/conductor.yml`, `.github/workflows/report-only-wall.yml`, `pyproject.toml`, `tests/test_conductor.py`, `tests/test_report_only_wall.py`, `logs/KNOWN-REDS-REGISTRY.json`, `logs/MUTATION-BASELINE.json`, three review records under `docs/audits/`, regenerated `docs/audits/README.md`; the `[#1480]` row, `BACKLOG.md`, `tasks/manifest.json`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** none.
+
+**Next:** Done 3 (a scheduled `mutation-pilot` run within 48 h) is the integrator's at close; the remaining lanes in the S-39 order. Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (d) - CC (Opus 5.5, integrator seat B2-W3, cycle 1): lane b2w3-verdict-base merges -- an expired known-reds entry at the base no longer blinds the merge verdict, and land refuses a merge whose HEAD registry has lapsed
 
 **Anchors:** `102a2175` `8a138863` `1c38d08e` `e9c40eaa` `8ed21201` `84d58be0` `6a27cfb8` `8dd18f5d` -- branch `worktree-b2w3-verdict-base`, merged `--no-ff` through `worktree-integrate-b2-w3`.

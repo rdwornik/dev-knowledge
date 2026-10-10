@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9512506d0b2f91866cfbb8b2e250a285af95cc306744bd20ba07451a3fea554d",
+  "generated_sha256": "8b5479e0abaa82090444f1e8ef4ee058933f05d106930d7396328eeae22948d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3022,10 +3022,6 @@
     {
       "task": 1456,
       "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
-    },
-    {
-      "task": 1480,
-      "file": "1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md"
     },
     {
       "task": 1481,
