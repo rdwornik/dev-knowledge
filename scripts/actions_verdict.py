@@ -415,10 +415,10 @@ def _leg_failures(raw_log: str) -> dict:
             "signatures": _kr.extract_failure_signatures(text), "markers": markers}
 
 
-def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
-    """The known-reds registry as committed at `ref` (the BASE sha), validated exactly as
-    `known_reds.load_registry` validates a file. A lane's own diff to the registry is never
-    consulted, so a lane cannot launder its red by registering it. Raises `KnownRedsError`."""
+def _read_registry_at(ref: str, *, repo_root: Optional[Path] = None):
+    """The known-reds registry as committed at `ref`, parsed and NOT validated. Raises
+    `KnownRedsError` when it cannot be read: git failing or timing out, no such file or sha at
+    `ref`, invalid JSON, a schema `Registry.from_json` refuses."""
     try:
         from scripts import known_reds as _kr
     except ImportError:                                           # pragma: no cover -- shim
@@ -435,11 +435,46 @@ def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
         registry = _kr.Registry.from_json(json.loads(proc.stdout), f"{ref}:{_REGISTRY_RELPATH}")
     except ValueError as exc:
         raise _kr.KnownRedsError(f"{ref}:{_REGISTRY_RELPATH} is not valid JSON: {exc}") from exc
-    problems = _kr.registry_problems(registry)
+    return registry
+
+
+def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
+    """The known-reds registry as committed at `ref` (the BASE sha), validated STRUCTURALLY: an
+    absent, unparseable, wrong-schema, unowned, ill-formed or ill-dated registry still raises
+    `KnownRedsError` and the verdict is UNATTRIBUTED, so a lane cannot launder a red by leaving
+    or registering one. A lane's own diff to the registry is never consulted either.
+
+    What it does NOT check is expiry (LANE-1480, S-15/S-34/S-51). The base registry labels a red
+    that is red on BOTH sides and vouches registered-flaky swaps (`known_reds.compare_to_base`); an
+    entry past its date keeps vouching for what it vouched for on its last valid day, so refusing
+    to read the base because one entry lapsed blinded `land` to every test (the S-15 incident, 40
+    `[#912]` entries) without protecting anything. Expiry is enforced where the merge SHIPS the registry --
+    the head: `ci_verdict.verdict_for` reads it through `head_registry_problems`, and CI's
+    `known_reds compare` refuses it. The direct readers of THIS function (the Actions CLI,
+    `merge_receipt.record_actions_verdict`) read no head: the gate is the `land` path."""
+    try:
+        from scripts import known_reds as _kr
+    except ImportError:                                           # pragma: no cover -- shim
+        import known_reds as _kr
+    registry = _read_registry_at(ref, repo_root=repo_root)
+    problems = _kr.registry_structural_problems(registry)
     if problems:
         raise _kr.KnownRedsError(f"{ref}:{_REGISTRY_RELPATH}: {len(problems)} problem(s), "
                                  f"first: {problems[0]}")
     return registry
+
+
+def head_registry_problems(ref: str, *, repo_root: Optional[Path] = None) -> list:
+    """What is wrong with the known-reds registry as committed at `ref` (the MERGE sha), by the
+    FULL check -- structure AND expiry, the identical predicate `known_reds.load_registry` applies
+    when CI's `compare` loads it. Empty: it reads and is in date. RAISES `KnownRedsError` when it
+    cannot be read at `ref` ("unread" is a fact about the read, not an accusation -- the caller
+    decides what it means; `ci_verdict.verdict_for` reads it as UNATTRIBUTED, never a pass)."""
+    try:
+        from scripts import known_reds as _kr
+    except ImportError:                                           # pragma: no cover -- shim
+        import known_reds as _kr
+    return _kr.registry_problems(_read_registry_at(ref, repo_root=repo_root))
 
 
 def _default_fetch_logs(run: dict, job: dict, *, repo_root: Optional[Path] = None) -> Optional[str]:

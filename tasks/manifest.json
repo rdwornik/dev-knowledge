@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c4052c8cb580c8d216ed3e42d763426e6fe555a9512601b85f51aace45a96a41",
+  "generated_sha256": "09e5c5809e44798cee151b080b72e6af479d8a2397f4cc03e0c9b733ba9d3e98",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2508,10 +2508,6 @@
       "file": "1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md"
     },
     {
-      "task": 1023,
-      "file": "1023-integrator-test-wal-concurrency-smoke-real-processes-fl.md"
-    },
-    {
       "task": 1024,
       "file": "1024-integrator-merge-receipt-py-reports-unknown-tier-for-ev.md"
     },
@@ -2780,24 +2776,12 @@
       "file": "1341-tests-test-generator-newlines-py-15-text-writes.md"
     },
     {
-      "task": 1342,
-      "file": "1342-tests-test-floor-mechanisms-py-the-test-expects.md"
-    },
-    {
       "task": 1343,
       "file": "1343-the-graph-spine-orphan-census-names-claude-comma.md"
     },
     {
       "task": 1344,
       "file": "1344-two-graph-spine-lock-tests-flake-on-the-windows.md"
-    },
-    {
-      "task": 1345,
-      "file": "1345-the-desired-state-schema-lags-the-parity-surface.md"
-    },
-    {
-      "task": 1346,
-      "file": "1346-the-surface-triage-sessionstart-hook-has-no-stat.md"
     },
     {
       "task": 1347,
