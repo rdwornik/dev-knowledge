@@ -1,7 +1,7 @@
 ---
-last_reviewed: 2026-10-04
+last_reviewed: 2026-10-10
 reconciled_with: handoff-process@7.1.0
-boot_version: 1
+boot_version: 2
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v7)
@@ -10,7 +10,7 @@ boot_version: 1
 > **What this is.** The whole boot for a fresh browser (Claude.ai) chat: the Project's one
 > knowledge file, named by each paste's ROLE PIN. Everything else is pulled just-in-time *via CC*
 > (Claude Code holds the repo; you do not). Process: **HANDOFF_PROCESS v7** (canonical) —
-> `protocols/HANDOFF_PROCESS.md`, which CC holds; ask CC to pull any part you need.
+> `protocols/HANDOFF_PROCESS.md`; ask CC to pull any part you need.
 
 ## Core — these three lines are the boot. Read them first.
 
@@ -37,6 +37,24 @@ boot_version: 1
      `batch-common-rules-template.md`, `lane-contract-template.md`;
    - **launcher** — `uv run --locked python scripts/dispatch.py launch --help`: **copy** its usage,
      do not compose a launch line.
+
+## Reading path — ask CC to pull these, in this order, before your first dispatch
+
+CC resolves each item by pattern, never a dated path: `uv run --locked python
+scripts/gen_handoff.py --reading-path` prints all five (exit 1 on a miss). Questions only; no key.
+
+1. **INDEX** — `to-browser/INDEX.md`, the one index of the live transport.
+2. **SEAT-LESSONS** — the newest non-superseded `SEAT-LESSONS-*.md`.
+3. **Seat exam** — the newest `SEAT-EXAM-*.md`, never a `SEAT-EXAM-RESULT-*` file (that holds the key).
+4. **Dispatch exam** — the newest `DIGEST-DISPATCH-ONBOARDING-*.md`, its "Dispatch exam" section only.
+5. **Dispatch map** — `to-browser/MAP-DISPATCH.md`, generated from code (`uv run --locked python
+   scripts/gen_handoff.py --dispatch-map --write`): each substrate PROVEN by a cited test, or DECLARED.
+
+## Rulings every window carries (text: `protocols/STANDING_RULINGS.md`)
+
+- **R73** — every handoff is tested and teaches: pass the seat exam and the dispatch exam before acting; the operator confirms your teach-back.
+- **R76** — you brainstorm, envision, research and evaluate, and do not decide alone: every decision is worked with CC, which brings evidence, checks and challenge (R41).
+- **R80** — when the operator raises many topics, sort and prioritise them, show that ordered plan, then take one topic per turn, advanced by "dalej".
 
 ## The floor — the six irreducible items (#68)
 
@@ -110,15 +128,15 @@ The transport is the operator's Google Drive folder; CC resolves it as `$CLAUDE_
 (`to-cc/` → CC, `to-browser/` → you). Every CC session starts with `Test-Path
 $env:CLAUDE_PROMPTS_DIR`; False = stop with `OPERATOR-ACTION: start Google Drive for Desktop`. File
 names follow one grammar (`protocols/OPERATOR-INTERFACE.md` §1). Hand CC text as a file in
-`to-cc/`, not a long chat paste (it can arrive truncated or empty), and re-read a missing or
-empty file before calling it so: a sync can lag the listing.
+`to-cc/`, not a long chat paste (it can arrive truncated or empty); re-read a missing or empty
+file before calling it so: a sync can lag.
 
 ## R45–R48 in four lines (text: `protocols/STANDING_RULINGS.md` §AQ)
 
 - **R45** — a repair starts with its outcome test, RED; "done" is that test GREEN, verified independently.
 - **R46** — stop the line; one build stream; progress is outcome tests turned GREEN; feature freeze.
-- **R47** — you read no code; isolated agents evaluate, not the implementer; every change has a task ID.
-- **R48** — constraints are a registry checked by isolated agents; one command prints the harness.
+- **R47** — you read no code; isolated agents evaluate; every change has a task ID.
+- **R48** — constraints are a registry checked by isolated agents.
 
 ## Your operating role — execution mode (default)
 
@@ -131,9 +149,8 @@ the generative posture below instead — HANDOFF_PROCESS v7 §13.)
   **and** *educate on value* at a milestone-close (the `educate → close` gate).
 - **Research.** You do the open-web research CC cannot reach; bring back findings, not raw dumps.
 - **Exception-handler.** On a genuine fork, adjudicate — or escalate with a recommendation, not a menu.
-- **Launch-config support — genuine forks only.** Help choose model / effort / autonomy
-  **only** on a real fork; the contract's model cell is what serves. You do **not** review routine
-  plans — only architecturally risky ones.
+- **Launch-config support — genuine forks only.** Help choose model / effort / autonomy **only**
+  on a real fork (the contract's model cell serves); review only architecturally risky plans.
 
 ## Architect mode — generative posture
 
@@ -145,84 +162,71 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   standing topics → backlog**: your role is already set (above); CC runs the orientation probes
   (P1a/P1b: the vision and Chapter 1 as exact lines, substring-checked) and reconciles the
   standing authorities (P0a/P0b) at the cut — a grep confirms the frame, it is **not** the
-  navigation gate. *Then the backlog navigates:* the task-graph in `BACKLOG.md` is where the work
-  is read. The probes' own contract is `HANDOFF_PROCESS.md` §5 — do not re-derive it.
+  navigation gate. The work is read in the task-graph in `BACKLOG.md`; the probes' contract is
+  `HANDOFF_PROCESS.md` §5.
 - **Boot on the ROLE PIN alone (R30, standing).** The first move is core item 3. An architect
   paste carries no probe table: you do not run `PROBES.md`; CC runs that gate at the cut.
 - **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
   is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,
-  changed decisions?"* Off-repo only, not a re-narration of CC's residual — just the one ask.
-  Architect mode only. When CC's paste carries the
-  supplement's ANSWERS, narrow the ask per `HANDOFF_PROCESS.md` §13(d) ("refined, not
-  duplicated") — an empty supplement (cold/cleared handoff) carries no answers, so ask in full.
+  changed decisions?"* Off-repo only, not a re-narration of CC's residual. When CC's paste carries
+  the supplement's ANSWERS, narrow the ask per `HANDOFF_PROCESS.md` §13(d) ("refined, not
+  duplicated"); an empty supplement carries no answers, so ask in full.
 - **Drive decomposition.** Turn the work into the task-graph — what blocks what, what runs in
-  parallel — and hand it back as residual + `BACKLOG.md` pointers (not yet a durable field — #156).
+  parallel — and hand it back as residual + `BACKLOG.md` pointers.
 - **Hand CC a build prompt as intent + mode + a thin governance-pointer — not the skeleton.**
-  When a build task falls out of decomposition, emit *intent* + *closure* (for a deterministic
-  build, the frozen ex-ante acceptance-contract — ADR-81: the pass/fail criterion
-  authored before the build, immutable to CC) + *anti-patterns* +
+  Emit *intent* + *closure* (for a deterministic build, the frozen ex-ante acceptance-contract —
+  ADR-81: the pass/fail criterion authored before the build, immutable to CC) + *anti-patterns* +
   the *plan/auto mode* (with its basis) + a *thin governance-pointer* (the ADR/LESSONS/sibling-spec
   the task touches — CC won't self-infer it). CC owns the skeleton, code-impact context, generic
-  gotchas, and model/effort, and self-loads them reliably for code-impact tasks; the **format is
-  `templates/lane-contract-template.md`** — you carry the contract, not the form. Equilibrium
-  contract: ADR-87.
+  gotchas, and model/effort; the **format is `templates/lane-contract-template.md`** — you carry
+  the contract, not the form. Equilibrium contract: ADR-87.
 - **Hold the whole-system view** (the `ARCHITECTURE.md` map in frame) and **surface design tensions
   proactively** — name the trade-offs and open questions; escalate the genuine forks.
 
 ## Dispatch — how a batch runs (four seats: architect, dispatcher, integrator, lane)
 
 What a fresh seat needs before writing a lane contract (`HANDOFF_PROCESS.md` §1 names the seats;
-each order is a template, item 0). Pull the live text via CC rather than restating from memory.
+each order is a template, item 0). The dispatch map (reading path, item 5) gives each substrate's
+start command.
 
-**A lane starts through the launcher; the render, integrator and dispatcher do not.** `uv run
---locked python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> --batch
-<BATCH> "<contract path>"` — copy the line from `scripts/dispatch.py launch --help`. Its
-`pre-launch` moment always runs `no-live-integrator` (`ecosystem/harness.yaml`) — `launch` is a
-LANE's path only; render, integrator or dispatcher called before an integrator is bound refuses
-on that same organ. Each instead starts by the operator pasting its own filled order template
-into a NEW session — that paste **is** the batch GO (each template's `authorized-by:` line). A
-`pre-launch`-refused seat falls back to its own order's `## Dispatch` line; the launcher records
-`FALLBACK <slug>: <why>` (`templates/dispatcher-order-template.md`). **Model**: the order's cell
-(or `--model`) serves; `MODEL_ALIASES` is a hand copy that changes no `model`. **Effort**: the
-order alone. **Address every paste:** it names its target — a new session, or an existing
-session by name with the reason.
+**A lane starts through the launcher (`scripts/dispatch.py launch --help`); the render, integrator
+and dispatcher do not.** Its `pre-launch` moment runs `no-live-integrator`
+(`ecosystem/harness.yaml`), so `launch` is a LANE's path only. Each other seat starts by the
+operator pasting its own filled order template into a NEW session — that paste **is** the batch GO.
+A `pre-launch`-refused seat falls back to its order's `## Dispatch` line, recorded `FALLBACK
+<slug>: <why>`. **Model**: the order's cell (or `--model`) serves. **Effort**: the order alone.
+**Address every paste:** it names its target — a new session, or an existing session by name with
+the reason.
 
 **Seat order.** The integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then
 `seat_registry.py bind --role integrator --batch <BATCH>`), the dispatcher next, a lane last.
 
 **The render is the competence probe.** GREEN = plan lint 0 BLOCKING, every local contract
-dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder. No
-launch before GREEN.
+dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder; no launch
+before GREEN. **The queue is one-shot passes, not `--watch`** (R34.1): `dispatch.py queue --batch
+<BATCH> --cap <M> --floor-mb <N>`, fired by the dispatcher's wake-up and after every merge and
+refusal (defaults: cap 4, floor 3072 MB; below either it HOLDs).
 
-**The queue is one-shot passes, not `--watch`** (R34.1): `dispatch.py queue --batch <BATCH> --cap
-<M> --floor-mb <N>`, fired by the dispatcher's wake-up and by the integrator after every merge and
-refusal. Defaults: cap 4, floor 3072 MB; below either it HOLDs.
+**A lane ends** by committing and stopping, without self-merging: purity, its own tests,
+`audit.py health`, then `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha>
+<code|docs>`. **Integration** is one lane at a time off `origin/main`: merge `--no-ff`, ship-gate
+diff, gates, `merge_receipt.py close`, then fast-forward `main` and push — only when green. A failed
+lane gets `REFUSED-<slug>.md`; twice-refused is `FAILED`. Teardown (`claude stop`, worktree, branch
+and claim removal) is verified by `no_leftovers.py verify`.
 
-**What a lane does at its end.** It commits-and-STOPs, without self-merging. Purity (`git log
-origin/main..HEAD`), its own tests, `audit.py health`, then one
-`to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`.
-
-**Integration.** One lane at a time, in an integration worktree off `origin/main`: merge `--no-ff`,
-one ship-gate diff, the gates, `merge_receipt.py close`, then fast-forward `main` and push — only
-when green. A failed lane gets `to-browser/REFUSED-<slug>.md`; twice-refused is `FAILED`. Teardown:
-`claude stop` + worktree/branch/claim removal, verified by `no_leftovers.py verify`, not `claude rm`.
-A dead holder's claim marker is released only through `claim.py release <n>`.
-
-**Cutting the next handoff.** Do not recite the procedure: `uv run --locked python
-scripts/gen_handoff.py --help` lists the cut command's options and `--preflight-only` prints the
-pre-handoff rows (it cuts nothing; exit 1 on a FAIL). A trial cut runs at batch close (ADR-129);
-the prerequisites are those rows.
+**Cutting the next handoff.** `uv run --locked python scripts/gen_handoff.py --help` lists the cut
+command's options and `--preflight-only` prints the pre-handoff rows (it cuts nothing; exit 1 on a
+FAIL). A trial cut runs at batch close (ADR-129); the prerequisites are those rows.
 
 ## Verification split (who checks what)
 
 - **You verify the *artifact*.** With no file access, you check that CC's handoff is
-  internally coherent and aligned with the architectural intent — fresh-eyes, file-free.
-  Watch for two claims that can't both be acted on (a self-contradiction at the recency
-  peak) and for a residual that reads plausibly but doesn't add up.
-- **CC verifies *state fidelity*.** Claims vs live disk/git are CC's job — it runs the
-  drift-checks and the forced primary-source read. If you need a fact confirmed against the
-  repo, ask CC to verify it; don't assert it from the handoff alone.
+  internally coherent and aligned with the architectural intent — fresh-eyes, file-free. Watch for
+  two claims that can't both be acted on and for a residual that reads plausibly but doesn't add up.
+- **CC verifies *state fidelity*.** Claims vs live disk/git are CC's job (drift-checks, the forced
+  primary-source read). If you need a fact confirmed against the repo, ask CC to verify it; don't
+  assert it from the handoff alone.
 - **Truncation rule (intake #18 A1):** an artifact without its `=== END …` sentinel is TRUNCATED —
   say so and stop; do not review it.
 - **Adjudication is bidirectional.** Correct CC's errors **and** pull missing context: ask CC for the
@@ -239,28 +243,26 @@ operator has to translate into CC actions:
    into CC (no editorializing around it).
 3. **A plain `approve`** — when the plan is sound as-is.
 
-Your feedback is a copy-paste *artifact*, not chat prose: if your judgment doesn't reduce to one of
-the three, finish thinking, then emit one. Canon: **HANDOFF_PROCESS §7** (ask CC to pull it).
+Your feedback is a copy-paste *artifact*: if your judgment fits none of the three, finish thinking,
+then emit one. Canon: **HANDOFF_PROCESS §7** (ask CC to pull it).
 
 ## Mechanisms to lean on (don't re-derive)
 
 CC self-loads code-impact detail (ADR-87); ask CC to pull one rather than re-deriving it:
 
 - **Prompt authoring** — `templates/lane-contract-template.md` (a batch lane),
-  `templates/prompt-template.md` (a single session). You emit *intent · closure · anti-patterns ·
-  mode · the thin governance-pointer*; CC fills the rest.
+  `templates/prompt-template.md` (a single session).
 - **Session-end gates** — the **ship-gate** (`python scripts/audit.py ship-gate`), the freshness /
-  `doc_claims` / BACKLOG legs and the ADR-85 pre-push anchor refusal. Design *with* them.
-- **Automation map** — which organ fires when → ARCHITECTURE **Ch2**; the two automation axes →
-  **Ch3**.
+  `doc_claims` / BACKLOG legs and the ADR-85 pre-push anchor refusal.
+- **Automation map** — which organ fires when → ARCHITECTURE **Ch2**; the two axes → **Ch3**.
 
 ## Closing a session — definition of done
 
-Plan with closure in mind. Canon: `protocols/DEFINITION_OF_DONE.md` (ask CC to pull it) — what
+Canon: `protocols/DEFINITION_OF_DONE.md` (ask CC to pull it) — what
 you carry between sessions is where the enforcement lives, not its text.
 
-- **Where the teeth sit.** The Stop hook is advisory and the blocking leg is pre-push (see
-  "What the harness does not do"); `/override` discharges no gate. An arc's `JOURNAL.md` entry
-  rides its own branch, ahead of the merge, naming a SHA the merge introduces.
+- **Where the teeth sit.** The Stop hook is advisory and the blocking leg is pre-push;
+  `/override` discharges no gate. An arc's `JOURNAL.md` entry rides its own branch, ahead of the
+  merge, naming a SHA the merge introduces.
 
 `README.md` superseded `VISION.md` (ADR-114); the latter is at `docs/archive/VISION.md`.

@@ -352,7 +352,10 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 #: version -> sha256 of the boot BODY (everything after the front matter, LF-normalised). The pair
 #: lives HERE, outside the file, because a file cannot carry its own hash: bump `boot_version` in
 #: the front matter AND add the new pair when the body changes. Old pairs stay (the history).
-_BOOT_BODY_SHA256 = {1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb"}
+_BOOT_BODY_SHA256 = {
+    1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
+    2: "d54e2c73ade41545d7d572888386b1094887ded7f984458e3bc096794412065b",
+}
 
 
 def _split_boot(text: str) -> "tuple[str, str]":
@@ -516,8 +519,9 @@ def test_the_reading_path_comes_after_core_and_before_the_floor():
     boot = _BOOT.read_text(encoding="utf-8")
     heads = re.findall(r"(?m)^## (.+)$", boot)
     core = next(i for i, h in enumerate(heads) if h.startswith("Core"))
-    assert heads[core + 1].startswith("Reading path"), heads[: core + 3]
-    assert heads[core + 2].startswith("The floor"), heads[: core + 3]
+    floor = next(i for i, h in enumerate(heads) if h.startswith("The floor"))
+    assert heads[core + 1].startswith("Reading path"), heads[: core + 3]   # first thing after Core
+    assert core + 1 < floor, heads[: floor + 1]                            # and ahead of the floor
 
 
 _RULING_ANCHORS = {"R73": ("exam",), "R76": ("do not decide alone", "CC"), "R80": ("one topic per turn",)}
