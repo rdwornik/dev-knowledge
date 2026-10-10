@@ -1705,23 +1705,43 @@ def _scripts_python_files():
     return sorted(p for p in (_REPO / "scripts").rglob("*.py") if "__pycache__" not in p.parts)
 
 
-def test_only_the_base_side_read_calls_the_structural_validator():
-    """The tripwire for D1: the relaxation is reachable from ONE place, the BASE-side registry
-    read of `actions_verdict`. A new caller is a conscious act, not an accident. The scan asserts
-    the definition and the call EXIST (an allowlist-only scan would pass vacuously on a tree that
-    has neither)."""
-    name = "registry_structural_problems"
-    defined_in, called_from = [], []
-    for path in _scripts_python_files():
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                defined_in.append(path.name)
-            elif isinstance(node, ast.Call):
-                func = node.func
-                called = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
-                if called == name:
-                    called_from.append(path.name)
+def _mentions(tree, name):
+    """Every place `tree` mentions `name` -- a definition, a bare name, an attribute, an import
+    (aliased or not), or the exact string a `getattr` would carry -- each as the name of the
+    function that encloses it ('' at module level; '<definition>' for the def itself)."""
+    parents = {child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
 
-    assert defined_in == ["known_reds.py"], defined_in
-    assert called_from == ["actions_verdict.py"], called_from
+    def enclosing(node):
+        while node in parents:
+            node = parents[node]
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return node.name
+        return ""
+
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            found.append("<definition>")
+        elif (isinstance(node, ast.Name) and node.id == name) \
+                or (isinstance(node, ast.Attribute) and node.attr == name) \
+                or (isinstance(node, ast.alias) and name in (node.name, node.asname)) \
+                or (isinstance(node, ast.Constant) and node.value == name):
+            found.append(enclosing(node))
+    return found
+
+
+def test_only_the_base_side_read_mentions_the_structural_validator():
+    """The tripwire for D1: the relaxation is reachable from ONE place, the BASE-side registry
+    read -- `actions_verdict._load_registry_at`. Any other mention (a call from the HEAD reader, an
+    aliased import, a `getattr`) is a conscious act, not an accident. It asserts the definition AND
+    the one mention EXIST, so a tree with neither cannot pass, and it names the enclosing function,
+    so moving the call into `head_registry_problems` fails it."""
+    name = "registry_structural_problems"
+    mentions = {}
+    for path in _scripts_python_files():
+        found = _mentions(ast.parse(path.read_text(encoding="utf-8")), name)
+        if found:
+            mentions[path.name] = found
+
+    assert mentions == {"known_reds.py": ["<definition>"],
+                        "actions_verdict.py": ["_load_registry_at"]}, mentions

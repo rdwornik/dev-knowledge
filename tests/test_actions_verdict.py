@@ -1025,7 +1025,7 @@ def test_B2R1_an_unreadable_log_of_a_SUCCESS_base_leg_is_UNATTRIBUTED_never_an_e
 # =====================================================================================
 # LANE-1480 (b2w3-verdict-base) -- an EXPIRED entry at the BASE must not blind the verdict
 #
-# On 2026-10-09 every B2-W2 merge stopped: `land` could not judge a single test because the
+# In the S-15 incident every B2-W2 merge stopped: `land` could not judge a single test because the
 # registry AT THE BASE held expired `[#912]` entries (`_load_registry_at` validated it with
 # `registry_problems`, expiry included), and a lane landed only by a one-time operator ruling
 # (S-15). The base read is now STRUCTURAL only: an absent, malformed, unowned or ill-dated
@@ -1057,12 +1057,22 @@ def _iso(days: int) -> str:
     return (_dt.date.today() + _dt.timedelta(days=days)).isoformat()
 
 
+def _stamp(minutes: int) -> str:
+    """A run timestamp RELATIVE TO NOW, in the shape the Actions API returns."""
+    now = _dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(minutes=minutes)
+    return now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+#: the fixture registry's `baseline_id` -- an opaque label, deliberately not date-shaped
+_BASELINE_ID = "fixture-registry-baseline"
+
+
 def _registry_text(known_days: int, *, extra=None) -> str:
     """The registry file as committed: one owned member, `_KNOWN`, expiring `known_days` from today."""
     members = {_KNOWN: {"attribution": kr.PRE_FREEZE, "task": "[#912]", "owner": "rob",
                         "expiry": _iso(known_days)}}
     members.update(extra or {})
-    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-10-01-reg", measured_at_sha="s",
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id=_BASELINE_ID, measured_at_sha="s",
                            measured_via="ci", workers=4, members=members)
     return json.dumps(registry.to_json(), indent=2, ensure_ascii=False) + "\n"
 
@@ -1131,7 +1141,7 @@ def _install_ci(monkeypatch, *, tip, base, kind="both-red", tip_ids=(), base_ids
         return {"databaseId": run_id, "headSha": sha, "status": "completed", "conclusion": run_c,
                 "event": "push", "displayTitle": "a merge",
                 "url": f"https://github.com/x/x/actions/runs/{run_id}",
-                "createdAt": "2026-10-10T00:00:00Z", "updatedAt": "2026-10-10T00:08:00Z"}
+                "createdAt": _stamp(-8), "updatedAt": _stamp(0)}
 
     tip_jobs, base_run = jobs(100), {**run(base, 2), "jobs": jobs(300)}
 
@@ -1218,7 +1228,7 @@ def test_T1b_verdict_level_reads_an_expired_base_and_names_the_new_test_by_field
 
     assert verdict.state == av.STATE_REGRESSED, verdict.reason
     assert verdict.new_tests == (f"{_LEG_U}: {_NEW}",)
-    assert verdict.registry_baseline_id == "2026-10-01-reg"       # the registry was read
+    assert verdict.registry_baseline_id == _BASELINE_ID           # the registry was read
 
 
 def test_T1b_verdict_level_an_expired_base_with_nothing_new_is_PRE_EXISTING(tmp_path):
@@ -1227,7 +1237,7 @@ def test_T1b_verdict_level_an_expired_base_with_nothing_new_is_PRE_EXISTING(tmp_
     verdict = _verdict_level(repo, a)
 
     assert verdict.state == av.STATE_PRE_EXISTING, verdict.reason
-    assert verdict.registry_baseline_id == "2026-10-01-reg"
+    assert verdict.registry_baseline_id == _BASELINE_ID
 
 
 # --- what STAYS UNATTRIBUTED: a base registry that is not sound, expired or not --------------
@@ -1319,7 +1329,6 @@ def test_T2bf_head_registry_problems_RAISES_when_it_cannot_read(tmp_path, kind):
 # These tests run `land` itself on the production wiring, so each is also the before/after of
 # the verb: at the previous sha every refusal below was a landing.
 
-import ast  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 _HEAD_LINE = "known-reds registry at the head"
@@ -1406,7 +1415,7 @@ def test_T2b_d_a_head_registry_with_an_UNOWNED_member_is_refused(tmp_path, monke
 
 def test_T1d_an_INHERITED_expired_entry_is_refused_on_the_head_leg_no_exemption(
         tmp_path, monkeypatch):
-    """S-51.5: the ordinary merge on 2026-10-17 carries the base's expired entries into its head.
+    """S-51.5: the first ordinary merge after the base's entries lapse carries them into its head.
     It is refused -- now on the head leg (REGRESSED), where it used to be refused on the base leg
     (UNATTRIBUTED). An exemption for inherited entries would be a weaker check (R38); this test
     makes adding one a conscious act."""
@@ -1430,28 +1439,31 @@ def test_T2b_cli_the_printed_line_names_the_head_registry_and_the_exit_code_is_o
     assert "land: would land: NO" in out.output, out.output
 
 
-def test_no_production_caller_injects_a_fetch_function_into_the_ci_verdict():
-    """The head read is wired ON when nothing is injected into `ci_verdict.verdict_for`. A
-    production caller that passed one of these would switch it off without a word, so a new such
-    caller is a conscious act. The scan asserts it SAW the production callers (a vacuous pass is
-    the failure): `handoff_state` calls `verdict_for` by name, `merge_path.read_verdict` through
-    `verdict_fn`."""
-    banned = {"list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base", "registry_loader",
-              "head_check"}
-    scripts = Path(__file__).resolve().parents[1] / "scripts"
-    seen = []
-    for path in sorted(scripts.rglob("*.py")):
-        if path.name in ("ci_verdict.py", "actions_verdict.py") or "__pycache__" in path.parts:
-            continue
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            called = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
-            if called in ("verdict_for", "verdict_fn"):
-                seen.append((path.name, called, sorted(k.arg for k in node.keywords
-                                                       if k.arg in banned)))
+_INJECTION_SEAMS = {"list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base", "registry_loader",
+                    "head_check"}
 
-    assert any(f == "handoff_state.py" and c == "verdict_for" for f, c, _ in seen), seen
-    assert any(f == "merge_path.py" and c == "verdict_fn" for f, c, _ in seen), seen
-    assert [entry for entry in seen if entry[2]] == [], seen
+
+@pytest.mark.parametrize("run_id", [None, 7])
+def test_the_production_reader_hands_the_ci_verdict_no_injection_seam(monkeypatch, run_id):
+    """The head read is wired ON when nothing is injected into `ci_verdict.verdict_for`, and
+    `merge_path.read_verdict` is the ONE function `land` reads a verdict through. A seam passed
+    from there would switch the read off without a word, so this runs the function itself and
+    records what it hands over: an alias, a `**` unpack or a renamed variable cannot hide from
+    it, as they could from a scan of the source. It also pins `baseline`: with none the head read
+    has nothing to read the registry against."""
+    seen = {}
+
+    def recorder(sha, **kwargs):
+        seen["sha"], seen["kwargs"] = sha, kwargs
+        return "a verdict"
+
+    monkeypatch.setattr(_cv, "verdict_for", recorder)
+    sha, base = "a" * 40, "b" * 40
+
+    out = _mp.read_verdict(sha, base=base, root=Path("."), timeout_s=1, interval_s=1, run_id=run_id)
+
+    assert out == "a verdict"
+    assert seen["sha"] == sha
+    assert _INJECTION_SEAMS.isdisjoint(seen["kwargs"]), seen["kwargs"]
+    assert seen["kwargs"]["baseline"] == base
+    assert ("run_id" in seen["kwargs"]) == (run_id is not None)

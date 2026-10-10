@@ -7,6 +7,7 @@ IN-PROGRESS-then-completes and the timeout-while-waiting cases run in test time 
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import subprocess
 
@@ -746,6 +747,11 @@ class _HeadStub:
 _HEADS = {"ok": [], "problems": [_PROBLEM], "unreadable": RuntimeError("git said no")}
 
 
+def _log_ts() -> str:
+    """A job-log timestamp RELATIVE TO NOW, in the shape the Actions log prints."""
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z")
+
+
 def _six(first_id, *, pytest_c, ruff_c="success"):
     return [{"name": n, "databaseId": first_id + i,
              "conclusion": pytest_c if n in (_LEG_U, _LEG_W) else (ruff_c if n == "ruff" else "success")}
@@ -771,7 +777,7 @@ def _head_case(scenario, head, **extra):
     def log_fn(run_id, job_id, *, repo_root):
         ids, msg = (tip_ids, tip_msg) if job_id < 300 else (base_ids, base_msg)
         leg = _LEG_U if job_id % 100 == 0 else _LEG_W
-        return "\n".join(f"{leg}\tRun\t2026-10-02T10:00:00.0000000Z FAILED {i} - {msg}" for i in ids)
+        return "\n".join(f"{leg}\tRun\t{_log_ts()} FAILED {i} - {msg}" for i in ids)
 
     def broken_loader(ref, *, repo_root=None):
         raise RuntimeError("no registry at the base")

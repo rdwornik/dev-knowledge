@@ -447,8 +447,8 @@ def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
     What it does NOT check is expiry (LANE-1480, S-15/S-34/S-51). The base registry labels a red
     that is red on BOTH sides and vouches registered-flaky swaps (`known_reds.compare_to_base`); an
     entry past its date keeps vouching for what it vouched for on its last valid day, so refusing
-    to read the base because one entry lapsed blinded `land` to every test (2026-10-09, 40 `[#912]`
-    entries) without protecting anything. Expiry is enforced where the merge SHIPS the registry --
+    to read the base because one entry lapsed blinded `land` to every test (the S-15 incident, 40
+    `[#912]` entries) without protecting anything. Expiry is enforced where the merge SHIPS the registry --
     the head: `ci_verdict.verdict_for` reads it through `head_registry_problems`, and CI's
     `known_reds compare` refuses it. The direct readers of THIS function (the Actions CLI,
     `merge_receipt.record_actions_verdict`) read no head: the gate is the `land` path."""
