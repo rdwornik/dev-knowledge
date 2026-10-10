@@ -452,7 +452,7 @@ _SEAT_IDS_HEADER = """\
 # landing_inventory: every live transport file at landing, `<folder>/<name>: sha256`
 #                    (`transport.py inventory --write`). The `by:` rule reads it to tell a new file
 #                    from a pre-existing one; the lint and the write gate only read it.
-# LANE-1439-b2w2-transport-index (batch B2-W3).
+# [#1439] LANE-1439-b2w2-transport-index (batch B2-W3).
 """
 
 
