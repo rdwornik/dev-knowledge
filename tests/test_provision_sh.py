@@ -714,6 +714,93 @@ def test_leg_f6_creates_the_config_when_there_is_none(tmp_path: Path):
     assert _toml(cfg.read_text(encoding="utf-8")) == {_F6_KEY: "chatgpt"}
 
 
+# --- Codex re-review (gpt-6-astra, 2026-10-10 19:46Z), CRITICAL: the atomic replace widened a config's mode
+#
+# RED on b6f26d04: `f6_config` wrote its temp file with the default mode (0644 under umask 022) and
+# `os.replace`d it over the original, so an existing 0600 `~/.codex/config.toml` -- which may hold
+# secret-valued MCP env/header settings -- became world-readable (the old `sed -i` kept the mode).
+# The temp file is now created 0600, so no byte of the new content is ever readable by another
+# user, and takes the ORIGINAL's mode just before it replaces it (0600 for a file that is new).
+# A Windows interpreter cannot represent 0600, so the first test records the calls the helper makes
+# (an order and a value, which is the same on every host) and a POSIX host also reads the real bits.
+
+
+def _f6_config_source() -> str:
+    """The python the leg pipes to `python3 -` (heredoc body of the nested `f6_config`)."""
+    text = _PROVISION_SH.read_text(encoding="utf-8")
+    opener = "python3 - \"$@\" <<'PY'\n"
+    start = text.index(opener, text.index("f6_config() {")) + len(opener)
+    return text[start:text.index("\nPY\n", start) + 1]
+
+
+def _run_f6_config_recording(cfg: Path, monkeypatch) -> list[tuple]:
+    """Run `f6_config ensure <cfg>` in-process, recording its os.open / os.chmod / os.replace calls."""
+    import io
+    import sys
+
+    events: list[tuple] = []
+    real_open, real_chmod, real_replace = os.open, os.chmod, os.replace
+
+    def rec_open(path, flags, mode=0o777, **kw):
+        events.append(("open", str(path), mode))
+        return real_open(path, flags, mode, **kw)
+
+    def rec_chmod(path, mode, **kw):
+        events.append(("chmod", str(path), mode))
+        return real_chmod(path, mode, **kw)
+
+    def rec_replace(src, dst, **kw):
+        events.append(("replace", str(src), str(dst)))
+        return real_replace(src, dst, **kw)
+
+    out = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    with monkeypatch.context() as m:
+        m.setattr(os, "open", rec_open)
+        m.setattr(os, "chmod", rec_chmod)
+        m.setattr(os, "replace", rec_replace)
+        m.setattr(sys, "argv", ["-", "ensure", str(cfg)])
+        m.setattr(sys, "stdout", out)
+        with pytest.raises(SystemExit) as stop:
+            exec(compile(_f6_config_source(), "f6_config.py", "exec"), {"__name__": "__main__"})
+    assert stop.value.code in (0, None), stop.value.code
+    return events
+
+
+def test_f6_config_writes_a_private_temp_file_and_restores_the_originals_mode_before_replacing(
+        tmp_path: Path, monkeypatch):
+    import stat
+
+    cfg = tmp_path / "config.toml"
+    cfg.write_bytes(f'{_F6_KEY} = "api"\nmodel = "x"\n'.encode("utf-8"))
+    os.chmod(cfg, 0o640)
+    original_mode = stat.S_IMODE(os.stat(cfg).st_mode)   # what THIS host can represent of 0o640
+
+    events = _run_f6_config_recording(cfg, monkeypatch)
+
+    kinds = [e[0] for e in events]
+    assert kinds == ["open", "chmod", "replace"], events
+    (_, tmp_name, open_mode), (_, chmod_target, chmod_mode), (_, replaced, destination) = events
+    assert open_mode == 0o600, "the temp file is created private: no moment at which others can read it"
+    assert tmp_name == chmod_target == replaced and tmp_name.startswith(str(cfg) + ".tmp.")
+    assert destination == str(cfg)
+    assert chmod_mode == original_mode, "it takes the original's mode just before it replaces it"
+    assert _toml(cfg.read_text(encoding="utf-8"))[_F6_KEY] == "chatgpt"
+    if os.name != "nt":   # a POSIX host can read the real bits back (CI Linux, the Codespace)
+        assert stat.S_IMODE(os.stat(cfg).st_mode) == 0o640
+
+
+def test_f6_config_makes_a_new_file_private(tmp_path: Path, monkeypatch):
+    import stat
+
+    cfg = tmp_path / "config.toml"
+    events = _run_f6_config_recording(cfg, monkeypatch)
+    assert [e[0] for e in events] == ["open", "chmod", "replace"], events
+    assert events[0][2] == 0o600 and events[1][2] == 0o600
+    assert _toml(cfg.read_text(encoding="utf-8")) == {_F6_KEY: "chatgpt"}
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(cfg).st_mode) == 0o600
+
+
 def test_a_parity_version_probe_is_keyless_even_when_a_login_shell_exports_the_keys(tmp_path: Path):
     """Done 2 on the parity side (Codex Critical, 2026-10-10). The probe is `bash -lc`, so a profile
     that exports the secrets AFTER the parent's env was scrubbed re-injects them -- the old probe
