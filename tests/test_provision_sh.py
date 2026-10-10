@@ -771,7 +771,7 @@ def test_f6_config_writes_a_private_temp_file_and_restores_the_originals_mode_be
     import stat
 
     cfg = tmp_path / "config.toml"
-    cfg.write_bytes(f'{_F6_KEY} = "api"\nmodel = "x"\n'.encode("utf-8"))
+    cfg.write_bytes(f'{_F6_KEY} = "api"\nmodel = "x"\n'.encode())
     os.chmod(cfg, 0o640)
     original_mode = stat.S_IMODE(os.stat(cfg).st_mode)   # what THIS host can represent of 0o640
 
