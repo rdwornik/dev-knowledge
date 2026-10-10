@@ -812,9 +812,10 @@ for new in candidates:
     except tomllib.TOMLDecodeError:
         ok = False
     if ok:
-        # the config may hold secret-valued settings: the temp file is created 0600 (so no byte of
-        # the new content is ever readable by another user), takes the ORIGINAL's mode just before
-        # it replaces it, and a file that is new stays private (the old `sed -i` kept the mode)
+        # the config may hold secret-valued settings, so the new content is never more readable than
+        # the original: the temp file is created 0600, takes the ORIGINAL's mode only just before it
+        # replaces it (so it is readable by exactly whom the original was), and a file that is new
+        # stays private (the old `sed -i` kept the mode)
         try:
             mode = stat.S_IMODE(os.stat(path).st_mode)
         except FileNotFoundError:
