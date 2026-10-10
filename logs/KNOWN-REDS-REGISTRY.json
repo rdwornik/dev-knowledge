@@ -139,23 +139,6 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
-    "tests/test_floor_mechanisms.py::test_pre_existing_components_are_untouched_by_the_mechanism_reader": {
-      "attribution": "pre-freeze",
-      "task": "[#1342]",
-      "owner": "rob",
-      "expiry": "2026-10-17",
-      "ceiling": {
-        "pattern": "assert (?P<n>\\d+) == 21",
-        "max": 23
-      },
-      "growth": {
-        "from": 22,
-        "to": 23,
-        "unit": "plain components in deploy/manifest-v1.5.0.yaml (test expects 21)",
-        "commits": "4ad29e44..2e7fa5f2: f643e4e3 (adds component codex-review-organ)",
-        "first_red": "at or before 11c7c8b1 (2026-09-12)"
-      }
-    },
     "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
       "attribution": "pre-freeze",
       "task": "[#912]",
@@ -659,24 +642,6 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'"
       },
-      "tests/test_floor_mechanisms.py::test_pre_existing_components_are_untouched_by_the_mechanism_reader": {
-        "attribution": "pre-freeze",
-        "task": "[#1342]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "assert (?P<n>\\d+) == 21",
-          "max": 23
-        },
-        "growth": {
-          "from": 22,
-          "to": 23,
-          "unit": "plain components in deploy/manifest-v1.5.0.yaml (test expects 21)",
-          "commits": "4ad29e44..2e7fa5f2: f643e4e3 (adds component codex-review-organ)",
-          "first_red": "at or before 11c7c8b1 (2026-09-12)"
-        },
-        "signature": "AssertionError: assert 23 == 21"
-      },
       "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
         "attribution": "pre-freeze",
         "task": "[#912]",
@@ -1105,24 +1070,6 @@
         "owner": "rob",
         "expiry": "2026-10-31",
         "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'"
-      },
-      "tests/test_floor_mechanisms.py::test_pre_existing_components_are_untouched_by_the_mechanism_reader": {
-        "attribution": "pre-freeze",
-        "task": "[#1342]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "assert (?P<n>\\d+) == 21",
-          "max": 23
-        },
-        "growth": {
-          "from": 22,
-          "to": 23,
-          "unit": "plain components in deploy/manifest-v1.5.0.yaml (test expects 21)",
-          "commits": "4ad29e44..2e7fa5f2: f643e4e3 (adds component codex-review-organ)",
-          "first_red": "at or before 11c7c8b1 (2026-09-12)"
-        },
-        "signature": "AssertionError: assert 23 == 21"
       },
       "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
         "attribution": "pre-freeze",
