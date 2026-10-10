@@ -15,7 +15,7 @@ seats:
 - provenance: to-cc/AMEND-BATCH-B2-W2-2026-10-09.md
   seat: Tech-Architect-44
   session: 2026-10-08-dev-knowledge-architect
-  stated_in: 72
+  stated_in: 83
 
 landing_inventory:
   2026-09-19-technical-wave3-answerable-lane-contract.md: 6c750d5aab590acd1bdffa8679e69a641a4f6f1aaeaddd8331e01004a8128c55
@@ -422,6 +422,7 @@ landing_inventory:
   to-browser/DIGEST-B2-W1-2026-10-04.md: 7fb38abc7809bd81ec37ad96b350d864e292bd1739b1b2bae2cd3aa0b785790d
   to-browser/DIGEST-B2-W2-2026-10-10-close-lines.md: 41c597d4335fec256f606fe0a0747578edab928f812458ddb27836ccd4b60d44
   to-browser/DIGEST-B2-W2-2026-10-10.md: b638e312b1d838a0053bd8f1e74b1a64b6980efffea32c400a7f95b9415985da
+  to-browser/DIGEST-BOOT-DRIFT-2026-10-10.md: 163b336002a6a9416c66aa4c2d6f764903404a10fab48107eda7adfad2d4d054
   to-browser/DIGEST-BUNDLE-2026-09-24-dev-knowledge-architect.md: 0416c929a52d2931d68c13bd589fb9a906068f8f64f081304abaefe50d95cd78
   to-browser/DIGEST-BUNDLE-2026-09-28-dev-knowledge-architect.md: e1c8b5af41d543145d5e0d0a0df3dda82b1881396c65648bdc2267dc050a7f37
   to-browser/DIGEST-CAPABILITY-MAP-2026-09-25.md: 4324978f6967f774cd101a605147dec095c486896a50678c4271f8defe53bb86
@@ -544,6 +545,7 @@ landing_inventory:
   to-browser/DIGEST-SESSION-LIST-SNAPSHOT-2026-09-29.md: 94dca352db485bff383e852dba06687b7b91460c562af17ee40ac2b9cb9dab85
   to-browser/DIGEST-SESSION-REVIEW-B2-W2-2026-10-10.md: fece69aba7f8db63d3af05aaf50cfd3ba286d08043965e74d3a813fbfe5587c3
   to-browser/DIGEST-SIZE-PROMPTS-GUARD-2026-10-09.md: 82f1335d2e26ed7c87b247fd2ec762488f46a2391e78fdbe6313569fbd018049
+  to-browser/DIGEST-SPINE-MAP-2026-10-10.md: ca498963f909bee7459952323ecbdccb2f82d4fd404bd74ec1ea51964b56a605
   to-browser/DIGEST-SPINE-STEP0-2026-10-04-table-1.md: e8ee35caec1b53c323e23050911e907e45eb2823b0fe9778d7703f7242f3aae0
   to-browser/DIGEST-SPINE-STEP0-2026-10-04.md: e219b022b99bf12b4c1339c60a6e7841c7a04a839f081c3a6c812e27ee370b4d
   to-browser/DIGEST-STATUS-2-2026-09-29.md: 98abb790845b6a8bcf55714a8e7787056117145e262427dbd1ab413a11f1b836
@@ -665,7 +667,6 @@ landing_inventory:
   to-browser/HANDOFF-VERIFY-2026-09-08-architect-2.md: af6b2c47b6ce7042dd278ad47a4ce1ae2b27457ed28a947cb5d9fb5085ef59a4
   to-browser/HANDOFF-VERIFY-2026-09-10-architect.md: 8bb41eeeaab75fe18960e67e54dca1f9d45afcd1934fa826605e9c2ec6ce1994
   to-browser/HANDOFF_BOOT-2026-09-06-architect.md: 78e99bfe9bafd21d967edf1a3da420f8d010afada9ad802c34371a98a8bcc4e2
-  to-browser/HANDOFF_BOOT.md: 89a13668d607a84ca56ba0adaa3ecf41813baeebafa039f3860dea7469202f0a
   to-browser/HANDOVER-ARCHITECTURE-2026-09-08.md: 8c836313a1c2a4ef27134b5bec92641605f76bf420d97d271c5fa8454669c7f9
   to-browser/HANDOVER-NOTE-2026-09-08.md: 7a693ffa2a4fe0e3746c5bc257bd3aef6edc3b358dac3690b3f986cc50fe61bd
   to-browser/HANDOVER-integrator-wave5b-n5-r-cycle-1.md: 19ecb31c591308c3e72ac035dcae9734d997fd13cb60dedb038c4dbb61d1e91d
@@ -689,11 +690,13 @@ landing_inventory:
   to-browser/LANE-END-b2-rulings-landing.md: 2f37a52352fac1197f86b6d5c52b5da8f9c9d2632369a2a081b81fbd64e96a38
   to-browser/LANE-END-b2-transport-lint.md: d24c8e31177dfc150cf5d5e6529fafcb3776b450f09b524d2c82f1ef53af08fb
   to-browser/LANE-END-b2-transport-probe.md: 8033150f52de7618568fa4df6523680390db4191799ea8fda201a9ca454d4ca9
+  to-browser/LANE-END-b2w2-codespace-finish.md: 10e30396c080385b93430e3fca7e5ca42e410b10082b003e8df1a9cde8033294
   to-browser/LANE-END-b2w2-main-comparable.md: fabfff9da0bb279dab8846361d204d04e1693ca0aecc407ef4f3781b8fd9d9cd
-  to-browser/LANE-END-b2w2-merge-clock.md: 871d91692e3eb898ab5f104f713ab43a046d3455cded26f3105e884327b0cd22
+  to-browser/LANE-END-b2w2-merge-clock.md: 9d7f6883d65448fac95e63d5f0d37bfed35e7820e95be750103cc1adaf8bd349
   to-browser/LANE-END-b2w2-transport-index.md: 608c5c9f41ee4636b3562d881a03afb98f8549b2f88743740d8f76d9290fe938
-  to-browser/LANE-END-b2w3-red-burn-down.md: b4f12302d200d8dbdbe0302fa6f6f8a99c16ff0816cf7e408f57c7412dc1c17f
-  to-browser/LANE-END-b2w3-verdict-base.md: f26711e9b1983949d7079c8d990ede951773ff51ef0ec207b2be19dcea252336
+  to-browser/LANE-END-b2w3-ci-schedules.md: 7ad083312ca92cad383830b84fc7e32415d9c100d2eae19c6a200cba69cf94f1
+  to-browser/LANE-END-b2w3-red-burn-down.md: 58fbb6f832b23655335f00de5106fd3e3983e1c805fec68e176a1e70e696d5e7
+  to-browser/LANE-END-b2w3-verdict-base.md: 1147144c9acb606449c423167bab226e15150367c8323e12edab323a0ee25c39
   to-browser/LANE-END-foundation-1-honest-green.md: 0654937e5c8166aa83468a69561a9be402754ade676b740b23f266c2542e8148
   to-browser/LANE-END-foundation-10-model-currency.md: d99a113791c706d386c64e12f07d3a0bb359b1661fe57fc991e6da52c5bef65c
   to-browser/LANE-END-foundation-11-retire-approved.md: c0bf8efdabd19c7cdde013fc6b3a93937fc80d08045c9992faa1310b6601e84e
@@ -890,7 +893,12 @@ landing_inventory:
   to-browser/LEDGER-dev-knowledge-v173-superseded-2026-10-10.md: 88940473f999df89956dcf7d063da33f5e58888779f41e33f75e40a1ac9f5ce4
   to-browser/LEDGER-dev-knowledge-v174-superseded-2026-10-10.md: 144afd71a5efd794fb9e618f03fe40d361cb315739fdb53315ad5b9fa33234bc
   to-browser/LEDGER-dev-knowledge-v175-superseded-2026-10-10.md: 9b7cb374b82b59ccec31818d70ea08761adef07946d4a2bf7f4d4d0786009cd8
+  to-browser/LEDGER-dev-knowledge-v176-superseded-2026-10-10.md: 2294fe77d7e48cff01a27b2206e74a2a2873f9584544660bd1c0e752c5ffd98f
+  to-browser/LEDGER-dev-knowledge-v177-superseded-2026-10-10.md: 0e9beedf34ce812cfc810b04963460ec55231130b3503effe0369997ca244c7b
+  to-browser/LEDGER-dev-knowledge-v178-superseded-2026-10-10.md: 65b57781907a74456f0e9151b84767b6c5c958d6eaf54754c1bcf0736d37ebea
+  to-browser/LEDGER-dev-knowledge-v179-superseded-2026-10-10.md: be5d3b0a62bc6370fd8dcb6a8014ac2bbdcb9cf74bf2432e74b116775d506a36
   to-browser/LEDGER-dev-knowledge-v18-superseded-2026-09-24.md: 0399945d3cec3c6b249a66d8a2afd82a803c33d057c8de9175fcd5d6951e6537
+  to-browser/LEDGER-dev-knowledge-v180-superseded-2026-10-10.md: cdeca67fc53541f3da0927a7b4a188d17a463a5a6e3276e3a4ce2e81da7d52e3
   to-browser/LEDGER-dev-knowledge-v19-superseded-2026-09-25.md: 62345cd223e538f14e41730b818aeb324702056bbebd42e66d414ce596b9f1e7
   to-browser/LEDGER-dev-knowledge-v20-superseded-2026-09-25.md: 566cf1a276454d87c1065bc86303d292bf102a63385b7cd48eddf100b1079e75
   to-browser/LEDGER-dev-knowledge-v21-superseded-2026-09-25.md: d8ea9c999e7eb69382fbdaccae169aef34e8d469cbcb18b72f382737f32fe40b
@@ -977,7 +985,7 @@ landing_inventory:
   to-browser/LEDGER-dev-knowledge-v97-superseded-2026-10-03.md: 87d0490f9a6ada4ec918e41201f9426836ba90c3da3837e7b4c5315c896d0146
   to-browser/LEDGER-dev-knowledge-v98-superseded-2026-10-03.md: 6110901bc8e58a2e64b8d7433d24614fcdd5ce4cdf641df2773553264476ec9d
   to-browser/LEDGER-dev-knowledge-v99-superseded-2026-10-03.md: 6f8be6b89c4c1284c70bd2ff8d78e66418368487e17875ad1cc8a2f1f4e778e5
-  to-browser/LEDGER-dev-knowledge.md: 2294fe77d7e48cff01a27b2206e74a2a2873f9584544660bd1c0e752c5ffd98f
+  to-browser/LEDGER-dev-knowledge.md: eb19fe88df5784d051331367a9278ca8571159d819f7af127817b3f1fec6b93d
   to-browser/LEDGER-robert-dwornik-cv-v1-superseded-2026-09-10.md: 621e33aa1a1e6e7cc4d965a73ad0064e508afdadf24435b526f94f7fa9d30792
   to-browser/LEDGER-robert-dwornik-cv-v2-superseded-2026-09-10.md: 60214e22c99a16dd6689edad703b54b2f69f4a38d4a563b7de91dde24f9661e8
   to-browser/LEDGER-robert-dwornik-cv-v3-superseded-2026-09-10.md: 94915e44e41a5b932a842902ed3f8504c17a457ffe5edd57561888c0fa3d16d1
@@ -987,6 +995,7 @@ landing_inventory:
   to-browser/LESSONS-AND-OPEN-WORK-2026-10-02.md: 0da8d7a1bc73ce0d66bad9c90f8b08f41633f9e24ccfc75771d258f6b8d2c27c
   to-browser/MAP-2026-09-16-harness-state-and-defects.md: 4cba6fb3414ee41e523a3a4f825a839eddc327ef2d0c38293ab442ba454b03b8
   to-browser/MAP-DATA-CORRECTED-2026-09-20.js: 063d4b8ffc51663d0974cf6417ca9d225437f7511baa43a977f3601384fc6301
+  to-browser/MAP-DISPATCH.md: 9cfccd935b27527b980a371409be9cbfc55fc0e5f96a104ddacbff71b69ac98f
   to-browser/MAP-VERIFICATION-2026-09-20.md: 89684744fe6184809aaf1b9de4f4e056f2769b8d3fb7e21f3448e212737c80a9
   to-browser/MECHANISMS-NO-RECURRENCE-2026-10-02.md: bfa156446d1bcb49a43804f2f5e02e0aa90dccaa8fb33c707c3ee0521290e050
   to-browser/NEW-ARCHITECT-01-GROUND-TRUTH-2026-09-20.md: 527d1b53556079cb92b4663050408a24e19c6b2f77ba19bed55b832f35617d17
@@ -1170,7 +1179,8 @@ landing_inventory:
   to-browser/RATIFICATION-2026-10-08.md: 2c52ad599dbd082db89c7a86300fbcf1eb603e29e5b6f226b66b28437f2701c4
   to-browser/RATIFICATION-2026-10-09.md: 9293c3539846e91a3381bda574e0c8944dfe72dd78666f13885c85fc4e25b558
   to-browser/RATIFICATION-2026-10-10-v1-superseded.md: d0f805e559faa6e85612680908961bfff8d1452a0084822eeb2b50db7e3b2bb6
-  to-browser/RATIFICATION-2026-10-10.md: d834baeb7dd4968e170e7defd11588fa8465522afbee518cb436ac1aa4a9e118
+  to-browser/RATIFICATION-2026-10-10-v2-superseded.md: d834baeb7dd4968e170e7defd11588fa8465522afbee518cb436ac1aa4a9e118
+  to-browser/RATIFICATION-2026-10-10.md: 03f99add9d6209e6dabc80a5a67cdb49a17992d65b46230c373556cd925f1601
   to-browser/RATIFICATION-DIGEST-2026-09-06.md: 154bed13b716df86f36e3304435f572f336cf39dad64570a3bdb22a5242d3b1f
   to-browser/RECEIPT-wave2-L1-wave2-spine-2026-09-19.json: 1590aea7b66dd087e8b85390d4dca1a0ed161183074f61315e83230c473bb084
   to-browser/RECEIPT-wave2-L1-wave2-spine-2026-09-19.stderr.txt: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
@@ -1286,6 +1296,7 @@ landing_inventory:
   to-browser/REVIEW-2026-09-10-plan-redteam-3.md: 3f905a109409d7d907eca9be7f853a7ef32b82264cfb338b505c2b1d3eb42e09
   to-browser/REVIEW-2026-09-10-plan-redteam.md: 9f6be4bb1380ff99a07473d21fa800bd9031aa758ce88f486784bd637ef10633
   to-browser/REVIEW-2026-09-11-batch-x-roster.md: de6b301656f7ec5f9a27bd78ad4f4bc234a173da59cf2e3b8e0dbd4afc9dccf0
+  to-browser/REVIEW-ATTRIBUTION-2026-10-10.md: fb34594b0551ac40c2fedd2b9a31955bcb457af22027000d3b68539f5b468809
   to-browser/REVIEW-SEAT-CHECKLIST-2026-10-10.md: 6d868e0bdf97ee8fe4df1f56ef4e66cfe12f72b2ec23df4be9c060f53d3509f9
   to-browser/REVIEW-lane-u-000-batch-p-local.md: d1997507dab8beccd1cd76e198f3f036d25c34a2cfc7d1e04f43ba8639fdd27d
   to-browser/REVIEW-lane-u-000-shape-spec-finalize.md: 01b7aa2c8f74e522ff2b7eca82f21de7b7975ab9797adf1aa26ffd163c9702a8
@@ -1308,7 +1319,8 @@ landing_inventory:
   to-browser/SEAT-EXAM-RESULT-2026-10-09.md: 75837c3ae7fb6645afe873d11e403ca690ca2f9920ef4a7caa72dab123a71f5f
   to-browser/SEAT-LESSONS-2026-10-04-v1-superseded.md: f01940cf8cdd966a91712c7e19c0530c06ca7e6e9902ededa6bcd532d19aecfc
   to-browser/SEAT-LESSONS-2026-10-04-v2-superseded.md: 163dae99cddb36ed5fcb1f19c9377febec8b0eb98e6b9872576dea838bc9d000
-  to-browser/SEAT-LESSONS-2026-10-10.md: ba03c4120a8c7db7b65c747d8e3b91c373c5312c3dfc3c5b7121a225826d6687
+  to-browser/SEAT-LESSONS-2026-10-10-v1-superseded.md: ba03c4120a8c7db7b65c747d8e3b91c373c5312c3dfc3c5b7121a225826d6687
+  to-browser/SEAT-LESSONS-2026-10-10.md: b76ea9a665f1cd3263d5f701efaa97c2e09c4c8e2f8ffcf2191e4aa65d06b14a
   to-browser/SEAT-OPERATING-MANUAL-2026-10-02.md: c75374092a873fe480fd8976a707031ca8b177be3428641f49352fbe853b8891
   to-browser/SESSION-b2-branch-context-tests.md: 16e732b9477589baeee0af84992244b814eba24133cb07e412d90e601342cfc0
   to-browser/SESSION-b2-ci-poll.md: ccdd28f25bf2ff3a9a143284b747952ff4a47bdce4f12c5e376ca902e6b08897
@@ -1324,13 +1336,14 @@ landing_inventory:
   to-browser/SESSION-b2-transport-lint.md: 7450e903def6e9edaa9015337ae882eee49a135cf6da0561d5e82a7a1109bbe2
   to-browser/SESSION-b2-transport-probe.md: 4d900dc55fb370c063797bdfc21b6176bb54304b9afa7064cc6e5fe9caa50908
   to-browser/SESSION-b2w2-boot-teaching.md: 30b48a7537bb5381fd3f5e3a4999ee5088f2f270b9dd13ed6d574bd4faf59c75
-  to-browser/SESSION-b2w2-codespace-finish.md: 4f63bee36d4d8becfb7315390e2c0fc1229806d2f8fcc3ead9496fb069df3e0f
+  to-browser/SESSION-b2w2-codespace-finish.md: 1433d8260461c3aab9056eb1290277eefb45704e0218f43ec1b0ae4c939eb985
   to-browser/SESSION-b2w2-main-comparable.md: 298536804151e1abf8e702468e84fd9b2f7bb39dc4cec19f0c0b66dd6ebde97d
-  to-browser/SESSION-b2w2-merge-clock.md: 8586840276d68dab1dc1b92ac3d2905a9ad54c815da3b4fa58354a3b8e602cd8
+  to-browser/SESSION-b2w2-merge-clock.md: 25c936731f05997f2a2623ed98ce46542feb778ee3e89ca7207f449ee16ae901
   to-browser/SESSION-b2w2-rulings-landing.md: 469eff57f6ed22ac867c59f63a168570872f7a596c686eb2b42293a669260912
-  to-browser/SESSION-b2w2-transport-index.md: 1eb55138feea5ffa75396cb59e12bbf3d17c8f0cc9217073837e2ff151e20ccf
-  to-browser/SESSION-b2w3-red-burn-down.md: 30a9227cf274d36e875ccb55c1ead054867bc3d631a9942bdd0ab0e10bb51fc3
-  to-browser/SESSION-b2w3-verdict-base.md: cfe454f639230402083c5ad6f089629ae93aebf877ca767796e728dcaef68112
+  to-browser/SESSION-b2w2-transport-index.md: 703932a8f51090a400dce729c88d2eb368bbe86f4b37dd71c3a2acd1f4ce6ea6
+  to-browser/SESSION-b2w3-ci-schedules.md: 71662f175cdb5d11da689d23ecfc4790682e70fe53b5a108c63562a57282af1d
+  to-browser/SESSION-b2w3-red-burn-down.md: 061de515c6661f4ca15123266635e4881a5b9f01e2707c1be95196558586b2f1
+  to-browser/SESSION-b2w3-verdict-base.md: bfa37fa487899201d9b1469aebaa5f55d24e875bc743b7a1c504f4e4adf3df1b
   to-browser/SESSION-closeout-wave5b-n4-2026-09-28.md: 1ce0a75673cc892cd35b6caef6185899a5d99a86e3275b57601d7931b56f870b
   to-browser/SESSION-copilot-enable-2026-09-25.md: c2451675947fb04190b1eb016c802a58c95199a0a58cc0ee424cdec6ce68de9b
   to-browser/SESSION-decision-aj-m06-2026-09-29.md: ae7e6411fd9082f34eeeb9f3067c8a40d6276ef6e8670d6834c2ebd70dfee86c
@@ -1347,7 +1360,7 @@ landing_inventory:
   to-browser/SESSION-diag-public-repos-2026-09-25.md: 815bb6b2edb613921db649106208c073d2796090847c8380a09bfe7f2d58d0b4
   to-browser/SESSION-dispatcher-b2-w1-2026-10-04.md: f45b75594435c53bc1810387ba3d20c5e3b3dbdee9762b255d4bcda41252d3bd
   to-browser/SESSION-dispatcher-b2-w2-2026-10-09.md: b9b0f306e2e7bc0b60f585ff6df0d3037aac789d9e8ba10e0454899272515e8c
-  to-browser/SESSION-dispatcher-b2-w3-2026-10-09.md: 9e02f7a4d83bd1d8e5986340780e11844149ea193c86041292adfa0f77a01407
+  to-browser/SESSION-dispatcher-b2-w3-2026-10-09.md: 949eae95fc3c43f8e76ff40d67272092e54f827142223fb1d12558601e012259
   to-browser/SESSION-dispatcher-foundation-2026-10-03.md: 0215e2de7cb70a54fce351939ca0fdec1a4fdf087e516f2930ccbdba91701b6d
   to-browser/SESSION-dispatcher-night-2026-09-20.md: 5a18949d1990a879ae90c0212d5ae10d87760c46629d05ffb15018662cceef77
   to-browser/SESSION-dispatcher-wave3-2026-09-21.md: fdc16611d89d17306073589f3dea0d2cb77eae1392736bdb6bf275648886e076
@@ -1399,7 +1412,7 @@ landing_inventory:
   to-browser/SESSION-handoff-cut-2026-09-28.md: 1659376c6c7ae9ee09898bcd574d097d615fecdea5ce50399044f141c8f6d7e4
   to-browser/SESSION-integrator-b2-w1-2026-10-04.md: f4fc1bfbb63cc330be704b2cdeb2592232674fdbc079bc653ae5870f3c84ccdc
   to-browser/SESSION-integrator-b2-w2-2026-10-09.md: 06a5689b9982c26fb3c4468b5234b4aad59fc37e3ba83e36283b057713dac091
-  to-browser/SESSION-integrator-b2-w3-2026-10-09.md: 5345aed9a5c86f8b206fe144559193630c6f9fb7cc12f101979b9b25e1874b05
+  to-browser/SESSION-integrator-b2-w3-2026-10-09.md: 8762088dc118e8fc9770afe1be71913b52a02dee2ee61f09d0fdf50ddb9495a4
   to-browser/SESSION-integrator-foundation-2026-10-03.md: cacf9d316e58c1db53d786f507e1fa96d82ab11e97c38ca739fff34af878a521
   to-browser/SESSION-integrator-handoff-redesign-build-2026-10-01.md: 84a709bfb0ab646f4c8124d261ec0edd791f6fec662088ad79e6f2676564e881
   to-browser/SESSION-integrator-handoff-unblock-2026-09-30.md: 1e55da52428f71729fbd09f365d1a640f30104e4ac0475799c14f021e9c6385f
@@ -1603,8 +1616,8 @@ landing_inventory:
   to-browser/STATE-b2-w1.json: 58080a686586ab607eeb12ed668b4d33a167017d49032984781286114bc2a470
   to-browser/STATE-b2-w2-dispatcher.json: e92289c7d7bdede68c44c33c1ae71f8cc2bb43fe2da054690d13d9a0cd11a5c9
   to-browser/STATE-b2-w2.json: f7e29352f00abd454c1162a42af9b35f39b685bcdedd8b3ee6f02b7b6de6f6b9
-  to-browser/STATE-b2-w3-dispatcher.json: 9dd81e8ee0ec63fc5ec8f1ba47c31d3790737283a4648e26938ef2003fd84b24
-  to-browser/STATE-b2-w3.json: 31290b8fecee72997b732e32160173a992abe75cf6dc7aa0c9318fe04743806b
+  to-browser/STATE-b2-w3-dispatcher.json: 713923933c4175436f833750b1ecce0394b3ab95d971130add06d7423b080b6b
+  to-browser/STATE-b2-w3.json: 76fc51fecff8ab683072c239ff5b1213dd2a1e54e09eb7acfba5520cd37b961e
   to-browser/STATE-foundation-dispatcher.json: 879a8a4260cd2b7480c4a00f0f7e9c599b0a878de307f9e83117ba1300c0ad7d
   to-browser/STATE-foundation.json: 325945af5c287b937c7a5180dd63b01e26417f4250916171a46b295a68a091c1
   to-browser/STATE-handoff-redesign-build.json: 96e74e6e8334d10f1cb83a9b859234c9eb025c57ddbbac7f848c68a23acced8f
@@ -1649,9 +1662,11 @@ landing_inventory:
   to-cc/AMEND-BATCH-B2-W2-S8-2026-10-09-v1-superseded.md: e10247f7728ce600a8ccbc5923b06e58f59fd38b72d95dec83ec79f055a524c4
   to-cc/AMEND-BATCH-B2-W2-S8-2026-10-09.md: 59bcc305cff273e40f4f56ce972f93493157f6adbfc41d7f831c56b9988ced89
   to-cc/AMEND-BATCH-B2-W3-2026-10-10.md: e42b4fc5a3d90252c40fb6a5ffed2c1d2373a7c8a2f854765d0f85f733f899e5
+  to-cc/AMEND-BATCH-B2-W3-CI-CLOCK-2026-10-10.md: 58f6693698e93875b1ac4eb79eb38b2d85fc2b18c68a900f13c0c65efa27fc85
   to-cc/AMEND-BATCH-B2-W3-GO-2026-10-10.md: 0d97ca2b96db04aeafc3975fc983bcc9d50d8137a91fc6c8e9aa930efa2695b3
   to-cc/AMEND-BATCH-B2-W3-GO2-2026-10-10.md: df9fbbc2b94f9ece7da3f16f9def04f2418df1212a617830a6ddcd80f4690eae
   to-cc/AMEND-BATCH-B2-W3-GO3-2026-10-10.md: ea3dd25c9710a825449650a87c71f4f7b890ec09f9599990c070c601d648f32c
+  to-cc/AMEND-BATCH-B2-W3-REPAIR-2026-10-10.md: 03dc5c8eee46ce2dca5219accad8a6d1e09c1e7e9dd87f291e9bb26794d026e1
   to-cc/AMEND-BATCH-B2-W3-RESUME-2026-10-10.md: e6f90b435a28493a7ecb3289efa5d902f0800021f13d9fc6931bd935c2414bca
   to-cc/AMEND-BATCH-B2-W3-REVIEW-2026-10-10.md: 4eac2735cdae695ebece24234832461d8e422efac6d42c5091cd47adbe28281c
   to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03-v1-superseded.md: 63e7bfa098bcdada9256a54f339b1b0e000211ec6fe49092144b39dc9287fc1c
@@ -2021,7 +2036,7 @@ landing_inventory:
   to-cc/DISPATCHER-B2-W1-2026-10-04.md: 4bbec6ff0f8ade85d0f38d0db5e61dd389157ed77961f598a30bd2b947f69489
   to-cc/DISPATCHER-B2-W2-2026-10-09.md: b0077c357d1634bb442a4f860cb0c0e8e05728fd17b33a80391ace4026b7415e
   to-cc/DISPATCHER-B2-W3-2026-10-09.md: 0773ee6bf6ed2f85bf3f6dfcd27d916b757f0016915b1c7697560ae10904f319
-  to-cc/DISPATCHER-B2-W3.CLAIMED-512c3635: 5688e7454b335726b408b37a97fb0baeff766e76dcef9c5b1f3de24d8aeb9b9c
+  to-cc/DISPATCHER-B2-W3-cycle-2.CLAIMED-c70cbdaf: c02dffe160fba0efab28df722807f5d658442484acfe8f0b85f93fb7dfc3497b
   to-cc/DISPATCHER-FOUNDATION-2026-10-03.md: 0d158dac5e866707b2b2c5c78559de32b67e31ec618262aeb0f38250045570ec
   to-cc/DISPATCHER-WAVE5B-N1-2026-09-24-v1-superseded.md: f3fadde3c4515ecd6e17b2f5a027427a38a1f9d5efeb29cda40a0777c17cee9b
   to-cc/DISPATCHER-WAVE5B-N1-2026-09-24.md: 27fb3fed1837c75e6b8bfab25f568ca9b604bb599e6f8fa9dec29b35f574f2c6
@@ -2057,7 +2072,7 @@ landing_inventory:
   to-cc/INTEGRATOR-B2-W1-2026-10-04.md: 5e6d856556a29da28646d89d429c275f4fd1943757b279c7c3e1f05aa921ca88
   to-cc/INTEGRATOR-B2-W2-2026-10-09.md: 000ddeba9c351404f012d73f3f6291afcbbf9a54201dd57cc364b9aa0c80a4bc
   to-cc/INTEGRATOR-B2-W3-2026-10-09.md: f0b6e4dcba8a089454a5e7bc632db03112cc5ec4d390438502c4df3326416555
-  to-cc/INTEGRATOR-B2-W3.CLAIMED-149e4563: c9aa67530515501a995fa7e29f5a35b22c5400aa36f76ca45016154f6f1609c6
+  to-cc/INTEGRATOR-B2-W3-cycle-1.CLAIMED-d55c348a: 4e0372d0972f719ef707bc45d0d0c36f1e3af32bae14974de9183ecef27a977e
   to-cc/INTEGRATOR-FINISH-WAVE4A-2026-09-22-v1-superseded.md: 144f23456394ca835f7ce5a415e6c1287e0da8297cdcc055e26ff098ba87fac5
   to-cc/INTEGRATOR-FINISH-WAVE4A-2026-09-22-v2-superseded.md: 4bf4419de26573ca4431b89eb16af2a6998b675e6cde57510d61058d3badaec0
   to-cc/INTEGRATOR-FINISH-WAVE4A-2026-09-22.md: f6a289cbec89a003e032d0c65d827c7acaed721c2276cc12c3099f4d7cedddbe
@@ -2080,12 +2095,14 @@ landing_inventory:
   to-cc/INTEGRATOR-WAVE5B-N4-2026-09-26.md: 2da86ffd77b6690cebf527fa47ed47018af4129f9e21c9301daeb745a0edf03a
   to-cc/INTEGRATOR-WAVE5B-N5-2026-09-29.md: 7ac1ca45f3884294f152a910ed067123381f9b21a22b177f5c036b0c8f39475f
   to-cc/INTEGRATOR-WAVE5B-N5-R-2026-09-29.md: fc5f727e021926527fdaf6192d0a642c1460e33a8db8ffb7357b9cdde774b4d0
+  to-cc/LANE-1103-b2w3-ci-schedules-resume-1.CLAIMED-6a1cf8de: c2e7d5834bad952d89beb0a5ad5eca06686ca508a8e265e206cd0c7dbfcd04e4
   to-cc/LANE-1103-b2w3-ci-schedules.CLAIMED-9fc87d9c: 113ee2542472340cbb96672ad5e6174f7dc31a151255895bef244787194428ee
-  to-cc/LANE-1341-b2w3-red-burn-down.CLAIMED-fc347c1d: b8eb32b80eb570819ea0e3da79aa81ac70ef9b6d4c188e101dfd65346d42a01a
   to-cc/LANE-1423-b2w2-codespace-finish.CLAIMED-fed25fc7: be359fb02809e70c4d85141a1c23eeaf61562b4dc26f0228810820bcd2046c56
   to-cc/LANE-1439-b2w2-transport-index.CLAIMED-3e770e56: 9d8791a2f4cd30bb150f285a13b65e06386591ee54fc6eed0deae4cab146024d
   to-cc/LANE-1443-b2w2-boot-teaching.CLAIMED-244a8e74: 14dfab0d123be52c7b988b3b2f320d9b6487feba078106f646243bd1195a7b38
+  to-cc/LANE-1444-b2w2-merge-clock-resume-1.CLAIMED-80dbac44: 921b9c94ef8b2eb88e36effc507852db5e5754c6b125140e1947c38a99cd758d
   to-cc/LANE-1444-b2w2-merge-clock.CLAIMED-d8d63b99: fcf0e84061c3ce403e602e89644d8e6cc474d5c4ec8aaad2425dbc6b90588405
+  to-cc/LANE-1480-b2w3-verdict-base-resume-1.CLAIMED-1a6ef037: b86fea46d09926d2c0f9cfb94ce912d56b9cfe1220530cd6884a342a6477a24f
   to-cc/LANE-1480-b2w3-verdict-base.CLAIMED-a56f2753: a56f3ecc2dde61cb1c5c6cbbac3b4c495c2e8a7256f96b87689a603a96c2d02b
   to-cc/LANE-x-675-merge-cost.md: 4939a22bd3733c2b86761aa4142a74fb5bcffd3585b88ba1309d64cbf0ef4f43
   to-cc/LANE-x-727-fail-closed.md: 5243b0515c560641d7e40674505cf48536428b74d9798edf1e66fe504d773d87
