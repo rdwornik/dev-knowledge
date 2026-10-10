@@ -249,6 +249,7 @@ ROUTED = {            # call the lint through transport.write / append / emit
     "transport_report": "transport_report.py",
     "handback": "handback.py",
     "quota_watch": "quota_watch.py",
+    "transport": "transport.py",       # the INDEX kind's writer: the module's own write() (B2-W3, [#1439])
 }
 NOT_TRANSPORT = {      # confirmed by code: writes a repo handoff bundle, not the transport
     "gen_seat_boot": "gen_seat_boot.py",

@@ -33,6 +33,7 @@ report command (`report`) and every registry query below are pure reads.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -53,6 +54,15 @@ _ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = _ROOT / "ecosystem" / "transport-registry.yaml"
 FOLDERS = ("to-cc", "to-browser", "root")
 KIND_CLASSES = ("decision", "non-decision")
+
+#: The writers that are a person or a seat (a registry `writers` entry); every other writer name
+#: is a script. The `by:` rule refuses an unsigned NEW file from a role and only advises a script.
+ROLE_WRITERS = ("operator", "lane", "integrator")
+#: The generated index, the repository token the attribution rule reads, and the generated data
+#: file that holds the seat-ID map and the landing inventory (LANE-1439-b2w2-transport-index).
+INDEX_NAME = "INDEX.md"
+REPO_TOKEN = "dev-knowledge"
+DEFAULT_SEAT_IDS = _ROOT / "ecosystem" / "seat-ids.yaml"
 
 
 class TransportRegistryError(Exception):
@@ -167,17 +177,54 @@ def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
     return kind
 
 
-def _lint(dest: Path, text: str, reg: list[Kind]) -> None:
+def known_root() -> Optional[Path]:
+    """The transport root the environment names (`CLAUDE_PROMPTS_DIR`), or None. The `by:` rule and
+    the INDEX refresh act only on a destination inside it, so a scratch tree is never touched."""
+    raw = _tr.windows_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get("CLAUDE_PROMPTS_DIR")
+    return Path(raw) if raw else None
+
+
+def same_path(a: Path, b: Path) -> bool:
+    try:
+        return _same(Path(a).resolve(), Path(b).resolve())
+    except OSError:
+        return False
+
+
+def _lint(dest: Path, text: str, reg: list[Kind], writer: Optional[str] = None) -> None:
     """`transport_lint` on the file about to be written (LANE-B2-W1-b2-transport-lint): a
     decision file with no anchored `carried-by:`, a signal under a decision prefix, a lane
     contract with no R59 proof -- refused here, before any byte lands, not at the batch close.
-    Imported on use: `transport_lint` imports this module."""
+    With a `writer` and a destination inside the known transport it also applies the `by:` rule
+    (LANE-1439-b2w2-transport-index): a role writer's NEW unsigned `.md` is refused, a script
+    writer's is advised on stderr. Imported on use: `transport_lint` imports this module."""
     import transport_lint  # noqa: PLC0415
-    findings = transport_lint.lint_text(dest.name, _folder_of(dest), text, reg)
-    if findings:
+    folder = _folder_of(dest)
+    by = writer is not None and dest.name.endswith(".md") and _inside_known_transport(dest)
+    inventory = load_inventory(DEFAULT_SEAT_IDS) if by else None
+    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    findings = transport_lint.lint_text(
+        dest.name, folder, text, reg, require_by=by,
+        file_class=lambda: transport_lint.file_class(
+            transport_lint.inventory_key(folder, dest.name), sha, inventory),
+        refuse_by=(writer in ROLE_WRITERS) if by else None)
+    refused = [f for f in findings if f.level == "refuse"]
+    if refused:
+        note = ""
+        if by and inventory is None:
+            note = (f"; no readable landing inventory at {DEFAULT_SEAT_IDS}, so every file counts "
+                    "as new")
         raise TransportWriteRefused(
             f"{dest.name!r} fails the transport lint: "
-            + "; ".join(f"{f.code} ({f.reason})" for f in findings))
+            + "; ".join(f"{f.code} ({f.reason})" for f in refused) + note)
+    for f in findings:
+        if f.code == "no-by-generated-kind":
+            print(f"transport: {dest.name}: {f.reason}", file=sys.stderr)
+
+
+def _inside_known_transport(dest: Path) -> bool:
+    known = known_root()
+    return known is not None and is_transport_dest(dest, known)
 
 
 def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
@@ -187,7 +234,7 @@ def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] 
     `TransportWriteRefused` before touching the filesystem otherwise."""
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
-    _lint(dest, data, reg)
+    _lint(dest, data, reg, writer)
     dest.parent.mkdir(parents=True, exist_ok=True)
     _tr.deliver(dest, data.encode("utf-8"))
     return dest
@@ -281,10 +328,146 @@ def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]
         existing = dest.read_text(encoding="utf-8", errors="replace") if dest.exists() else ""
         sep = "\n" if existing and not block.startswith("\n") else ""
         tail = "" if block.endswith("\n") else "\n"
-        _lint(dest, existing + sep + block + tail, reg)
+        _lint(dest, existing + sep + block + tail, reg, writer)
         with dest.open("a", encoding="utf-8", newline="\n") as fh:
             fh.write(sep + block + tail)
     return dest
+
+
+# --- the live files, the landing inventory and the seat-ID file ---------------------------------
+#
+# `ecosystem/seat-ids.yaml` is GENERATED and holds two sections, each rewritten only by its own
+# command: `seats:` (`seat-ids --write`: the Tech-Architect-NN <-> session-slug pairs the transport
+# heads state, with the file that states each) and `landing_inventory:` (`inventory --write`: every
+# live file on the transport at landing, `<folder>/<name>: sha256`). The `by:` rule reads the
+# inventory to tell a NEW file from a pre-existing or an edited one; nothing in the lint or the
+# gate ever rewrites it.
+
+_SKIP_NAMES = frozenset({"desktop.ini"})
+
+
+class SeatIdsError(Exception):
+    """`ecosystem/seat-ids.yaml` exists but cannot be read; never overwritten blind."""
+
+
+def rel_key(folder: str, name: str) -> str:
+    """The transport-relative key of a file: `<folder>/<name>`, the bare name at the root."""
+    return name if folder == "root" else f"{folder}/{name}"
+
+
+def live_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel, path)` for every live file: a direct child of `to-cc/`, `to-browser/` or the
+    root itself (no recursion). Dot-names (the `.tmp` and lock plumbing) and `desktop.ini` are not
+    live files. Callers sort for themselves; no caller relies on this order."""
+    out: list[tuple[str, Path]] = []
+    for folder in FOLDERS:
+        home = root if folder == "root" else root / folder
+        if not home.is_dir():
+            continue
+        for entry in sorted(home.iterdir(), key=lambda p: p.name):
+            if entry.name.startswith(".") or entry.name in _SKIP_NAMES or not entry.is_file():
+                continue
+            out.append((rel_key(folder, entry.name), entry))
+    return out
+
+
+def build_inventory(root: Path) -> dict[str, str]:
+    """`{rel: sha256}` for every live file except the generated INDEX (whose bytes change with
+    every write and which always carries a `by:`)."""
+    inv: dict[str, str] = {}
+    for rel, path in live_files(root):
+        if rel == f"to-browser/{INDEX_NAME}":
+            continue
+        try:
+            inv[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            continue
+    return dict(sorted(inv.items()))
+
+
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
+def _load_seat_ids_raw(path: Path) -> dict:
+    raw = yaml.load(Path(path).read_text(encoding="utf-8"), Loader=_YAML_LOADER)  # noqa: S506 -- safe loader
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise SeatIdsError(f"{path} is not a mapping")
+    return raw
+
+
+def load_seat_ids(path: Path = DEFAULT_SEAT_IDS) -> tuple[list[dict], dict[str, str]]:
+    """`(seats, landing_inventory)` from the generated file; a missing file is two empty sections,
+    an unreadable one is `SeatIdsError`."""
+    if not Path(path).exists():
+        return [], {}
+    try:
+        raw = _load_seat_ids_raw(path)
+    except (OSError, yaml.YAMLError, UnicodeDecodeError) as exc:
+        raise SeatIdsError(f"could not read {path}: {exc}") from exc
+    seats = raw.get("seats") or []
+    inv = raw.get("landing_inventory") or {}
+    if not isinstance(seats, list) or not isinstance(inv, dict):
+        raise SeatIdsError(f"{path}: `seats` is not a list or `landing_inventory` not a mapping")
+    return ([dict(s) for s in seats], {str(k): str(v) for k, v in inv.items()})
+
+
+def load_inventory(path: Path = DEFAULT_SEAT_IDS) -> Optional[dict[str, str]]:
+    """The landing inventory, or None when the file is missing, unreadable or has no
+    `landing_inventory` mapping -- the `by:` rule then fails closed (every file counts as new)."""
+    try:
+        raw = _load_seat_ids_raw(Path(path))
+    except (OSError, yaml.YAMLError, UnicodeDecodeError, SeatIdsError):
+        return None
+    inv = raw.get("landing_inventory")
+    if not isinstance(inv, dict):
+        return None
+    return {str(k): str(v) for k, v in inv.items()}
+
+
+_SEAT_IDS_HEADER = """\
+# ecosystem/seat-ids.yaml -- GENERATED; regenerate it, do not edit it by hand.
+#
+# seats:             the Tech-Architect-NN <-> session-slug pairs the transport heads state, each
+#                    with the file that states it (`transport.py seat-ids --write`).
+# landing_inventory: every live transport file at landing, `<folder>/<name>: sha256`
+#                    (`transport.py inventory --write`). The `by:` rule reads it to tell a new file
+#                    from a pre-existing one; the lint and the write gate only read it.
+# LANE-1439-b2w2-transport-index (batch B2-W3).
+"""
+
+
+def _seat_sort_key(seat: dict) -> tuple:
+    m = re.search(r"\d+", str(seat.get("seat", "")))
+    return (int(m.group()) if m else 0, str(seat.get("seat", "")), str(seat.get("session", "")))
+
+
+def _dump(section: dict) -> str:
+    return yaml.safe_dump(section, sort_keys=True, allow_unicode=True, default_flow_style=False,
+                          width=1_000_000)
+
+
+def render_seat_ids(seats: list[dict], inventory: dict[str, str]) -> str:
+    """The whole generated file as text; the same input is the same bytes."""
+    ordered = sorted((dict(s) for s in seats), key=_seat_sort_key)
+    return (_SEAT_IDS_HEADER + "\n" + _dump({"seats": ordered}) + "\n"
+            + _dump({"landing_inventory": dict(sorted(inventory.items()))}))
+
+
+def write_seat_ids(path: Path, *, seats: Optional[list[dict]] = None,
+                   inventory: Optional[dict[str, str]] = None) -> Path:
+    """Write the generated file. A section passed as None keeps the file's existing one (empty
+    when there is no file), so each command rewrites only its own section."""
+    path = Path(path)
+    cur_seats, cur_inv = load_seat_ids(path)
+    text = render_seat_ids(cur_seats if seats is None else seats,
+                           cur_inv if inventory is None else inventory)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_bytes(text.encode("utf-8"))
+    os.replace(tmp, path)
+    return path
 
 
 # --- the stray-file report (report-only; Done-when 3) -----------------------------------------
@@ -534,6 +717,27 @@ def _cmd_strays(args: argparse.Namespace) -> int:
     return 1 if findings else 0
 
 
+def _seat_ids_path(args: argparse.Namespace) -> Path:
+    return Path(args.seat_ids) if getattr(args, "seat_ids", None) else DEFAULT_SEAT_IDS
+
+
+def _cmd_inventory(args: argparse.Namespace) -> int:
+    """Generate the landing inventory; `--write` rewrites only the `landing_inventory:` section of
+    the seat-IDs file. The lint and the write gate never call this: the inventory is written once,
+    at landing, by this command."""
+    root = _resolve_root(args.transport_root)
+    if not root.is_dir():
+        print(f"transport.py: transport root {root} is not mounted or does not exist", file=sys.stderr)
+        return 2
+    inv = build_inventory(root)
+    path = _seat_ids_path(args)
+    if args.write:
+        write_seat_ids(path, inventory=inv)
+    print(f"inventory: {len(inv)} live file(s) under {root}; "
+          f"{'written to' if args.write else 'not written (use --write):'} {path}")
+    return 0
+
+
 def _cmd_derive(_args: argparse.Namespace) -> int:
     derived = sorted(derive_kinds_from_code())
     registry = load_registry()
@@ -554,6 +758,11 @@ def _parser() -> argparse.ArgumentParser:
     s.set_defaults(func=_cmd_strays)
     d = sub.add_parser("derive", help="derive kind prefixes from the code; diff against the registry")
     d.set_defaults(func=_cmd_derive)
+    i = sub.add_parser("inventory", help="generate the landing inventory (the by: rule's pre-existing set)")
+    i.add_argument("--transport-root", default=None)
+    i.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
+    i.add_argument("--write", action="store_true", help="rewrite the landing_inventory section")
+    i.set_defaults(func=_cmd_inventory)
     return p
 
 

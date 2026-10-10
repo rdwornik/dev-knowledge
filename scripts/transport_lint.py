@@ -26,6 +26,20 @@ WHAT IT CHECKS (each finding has a code and a reason):
   lane-contract-no-r59-proof                       -- a `LANE-` contract whose close-out names no
         served model id and no nonce/content-hash proof of read (R59).
 
+  no-by / no-by-predates-landing / EDITED-UNSIGNED / no-by-generated-kind
+        -- the `by:` rule (LANE-1439-b2w2-transport-index, batch B2-W3): a classified `.md` file
+        carries a flush-left `by: <writer>` with a value in its first 12 lines. Three classes,
+        decided by the generated landing inventory (`ecosystem/seat-ids.yaml`, `landing_inventory:`,
+        `<folder>/<name>: sha256`): a NEW file (absent from the inventory) of a role-written kind
+        is refused (`no-by`); a pre-existing file (same sha256) is reported
+        `no-by-predates-landing`; an edited pre-existing file (changed sha256) is reported
+        `EDITED-UNSIGNED`; a new file of a script-only kind is reported `no-by-generated-kind`.
+        Reported findings carry `level=report` and never fail an exit code. The rule is opt-in:
+        `lint_entry(..., require_by=True)`, `check`/`sweep --inventory`, or a file inside the known
+        transport (`CLAUDE_PROMPTS_DIR`), so a scratch tree lints as before. The lint never
+        writes the inventory (`transport.py inventory --write` does); no readable inventory fails
+        closed (every file counts as new).
+
 It checks SHAPE, never resolution: that the named home exists on `main` is `gen_handoff`'s P11
 row, which needs the repository; a file may name a home that lands in the same merge.
 
@@ -38,6 +52,7 @@ stdlib only; no new dependency.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 import time
@@ -61,14 +76,24 @@ _PROOF_RE = re.compile(r"\bnonce\b|content[ -]hash", re.I)
 #: `.<name>.tmp` / `.<name>.append.lock` plumbing files.
 _SWEEP_SKIP_EXACT = {"desktop.ini"}
 
+#: The head the `by:` rule reads, and the key it looks for (flush-left, with a value).
+BY_HEAD_LINES = 12
+_BY_RE = re.compile(r"^by:[ \t]*\S")
+
+#: A finding of this level is printed and counted but never fails an exit code.
+LEVELS = ("refuse", "report")
+
 
 @dataclass(frozen=True)
 class Finding:
     path: str      # the file name (lint_text) or the transport-relative path (sweep)
     code: str      # a short kebab-case slug
     reason: str
+    level: str = "refuse"   # "report": printed and counted, never an exit-1 reason
 
     def render(self) -> str:
+        if self.level == "report":
+            return f"{self.path}: {self.code} [report]: {self.reason}"
         return f"{self.path}: {self.code}: {self.reason}"
 
 
@@ -110,12 +135,71 @@ def _non_blank_lines(text: str) -> int:
 
 # --- the lint ---------------------------------------------------------------------------------
 
+def by_value(text: str) -> Optional[str]:
+    """The value of a flush-left `by:` key in the first `BY_HEAD_LINES` lines, or None."""
+    for line in text.splitlines()[:BY_HEAD_LINES]:
+        if _BY_RE.match(line):
+            return line[len("by:"):].strip()
+    return None
+
+
+def inventory_key(folder: str, name: str) -> str:
+    """The landing inventory's key for a file: `<folder>/<name>`, the bare name at the root."""
+    return name if folder == "root" else f"{folder}/{name}"
+
+
+def file_class(rel: str, sha256: Optional[str], inventory: Optional[dict]) -> str:
+    """`new` (the path is absent from the inventory, or there is none: fail closed),
+    `pre-existing` (present, same sha256) or `edited` (present, a different or unreadable one)."""
+    if not inventory or rel not in inventory:
+        return "new"
+    return "pre-existing" if sha256 is not None and sha256 == inventory[rel] else "edited"
+
+
+def _role_written(kind) -> bool:
+    return any(w in _t.ROLE_WRITERS for w in kind.writers)
+
+
+def _by_findings(name: str, kind, text: str, cls, refuse_by: Optional[bool]) -> list[Finding]:
+    if by_value(text) is not None:
+        return []
+    cls = cls() if callable(cls) else (cls or "new")     # the sha256 is read only for an unsigned file
+    if cls == "pre-existing":
+        return [Finding(name, "no-by-predates-landing",
+                        "the file predates the landing inventory and carries no `by:` in its "
+                        f"first {BY_HEAD_LINES} lines", "report")]
+    if cls == "edited":
+        return [Finding(name, "EDITED-UNSIGNED",
+                        "the file is in the landing inventory but its content changed since, and it "
+                        f"carries no `by:` in its first {BY_HEAD_LINES} lines", "report")]
+    if (_role_written(kind) if refuse_by is None else refuse_by):
+        return [Finding(name, "no-by",
+                        f"a new file carries a flush-left `by: <writer>` with a value in its first "
+                        f"{BY_HEAD_LINES} lines (who wrote it; the INDEX groups by it)")]
+    return [Finding(name, "no-by-generated-kind",
+                    f"a new file of a script-written kind ({'/'.join(kind.writers)}) carries no "
+                    f"`by:` in its first {BY_HEAD_LINES} lines", "report")]
+
+
 def lint_entry(name: str, folder: str, read_text: Callable[[], str],
-               registry: Optional[list] = None) -> list[Finding]:
+               registry: Optional[list] = None, *, require_by: bool = False,
+               file_class: "Optional[str | Callable[[], str]]" = None,
+               refuse_by: Optional[bool] = None) -> list[Finding]:
     """Lint one transport file by NAME and FOLDER; `read_text` is called only when the kind
-    needs the body (a decision file, a lane contract) -- a sweep reads nothing else."""
+    needs the body (a decision file, a lane contract, or `require_by`) -- a sweep reads
+    nothing else. `require_by` adds the `by:` rule (see the module docstring); `file_class` is
+    `new` / `pre-existing` / `edited` or a callable returning one (evaluated only for an
+    unsigned file); `refuse_by` overrides which unsigned new files are refused (the write gate
+    sets it from the WRITER, a check or sweep leaves it to the kind)."""
     reg = registry if registry is not None else _t.load_registry()
     findings: list[Finding] = []
+    _cache: list[str] = []
+
+    def body() -> str:
+        if not _cache:
+            _cache.append(read_text())
+        return _cache[0]
+
     kind = _t.classify(name, reg)
     if kind is None:
         near = [k for k in reg if k.prefix and name.startswith(k.prefix)]
@@ -131,13 +215,15 @@ def lint_entry(name: str, folder: str, read_text: Callable[[], str],
             f"kind {kind.name} belongs in {kind.folder}/, found in {folder}/"))
 
     if is_decision(name, reg):
-        findings.extend(_carriage_findings(name, read_text()))
+        findings.extend(_carriage_findings(name, body()))
     elif kind is not None and kind.name in LANE_CONTRACT_KINDS:
-        closeout = _closeout_region(read_text())
+        closeout = _closeout_region(body())
         if not (_SERVED_MODEL_RE.search(closeout) and _PROOF_RE.search(closeout)):
             findings.append(Finding(name, "lane-contract-no-r59-proof",
                 "the close-out names no served model id and no nonce or content-hash proof of "
                 "read (R59): a review record without both reads as a failed read"))
+    if require_by and kind is not None and name.endswith(".md"):
+        findings.extend(_by_findings(name, kind, body(), file_class, refuse_by))
     return findings
 
 
@@ -178,15 +264,28 @@ def _carriage_findings(name: str, text: str) -> list[Finding]:
 
 
 def lint_text(name: str, folder: str, text: str,
-              registry: Optional[list] = None) -> list[Finding]:
-    return lint_entry(name, folder, lambda: text, registry)
+              registry: Optional[list] = None, *, require_by: bool = False,
+              file_class: "Optional[str | Callable[[], str]]" = None,
+              refuse_by: Optional[bool] = None) -> list[Finding]:
+    return lint_entry(name, folder, lambda: text, registry, require_by=require_by,
+                      file_class=file_class, refuse_by=refuse_by)
 
 
-def lint_file(path: Path, folder: Optional[str] = None,
-              registry: Optional[list] = None) -> list[Finding]:
+def _sha256_of(path: Path) -> Optional[str]:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None          # an unreadable inventoried file counts as edited
+
+
+def lint_file(path: Path, folder: Optional[str] = None, registry: Optional[list] = None, *,
+              require_by: bool = False, inventory: Optional[dict] = None) -> list[Finding]:
     folder = folder or _t._folder_of(path)
+    rel = inventory_key(folder, path.name)
     return lint_entry(path.name, folder,
-                      lambda: path.read_text(encoding="utf-8", errors="replace"), registry)
+                      lambda: path.read_text(encoding="utf-8", errors="replace"), registry,
+                      require_by=require_by,
+                      file_class=lambda: file_class(rel, _sha256_of(path), inventory))
 
 
 # --- the sweep --------------------------------------------------------------------------------
@@ -201,9 +300,11 @@ def parse_since(spec: str, now: Optional[float] = None) -> float:
 
 
 def sweep(transport_root: Path, since: Optional[float] = None,
-          registry: Optional[list] = None) -> list[Finding]:
+          registry: Optional[list] = None, *, require_by: bool = False,
+          inventory: Optional[dict] = None) -> list[Finding]:
     """The lint over `to-cc/`, `to-browser/` and the root itself (non-recursive, the convention
-    `transport.scan` uses), files modified at or after `since`. Report-only."""
+    `transport.scan` uses), files modified at or after `since`. Report-only. With `require_by`
+    each classified unsigned `.md` is also classed against `inventory` (None fails closed)."""
     reg = registry if registry is not None else _t.load_registry()
     root = Path(transport_root)
     homes = {"to-cc": root / "to-cc", "to-browser": root / "to-browser", "root": root}
@@ -222,15 +323,52 @@ def sweep(transport_root: Path, since: Optional[float] = None,
                     continue
             rel = f"{folder}/{entry.name}" if folder != "root" else entry.name
             for f in lint_entry(entry.name, folder,
-                                lambda e=entry: e.read_text(encoding="utf-8", errors="replace"), reg):
-                findings.append(Finding(rel, f.code, f.reason))
+                                lambda e=entry: e.read_text(encoding="utf-8", errors="replace"), reg,
+                                require_by=require_by,
+                                file_class=lambda e=entry, r=rel: file_class(r, _sha256_of(e), inventory)):
+                findings.append(Finding(rel, f.code, f.reason, f.level))
     return findings
 
 
 # --- CLI --------------------------------------------------------------------------------------
 
+class _InventoryScope:
+    """Whether the `by:` rule applies, and against which inventory: always when `--inventory`
+    names one, else only inside the known transport (`CLAUDE_PROMPTS_DIR`) with the default
+    `ecosystem/seat-ids.yaml`. The inventory is loaded once, read-only; an unreadable one is said
+    on stderr and fails closed (`inventory` stays None, so every file counts as new)."""
+
+    def __init__(self, explicit: Optional[str]):
+        self._explicit = Path(explicit) if explicit else None
+        self._loaded = False
+        self.inventory: Optional[dict] = None
+
+    def applies_to_root(self, root: Path) -> bool:
+        if self._explicit is not None:
+            return True
+        known = _t.known_root()
+        return known is not None and _t.same_path(known, root)
+
+    def applies_to_file(self, path: Path) -> bool:
+        if self._explicit is not None:
+            return True
+        known = _t.known_root()
+        return known is not None and _t.is_transport_dest(path, known)
+
+    def load(self) -> Optional[dict]:
+        if not self._loaded:
+            self._loaded = True
+            source = self._explicit or _t.DEFAULT_SEAT_IDS
+            self.inventory = _t.load_inventory(source)
+            if self.inventory is None:
+                print(f"transport_lint: no readable landing inventory at {source}: every file "
+                      "counts as new (the `by:` rule fails closed)", file=sys.stderr)
+        return self.inventory
+
+
 def _cmd_check(args: argparse.Namespace) -> int:
     reg = _t.load_registry()
+    scope = _InventoryScope(args.inventory)
     bad = 0
     for raw in args.files:
         path = Path(raw)
@@ -238,12 +376,14 @@ def _cmd_check(args: argparse.Namespace) -> int:
             print(f"{raw}: missing-file: no such file")
             bad += 1
             continue
-        found = lint_file(path, args.folder, reg)
+        by = scope.applies_to_file(path)
+        found = lint_file(path, args.folder, reg, require_by=by,
+                          inventory=scope.load() if by else None)
         for f in found:
             print(f.render())
-        if found:
+        if any(f.level == "refuse" for f in found):
             bad += 1
-        else:
+        elif not found:
             print(f"{path.name}: ok")
     return 1 if bad else 0
 
@@ -259,13 +399,24 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
     since = parse_since(args.since) if args.since else None
-    findings = sweep(root, since)
+    scope = _InventoryScope(args.inventory)
+    by = scope.applies_to_root(root)
+    findings = sweep(root, since, require_by=by, inventory=scope.load() if by else None)
+    refused = [f for f in findings if f.level == "refuse"]
+    predating = [f for f in findings if f.code == "no-by-predates-landing"]
     for f in findings:
+        if f.code == "no-by-predates-landing" and not args.report_predating:
+            continue                                  # counted below, listed with --report-predating
         print(f.render())
+    reported = len(findings) - len(refused)
+    tail = f", {reported} reported" if reported else ""
     print(f"transport_lint: swept {root} since "
-          f"{args.since or 'the beginning'}: {len(findings)} non-conforming file(s)",
+          f"{args.since or 'the beginning'}: {len(refused)} non-conforming file(s){tail}",
           file=sys.stderr)
-    return 1 if findings else 0
+    if predating and not args.report_predating:
+        print(f"transport_lint: {len(predating)} unsigned file(s) predate the landing inventory "
+              "(list them with --report-predating)", file=sys.stderr)
+    return 1 if refused else 0
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -275,11 +426,19 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("files", nargs="+")
     c.add_argument("--folder", choices=_t.FOLDERS, default=None,
                    help="the folder the file is destined for (default: its own parent folder)")
+    c.add_argument("--inventory", default=None,
+                   help="apply the `by:` rule against this landing inventory file (default: only "
+                        "inside the known transport, against ecosystem/seat-ids.yaml)")
     c.set_defaults(func=_cmd_check)
     s = sub.add_parser("sweep", help="lint the live transport; one line per bad file, exit 1")
     s.add_argument("--transport-root", default=None)
     s.add_argument("--since", default=None,
                    help="only files modified since: 30m, 2h, 1d or an ISO time")
+    s.add_argument("--inventory", default=None,
+                   help="apply the `by:` rule against this landing inventory file (default: only "
+                        "for the known transport, against ecosystem/seat-ids.yaml)")
+    s.add_argument("--report-predating", action="store_true",
+                   help="list each unsigned file that predates the landing inventory")
     s.set_defaults(func=_cmd_sweep)
     return p
 
