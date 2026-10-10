@@ -443,7 +443,18 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+def _utf8_stdio() -> None:
+    """File names and heads are UTF-8; a redirected Windows console is cp1252 and a `print` of one
+    stray character (a star in a subject) would raise. Reconfigure the streams, never fail on it."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main(argv: Optional[list[str]] = None) -> int:
+    _utf8_stdio()
     args = _parser().parse_args(argv)
     return args.func(args)
 
