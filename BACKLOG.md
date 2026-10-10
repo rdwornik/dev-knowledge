@@ -801,6 +801,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1456] [P1][M] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) · tasks/1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md
 - [#1480] [P1][M] The merge verdict survives an expired known-reds entry at the base; expiry stays enforced on the head · tasks/1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
+- [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
+- [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
 
 ---
 

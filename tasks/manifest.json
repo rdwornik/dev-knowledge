@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5d448f34e0fd5ccecc8a7b11e0ced162d3646ad3079f0f85bca0393a787e8aac",
+  "generated_sha256": "8228a94362724b28a6338d8a391c65cbc30f470f426624babc920d3cdab021d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3046,6 +3046,14 @@
     {
       "task": 1481,
       "file": "1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md"
+    },
+    {
+      "task": 1482,
+      "file": "1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md"
+    },
+    {
+      "task": 1483,
+      "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
     },
     {
       "prose": ""
