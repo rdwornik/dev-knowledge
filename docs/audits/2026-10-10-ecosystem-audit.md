@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-10  
-**Generated:** 2026-10-10T15:30:04  
+**Generated:** 2026-10-10T15:30:38  
 **Repos audited:** 6  
-**Checks:** 864 total — 160 pass, 13 fail, 495 warn, 0 unavailable, 196 n/a
+**Checks:** 864 total — 159 pass, 14 fail, 495 warn, 0 unavailable, 196 n/a
 
 ---
 
-## .dev-knowledge — PASS
+## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-k0f3tow5\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-yz5we_1w\wt`  
 **Last audit:** 2026-10-10
 
 | Check | Status | Evidence |
@@ -37,7 +37,7 @@
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
 | `amendment_coherence` | WARN | handoff-major-version: surface CLAUDE.md present but no normative version mention matched (coupling marker missing/reworded?) |
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
-| `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
+| `hooks_armed` | FAIL | git hooks not armed (RF-2) — SessionStart self-arm should install them: pre-push present but not pre-commit-managed (foreign hook) |
 | `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
 | `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
@@ -948,8 +948,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 160/864 checks passed
-- **13 failure(s)** — route findings to repo owners
+- 159/864 checks passed
+- **14 failure(s)** — route findings to repo owners
 - 495 warning(s)
 - 196 n/a (check not applicable to that repo)
 
