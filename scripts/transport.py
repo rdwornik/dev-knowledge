@@ -1403,7 +1403,9 @@ def _cmd_seat_ids(args: argparse.Namespace) -> int:
         except SeatIdsError as exc:
             print(f"seat-ids: {exc}")
             return 1
-        ok = bool(got["seats"]) and stored == got["seats"]
+        # The PAIRS decide freshness; provenance and the stating-file count move as the transport grows.
+        pairs = {(s["seat"], s["session"]) for s in got["seats"]}
+        ok = bool(pairs) and pairs == {(s["seat"], s["session"]) for s in stored}
         print("seat-ids: fresh" if ok else "seat-ids: STALE or empty (run `seat-ids --write`)")
         return 0 if ok else 1
     print(_dump({"seats": got["seats"]}), end="")
