@@ -699,7 +699,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1054] [P3][S] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 · tasks/1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md
 - [#1101] [P3][S] logs/KNOWN-REDS-REGISTRY.json: the 4 'environment-mismatch' members no longer reproduce · tasks/1101-known-reds-registry-environment-mismatch-attribution-i.md
 - [#1102] [P3][S] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 · tasks/1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md
-- [#1103] [P2][S] conductor.yml does not yet exclude operator_host from the CI pytest invocation · tasks/1103-conductor-yml-does-not-yet-exclude-operator-host-from.md
 - [#1104] [P2][S] Dispose ADR-127: carried to WAVE5B-N5 planning · tasks/1104-dispose-adr-127-carried-to-wave5b-n5-planning.md
 - [#1105] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25: carried to WAVE5B-N5 planning · tasks/1105-dispose-amend-batch-wave5b-n2-queue-2026-09-25-carried-to-wave5b-n5-planning.md
 - [#1106] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25: carried to WAVE5B-N5 planning · tasks/1106-dispose-amend-batch-wave5b-n2-queue2-2026-09-25-carried-to-wave5b-n5-planning.md

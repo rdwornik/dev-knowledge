@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-10 (f) - CC (Opus 5.5, integrator seat B2-W3, cycle 3): the [#1103] row close lands on its own -- no lane merge is left in the batch for it to ride
+
+**Anchors:** `969737c7` -- branch `chore/b2-w3-close-1103-carry`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Landed the integrator's row close of `[#1103]` for the ci-schedules merge `fba1a4d8` (CI push run 38081558327), carried uncommitted from cycle 2, with the post-land merge receipt line of that merge.
+- Recorded the last two B2-W3 handbacks as WAITING on named gates: `b2w2-codespace-finish` at `eea31c5d` (the laptop's codex cache is 7.2 days old; the Codespace mirror refuses past 7, codex refreshes itself only at 8) and `b2w2-boot-teaching` at `a9503f76` (merges only after `b2w2-transport-index`, which waits on a third review).
+
+**Result:** `[#1103]` is closed on `main`; every B2-W3 lane is MERGED or WAITING on a named gate, so the batch close runs next.
+
+**Changes:** `tasks/1103-*.md`, `BACKLOG.md`, `tasks/manifest.json` (regenerated), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** none.
+
+**Next:** the B2-W3 close (failures first, the trial cut, the R65 digest). Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (e) - CC (Opus 5.5, integrator seat B2-W3, cycle 2): lane b2w3-ci-schedules merges -- CI deselects the operator-host tests, the mutation pilot runs nightly, and a pilot that executes no mutant fails instead of reading green
 
 **Anchors:** `ff57acc4` `ea9b0603` `c399a1f7` `82b91cff` `8959760c` `52d0d047` `6e91230b` `3c923880` `5fb4ba26` `028b1f58` `0d3178d7` `f43f95b2` `4ebf6b68` `1bca304b` `fddb5884` `9bee78b5` -- branch `worktree-b2w3-ci-schedules`, merged `--no-ff` through `worktree-integrate-b2-w3`.
