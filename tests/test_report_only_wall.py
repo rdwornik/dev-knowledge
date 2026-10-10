@@ -115,6 +115,17 @@ def test_the_mutation_pilot_is_gated_until_502_has_a_verdict():
     assert pilot_group and pilot_group != doc["concurrency"]["group"]
     assert pilot["concurrency"].get("cancel-in-progress") is False
 
+    # Codex review HIGH (close-out of this lane): the job-level group does not lift the run out of
+    # the WORKFLOW-level group, and a run that queues behind an active one replaces an earlier
+    # PENDING run in the same group -- so a nightly run could displace a pending push `record`
+    # (the record of a landed sha, which must never be dropped). The workflow group therefore
+    # keys the schedule event apart from pushes, and still never cancels in progress.
+    wf_group = doc["concurrency"]["group"]
+    assert "github.event_name == 'schedule'" in wf_group, (
+        "the scheduled run must sit in its own workflow-level concurrency group")
+    assert "github.ref" in wf_group, "the push group stays keyed by ref"
+    assert doc["concurrency"].get("cancel-in-progress") is False
+
 
 @requires_workflow
 def test_the_nightly_pilot_keeps_only_its_artifact_and_summary():

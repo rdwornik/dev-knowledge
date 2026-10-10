@@ -29,7 +29,10 @@ permissions:
   contents: read          # least privilege; no issues:write -- this organ records, it does not emit
 
 concurrency:
-  group: report-only-wall-${{ github.ref }}
+  # [#1103]: the nightly run keys apart from pushes. Within one group a run queued behind an
+  # active one replaces an earlier PENDING run, so a shared group would let the nightly run drop
+  # the pending record of a landed push. Push and dispatch keep the key they always had.
+  group: report-only-wall-${{ github.event_name == 'schedule' && 'nightly-' || '' }}${{ github.ref }}
   cancel-in-progress: false   # every landed SHA gets its own record; never cancel a record
 
 jobs:
