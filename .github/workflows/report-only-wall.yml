@@ -323,9 +323,10 @@ jobs:
       # 0 mutants: a check that passes while checking nothing. THIS step judges whether they
       # measured anything. It runs last (the record and the artifact are already written), is not
       # `continue-on-error`, and fails the job on "failed to collect stats", on a progress line
-      # with 0 executed, and on no progress line. Report-only is unchanged for the survivors: a
-      # surviving mutant is still only recorded. Pinned by tests/test_report_only_wall.py, which
-      # extracts and runs this script. The killed emoji is written as an escape (ASCII-only script).
+      # with 0 executed (a no-tests mutant is checked, not executed), and on no progress line.
+      # Report-only is unchanged for the survivors: a surviving mutant is still only recorded.
+      # Pinned by tests/test_report_only_wall.py, which extracts and runs this script. The emoji
+      # are written as escapes (an ASCII-only script).
       - name: Fail when the pilot executed no mutant
         if: always()
         run: |
@@ -340,11 +341,16 @@ jobs:
           text = path.read_text(encoding="utf-8", errors="replace")
           if "failed to collect stats" in text:
               sys.exit("::error::mutation-pilot: mutmut failed to collect stats, 0 mutants executed")
-          progress = re.findall("(\\d+)/(\\d+)\\s+\U0001F389", text)
+          # The N of "N/M" is every mutant mutmut has CHECKED, and that includes the ones no test
+          # reaches (no tests). EXECUTED is what a test run decided: killed, survived, timeout,
+          # suspicious. A run of only no-tests mutants has checked all and executed none.
+          progress = re.findall(r"(\d+)/(\d+)\s+(\U0001F389[^\r\n]*)", text)
           if not progress:
               sys.exit("::error::mutation-pilot: no mutmut progress line, 0 mutants executed")
-          executed, total = (int(n) for n in progress[-1])
+          checked, total, rest = int(progress[-1][0]), int(progress[-1][1]), progress[-1][2]
+          counts = {emoji: int(n) for emoji, n in re.findall(r"(\S+)\s+(\d+)", rest)}
+          executed = sum(counts.get(e, 0) for e in ("\U0001F389", "\U0001F641", "\u23F0", "\U0001F914"))
           if executed < 1:
-              sys.exit(f"::error::mutation-pilot: 0 of {total} mutants executed")
-          print(f"mutation-pilot: {executed} of {total} mutants executed")
+              sys.exit(f"::error::mutation-pilot: 0 of {total} mutants executed ({checked} checked)")
+          print(f"mutation-pilot: {executed} of {total} mutants executed ({checked} checked)")
           PY
