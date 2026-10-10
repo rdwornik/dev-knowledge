@@ -17,6 +17,8 @@ gate both. A future edit reaching for the simpler `paths:` would quietly disarm 
 """
 from __future__ import annotations
 
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -306,3 +308,81 @@ def test_a_pilot_that_executed_a_mutant_passes_the_check(tmp_path):
            "\r⠙ 2291/2291  " + _KILLED + " 865" + _REST + "1426\n")
     proc = _run_pilot_check(tmp_path, out)
     assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+
+
+# --- [#1103] Done 4a: the seed baseline of the mutation pilot -----------------------------------
+
+_BASELINE = _ROOT / "logs" / "MUTATION-BASELINE.json"
+
+# The artifact summary of the seeding run, as that run's `mutmut.out` ends: run 38073707389
+# (workflow_dispatch on 3c923880, job mutation-pilot `success`). mutmut writes this line itself;
+# nothing in it is derived. Its keys are mutmut's own status emoji (`emoji_by_status`, 3.7.0).
+_SEED_SUMMARY = (
+    "⠹ 2291/2291  \U0001f389 863 \U0001fae5 214  ⏰ 4  \U0001f914 0  "
+    "\U0001f641 1210  \U0001f507 0  \U0001f9d9 0"
+)
+_SEED_REFERENCE = {"killed": 865, "survived": 1210}   # docs/audits/2026-08-18-technical-502-mutmut-attribution.md:220-227
+_TOLERANCE_PCT = 5
+
+
+def _summary_totals(line: str) -> tuple[int, int, dict[str, int]]:
+    """(checked, mutants, {emoji: count}) from a mutmut progress line, nothing else."""
+    head = re.search(r"(\d+)/(\d+)\s", line)
+    assert head, f"no <checked>/<mutants> in {line!r}"
+    counts = re.findall(r"(\S+)\s+(\d+)", line[head.end():])
+    return int(head.group(1)), int(head.group(2)), {emoji: int(n) for emoji, n in counts}
+
+
+def _assert_a_valid_seed(seed: dict, summary: str = _SEED_SUMMARY) -> None:
+    """The seed's contract (Done 4a, S-43.2, S-46): it names its run and the sha that run tested,
+    carries every total the artifact summary emitted under mutmut's own key, those totals EQUAL
+    the summary saved here as a fixture, and they show at least one executed mutant."""
+    assert isinstance(seed.get("run_id"), int) and seed["run_id"] > 0, "run id missing"
+    assert re.fullmatch(r"[0-9a-f]{40}", str(seed.get("sha", ""))), "sha missing"
+    assert seed.get("job_conclusion") == "success", "the seeding job did not conclude success"
+    checked, mutants, counts = _summary_totals(summary)
+    assert seed.get("artifact_summary") == summary, "the seed does not carry the artifact summary"
+    totals = seed.get("totals")
+    assert isinstance(totals, dict) and set(totals) == set(counts), "a total is missing or extra"
+    assert totals == counts, "the seed totals differ from the artifact summary"
+    assert (seed.get("checked"), seed.get("mutants")) == (checked, mutants)
+    assert sum(totals.values()) >= 1 and checked >= 1, "the seed shows no executed mutant"
+
+
+def test_the_seed_baseline_is_a_complete_run_with_an_executed_mutant():
+    """[#1103] Done 4a. `logs/MUTATION-BASELINE.json` is committed (`git ls-tree HEAD` lists it),
+    at the `logs/` root that `ecosystem/fleet-shape-spec.yaml` (`runtime_data_home.kinds.committed`)
+    names, from one dispatched run whose pilot job concluded `success` AND executed mutants. The
+    ±5 % check against the 2026-08-18 reference is recomputed here, not trusted from the file."""
+    seed = json.loads(_BASELINE.read_text(encoding="utf-8"))
+    _assert_a_valid_seed(seed)
+    totals = seed["totals"]
+    killed, survived = totals["\U0001f389"], totals["\U0001f641"]
+    for name, got in (("killed", killed), ("survived", survived)):
+        want = _SEED_REFERENCE[name]
+        assert abs(got - want) * 100 <= _TOLERANCE_PCT * want, f"{name}: {got} is not within 5% of {want}"
+    assert seed["reference"] == {**_SEED_REFERENCE, "tolerance_pct": _TOLERANCE_PCT}
+    assert seed["within_tolerance"] is True
+
+
+@pytest.mark.parametrize("damage", ["empty", "partial", "all-zero", "no-run-id"])
+def test_an_empty_or_partial_seed_fails(damage):
+    """The seed test must be able to fail: an empty seed, one missing a total, one whose totals
+    show no executed mutant (the run-38061081144 shape), and one that names no run, all raise."""
+    seed = json.loads(_BASELINE.read_text(encoding="utf-8"))
+    if damage == "empty":
+        seed = {}
+    elif damage == "partial":
+        seed["totals"].pop("\U0001f641")
+    elif damage == "all-zero":
+        # internally consistent, and exactly what run 38061081144 would have produced
+        zero = re.sub(r"(?<=\s)\d+(?=\s|$)", "0", _SEED_SUMMARY.replace("2291/2291", "0/2291"))
+        _, mutants, counts = _summary_totals(zero)
+        seed.update(artifact_summary=zero, totals=counts, checked=0, mutants=mutants)
+        with pytest.raises(AssertionError, match="no executed mutant"):
+            _assert_a_valid_seed(seed, summary=zero)
+        return
+    else:
+        del seed["run_id"]
+    with pytest.raises(AssertionError):
+        _assert_a_valid_seed(seed)
