@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-10  
-**Generated:** 2026-10-10T18:22:47  
+**Generated:** 2026-10-10T19:39:43  
 **Repos audited:** 6  
-**Checks:** 865 total — 159 pass, 13 fail, 497 warn, 0 unavailable, 196 n/a
+**Checks:** 864 total — 159 pass, 13 fail, 496 warn, 0 unavailable, 196 n/a
 
 ---
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-cfqa5yqx\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-ryc409if\wt`  
 **Last audit:** 2026-10-10
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 35d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-10; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-10, newest input docs/audits committed 2026-10-10 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 15 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 17 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -39,7 +39,7 @@
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
 | `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
-| `doc_claims` | WARN | 1 prose claim(s) drifted from repo state: pytest_collected@ecosystem/doc-counts.md (doc 9965 != actual 10102) |
+| `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
@@ -48,7 +48,6 @@
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 18 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#786 (7 history dates spanning 133d, 3447 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#946 (4 history dates spanning 76d, 1104 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#267 (3 history dates spanning 53d, 2188 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#297 (3 history dates spanning 51d, 1327 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#285 (5 history dates spanning 61d, 2556 chars (>= 3 dates & >= 30d span & > 700 chars)) |
@@ -57,7 +56,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#913 (3 history dates spanning 51d, 1091 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#915 (3 history dates spanning 39d, 2417 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#927 (4 history dates spanning 43d, 2337 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (320 of 638 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13677 chars; row-length p50/p75/p90 over all 638 rows = 1327/2295/3314 chars; trend: +73 vs previous run (247 -> 320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (316 of 634 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13677 chars; row-length p50/p75/p90 over all 634 rows = 1318/2297/3314 chars; trend: +69 vs previous run (247 -> 316)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-09-14, 26d ago (> 21d cadence, ADR-41)) |
 | `doc_structure` | PASS | no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme) |
 | `doc_code_edge` | WARN | governance-backlog-implements-grammar: code_orphan (code sites=1, no declaration) |
@@ -99,15 +98,15 @@
 | `fleet_parity` | WARN | ai-council claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `fleet_parity` | WARN | corp-monorepo claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
-| `silent_rule_ratchet` | PASS | live 434 <= baseline 452 under detector silent-rule-v5 (78 file(s) in scope); 18 below baseline — ratchet-down available |
+| `silent_rule_ratchet` | PASS | live 434 <= baseline 452 under detector silent-rule-v5 (77 file(s) in scope); 18 below baseline — ratchet-down available |
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
-| `intake_tree_coherence` | PASS | intake residue carrier coherent (393 node(s), 30135 README.md byte(s)) |
+| `intake_tree_coherence` | PASS | intake residue carrier coherent (392 node(s), 30023 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17924 bytes, within its 18000-byte budget |
-| `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
+| `fleet_audit_replication` | WARN | automation/fleet-audit is 1 commit(s) ahead of origin -- a recent push likely failed; ADR-80's durable record is behind |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 0bb0962 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: ed8c138 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9b70675 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 03d21ff appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 350c07f appears outside an explicit 'Anchors:' record line (+1124 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: ed8c138 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9b70675 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 03d21ff appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 350c07f appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: b1cf3e4 appears outside an explicit 'Anchors:' record line (+1123 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f) resolved by a later CORRECTION entry naming both blocks ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
 | `review_artifact_coverage` | WARN | 216 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 350c07f7 worktree-b-plus-step-2, 84ee7e90 worktree-b2-codespace-green, 31c791ae worktree-foundation-5-codespace-parity, 24bc3d58 worktree-filled-waiver-r54, 816c7f66 worktree-p13-dispositions-2026-10-02 (+211 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
@@ -403,7 +402,7 @@
 | `substrate_declaration` | PASS | 1 leg-8 refusal(s) on post-launch contracts (batch closed) scoped out under [#926] until 2026-11-18: docs/audits/2026-09-17-technical-batchac-launch-contracts/LANE-ac-694-cloud-census.md |
 | `routing_agreement` | PASS | 4 role(s) in ecosystem/routing-table.yaml corroborated by ~/.claude/ROUTING.md |
 | `dispatch_drift` | PASS | tier host: 14 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
-| `consumer_at_landing` | PASS | 1414 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (784) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1151 files) |
+| `consumer_at_landing` | PASS | 1414 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (784) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1146 files) |
 | `platform_matrix` | PASS | 1 declared platform matrix/matrices under .github/workflows/: .github/workflows/conductor.yml: ['ubuntu-latest', 'windows-latest'] |
 | `proof_layer` | WARN | test_batch_manifest.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_batch_manifest.py::test_809_a_batch_ab_lane_merge_receives_the_exemption_under_an_open_manifest — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_block_commit_on_main_replay.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_block_commit_on_main_replay.py::test_the_integrator_replay_never_refuses_its_own_path — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
@@ -544,7 +543,7 @@
 | `organ_truth` | WARN | 1 organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: scripts/desired_state_loader.py |
 | `model_currency` | WARN | 8 flag(s) over 14 pinned ids -- unverified x8: claude-haiku-4-5-20251001, claude-opus-4-8, claude-opus-5, claude-sonnet-5 +4 more (list: uv run --locked python scripts/check_model_currency.py) |
 | `rulings_carried` | PASS | 38 of 38 gated ruling(s) (R55 on) carried by a row or a written 'no implementation required'; 60 older entries counted, not refused (decision_coverage.py rulings) |
-| `rulings_carried` | PASS | every ruling in 26 non-superseded RATIFICATION file(s) (94 read) is landed or inside the 1-batch grace period |
+| `rulings_carried` | PASS | every ruling in 26 non-superseded RATIFICATION file(s) (95 read) is landed or inside the 1-batch grace period |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -949,9 +948,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 159/865 checks passed
+- 159/864 checks passed
 - **13 failure(s)** — route findings to repo owners
-- 497 warning(s)
+- 496 warning(s)
 - 196 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
