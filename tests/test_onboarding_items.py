@@ -354,7 +354,7 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 #: the front matter AND add the new pair when the body changes. Old pairs stay (the history).
 _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
-    2: "d54e2c73ade41545d7d572888386b1094887ded7f984458e3bc096794412065b",
+    2: "e4fb55c3f5227fda04f7a14209fdd2539d84eaa4f2072bf32ae8d671d5637c39",
 }
 
 

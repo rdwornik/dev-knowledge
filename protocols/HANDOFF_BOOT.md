@@ -40,12 +40,12 @@ boot_version: 2
 
 ## Reading path — ask CC to pull these, in this order, before your first dispatch
 
-CC resolves each item by pattern, never a dated path: `uv run --locked python
+CC resolves each item by pattern, not by a dated path: `uv run --locked python
 scripts/gen_handoff.py --reading-path` prints all five (exit 1 on a miss). Questions only; no key.
 
 1. **INDEX** — `to-browser/INDEX.md`, the one index of the live transport.
 2. **SEAT-LESSONS** — the newest non-superseded `SEAT-LESSONS-*.md`.
-3. **Seat exam** — the newest `SEAT-EXAM-*.md`, never a `SEAT-EXAM-RESULT-*` file (that holds the key).
+3. **Seat exam** — the newest `SEAT-EXAM-*.md`, not a `SEAT-EXAM-RESULT-*` file (that holds the key).
 4. **Dispatch exam** — the newest `DIGEST-DISPATCH-ONBOARDING-*.md`, its "Dispatch exam" section only.
 5. **Dispatch map** — `to-browser/MAP-DISPATCH.md`, generated from code (`uv run --locked python
    scripts/gen_handoff.py --dispatch-map --write`): each substrate PROVEN by a cited test, or DECLARED.
