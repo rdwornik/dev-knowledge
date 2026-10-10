@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-10 (c) - CC (Opus 5.5, integrator seat B2-W3, cycle 1): lane b2w3-red-burn-down merges after its S-54 repair -- four registry reds repaired, [#1481] registered, and the merge-receipt consumer route reads the Copilot-route review record
+
+**Anchors:** `01cc0709` `4674ee21` `261e5d85` `a1fc570e` `8933e2df` `a03c3020` `a7327ebe` `b01b9301` -- branch `worktree-b2w3-red-burn-down`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Merged lane `b2w3-red-burn-down` (job fc347c1d; S-54 repair-1 job e6ecf581; claude-sonnet-5-5). Its first merge (8f78c8d2, 14:34Z) did not land: its S-41.4-named review record `-verification-<slug>-review.md` had no consumer route and reded three `test_consumer_at_landing` tests. The seat ruled remedy A (S-54): fix the predicate, re-measure, re-stamp.
+- Rows repaired at their causes: `[#1342]` (expected count derived from the raw manifest), `[#1345]` (`settings_hook_script` in `ProbeType`), `[#1346]` (`bounded_hook.POSTURES` for five live hooks), `[#1023]` (a locked `journal_mode=WAL` switch retried inside the busy window). `[#1481]` registered with its cause and expiry 2026-10-31.
+- S-54: `consumer_at_landing.py` reads `<date>-verification-<lane-slug>-review.md` on the merge-receipt route beside `-codex-`; `DETECTOR_ID` v3 -> v4; baseline re-stamped by the module's `--write-baseline`.
+- Carried three merge-receipt ledger lines (the rows branch's post-land receipt, two attempt receipts of the unlanded first merge).
+
+**Result:** `logs/KNOWN-REDS-REGISTRY.json` -18 entries (six fixed tests, every leg), +3 (`[#1481]`), none re-dated. Close-out reviews Copilot `gpt-6.1-sol` (Codex limit-refused) 0/0/1/0 twice; both MEDIUMs recorded, not taken, with reasons.
+
+**Changes:** `ecosystem/schema/desired_state.py`, `scripts/hooks/bounded_hook.py`, `scripts/telemetry_emit.py`, `scripts/consumer_at_landing.py`, `tests/test_consumer_at_landing.py`, `tests/test_desired_state_schema.py`, `tests/test_floor_mechanisms.py`, `tests/test_telemetry_emit.py`, `logs/KNOWN-REDS-REGISTRY.json`, `ecosystem/audit-consumer-baseline.json`, two review records under `docs/audits/`, regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** none. `[#1341]` and `[#1349]` NOT-RUN by seat ruling S-34.
+
+**Next:** S-55 lifts: Copilot-route lanes (`verdict-base` first) may merge. Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (b) - CC (Opus 5.5, integrator seat B2-W3): the B2-W3 rows branch lands first -- rows [#1480]-[#1483] and intake 106
 
 **Anchors:** `1f7eff4c` `daff3c78` -- the render's rows branch `worktree-b2w3-render`, merged `--no-ff` through `worktree-integrate-b2-w3`.
