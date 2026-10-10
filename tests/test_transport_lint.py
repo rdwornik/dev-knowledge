@@ -655,6 +655,19 @@ def test_file_class_is_new_pre_existing_or_edited(lint):
     assert lint.file_class("to-cc/A.md", "a" * 64, {}) == "new"
 
 
+def test_file_class_reads_the_inventory_with_the_filesystems_case_rules(lint):
+    """Codex High 2: `DIGEST-alpha.md` and `DIGEST-ALPHA.md` are one file on a Windows drive, so an
+    inventoried file reached by another spelling is the same file, not a new one."""
+    inv = {"to-browser/DIGEST-alpha.md": "a" * 64, "ROOT-File.md": "b" * 64}
+    same_file = os.path.normcase("A") == os.path.normcase("a")   # Windows True; a case-sensitive drive False
+    assert lint.file_class("to-browser/DIGEST-alpha.md", "a" * 64, inv) == "pre-existing"
+    assert lint.file_class("to-browser/DIGEST-ALPHA.md", "a" * 64, inv) == (
+        "pre-existing" if same_file else "new")
+    assert lint.file_class("TO-BROWSER/digest-alpha.md", "c" * 64, inv) == (
+        "edited" if same_file else "new")
+    assert lint.file_class("root-file.md", "b" * 64, inv) == ("pre-existing" if same_file else "new")
+
+
 @pytest.mark.parametrize("cls,name,code", [
     ("pre-existing", "DIGEST-x-2026-10-10.md", "no-by-predates-landing"),
     ("pre-existing", "LEDGER-demo.md", "no-by-predates-landing"),

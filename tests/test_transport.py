@@ -1502,3 +1502,125 @@ def test_the_gate_lets_an_inventoried_path_through_and_fails_closed_without_an_i
 def test_the_gate_leaves_a_destination_outside_the_known_transport_alone(t, world, tmp_path):
     # no `known_root` patch: the fixture is not the real transport, so the by: rule does not engage
     t.write("operator", world["browser"] / "DIGEST-plain-2026-10-10.md", "plain\n")
+
+
+# --- the Codex close-out findings (gpt-6-astra, LANE-1439-b2w2-transport-index) ------------------------------
+# Each test below names the finding it holds. They were written before the fix and failed against it.
+
+def test_manifest_out_never_replaces_a_file_and_never_lands_inside_the_transport(t, world, tmp_path, capsys):
+    """Critical 2: `--manifest-out` of a dry run truncated whatever it pointed at."""
+    import json
+    root = world["root"]
+    _janitor_world(world)
+    args = ["--transport-root", str(root), "--seat-ids", str(_seat_file(tmp_path))]
+    victim = root / "to-browser" / "DIGEST-live-2026-10-01.md"
+    before_victim = victim.read_bytes()
+    assert t.main(["janitor", "--manifest-out", str(victim), *args]) == 2
+    assert victim.read_bytes() == before_victim                                  # not truncated
+    inside = root / "to-browser" / "plan-copy.json"
+    assert t.main(["janitor", "--manifest-out", str(inside), *args]) == 2
+    assert not inside.exists()                                                   # nothing new in the transport
+    archived = root / "to-browser" / "archive" / "2026-09-05" / "fresh.json"
+    assert t.main(["janitor", "--manifest-out", str(archived), *args]) == 2
+    assert not archived.exists()
+    keep = tmp_path / "keep.json"
+    keep.write_text("old\n", encoding="utf-8")
+    assert t.main(["janitor", "--manifest-out", str(keep), *args]) == 2
+    assert keep.read_text(encoding="utf-8") == "old\n"                           # an existing file survives
+    capsys.readouterr()
+    out = tmp_path / "plan.json"
+    assert t.main(["janitor", "--manifest-out", str(out), *args]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["manifest_sha256"]
+
+
+def _lonely_superseded(world) -> Path:
+    return _put(world["root"], "to-browser/DIGEST-one-2026-09-01-superseded.md",
+                _head(by=TA44, date="2026-09-01"))
+
+
+def test_a_move_waits_for_a_writer_holding_the_sources_lock_and_refuses_when_it_does_not_let_go(
+        t, world, monkeypatch):
+    """Critical 1: the source hash was checked and the file moved with no step shared with a writer."""
+    src = _lonely_superseded(world)
+    plan = t.janitor_plan(world["root"], seats=SEATS)
+    monkeypatch.setattr(t, "JANITOR_LOCK_TIMEOUT_S", 0.2)
+    with t._DestinationLock(src):                                  # an append() in flight holds this lock
+        with pytest.raises(t.JanitorRefused, match="lock"):
+            t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
+    assert src.exists()
+    assert not (world["browser"] / "archive").exists() or not any((world["browser"] / "archive").rglob("*.md"))
+    t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)     # released: the move goes through
+    assert not src.exists()
+    assert (world["browser"] / "archive" / "2026-09" / src.name).exists()
+
+
+def test_the_lock_a_move_takes_leaves_no_file_behind(t, world):
+    src = _lonely_superseded(world)
+    plan = t.janitor_plan(world["root"], seats=SEATS)
+    t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
+    assert not list(world["browser"].glob(".*")), "a lock file survived the move"
+    assert not src.exists()
+
+
+def test_a_destination_that_appears_at_the_rename_is_a_refusal_and_both_files_stay(t, world, monkeypatch):
+    """Critical 1: on Windows `os.rename` onto an existing name raises; the janitor must read that as
+    `refuse`, not as a crash after a half-done move, and must leave the other file's bytes alone."""
+    src = _lonely_superseded(world)
+    plan = t.janitor_plan(world["root"], seats=SEATS)
+    dst = world["browser"] / "archive" / "2026-09" / src.name
+    before = src.read_bytes()
+
+    def racing_rename(a, b):
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(b"somebody else's file\n")
+        raise FileExistsError(b)
+
+    monkeypatch.setattr(os, "rename", racing_rename)
+    with pytest.raises(t.JanitorRefused, match="appeared"):
+        t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
+    assert src.read_bytes() == before
+    assert dst.read_bytes() == b"somebody else's file\n"
+
+
+def test_a_refresh_rescans_a_file_edited_since_the_index_was_made(t, world, live):
+    """High 1: a row survived a refresh that did not look at its file, so an edit that the earlier
+    refresh missed stayed stale until the next full rebuild."""
+    for p in list(world["browser"].glob("*.md")) + list(world["cc"].glob("*.md")):
+        os.utime(p, (1_700_000_000, 1_700_000_000))                # every file predates the INDEX
+    live["index"].write_text(_index(t, world["root"], stamp="2026-10-10T12:00:00Z"), encoding="utf-8", newline="\n")
+    edited = world["browser"] / "DIGEST-alpha-2026-10-08.md"
+    edited.write_text(_head(by=TA44, date="2026-10-08", summary="Alpha digest, edited by hand"),
+                      encoding="utf-8", newline="\n")             # an edit no writer announced: mtime is now
+    t.write("operator", world["browser"] / "DIGEST-other-2026-10-10.md",
+            _head(by=TA44, date="2026-10-10", summary="Other digest"))
+    text = live["index"].read_text(encoding="utf-8")
+    row = {e["path"]: e for e in t.parse_index(text)["entries"]}["to-browser/DIGEST-alpha-2026-10-08.md"]
+    assert row["subject"] == "Alpha digest, edited by hand"
+    assert text == _full_rebuild_like(t, live)
+
+
+def test_a_refresh_reuses_rows_of_files_untouched_since_the_index_was_made(t, world, live, monkeypatch):
+    """High 1, the other side: the incremental refresh stays cheap -- it scans the new file and nothing else."""
+    for p in list(world["browser"].glob("*.md")) + list(world["cc"].glob("*.md")):
+        os.utime(p, (1_700_000_000, 1_700_000_000))
+    live["index"].write_text(_index(t, world["root"], stamp="2026-10-10T12:00:00Z"), encoding="utf-8", newline="\n")
+    scanned: list[str] = []
+    real = t._scan_row
+    monkeypatch.setattr(t, "_scan_row", lambda rel, path, kind, attr: (scanned.append(rel), real(rel, path, kind, attr))[1])
+    t.write("operator", world["browser"] / "DIGEST-other-2026-10-10.md",
+            _head(by=TA44, date="2026-10-10", summary="Other digest"))
+    assert scanned == ["to-browser/DIGEST-other-2026-10-10.md"]
+
+
+def test_a_script_writers_unsigned_file_of_a_kind_a_role_also_writes_is_advised_that_the_sweep_refuses_it(
+        t, world, live, capsys):
+    """High 3: the gate keys on the WRITER (it cannot make a script it does not own stamp `by:`), the sweep on
+    the KIND (it cannot know the writer). The advisory says so instead of reading as a pass."""
+    dest = world["browser"] / "SESSION-script-made.md"
+    t.append("handback", dest, "HANDBACK worktree-x @ deadbeef code\n")
+    err = capsys.readouterr().err
+    assert dest.exists()
+    assert "sweep" in err and "lane" in err, err
+    t.write("gen_ledger", world["browser"] / "LEDGER-pure-script-repo.md", "plain\n")
+    err = capsys.readouterr().err
+    assert "no `by:`" in err and "sweep" not in err, err           # a script-only kind: the plain advisory
