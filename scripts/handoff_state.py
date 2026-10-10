@@ -829,6 +829,143 @@ def coverage_line(repo_root: "Path | str", transport: "Path | None") -> str:
             f"{', '.join(gaps) if gaps else 'none'}")
 
 
+# ===================================================================== the boot's READING PATH
+#
+# [#1443] (W2-22, R84). `protocols/HANDOFF_BOOT.md` teaches a fresh seat what two earlier seats
+# failed on by naming five things to read: the transport INDEX, the current SEAT-LESSONS, the seat
+# exam, the dispatch exam and the generated dispatch map. The boot types a stable ANCHOR for each
+# (a glob like `SEAT-LESSONS-*.md`, never a dated path -- R70) and ONE command resolves them:
+# `gen_handoff.py --reading-path`, a thin shell over `resolve_reading_path` below.
+#
+# Library-first: nothing new is parsed. `_live_transport_docs` already ranks a prefix's files by
+# the date in the NAME and drops the `-vN-superseded` / `-withdrawn` ones; this layer adds only a
+# stricter accept predicate and the three checks the generic reader cannot make.
+#
+# THE PREFIX TRAP (N4). The raw reader globs `SEAT-EXAM-*.md`, which also matches
+# `SEAT-EXAM-RESULT-<date>.md` -- the graded results, answer key included. A result file can win on
+# mtime (a Drive re-sync rewrites mtimes) or on a later date, which would put the key on the
+# reading path. So a dated item accepts ONLY `<PREFIX>-<YYYY-MM-DD>[-vN].md` (`RESULT` cannot match
+# that), and the exam slot additionally demands `kind: SEAT-EXAM` and the `questions only` heading
+# in the head of the file, and refuses any file that carries a key line anywhere.
+#
+# HONEST LIMITS
+#   * The resolver returns NAMES and a SECTION title, never a body: the boot's reading path is a
+#     list of things CC pulls, and a body copied into a report would be a second, stale copy.
+#   * `HAS-KEY` is a line-start test (`Answer`, `Key`, `Expected`), the same predicate the exam
+#     tests use. It catches the shapes the exam files take; it is not a proof that no answer is
+#     ever written in prose, which is why the reading path also carries "questions only" in words.
+#   * A map file that exists but differs from a fresh generation is the CLI's `STALE`, not this
+#     module's: generating the map needs `dispatch.py --help`, which this module does not call.
+
+#: The reading-path item statuses. `OK` is the only pass.
+READING_STATUSES = ("OK", "MISSING", "NO-SECTION", "HAS-KEY")
+
+_KEY_LINE_RE = re.compile(r"(?mi)^[ \t]*(?:\*\*)?(?:answers?|key|expected)\b")
+_EXAM_KIND_RE = re.compile(r"(?m)^kind:\s*SEAT-EXAM\s*$")
+_QUESTIONS_ONLY_RE = re.compile(r"(?mi)^# .*questions only")
+_HEAD_LINES_READING = 12
+
+
+@dataclass(frozen=True)
+class ReadingItem:
+    """One stop on the boot's reading path: where it lives and how it is recognised.
+
+    `boot_anchor` is the literal text the boot's `## Reading path` section carries for the item
+    (the tests find each in order); `prefix` resolves the newest live dated file, `fixed` is a
+    path under the transport; `section` names the one heading of the resolved file the seat
+    reads; `exam` marks the slot that must be questions-only."""
+    key: str
+    boot_anchor: str
+    prefix: "str | None" = None
+    fixed: "str | None" = None
+    section: "str | None" = None
+    exam: bool = False
+
+
+READING_PATH: "tuple[ReadingItem, ...]" = (
+    ReadingItem("index", "to-browser/INDEX.md", fixed="to-browser/INDEX.md"),
+    ReadingItem("lessons", "SEAT-LESSONS-*.md", prefix="SEAT-LESSONS"),
+    ReadingItem("exam", "SEAT-EXAM-*.md", prefix="SEAT-EXAM", exam=True),
+    ReadingItem("dispatch-exam", "DIGEST-DISPATCH-ONBOARDING-*.md",
+                prefix="DIGEST-DISPATCH-ONBOARDING", section="Dispatch exam"),
+    ReadingItem("map", "to-browser/MAP-DISPATCH.md", fixed="to-browser/MAP-DISPATCH.md"),
+)
+
+
+@dataclass(frozen=True)
+class ReadingResult:
+    """The resolution of one `ReadingItem`: a name and a section title, never a body."""
+    key: str
+    boot_anchor: str
+    path: "Path | None"
+    section: "str | None"
+    status: str
+
+
+def _dated_name_re(prefix: str) -> "re.Pattern[str]":
+    return re.compile(rf"{re.escape(prefix)}-\d{{4}}-\d{{2}}-\d{{2}}(?:-v\d+)?\.md")
+
+
+def _read_text(path: Path) -> "str | None":
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _exam_slot_ok(path: Path) -> bool:
+    """A SEAT-EXAM edition: `kind: SEAT-EXAM`, a `questions only` title, and no key line."""
+    text = _read_text(path)
+    if text is None:
+        return False
+    head = "\n".join(text.splitlines()[:_HEAD_LINES_READING])
+    return (_EXAM_KIND_RE.search(head) is not None
+            and _QUESTIONS_ONLY_RE.search(head) is not None
+            and _KEY_LINE_RE.search(text) is None)
+
+
+def _section_body(text: str, title: str) -> "str | None":
+    """The body of the first heading titled `title` (an optional `N.` number before it is
+    ignored), up to the next heading of the same or a higher level; None when there is none."""
+    m = re.search(rf"(?mi)^(#{{1,6}})[ \t]+(?:\d+\.[ \t]+)?{re.escape(title)}\b.*$", text)
+    if m is None:
+        return None
+    rest = text[m.end():]
+    nxt = re.search(rf"(?m)^#{{1,{len(m.group(1))}}}[ \t]", rest)
+    return rest[:nxt.start()] if nxt else rest
+
+
+def _resolve_item(transport: "Path | None", item: ReadingItem) -> ReadingResult:
+    path: "Path | None" = None
+    if transport is not None and item.fixed is not None:
+        candidate = Path(transport) / item.fixed
+        path = candidate if candidate.is_file() else None
+    elif transport is not None and item.prefix is not None:
+        name_re = _dated_name_re(item.prefix)
+
+        def accept(p: Path, name_re=name_re, exam=item.exam) -> bool:
+            return name_re.fullmatch(p.name) is not None and (_exam_slot_ok(p) if exam else True)
+        path = _newest_transport_doc(transport, item.prefix, accept=accept)
+    if path is None:
+        return ReadingResult(item.key, item.boot_anchor, None, None, "MISSING")
+    if item.section is None:
+        return ReadingResult(item.key, item.boot_anchor, path, None, "OK")
+    text = _read_text(path)
+    body = None if text is None else _section_body(text, item.section)
+    if body is None:
+        return ReadingResult(item.key, item.boot_anchor, path, None, "NO-SECTION")
+    status = "HAS-KEY" if _KEY_LINE_RE.search(body) else "OK"
+    return ReadingResult(item.key, item.boot_anchor, path, item.section, status)
+
+
+def resolve_reading_path(transport: "Path | None") -> "list[ReadingResult]":
+    """Resolve the boot's five reading-path items against `transport`, in the boot's order.
+
+    An unresolved transport (None) reads every item MISSING -- never a pass (the E-29 posture the
+    transport rows share). Names and section titles only."""
+    return [_resolve_item(transport, item) for item in READING_PATH]
+
+
 # ============================================================================================ CLI
 
 def _main(argv: "list[str] | None" = None) -> int:
