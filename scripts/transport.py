@@ -237,13 +237,17 @@ def _inside_known_transport(dest: Path) -> bool:
 def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
     """Write `data` (text) to `dest` WHOLE (atomic tmp+replace, `transport_report.deliver`'s own
     pattern), but only when `dest.name` is a registered kind, `writer` is its registered writer,
-    `dest` sits in that kind's registered folder AND `transport_lint` passes the content. Raises
-    `TransportWriteRefused` before touching the filesystem otherwise."""
+    `dest` sits in that kind's registered folder AND `transport_lint` passes the content. The replace
+    runs under the destination's lock -- the one `append()` and the janitor's move take -- so no
+    registered writer replaces a file between a move's hash check and its rename. Raises
+    `TransportWriteRefused` before touching the filesystem otherwise (or when the lock is not released
+    within `WRITE_LOCK_TIMEOUT_S`)."""
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
     _lint(dest, data, reg, writer)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    _tr.deliver(dest, data.encode("utf-8"))
+    with _DestinationLock(dest, WRITE_LOCK_TIMEOUT_S):      # the lock append() and the janitor's move share
+        _tr.deliver(dest, data.encode("utf-8"))
     _after_write(dest, "write", reg)
     return dest
 
@@ -512,6 +516,7 @@ HEAD_LINES = 12          # the lines the head keys (`by:`, `date:`, `summary:`, 
 WINDOW_LINES = 30        # the attribution window; a row depends on ALL of it, never just the head
 INDEX_LOCK_TIMEOUT_S = 10.0
 JANITOR_LOCK_TIMEOUT_S = 10.0   # how long a move waits for a writer that holds the source's append lock
+WRITE_LOCK_TIMEOUT_S = 10.0     # how long a whole-file write waits for the destination's lock
 STALE_MARGIN_S = 5.0            # a cached INDEX row is trusted only for a file older than the INDEX by this much
 INDEX_SUMMARY = "Generated index of the current transport files, by kind and writer, newest first."
 INDEX_BY = "transport.py index (generated)"
@@ -578,15 +583,21 @@ def veto_tokens(files: list[tuple[str, Path]]) -> list[str]:
     return sorted(out)
 
 
-def _read_window(path: Path) -> list[str]:
-    """The first `WINDOW_LINES` lines of a `.md` file (others carry no head), LF-normalised."""
+def _read_window_checked(path: Path) -> tuple[list[str], bool]:
+    """`(lines, readable)`: the first `WINDOW_LINES` lines of a `.md` file (others carry no head),
+    LF-normalised. `readable` is False when the open or the read failed -- the lines are then empty, and
+    a row built from them says so instead of passing for a file with no head."""
     if path.suffix.lower() != ".md":
-        return []
+        return [], True
     try:
         with path.open(encoding="utf-8-sig", errors="replace") as fh:
-            return [ln.rstrip("\r\n") for ln in itertools.islice(fh, WINDOW_LINES)]
+            return [ln.rstrip("\r\n") for ln in itertools.islice(fh, WINDOW_LINES)], True
     except OSError:
-        return []
+        return [], False
+
+
+def _read_window(path: Path) -> list[str]:
+    return _read_window_checked(path)[0]
 
 
 def _head_keys(lines: list[str]) -> tuple[dict[str, str], Optional[str]]:
@@ -616,6 +627,7 @@ class _Row:
     by: str                       # the `by:` value as written, or UNKNOWN
     attributed: bool
     supersedes: Optional[str] = None
+    readable: bool = True         # False: the head could not be read (the row is a placeholder)
 
 
 class _Attr:
@@ -653,7 +665,7 @@ class _Attr:
 
 
 def _scan_row(rel: str, path: Path, kind: Kind, attr: _Attr) -> _Row:
-    lines = _read_window(path)
+    lines, readable = _read_window_checked(path)
     keys, heading = _head_keys(lines)
     if keys.get("summary"):
         subject = _clean(keys["summary"], 100)
@@ -666,7 +678,8 @@ def _scan_row(rel: str, path: Path, kind: Kind, attr: _Attr) -> _Row:
     date = m.group() if m else (named[-1] if named else UNDATED)
     by = _clean(keys["by"], 120) if keys.get("by") else UNKNOWN
     sup = _clean(keys["supersedes"], 200) if keys.get("supersedes") else None
-    return _Row(rel, kind.name, subject, date, by or UNKNOWN, attr.attributed(path.name, lines), sup)
+    return _Row(rel, kind.name, subject, date, by or UNKNOWN, attr.attributed(path.name, lines), sup,
+                readable)
 
 
 def writer_key(by: str, slug_to_seat: dict[str, str]) -> str:
@@ -711,6 +724,7 @@ def _inputs_line(veto: list[str], digest: str) -> str:
 
 def _assemble(rows: list[_Row], *, n_unclassified: int, veto: list[str], digest: str,
               slug_to_seat: dict[str, str], stamp: str, trigger: str) -> str:
+    n_unreadable = sum(1 for r in rows if not r.readable)
     me = _Row(_INDEX_REL, "INDEX", INDEX_SUMMARY, stamp[:10], INDEX_BY, True)
     rows = [r for r in rows if r.path != _INDEX_REL] + [me]
     listed = [r for r in rows if r.attributed]
@@ -734,6 +748,7 @@ def _assemble(rows: list[_Row], *, n_unclassified: int, veto: list[str], digest:
         f"repository: {REPO_TOKEN}", f"live: {len(rows) + n_unclassified}", f"classified: {len(rows)}",
         f"listed: {len(listed)}", f"current: {len(current)}", f"superseded: {len(superseded)}",
         f"UNATTRIBUTED: {len(unattr)}", f"unclassified: {n_unclassified}",
+        *([f"unreadable: {n_unreadable}"] if n_unreadable else []),
         "UNATTRIBUTED by kind: " + (", ".join(f"{k}={n}" for k, n in sorted(by_kind_unattr.items())) or "-"),
         "",
     ]
@@ -882,6 +897,8 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
             old = _rows_from_index(parsed)
             since = _stamp_epoch(parsed["header"].get("regenerated"))
             cutoff = None if since is None else since - STALE_MARGIN_S
+            if parsed["header"].get("unreadable", "0") not in ("", "0"):
+                cutoff = None      # a head could not be read when the INDEX was made: no cached row is trusted
             rows: list[_Row] = []
             n_unclassified = 0
             for rel, path in files:
@@ -966,8 +983,8 @@ def build_seat_map(root: Path) -> dict:
 # is the file's own date -- the head `date:`, else the last YYYY-MM-DD in its name -- and NEVER its
 # mtime (Drive rewrites that). The dry run prints the full move list and a `manifest-sha256`; `--apply`
 # needs that hash, replans, and refuses when the plan no longer hashes to it, so the run moves exactly
-# the list that was read. A move is `os.rename` after an explicit "destination absent" check -- never a
-# copy-then-delete, `os.replace`, `unlink` or `rmtree`. The readers (`gen_handoff._question_files`,
+# the list that was read. A move is a no-replace rename (`_rename_no_replace`) after an explicit
+# "destination absent" check -- never a copy-then-delete, `os.replace`, `unlink` or `rmtree`. The readers (`gen_handoff._question_files`,
 # `_question_disposition_verdict`) glob `archive/*/`, one level down, where these moves land.
 
 def _archive_month(lines: list[str], name: str) -> tuple[str, str]:
@@ -1053,13 +1070,57 @@ def janitor_plan(root: Path, *, seats: list[dict], registry: Optional[list[Kind]
             "manifest_sha256": _manifest_hash(moves), "census": census}
 
 
+_NT = os.name == "nt"
+
+
+def _posix_noreplace():
+    """A `rename(src, dst)` that fails with `FileExistsError` instead of replacing `dst`, for a platform
+    whose `os.rename` replaces: `renameat2(RENAME_NOREPLACE)` on Linux, `renamex_np(RENAME_EXCL)` on
+    macOS. None when the C library has neither -- the janitor then refuses to apply."""
+    import ctypes
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+    except (OSError, TypeError):
+        return None
+
+    def fail(dst: str) -> None:
+        err = ctypes.get_errno()
+        raise OSError(err, os.strerror(err), dst)
+
+    if sys.platform.startswith("linux") and hasattr(libc, "renameat2"):
+        def renameat2(src: str, dst: str) -> None:
+            if libc.renameat2(-100, os.fsencode(src), -100, os.fsencode(dst), 1) != 0:   # AT_FDCWD, NOREPLACE
+                fail(dst)
+        return renameat2
+    if sys.platform == "darwin" and hasattr(libc, "renamex_np"):
+        def renamex_np(src: str, dst: str) -> None:
+            if libc.renamex_np(os.fsencode(src), os.fsencode(dst), 4) != 0:              # RENAME_EXCL
+                fail(dst)
+        return renamex_np
+    return None
+
+
+def _rename_no_replace(src: Path, dst: Path) -> None:
+    """Move `src` to `dst`, atomically, and fail with `FileExistsError` when `dst` exists. Windows: the
+    `os.rename` that raises for an existing name. Elsewhere: a no-replace primitive, else
+    `NotImplementedError` -- an `os.rename` that replaces is not a move this module makes."""
+    if _NT:
+        os.rename(src, dst)
+        return
+    primitive = _posix_noreplace()
+    if primitive is None:
+        raise NotImplementedError("this platform has no atomic no-replace rename")
+    primitive(os.fspath(src), os.fspath(dst))
+
+
 def _move_one(src: Path, dst: Path, m: dict) -> None:
     """One reviewed move. It runs under the source's append lock -- the lock `append()` holds while it
     adds to a file -- so no append lands between the hash check and the rename; then it re-checks the
-    bytes, checks that the destination is absent and renames. On Windows `os.rename` onto an existing
-    name raises, so a destination that appears after the check is a refusal and not an overwrite. On a
-    POSIX filesystem `os.rename` would replace it: the window between the check and the rename is the
-    residual there, and the post-move verification would only report the damage. Raises
+    bytes, checks that the destination is absent and renames with a primitive that never replaces
+    (`_rename_no_replace`): a destination that appears after the check is a refusal and not an
+    overwrite, on Windows and on Linux/macOS alike; a platform with no such primitive refuses to apply.
+    Whole-file `write()` takes the same lock, so no registered writer replaces the source between the
+    hash check and the rename. A writer that bypasses this module is not coordinated with. Raises
     `JanitorRefused`, with the source untouched, for every fault before the rename."""
     try:
         with _DestinationLock(src, JANITOR_LOCK_TIMEOUT_S):
@@ -1067,12 +1128,18 @@ def _move_one(src: Path, dst: Path, m: dict) -> None:
                 raise JanitorRefused(f"{m['source']} changed after the plan was made; nothing further moved")
             if os.path.lexists(dst):
                 raise JanitorRefused(f"{m['destination']} appeared after the plan was made; nothing further moved")
+            if not _NT and _posix_noreplace() is None:           # refuse before any directory is made
+                raise JanitorRefused(f"{m['source']}: this platform has no atomic no-replace rename; run the "
+                                     "apply on the host the transport lives on; nothing moved")
             dst.parent.mkdir(parents=True, exist_ok=True)
             try:
-                os.rename(src, dst)
+                _rename_no_replace(src, dst)
             except FileExistsError as exc:
                 raise JanitorRefused(f"{m['destination']} appeared after the plan was made (the rename "
                                      "found it); nothing further moved") from exc
+            except NotImplementedError as exc:
+                raise JanitorRefused(f"{m['source']}: {exc}; run the apply on the host the transport lives "
+                                     "on; nothing moved") from exc
             except OSError as exc:
                 raise JanitorRefused(f"{m['source']}: the rename failed ({type(exc).__name__}: {exc}); "
                                      "nothing further moved") from exc
@@ -1116,8 +1183,7 @@ def janitor_apply(root: Path, expect_manifest: str, *, seats: list[dict],
         try:
             text = build_index(root, seats=seats, generated_at=trigger_stamp, trigger="janitor",
                                registry=reg)
-            with _DestinationLock(index_path, INDEX_LOCK_TIMEOUT_S):
-                write("transport", index_path, text, registry=reg)
+            write("transport", index_path, text, registry=reg)      # takes the INDEX's lock itself
             report["index"] = "regenerated"
         except Exception as exc:  # noqa: BLE001 -- the moves stand; `index --write` repairs the INDEX
             report["index"] = f"NOT regenerated ({type(exc).__name__}: {exc})"

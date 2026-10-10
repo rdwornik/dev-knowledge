@@ -1468,8 +1468,12 @@ def test_a_held_lock_or_a_permission_error_skips_the_refresh_and_the_write_succe
     assert "INDEX refresh skipped" in capsys.readouterr().err
     (world["browser"] / ".INDEX.md.append.lock").unlink()
 
+    real_enter = t._DestinationLock.__enter__
+
     def deny(self):
-        raise PermissionError("denied")
+        if self._lock_path.name == ".INDEX.md.append.lock":      # only the INDEX's lock: write() locks its own file too
+            raise PermissionError("denied")
+        return real_enter(self)
 
     monkeypatch.setattr(t._DestinationLock, "__enter__", deny)
     dest2 = world["browser"] / "DIGEST-denied-2026-10-10.md"
@@ -1709,4 +1713,4 @@ def test_a_platform_with_no_atomic_no_replace_rename_refuses_the_apply_and_moves
     with pytest.raises(t.JanitorRefused, match="no-replace"):
         t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
     assert src.read_bytes() == before
-    assert not (world["browser"] / "archive").exists()
+    assert not (world["browser"] / "archive").exists()           # refused before any directory was made

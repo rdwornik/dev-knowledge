@@ -137,8 +137,9 @@ def _non_blank_lines(text: str) -> int:
 # --- the lint ---------------------------------------------------------------------------------
 
 def by_value(text: str) -> Optional[str]:
-    """The value of a flush-left `by:` key in the first `BY_HEAD_LINES` lines, or None."""
-    for line in text.splitlines()[:BY_HEAD_LINES]:
+    """The value of a flush-left `by:` key in the first `BY_HEAD_LINES` lines, or None. A UTF-8 byte-order
+    mark before the first line is not part of it (the INDEX reads heads as `utf-8-sig` too)."""
+    for line in text.lstrip("\ufeff").splitlines()[:BY_HEAD_LINES]:
         if _BY_RE.match(line):
             return line[len("by:"):].strip()
     return None
