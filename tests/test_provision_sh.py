@@ -719,8 +719,8 @@ def test_leg_f6_creates_the_config_when_there_is_none(tmp_path: Path):
 # RED on b6f26d04: `f6_config` wrote its temp file with the default mode (0644 under umask 022) and
 # `os.replace`d it over the original, so an existing 0600 `~/.codex/config.toml` -- which may hold
 # secret-valued MCP env/header settings -- became world-readable (the old `sed -i` kept the mode).
-# The temp file is now created 0600, so no byte of the new content is ever readable by another
-# user, and takes the ORIGINAL's mode just before it replaces it (0600 for a file that is new).
+# The temp file is now created 0600 and takes the ORIGINAL's mode only just before it replaces it
+# (0600 for a file that is new), so the new content is never more readable than the original was.
 # A Windows interpreter cannot represent 0600, so the first test records the calls the helper makes
 # (an order and a value, which is the same on every host) and a POSIX host also reads the real bits.
 
@@ -780,7 +780,7 @@ def test_f6_config_writes_a_private_temp_file_and_restores_the_originals_mode_be
     kinds = [e[0] for e in events]
     assert kinds == ["open", "chmod", "replace"], events
     (_, tmp_name, open_mode), (_, chmod_target, chmod_mode), (_, replaced, destination) = events
-    assert open_mode == 0o600, "the temp file is created private: no moment at which others can read it"
+    assert open_mode == 0o600, "the temp file is created private: never more readable than the original"
     assert tmp_name == chmod_target == replaced and tmp_name.startswith(str(cfg) + ".tmp.")
     assert destination == str(cfg)
     assert chmod_mode == original_mode, "it takes the original's mode just before it replaces it"
