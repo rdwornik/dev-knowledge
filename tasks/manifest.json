@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "fbcaafa2f1d1f192b781ebb6925c67aa9a430a2a278dee1fc597b80e19bce165",
+  "generated_sha256": "8228a94362724b28a6338d8a391c65cbc30f470f426624babc920d3cdab021d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3038,6 +3038,22 @@
     {
       "task": 1456,
       "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
+    },
+    {
+      "task": 1480,
+      "file": "1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md"
+    },
+    {
+      "task": 1481,
+      "file": "1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md"
+    },
+    {
+      "task": 1482,
+      "file": "1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md"
+    },
+    {
+      "task": 1483,
+      "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
     },
     {
       "prose": ""
