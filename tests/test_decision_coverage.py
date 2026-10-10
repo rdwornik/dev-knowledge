@@ -1410,9 +1410,12 @@ def test_the_live_rows_this_lane_filed_sit_in_its_id_block():
     """Every row an R55-R79 entry names is an existing row; the rows this lane filed live in
     1360-1399 (task-id allocation N6) -- a row outside the block was a pre-existing one."""
     text = (REPO_ROOT / "protocols" / "STANDING_RULINGS.md").read_text(encoding="utf-8")
-    named = {int(r) for e in dc.parse_register(text) if e.number >= 55 for r in e.rows}
+    # S-29 (to-cc/AMEND-BATCH-B2-W2-LANE6-2026-10-09.md): scoped to R55-R79; section AS carries its own rows
+    named = {int(r) for e in dc.parse_register(text) if 55 <= e.number <= 79 for r in e.rows}
     assert named, "no gated entry names a row"
-    pre_existing = {1334}                      # R57 is carried by the row FOUNDATION filed
+    # 1334: R57 is carried by the row FOUNDATION filed; 1423: R78 is carried by it since [#1376]
+    # was superseded (e2b9d4a7) -- a row filed outside this lane's 1360-1399 block
+    pre_existing = {1334, 1423}
     assert all(1360 <= n <= 1399 for n in named - pre_existing), sorted(named)
     assert any(1360 <= n <= 1399 for n in named)
 

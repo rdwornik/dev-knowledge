@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2f8e097a278de5ff39caf65c08d3d3c1464d0cce8d0afddd8fb6ee6e83cad35f",
+  "generated_sha256": "fbcaafa2f1d1f192b781ebb6925c67aa9a430a2a278dee1fc597b80e19bce165",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2912,10 +2912,6 @@
       "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
     },
     {
-      "task": 1420,
-      "file": "1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md"
-    },
-    {
       "task": 1421,
       "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
     },
@@ -3002,6 +2998,46 @@
     {
       "task": 1442,
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
+    },
+    {
+      "task": 1444,
+      "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
+    },
+    {
+      "task": 1445,
+      "file": "1445-a-dated-item-warns-three-days-before-its-date.md"
+    },
+    {
+      "task": 1447,
+      "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
+    },
+    {
+      "task": 1450,
+      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
+    },
+    {
+      "task": 1451,
+      "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
+    },
+    {
+      "task": 1452,
+      "file": "1452-every-role-pin-names-the-newest-served-model-r82.md"
+    },
+    {
+      "task": 1453,
+      "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
+    },
+    {
+      "task": 1454,
+      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
+    },
+    {
+      "task": 1455,
+      "file": "1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md"
+    },
+    {
+      "task": 1456,
+      "file": "1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md"
     },
     {
       "prose": ""

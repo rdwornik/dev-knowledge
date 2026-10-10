@@ -21,6 +21,68 @@
 
 ---
 
+### 2026-10-10 (a) - CC (Opus 5.5, integrator seat B2-W2): batch B2-W2 closes -- three merges on main, four lanes carried to B2-W3, rows [#1446] and [#1420] closed
+
+**Anchors:** `bd05a0d5` -- `chore/b2-w2-close-ledgers`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Closed batch B2-W2 under the integrator order's Close section and NIGHT S-26. Main moved `03d21ff8` -> `aaf43867` (lane 1 b2w2-main-comparable, S-15 manual landing) -> `9b706759` (the render's rows branch) -> `ed8c1387` (lane 6 b2w2-rulings-landing).
+- Trial cut (`moment:batch-close`, ADR-129) exit 0 on `ed8c1387`; one carried WARN (`journal_spine_anchor`).
+- Lanes 2 b2w2-merge-clock and 5 b2w2-codespace-finish close WAITING on Codex (S-22 limit); lanes 3 b2w2-transport-index and 4 b2w2-boot-teaching are carried to B2-W3 (ROUND2 S-16/S-18). Branches kept (S-26); tips archived as `archive/b2-w2-b2w2-merge-clock`, `-boot-teaching`, `-codespace-finish` (R89; lane 3 has no lane commit).
+- Rows: `[#1446]` closed by `row_close.py`; `[#1420]` closed by `gen_task_tree.py --close-row` as folded into `[#1446]` (S-30). `[#1441]` stays open: Done-when (4) unmet (windows REGRESSION 1, a flake on the identical tree).
+
+**Result:** 3 merges, 0 FAILED, 4 lanes carried. Cost floor: seats USD 59.26; the six lanes' claude-sonnet-5-5 tokens are UNPRICED (no `rates:` block).
+
+**Changes:** `logs/LANE-COSTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `tasks/1420-*`, `tasks/1446-*`, `tasks/manifest.json`, `BACKLOG.md`. The `bd05a0d5` subject also names the rows-branch post-land receipt; that line was already inside `ed8c1387`, and only lane 6's is new here.
+
+**Abandoned:** none.
+
+**Next:** B2-W3 launches only on the operator's GO (S-26). Digest: `to-browser/DIGEST-B2-W2-2026-10-10.md` (transport).
+
+### 2026-10-09 (c) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-rulings-landing merges -- rulings R80-R92 land in `STANDING_RULINGS.md` section AS, each carried by a row or a written disposition, so the rulings gate passes once B2-W2 is closed
+
+**Anchors:** `06626a2b`, `3188a66d`, `3e341c8d`, `e035d77f`, `52479ee5`, `143b142d` -- `worktree-b2w2-rulings-landing`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Merged batch B2-W2 lane 6 (S-4 position 6, the close condition). Section AS carries R80-R92 in section AR's shape: 13 bullets, 14 verbatim blocks diffed against their RATIFICATION sources, each with a `**Carried by:**` line; rows `[#1450]`-`[#1456]` filed as carriers; `[#1420]` folded by its kill-candidates clause.
+- The id-block test in `tests/test_decision_coverage.py` is scoped to R55-R79 as its docstring states, under the seat's one-line ownership extension S-29 (`to-cc/AMEND-BATCH-B2-W2-LANE6-2026-10-09.md`); the lane's Codex review (0/2/0/0) records both HIGH findings fixed.
+
+**Result:** `decision_coverage.py rulings` under a simulated B2-W2 close exits 0 with 0 unlanded; at `03d21ff8` it refused R80-R86.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AS), `tests/test_standing_rulings_sources.py`, `tests/test_decision_coverage.py` (one bound), `tasks/1450-*`..`tasks/1456-*` (new), `tasks/1420-*`, `tasks/manifest.json`, `docs/audits/2026-10-10-codex-b2w2-rulings-landing.md`, generated `BACKLOG.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** B2-W2's close (lane 6 MERGED; lanes 3, 4 carried; lanes 2 and 5 on Codex after its reset).
+
+### 2026-10-09 (b) - CC (Opus 5.5, integrator seat B2-W2): the B2-W2 render's rows land -- [#1444]-[#1447] filed, [#1446] narrowed to R80-R92, [#1366] given its S-2 start condition; lane 1 landed under seat ruling S-15
+
+**Anchors:** `45e40b2b`, `feb170af` -- `worktree-b2w2-render`, merged `--no-ff` through `worktree-integrate-b2-w2`; `aaf43867` (lane 1's merge, pushed to `main` once under S-15 choice A).
+
+**Did:**
+- Landed lane 1's merge `aaf43867` on `main` by the one recorded push S-15 allows (operator's "Lane 1: A"): `merge_path.py land` could not attribute, because `actions_verdict` validates the known-reds registry at the base sha against today's date and the base's 40 `[#912]` entries had expired. The manual verdict: ubuntu 0 NEW; windows 1 NEW, attributed pre-existing by a paired base/merge local run.
+- Merged the render's rows branch (S-4 position 2): purity exactly `45e40b2b`, `feb170af` on `03d21ff8`; `validate_backlog` 0 FAIL; `gen_task_tree --emit-source` a no-op; `[#1444]`-`[#1447]` resolve.
+
+**Result:** rows `[#1444]` (merge clock), `[#1445]` (dated-item warning), `[#1446]` (R80-R92 landing), `[#1447]` (lane-contract check agrees with plan lint and R82) are on the tree; `[#1366]` carries its S-2 start condition (R79).
+
+**Changes:** `tasks/1444-*`, `tasks/1445-*`, `tasks/1446-*`, `tasks/1447-*` (new), `tasks/1366-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `logs/MERGE-RECEIPTS.jsonl` (the merge's receipt).
+
+**Next:** this merge through `land` is S-15.4's witness that the gate attributes again. Two rows are owed at close (S-15.5): `actions_verdict` on an expired base registry (recurs 2026-10-16), and the non-hermetic `test_filled_waiver_refuses_a_malformed_seats_row`.
+
+### 2026-10-09 (a) - CC (Opus 5.5, integrator seat B2-W2): lane b2w2-main-comparable merges after repair 1 -- `main`'s CI verdict is comparable again: the 40 expired [#912] entries are re-dated by seat ruling S-1 and the three [#1441] reds are fixed by recording what is true
+
+**Anchors:** `1e834146`, `438b0c08`, `9b33d3f9`, `7bfc4a73`, `4ccb6c71` -- `worktree-b2w2-main-comparable`, merged `--no-ff` through `worktree-integrate-b2-w2`.
+
+**Did:**
+- Merged batch B2-W2 lane 1 (position 1 of the S-4 order). The 40 `[#912]` known-reds entries that expired on 2026-10-08 carry `expiry: 2026-10-16` and a reason citing `RATIFICATION-2026-10-09` S-1; no other registry entry moved. `scripts/decision_carriage.py` has its `fates:` line, an `EDGE_COMPUTATIONS` verdict and one `ORPHAN_DISPOSITIONS` entry (owner `[#1437]`). Rows `[#1425]`-`[#1437]` each carry a `· refs` clause; the id-block test's `pre_existing` set names `[#1423]` (R78).
+- Repair 1 (integrator refusal, step 3 (g)): the lane's Codex review record now lives at `docs/audits/2026-10-09-codex-b2w2-main-comparable.md`, not in a job tmp.
+
+**Result:** the verdict, S-7 classification and the independent checks are in the integrator receipt `to-browser/SESSION-integrator-b2-w2-2026-10-09.md`.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `scripts/graph_queries.py`, `ecosystem/harness.yaml`, `tasks/1425-…`-`tasks/1437-…`, `tests/test_decision_coverage.py`, one review record, generated index/counts.
+
+**Next:** the render's rows branch `worktree-b2w2-render` (rows [#1444]-[#1447]) merges second.
+
+---
+
 ### 2026-10-08 (b) - CC (Opus 5.5, background seat): the 2026-10-08 architect handoff bundle, cut on the pinned input (main 350c07f7 + CI run 37790704091), and rows [#1438]-[#1442]
 
 **Anchors:** `16e310d2` -- `worktree-handoff-bundle-2026-10-08` (`609c87d9` the bundle + rows [#1438]-[#1441], `16e310d2` row [#1442])
