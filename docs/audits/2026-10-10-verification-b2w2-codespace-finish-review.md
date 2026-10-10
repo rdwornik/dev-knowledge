@@ -101,3 +101,66 @@ VERDICT: PASS
 - **Not covered, stated by the reviewer and accepted as stated:** a quoted top-level key `"forced_login_method"`, duplicate TOML
   definitions, and a table-looking line inside a multiline string can make `f6_config` REFUSE (it never reports a false success); the
   refusal is the designed fail-closed behaviour.
+
+---
+
+## Amendment 1 (2026-10-10) -- verification of the fixes for the Codex re-review's Critical and High: VERDICT: PASS
+
+The text above is left as written. After the Codex re-review (`docs/audits/2026-10-10-codex-b2w2-codespace-finish.md`, Amendment 1:
+1 Critical, 1 High, VERDICT: FAIL) two more fixes were made: `0ab582d0` (the two POSIX-only test assertions) and `443f1bcb` (`f6_config`
+keeps an existing config's mode; then `82d4b2de`, a lint tidy). They were verified on this route, not on Codex, because the
+dispatcher barred a second Codex call while another lane held the batch's other Codex slot.
+
+- **Reviewed:** `git diff b6f26d04..82d4b2de` over `.devcontainer/provision.sh`, `tests/test_provision_sh.py`, `tests/test_codespace_parity.py`;
+  the reviewer also had the Codex findings, the contract and the four full current files. Final tree at review `dd967ba9` (the merge of
+  `origin/main` and a doc-counts regeneration after `82d4b2de` touch none of these files).
+- **Command:** same as above, from an isolated copy folder; started 2026-10-10T20:06:32Z, exit 0 at 20:08:22Z.
+- **Served model: `gpt-6.1-sol`**, from the usage file's `currentModel` (usage file sha256 prefix `b36ceeb926c0`; its `sessionStartTime`
+  2026-10-10T20:06:44.361Z matches the `~/.copilot/session-state` folder `9d43b5ab-fad0-4850-84a9-ca6320682be1` created at 20:06:44Z).
+- **Nonce returned:** `CLOSEREV4-CP-c7a96b0fdf5b` (mine: the same). **Hash prefixes returned, computed by the reviewer, equal to mine:**
+  `fix-delta.diff 94bc5407bde7 | codex-findings.md b2b7e665f647 | provision.sh 2a804f71145a | test_codespace_parity.py 76332e3235d3`.
+
+### The reviewer's answer (verbatim apart from console mojibake normalised to ASCII)
+
+NONCE: CLOSEREV4-CP-c7a96b0fdf5b
+PREFIXES: fix-delta.diff 94bc5407bde7 | codex-findings.md b2b7e665f647 | provision.sh 2a804f71145a | test_codespace_parity.py 76332e3235d3
+
+### a. HIGH -- POSIX-only test failures
+
+**HIGH: (none). Closed.** `tests/test_codespace_parity.py:3140-3176,3204-3212` swaps only `cp.os` for a forwarding proxy with the requested `name`. Both parameterized tests therefore exercise the POSIX command-generation branch on Windows and the nt branch on POSIX, without changing pathlib's actual platform. `_ModelRun` unwraps both the login shell and `env -u`; the witness assertions independently check the platform-specific prefix, including both forbidden names.
+
+No additional assertion fails because of the unconditional stripping change. `tests/test_codespace_parity.py:3200-3201` deliberately asserts the POSIX wrapper only on POSIX; that is appropriate, not a remaining regression. Other model argv assertions inspect normalized argv, laptop version probes retain direct argv, and the executable version test in `tests/test_provision_sh.py:804` explicitly requests `posix=True`.
+
+### b. CRITICAL -- Existing config permissions widened
+
+**CRITICAL: (none). Closed for POSIX mode preservation.** `.devcontainer/provision.sh:819-827` captures `stat.S_IMODE`, exclusively creates the temporary file with requested mode `0600`, writes and closes it, restores the original mode with `chmod`, then replaces the destination. Under Linux umask `022` or `077`, creation remains `0600`; subsequent `chmod` is not umask-reduced. Existing permissions, including special mode bits, are restored after writing.
+
+There is no newly introduced read access for an existing private config. For an originally group-readable config such as `0640`, the temporary file becomes group-readable immediately before replacement, matching the original policy--not the comment's literal claim that another user can *never* read it.
+
+On Windows, `O_BINARY` prevents CRT newline translation; `fdopen(newline="")` preserves existing CRLF without doubling carriage returns. Windows `chmod` preserves its representable read-only/writable state, **not POSIX privacy or an exact ACL**; the tests correctly avoid claiming real `0600` bits there.
+
+The tests at `tests/test_provision_sh.py:769-801` assert actual `open -> chmod -> replace` calls, modes, targets, and resulting TOML. Both fail against the previous implementation, which uses built-in `open` and lacks `chmod`. Their Linux real-bit assertions hold under both specified umasks.
+
+### c. Remaining findings and introduced risks
+
+**MEDIUM: (none).**
+
+**LOW -- `.devcontainer/provision.sh:822-827`: Failed writes leave temporary files.** An existing temp path causes `O_EXCL` to fail explicitly without truncating it or replacing the original. However, failure after successful creation leaves the temp behind; PID reuse can then block a later attempt. **Fix direction:** clean up only the temp successfully created by this invocation, using failure-safe cleanup that preserves the original exception and never removes a pre-existing collision.
+
+**LOW -- `tests/test_provision_sh.py:744-745,781-786`: Permission tests do not record flags or the write boundary.** They can fail and distinguish the previous implementation, but would miss removal of `O_EXCL`/`O_BINARY` or moving `chmod` before the content write. **Fix direction:** record/assert flags and write ordering; add collision and injected-failure cases.
+
+**LOW -- `tests/test_provision_sh.py:804`: Previously reported model reinjection coverage gap remains.** The executable login-reinjection test covers `_tool_probe`, not `_probe_one`; the corrected model tests verify command structure rather than executing isolation. **Fix direction:** add an executable model-probe reinjection test with a boolean-only stub and unguarded control.
+
+No new secret-value printing/logging path or newly added test incapable of failing was found. Review was static; no tests were executed and no files were edited.
+
+VERDICT: PASS
+
+### Disposition of Amendment 1
+
+- **Critical, High: none remain** (the reviewer: "HIGH: (none). Closed." and "CRITICAL: (none). Closed for POSIX mode preservation").
+- **Comment accuracy (the reviewer's observation in 3b):** the code comment said the new content was never readable by another user; it is
+  readable, after the `chmod`, by exactly whom the original was. The comment and one assertion message were reworded in a text-only commit.
+- **LOW x3, REAL, NOT built (J-FIRST (3)); ROWS-OWED:** (1) a failed write leaves the temp file behind and PID reuse could collide with it later;
+  (2) the mode tests record no flags (`O_EXCL`, `O_BINARY`) and not the write/chmod boundary; (3) no executable test of `_probe_one`'s
+  `env -u` wrapper (the same gap the Codex re-review rated Low).
+- Still no Codex PASS on the final tree.

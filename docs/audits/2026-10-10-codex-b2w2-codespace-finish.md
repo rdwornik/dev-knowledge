@@ -121,3 +121,98 @@ fixes land after it.
   High findings and J-S41).
 - Honest limit: no Codex verdict exists for the fixed tree. The Codex record above is a FAIL (1 Critical, 1 High) whose two
   findings were fixed; the PASS on the fix delta is the Copilot route's.
+
+---
+
+## Amendment 1 (2026-10-10, after commit `b6f26d04`) -- the Codex re-review ran once the window reopened: VERDICT: FAIL
+
+The "Re-review" section above is left as written; it recorded a usage-limit refusal at 15:41:03Z. The Codex window reopened (the
+refusal text's reading was 19:40Z; the operator confirmed it at 19:44Z) and the re-review was run for real.
+
+- **Run:** `deploy/codex-review.ps1 -Topic b2w2-codespace-finish-rereview3 -DiffRange 26daf704..HEAD -Consumer "[#1423]" -Force`,
+  HEAD `b6f26d04`, both key variables removed from the child, started 2026-10-10T19:46:03Z, exit 0 at 19:48:39Z. Codex session
+  `01a1275a-152a-7e93-b8b7-d8497bf4ae98` (rollout log `rollout-2026-10-10T21-46-19-...`, `gpt-6-astra`, `sandbox: read-only`, 83,935 tokens).
+  The wrapper wrote its own record outside the repository (job tmp); the reviewer's findings are pasted below verbatim.
+- **Proof of reading:** nonce `CLOSEREV3-b8d0f16c647f` and `TREE: a4d2f03d910705681f3cc2c53dac9ff759eb4a36` returned; my own
+  `git rev-parse b6f26d04^{tree}` = `a4d2f03d910705681f3cc2c53dac9ff759eb4a36` -- equal.
+- **Tally: 1/1/0/1** (Critical/High/Medium/Low), VERDICT: FAIL. (The wrapper's console summary printed `0/0/0/0` and its file kept the
+  unfilled `TBD`; neither is a count -- the findings below are.)
+
+### Findings of the re-review (verbatim)
+
+### Findings
+REREVIEW-NONCE: CLOSEREV3-b8d0f16c647f
+TREE: a4d2f03d910705681f3cc2c53dac9ff759eb4a36
+
+### Critical
+
+**.devcontainer/provision.sh:816 — Atomic replacement widens existing permissions**
+
+**What:** With umask `022`, rewriting an existing `0600` config creates a `0644` temporary file and replaces the private original with it.
+**Why:** Other users can then read previously protected configuration contents wherever directory permissions permit; sensitive configuration is also exposed through the temporary file before replacement.
+**Fix direction:** Create the temporary file privately, preserve the existing file’s permissions before writing its contents, and test permission preservation.
+
+Copilot’s observation is real, but **Medium understates it**: this changes access control, rather than violating a convention. Under the repository’s “security issues” definition, it is Critical and should block this lane.
+
+### High
+
+**scripts/codespace_parity.py:887 — Unconditional stripping breaks two existing POSIX tests**
+
+**What:** `_probe_one()` now always records `env -u CODEX_API_KEY -u OPENAI_API_KEY codex exec …` on POSIX, but `tests/test_codespace_parity.py:3146` and `:3180` still require the command to start with `codex exec `.
+**Why:** Both assertions deterministically fail on the Codespace, including with neither key present in the parent; Windows can remain green.
+**Fix direction:** Update both assertions to verify the platform-appropriate command, preserving checks for both forbidden keys on POSIX.
+
+This is the concrete regression the second reviewer missed.
+
+### Medium
+
+(none)
+
+### Low
+
+**tests/test_provision_sh.py:749 — Login reinjection test covers only the version probe**
+
+**What:** The real-bash test executes `_tool_probe()`, while the model probe’s separate `_probe_one()` wrapper has no equivalent executable reinjection test.
+**Why:** The model environment tests inspect the runner’s parent environment and would still pass if its inner wrapper disappeared; the existing POSIX witness assertion provides partial structural coverage, not executable isolation proof.
+**Fix direction:** Exercise `_probe_one()` through a login shell that introduces both keys, using the boolean-recording stub and an unguarded control.
+
+Copilot’s observation is real; **Low is reasonable** because the implementation is correct and has partial coverage.
+
+The requested closure checks, in order:
+
+1. **Earlier Critical: closed in the implementation.** `unused_keys()` always returns both names. `_probe_one()` strips the parent environment and applies `env -u` after login initialization. `_tool_probe()` uses `keyless_command()` inside `bash -lc`, and `collect_environment()` additionally supplies `probe_env()`. `read_laptop_versions()` supplies that scrubbed environment directly, without a login shell. There is no separate Codex authentication subprocess. I found no remaining path through these boundaries that passes either key to Codex.
+
+   The real-bash version test records both presence booleans, checks sentinel non-disclosure, and has an unguarded control; removing its wrapper breaks the final assertions. The model tests have the coverage limitation above.
+
+2. **Earlier High: closed for TOML scope and false success.** Parsed top-level lookup, candidate re-parsing, whole-dictionary comparison, and final verification prevent the original nested/string confusion. Invalid or unsupported layouts refuse rather than report success. I found no false-success or hanging path. Replacement preserves CRLF; adding an absent key prepends an LF line.
+
+   There are **six newly added F6 tests**, covering the listed cases, plus two existing F6 tests whose interpreter setup changed. Their assertions can fail, but not every case distinguishes the old implementation: no-file creation already worked previously. Atomic replacement introduces the permission finding above.
+
+3. **J-S41 remains evidence-only.** The branch deciding whether to append an expiry failure is unchanged. Expired laptop credentials still fail; a missing mirrored Codex cache still fails. The changed evidence cannot turn a FAIL into a PASS.
+
+4. **Other regressions/secrets:** The POSIX assertion failures are newly introduced. I found no additional secret-value logging path in the reviewed changes.
+
+Validation was static. `git diff --check` passed. An attempted in-memory check through `uv` was blocked during cache initialization by read-only permissions; tests were not executed.
+
+VERDICT: FAIL
+
+### Disposition of Amendment 1 (lane `b2w2-codespace-finish`)
+
+Both findings are real, in this lane's own diff, and were fixed RED-first in separate commits; the earlier Critical and High were
+confirmed closed by the reviewer ("Earlier Critical: closed in the implementation", "Earlier High: closed for TOML scope and false success")
+and J-S41 confirmed evidence-only.
+
+- **Critical -- `f6_config` widens an existing config's mode: REAL, FIXED `443f1bcb`.** (The Copilot second route had rated it MEDIUM; the
+  reviewer's reasoning -- it changes access control -- is accepted and the severity corrected.) The temp file is created `0600` through
+  `os.open` with `O_EXCL`, takes the original's mode just before `os.replace`, and a file that is new stays `0600`. 2 tests, RED at
+  `b6f26d04` (it only called `os.replace`): the helper's `os.open`/`os.chmod`/`os.replace` calls recorded in order and value (the same on
+  every host -- a Windows interpreter cannot represent `0600`) plus the real bits read back on a POSIX host.
+- **High -- two POSIX-only assertions: REAL, FIXED `0ab582d0`.** `unused_keys` now names both keys unconditionally, so on POSIX every codex
+  probe is recorded behind `env -u CODEX_API_KEY -u OPENAI_API_KEY`; `startswith("codex exec ")` held only on Windows, the one host the lane
+  ran on. The module's `os` is shown to the tests as `nt` or `posix` (pathlib untouched) and both tests are parametrized over the two.
+  RED evidence: the old test file at `b6f26d04` under a POSIX view of the module fails exactly these two tests and passes the other 351;
+  the corrected file passes all 355 under that view.
+- **Low -- no executable test of `_probe_one`'s `env -u` wrapper: REAL, NOT built** (J-FIRST (3); owed as a row). Unchanged from the first re-review.
+- **Verification of these two fixes** was done on the Copilot `gpt-6.1-sol` route (a further Codex call was barred while the batch's
+  second Codex slot was held by another lane): `docs/audits/2026-10-10-verification-b2w2-codespace-finish-review.md`, Amendment 1.
+  There is therefore **no Codex PASS on the final tree**; the last Codex verdict on file is this FAIL, whose two findings are fixed.
