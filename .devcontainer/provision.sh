@@ -769,7 +769,7 @@ leg_f6_codex_subscription() {
   # nothing, when it cannot show that -- an invalid file, or a layout it cannot edit safely.
   f6_config() {
     python3 - "$@" <<'PY'
-import os, re, sys, tomllib
+import os, re, stat, sys, tomllib
 
 sys.stdout.reconfigure(newline="\n")   # the shell compares the printed word; no CR from a Windows python
 KEY, VALUE = "forced_login_method", "chatgpt"
@@ -812,9 +812,18 @@ for new in candidates:
     except tomllib.TOMLDecodeError:
         ok = False
     if ok:
+        # the config may hold secret-valued settings: the temp file is created 0600 (so no byte of
+        # the new content is ever readable by another user), takes the ORIGINAL's mode just before
+        # it replaces it, and a file that is new stays private (the old `sed -i` kept the mode)
+        try:
+            mode = stat.S_IMODE(os.stat(path).st_mode)
+        except FileNotFoundError:
+            mode = 0o600
         tmp = f"{path}.tmp.{os.getpid()}"
-        with open(tmp, "w", encoding="utf-8", newline="") as handle:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
             handle.write(new)
+        os.chmod(tmp, mode)
         os.replace(tmp, path)
         print(verb)
         sys.exit(0)
