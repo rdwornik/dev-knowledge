@@ -254,9 +254,16 @@ pytest_add_cli_args = ["-n", "0"]
 # and NOTHING else, then runs the suite from there. A data file the import chain reads at import
 # time is therefore absent unless it is named here, and the pilot then collects no test: run
 # 38061081144, 0 mutants executed, "failed to collect stats". Each entry below is recorded with
-# the dispatched run that showed it missing. mutmut skips an absent path in silence, so
-# tests/test_report_only_wall.py asserts every entry exists.
+# the run that showed it missing. mutmut skips an absent path in silence, so
+# tests/test_report_only_wall.py asserts every entry exists, that a FILE entry follows a
+# directory entry (mutmut copies a file with a bare copy2, which creates no parent), and that the
+# pilot's tests collect in a copy built the way mutmut builds it.
 also_copy = [
+    # A directory entry FIRST: copytree creates `mutants/ecosystem/`, which the file below needs
+    # (run 38072722475: FileNotFoundError on the lone file entry). The package is also what the
+    # import chain reaches next: scripts/provider_registry.py imports ecosystem.schema (shown by
+    # test_the_mutants_copy_collects_the_pilots_tests, ModuleNotFoundError without it).
+    "ecosystem/schema",
     "ecosystem/fleet-shape-spec.yaml",   # run 38061081144: validate_hermetization.SHAPE_SPEC
 ]
 
