@@ -61,33 +61,6 @@
         "first_red": "2a62d7d0 (2026-09-19, 40,980 B)"
       }
     },
-    "tests/test_bounded_hook.py::test_a_hook_that_must_fail_closed_is_named_as_escalated_never_wrapped_open": {
-      "attribution": {
-        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-        "lane": "lane-end-hook"
-      },
-      "task": "[#1346]",
-      "owner": "rob",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_bounded_hook.py::test_every_registered_hook_has_a_stated_posture_with_a_reason": {
-      "attribution": {
-        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-        "lane": "lane-end-hook"
-      },
-      "task": "[#1346]",
-      "owner": "rob",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_bounded_hook.py::test_the_live_settings_pass_the_check": {
-      "attribution": {
-        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-        "lane": "lane-end-hook"
-      },
-      "task": "[#1346]",
-      "owner": "rob",
-      "expiry": "2026-10-31"
-    },
     "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
       "attribution": "pre-freeze",
       "task": "[#912]",
@@ -541,36 +514,6 @@
         },
         "signature": "AssertionError: 41,174 B tracked boot base exceeds 40,000"
       },
-      "tests/test_bounded_hook.py::test_a_hook_that_must_fail_closed_is_named_as_escalated_never_wrapped_open": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AttributeError: 'NoneType' object has no attribute 'posture'"
-      },
-      "tests/test_bounded_hook.py::test_every_registered_hook_has_a_stated_posture_with_a_reason": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: SessionStart: no stated posture for uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.py\""
-      },
-      "tests/test_bounded_hook.py::test_the_live_settings_pass_the_check": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: [<LIST>] REFUSED SessionStart: uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.py\" -- no stated posture in bounded_hook.POSTURES"
-      },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
         "task": "[#912]",
@@ -955,36 +898,6 @@
           "first_red": "2a62d7d0 (2026-09-19, 40,980 B)"
         },
         "signature": "AssertionError: 41,174 B tracked boot base exceeds 40,000"
-      },
-      "tests/test_bounded_hook.py::test_a_hook_that_must_fail_closed_is_named_as_escalated_never_wrapped_open": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AttributeError: 'NoneType' object has no attribute 'posture'"
-      },
-      "tests/test_bounded_hook.py::test_every_registered_hook_has_a_stated_posture_with_a_reason": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: SessionStart: no stated posture for uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.py\""
-      },
-      "tests/test_bounded_hook.py::test_the_live_settings_pass_the_check": {
-        "attribution": {
-          "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
-          "lane": "lane-end-hook"
-        },
-        "task": "[#1346]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: [<LIST>] REFUSED SessionStart: uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.py\" -- no stated posture in bounded_hook.POSTURES"
       },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
