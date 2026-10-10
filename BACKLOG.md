@@ -767,7 +767,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
 - [#1410] [P1][M] The dispatcher enforces a lane's same-defect attempt bound in code, not by the lane's reading of its contract · tasks/1410-the-dispatcher-enforces-a-same-defect-attempt-bound-in-code.md
 - [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
-- [#1420] [P2][S] The next rulings-landing run lands R88, the operator's Codespace sign-in rulings of 2026-10-06 · tasks/1420-the-next-rulings-landing-run-lands-r88-codespace-sign-in-rulings.md
 - [#1421] [P2][S] Each seat cycle tears down its own worktree and branch at CYCLE-END · tasks/1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md
 - [#1422] [P1][S] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset · tasks/1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md
 - [#1423] [P1][L] W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376] · tasks/1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md
@@ -792,8 +791,14 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
 - [#1444] [P1][M] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) · tasks/1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md
 - [#1445] [P1][S] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date · tasks/1445-a-dated-item-warns-three-days-before-its-date.md
-- [#1446] [P1][M] Rulings R80-R92 land in STANDING_RULINGS before B2-W2 closes · tasks/1446-rulings-r80-r92-land-in-standing-rulings.md
 - [#1447] [P2][S] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape · tasks/1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md
+- [#1450] [P1][S] HANDOFF_BOOT teaches the browser's triage-then-sequence order (R80) and names the generated transport INDEX as the first read (R84) · tasks/1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md
+- [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
+- [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
+- [#1453] [P1][M] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) · tasks/1453-the-codespace-reaches-production-on-three-green-runs-r83.md
+- [#1454] [P1][M] The generated transport index is built first in B2 W2 and groups files by the seat that wrote them (R84, R91) · tasks/1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md
+- [#1455] [P1][L] Handback to main takes at most 15 minutes at the median, and the four first-wave levers are built or disposed (R85) · tasks/1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md
+- [#1456] [P1][M] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) · tasks/1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md
 - [#1480] [P1][M] The merge verdict survives an expired known-reds entry at the base; expiry stays enforced on the head · tasks/1480-the-merge-verdict-survives-an-expired-known-reds-entry-at-the-base.md
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
 

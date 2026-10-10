@@ -1,0 +1,12 @@
+---
+id: "[#1453]"
+title: "The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83)"
+status: open
+priority: P1
+size: M
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1453] [P1][M] **The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83)** - R83 (operator, 2026-10-05): "finish the Codespace to production now". The bar is R63's three consecutive all-green end-to-end runs; the fix-first list is D1, D2, C3/C4, the classifier, the codex pin and the heartbeat; the agy sign-in stays an operator action until it is automated. The source names W1-12 (`to-cc/AMEND-B2-W1-4-2026-10-05.md`) as its carrier, and W1-12 merged close-out only: the run record `docs/audits/2026-10-05-technical-codespace-green-run.md` holds thirteen runs, none all-green. [#1366] holds the R63 run table but does not name R83 or the fix-first list, so the rulings gate reads it as not carrying R83 · Done when: (1) each item of the fix-first list (D1, D2, C3/C4, the classifier, the codex pin, the heartbeat) has a merged fix or a recorded reason, shown in the run table beside the runs; (2) [#1366]'s run table shows R63 (a)-(d) passing on three consecutive runs, each run's receipt naming its sha; (3) the agy leg reads BLOCKED-AUTH with its one OPERATOR-ACTION line, never a pass, until a headless method is built · owner: lane `b2w2-codespace-finish` (batch B2-W2) for the fix-first list; the B2 W2 integrator closes the three-run condition with [#1366] · touches: `scripts/codespace_parity.py`, `scripts/dispatch.py`, the devcontainer, tests · kill-candidates: [#1366] -- it states the three-run condition this row's item (2) reads; fold whichever is narrower once the run table exists · refs [#1366], [#1335], [#1423], `docs/audits/2026-10-05-technical-codespace-green-run.md`, `protocols/STANDING_RULINGS.md` section AS (R83) and section AR (R63) · source: R83 in `to-browser/RATIFICATION-2026-10-05.md` (v5), landed at section AS by lane `b2w2-rulings-landing`
