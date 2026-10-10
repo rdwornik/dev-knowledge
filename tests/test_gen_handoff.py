@@ -2618,9 +2618,9 @@ def test_a_substrate_with_resolving_evidence_and_its_verb_is_proven_and_cites_it
 
 def test_evidence_that_names_no_such_test_is_declared(tmp_path):
     token = "test:tests/test_x.py::test_y"
-    text = _map(_evidence_repo(tmp_path, function="test_other"), {"local": (token,)})
-    assert "state: DECLARED" in _block(text, "local")
-    text = _map(_evidence_repo(tmp_path), {"local": ("test:tests/test_missing.py::test_y",)})
+    repo = _evidence_repo(tmp_path, function="test_other")       # the file exists, the function does not
+    assert "state: DECLARED" in _block(_map(repo, {"local": (token,)}), "local")
+    text = _map(repo, {"local": ("test:tests/test_missing.py::test_y",)})   # the file does not exist
     assert "state: DECLARED" in _block(text, "local")
 
 

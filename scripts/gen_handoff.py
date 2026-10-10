@@ -3505,6 +3505,215 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
+# ================================================ the boot's reading path + the dispatch map ([#1443])
+#
+# `protocols/HANDOFF_BOOT.md` names five things a fresh seat reads (INDEX, the current lessons,
+# the seat exam, the dispatch exam, the dispatch map). `--reading-path` resolves them against the
+# transport and `--dispatch-map` generates the fifth, from `dispatch.py --help`,
+# `ecosystem/substrate-registry.yaml` and `ecosystem/harness.yaml`. They are flags of this script
+# and not a new organ: this CLI already reads the transport and the registries at cut time.
+#
+# Library-first: stdlib (`ast`, `os`, `re`, `subprocess`) + PyYAML (declared) + click; the
+# resolver is `handoff_state.resolve_reading_path`, itself a guard over `_live_transport_docs`.
+#
+# PROVEN IS NOT A FLAG. A substrate's `live:` boolean is a declaration (the registry says so
+# itself); the 2026-10-09 onboarding showed a seat taking it for a run. A substrate is PROVEN
+# here only when (a) its start verb is in the live `dispatch.py --help` and (b) at least one
+# evidence token cited in `DISPATCH_EVIDENCE` resolves in the tracked tree -- today only
+# `test:<file>::<function>`, checked offline with `ast`. Every other state is DECLARED, with the
+# reason printed. A `run:<id>` kind is deliberately absent: nothing offline can check a run id.
+# PROVEN means a cited test exercises the start verb; it is not production readiness.
+
+DISPATCH_MAP_REL = "to-browser/MAP-DISPATCH.md"
+#: substrate -> the `dispatch.py` verb that STARTS a lane there. Cloud and interactive have none:
+#: the hub spawns neither (the registry's verbs are operator-side names).
+SUBSTRATE_START = {"local": "launch", "codespace": "codespace-exec"}
+#: substrate -> evidence tokens, each `test:<repo-relative file>::<function>`. Cited by hand, and
+#: re-checked on every generation: a token naming a test that no longer exists drops the
+#: substrate to DECLARED, so a rename cannot leave a stale PROVEN behind.
+DISPATCH_EVIDENCE = {
+    "local": ("test:tests/test_dispatch_launch.py::"
+              "test_a_free_slug_spawns_exactly_once_with_n_slug_in_its_argv",),
+    "codespace": ("test:tests/test_dispatch_codespace.py::"
+                  "test_codespace_exec_happy_path_returns_the_receipt",),
+}
+_EVIDENCE_RE = re.compile(r"test:([A-Za-z0-9_./-]+\.py)::([A-Za-z_]\w*)")
+_MAP_REFRESH = "uv run --locked python scripts/gen_handoff.py --dispatch-map --write"
+
+
+def _ascii(text: str) -> str:
+    return text.encode("ascii", "replace").decode("ascii")
+
+
+def _run_dispatch_help(verb: "str | None" = None) -> str:
+    """`dispatch.py [<verb>] --help` as text. The seam tests replace; it reads, never launches."""
+    argv = [sys.executable, str(_SCRIPTS / "dispatch.py"), *([verb] if verb else []), "--help"]
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "NO_COLOR": "1"}
+    done = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", env=env, check=False, timeout=120)
+    return done.stdout
+
+
+def _help_verbs(top_help: str) -> "list[str]":
+    """The verb names under `Commands:` of a click `--help`, in the order it prints them."""
+    verbs: "list[str]" = []
+    in_commands = False
+    for line in top_help.splitlines():
+        if line.strip() == "Commands:":
+            in_commands = True
+            continue
+        if in_commands:
+            m = re.match(r"^  ([a-z][a-z0-9-]*)(?:\s|$)", line)
+            if m:
+                verbs.append(m.group(1))
+            elif line.strip():
+                break
+    return verbs
+
+
+def _usage_line(verb_help: str) -> str:
+    for line in verb_help.splitlines():
+        if line.startswith("Usage:"):
+            return _ascii(line.strip())
+    return "Usage: (none printed)"
+
+
+def evidence_resolves(token: str, repo_root: "Path | str") -> bool:
+    """True iff `token` is `test:<file>::<function>` and that function is defined in that tracked
+    file under `repo_root`. Offline and fail-closed: any other shape, a path outside the tree, an
+    unreadable or unparseable file, or a missing function is False."""
+    import ast  # noqa: PLC0415 (lazy: only the map reads it)
+    m = _EVIDENCE_RE.fullmatch(token or "")
+    if m is None:
+        return False
+    rel, func = m.groups()
+    root = Path(repo_root).resolve()
+    path = (root / rel).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    if not path.is_file():
+        return False
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeDecodeError):
+        return False
+    return any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == func
+               for n in ast.walk(tree))
+
+
+def dispatch_map_text(repo_root: "Path | str | None" = None, *, help_runner=None,
+                      registry: "dict | None" = None, harness: "dict | None" = None,
+                      evidence: "dict | None" = None) -> str:
+    """The dispatch map: flat `key: value` text, one block per registry substrate in registry
+    order, ASCII, LF, deterministic (no date, no sha: a re-render with unchanged inputs is a
+    byte-identical file). The five keyword seams make the state rule testable without a launch."""
+    import yaml  # noqa: PLC0415 (lazy: PyYAML is declared; only the map reads it)
+    root = Path(repo_root) if repo_root is not None else _REPO_ROOT
+    runner = help_runner if help_runner is not None else _run_dispatch_help
+    if registry is None:
+        registry = yaml.safe_load((root / "ecosystem" / "substrate-registry.yaml")
+                                  .read_text(encoding="utf-8")) or {}
+    if harness is None:
+        harness = yaml.safe_load((root / "ecosystem" / "harness.yaml")
+                                 .read_text(encoding="utf-8")) or {}
+    cited = DISPATCH_EVIDENCE if evidence is None else evidence
+    verbs = _help_verbs(runner(None))
+    organs = [str(o.get("id", "")) for m in (harness.get("moments") or [])
+              if m.get("name") == "pre-launch" for o in (m.get("organs") or [])]
+    out = [
+        "by: scripts/gen_handoff.py --dispatch-map (generated; no seat writes this file by hand)",
+        "",
+        "# DISPATCH MAP -- generated, never hand-edited",
+        "",
+        f"regenerate: {_MAP_REFRESH}",
+        "inputs: `dispatch.py --help`, ecosystem/substrate-registry.yaml, ecosystem/harness.yaml",
+        "legend: PROVEN = the substrate's start verb is in `dispatch.py --help` AND a cited test "
+        "(`test:<file>::<function>`) resolves in the tracked tree. DECLARED = anything else; a "
+        "`live:` flag alone is DECLARED. PROVEN means a test exercises the start verb, not that "
+        "the substrate is production-ready.",
+        f"dispatch.py verbs: {', '.join(verbs) if verbs else '(none read)'}",
+        f"pre-launch organs: {', '.join(organs) if organs else '(none declared)'}",
+    ]
+    for name, spec in (registry.get("substrates") or {}).items():
+        spec = spec or {}
+        start = SUBSTRATE_START.get(name)
+        tokens = tuple(cited.get(name, ()))
+        resolved = [t for t in tokens if evidence_resolves(t, root)]
+        reason = ""
+        if start is None:
+            reason = "no start verb in dispatch.py for this substrate; only the registry's live flag backs it"
+        elif start not in verbs:
+            reason = f"start verb `{start}` is not in dispatch.py --help"
+        elif not tokens:
+            reason = "no evidence cited"
+        elif not resolved:
+            reason = "no cited test resolves in the tracked tree"
+        proven = not reason
+        out += [
+            "",
+            f"substrate: {name}",
+            f"family: {spec.get('family', '')}",
+            f"live: {'true' if spec.get('live') else 'false'}",
+            f"operator verbs: {', '.join(str(v) for v in (spec.get('verbs') or [])) or 'none'}",
+            f"start: {start or 'none'}",
+            f"usage: {_usage_line(runner(start)) if start and start in verbs else 'none'}",
+            f"state: {'PROVEN' if proven else 'DECLARED'}",
+            f"evidence: {resolved[0] if proven else 'none'}",
+        ]
+        if not proven:
+            out.append(f"reason: {reason}")
+    return _ascii("\n".join(out)) + "\n"
+
+
+def write_dispatch_map(transport: "Path | None", text: str) -> Path:
+    """Write the map to `<transport>/to-browser/MAP-DISPATCH.md` through a temp file and
+    `os.replace`. An unresolved transport, or one with no `to-browser/`, raises ValueError: a
+    folder is never created to make a write succeed (the E-29 posture `transport_root` states)."""
+    if transport is None:
+        raise ValueError("the transport is unresolved (CLAUDE_PROMPTS_DIR); refusing to write the map")
+    dest = Path(transport) / DISPATCH_MAP_REL
+    if not dest.parent.is_dir():
+        raise ValueError(f"{dest.parent} does not exist; refusing to create it")
+    tmp = dest.with_name(dest.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8", newline="\n")
+    os.replace(tmp, dest)
+    return dest
+
+
+def reading_path_report(transport: "Path | None", repo_root: "Path | str | None" = None,
+                        *, help_runner=None) -> "tuple[list[str], int]":
+    """`(lines, exit_code)` for `--reading-path`: each of the boot's five items, its status and
+    what it resolved to. Exit 1 on any status but OK. An existing map file whose text differs
+    from a fresh generation is STALE -- a PROVEN/DECLARED claim must not outlive the code it was
+    generated from -- and the line names the one command that refreshes it."""
+    import handoff_state as _hs  # noqa: PLC0415 (sibling; deferred like every sibling import here)
+    results = _hs.resolve_reading_path(transport)
+    lines: "list[str]" = []
+    failed = False
+    for i, r in enumerate(results, 1):
+        status = r.status
+        shown = r.boot_anchor
+        if r.path is not None:
+            try:
+                shown = r.path.relative_to(Path(transport)).as_posix()
+            except ValueError:
+                shown = r.path.name
+            if r.section:
+                shown += f" (section: {r.section})"
+        if r.key == "map" and status == "OK":
+            fresh = dispatch_map_text(repo_root, help_runner=help_runner)
+            if r.path.read_text(encoding="utf-8") != fresh:
+                status = "STALE"
+                shown += f" -- regenerate: {_MAP_REFRESH}"
+        elif r.key == "map" and status == "MISSING":
+            shown += f" -- generate: {_MAP_REFRESH}"
+        failed = failed or status != "OK"
+        lines.append(f"  {i} {r.key:<13} {status:<10} {shown}")
+    return lines, 1 if failed else 0
+
+
 @click.command()
 @click.option("--mode",
               type=click.Choice(["architect", "execution", "epic", "developer", "functional"]),
@@ -3539,11 +3748,46 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                    "correct dispatch (recorded in HANDOFF_RECEIPT.json boot_cost)")
 @click.option("--boot-dispatch", default=None,
               help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
+@click.option("--reading-path", "reading_path", is_flag=True, default=False,
+              help="resolve the five items of the boot's reading path (INDEX, SEAT-LESSONS, the "
+                   "seat exam, the dispatch exam, the dispatch map) against the transport and "
+                   "print each with its status; exit 1 on any item that is not OK; cut nothing")
+@click.option("--dispatch-map", "dispatch_map", is_flag=True, default=False,
+              help="print the dispatch map generated from dispatch.py --help, the substrate "
+                   "registry and the harness; with --write, write it to "
+                   "to-browser/MAP-DISPATCH.md on the transport; cut nothing")
+@click.option("--write", "write_map", is_flag=True, default=False,
+              help="with --dispatch-map: write the map to the transport instead of printing it")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
          preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
-         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None) -> None:
+         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
+         reading_path: bool = False, dispatch_map: bool = False, write_map: bool = False) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
+    if write_map and not dispatch_map:
+        raise click.UsageError("--write belongs to --dispatch-map")
+    if reading_path:
+        transport = transport_root()
+        if transport is None:
+            click.echo("[error] the transport is unresolved (CLAUDE_PROMPTS_DIR); every "
+                       "reading-path item reads MISSING", err=True)
+        lines, code = reading_path_report(transport, _REPO_ROOT)
+        click.echo("reading path -- the boot's five items (any status but OK exits 1):")
+        for line in lines:
+            click.echo(line)
+        raise SystemExit(1 if transport is None else code)
+    if dispatch_map:
+        text = dispatch_map_text(_REPO_ROOT)
+        if not write_map:
+            click.echo(text, nl=False)
+            raise SystemExit(0)
+        try:
+            dest = write_dispatch_map(transport_root(), text)
+        except ValueError as exc:
+            click.echo(f"[error] {exc}", err=True)
+            raise SystemExit(1) from exc
+        click.echo(f"Written: {dest} ({len(text.encode('utf-8'))} bytes)")
+        raise SystemExit(0)
     if preflight_only or trial_cut:
         rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
         label = "batch-close trial cut" if trial_cut else "preflight"
