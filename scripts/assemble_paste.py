@@ -6,7 +6,9 @@ Usage: python scripts/assemble_paste.py <bundle_dir>
 Manifest (in order):
   0. <bundle>/HANDOFF_BOOT.md session-header (optional; extracted from the bundle's
      own HANDOFF_BOOT.md up to the first '##' heading — slug/mode/purpose/generated-at;
-     its `>` pointer blocks are SHED to one forms line, see _shed_header)
+     its `>` pointer blocks are SHED to one forms line, see _shed_header; pasted under
+     SESSION_HEADER_LABEL with every row naming HANDOFF_BOOT.md dropped, see
+     _drop_boot_name_rows — the Project knowledge file is named by the ROLE PIN alone)
   1. ROLE PIN  (required — a 3-line pin naming the role file's version + sha256, NOT the
      role file itself; the role is RESIDENT as the Project's knowledge file since
      HANDOFF_PROCESS v6.3.0 / census R1. See _role_pin below.)
@@ -31,6 +33,7 @@ import hashlib
 import re
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 import click
 
@@ -166,6 +169,25 @@ FORMS_LINE = (
     "runbook: `docs/handoffs/README.md`. Ask CC to pull any of them.")
 
 
+#: The first pasted section's label ([#1443] Done 3). Two files carry the name HANDOFF_BOOT.md --
+#: the Project knowledge file (`protocols/`) and each bundle's own -- and the operator installed
+#: the wrong one. The bundle's file is the session HEADER here, so the label says what it is and
+#: what it is not, and carries no file name at all.
+SESSION_HEADER_LABEL = "SESSION HEADER (this bundle, not the Project knowledge file)"
+_BOOT_NAME = "HANDOFF_BOOT.md"
+
+
+def _drop_boot_name_rows(header: str) -> str:
+    """The header with every table row that names `HANDOFF_BOOT.md` removed (today: the `Role`
+    row). The pasted header then carries the Project knowledge file's name nowhere; the ROLE PIN
+    section and the INSTALL lines are where the paste names it. Only the PASTE changes: the
+    bundle's own file, its `Role` row and every reader of it (BD-manifest, the probe verifier)
+    are untouched."""
+    kept = [ln for ln in header.splitlines()
+            if not (ln.lstrip().startswith("|") and _BOOT_NAME in ln)]
+    return "\n".join(kept)
+
+
 def _shed_header(header: str) -> str:
     """The session header with every `>` pointer block replaced by the ONE forms line.
 
@@ -280,13 +302,42 @@ _ROLE_REFUSAL = ("If the HANDOFF_BOOT.md in your project knowledge is not at thi
                  "version+sha, say so before answering.")
 
 
+def _file_sha256(path: Path) -> str:
+    """sha256 over the file's RAW BYTES -- the one function the ROLE PIN and the INSTALL lines
+    both use, so the two can never name different digests for the same file."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class InstallFile(NamedTuple):
+    """One file the operator installs or pastes after a cut: its repo-relative path, the first
+    8 hex of its sha256, and what it is for."""
+    path: str
+    sha8: str
+    what: str
+
+
+def install_files(repo_root: Path, bundle_dir: Path) -> "list[InstallFile]":
+    """EXACTLY two files, in this order ([#1443] Done 3): the Project knowledge file
+    (`protocols/HANDOFF_BOOT.md`) and the bundle's `PASTE_THIS.md`. Two files carry the name
+    HANDOFF_BOOT.md and the operator once installed the wrong one; the cut therefore names the
+    two that matter, with the sha8 each must show. Call it after `PASTE_THIS.md` is written."""
+    role = repo_root / "protocols" / _BOOT_NAME
+    paste = bundle_dir / "PASTE_THIS.md"
+    return [
+        InstallFile(f"protocols/{_BOOT_NAME}", _file_sha256(role)[:8],
+                    "the Project knowledge file: install or re-upload it when this sha8 differs"),
+        InstallFile(_bundle_ref(bundle_dir, repo_root, "PASTE_THIS.md"), _file_sha256(paste)[:8],
+                    "the paste for the new chat"),
+    ]
+
+
 def _role_pin(role_path: Path, version: str) -> str:
     """The 3-line role PIN: identity, integrity, refusal.
 
     sha256 is computed over the file's RAW BYTES, so it is insensitive to how the
     reader's platform would render newlines and matches what `sha256sum` reports.
     """
-    digest = hashlib.sha256(role_path.read_bytes()).hexdigest()
+    digest = _file_sha256(role_path)
     return "\n".join((
         f"ROLE PIN — {role_path.name} @ handoff-process v{version}",
         f"sha256: {digest}",
@@ -624,7 +675,7 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
         mode = _extract_mode(boot_text)
         header = _extract_session_header(boot_text)
         if header:
-            sections.append(("HANDOFF_BOOT.md (session header)", _shed_header(header)))
+            sections.append((SESSION_HEADER_LABEL, _drop_boot_name_rows(_shed_header(header))))
 
     # 1. ROLE PIN — the role file is RESIDENT, not inlined (v6.3.0; census R1, ruling D-R1).
     role_path = repo_root / "protocols" / "HANDOFF_BOOT.md"
@@ -731,6 +782,10 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     ws_pct = round(ws_bytes * 100 / content_bytes) if content_bytes else 0
     click.echo(f"Written: {paste_path} ({size} bytes; window-specific {ws_bytes}/{content_bytes} "
                f"B = {ws_pct}%)")
+    # [#1443] Done 3: the two files the operator acts on, and nothing else. ASCII, right after
+    # the Written line, so a cut's output ends on the answer to "which file do I install".
+    for n, f in enumerate(install_files(repo_root, bundle_dir), 1):
+        click.echo(f"INSTALL {n}/2 {f.path} sha8 {f.sha8} -- {f.what}")
 
 
 if __name__ == "__main__":
