@@ -17,6 +17,9 @@ gate both. A future edit reaching for the simpler `paths:` would quietly disarm 
 """
 from __future__ import annotations
 
+import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -162,3 +165,87 @@ def test_every_measured_leg_still_records_rather_than_judges():
     assert len(measured) >= 3, f"expected the three measured legs, found {len(measured)}"
     for s in measured:
         assert s.get("continue-on-error") is True, f"{s['name']} must not block"
+
+
+# --- [#1103] S-56 (CI-clock amend): the pilot's copy, and a pilot that cannot pass empty -------
+
+_ROOT = Path(__file__).resolve().parent.parent
+
+# The exact tail of run 38061081144's `mutmut.out` (artifact mutation-pilot-ff57acc4...): the pilot
+# job concluded `success` with this on its screen and 0 mutants executed.
+_FAILED_TO_COLLECT = (
+    "ERROR tests/test_fleet_analytics.py - validate_hermetization.ShapeSpecError: fleet shape spec "
+    "absent: /home/runner/work/dev-knowledge/dev-knowledge/mutants/ecosystem/fleet-shape-spec.yaml\n"
+    "1 error in 22.66s\n"
+    "failed to collect stats. runner returned 2\n"
+)
+# mutmut's progress line, as it writes it to stdout: "\r<spinner> <executed>/<total>  <killed emoji>
+# <killed> <no-tests emoji> ..." (emoji written as escapes: a test file stays ASCII-clean).
+_KILLED = "\U0001F389"
+_REST = " 0 \U0001FAE5 0  ⏰ 0  \U0001F914 0  \U0001F641 "
+
+
+def _mutmut_table() -> dict:
+    return tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mutmut"]
+
+
+def test_the_mutmut_copy_carries_the_data_files_the_import_chain_reads():
+    """[#1103] S-56. mutmut copies `scripts/`, `tests/` and the project files into `mutants/`
+    and nothing else, then runs the suite there. The import chain of `scripts/fleet_analytics.py`
+    reads `ecosystem/fleet-shape-spec.yaml` at import time (`validate_hermetization.SHAPE_SPEC`,
+    since 01104de3), so without `also_copy` the pilot collects no test: run 38061081144, 0
+    mutants executed, "failed to collect stats". Every entry must also EXIST: mutmut skips an
+    absent `also_copy` path in silence, so a typo would re-open the same hole."""
+    also = _mutmut_table().get("also_copy", [])
+    assert "ecosystem/fleet-shape-spec.yaml" in also
+    for entry in also:
+        assert (_ROOT / entry).exists(), f"also_copy names a path that is not in the repo: {entry}"
+
+
+def _pilot_check_script() -> str:
+    """The python heredoc of the pilot's `executed no mutant` step, as the runner receives it."""
+    steps = _load()["jobs"]["mutation-pilot"]["steps"]
+    named = [s for s in steps if "executed" in (s.get("name") or "")]
+    assert len(named) == 1, "the pilot must carry exactly one step that checks a mutant executed"
+    step = named[0]
+    # Report-only is the posture of the MEASURED steps; this one judges whether they measured
+    # anything, so it must be able to fail the job and must run after a failed measured step.
+    assert step.get("continue-on-error") is not True, "the vacuity check must be able to fail the job"
+    assert "always()" in str(step.get("if", "")), "it must run after a failed measured step too"
+    run = step["run"]
+    start = run.index("<<'PY'\n") + len("<<'PY'\n")
+    return run[start:run.rindex("\nPY")]
+
+
+def _run_pilot_check(tmp_path: Path, mutmut_out: str | None) -> subprocess.CompletedProcess:
+    if mutmut_out is not None:
+        (tmp_path / "mutmut.out").write_bytes(mutmut_out.encode("utf-8"))
+    return subprocess.run([sys.executable, "-"], input=_pilot_check_script().encode("ascii"),
+                          cwd=tmp_path, capture_output=True, timeout=60)
+
+
+@requires_workflow
+@pytest.mark.parametrize("label,out", [
+    ("the failed run's own output", _FAILED_TO_COLLECT),
+    ("a progress line with 0 executed", "\r⠋ 0/84  " + _KILLED + _REST + "0\n"),
+    ("no progress line at all", "done\n"),
+    ("no mutmut.out at all", None),
+], ids=["failed-run-output", "zero-executed", "no-progress-line", "no-file"])
+def test_a_pilot_that_executed_no_mutant_fails_the_job(tmp_path, label, out):
+    """[#1103] S-56 Done 4c. A check that passes while checking nothing is a false positive: every
+    measured step is `continue-on-error`, so the job read `success` on run 38061081144 with 0
+    mutants executed. The step the job ends with fails on `failed to collect stats`, on an
+    executed count of 0, and on a missing progress line. The script under test is the one the
+    workflow carries, extracted and run, not a copy of its logic."""
+    proc = _run_pilot_check(tmp_path, out)
+    assert proc.returncode != 0, f"{label}: the vacuous pilot passed ({proc.stdout!r})"
+
+
+@requires_workflow
+def test_a_pilot_that_executed_a_mutant_passes_the_check(tmp_path):
+    """The other half of the pin: the same step stays quiet when the tool executed mutants,
+    killed or survived. A step that fails everything would also satisfy the test above."""
+    out = ("\r⠋ 1210/2291  " + _KILLED + " 865" + _REST + "345\n"
+           "\r⠙ 2291/2291  " + _KILLED + " 865" + _REST + "1426\n")
+    proc = _run_pilot_check(tmp_path, out)
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
