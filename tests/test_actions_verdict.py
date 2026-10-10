@@ -1309,3 +1309,149 @@ def test_T2bf_head_registry_problems_RAISES_when_it_cannot_read(tmp_path, kind):
         _head_reader()(target, repo_root=repo)
 
     assert type(caught.value).__name__ == "KnownRedsError", caught.value
+
+
+# --- Done 2b: `land` refuses a merge whose HEAD registry carries an expired entry -------------
+#
+# The base read stopped refusing on expiry (above); the gate keeps its expiry enforcement here, on
+# the head. `ci_verdict.verdict_for` reads the registry AT THE MERGE SHA once, after the run and
+# its jobs are read and before either way out that lets `land` proceed (R38: no weakened check).
+# These tests run `land` itself on the production wiring, so each is also the before/after of
+# the verb: at the previous sha every refusal below was a landing.
+
+import ast  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+_HEAD_LINE = "known-reds registry at the head"
+
+
+def _land_case(tmp_path, monkeypatch, *, base, head=None, kind="both-red",
+               tip_ids=(_KNOWN,), base_ids=(_KNOWN,)):
+    repo, a, m = _merge_fixture(tmp_path, base=base, head=head)
+    _install_ci(monkeypatch, tip=m, base=a, kind=kind, tip_ids=tip_ids, base_ids=base_ids)
+    return _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+
+
+def test_T2ba_land_refuses_a_merge_whose_HEAD_registry_has_an_expired_entry(
+        tmp_path, monkeypatch):
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1))
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) for line in result.verdict.new_reds), \
+        result.verdict.new_reds
+    assert _HEAD_LINE in result.reason
+    assert "EXPIRED" in result.reason
+
+
+def test_T2b_green_a_fully_GREEN_run_is_refused_when_the_head_registry_has_lapsed(
+        tmp_path, monkeypatch):
+    """The F1 hole: a green run never reached the classifier, so a registry that lapsed between
+    CI and `land` landed as PASS."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1),
+                        kind="green", tip_ids=(), base_ids=())
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert result.verdict.verdict == _cv.STATE_RED
+    assert result.verdict.new_reds[0].startswith(_HEAD_LINE)
+
+
+def test_T2b_ruff_a_run_with_only_a_NON_PYTEST_job_red_on_both_sides_is_refused_too(
+        tmp_path, monkeypatch):
+    """R2-1's case: the pytest legs are success, `ruff` is red on both sides, so the classifier
+    reads PRE-EXISTING without ever opening the registry. The head read sits before it."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(-1),
+                        kind="ruff-red", tip_ids=(), base_ids=())
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) for line in result.verdict.new_reds)
+
+
+def test_T2b_b_the_LAST_valid_day_still_lands(tmp_path, monkeypatch):
+    """Strictly after the expiry, as `known_reds.py` reads it (`due < today`)."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(0))
+
+    assert result.state == "PRE-EXISTING", result.reason
+    assert result.would_land is True
+
+
+def test_T2b_c_control_a_head_registry_in_date_lands(tmp_path, monkeypatch):
+    """The vacuity guard: 2b is not a blanket refusal."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_registry_text(30))
+
+    assert result.state == "PRE-EXISTING", result.reason
+    assert result.would_land is True
+
+
+def test_T2b_d_a_lane_cannot_launder_by_DELETING_the_head_registry(tmp_path, monkeypatch):
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30), head=_ABSENT)
+
+    assert result.state == "UNATTRIBUTED", result.reason
+    assert result.would_land is False
+    assert any(line.startswith(_HEAD_LINE) and "could not be read" in line
+               for line in result.verdict.new_reds), result.verdict.new_reds
+
+
+def test_T2b_d_a_head_registry_with_an_UNOWNED_member_is_refused(tmp_path, monkeypatch):
+    unowned = {"tests/x.py::t": {"attribution": kr.PRE_FREEZE}}
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(30),
+                        head=_registry_text(30, extra=unowned))
+
+    assert result.state == "REGRESSED", result.reason
+    assert any(line.startswith(_HEAD_LINE) and "3 problem(s)" in line and "no task" in line
+               for line in result.verdict.new_reds), result.verdict.new_reds
+
+
+def test_T1d_an_INHERITED_expired_entry_is_refused_on_the_head_leg_no_exemption(
+        tmp_path, monkeypatch):
+    """S-51.5: the ordinary merge on 2026-10-17 carries the base's expired entries into its head.
+    It is refused -- now on the head leg (REGRESSED), where it used to be refused on the base leg
+    (UNATTRIBUTED). An exemption for inherited entries would be a weaker check (R38); this test
+    makes adding one a conscious act."""
+    result = _land_case(tmp_path, monkeypatch, base=_registry_text(-1), head=None)
+
+    assert result.state == "REGRESSED", result.reason
+    assert result.would_land is False
+    assert result.verdict.new_reds[-1].startswith(_HEAD_LINE), result.verdict.new_reds
+    assert not any(_KNOWN in name and _HEAD_LINE not in name for name in result.verdict.new_reds)
+
+
+def test_T2b_cli_the_printed_line_names_the_head_registry_and_the_exit_code_is_one(
+        tmp_path, monkeypatch):
+    repo, a, m = _merge_fixture(tmp_path, base=_registry_text(30), head=_registry_text(-1))
+    _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN], base_ids=[_KNOWN])
+
+    out = _cli_land(repo, a, m)
+
+    assert out.exit_code == 1, out.output
+    assert f"land: NO-PUSH REGRESSED -- {_HEAD_LINE}" in out.output, out.output
+    assert "land: would land: NO" in out.output, out.output
+
+
+def test_no_production_caller_injects_a_fetch_function_into_the_ci_verdict():
+    """The head read is wired ON when nothing is injected into `ci_verdict.verdict_for`. A
+    production caller that passed one of these would switch it off without a word, so a new such
+    caller is a conscious act. The scan asserts it SAW the production callers (a vacuous pass is
+    the failure): `handoff_state` calls `verdict_for` by name, `merge_path.read_verdict` through
+    `verdict_fn`."""
+    banned = {"list_fn", "view_fn", "jobs_fn", "log_fn", "fetch_base", "registry_loader",
+              "head_check"}
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    seen = []
+    for path in sorted(scripts.rglob("*.py")):
+        if path.name in ("ci_verdict.py", "actions_verdict.py") or "__pycache__" in path.parts:
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            called = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+            if called in ("verdict_for", "verdict_fn"):
+                seen.append((path.name, called, sorted(k.arg for k in node.keywords
+                                                       if k.arg in banned)))
+
+    assert any(f == "handoff_state.py" and c == "verdict_for" for f, c, _ in seen), seen
+    assert any(f == "merge_path.py" and c == "verdict_fn" for f, c, _ in seen), seen
+    assert [entry for entry in seen if entry[2]] == [], seen
