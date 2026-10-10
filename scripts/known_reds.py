@@ -242,8 +242,10 @@ def _ceiling_problems(label: str, entry: dict) -> list[str]:
     return problems
 
 
-def _entry_problems(label: str, entry, today: datetime.date) -> list[str]:
-    """Everything wrong with one registry entry; empty when it is owned, dated and in date."""
+def _entry_problems_impl(label: str, entry, today: datetime.date | None) -> list[str]:
+    """Everything wrong with one registry entry. `today=None` leaves out the one comparison that
+    needs a clock -- an expiry in the past -- and keeps every structural check (owner, task, ISO
+    date, ceiling); it is reachable only through `_entry_structural_problems`."""
     if not isinstance(entry, dict):
         return [f"{label}: not an object"]
     problems: list[str] = []
@@ -261,26 +263,57 @@ def _entry_problems(label: str, entry, today: datetime.date) -> list[str]:
         except ValueError:
             problems.append(f"{label}: expiry {expiry!r} is not an ISO date (YYYY-MM-DD)")
         else:
-            if due < today:
+            if today is not None and due < today:
                 problems.append(f"{label}: EXPIRED {expiry} (task {task}) -- fix it, or "
                                 "re-date it by a recorded ruling; the registry does not "
                                 "vouch for it past its date")
     return problems + _ceiling_problems(label, entry)
 
 
+def _entry_problems(label: str, entry, today: datetime.date) -> list[str]:
+    """Everything wrong with one registry entry; empty when it is owned, dated and in date."""
+    return _entry_problems_impl(label, entry, today)
+
+
+def _entry_structural_problems(label: str, entry) -> list[str]:
+    """`_entry_problems` minus the expiry comparison: owned, well-formed, ceiling sound."""
+    return _entry_problems_impl(label, entry, None)
+
+
+def _walk_registry(registry: Registry, per_entry) -> list[str]:
+    """`per_entry(label, entry)` for every entry of every bucket, in the registry's own order."""
+    problems: list[str] = []
+    for node_id in sorted(registry.members):
+        problems += per_entry(f"members[{node_id}]", registry.members[node_id])
+    for os_key in sorted(registry.members_by_os):
+        for node_id in sorted(registry.members_by_os[os_key]):
+            problems += per_entry(f"members_by_os[{os_key}][{node_id}]",
+                                  registry.members_by_os[os_key][node_id])
+    for hook_id in sorted(registry.hooks):
+        problems += per_entry(f"hooks[{hook_id}]", registry.hooks[hook_id])
+    return problems
+
+
 def registry_problems(registry: Registry, today: datetime.date | None = None) -> list[str]:
     """Every entry of every bucket that is not owned, dated and in date (R52 Q2)."""
     today = today or datetime.date.today()
-    problems: list[str] = []
-    for node_id in sorted(registry.members):
-        problems += _entry_problems(f"members[{node_id}]", registry.members[node_id], today)
-    for os_key in sorted(registry.members_by_os):
-        for node_id in sorted(registry.members_by_os[os_key]):
-            problems += _entry_problems(f"members_by_os[{os_key}][{node_id}]",
-                                        registry.members_by_os[os_key][node_id], today)
-    for hook_id in sorted(registry.hooks):
-        problems += _entry_problems(f"hooks[{hook_id}]", registry.hooks[hook_id], today)
-    return problems
+    return _walk_registry(registry, lambda label, entry: _entry_problems(label, entry, today))
+
+
+def registry_structural_problems(registry: Registry) -> list[str]:
+    """`registry_problems` WITHOUT the expiry comparison -- a separate function, not a keyword,
+    so that no caller can pass a flag to relax the check (LANE-1480).
+
+    The one reader allowed to call it is the BASE-side registry read of `actions_verdict`
+    (`_load_registry_at`), pinned by `tests/test_known_reds.py::test_only_the_base_side_read_calls_
+    the_structural_validator`. `load_registry`, `refresh`, CI's `compare` and the head-side read
+    (`actions_verdict.head_registry_problems`) all keep `registry_problems`, expiry included. Why
+    the base read can do without it: the base registry labels a red that is red on BOTH sides and
+    vouches registered-flaky swaps (`compare_to_base`), and an entry past its date keeps vouching
+    for what it vouched for on its last valid day; the question "is this entry past its date" is
+    asked where the merge ships the registry -- the head -- and an entry that is still there is
+    refused (`ci_verdict.verdict_for`, CI's `compare`)."""
+    return _walk_registry(registry, _entry_structural_problems)
 
 
 # --- baseline identity --------------------------------------------------------------------

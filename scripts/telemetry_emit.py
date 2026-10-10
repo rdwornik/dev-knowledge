@@ -614,6 +614,38 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 raise
 
 
+#: How long, and at what step, a refused switch to WAL is retried. SQLite answers a
+#: `PRAGMA journal_mode=WAL` that would have to upgrade a lock it already holds with SQLITE_BUSY
+#: at once, without calling the busy handler, so `busy_timeout` never gets to cover it. The
+#: window is the connection's own busy window.
+JOURNAL_SWITCH_WINDOW_S = 5.0
+_JOURNAL_SWITCH_BACKOFF_S = 0.05
+
+
+def _apply_pragma(conn: sqlite3.Connection, pragma: str, value: str) -> None:
+    """`PRAGMA <pragma>=<value>`; a locked `journal_mode` switch is retried for up to
+    `JOURNAL_SWITCH_WINDOW_S`, every other failure (and the end of the window) propagates.
+
+    [#1023]: four processes opening a fresh store at once made one of them fail with
+    `database is locked` on exactly this statement (CI run 37994707972, windows). The loser's
+    event was lost, so the smoke test for concurrent writers read it as a failed writer.
+    """
+    statement = f"PRAGMA {pragma}={value}"
+    if pragma != "journal_mode":
+        conn.execute(statement)
+        return
+    deadline = time.monotonic() + JOURNAL_SWITCH_WINDOW_S
+    while True:
+        try:
+            conn.execute(statement)
+            return
+        except sqlite3.OperationalError as exc:
+            message = str(exc).lower()
+            if ("locked" not in message and "busy" not in message) or time.monotonic() >= deadline:
+                raise
+            time.sleep(_JOURNAL_SWITCH_BACKOFF_S)
+
+
 @contextmanager
 def connect(db_path: str | os.PathLike[str] | None = None):
     """Open the store with the memo's three pragmas applied and the schema ensured.
@@ -626,7 +658,7 @@ def connect(db_path: str | os.PathLike[str] | None = None):
     conn = sqlite3.connect(str(path), timeout=5.0)
     try:
         for pragma, value in WAL_PRAGMAS:
-            conn.execute(f"PRAGMA {pragma}={value}")
+            _apply_pragma(conn, pragma, value)
         conn.execute(SCHEMA)
         _migrate(conn)
         yield conn

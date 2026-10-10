@@ -65,11 +65,17 @@ def test_every_live_mechanism_is_well_formed():
 
 
 def test_pre_existing_components_are_untouched_by_the_mechanism_reader():
-    """The 21 components that predate this block declare no `mechanism:` and are ignored."""
+    """Components that declare no `mechanism:` are ignored by the mechanism reader.
+
+    The expectation is read off the raw manifest, independent of the reader: a typed count
+    reds on every new floor component ([#1342]), and a list derived from the reader's own
+    ids would compare the reader with itself.
+    """
     spec = fm.load_manifest(_MANIFEST)
     mech_ids = {m.id for m in fm.load_mechanisms(spec)}
     plain = [c["id"] for c in spec["components"] if c["id"] not in mech_ids]
-    assert len(plain) == 21
+    declares_none = [c["id"] for c in spec["components"] if "mechanism" not in c]
+    assert plain == declares_none
     assert "methodology-floor" in plain and "canonical-freshness" in plain
 
 
