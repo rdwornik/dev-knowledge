@@ -1801,13 +1801,24 @@ def _compare_credential_expiry(le: Mapping, re_: Mapping, problems: list[str],
     for side, env in (("local", le), ("codespace", re_)):
         for cli, rec in sorted((env.get("credential_expiry") or {}).items()):
             state = (rec or {}).get("state")
-            evidence.append(f"credential {cli} {side}: {state} ({(rec or {}).get('detail', '')})")
+            detail = (rec or {}).get("detail", "")
             spec = SIGN_IN.get(cli)
             if side == "codespace" and not (spec and spec.route == "mirror"
                                             and spec.refresh in ("safe", "guarded")):
                 # a cache the launch never copies is absent there by design (claude signs in by the
-                # setup-token variable): its mechanism is compared by `_compare_auth_mechanism`
+                # setup-token variable): its mechanism is compared by `_compare_auth_mechanism`, and
+                # an absent file is written as that, never as `expired` (J-S41: run 1 read as a dead
+                # sign-in beside a PASS and a served model)
+                if state == "expired" and spec is not None:
+                    key = spec.env_keys[0] if spec.env_keys else spec.route
+                    evidence.append(
+                        f"credential {cli} {side}: not mirrored by design -- signs in by {key} "
+                        f"({spec.route}); its sign-in is judged by the served-model probe; "
+                        f"cache reading: {detail}")
+                else:
+                    evidence.append(f"credential {cli} {side}: {state} ({detail})")
                 continue
+            evidence.append(f"credential {cli} {side}: {state} ({detail})")
             if state == "expired":
                 problems.append(f"the {cli} credential on the {side} side has expired -- "
                                 f"OPERATOR-ACTION: {(rec or {}).get('renew') or 'renew its sign-in'}")

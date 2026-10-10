@@ -3293,3 +3293,58 @@ def test_collect_environment_probes_the_codex_version_without_either_key(tmp_pat
     cp.collect_environment(Run(tmp_path), root=tmp_path, hooks=[], home=tmp_path, nonce=_NONCE)
     assert seen.get("version_env") is not None, "the version probe was given an explicit environment"
     assert "CODEX_API_KEY" not in seen["version_env"] and "OPENAI_API_KEY" not in seen["version_env"]
+
+
+# ============================== b2w3 J-S41 (parity run 1, 2026-10-10): the evidence line that read `expired`
+#
+# RED on 2fee6fce: `_compare_credential_expiry` already declined to JUDGE a cache the launch never
+# copies, but it wrote the raw evidence line first, so run 1's record carried
+# `credential claude codespace: expired (.claude/.credentials.json is missing or unreadable)` beside a
+# PASS and a served model -- a line a reader takes for a dead sign-in. The cache is absent there by
+# design (claude signs in by CLAUDE_CODE_OAUTH_TOKEN); the line now says that. The probe and the
+# laptop-side reading are unchanged.
+
+_MISSING_CACHE = {"state": "expired", "renew": "run `claude setup-token` on the laptop",
+                  "detail": ".claude/.credentials.json is missing or unreadable"}
+
+
+def _credential_line(verdict, cli: str, side: str) -> str:
+    (line,) = [e for e in verdict.evidence if e.startswith(f"credential {cli} {side}:")]
+    return line
+
+
+def test_a_codespace_cache_absent_by_design_is_not_written_as_an_expired_credential():
+    remote = _record("codespace")
+    remote["environment"]["credential_expiry"] = {"claude": dict(_MISSING_CACHE)}
+    verdict = cp.compare_environment(_record("local"), remote)
+    line = _credential_line(verdict, "claude", "codespace")
+    assert "expired" not in line.lower(), line
+    assert "CLAUDE_CODE_OAUTH_TOKEN" in line and "not mirrored" in line, line
+    assert ".credentials.json is missing or unreadable" in line, "the probe's own reading is kept, not hidden"
+    assert verdict.status == "PASS" or "expired" not in verdict.reason
+
+
+def test_a_laptop_cache_that_is_missing_still_reads_expired_and_fails():
+    local = _record("local")
+    local["environment"]["credential_expiry"] = {"claude": dict(_MISSING_CACHE)}
+    verdict = cp.compare_environment(local, _record("codespace"))
+    assert _credential_line(verdict, "claude", "local").startswith("credential claude local: expired (")
+    assert verdict.status == "FAIL" and "expired" in verdict.reason
+
+
+def test_a_mirrored_cache_missing_on_the_codespace_still_reads_expired_and_fails():
+    remote = _record("codespace")
+    remote["environment"]["credential_expiry"] = {
+        "codex": {"state": "expired", "renew": "run `codex login` on the laptop",
+                  "detail": ".codex/auth.json is missing or unreadable"}}
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert _credential_line(verdict, "codex", "codespace").startswith("credential codex codespace: expired (")
+    assert verdict.status == "FAIL" and "codex" in verdict.reason
+
+
+def test_a_present_codespace_cache_that_is_not_mirrored_keeps_its_reading():
+    remote = _record("codespace")
+    remote["environment"]["credential_expiry"] = {
+        "claude": {"state": "ok", "detail": "token valid for 7 h", "renew": ""}}
+    verdict = cp.compare_environment(_record("local"), remote)
+    assert _credential_line(verdict, "claude", "codespace") == "credential claude codespace: ok (token valid for 7 h)"
