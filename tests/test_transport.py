@@ -1578,8 +1578,9 @@ def test_the_lock_a_move_takes_leaves_no_file_behind(t, world):
 
 
 def test_a_destination_that_appears_at_the_rename_is_a_refusal_and_both_files_stay(t, world, monkeypatch):
-    """Critical 1: on Windows `os.rename` onto an existing name raises; the janitor must read that as
-    `refuse`, not as a crash after a half-done move, and must leave the other file's bytes alone."""
+    """Critical 1: a destination that exists when the rename runs (Windows `os.rename`, Linux/macOS no-replace)
+    raises `FileExistsError`; the janitor must read that as `refuse`, not as a crash after a half-done move, and
+    must leave the other file's bytes alone."""
     src = _lonely_superseded(world)
     plan = t.janitor_plan(world["root"], seats=SEATS)
     dst = world["browser"] / "archive" / "2026-09" / src.name
@@ -1590,7 +1591,7 @@ def test_a_destination_that_appears_at_the_rename_is_a_refusal_and_both_files_st
         dst.write_bytes(b"somebody else's file\n")
         raise FileExistsError(b)
 
-    monkeypatch.setattr(os, "rename", racing_rename)
+    monkeypatch.setattr(t, "_rename_no_replace", racing_rename)
     with pytest.raises(t.JanitorRefused, match="appeared"):
         t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
     assert src.read_bytes() == before
@@ -1639,3 +1640,73 @@ def test_a_script_writers_unsigned_file_of_a_kind_a_role_also_writes_is_advised_
     t.write("gen_ledger", world["browser"] / "LEDGER-pure-script-repo.md", "plain\n")
     err = capsys.readouterr().err
     assert "no `by:`" in err and "sweep" not in err, err           # a script-only kind: the plain advisory
+
+
+# --- the second Codex review (gpt-6-astra, the one re-review): 1 Critical + 3 High ------------------------------
+
+def test_a_whole_file_write_takes_the_destinations_lock_the_move_and_the_append_share(t, world, monkeypatch):
+    """Round 2, High (write bypasses the move lock): `write()` replaced a file without the lock `append()` and
+    the janitor's move hold, so a replace could land between the move's hash check and its rename."""
+    dest = world["browser"] / "DIGEST-locked-2026-10-10.md"
+    dest.write_text(_head(by=TA44, date="2026-10-10"), encoding="utf-8", newline="\n")
+    before = dest.read_bytes()
+    monkeypatch.setattr(t, "WRITE_LOCK_TIMEOUT_S", 0.2)
+    with t._DestinationLock(dest):                                 # a move (or an append) holds the file
+        with pytest.raises(t.TransportWriteRefused, match="lock"):
+            t.write("operator", dest, _head(by=TA44, date="2026-10-10", summary="replacement"))
+    assert dest.read_bytes() == before                             # the replace did not land
+    t.write("operator", dest, _head(by=TA44, date="2026-10-10", summary="replacement"))   # released: it does
+    assert b"replacement" in dest.read_bytes()
+    assert not list(world["browser"].glob(".*")), "a lock sentinel survived the write"
+
+
+def test_a_failed_head_read_is_never_a_row_a_later_refresh_reuses(t, world, live, monkeypatch):
+    """Round 2, High (failed reads cached): `_read_window` answers an unreadable file with an empty head, so the
+    row read UNATTRIBUTED/UNKNOWN, and the next refresh kept it for as long as the file's mtime stayed old."""
+    for p in list(world["browser"].glob("*.md")) + list(world["cc"].glob("*.md")):
+        os.utime(p, (1_700_000_000, 1_700_000_000))
+    real_open = Path.open
+
+    def open_failing_for_alpha(self, *a, **k):
+        if self.name == "DIGEST-alpha-2026-10-08.md":
+            raise PermissionError("sharing violation")
+        return real_open(self, *a, **k)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(Path, "open", open_failing_for_alpha)
+        broken = _index(t, world["root"], stamp="2026-10-10T12:00:00Z")
+    assert t.parse_index(broken)["header"].get("unreadable") == "1"        # the INDEX says a read failed
+    live["index"].write_text(broken, encoding="utf-8", newline="\n")
+    t.write("operator", world["browser"] / "DIGEST-other-2026-10-10.md",
+            _head(by=TA44, date="2026-10-10", summary="Other digest"))     # a refresh, the file readable again
+    text = live["index"].read_text(encoding="utf-8")
+    row = {e["path"]: e for e in t.parse_index(text)["entries"]}["to-browser/DIGEST-alpha-2026-10-08.md"]
+    assert row["subject"] == "Alpha digest" and row["status"] == "current"
+    assert "unreadable" not in t.parse_index(text)["header"]
+    assert text == _full_rebuild_like(t, live)
+
+
+def test_a_move_never_replaces_an_existing_destination(t, tmp_path):
+    """Round 2, Critical (the POSIX window): the rename primitive itself refuses an existing name on every
+    platform the janitor applies on (Windows: `os.rename`; Linux: renameat2 NOREPLACE; macOS: RENAME_EXCL)."""
+    src, dst = tmp_path / "src.md", tmp_path / "dst.md"
+    src.write_bytes(b"mine\n")
+    dst.write_bytes(b"theirs\n")
+    with pytest.raises(FileExistsError):
+        t._rename_no_replace(src, dst)
+    assert src.read_bytes() == b"mine\n" and dst.read_bytes() == b"theirs\n"
+    dst.unlink()
+    t._rename_no_replace(src, dst)
+    assert dst.read_bytes() == b"mine\n" and not src.exists()
+
+
+def test_a_platform_with_no_atomic_no_replace_rename_refuses_the_apply_and_moves_nothing(t, world, monkeypatch):
+    src = _lonely_superseded(world)
+    plan = t.janitor_plan(world["root"], seats=SEATS)
+    monkeypatch.setattr(t, "_NT", False)
+    monkeypatch.setattr(t, "_posix_noreplace", lambda: None)
+    before = src.read_bytes()
+    with pytest.raises(t.JanitorRefused, match="no-replace"):
+        t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
+    assert src.read_bytes() == before
+    assert not (world["browser"] / "archive").exists()

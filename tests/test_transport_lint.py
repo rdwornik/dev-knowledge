@@ -861,3 +861,12 @@ def test_the_inventory_command_output_equals_a_fresh_generation_and_is_byte_stab
     t.write_seat_ids(fresh, seats=[], inventory=t.build_inventory(world["root"]))
     assert fresh.read_bytes() == first
     assert t.load_inventory(seat_file)["to-browser/DIGEST-new-2026-10-10.md"] == _sha(UNSIGNED)
+
+
+def test_a_byte_order_mark_before_the_by_line_does_not_unsign_the_file(lint, registry):
+    """Round 2, High: a signed file saved by Windows tooling starts with a BOM; the INDEX reader accepts its head
+    (`utf-8-sig`) and the lint refused it as unsigned."""
+    text = "\ufeffby: lane-demo (job abc12345)\ndate: 2026-10-10\n\n# Demo\n"
+    assert lint.by_value(text) == "lane-demo (job abc12345)"
+    assert lint.lint_text("DIGEST-bom-2026-10-10.md", "to-browser", text, registry, require_by=True,
+                          file_class="new") == []
