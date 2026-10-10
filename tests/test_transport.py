@@ -1406,7 +1406,8 @@ def test_an_attribution_signal_appended_at_line_15_moves_an_unattributed_row(t, 
     """Fix 1 (the Codex HIGH on revision 5): the row depends on the whole 30-line attribution window, not on
     the 12-line head. The signal lands beyond line 12 and inside line 30 of a file with 13 filler lines."""
     dest = world["browser"] / "SESSION-late-signal.md"
-    t.append("lane", dest, "\n".join(f"filler {i}" for i in range(1, 14)) + "\n")      # lines 1-13, no signal
+    # lines 1-13: a `by:` line (it carries no attribution signal) and 12 filler lines
+    t.append("lane", dest, "by: lane-late (job abc12345)\n" + "\n".join(f"filler {i}" for i in range(2, 14)) + "\n")
     status = {e["path"]: e["status"] for e in t.parse_index(live["index"].read_text(encoding="utf-8"))["entries"]}
     assert status["to-browser/SESSION-late-signal.md"] == "unattributed"
     t.append("lane", dest, "dev-knowledge cited here\n")                              # line 15 (after the separator)
@@ -1420,7 +1421,8 @@ def test_an_attribution_signal_appended_at_line_15_moves_an_unattributed_row(t, 
 
 def test_an_append_past_line_30_leaves_the_index_untouched(t, world, live):
     dest = world["browser"] / "SESSION-far-signal.md"
-    t.append("lane", dest, "\n".join(f"filler {i}" for i in range(1, 31)) + "\n")     # 30 filler lines
+    # 30 lines: a `by:` line (it carries no attribution signal) and 29 filler lines
+    t.append("lane", dest, "by: lane-far (job abc12345)\n" + "\n".join(f"filler {i}" for i in range(2, 31)) + "\n")
     before = live["index"].read_bytes()
     t.append("lane", dest, "dev-knowledge cited far away\n")
     assert live["index"].read_bytes() == before

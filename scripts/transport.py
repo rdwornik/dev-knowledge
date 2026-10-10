@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import os
 import re
@@ -237,6 +238,7 @@ def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] 
     _lint(dest, data, reg, writer)
     dest.parent.mkdir(parents=True, exist_ok=True)
     _tr.deliver(dest, data.encode("utf-8"))
+    _after_write(dest, "write", reg)
     return dest
 
 
@@ -331,6 +333,12 @@ def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]
         _lint(dest, existing + sep + block + tail, reg, writer)
         with dest.open("a", encoding="utf-8", newline="\n") as fh:
             fh.write(sep + block + tail)
+        # The INDEX row depends on the first WINDOW_LINES lines (its head keys AND the attribution
+        # signals), so the refresh fires when this call created the file or those lines changed.
+        fires = not existing or (existing.splitlines()[:WINDOW_LINES]
+                                 != (existing + sep + block + tail).splitlines()[:WINDOW_LINES])
+    if fires:
+        _after_write(dest, "append", reg)
     return dest
 
 
@@ -468,6 +476,595 @@ def write_seat_ids(path: Path, *, seats: Optional[list[dict]] = None,
     tmp.write_bytes(text.encode("utf-8"))
     os.replace(tmp, path)
     return path
+
+
+# --- the generated INDEX, the attribution rule and the seat-ID map ------------------------------
+#
+# LANE-1439-b2w2-transport-index (batch B2-W3). `to-browser/INDEX.md` lists the CURRENT files of this
+# repository's kinds, grouped by kind then writer, newest first, every entry with kind, subject, date
+# and `by:`. It is GENERATED: `index --write` builds it whole; once it exists `write()` / `append()`
+# refresh it (see `refresh_index`), and a test holds the incremental result equal to a full rebuild.
+#
+# ATTRIBUTION (the amend's S-10 C3 + S-17 + S-40). A file is attributed to this repository when, after
+# the foreign veto, its first 30 lines carry (a) the repository token, (b) a Tech-Architect id or a
+# session slug of the seat map, or (c) a cited transport file name that classifies as a hub-scope kind.
+# The veto `W` is derived from the transport (the `<name>` of every `LEDGER-<name>` that is not this
+# repository) plus the file-name segment `cv`; a vetoed file is `UNATTRIBUTED`: listed in its own
+# section, never moved. Stated limit (S-17): no head signal can tell a foreign file that names this
+# repository from one of ours, so the janitor's exposure is bounded by the seat reviewing its dry run.
+
+class EmptySeatMap(Exception):
+    """The seat-ID map is empty: attribution signal (b) has nothing to read, so the run refuses."""
+
+
+class JanitorRefused(Exception):
+    """`janitor --apply` refused: the reviewed manifest hash is missing, malformed or no longer the
+    plan's. Nothing is moved."""
+
+
+HEAD_LINES = 12          # the lines the head keys (`by:`, `date:`, `summary:`, `supersedes:`) are read from
+WINDOW_LINES = 30        # the attribution window; a row depends on ALL of it, never just the head
+INDEX_LOCK_TIMEOUT_S = 10.0
+INDEX_SUMMARY = "Generated index of the current transport files, by kind and writer, newest first."
+INDEX_BY = "transport.py index (generated)"
+UNKNOWN = "UNKNOWN"
+UNDATED = "undated"
+NO_SUBJECT = "(no subject)"
+_INDEX_REL = f"to-browser/{INDEX_NAME}"
+
+_TA_RE = re.compile(r"Tech-Architect-\d+")
+_SLUG_RE = re.compile(r"(?<![A-Za-z0-9-])\d{4}-\d{2}-\d{2}-[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_HEAD_KEY_RE = re.compile(r"^(by|date|supersedes|summary):[ \t]*(.*?)[ \t]*$")
+_FROM_BY_RE = re.compile(r"^(?:from|by):[ \t]*(.*)$")
+_CITED_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.md")
+_SUPERSEDED_RE = re.compile(r"(?<![A-Za-z0-9])superseded(?![A-Za-z0-9])", re.I)
+_LEDGER_RE = re.compile(r"^LEDGER-(.+)\.md$", re.I)
+_LEDGER_TAIL_RE = re.compile(r"-(?:\d{4}-\d{2}-\d{2}|superseded|v\d+)$")
+_REPO_RE = re.compile(rf"\b{re.escape(REPO_TOKEN)}\b", re.I)
+_EXT_RE = re.compile(r"\.[A-Za-z0-9]{1,6}$")
+
+
+def _utc_now() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def seatmap_digest(seats: list[dict]) -> str:
+    text = "\n".join(sorted(f"{s['seat']}={s['session']}" for s in seats))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def name_has_cv_segment(name: str) -> bool:
+    """S-40: the file-name segment `cv`, matched only as a whole hyphen-delimited segment of the
+    name without its final extension -- never inside a longer word (`recv`, `cvs`, `devcv`) and
+    never in a head."""
+    return "cv" in _EXT_RE.sub("", name).lower().split("-")
+
+
+def veto_tokens(files: list[tuple[str, Path]]) -> list[str]:
+    """`W`'s derived part: the `<name>` of every `LEDGER-<name>[-vN][-superseded][-date].md` on the
+    transport that is not this repository, normalised (lower-case, `_` as `-`)."""
+    out: set[str] = set()
+    for _rel, path in files:
+        m = _LEDGER_RE.match(path.name)
+        if not m:
+            continue
+        tok = m.group(1).lower().replace("_", "-")
+        while True:
+            new = _LEDGER_TAIL_RE.sub("", tok)
+            if new == tok:
+                break
+            tok = new
+        if tok and tok != REPO_TOKEN:
+            out.add(tok)
+    return sorted(out)
+
+
+def _read_window(path: Path) -> list[str]:
+    """The first `WINDOW_LINES` lines of a `.md` file (others carry no head), LF-normalised."""
+    if path.suffix.lower() != ".md":
+        return []
+    try:
+        with path.open(encoding="utf-8-sig", errors="replace") as fh:
+            return [ln.rstrip("\r\n") for ln in itertools.islice(fh, WINDOW_LINES)]
+    except OSError:
+        return []
+
+
+def _head_keys(lines: list[str]) -> tuple[dict[str, str], Optional[str]]:
+    keys: dict[str, str] = {}
+    heading: Optional[str] = None
+    for ln in lines[:HEAD_LINES]:
+        m = _HEAD_KEY_RE.match(ln)
+        if m:
+            if m.group(2) and m.group(1) not in keys:
+                keys[m.group(1)] = m.group(2)
+        elif heading is None and ln.startswith("# "):
+            heading = ln[2:].strip()
+    return keys, heading
+
+
+def _clean(text: str, limit: Optional[int] = None) -> str:
+    text = re.sub(r"\s+", " ", text.replace("|", "/")).strip()
+    return text[:limit].rstrip() if limit else text
+
+
+@dataclass(frozen=True)
+class _Row:
+    path: str
+    kind: str
+    subject: str
+    date: str
+    by: str                       # the `by:` value as written, or UNKNOWN
+    attributed: bool
+    supersedes: Optional[str] = None
+
+
+class _Attr:
+    """The attribution rule, evaluated per file for every kind (a hub-scope kind earns nothing by its
+    scope). Built once per run from the live files (the veto), the seat map and the registry."""
+
+    def __init__(self, files: list[tuple[str, Path]], seats: list[dict], reg: list[Kind]):
+        self.reg = reg
+        self.veto = veto_tokens(files)
+        self.veto_re = (re.compile(r"(?<![a-z0-9])(?:" + "|".join(
+            re.escape(t) for t in sorted(self.veto, key=len, reverse=True)) + r")(?![a-z0-9])")
+            if self.veto else None)
+        self.slug_to_seat = {s["session"]: s["seat"] for s in seats}
+        self.slug_re = (re.compile(r"(?<![A-Za-z0-9-])(?:" + "|".join(
+            re.escape(s) for s in sorted(self.slug_to_seat, key=len, reverse=True)) + r")(?![A-Za-z0-9-])")
+            if self.slug_to_seat else None)
+
+    def attributed(self, name: str, lines: list[str]) -> bool:
+        if name_has_cv_segment(name):
+            return False
+        text = "\n".join(lines)
+        if self.veto_re is not None and (
+                self.veto_re.search(name.lower().replace("_", "-"))
+                or self.veto_re.search(text.lower().replace("_", "-"))):
+            return False
+        if _REPO_RE.search(text) or _TA_RE.search(text):
+            return True
+        if self.slug_re is not None and self.slug_re.search(text):
+            return True
+        for cited in _CITED_RE.findall(text):
+            kind = classify(cited, self.reg) if cited != name else None
+            if kind is not None and kind.repo_scope == "hub":
+                return True
+        return False
+
+
+def _scan_row(rel: str, path: Path, kind: Kind, attr: _Attr) -> _Row:
+    lines = _read_window(path)
+    keys, heading = _head_keys(lines)
+    if keys.get("summary"):
+        subject = _clean(keys["summary"], 100)
+    elif heading:
+        subject = _clean(heading, 100) or NO_SUBJECT
+    else:
+        subject = NO_SUBJECT
+    m = _DATE_RE.search(keys.get("date", ""))
+    named = _DATE_RE.findall(path.name)
+    date = m.group() if m else (named[-1] if named else UNDATED)
+    by = _clean(keys["by"], 120) if keys.get("by") else UNKNOWN
+    sup = _clean(keys["supersedes"], 200) if keys.get("supersedes") else None
+    return _Row(rel, kind.name, subject, date, by or UNKNOWN, attr.attributed(path.name, lines), sup)
+
+
+def writer_key(by: str, slug_to_seat: dict[str, str]) -> str:
+    """The group a `by:` value files under: a `Tech-Architect-NN` token wins, else a session slug of
+    the seat map resolves to its seat, else the text before the first parenthesis / dash / comma."""
+    if not by or by == UNKNOWN:
+        return UNKNOWN
+    m = _TA_RE.search(by)
+    if m:
+        return m.group()
+    for slug in sorted(slug_to_seat):
+        if re.search(rf"(?<![A-Za-z0-9-]){re.escape(slug)}(?![A-Za-z0-9-])", by):
+            return slug_to_seat[slug]
+    head = re.split(r" \(| — | · |,|;", by, maxsplit=1)[0].strip()
+    return head[:48] or UNKNOWN
+
+
+def _supersede_targets(rows: list[_Row]) -> set[str]:
+    out: set[str] = set()
+    for r in rows:
+        if r.attributed and r.supersedes:
+            for tok in re.split(r"[,;\s]+", r.supersedes):
+                tok = tok.strip("`'\"()[]<>")
+                if tok:
+                    out.add(tok.rsplit("/", 1)[-1])
+    return out
+
+
+def _by_date_desc(rows: list[_Row]) -> list[_Row]:
+    """Newest first; a tie by path ascending; undated last (no mtime anywhere)."""
+    rows = sorted(rows, key=lambda r: r.path)
+    return sorted(rows, key=lambda r: (r.date != UNDATED, r.date), reverse=True)
+
+
+def _row_line(r: _Row) -> str:
+    return f"- {r.path} | {r.kind} | {r.subject} | {r.date} | by: {r.by}"
+
+
+def _inputs_line(veto: list[str], digest: str) -> str:
+    return f"veto={','.join(veto) or '-'} seatmap={digest}"
+
+
+def _assemble(rows: list[_Row], *, n_unclassified: int, veto: list[str], digest: str,
+              slug_to_seat: dict[str, str], stamp: str, trigger: str) -> str:
+    me = _Row(_INDEX_REL, "INDEX", INDEX_SUMMARY, stamp[:10], INDEX_BY, True)
+    rows = [r for r in rows if r.path != _INDEX_REL] + [me]
+    listed = [r for r in rows if r.attributed]
+    unattr = [r for r in rows if not r.attributed]
+    targets = _supersede_targets(listed)
+
+    def is_superseded(r: _Row) -> bool:
+        base = r.path.rsplit("/", 1)[-1]
+        return bool(_SUPERSEDED_RE.search(base)) or base in targets
+
+    superseded = [r for r in listed if is_superseded(r)]
+    current = [r for r in listed if not is_superseded(r)]
+    by_kind_unattr: dict[str, int] = {}
+    for r in unattr:
+        by_kind_unattr[r.kind] = by_kind_unattr.get(r.kind, 0) + 1
+    out = [
+        f"by: {INDEX_BY}", f"date: {stamp[:10]}", f"summary: {INDEX_SUMMARY}",
+        f"regenerated: {stamp}", f"trigger: {trigger}", f"inputs: {_inputs_line(veto, digest)}",
+        "", "# INDEX — current files on the transport", "",
+        "Generated by `transport.py index --write`. Regenerate it; do not edit it by hand.", "",
+        f"repository: {REPO_TOKEN}", f"live: {len(rows) + n_unclassified}", f"classified: {len(rows)}",
+        f"listed: {len(listed)}", f"current: {len(current)}", f"superseded: {len(superseded)}",
+        f"UNATTRIBUTED: {len(unattr)}", f"unclassified: {n_unclassified}",
+        "UNATTRIBUTED by kind: " + (", ".join(f"{k}={n}" for k, n in sorted(by_kind_unattr.items())) or "-"),
+        "",
+    ]
+
+    def by_kind(group: list[_Row]) -> dict[str, list[_Row]]:
+        kinds: dict[str, list[_Row]] = {}
+        for r in group:
+            kinds.setdefault(r.kind, []).append(r)
+        return dict(sorted(kinds.items()))
+
+    def flat_section(title: str, group: list[_Row]) -> None:
+        out.extend([f"## {title}", ""])
+        if not group:
+            out.extend(["(none)", ""])
+        for kind, krows in by_kind(group).items():
+            out.extend([f"### {kind} ({len(krows)})", ""])
+            out.extend(_row_line(r) for r in _by_date_desc(krows))
+            out.append("")
+
+    out.extend(["## Current", ""])
+    for kind, krows in by_kind(current).items():
+        out.extend([f"### {kind} ({len(krows)})", ""])
+        groups: dict[str, list[_Row]] = {}
+        for r in krows:
+            groups.setdefault(writer_key(r.by, slug_to_seat), []).append(r)
+        real = sorted(w for w in groups if w != UNKNOWN)
+        real.sort(key=lambda w: max((r.date for r in groups[w] if r.date != UNDATED), default=""),
+                  reverse=True)
+        for w in real + ([UNKNOWN] if UNKNOWN in groups else []):
+            out.extend([f"#### {w} ({len(groups[w])})", ""])
+            out.extend(_row_line(r) for r in _by_date_desc(groups[w]))
+            out.append("")
+    flat_section("Superseded", superseded)
+    flat_section("UNATTRIBUTED", unattr)
+    out.extend(["## Supersedes edges", ""])
+    edges = sorted((r.path, r.supersedes) for r in listed if r.supersedes)
+    out.extend([f"- {p} supersedes {raw}" for p, raw in edges] or ["(none)"])
+    while out and out[-1] == "":
+        out.pop()
+    return "\n".join(out) + "\n"
+
+
+def parse_index(text: str) -> dict:
+    """`{header, entries, edges}` of a generated INDEX: `header` maps each flush-left `key: value`
+    line before the first section; `entries` are `{path, kind, subject, date, by, status}`
+    (`status`: current / superseded / unattributed); `edges` are `(path, raw supersedes value)`."""
+    header: dict[str, str] = {}
+    entries: list[dict] = []
+    edges: list[tuple[str, str]] = []
+    section: Optional[str] = None
+    names = {"Current": "current", "Superseded": "superseded", "UNATTRIBUTED": "unattributed",
+             "Supersedes edges": "edges"}
+    for ln in text.splitlines():
+        if ln.startswith("## "):
+            section = names.get(ln[3:].strip())
+            continue
+        if section is None:
+            m = re.match(r"^([A-Za-z][A-Za-z ]*): (.*)$", ln)
+            if m:
+                header.setdefault(m.group(1), m.group(2))
+            continue
+        if section == "edges":
+            m = re.match(r"^- (\S+) supersedes (.+)$", ln)
+            if m:
+                edges.append((m.group(1), m.group(2)))
+            continue
+        if ln.startswith("- ") and " | " in ln:
+            parts = ln[2:].split(" | ")
+            if len(parts) == 5 and parts[4].startswith("by: "):
+                entries.append({"path": parts[0], "kind": parts[1], "subject": parts[2],
+                                "date": parts[3], "by": parts[4][4:], "status": section})
+    return {"header": header, "entries": entries, "edges": edges}
+
+
+def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = None,
+                trigger: str = "index", registry: Optional[list[Kind]] = None) -> str:
+    """The whole INDEX text, rebuilt from the live files. Raises `EmptySeatMap` with no seats."""
+    if not seats:
+        raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
+    reg = registry if registry is not None else load_registry()
+    files = [(rel, p) for rel, p in live_files(Path(root)) if rel != _INDEX_REL]
+    attr = _Attr(files, seats, reg)
+    rows: list[_Row] = []
+    n_unclassified = 0
+    for rel, path in files:
+        kind = classify(path.name, reg)
+        if kind is None:
+            n_unclassified += 1
+        else:
+            rows.append(_scan_row(rel, path, kind, attr))
+    return _assemble(rows, n_unclassified=n_unclassified, veto=attr.veto, digest=seatmap_digest(seats),
+                     slug_to_seat=attr.slug_to_seat, stamp=generated_at or _utc_now(), trigger=trigger)
+
+
+def _rows_from_index(parsed: dict) -> dict[str, _Row]:
+    edge = dict(parsed["edges"])
+    return {e["path"]: _Row(e["path"], e["kind"], e["subject"], e["date"], e["by"],
+                            e["status"] != "unattributed", edge.get(e["path"]))
+            for e in parsed["entries"] if e["path"] != _INDEX_REL}
+
+
+def _is_same_file(a: Path, b: Path) -> bool:
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
+def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
+                  registry: Optional[list[Kind]] = None, stamp: Optional[str] = None) -> bool:
+    """Bring an EXISTING INDEX up to date after `dest` was written. Reads no head but `dest`'s (and a
+    new file's), so it is cheap enough for every writer; but it is no shortcut around the rule: the
+    header records `inputs:` (the veto set and the seat-map digest) and ANY difference rebuilds in
+    full, so a new `LEDGER-<other>` re-evaluates every row. The result equals a full rebuild at the
+    same stamp and trigger (a test holds it). False when there is no INDEX to refresh."""
+    index_path = Path(root) / "to-browser" / INDEX_NAME
+    if not index_path.is_file():
+        return False
+    if not seats:
+        raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
+    reg = registry if registry is not None else load_registry()
+    stamp = stamp or _utc_now()
+    with _DestinationLock(index_path, INDEX_LOCK_TIMEOUT_S):
+        parsed = parse_index(index_path.read_text(encoding="utf-8"))
+        files = [(rel, p) for rel, p in live_files(Path(root)) if rel != _INDEX_REL]
+        attr = _Attr(files, seats, reg)
+        digest = seatmap_digest(seats)
+        if parsed["header"].get("inputs") != _inputs_line(attr.veto, digest):
+            new = build_index(root, seats=seats, generated_at=stamp, trigger=trigger, registry=reg)
+        else:
+            old = _rows_from_index(parsed)
+            rows: list[_Row] = []
+            n_unclassified = 0
+            for rel, path in files:
+                kind = classify(path.name, reg)
+                if kind is None:
+                    n_unclassified += 1
+                    continue
+                prev = old.get(rel)
+                if prev is not None and prev.kind == kind.name and not _is_same_file(path, dest):
+                    rows.append(prev)
+                else:
+                    rows.append(_scan_row(rel, path, kind, attr))
+            new = _assemble(rows, n_unclassified=n_unclassified, veto=attr.veto, digest=digest,
+                            slug_to_seat=attr.slug_to_seat, stamp=stamp, trigger=trigger)
+        _tr.deliver(index_path, new.encode("utf-8"))
+    return True
+
+
+def _after_write(dest: Path, verb: str, reg: list[Kind]) -> None:
+    """The INDEX trigger (Done 5): after a write or append of a classified file inside the known
+    transport, refresh the INDEX when one exists. Fails open -- a held lock, a permission error or any
+    other fault is a stderr line and the caller's write stands. Never fires for the INDEX itself."""
+    try:
+        known = known_root()
+        if known is None or not is_transport_dest(dest, known):
+            return
+        folder = _folder_of(dest)
+        if folder == "to-browser" and dest.name == INDEX_NAME:
+            return
+        if classify(dest.name, reg) is None:
+            return
+        if not (Path(known) / "to-browser" / INDEX_NAME).is_file():
+            return
+        seats, _inv = load_seat_ids(DEFAULT_SEAT_IDS)
+        refresh_index(dest, trigger=f"{verb}:{rel_key(folder, dest.name)}", root=Path(known),
+                      seats=seats, registry=reg)
+    except Exception as exc:  # noqa: BLE001 -- fail open: the index is derived, the write is the fact
+        print(f"transport: INDEX refresh skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
+
+
+# --- the seat-ID map ----------------------------------------------------------------------------
+
+def build_seat_map(root: Path) -> dict:
+    """The Tech-Architect-NN <-> session-slug pairs the transport heads STATE: a `.md` file whose first
+    12 lines (`from:` and `by:` values together) hold exactly one seat id and exactly one session slug
+    states that pair. A seat with two sessions, or a session with two seats, is a conflict: reported,
+    excluded. Provenance is the first stating file in (folder, name) order. Never guessed."""
+    stated: dict[tuple[str, str], list[tuple[int, str, str]]] = {}
+    for rel, path in live_files(Path(root)):
+        if not path.name.endswith(".md"):
+            continue
+        values = [m.group(1) for ln in _read_window(path)[:HEAD_LINES] if (m := _FROM_BY_RE.match(ln))]
+        seats = {s for v in values for s in _TA_RE.findall(v)}
+        slugs = {s for v in values for s in _SLUG_RE.findall(v)}
+        if len(seats) == 1 and len(slugs) == 1:
+            folder = rel.split("/", 1)[0] if "/" in rel else "root"
+            stated.setdefault((seats.pop(), slugs.pop()), []).append((FOLDERS.index(folder), path.name, rel))
+    by_seat: dict[str, set[str]] = {}
+    by_session: dict[str, set[str]] = {}
+    for seat, session in stated:
+        by_seat.setdefault(seat, set()).add(session)
+        by_session.setdefault(session, set()).add(seat)
+    conflicts: list[dict] = [{"seat": s, "sessions": sorted(v)} for s, v in sorted(by_seat.items())
+                             if len(v) > 1]
+    conflicts += [{"seat": "-", "session": s, "seats": sorted(v)} for s, v in sorted(by_session.items())
+                  if len(v) > 1]
+    seats_out = []
+    for (seat, session), files in stated.items():
+        if len(by_seat[seat]) > 1 or len(by_session[session]) > 1:
+            continue
+        seats_out.append({"seat": seat, "session": session,
+                          "provenance": min(files)[2], "stated_in": len(files)})
+    seats_out.sort(key=_seat_sort_key)
+    return {"seats": seats_out, "conflicts": conflicts}
+
+
+# --- the janitor ----------------------------------------------------------------------------------
+#
+# Moves (never deletes) the `-superseded` files of registered, attributable kinds into
+# `<folder>/archive/YYYY-MM/` (`archive/undated/` when the file carries no date of its own). The month
+# is the file's own date -- the head `date:`, else the last YYYY-MM-DD in its name -- and NEVER its
+# mtime (Drive rewrites that). The dry run prints the full move list and a `manifest-sha256`; `--apply`
+# needs that hash, replans, and refuses when the plan no longer hashes to it, so the run moves exactly
+# the list that was read. A move is `os.rename` after an explicit "destination absent" check -- never a
+# copy-then-delete, `os.replace`, `unlink` or `rmtree`. The readers (`gen_handoff._question_files`,
+# `_question_disposition_verdict`) glob `archive/*/`, one level down, where these moves land.
+
+def _archive_month(lines: list[str], name: str) -> tuple[str, str]:
+    keys, _heading = _head_keys(lines)
+    m = re.search(r"(\d{4}-\d{2})-\d{2}", keys.get("date", ""))
+    if m:
+        return m.group(1), "head"
+    named = _DATE_RE.findall(name)
+    if named:
+        return named[-1][:7], "name"
+    return UNDATED, "undated"
+
+
+def _home_of(root: Path, folder: str) -> Path:
+    return Path(root) if folder == "root" else Path(root) / folder
+
+
+def _census(root: Path) -> dict[str, int]:
+    archive = 0
+    for folder in FOLDERS:
+        a = _home_of(root, folder) / "archive"
+        if a.is_dir():
+            archive += sum(1 for p in a.rglob("*") if p.is_file())
+    return {"live": len(live_files(root)), "archive": archive}
+
+
+def _tree_shas(root: Path) -> list[str]:
+    paths = [p for _rel, p in live_files(root)]
+    for folder in FOLDERS:
+        a = _home_of(root, folder) / "archive"
+        if a.is_dir():
+            paths.extend(p for p in a.rglob("*") if p.is_file())
+    return sorted(hashlib.sha256(p.read_bytes()).hexdigest() for p in paths)
+
+
+def _manifest_hash(moves: list[dict]) -> str:
+    lines = sorted(f"{m['source']}|{m['destination']}|{m['sha256']}" for m in moves)
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def janitor_plan(root: Path, *, seats: list[dict], registry: Optional[list[Kind]] = None) -> dict:
+    """What the janitor would move, and why it leaves the rest. Reads, moves nothing. Candidates are
+    live `-superseded` files that are classified, in their kind's own folder and attributed (the
+    same rule the INDEX uses, so a vetoed file is `UNATTRIBUTED`, not a candidate); a destination
+    that already exists is a `COLLISION`, reported and skipped with both files intact."""
+    if not seats:
+        raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
+    root = Path(root)
+    reg = registry if registry is not None else load_registry()
+    files = [(rel, p) for rel, p in live_files(root) if rel != _INDEX_REL]
+    attr = _Attr(files, seats, reg)
+    moves: list[dict] = []
+    skipped: list[dict] = []
+    for rel, path in sorted(files):
+        if not _SUPERSEDED_RE.search(path.name):
+            continue
+        kind = classify(path.name, reg)
+        folder = rel.split("/", 1)[0] if "/" in rel else "root"
+        if kind is None:
+            skipped.append({"path": rel, "reason": "unregistered"})
+        elif kind.name in ("CLAIM_MARKER", "INDEX"):
+            continue                                   # not the janitor's: counted as untouched
+        elif kind.folder != folder:
+            skipped.append({"path": rel, "reason": "misfoldered"})
+        else:
+            lines = _read_window(path)
+            if not attr.attributed(path.name, lines):
+                skipped.append({"path": rel, "reason": "UNATTRIBUTED"})
+                continue
+            month, source = _archive_month(lines, path.name)
+            dest_rel = (f"archive/{month}/{path.name}" if folder == "root"
+                        else f"{folder}/archive/{month}/{path.name}")
+            if (root / dest_rel).exists():
+                skipped.append({"path": rel, "reason": "COLLISION"})
+                continue
+            data = path.read_bytes()
+            moves.append({"source": rel, "destination": dest_rel, "kind": kind.name,
+                          "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data),
+                          "month": month, "month_source": source})
+    census = _census(root)
+    return {"moves": moves, "skipped": skipped,
+            "untouched": census["live"] - len(moves) - len(skipped),
+            "manifest_sha256": _manifest_hash(moves), "census": census}
+
+
+def janitor_apply(root: Path, expect_manifest: str, *, seats: list[dict],
+                  registry: Optional[list[Kind]] = None, trigger_stamp: Optional[str] = None) -> dict:
+    """Move exactly the plan the reviewed `expect_manifest` (at least 12 hex) names. Raises
+    `JanitorRefused` -- moving nothing -- when the hash is malformed or the fresh plan differs."""
+    root = Path(root)
+    reg = registry if registry is not None else load_registry()
+    expect = (expect_manifest or "").lower()
+    if not re.fullmatch(r"[0-9a-f]{12,64}", expect):
+        raise JanitorRefused("--expect-manifest needs at least 12 hex characters of the dry run's "
+                             "manifest-sha256")
+    plan = janitor_plan(root, seats=seats, registry=reg)
+    if not plan["manifest_sha256"].startswith(expect):
+        raise JanitorRefused(f"the move list changed since it was read: the plan now hashes to "
+                             f"{plan['manifest_sha256'][:12]}, not {expect[:12]}; run the dry run again")
+    before, shas_before = _census(root), _tree_shas(root)
+    moved = 0
+    for m in plan["moves"]:
+        src, dst = root / m["source"], root / m["destination"]
+        if hashlib.sha256(src.read_bytes()).hexdigest() != m["sha256"]:
+            raise JanitorRefused(f"{m['source']} changed after the plan was made; nothing further moved")
+        if os.path.lexists(dst):
+            raise JanitorRefused(f"{m['destination']} appeared after the plan was made; nothing further moved")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(src, dst)
+        if src.exists() or hashlib.sha256(dst.read_bytes()).hexdigest() != m["sha256"]:
+            raise JanitorRefused(f"{m['source']}: the move did not verify (source still present or "
+                                 "destination bytes differ)")
+        moved += 1
+    after = _census(root)
+    if (after["live"] != before["live"] - moved or after["archive"] != before["archive"] + moved
+            or _tree_shas(root) != shas_before):
+        raise JanitorRefused(f"census after the moves does not conserve the files: before {before}, "
+                             f"after {after}, moved {moved}")
+    report = {"moved": moved, "skipped": plan["skipped"], "untouched": plan["untouched"],
+              "manifest_sha256": plan["manifest_sha256"], "census_before": before,
+              "census_after": after, "index": "absent"}
+    index_path = root / "to-browser" / INDEX_NAME
+    if index_path.is_file():
+        try:
+            text = build_index(root, seats=seats, generated_at=trigger_stamp, trigger="janitor",
+                               registry=reg)
+            with _DestinationLock(index_path, INDEX_LOCK_TIMEOUT_S):
+                write("transport", index_path, text, registry=reg)
+            report["index"] = "regenerated"
+        except Exception as exc:  # noqa: BLE001 -- the moves stand; `index --write` repairs the INDEX
+            report["index"] = f"NOT regenerated ({type(exc).__name__}: {exc})"
+    return report
 
 
 # --- the stray-file report (report-only; Done-when 3) -----------------------------------------
@@ -738,6 +1335,121 @@ def _cmd_inventory(args: argparse.Namespace) -> int:
     return 0
 
 
+def _root_and_seats(args: argparse.Namespace) -> Optional[tuple[Path, list[dict]]]:
+    """The transport root and the seat map for a command, or None after saying why on stderr."""
+    root = _resolve_root(args.transport_root)
+    if not root.is_dir():
+        print(f"transport.py: transport root {root} is not mounted or does not exist", file=sys.stderr)
+        return None
+    try:
+        seats, _inv = load_seat_ids(_seat_ids_path(args))
+    except SeatIdsError as exc:
+        print(f"transport.py: {exc}", file=sys.stderr)
+        return None
+    if not seats:
+        print(f"transport.py: the seat-ID map at {_seat_ids_path(args)} is empty "
+              "(run `seat-ids --write`); refusing", file=sys.stderr)
+        return None
+    return root, seats
+
+
+def _cmd_index(args: argparse.Namespace) -> int:
+    got = _root_and_seats(args)
+    if got is None:
+        return 2
+    root, seats = got
+    index_path = root / "to-browser" / INDEX_NAME
+    if args.check:
+        if not index_path.is_file():
+            print(f"index: {index_path} does not exist")
+            return 1
+        current = index_path.read_text(encoding="utf-8")
+        header = parse_index(current)["header"]
+        expected = build_index(root, seats=seats, generated_at=header.get("regenerated"),
+                               trigger=header.get("trigger") or "index")
+        print("index: fresh" if expected == current else "index: STALE (run `index --write`)")
+        return 0 if expected == current else 1
+    text = build_index(root, seats=seats, generated_at=args.generated_at, trigger="index")
+    if args.write:
+        write("transport", index_path, text)
+        header = parse_index(text)["header"]
+        print(f"index: wrote {index_path} ({header['listed']} listed, {header['UNATTRIBUTED']} "
+              f"UNATTRIBUTED, {header['unclassified']} unclassified)")
+    else:
+        print(text, end="")
+    return 0
+
+
+def _cmd_seat_ids(args: argparse.Namespace) -> int:
+    root = _resolve_root(args.transport_root)
+    if not root.is_dir():
+        print(f"transport.py: transport root {root} is not mounted or does not exist", file=sys.stderr)
+        return 2
+    got = build_seat_map(root)
+    for c in got["conflicts"]:
+        print(f"seat-ids: conflict (excluded): {c}", file=sys.stderr)
+    path = _seat_ids_path(args)
+    if args.write:
+        if not got["seats"]:
+            print("seat-ids: the transport states no complete pair; refusing to write an empty map",
+                  file=sys.stderr)
+            return 2
+        write_seat_ids(path, seats=got["seats"])
+        print(f"seat-ids: wrote {len(got['seats'])} pair(s) to {path}")
+        return 0
+    if args.check:
+        try:
+            stored, _inv = load_seat_ids(path)
+        except SeatIdsError as exc:
+            print(f"seat-ids: {exc}")
+            return 1
+        ok = bool(got["seats"]) and stored == got["seats"]
+        print("seat-ids: fresh" if ok else "seat-ids: STALE or empty (run `seat-ids --write`)")
+        return 0 if ok else 1
+    print(_dump({"seats": got["seats"]}), end="")
+    return 0
+
+
+def _cmd_janitor(args: argparse.Namespace) -> int:
+    got = _root_and_seats(args)
+    if got is None:
+        return 2
+    root, seats = got
+    if args.apply:
+        if not args.expect_manifest:
+            print("janitor: --apply needs --expect-manifest <the dry run's manifest-sha256, at least "
+                  "12 hex>; run the dry run first", file=sys.stderr)
+            return 2
+        try:
+            report = janitor_apply(root, args.expect_manifest, seats=seats)
+        except JanitorRefused as exc:
+            print(f"janitor: refused: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    plan = janitor_plan(root, seats=seats)
+    reasons: dict[str, int] = {}
+    for s in plan["skipped"]:
+        reasons[s["reason"]] = reasons.get(s["reason"], 0) + 1
+    print(f"janitor: DRY RUN under {root} (nothing was moved)")
+    print(f"manifest-sha256: {plan['manifest_sha256']}")
+    print(f"live: {plan['census']['live']}  archive: {plan['census']['archive']}  "
+          f"moves: {len(plan['moves'])}  skipped: {len(plan['skipped'])}  untouched: {plan['untouched']}")
+    print("skipped by reason: " + (", ".join(f"{k}={n}" for k, n in sorted(reasons.items())) or "-"))
+    kinds: dict[str, int] = {}
+    for m in plan["moves"]:
+        kinds[m["kind"]] = kinds.get(m["kind"], 0) + 1
+    print("moves by kind: " + (", ".join(f"{k}={n}" for k, n in sorted(kinds.items())) or "-"))
+    for m in plan["moves"]:
+        print(f"{m['source']} | {m['destination']} | {m['sha256']}")
+    for s in plan["skipped"]:
+        print(f"skipped: {s['path']} ({s['reason']})")
+    if args.manifest_out:
+        Path(args.manifest_out).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n",
+                                           encoding="utf-8", newline="\n")
+    return 0
+
+
 def _cmd_derive(_args: argparse.Namespace) -> int:
     derived = sorted(derive_kinds_from_code())
     registry = load_registry()
@@ -763,6 +1475,29 @@ def _parser() -> argparse.ArgumentParser:
     i.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
     i.add_argument("--write", action="store_true", help="rewrite the landing_inventory section")
     i.set_defaults(func=_cmd_inventory)
+    x = sub.add_parser("index", help="build the generated to-browser/INDEX.md (prints it; --write writes it)")
+    x.add_argument("--transport-root", default=None)
+    x.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
+    xm = x.add_mutually_exclusive_group()
+    xm.add_argument("--write", action="store_true", help="write to-browser/INDEX.md")
+    xm.add_argument("--check", action="store_true", help="exit 1 when INDEX.md is missing or stale")
+    x.add_argument("--generated-at", default=None, help="the regenerated: stamp (default: now, UTC)")
+    x.set_defaults(func=_cmd_index)
+    si = sub.add_parser("seat-ids", help="the Tech-Architect <-> session pairs the transport states")
+    si.add_argument("--transport-root", default=None)
+    si.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
+    sm = si.add_mutually_exclusive_group()
+    sm.add_argument("--write", action="store_true", help="rewrite the seats section")
+    sm.add_argument("--check", action="store_true", help="exit 1 when the file's seats are stale or empty")
+    si.set_defaults(func=_cmd_seat_ids)
+    j = sub.add_parser("janitor", help="move -superseded files of attributable kinds into archive/ "
+                                       "(dry run by default; --apply needs the reviewed manifest hash)")
+    j.add_argument("--transport-root", default=None)
+    j.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
+    j.add_argument("--apply", action="store_true", help="move the files (needs --expect-manifest)")
+    j.add_argument("--expect-manifest", default=None, help="manifest-sha256 of the reviewed dry run (>= 12 hex)")
+    j.add_argument("--manifest-out", default=None, help="write the full plan as JSON to this file")
+    j.set_defaults(func=_cmd_janitor)
     return p
 
 
