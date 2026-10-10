@@ -662,66 +662,6 @@
         "owner": "[#664]",
         "expiry": "2026-10-17"
       },
-      "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[actions]": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: [<LIST>]"
-      },
-      "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[close]": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: [<LIST>]"
-      },
-      "tests/test_integrator_surface.py::test_a_refused_verification_never_reaches_push_or_teardown[moment:merge]": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: the failing step never ran: [<LIST>]"
-      },
-      "tests/test_integrator_surface.py::test_a_refused_verification_never_reaches_push_or_teardown[race]": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: the failing step never ran: [<LIST>]"
-      },
-      "tests/test_integrator_surface.py::test_the_walk_closes_the_receipt_and_commits_the_ledger_before_moment_teardown": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "StopIteration"
-      },
-      "tests/test_integrator_surface.py::test_the_walk_reaches_push_when_every_verification_passes": {
-        "attribution": {
-          "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-          "lane": "lane-memory-gate"
-        },
-        "task": "[#1103]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: [<LIST>]"
-      },
       "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
         "attribution": "pre-freeze",
         "task": "[#655]",

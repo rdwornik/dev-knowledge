@@ -490,6 +490,26 @@ def _executable_lines(run_text: str) -> str:
     return "\n".join(ln for ln in run_text.splitlines() if not ln.lstrip().startswith("#"))
 
 
+def test_the_pytest_job_deselects_the_operator_host_tests_by_marker(workflow):
+    # [#1103] (R81.3 + the conftest registration): `operator_host` tests read the operator's own
+    # disk and can only pass there; on a CI runner they red on every ubuntu leg and turn the
+    # merge verdict into noise. The selector is the marker and nothing else -- never a node-id
+    # list -- and it sits in the command, not in a comment that names it.
+    step = next(s for s in workflow["jobs"]["pytest"]["steps"] if s.get("id") == "run")
+    command = _executable_lines(str(step["run"]))
+    assert '-m "not operator_host"' in command
+    # one selector for both legs: the matrix owns the OS, the command line must not fork on it
+    assert "matrix.os" not in command
+
+
+def test_the_operator_host_selector_pin_reads_the_command_and_not_its_comment():
+    # RED-first witness: the marker named only in a comment must not satisfy the pin.
+    removed = ("set +e\n# deselects -m \"not operator_host\" tests\n"
+               "uv run --locked pytest -q --tb=short -n 4 --dist loadgroup 2>&1 | tee pytest.out\n")
+    assert '-m "not operator_host"' in removed
+    assert '-m "not operator_host"' not in _executable_lines(removed)
+
+
 def test_the_group_pin_reads_the_command_and_not_the_comment_that_names_the_flag():
     # RED-first witness for the review's P1: with the flag removed from the command and kept
     # in its comment, the pin must still fail.

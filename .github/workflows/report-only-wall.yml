@@ -19,12 +19,20 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # [#1103] / R81.3: the mutation pilot runs "on demand and nightly". A schedule runs from the
+  # default branch only, and GitHub may delay it; the minute is off the hour on purpose. The
+  # `record` job has no `if`, so the nightly run also records the wall (free on the public hub).
+  schedule:
+    - cron: "37 3 * * *"
 
 permissions:
   contents: read          # least privilege; no issues:write -- this organ records, it does not emit
 
 concurrency:
-  group: report-only-wall-${{ github.ref }}
+  # [#1103]: the nightly run keys apart from pushes. Within one group a run queued behind an
+  # active one replaces an earlier PENDING run, so a shared group would let the nightly run drop
+  # the pending record of a landed push. Push and dispatch keep the key they always had.
+  group: report-only-wall-${{ github.event_name == 'schedule' && 'nightly-' || '' }}${{ github.ref }}
   cancel-in-progress: false   # every landed SHA gets its own record; never cancel a record
 
 jobs:
@@ -220,13 +228,21 @@ jobs:
   # WORKFLOW-level filter and would gate the record job too -- the record job must fire on
   # every push or the wall stops being a wall. So the equivalent is expressed per-job via
   # `dorny/paths-filter`-free plumbing: a cheap `changed` step below plus this `if`.
-  # UNGATE WHEN [#502] LANDS ITS VERDICT: a pilot that has produced ADOPT/REJECT either
-  # becomes real infrastructure (widen deliberately) or is deleted.
+  # [#1103] (R81.3): [#502] is closed, and the ratified shape is "on demand and nightly". The
+  # `schedule` arm below is that nightly run; on a schedule `changes` answers false (there is no
+  # `event.before`), so only the event-name arm can admit it. Still report-only: the result is
+  # this job's step summary and its artifact, no write-back (`contents: read` above).
   mutation-pilot:
     needs: changes
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       needs.changes.outputs.pilot_subject == 'true'
+    # Job-level group (S-34 P-L3-3): the pilot queues behind its own earlier run and never
+    # cancels one; it shares no group with the workflow-level `record` group above.
+    concurrency:
+      group: report-only-wall-mutation-pilot
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30       # DECLARED WALL-CLOCK BUDGET, not a guess at the true cost.
                               # The pilot's own brief makes a declared budget a precondition;
@@ -301,3 +317,40 @@ jobs:
             mutmut-results.out
           retention-days: 90
           if-no-files-found: warn
+
+      # [#1103] S-56 Done 4c. The measured steps above are `continue-on-error`, so the job read
+      # `success` on run 38061081144 while mutmut printed "failed to collect stats" and executed
+      # 0 mutants: a check that passes while checking nothing. THIS step judges whether they
+      # measured anything. It runs last (the record and the artifact are already written), is not
+      # `continue-on-error`, and fails the job on "failed to collect stats", on a progress line
+      # with 0 executed (a no-tests mutant is checked, not executed), and on no progress line.
+      # Report-only is unchanged for the survivors: a surviving mutant is still only recorded.
+      # Pinned by tests/test_report_only_wall.py, which extracts and runs this script. The emoji
+      # are written as escapes (an ASCII-only script).
+      - name: Fail when the pilot executed no mutant
+        if: always()
+        run: |
+          uv run --locked python - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          path = pathlib.Path("mutmut.out")
+          if not path.is_file():
+              sys.exit("::error::mutation-pilot: mutmut.out is absent, so no mutant executed")
+          text = path.read_text(encoding="utf-8", errors="replace")
+          if "failed to collect stats" in text:
+              sys.exit("::error::mutation-pilot: mutmut failed to collect stats, 0 mutants executed")
+          # The N of "N/M" is every mutant mutmut has CHECKED, and that includes the ones no test
+          # reaches (no tests). EXECUTED is what a test run decided: killed, survived, timeout,
+          # suspicious. A run of only no-tests mutants has checked all and executed none.
+          progress = re.findall(r"(\d+)/(\d+)\s+(\U0001F389[^\r\n]*)", text)
+          if not progress:
+              sys.exit("::error::mutation-pilot: no mutmut progress line, 0 mutants executed")
+          checked, total, rest = int(progress[-1][0]), int(progress[-1][1]), progress[-1][2]
+          counts = {emoji: int(n) for emoji, n in re.findall(r"(\S+)\s+(\d+)", rest)}
+          executed = sum(counts.get(e, 0) for e in ("\U0001F389", "\U0001F641", "\u23F0", "\U0001F914"))
+          if executed < 1:
+              sys.exit(f"::error::mutation-pilot: 0 of {total} mutants executed ({checked} checked)")
+          print(f"mutation-pilot: {executed} of {total} mutants executed ({checked} checked)")
+          PY

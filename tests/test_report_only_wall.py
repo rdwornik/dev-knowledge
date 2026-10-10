@@ -17,6 +17,12 @@ gate both. A future edit reaching for the simpler `paths:` would quietly disarm 
 """
 from __future__ import annotations
 
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -97,6 +103,45 @@ def test_the_mutation_pilot_is_gated_until_502_has_a_verdict():
     gate = doc["jobs"]["changes"]
     assert gate["outputs"]["pilot_subject"], "the filter job must publish its verdict"
 
+    # [#1103] / R81.3: "on demand and nightly". The schedule arm is a third admitted event, added
+    # beside the two above (neither is weakened). On a schedule the `changes` job answers
+    # pilot_subject=false (no `event.before`), so only the event-name arm can admit the nightly run.
+    on = doc["on"]
+    assert on.get("schedule"), "the wall must carry a nightly schedule (R81.3)"
+    crons = [entry["cron"] for entry in on["schedule"]]
+    assert len(crons) == 1, "one nightly run, not several"
+    minute, hour = crons[0].split()[:2]
+    assert minute.isdigit() and hour.isdigit(), "a fixed nightly time, not a */N cadence"
+    assert minute != "0", "an off-hour minute: GitHub drops on-the-hour schedule load"
+    assert "github.event_name == 'schedule'" in cond, "the pilot must admit the scheduled event"
+
+    # P-L3-3 (S-34): a scheduled run must not displace a pending push `record` run, so the pilot
+    # carries its own job-level concurrency group, distinct from the workflow's.
+    pilot_group = (pilot.get("concurrency") or {}).get("group", "")
+    assert pilot_group and pilot_group != doc["concurrency"]["group"]
+    assert pilot["concurrency"].get("cancel-in-progress") is False
+
+    # Codex review HIGH (close-out of this lane): the job-level group does not lift the run out of
+    # the WORKFLOW-level group, and a run that queues behind an active one replaces an earlier
+    # PENDING run in the same group -- so a nightly run could displace a pending push `record`
+    # (the record of a landed sha, which must never be dropped). The workflow group therefore
+    # keys the schedule event apart from pushes, and still never cancels in progress.
+    wf_group = doc["concurrency"]["group"]
+    assert "github.event_name == 'schedule'" in wf_group, (
+        "the scheduled run must sit in its own workflow-level concurrency group")
+    assert "github.ref" in wf_group, "the push group stays keyed by ref"
+    assert doc["concurrency"].get("cancel-in-progress") is False
+
+
+@requires_workflow
+def test_the_nightly_pilot_keeps_only_its_artifact_and_summary():
+    """[#1103] Done 4b. R81.3 does not authorise a write-back: the nightly run records to its
+    step summary and its artifact, and the workflow's token stays read-only."""
+    doc = _load()
+    assert doc["permissions"] == {"contents": "read"}
+    for name, job in doc["jobs"].items():
+        assert "permissions" not in job or "write" not in str(job["permissions"]), name
+
 
 @requires_workflow
 def test_the_pilot_filter_answers_false_when_it_cannot_tell():
@@ -123,3 +168,262 @@ def test_every_measured_leg_still_records_rather_than_judges():
     assert len(measured) >= 3, f"expected the three measured legs, found {len(measured)}"
     for s in measured:
         assert s.get("continue-on-error") is True, f"{s['name']} must not block"
+
+
+# --- [#1103] S-56 (CI-clock amend): the pilot's copy, and a pilot that cannot pass empty -------
+
+_ROOT = Path(__file__).resolve().parent.parent
+
+# The exact tail of run 38061081144's `mutmut.out` (artifact mutation-pilot-ff57acc4...): the pilot
+# job concluded `success` with this on its screen and 0 mutants executed.
+_FAILED_TO_COLLECT = (
+    "ERROR tests/test_fleet_analytics.py - validate_hermetization.ShapeSpecError: fleet shape spec "
+    "absent: /home/runner/work/dev-knowledge/dev-knowledge/mutants/ecosystem/fleet-shape-spec.yaml\n"
+    "1 error in 22.66s\n"
+    "failed to collect stats. runner returned 2\n"
+)
+# mutmut's progress line, as it writes it to stdout: "\r<spinner> <executed>/<total>  <killed emoji>
+# <killed> <no-tests emoji> ..." (emoji written as escapes: a test file stays ASCII-clean).
+_KILLED = "\U0001F389"
+_REST = " 0 \U0001FAE5 0  ⏰ 0  \U0001F914 0  \U0001F641 "
+
+
+def _mutmut_table() -> dict:
+    return tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["mutmut"]
+
+
+def test_the_mutmut_copy_carries_the_data_files_the_import_chain_reads():
+    """[#1103] S-56. mutmut copies `scripts/`, `tests/` and the project files into `mutants/`
+    and nothing else, then runs the suite there. The import chain of `scripts/fleet_analytics.py`
+    reads `ecosystem/fleet-shape-spec.yaml` at import time (`validate_hermetization.SHAPE_SPEC`,
+    since 01104de3), so without `also_copy` the pilot collects no test: run 38061081144, 0
+    mutants executed, "failed to collect stats". Every entry must also EXIST: mutmut skips an
+    absent `also_copy` path in silence, so a typo would re-open the same hole."""
+    also = _mutmut_table().get("also_copy", [])
+    assert "ecosystem/fleet-shape-spec.yaml" in also
+    for entry in also:
+        assert (_ROOT / entry).exists(), f"also_copy names a path that is not in the repo: {entry}"
+
+
+def _file_entries_without_a_parent(entries: list[str]) -> list[str]:
+    """The FILE entries of an `also_copy` list whose `mutants/<parent>/` does not exist yet when
+    mutmut 3.7.0 reaches them: its `copy_also_copy_files` copies a file with a bare `shutil.copy2`
+    (no parent created) and a directory with `copytree` (parents created), in list order, and
+    `mutants/` holds only the source paths and tests before the loop starts."""
+    seen: list[Path] = []
+    missing: list[str] = []
+    for entry in entries:
+        path = Path(entry)
+        if (_ROOT / path).is_dir():
+            seen.append(path)
+        elif path.parent != Path(".") and not any(path.parent == d or path.parent in d.parents for d in seen):
+            missing.append(entry)
+    return missing
+
+
+def test_a_file_entry_of_also_copy_follows_a_directory_entry_that_creates_its_parent():
+    """[#1103] S-56, shown by dispatched run 38072722475: a lone `ecosystem/fleet-shape-spec.yaml`
+    entry crashed the run with FileNotFoundError, because `mutants/ecosystem/` did not exist. A
+    file entry works only after a directory entry at or below its parent. The real table must
+    carry that file entry (an absent table would pass an empty loop), and the helper must be able
+    to say no: a lone file, and a file listed before its directory, are both refused."""
+    entries = _mutmut_table().get("also_copy", [])
+    assert "ecosystem/fleet-shape-spec.yaml" in entries
+    assert _file_entries_without_a_parent(entries) == []
+    spec = "ecosystem/fleet-shape-spec.yaml"
+    assert _file_entries_without_a_parent([spec]) == [spec]
+    assert _file_entries_without_a_parent([spec, "ecosystem/schema"]) == [spec]
+    assert _file_entries_without_a_parent(["ecosystem/schema", spec]) == []
+
+
+def _copy_the_way_mutmut_does(dest: Path) -> None:
+    """mutmut 3.7.0, `copy_src_dir` then `copy_also_copy_files`, for this table's `source_paths`
+    and the files it always copies. The also_copy loop is mutmut's own, bug included."""
+    table = _mutmut_table()
+    ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+    for name in (*table["source_paths"], "tests"):
+        shutil.copytree(_ROOT / name, dest / name, ignore=ignore)
+    for name in ("pyproject.toml", "uv.lock"):
+        shutil.copy2(_ROOT / name, dest / name)
+    for entry in table.get("also_copy", []):
+        src, dst = _ROOT / entry, dest / entry
+        if not src.exists():
+            continue
+        if src.is_file():
+            shutil.copy2(src, dst)        # no parent created: mutmut's behaviour
+        else:
+            shutil.copytree(src, dst, dirs_exist_ok=True, ignore=ignore)
+
+
+def test_the_mutants_copy_collects_the_pilots_tests(tmp_path):
+    """[#1103] S-56, the outcome the pilot needs before it can execute one mutant: in the copy
+    mutmut builds, the selected tests COLLECT. This is the step that failed on run 38061081144
+    ("failed to collect stats", 0 mutants executed) and, with the shape spec alone, would fail on
+    the next data file the import chain reads. The directory is named `mutants`: the suite
+    itself branches on that name (test_hub_is_included_as_a_mining_target)."""
+    mutants = tmp_path / "mutants"
+    mutants.mkdir()
+    _copy_the_way_mutmut_does(mutants)
+    selected = _mutmut_table()["pytest_add_cli_args_test_selection"]
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-o", "addopts=", "-n", "0",
+         "-p", "no:cacheprovider", *selected],
+        cwd=mutants, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+    assert proc.returncode == 0, (proc.stdout + proc.stderr)[-1500:]
+
+
+def _pilot_check_script() -> str:
+    """The python heredoc of the pilot's `executed no mutant` step, as the runner receives it."""
+    steps = _load()["jobs"]["mutation-pilot"]["steps"]
+    named = [s for s in steps if "executed" in (s.get("name") or "")]
+    assert len(named) == 1, "the pilot must carry exactly one step that checks a mutant executed"
+    step = named[0]
+    # Report-only is the posture of the MEASURED steps; this one judges whether they measured
+    # anything, so it must be able to fail the job and must run after a failed measured step.
+    assert step.get("continue-on-error") is not True, "the vacuity check must be able to fail the job"
+    assert "always()" in str(step.get("if", "")), "it must run after a failed measured step too"
+    run = step["run"]
+    start = run.index("<<'PY'\n") + len("<<'PY'\n")
+    return run[start:run.rindex("\nPY")]
+
+
+def _run_pilot_check(tmp_path: Path, mutmut_out: str | None) -> subprocess.CompletedProcess:
+    if mutmut_out is not None:
+        (tmp_path / "mutmut.out").write_bytes(mutmut_out.encode("utf-8"))
+    return subprocess.run([sys.executable, "-"], input=_pilot_check_script().encode("ascii"),
+                          cwd=tmp_path, capture_output=True, timeout=60)
+
+
+@requires_workflow
+@pytest.mark.parametrize("label,out", [
+    ("the failed run's own output", _FAILED_TO_COLLECT),
+    ("a progress line with 0 executed", "\r⠋ 0/84  " + _KILLED + _REST + "0\n"),
+    ("every mutant checked, none executed (all no-tests)",
+     "\r⠋ 2291/2291  " + _KILLED + " 0 \U0001FAE5 2291  ⏰ 0  \U0001F914 0  \U0001F641 0\n"),
+    ("no progress line at all", "done\n"),
+    ("no mutmut.out at all", None),
+], ids=["failed-run-output", "zero-executed", "only-no-tests", "no-progress-line", "no-file"])
+def test_a_pilot_that_executed_no_mutant_fails_the_job(tmp_path, label, out):
+    """[#1103] S-56 Done 4c. A check that passes while checking nothing is a false positive: every
+    measured step is `continue-on-error`, so the job read `success` on run 38061081144 with 0
+    mutants executed. The step the job ends with fails on `failed to collect stats`, on an
+    executed count of 0, and on a missing progress line. The script under test is the one the
+    workflow carries, extracted and run, not a copy of its logic."""
+    proc = _run_pilot_check(tmp_path, out)
+    assert proc.returncode != 0, f"{label}: the vacuous pilot passed ({proc.stdout!r})"
+
+
+@requires_workflow
+def test_a_pilot_that_executed_a_mutant_passes_the_check(tmp_path):
+    """The other half of the pin: the same step stays quiet when the tool executed mutants,
+    killed or survived. A step that fails everything would also satisfy the test above."""
+    out = ("\r⠋ 1210/2291  " + _KILLED + " 865" + _REST + "345\n"
+           "\r⠙ 2291/2291  " + _KILLED + " 865" + _REST + "1426\n")
+    proc = _run_pilot_check(tmp_path, out)
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+
+
+# --- [#1103] Done 4a: the seed baseline of the mutation pilot -----------------------------------
+
+_BASELINE = _ROOT / "logs" / "MUTATION-BASELINE.json"
+
+# The artifact summary of the seeding run, as that run's `mutmut.out` ends: run 38073707389
+# (workflow_dispatch on 3c923880, job mutation-pilot `success`). mutmut writes this line itself;
+# nothing in it is derived. Its keys are mutmut's own status emoji (`emoji_by_status`, 3.7.0).
+_SEED_SUMMARY = (
+    "⠹ 2291/2291  \U0001f389 863 \U0001fae5 214  ⏰ 4  \U0001f914 0  "
+    "\U0001f641 1210  \U0001f507 0  \U0001f9d9 0"
+)
+_SEED_RUN_ID = 38073707389
+_SEED_SHA = "3c923880e33faa7fd86945c8cbafb1edad65b9d5"
+_SEED_REFERENCE = {"killed": 865, "survived": 1210}   # docs/audits/2026-08-18-technical-502-mutmut-attribution.md:220-227
+_TOLERANCE_PCT = 5
+
+
+_EXECUTED = ("🎉", "🙁", "⏰", "🤔")   # killed, survived, timeout, suspicious
+
+
+def _summary_totals(line: str) -> tuple[int, int, dict[str, int]]:
+    """(checked, mutants, {emoji: count}) from a mutmut progress line, nothing else."""
+    head = re.search(r"(\d+)/(\d+)\s", line)
+    assert head, f"no <checked>/<mutants> in {line!r}"
+    counts = re.findall(r"(\S+)\s+(\d+)", line[head.end():])
+    return int(head.group(1)), int(head.group(2)), {emoji: int(n) for emoji, n in counts}
+
+
+def _executed(totals: dict[str, int]) -> int:
+    """Mutants a test run decided: killed, survived, timeout, suspicious. `checked` (the N of
+    N/M) also counts `no tests` (a mutant no test reaches), so a run of only those has checked
+    every mutant and executed none (Copilot close-out review, HIGH)."""
+    return sum(totals.get(emoji, 0) for emoji in _EXECUTED)
+
+
+def _assert_a_valid_seed(seed: dict, summary: str = _SEED_SUMMARY) -> None:
+    """The seed's contract (Done 4a, S-43.2, S-46): it names its run and the sha that run tested,
+    carries every total the artifact summary emitted under mutmut's own key, those totals EQUAL
+    the summary saved here as a fixture, and they show at least one executed mutant."""
+    assert seed.get("run_id") == _SEED_RUN_ID, "the seed names a different run"
+    assert seed.get("sha") == _SEED_SHA, "the seed names a different tested commit"
+    assert str(seed["run_id"]) in str(seed.get("run_url", "")), "run url and run id disagree"
+    assert seed.get("artifact") == f"mutation-pilot-{_SEED_SHA}", "artifact name and sha disagree"
+    assert seed.get("job_conclusion") == "success", "the seeding job did not conclude success"
+    checked, mutants, counts = _summary_totals(summary)
+    assert seed.get("artifact_summary") == summary, "the seed does not carry the artifact summary"
+    totals = seed.get("totals")
+    assert isinstance(totals, dict) and set(totals) == set(counts), "a total is missing or extra"
+    assert totals == counts, "the seed totals differ from the artifact summary"
+    assert (seed.get("checked"), seed.get("mutants")) == (checked, mutants)
+    assert _executed(totals) >= 1, "the seed shows no executed mutant"
+
+
+def test_the_seed_baseline_is_a_complete_run_with_an_executed_mutant():
+    """[#1103] Done 4a. `logs/MUTATION-BASELINE.json` is committed (`git ls-tree HEAD` lists it),
+    at the `logs/` root that `ecosystem/fleet-shape-spec.yaml` (`runtime_data_home.kinds.committed`)
+    names, from one dispatched run whose pilot job concluded `success` AND executed mutants. The
+    ±5 % check against the 2026-08-18 reference is recomputed here, not trusted from the file."""
+    seed = json.loads(_BASELINE.read_text(encoding="utf-8"))
+    _assert_a_valid_seed(seed)
+    totals = seed["totals"]
+    killed, survived = totals["\U0001f389"], totals["\U0001f641"]
+    for name, got in (("killed", killed), ("survived", survived)):
+        want = _SEED_REFERENCE[name]
+        assert abs(got - want) * 100 <= _TOLERANCE_PCT * want, f"{name}: {got} is not within 5% of {want}"
+    assert seed["reference"] == {**_SEED_REFERENCE, "tolerance_pct": _TOLERANCE_PCT}
+    assert seed["within_tolerance"] is True
+
+
+@pytest.mark.parametrize("damage", ["empty", "partial", "all-zero", "only-no-tests", "no-run-id",
+                                    "wrong-run-id", "wrong-sha"])
+def test_an_empty_or_partial_seed_fails(damage):
+    """The seed test must be able to fail: an empty seed, one missing a total, one whose totals
+    show no executed mutant (the run-38061081144 shape), and one that names no run, all raise."""
+    seed = json.loads(_BASELINE.read_text(encoding="utf-8"))
+    if damage == "empty":
+        seed = {}
+    elif damage == "partial":
+        seed["totals"].pop("\U0001f641")
+    elif damage == "all-zero":
+        # internally consistent, and exactly what run 38061081144 would have produced
+        zero = re.sub(r"(?<=\s)\d+(?=\s|$)", "0", _SEED_SUMMARY.replace("2291/2291", "0/2291"))
+        _, mutants, counts = _summary_totals(zero)
+        seed.update(artifact_summary=zero, totals=counts, checked=0, mutants=mutants)
+        with pytest.raises(AssertionError, match="no executed mutant"):
+            _assert_a_valid_seed(seed, summary=zero)
+        return
+    elif damage == "only-no-tests":
+        # every mutant checked, none decided by a test: `checked` is 2291, `executed` is 0
+        only = ("⠹ 2291/2291  \U0001f389 0 \U0001fae5 2291  ⏰ 0  \U0001f914 0  "
+                "\U0001f641 0  \U0001f507 0  \U0001f9d9 0")
+        checked, mutants, counts = _summary_totals(only)
+        seed.update(artifact_summary=only, totals=counts, checked=checked, mutants=mutants)
+        with pytest.raises(AssertionError, match="no executed mutant"):
+            _assert_a_valid_seed(seed, summary=only)
+        return
+    elif damage == "wrong-run-id":
+        seed["run_id"] = 1                       # well-formed, wrong
+    elif damage == "wrong-sha":
+        seed["sha"] = "0" * 40                   # well-formed, wrong
+    else:
+        del seed["run_id"]
+    with pytest.raises(AssertionError):
+        _assert_a_valid_seed(seed)
