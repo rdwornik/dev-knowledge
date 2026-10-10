@@ -250,6 +250,15 @@ pytest_add_cli_args_test_selection = ["tests/test_fleet_analytics.py"]
 # indistinguishable output is why the 84-mutant and 2291-mutant scopes both read as "green but
 # measuring nothing" -- the symptom was never diagnostic of its cause.
 pytest_add_cli_args = ["-n", "0"]
+# [#1103] S-56. mutmut copies the source paths, `tests/` and the project files into `mutants/`
+# and NOTHING else, then runs the suite from there. A data file the import chain reads at import
+# time is therefore absent unless it is named here, and the pilot then collects no test: run
+# 38061081144, 0 mutants executed, "failed to collect stats". Each entry below is recorded with
+# the dispatched run that showed it missing. mutmut skips an absent path in silence, so
+# tests/test_report_only_wall.py asserts every entry exists.
+also_copy = [
+    "ecosystem/fleet-shape-spec.yaml",   # run 38061081144: validate_hermetization.SHAPE_SPEC
+]
 
 [tool.pytest.ini_options]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18; RULING-S split) ===

@@ -317,3 +317,34 @@ jobs:
             mutmut-results.out
           retention-days: 90
           if-no-files-found: warn
+
+      # [#1103] S-56 Done 4c. The measured steps above are `continue-on-error`, so the job read
+      # `success` on run 38061081144 while mutmut printed "failed to collect stats" and executed
+      # 0 mutants: a check that passes while checking nothing. THIS step judges whether they
+      # measured anything. It runs last (the record and the artifact are already written), is not
+      # `continue-on-error`, and fails the job on "failed to collect stats", on a progress line
+      # with 0 executed, and on no progress line. Report-only is unchanged for the survivors: a
+      # surviving mutant is still only recorded. Pinned by tests/test_report_only_wall.py, which
+      # extracts and runs this script. The killed emoji is written as an escape (ASCII-only script).
+      - name: Fail when the pilot executed no mutant
+        if: always()
+        run: |
+          uv run --locked python - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          path = pathlib.Path("mutmut.out")
+          if not path.is_file():
+              sys.exit("::error::mutation-pilot: mutmut.out is absent, so no mutant executed")
+          text = path.read_text(encoding="utf-8", errors="replace")
+          if "failed to collect stats" in text:
+              sys.exit("::error::mutation-pilot: mutmut failed to collect stats, 0 mutants executed")
+          progress = re.findall("(\\d+)/(\\d+)\\s+\U0001F389", text)
+          if not progress:
+              sys.exit("::error::mutation-pilot: no mutmut progress line, 0 mutants executed")
+          executed, total = (int(n) for n in progress[-1])
+          if executed < 1:
+              sys.exit(f"::error::mutation-pilot: 0 of {total} mutants executed")
+          print(f"mutation-pilot: {executed} of {total} mutants executed")
+          PY
