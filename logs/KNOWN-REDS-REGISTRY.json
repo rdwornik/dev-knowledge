@@ -100,18 +100,6 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
-    "tests/test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing": {
-      "attribution": "pre-freeze",
-      "task": "[#1345]",
-      "owner": "rob",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_desired_state_schema.py::test_enums_match_parity_surfaces_on_disk": {
-      "attribution": "pre-freeze",
-      "task": "[#1345]",
-      "owner": "rob",
-      "expiry": "2026-10-31"
-    },
     "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
       "attribution": {
         "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
@@ -597,20 +585,6 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed"
       },
-      "tests/test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing": {
-        "attribution": "pre-freeze",
-        "task": "[#1345]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "pydantic_core._pydantic_core.ValidationError: 1 validation error for Probe"
-      },
-      "tests/test_desired_state_schema.py::test_enums_match_parity_surfaces_on_disk": {
-        "attribution": "pre-freeze",
-        "task": "[#1345]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: {'check_ignore', 'claude_subtrees', 'command_present', 'commands_roster', 'dir_exists', 'dir_tracked', ...}"
-      },
       "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
         "attribution": {
           "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
@@ -1025,20 +999,6 @@
         "owner": "rob",
         "expiry": "2026-10-31",
         "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed"
-      },
-      "tests/test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing": {
-        "attribution": "pre-freeze",
-        "task": "[#1345]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "pydantic_core._pydantic_core.ValidationError: 1 validation error for Probe"
-      },
-      "tests/test_desired_state_schema.py::test_enums_match_parity_surfaces_on_disk": {
-        "attribution": "pre-freeze",
-        "task": "[#1345]",
-        "owner": "rob",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: {'check_ignore', 'claude_subtrees', 'command_present', 'commands_roster', 'dir_exists', 'dir_tracked', ...}"
       },
       "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
         "attribution": {

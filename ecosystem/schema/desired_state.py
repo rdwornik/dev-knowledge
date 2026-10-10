@@ -129,6 +129,7 @@ class ProbeType(StrEnum):
     dir_exists = "dir_exists"
     precommit_hook = "precommit_hook"
     settings_hook = "settings_hook"
+    settings_hook_script = "settings_hook_script"
     file_exists = "file_exists"
     precommit_remote = "precommit_remote"
     glob_tracked = "glob_tracked"
