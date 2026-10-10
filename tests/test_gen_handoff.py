@@ -2501,3 +2501,240 @@ def test_preflight_notes_land_in_the_receipt_when_given(tmp_path):
 def test_refusal_count_is_none_without_a_readable_log(tmp_path):
     assert gh._refusal_count_since_previous_cut(None) is None
     assert gh._refusal_count_since_previous_cut(tmp_path / "no-transport-here") is None
+
+
+# =============================================================================================
+# B2-W3 lane b2w2-boot-teaching ([#1443], carried from B2-W2): the boot's reading path resolves,
+# the dispatch map is generated and its PROVEN/DECLARED state comes only from cited evidence, and
+# the cut names the two files the operator installs. RED-first: every test below failed at
+# 03d21ff8 -- `--reading-path`, `--dispatch-map`, `dispatch_map_text`, `evidence_resolves` and the
+# INSTALL lines did not exist -- and fails at RUN time (an AttributeError or a missing option), not
+# at import.
+# =============================================================================================
+
+_EXAM_HEAD = ("carried-by: OPEN\nkind: SEAT-EXAM\ndate: 2026-10-09\n\n"
+              "# SEAT-EXAM — questions only (paste these; never paste the key)\n\n"
+              "1. A scenario question?\n")
+_RESULT_BODY = ("carried-by: OPEN\nkind: SEAT-EXAM-RESULT\n\n# SEAT-EXAM-RESULT\n\n"
+                "Key: the held answers sit here\n")
+_DISPATCH_DIGEST = ("# DIGEST-DISPATCH-ONBOARDING-2026-10-09 — fixture\n\n## 1. Three substrates\n\ntext\n\n"
+                    "## 4. Dispatch exam — answer before the first dispatch\n\n"
+                    "1. Which verb starts a local lane?\n2. Where does the paste go?\n\n"
+                    "Pass: seven of eight.\n")
+
+
+def _reading_transport(tmp_path, *, index=True, dispatch_heading=True):
+    """A fixture transport holding every reading-path item, plus the traps the resolver must
+    walk past: superseded lessons, a withdrawn-looking `-superseded` name, an older exam, and
+    answer-bearing RESULT files that are NEWER by mtime and, for one, by date."""
+    t = tmp_path / "rp-transport"
+    tb = t / "to-browser"
+    tb.mkdir(parents=True)
+    (t / "to-cc").mkdir()
+    if index:
+        (tb / "INDEX.md").write_text("# INDEX\n", encoding="utf-8")
+    for name, body in (
+            ("SEAT-LESSONS-2026-10-04-v1-superseded.md", "# lessons v1 (stale)\n"),
+            ("SEAT-LESSONS-2026-10-08.md", "# lessons (older, valid)\n"),
+            ("SEAT-LESSONS-2026-10-10.md", "# lessons (newest valid)\n"),
+            ("SEAT-LESSONS-2026-10-12-v3-superseded.md", "# lessons v3 (superseded, newer)\n"),
+            ("SEAT-LESSONS-2026-10-13-superseded.md", "# lessons (named superseded, newer)\n"),
+            ("SEAT-EXAM-2026-10-04.md", _EXAM_HEAD.replace("2026-10-09", "2026-10-04")),
+            ("SEAT-EXAM-2026-10-09.md", _EXAM_HEAD),
+            ("SEAT-EXAM-RESULT-2026-10-09.md", _RESULT_BODY),
+            ("SEAT-EXAM-RESULT-2026-10-09-2.md", _RESULT_BODY),
+            ("SEAT-EXAM-RESULT-2099-01-01.md", _RESULT_BODY)):
+        (tb / name).write_text(body, encoding="utf-8")
+    digest = _DISPATCH_DIGEST if dispatch_heading else _DISPATCH_DIGEST.replace(
+        "## 4. Dispatch exam — answer before the first dispatch", "## 4. Something else")
+    (tb / "DIGEST-DISPATCH-ONBOARDING-2026-10-09.md").write_text(digest, encoding="utf-8")
+    later = os.stat(tb / "SEAT-EXAM-2026-10-09.md").st_mtime + 3600
+    for name in ("SEAT-EXAM-RESULT-2026-10-09.md", "SEAT-EXAM-RESULT-2026-10-09-2.md",
+                 "SEAT-EXAM-RESULT-2099-01-01.md"):
+        os.utime(tb / name, (later, later))              # the trap: results are the NEWEST files
+    return t
+
+
+_HELP_TOP = """Usage: dispatch.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  codespace-exec  Actually dispatch a Codespace lane end to end:...
+  launch          Run `pre-launch`, then spawn the lane exactly once.
+  queue           The launch order for CONTRACTS, computed from the...
+"""
+
+
+def _fake_help(verb=None):
+    if verb is None:
+        return _HELP_TOP
+    return f"Usage: dispatch.py {verb} [OPTIONS] ARG\n\n  help for {verb}\n"
+
+
+_MAP_REGISTRY = {"substrates": {
+    "local": {"family": "local", "verbs": ["dispatch"], "live": True},
+    "cloud": {"family": "cloud", "verbs": ["Dispatch-Cloud"], "live": True},
+    "codespace": {"family": "codespace", "verbs": ["Dispatch-Codespace"], "live": True}}}
+_MAP_HARNESS = {"moments": [
+    {"name": "pre-launch", "organs": [{"id": "worktree_occupancy"}, {"id": "routing_agreement"}]},
+    {"name": "merge", "organs": [{"id": "not_in_the_map"}]}]}
+
+
+def _evidence_repo(tmp_path, *, function="test_y"):
+    repo = tmp_path / "evidence-repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / "tests" / "test_x.py").write_text(f"def {function}():\n    pass\n", encoding="utf-8")
+    return repo
+
+
+def _map(repo_root, evidence, *, help_runner=_fake_help):
+    return gh.dispatch_map_text(repo_root, help_runner=help_runner, registry=_MAP_REGISTRY,
+                                harness=_MAP_HARNESS, evidence=evidence)
+
+
+def _block(text, name):
+    m = re.search(rf"(?ms)^substrate: {name}$.*?(?=^substrate: |\Z)", text)
+    assert m is not None, f"no block for {name}"
+    return m.group(0)
+
+
+def test_a_substrate_with_only_a_live_flag_is_declared(tmp_path):
+    text = _map(_evidence_repo(tmp_path), {})
+    for name in ("local", "cloud", "codespace"):
+        block = _block(text, name)
+        assert "live: true" in block                     # printed, never believed
+        assert "state: DECLARED" in block and "state: PROVEN" not in block
+
+
+def test_a_substrate_with_resolving_evidence_and_its_verb_is_proven_and_cites_it(tmp_path):
+    token = "test:tests/test_x.py::test_y"
+    text = _map(_evidence_repo(tmp_path), {"local": (token,)})
+    block = _block(text, "local")
+    assert "state: PROVEN" in block and f"evidence: {token}" in block
+    assert "state: DECLARED" in _block(text, "cloud")    # no start verb, no evidence
+
+
+def test_evidence_that_names_no_such_test_is_declared(tmp_path):
+    token = "test:tests/test_x.py::test_y"
+    text = _map(_evidence_repo(tmp_path, function="test_other"), {"local": (token,)})
+    assert "state: DECLARED" in _block(text, "local")
+    text = _map(_evidence_repo(tmp_path), {"local": ("test:tests/test_missing.py::test_y",)})
+    assert "state: DECLARED" in _block(text, "local")
+
+
+def test_a_missing_start_verb_is_declared_even_with_evidence(tmp_path):
+    token = "test:tests/test_x.py::test_y"
+
+    def no_launch(verb=None):
+        return _HELP_TOP.replace("  launch          Run `pre-launch`, then spawn the lane exactly once.\n", "") \
+            if verb is None else _fake_help(verb)
+    text = _map(_evidence_repo(tmp_path), {"local": (token,)}, help_runner=no_launch)
+    block = _block(text, "local")
+    assert "state: DECLARED" in block and "launch" in block.split("reason:", 1)[1]
+
+
+def test_evidence_resolves_only_for_an_existing_test_function(tmp_path):
+    repo = _evidence_repo(tmp_path)
+    assert gh.evidence_resolves("test:tests/test_x.py::test_y", repo) is True
+    assert gh.evidence_resolves("test:tests/test_x.py::test_z", repo) is False
+    assert gh.evidence_resolves("test:tests/test_nope.py::test_y", repo) is False
+    assert gh.evidence_resolves("run:12345", repo) is False       # no run-id kind exists
+    assert gh.evidence_resolves("live: true", repo) is False
+    assert gh.evidence_resolves("test:../outside.py::test_y", repo) is False
+
+
+def test_the_live_map_covers_every_registry_substrate_once_and_every_proven_one_cites_a_resolving_test():
+    import yaml
+    registry = yaml.safe_load((gh._REPO_ROOT / "ecosystem" / "substrate-registry.yaml")
+                              .read_text(encoding="utf-8"))
+    text = gh.dispatch_map_text(gh._REPO_ROOT, help_runner=_fake_help)
+    names = re.findall(r"(?m)^substrate: (\S+)$", text)
+    assert names == list(registry["substrates"]), names           # registry order, each once
+    proven = [n for n in names if "state: PROVEN" in _block(text, n)]
+    assert proven, "the repository cites evidence for at least one substrate"
+    for n in proven:
+        token = re.search(r"(?m)^evidence: (\S+)$", _block(text, n)).group(1)
+        assert gh.evidence_resolves(token, gh._REPO_ROOT), (n, token)
+    for n in set(names) - set(proven):
+        assert "state: DECLARED" in _block(text, n)
+
+
+def test_the_map_is_ascii_and_deterministic(tmp_path):
+    repo = _evidence_repo(tmp_path)
+    ev = {"local": ("test:tests/test_x.py::test_y",)}
+    a, b = _map(repo, ev), _map(repo, ev)
+    assert a == b
+    assert a.isascii() and "\r" not in a and a.endswith("\n")
+    assert not re.search(r"\d{4}-\d{2}-\d{2}", a), "a date in the map would re-render it daily"
+
+
+def _invoke(args, transport):
+    from click.testing import CliRunner
+    return CliRunner().invoke(gh.main, args, env={"CLAUDE_PROMPTS_DIR": str(transport)})
+
+
+def test_dispatch_map_cli_exits_0_and_prints_the_legend(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
+    res = _invoke(["--dispatch-map"], tmp_path)
+    assert res.exit_code == 0, res.output
+    assert "legend" in res.output and "PROVEN" in res.output and "DECLARED" in res.output
+    assert "substrate: local" in res.output
+
+
+def test_dispatch_map_write_creates_the_map_file_in_the_transport_and_refuses_without_one(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
+    t = _reading_transport(tmp_path)
+    res = _invoke(["--dispatch-map", "--write"], t)
+    assert res.exit_code == 0, res.output
+    written = t / "to-browser" / "MAP-DISPATCH.md"
+    assert written.read_text(encoding="utf-8") == gh.dispatch_map_text()
+    assert not list((t / "to-browser").glob("*.tmp")), "the atomic write leaves no temp file"
+    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: None)
+    res = _invoke(["--dispatch-map", "--write"], t)
+    assert res.exit_code == 1 and "transport" in res.output.lower()
+    res = _invoke(["--write"], t)
+    assert res.exit_code != 0                                      # --write belongs to --dispatch-map
+
+
+def test_reading_path_cli_exits_0_when_all_five_resolve(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
+    t = _reading_transport(tmp_path)
+    gh.write_dispatch_map(t, gh.dispatch_map_text())
+    res = _invoke(["--reading-path"], t)
+    assert res.exit_code == 0, res.output
+    lines = [ln for ln in res.output.splitlines() if re.match(r"\s*\d ", ln)]
+    assert len(lines) == 5 and all(" OK " in ln for ln in lines), res.output
+    assert "SEAT-LESSONS-2026-10-10.md" in res.output            # the newest valid one
+    assert "RESULT" not in res.output
+
+
+def test_reading_path_cli_exits_1_naming_the_missing_item(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
+    t = _reading_transport(tmp_path, index=False)
+    gh.write_dispatch_map(t, gh.dispatch_map_text())
+    res = _invoke(["--reading-path"], t)
+    assert res.exit_code == 1
+    assert "MISSING" in res.output and "to-browser/INDEX.md" in res.output
+
+
+def test_reading_path_cli_exits_1_on_a_stale_or_missing_map_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
+    t = _reading_transport(tmp_path)
+    res = _invoke(["--reading-path"], t)                           # no map file at all
+    assert res.exit_code == 1 and "MAP-DISPATCH.md" in res.output and "MISSING" in res.output
+    gh.write_dispatch_map(t, gh.dispatch_map_text() + "state: PROVEN\n")   # a hand-edited map
+    res = _invoke(["--reading-path"], t)
+    assert res.exit_code == 1 and "STALE" in res.output
+    assert "gen_handoff.py --dispatch-map --write" in res.output     # names the one refresh command
+
+
+def test_a_cut_prints_exactly_two_install_lines(tmp_path, capfd):
+    _gen(tmp_path, assemble=True)
+    out = capfd.readouterr().out
+    install = [ln for ln in out.splitlines() if ln.startswith("INSTALL ")]
+    assert len(install) == 2, out
+    assert install[0].startswith("INSTALL 1/2 protocols/HANDOFF_BOOT.md sha8 ")
+    assert install[1].startswith("INSTALL 2/2 ") and "PASTE_THIS.md sha8 " in install[1]

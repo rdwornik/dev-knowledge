@@ -2852,3 +2852,15 @@ def test_the_sealed_bundles_transport_row_passes_over_a_grown_registry_tree(tmp_
     shutil.copytree(sealed, shrunk / "docs" / "handoffs" / _SEALED_BUNDLE)
     by2 = _bd(vhp.verify_boot(shrunk / "docs" / "handoffs" / _SEALED_BUNDLE, shrunk))
     assert by2["BD-transport"].status == "fail", by2["BD-transport"].detail
+
+
+def test_the_role_row_pointer_resolves_to_a_boot_that_carries_the_reading_path():
+    """B2-W3 lane b2w2-boot-teaching ([#1443] Done 6): the probe reader's `Role` pointer is the
+    Project knowledge file, and that file now teaches the reading path -- so the reader that
+    checks the pointer is checked against the new boot shape, not assumed. RED at 03d21ff8: the
+    pointer resolved to a boot with no `## Reading path`."""
+    import re
+    (target,) = vhp.BOOT_POINTERS["Role"]
+    boot = Path(aud._REPO_ROOT) / target
+    assert boot.is_file(), target
+    assert re.search(r"(?m)^## Reading path\b", boot.read_text(encoding="utf-8"))

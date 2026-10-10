@@ -152,7 +152,8 @@ def test_all_sections_in_order(tmp_path: Path) -> None:
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
 
     assert _labels(paste) == [
-        "HANDOFF_BOOT.md (session header)",
+        # B2-W3 [#1443] Done 3: the section no longer carries the Project knowledge file's name
+        "SESSION HEADER (this bundle, not the Project knowledge file)",
         "ROLE PIN (protocols/HANDOFF_BOOT.md — RESIDENT, not inlined)",
         "RESIDUAL.md",
         "PROBES.md",
@@ -1140,3 +1141,92 @@ def test_an_architect_cut_still_needs_probes_md_in_the_bundle(tmp_path: Path) ->
     result = _run(script, bundle)
     assert result.returncode == 1 and "Required source missing" in result.stderr
     assert not (bundle / "PASTE_THIS.md").exists()
+
+
+# ------------------------------------------------------------------ #
+# B2-W3 lane b2w2-boot-teaching ([#1443] Done 3): two files carry the name HANDOFF_BOOT.md -- the
+# Project knowledge file and each bundle's own. The operator installed the wrong one. The pasted
+# session header stops carrying the name, the ROLE PIN keeps it, and the cut prints exactly two
+# INSTALL lines. RED-first: every test below failed at 03d21ff8 (the label was
+# "HANDOFF_BOOT.md (session header)", the Role row was pasted, no INSTALL line existed).
+# ------------------------------------------------------------------ #
+
+_BOOT_NAME = "HANDOFF_BOOT.md"
+_REAL_SHAPE_BOOT = (
+    "# HANDOFF_BOOT — fixture bundle header\n<!-- scope: meta -->\n\n"
+    "| Field | Value |\n|---|---|\n| **Slug** | test |\n"
+    "| **Role** | `protocols/HANDOFF_BOOT.md` @ handoff-process v7.1.0 |\n"
+    "| **Mode** | **architect** (test) |\n| **Plan** | the plan row |\n\n"
+    "> a doctrine pointer that names protocols/HANDOFF_BOOT.md\n\n"
+    "## What the operator does\n\nInstall protocols/HANDOFF_BOOT.md. Steps go here.\n")
+
+
+def _real_shape_bundle(tmp_path: Path) -> tuple[Path, Path]:
+    bundle, script = _make_bundle(tmp_path, mode="architect")
+    (bundle / _BOOT_NAME).write_text(_REAL_SHAPE_BOOT, encoding="utf-8", newline="\n")
+    return bundle, script
+
+
+def _section(paste: str, label_prefix: str) -> str:
+    parts = paste.split("\n\n---\n\n")
+    for part in parts:
+        if part.startswith(f"=== {label_prefix}"):
+            return part
+    raise AssertionError(f"no section starting {label_prefix!r} in {_labels(paste)}")
+
+
+def test_the_pasted_header_section_carries_no_boot_name_at_all(tmp_path: Path) -> None:
+    bundle, script = _real_shape_bundle(tmp_path)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    header = _section(paste, "SESSION HEADER")
+    assert _BOOT_NAME not in header, header                 # label and body both
+    assert "| **Role** |" not in header                      # the row that named it is not pasted
+    assert "| **Slug** | test |" in header and "| **Mode** |" in header and "| **Plan** |" in header
+    assert _labels(paste)[0] == "SESSION HEADER (this bundle, not the Project knowledge file)"
+
+
+def test_the_role_pin_section_still_names_the_canonical_file(tmp_path: Path) -> None:
+    bundle, script = _real_shape_bundle(tmp_path)
+    assert _run(script, bundle).returncode == 0
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    pin = _section(paste, "ROLE PIN")
+    assert "protocols/HANDOFF_BOOT.md" in pin.splitlines()[0]
+    assert "ROLE PIN — HANDOFF_BOOT.md @ handoff-process v" in pin
+    assert "project knowledge" in pin                          # the refusal names where it is installed
+
+
+def test_the_bundle_file_is_left_byte_identical_by_the_assembler(tmp_path: Path) -> None:
+    bundle, script = _real_shape_bundle(tmp_path)
+    before = (bundle / _BOOT_NAME).read_bytes()
+    assert _run(script, bundle).returncode == 0
+    assert (bundle / _BOOT_NAME).read_bytes() == before         # N6: the bundle file, its readers, stay
+
+
+def test_install_files_are_exactly_two_with_their_sha8(tmp_path: Path) -> None:
+    import hashlib
+    sys.path.insert(0, str(SCRIPT.parent))
+    import assemble_paste as ap
+    bundle, script = _real_shape_bundle(tmp_path)
+    assert _run(script, bundle).returncode == 0
+    files = ap.install_files(tmp_path, bundle)
+    assert [f.path for f in files] == ["protocols/HANDOFF_BOOT.md", "bundle/PASTE_THIS.md"]
+    for f, real in zip(files, (tmp_path / "protocols" / _BOOT_NAME, bundle / "PASTE_THIS.md")):
+        assert f.sha8 == hashlib.sha256(real.read_bytes()).hexdigest()[:8]
+    pin = _section((bundle / "PASTE_THIS.md").read_text(encoding="utf-8"), "ROLE PIN")
+    assert f"sha256: {files[0].sha8}" in pin                    # the pin and the INSTALL line agree
+
+
+def test_the_assembler_prints_exactly_two_install_lines(tmp_path: Path) -> None:
+    bundle, script = _real_shape_bundle(tmp_path)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    install = [ln for ln in lines if ln.startswith("INSTALL ")]
+    assert len(install) == 2, result.stdout
+    assert install[0].startswith("INSTALL 1/2 protocols/HANDOFF_BOOT.md sha8 ")
+    assert install[1].startswith("INSTALL 2/2 bundle/PASTE_THIS.md sha8 ")
+    assert all(ln.isascii() for ln in install)
+    written = next(i for i, ln in enumerate(lines) if ln.startswith("Written:"))
+    assert [lines.index(ln) for ln in install] == [written + 1, written + 2]   # right after Written:

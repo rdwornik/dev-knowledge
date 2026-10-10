@@ -475,3 +475,124 @@ def test_the_boot_and_the_templates_state_who_fills_the_fill_ins_and_quote_their
         assert "FILL-IN AUTHORS" in tmpl, name
         assert all(q in tmpl for q in _HOME_QUOTES), name
     assert "NO HOME NAMES THE AUTHOR" in _plain((_TMPL_DIR / "HANDOFF_BOOT.md.tmpl").read_text(encoding="utf-8"))
+
+
+# =============================================================================================
+# B2-W3 lane b2w2-boot-teaching ([#1443], [#1438]; carried from B2-W2): a fresh browser seat learns
+# from the boot alone what two seats failed on -- the INDEX, the current lessons, the two exams
+# (questions only) and the generated dispatch map -- and R73, R76 and R80 sit in the boot as one
+# line each. RED-first: every test below failed at 03d21ff8 (no `## Reading path`, no ruling
+# lines, `boot_version: 1`, no `tasks/1443-*.md`, no review record) at RUN time.
+# =============================================================================================
+
+import handoff_state as hs  # noqa: E402
+
+
+def _reading_path_section(boot: str) -> str:
+    m = re.search(r"(?ms)^## Reading path\b.*?(?=^## |\Z)", boot)
+    assert m is not None, "the boot has no '## Reading path' section"
+    return m.group(0)
+
+
+def test_the_reading_path_names_every_item_in_order_with_no_dated_path_or_key():
+    boot = _BOOT.read_text(encoding="utf-8")
+    sec = _reading_path_section(boot)
+    offsets = [sec.find(item.boot_anchor) for item in hs.READING_PATH]
+    missing = [i.boot_anchor for i, o in zip(hs.READING_PATH, offsets) if o < 0]
+    assert not missing, f"reading-path items absent from the section: {missing}"
+    assert offsets == sorted(offsets) and len(set(offsets)) == len(offsets), offsets   # in order
+    assert not re.search(r"\d{4}-\d{2}-\d{2}", sec), "a typed date goes stale (R70)"
+    assert not re.search(r"SEAT-LESSONS-\d", sec), "a dated lessons path goes stale (R70)"
+    plain = _plain(sec)
+    assert "Dispatch exam" in plain and "questions only" in plain.lower()
+    for m in re.finditer(r"SEAT-EXAM-RESULT", plain):
+        assert re.search(r"\b(not|never)\b", plain[max(0, m.start() - 90):m.start()], re.I), (
+            "SEAT-EXAM-RESULT may appear only in a negation (it carries the key)")
+    assert "gen_handoff.py --reading-path" in sec and "gen_handoff.py --dispatch-map --write" in sec
+    assert not re.search(r"(?mi)^\s*(answers?|key|expected)\b", sec)
+
+
+def test_the_reading_path_comes_after_core_and_before_the_floor():
+    boot = _BOOT.read_text(encoding="utf-8")
+    heads = re.findall(r"(?m)^## (.+)$", boot)
+    core = next(i for i, h in enumerate(heads) if h.startswith("Core"))
+    assert heads[core + 1].startswith("Reading path"), heads[: core + 3]
+    assert heads[core + 2].startswith("The floor"), heads[: core + 3]
+
+
+_RULING_ANCHORS = {"R73": ("exam",), "R76": ("do not decide alone", "CC"), "R80": ("one topic per turn",)}
+
+
+def test_the_three_rulings_are_each_one_line_with_their_id():
+    boot = _BOOT.read_text(encoding="utf-8")
+    lines = boot.splitlines()
+    for rid, words in _RULING_ANCHORS.items():
+        at = [i for i, ln in enumerate(lines) if re.match(rf"- \*\*{rid}\*\*", ln)]
+        assert len(at) == 1, f"{rid} must start exactly one bullet line, found {len(at)}"
+        line = lines[at[0]]
+        for w in words:
+            assert w in line, f"{rid}'s line lacks {w!r}: {line}"
+        nxt = lines[at[0] + 1] if at[0] + 1 < len(lines) else ""
+        assert not nxt.startswith(" "), f"{rid} wraps onto a second line"
+        assert len(line.encode("utf-8")) <= 330, f"{rid}'s line is not one line: {len(line)} chars"
+    rulings = re.search(r"(?ms)^## Rulings every window carries\b.*?(?=^## |\Z)", boot)
+    assert rulings is not None
+    assert all(rid in rulings.group(0) for rid in _RULING_ANCHORS)
+
+
+def test_the_boot_is_version_2_with_a_recorded_body_hash_and_reconciled_with_the_live_spec():
+    text = _BOOT.read_text(encoding="utf-8")
+    front, _body = _split_boot(text)
+    assert re.search(r"(?m)^boot_version:\s*2\s*$", front), front
+    assert {1, 2} <= set(_BOOT_BODY_SHA256), "version 1's pair stays (the history); 2's is recorded"
+    live = re.search(r"(?m)^Version:\s+v?(\d+\.\d+\.\d+)", _HP.read_text(encoding="utf-8")).group(1)
+    assert re.search(rf"(?m)^reconciled_with:\s*handoff-process@{re.escape(live)}\s*$", front), (
+        f"reconciled_with must equal the live spec version {live}")
+    assert re.search(r"(?m)^last_reviewed:\s*(\d{4}-\d{2}-\d{2})$", front).group(1) >= "2026-10-09"
+    assert _boot_version_problem(text) is None
+
+
+#: pointer left in the boot -> (its home file, a regex the home must hold). The text a boot edit
+#: moves behind a pointer is findable at the home, so the pointer is not a dead end.
+_DISPLACED = (
+    ("scripts/dispatch.py launch --help", "scripts/dispatch.py", r"MODEL_ALIASES"),
+    ("templates/dispatcher-order-template.md", "templates/dispatcher-order-template.md", r"authorized-by"),
+    ("claim.py", "scripts/claim.py", r"release"),
+    ("templates/lane-contract-template.md", "templates/lane-contract-template.md", r"Done-contract"),
+    ("protocols/STANDING_RULINGS.md", "protocols/STANDING_RULINGS.md", r"\*\*R47\b"),
+    ("HANDOFF_PROCESS.md", "protocols/HANDOFF_PROCESS.md", r"(?m)^## 13\. Modes"),
+)
+
+
+def test_displaced_boot_text_has_a_pointer_in_the_boot_and_a_home_that_holds_it():
+    boot = _BOOT.read_text(encoding="utf-8")
+    for pointer, home, term in _DISPLACED:
+        assert pointer in boot, f"the boot no longer carries the pointer {pointer!r}"
+        home_path = _REPO / home
+        assert home_path.is_file(), f"{pointer!r}: its home {home} does not resolve"
+        assert re.search(term, home_path.read_text(encoding="utf-8")), (
+            f"{home} does not hold {term!r}")
+
+
+def test_1438_names_its_carrier_1443_and_the_carrier_exists():
+    """[#1438] is folded into [#1443]: a link a script checks (AMEND P-L4-2), not a prose claim."""
+    t1438 = list((_REPO / "tasks").glob("1438-*.md"))
+    t1443 = list((_REPO / "tasks").glob("1443-*.md"))
+    assert len(t1438) == 1 and len(t1443) == 1, (t1438, t1443)
+    body_1438 = t1438[0].read_text(encoding="utf-8")
+    assert "carrier: [#1443]" in body_1438, "[#1438] does not name its carrier"
+    assert "[#1438]" in t1443[0].read_text(encoding="utf-8"), "the carrier does not name [#1438]"
+    assert re.search(r'(?m)^status:\s*open\s*$', body_1438), "the integrator closes it, not this lane"
+
+
+def test_the_review_record_names_the_contract_and_the_served_model():
+    """Done 8: the close-out review record exists, cites this contract inside it, carries the
+    served model id from the tool's log and the nonce or hash the reviewer returned (R59)."""
+    audits = _REPO / "docs" / "audits"
+    records = (sorted(audits.glob("*-codex-b2w2-boot-teaching.md"))
+               + sorted(audits.glob("*-verification-b2w2-boot-teaching-review.md")))
+    assert records, "no review record docs/audits/<date>-codex-b2w2-boot-teaching.md"
+    text = records[-1].read_text(encoding="utf-8")
+    assert "LANE-1443-b2w2-boot-teaching" in text
+    assert re.search(r"gpt-6-astra|gpt-6\.1-sol", text), "no served model id"
+    assert re.search(r"NONCE-[0-9a-f]{12}|\b[0-9a-f]{64}\b", text), "no nonce or content hash"
