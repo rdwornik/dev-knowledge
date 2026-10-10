@@ -112,6 +112,13 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
+    "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
+      "attribution": "flaky",
+      "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
+      "task": "[#1481]",
+      "owner": "rob",
+      "expiry": "2026-10-31"
+    },
     "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
       "attribution": "pre-freeze",
       "task": "[#1103]",
@@ -573,6 +580,13 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: assert 6 == 5"
       },
+      "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
+        "attribution": "flaky",
+        "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
+        "task": "[#1481]",
+        "owner": "rob",
+        "expiry": "2026-10-31"
+      },
       "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
         "attribution": "pre-freeze",
         "task": "[#1103]",
@@ -957,6 +971,13 @@
         "owner": "rob",
         "expiry": "2026-10-31",
         "signature": "AssertionError: assert 6 == 5"
+      },
+      "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
+        "attribution": "flaky",
+        "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
+        "task": "[#1481]",
+        "owner": "rob",
+        "expiry": "2026-10-31"
       },
       "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
         "attribution": "pre-freeze",
