@@ -20,9 +20,10 @@ stages:
   - {stage: 8, name: provider-model-version, field: model, kind: judgement, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
   - {stage: 9, name: organs, field: organs, kind: deterministic, always: true, reason: "checks the generated organ index against the live scripts/ tree", command: [uv, run, --locked, python, scripts/generate_organ_index.py, --check]}
   - {stage: 10, name: impacted-tests, field: tests, kind: deterministic, always: true, reason: "selects from the live diff against main", command: [uv, run, --locked, python, scripts/impacted_tests.py, select, --ref, main]}
-  - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --slug, spine-plan, --token-cap, "1000000000000"]}
+  - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --token-cap, "1000000000000"]}
   - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
 # Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, not `govern`.
+# Stage 11 passes no --slug: `plan` refuses a --slug the contract's Dispatch block disagrees with, so the slug is the contract's own.
 # moments: `doit -f scripts/dodo.py moment:<name>`. Six moments run the LANE lifecycle, in the
 # order a lane lives them; a seventh, `seat-release`, is a SEPARATE lifecycle -- the operator's
 # own, not a lane's:

@@ -26,10 +26,13 @@ the line -- a pipe, a second command, an unknown flag -- is ignored, so the bloc
 arbitrary-execution surface (the fence `Assert-ClaudeCommand` existed to hold). A head other than
 claude or codex is refused. The slug comes from the block (`--worktree`, `-n`; they must agree),
 because a contract's file name need not carry it (`LANE-W3-B-launch-adapter.md` -> `lane-launch-adapter`).
+`--slug` on `launch` or `plan` may restate that slug but never replace it: a `--slug` the block
+disagrees with is REFUSED (`contract_slug`), never silently preferred.
 Model and effort come from an explicit flag, the block, or the contract's `| Model | Mode | Effort |`
 table -- never a default ([#717]); the block and the table disagreeing is a refusal.
 
-THE CAP IS A RECORD (N3). `--token-cap` is optional. When given it is written into the launch
+THE CAP IS A RECORD (N3). `--token-cap` is REQUIRED on `plan` (harness stage 11 fills the cap
+field with it; without it `plan` exits 2) and optional on `launch`. When given it is written into the launch
 receipt; `govern` reads it back and records each poll's spend against it (`over_cap` in the row) and
 exits `EXIT_OVER_CAP` after the fact. That exit code is a receipt for a check to surface, not a stop:
 nothing in this module starts a process against a running lane. `claude agents --json` and `git`
@@ -465,6 +468,13 @@ def parse_dispatch_block(text: str) -> Optional[DispatchLine]:
     if head not in _HEAD_PROVIDER:
         raise DispatchRefused(f"the Dispatch block starts with {tokens[0][0] if tokens else ''!r}; "
                               "only `claude`, `codex` and `copilot` are launched. Refusing.")
+    got = _line_fields(tokens)
+    _validate_line(got)
+    return DispatchLine(head=head, **got)
+
+
+def _line_fields(tokens: Sequence[tuple[str, bool]]) -> dict[str, str]:
+    """The known flags' values on a tokenized Dispatch line, UNVALIDATED (`_validate_line` judges them)."""
     got: dict[str, str] = {}
     i = 1
     while i < len(tokens):
@@ -477,8 +487,17 @@ def parse_dispatch_block(text: str) -> Optional[DispatchLine]:
                 got["worktree"] = tokens[i + 1][0]
                 i += 1
         i += 1
-    _validate_line(got)
-    return DispatchLine(head=head, **got)
+    return got
+
+
+def dispatch_block_slug_line(text: str) -> Optional[DispatchLine]:
+    """Only the Dispatch block's `-n` / `--worktree`, read even when its head or another field is one
+    `parse_dispatch_block` refuses: the slug check must never ride on the rest of the line being valid."""
+    lines = _dispatch_lines(text)
+    if not lines:
+        return None
+    got = _line_fields(_tokens(lines[0]))
+    return DispatchLine(head="", name=got.get("name", ""), worktree=got.get("worktree", ""))
 
 
 def _validate_line(got: Mapping[str, str]) -> None:
@@ -617,6 +636,26 @@ class Spawned:
     pid: Optional[int] = None
 
 
+def contract_slug(path: Path, line: Optional[DispatchLine], slug: str = "") -> str:
+    """The lane's one slug: the Dispatch block's `-n`/`--worktree`, else `LANE-<slug>.md`. An
+    explicit `slug` may restate the block's but never replace it -- a disagreement is REFUSED."""
+    if line is not None and line.name and line.worktree and line.name != line.worktree:
+        raise DispatchRefused(f"the Dispatch block names the session {line.name!r} but the worktree "
+                              f"{line.worktree!r}; a lane has one slug. Fix the contract.")
+    from_block = (line.name or line.worktree) if line else ""
+    if slug and from_block and slug != from_block:
+        raise DispatchRefused(f"--slug {slug!r} disagrees with the contract's Dispatch block, which names "
+                              f"the lane {from_block!r} (-n / --worktree). Refusing rather than silently "
+                              "replacing it: drop --slug, or fix the contract.")
+    slug = slug or from_block or slug_from_contract(path)
+    if not slug:
+        raise DispatchRefused(f"no lane slug: {path.name!r} is not LANE-<slug>.md, the Dispatch block "
+                              "names none, and --slug was not given")
+    if not _SLUG.match(slug):
+        raise DispatchRefused(f"{slug!r} is not a usable lane slug (letters, digits, '.', '_', '-')")
+    return slug
+
+
 def request_from_contract(contract: Path, *, slug: str = "", provider: str = "", model: str = "",
                           effort: str = "", permission_mode: str = "", batch: str = "",
                           token_cap: Optional[int] = None) -> LaunchRequest:
@@ -626,15 +665,7 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
     path = Path(contract)
     text = path.read_text(encoding="utf-8", errors="replace")
     line = parse_dispatch_block(text)
-    if line is not None and line.name and line.worktree and line.name != line.worktree:
-        raise DispatchRefused(f"the Dispatch block names the session {line.name!r} but the worktree "
-                              f"{line.worktree!r}; a lane has one slug. Fix the contract.")
-    slug = slug or (line.name or line.worktree if line else "") or slug_from_contract(path)
-    if not slug:
-        raise DispatchRefused(f"no lane slug: {path.name!r} is not LANE-<slug>.md, the Dispatch block "
-                              "names none, and --slug was not given")
-    if not _SLUG.match(slug):
-        raise DispatchRefused(f"{slug!r} is not a usable lane slug (letters, digits, '.', '_', '-')")
+    slug = contract_slug(path, line, slug)
     provider = provider or (_HEAD_PROVIDER[line.head] if line else "anthropic")
     table: Optional[tuple[str, str]] = None
     if not (model and effort) and not (line and line.model and line.effort):
@@ -1756,7 +1787,8 @@ def cli() -> None:
 @cli.command("launch")
 @click.argument("contract")
 @click.option("--slug", default="", help="Lane slug; default: the Dispatch block's -n / --worktree, "
-                                         "else LANE-<slug>.md from the file name.")
+                                         "else LANE-<slug>.md from the file name. Refused if it "
+                                         "disagrees with the block.")
 @click.option("--provider", default="", help="Overrides the Dispatch block's head "
                                              "(claude -> anthropic, codex -> codex).")
 @click.option("--model", default="", help="Overrides the contract's model. No default.")
@@ -1799,9 +1831,18 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
     click.echo(json.dumps(asdict(result)))
 
 
+def _plan_dispatch_line(path: Path) -> Optional[DispatchLine]:
+    """The Dispatch block, read for its slug only. `plan` takes its head from `--provider`, never
+    the block, so a block `launch` would refuse is not a `plan` error -- but its `-n`/`--worktree`
+    still binds: a conflicting `--slug` is refused whatever else on the line is invalid."""
+    return dispatch_block_slug_line(path.read_text(encoding="utf-8", errors="replace"))
+
+
 @cli.command("plan")
 @click.argument("contract")
-@click.option("--slug", default="", help="Lane slug; default: LANE-<slug>.md from the file name.")
+@click.option("--slug", default="", help="Lane slug; default: the Dispatch block's -n / --worktree, "
+                                         "else LANE-<slug>.md from the file name. Refused if it "
+                                         "disagrees with the block.")
 @click.option("--provider", default="anthropic", show_default=True)
 @click.option("--model", default="", help="Overrides the contract's Model cell. No default.")
 @click.option("--effort", default="", help="Overrides the contract's Effort cell. No default.")
@@ -1824,10 +1865,7 @@ def plan_cmd(contract: str, slug: str, provider: str, model: str, effort: str, s
     if not (model and effort):
         from_contract = parse_contract_model_effort(path.read_text(encoding="utf-8", errors="replace"))
         model, effort = model or from_contract[0], effort or from_contract[1]
-    slug = slug or slug_from_contract(path)
-    if not slug:
-        raise DispatchRefused(f"no lane slug: {path.name!r} is not LANE-<slug>.md and --slug was "
-                              "not given")
+    slug = contract_slug(path, _plan_dispatch_line(path), slug)
     prompt = f"Read and execute the frozen contract at {path}"
     lane = build_plan(provider, model, slug, effort, prompt,
                       streamed=(substrate == "codespace" and _provider(provider).head == "claude"))
