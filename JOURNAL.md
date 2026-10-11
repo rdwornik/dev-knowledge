@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B6 preflight-dead-id): a dead [#id] names its live value; provider_router refuses an unknown role in one line
+
+**Anchors:** `ed944746` and `f678225e` (fixes); `a9b6667b` and `b628e3b0` (RED tests). Branch `worktree-preflight-dead-id`, merged `--no-ff` through `worktree-integrate-b2-w4-c` by `merge_path.py land`. The slug is `B2-W4-C` because `worktree-integrate-b2-w4` holds the refused A2 candidate `4168f996` and `-b` holds the refused B5 candidate `6f97472d`; moving either would need `--force`.
+
+**Did:** Preflight names the live value for a dead `[#id]` and degrades to `unknown` when a tasks/ entry is unreadable. `provider_router route <unknown-role>` is a one-line refusal with no traceback. Codex (gpt-5.6-terra): round 1 REQUEST-CHANGES, round 2 APPROVE.
+
+**Result:** Targeted tests: 85 passed, 1 skipped. `test_preflight_freeze_predicates.py:379` is red on the base before this lane.
+
 ### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B4 read-gate-fix): the read gate refuses a non-UTF-8 source; quotes inside code spans pair correctly
 
 **Anchors:** `abd90058` (fix) and `4b4395fd` (RED test). Branch `worktree-read-gate-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.

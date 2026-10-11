@@ -683,3 +683,64 @@ def test_a_contract_citing_both_an_all_digit_sha_and_a_lettered_one_checks_both(
     report = pf.verify(_write(tmp_path, f"# C\n\n- `{short}` and `{lettered}`\n"), root)
 
     assert {c.raw for c in report.checked} == {short, lettered}, "half the locators went unexamined"
+
+
+# ---------------------------------------------------------------------------
+# A DEAD `[#id]` is named WITH its live value (B2-W4 lane preflight-dead-id).
+# `preflight.md:49` promises exit 1 "each named with the live value"; for a backlog id the
+# failure used to say only "not open in BACKLOG.md", so the reader had to open `tasks/` to
+# learn what the id actually is now -- the second lookup this tool exists to remove.
+# ---------------------------------------------------------------------------
+
+def _dead_id_repo(tmp_path: Path) -> Path:
+    root = _mini_repo(tmp_path)
+    _at(root, "tasks/7001-old-row.md",
+        '---\nid: "[#7001]"\ntitle: "The old row"\nstatus: superseded\n---\n\n'
+        "- [#7001] [P2][M] **The old row** - SUPERSEDED 2026-10-08 by [#7002]: replaced.\n")
+    _at(root, "tasks/7002-new-row.md",
+        '---\nid: "[#7002]"\ntitle: "The new row"\nstatus: open\n---\n\n'
+        "- [#7002] [P2][M] **The new row**\n")
+    _at(root, "tasks/7003-done-row.md",
+        '---\nid: "[#7003]"\ntitle: "A finished row"\nstatus: closed\n---\n\n'
+        "- [#7003] [P2][S] **A finished row**\n")
+    return root
+
+
+def _dead_line(report, tid: str) -> str:
+    hits = [ln for ln in report.render().splitlines() if f"[#{tid}]" in ln and "FAIL" in ln]
+    assert hits, f"[#{tid}] was not reported as a failure:\n{report.render()}"
+    return hits[0]
+
+
+def test_a_superseded_id_names_its_live_successor(tmp_path):
+    root = _dead_id_repo(tmp_path)
+    report = pf.verify(_write(tmp_path, "# C\n\n- the open row [#7001] is the subject\n"), root)
+    line = _dead_line(report, "7001")
+    assert "dead: [#7001]" in line and "live:" in line, line
+    assert "SUPERSEDED" in line and "[#7002]" in line, line
+
+
+def test_a_closed_id_names_its_live_status_and_title(tmp_path):
+    root = _dead_id_repo(tmp_path)
+    report = pf.verify(_write(tmp_path, "# C\n\n- the open row [#7003] is the subject\n"), root)
+    line = _dead_line(report, "7003")
+    assert "dead: [#7003]" in line and "live: CLOSED" in line, line
+    assert "A finished row" in line, line
+
+
+def test_an_unallocated_id_says_so_as_its_live_value(tmp_path):
+    root = _dead_id_repo(tmp_path)
+    report = pf.verify(_write(tmp_path, "# C\n\n- the open row [#7999] is the subject\n"), root)
+    line = _dead_line(report, "7999")
+    assert "dead: [#7999]" in line and "live:" in line and "no row" in line, line
+
+def test_an_unreadable_task_entry_degrades_the_live_value_never_crashes(tmp_path):
+    """`_live_id_value` only enriches a failure already decided; an unreadable `tasks/` entry
+    (here a DIRECTORY matching the id's file glob) must not turn that FAIL into exit 2."""
+    root = _dead_id_repo(tmp_path)
+    (root / "tasks" / "7004-unreadable.md").mkdir()
+    contract = _write(tmp_path, "# C\n\n- the open row [#7004] is the subject\n")
+    report = pf.verify(contract, root)
+    line = _dead_line(report, "7004")
+    assert "dead: [#7004]" in line and "live: unknown" in line, line
+    assert pf.main([str(contract), "--repo-root", str(root)]) == 1

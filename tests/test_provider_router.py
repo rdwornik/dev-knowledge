@@ -768,3 +768,19 @@ def test_live_probe_executes_the_declared_command_and_applies_the_comparison(liv
                     f"carries no `currency_exception`"
                 )
     assert checked_any, "no probeable provider held a role pin on this box -- nothing was checked"
+
+
+# --- CLI: an unknown role is a one-line refusal, never a traceback (B2-W4 preflight-dead-id) --
+
+def test_cli_route_with_an_unknown_role_refuses_without_a_traceback():
+    proc = subprocess.run(
+        [sys.executable, str(_ROOT / "scripts" / "provider_router.py"), "route", "code"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=_ROOT,
+    )
+    out = proc.stdout + proc.stderr
+    assert proc.returncode != 0, out
+    assert "Traceback" not in out, out
+    assert "code" in out, out
+    for role in ("implement", "review", "read", "verify"):
+        assert role in out, f"valid role {role!r} not listed:\n{out}"
+    assert len(proc.stderr.strip().splitlines()) == 1, f"refusal is not one line:\n{proc.stderr}"

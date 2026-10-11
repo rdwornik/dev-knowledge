@@ -742,7 +742,19 @@ def main() -> int:
             "(pyproject.toml); rebuild with `uv sync --locked`. The library half of this "
             "module does not need it and is unaffected."
         )
-    cli.main(standalone_mode=False)
+    # A refusal is a verdict, not a crash: one line on stderr and a non-zero exit, so
+    # `route <unknown-role>` names the valid roles instead of printing a traceback.
+    try:
+        cli.main(standalone_mode=False)
+    except RouterRefusal as exc:
+        click.echo(f"refused: {' '.join(str(exc).split())}", err=True)
+        return 2
+    except click.exceptions.Abort:
+        click.echo("aborted", err=True)
+        return 1
+    except click.ClickException as exc:
+        exc.show()
+        return exc.exit_code
     return 0
 
 
