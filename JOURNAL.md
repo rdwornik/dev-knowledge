@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B1 stop-fail-closed): Stop hooks fail closed; the launchers are shell-neutral
+
+**Anchors:** `ff0833e7` (fix 2), `7eb745ba` (RED 2), `088ff1c8` (fix), `1d0f3e0c` (RED). Branch `worktree-stop-fail-closed`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
+
+**Did:** Removed `|| true` from the two Stop launchers in `.claude/settings.json`, so a non-zero exit from `lane_handback_gate` (exit 2 on a bad lane report) is no longer swallowed. The launchers are shell-neutral `python -c` runpy calls that fall back to the cwd when `CLAUDE_PROJECT_DIR` is unset, which fixes the round-1 HIGH finding. In `bounded_hook`, POSTURES marks them escalated. Reviewed by Codex (gpt-5.6-terra): round 1 REQUEST-CHANGES, round 2 APPROVE.
+
+**Result:** 159 targeted tests passed (stop_fail_closed, lane_handback_gate, lane_end_guard, hooks_no_powershell, bounded_hook, hook_watchdog). `bounded_hook.py check` rc=0. Open: there is no live Claude Code witness yet that a Stop exit 2 actually blocks.
+
 ### 2026-10-11 (b) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane A1 organ-truth-fix): main's red organ-truth test is repaired
 
 **Anchors:** `9b0321dd` -- branch `worktree-organ-truth-fix`, merged `--no-ff` through `worktree-integrate-b2-w4` by `merge_path.py land`.

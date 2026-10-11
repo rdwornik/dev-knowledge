@@ -171,15 +171,18 @@ POSTURES: tuple[Posture, ...] = (
             "SessionStart trigger for the quota_watch organ: it only claims and detaches the "
             "network read, never runs it inline, and fails open on every error by its own guard "
             "contract. It cannot refuse; a bypass loses one day's quota read."),
-    Posture("lane-end-guard", "lane_end_guard.py", "fail-open", False,
-            "Stop hook that starts the lane-end moment once per closing HANDBACK line. It never "
-            "blocks the session by design (DECLARE-NIGHT N3: returns 0 on every path); a bypass "
-            "loses one trigger and a later turn end re-fires on the same closing line."),
-    Posture("lane-handback-gate", "lane_handback_gate.py", "fail-open", False,
-            "The one Stop hook that can block, and only on a positively-detected bad closing "
-            "line, once per fresh stop attempt; its own header states fail-CLOSED on that and "
-            "fail-OPEN on everything else, and that a missing safety mechanism fails toward "
-            "inert. A timeout detects nothing, so a bypass loses one refusal, never a lane."),
+    Posture("lane-end-guard", "lane_end_guard.py", "escalated", False,
+            "Stop hook that starts the lane-end moment once per closing HANDBACK line. The script "
+            "itself never blocks (DECLARE-NIGHT N3: returns 0 on every path), but operator ruling "
+            "R96 (D8 / T5.3) rules the Stop gates FAIL-CLOSED and dropped the declared command's "
+            "`|| true`, so an inability to run is no longer masked to an allow. Wrapping it "
+            "fail-open would undo that ruling, so it is escalated, never wrapped open."),
+    Posture("lane-handback-gate", "lane_handback_gate.py", "escalated", False,
+            "The one Stop hook that blocks on content: a positively-detected bad closing line, "
+            "once per fresh stop attempt, exits 2 (block-and-continue). Operator ruling R96 "
+            "(D8 / T5.3) rules the Stop gates FAIL-CLOSED and dropped the declared command's "
+            "`|| true`; wrapping it fail-open would undo that ruling, so it is escalated, never "
+            "wrapped open. Outside a lane the script returns 0 before reading anything."),
     Posture("changelog-sentinel", "changelog_sentinel.py", "fail-open", False,
             "SessionStart nudge, local and fail-soft by its own design."),
     Posture("arm-hooks", "arm_hooks.py", "fail-open", False,

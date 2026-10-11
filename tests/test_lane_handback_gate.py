@@ -174,7 +174,7 @@ def test_a_clean_handback_line_does_not_block(lane, capsys):
 
 def test_a_missing_handback_line_blocks_with_a_named_reason(lane, capsys):
     lane["session"].write_text("# SESSION\n\nstill working\n", encoding="utf-8")
-    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 0
+    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 2
     out = json.loads(capsys.readouterr().out)
     assert out["decision"] == "block"
     assert "missing" in out["reason"].lower()
@@ -182,7 +182,7 @@ def test_a_missing_handback_line_blocks_with_a_named_reason(lane, capsys):
 
 def test_a_backtick_wrapped_handback_line_blocks_with_a_named_reason(lane, capsys):
     lane["session"].write_text(f"# SESSION\n\n`{CLEAN}`\n", encoding="utf-8")
-    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 0
+    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 2
     out = json.loads(capsys.readouterr().out)
     assert out["decision"] == "block"
     assert "backtick" in out["reason"].lower()
@@ -190,10 +190,12 @@ def test_a_backtick_wrapped_handback_line_blocks_with_a_named_reason(lane, capsy
 
 def test_a_malformed_handback_line_blocks_with_a_named_reason(lane, capsys):
     lane["session"].write_text("HANDBACK worktree-x @ abc1234\n", encoding="utf-8")
-    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 0
-    out = json.loads(capsys.readouterr().out)
+    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 2
+    captured = capsys.readouterr()
+    out = json.loads(captured.out)
     assert out["decision"] == "block"
     assert "malformed" in out["reason"].lower()
+    assert out["reason"] in captured.err, "exit 2 feeds stderr to the model: the reason rides there too"
 
 
 def test_a_missing_session_file_does_not_block_never_bricks_on_infra(lane, capsys):
@@ -259,7 +261,7 @@ def test_a_fresh_attempt_after_a_retry_can_block_again(lane, capsys):
     assert g.main([], environ=lane["env"], root=lane["root"]) == 0
     assert capsys.readouterr().out == "", "the retry stayed silent"
     lane["env"]["HARNESS_STOP_HOOK_ACTIVE"] = "false"
-    assert g.main([], environ=lane["env"], root=lane["root"]) == 0
+    assert g.main([], environ=lane["env"], root=lane["root"]) == 2
     out = json.loads(capsys.readouterr().out)
     assert out["decision"] == "block", "the next fresh attempt refuses again"
 
@@ -292,8 +294,11 @@ def test_exactly_one_new_stop_entry_for_the_gate():
     cmds = [c for c in _stop_commands() if "lane_handback_gate.py" in c["command"]]
     assert len(cmds) == 1, cmds
     command = cmds[0]["command"]
-    assert command.startswith('uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/lane_handback_gate.py"'), command
-    assert command.endswith("|| true"), command
+    assert command.startswith('uv run --locked python -c "'), command
+    assert "s='/scripts/lane_handback_gate.py'" in command and "runpy.run_path(d+s" in command, command
+    assert "'git','rev-parse','--show-toplevel'" in command, "root falls back to git when the variable is unset"
+    assert "$" not in command, "shell-neutral: no `$` expansion (Codex R1 HIGH)"
+    assert "||" not in command, "R96: Stop gates fail closed -- the exit code is never swallowed"
     assert cmds[0]["timeout"] <= 15
 
 
@@ -325,7 +330,7 @@ def test_witness_the_declared_stop_command_refuses_a_malformed_handback_and_pass
     session.write_text("HANDBACK worktree-lane-handback-stop-hook @ abc1234\n", encoding="utf-8")
     bad = subprocess.run([sys.executable, str(_GATE)], env=env, input=stdin_payload,
                          capture_output=True, text=True, timeout=30)
-    assert bad.returncode == 0
+    assert bad.returncode == 2, "R96: the refusal reaches the host by its exit code (block-and-continue)"
     out = json.loads(bad.stdout)
     assert out["decision"] == "block" and "malformed" in out["reason"].lower()
 
