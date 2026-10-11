@@ -476,3 +476,79 @@ def test_ledger_append_is_never_a_rewrite(tmp_path: Path) -> None:
     lines = ledger.read_text(encoding="utf-8").splitlines()
     assert lines[0] == '{"pre-existing": true}'
     assert len(lines) == 2
+
+
+# --- B2-W4 lane read-gate-fix: non-UTF-8 source refusal + code-span-aware quotes ------------
+# DIGEST-TOOLS-IN-USE-2026-10-11 defects (3) and (4).
+
+_JSON_SNIPPET = '{"a": "b"}'
+_REGEX_SNIPPET = r'r"\"[^\"]+\""'
+_CODE_SOURCE = (
+    f"CONFIG = {_JSON_SNIPPET}\n"
+    f"_QUOTE_RE = re.compile({_REGEX_SNIPPET})\n"
+    "The parser pairs quotation marks.\n"
+)
+
+
+def test_extract_source_text_refuses_a_non_utf8_source_without_a_decode_error(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "latin1.txt"
+    source.write_bytes(b"caf\xe9")
+    with pytest.raises(gate.ReadGateError, match="not UTF-8"):
+        gate.extract_source_text(source)
+
+
+def test_run_read_gate_refuses_a_non_utf8_source_and_invokes_no_route(tmp_path: Path) -> None:
+    registry = _fixture_registry(tmp_path, ["antigravity"])
+    source = tmp_path / "latin1.txt"
+    source.write_bytes(b"caf\xe9 au lait")
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    calls: list[str] = []
+
+    def invoke(route: gate.RouteSpec, _source: Path, _workdir: Path) -> gate.InvokeAttempt:
+        calls.append(route.provider)
+        return gate.InvokeAttempt(None)
+
+    result = gate.run_read_gate(
+        source, registry_path=registry, invoke=invoke, workdir=workdir,
+        ledger_path=tmp_path / "ledger.jsonl",
+    )
+    assert not result.accepted
+    assert calls == []
+    assert result.refusal is not None
+    assert result.refusal.startswith("source-not-utf8:")
+    assert "source-not-utf8:" in result.failure_summary()
+
+
+def test_extract_quotations_treats_quotes_inside_a_code_span_as_opaque() -> None:
+    text = (
+        f"The regex `{_REGEX_SNIPPET}` and the config `{_JSON_SNIPPET}` appear; "
+        'the doc says "The parser pairs quotation marks."'
+    )
+    assert gate.extract_quotations(text) == ["The parser pairs quotation marks."]
+
+
+def test_verify_read_finds_json_and_regex_snippets_quoted_inside_code_spans(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "out.txt"
+    output.write_text(
+        f"It sets \"CONFIG = `{_JSON_SNIPPET}`\" and compiles `{_REGEX_SNIPPET}`.\n"
+        f"Verbatim: \"`{_REGEX_SNIPPET}`\" and \"The parser pairs quotation marks.\"\n",
+        encoding="utf-8",
+    )
+    verdict = gate.verify_read(output, "", _CODE_SOURCE)
+    assert verdict.accepted, verdict.failed_check
+
+
+def test_verify_read_still_rejects_a_code_span_quotation_absent_from_the_source(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "out.txt"
+    output.write_text('It sets "CONFIG = `{"a": "c"}`".', encoding="utf-8")
+    verdict = gate.verify_read(output, "", _CODE_SOURCE)
+    assert not verdict.accepted
+    assert verdict.failed_check is not None
+    assert verdict.failed_check.startswith("quotation-not-in-source:")
