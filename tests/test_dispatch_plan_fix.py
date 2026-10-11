@@ -95,3 +95,19 @@ def test_plan_defaults_the_slug_to_the_dispatch_block_not_the_file_name(contract
 def test_launch_refuses_a_disagreeing_slug_too(contract):
     with pytest.raises(d.DispatchRefused, match="lane-other"):
         d.request_from_contract(contract, slug="lane-other")
+
+
+@pytest.mark.parametrize("old, new", [
+    ("--effort high --permission-mode", "--effort turbo --permission-mode"),
+    ("--model sonnet", "--model --oops"),
+    ("claude --bg", "evil --bg"),
+])
+def test_an_unrelated_invalid_field_never_lets_a_disagreeing_slug_through(tmp_path, monkeypatch, old, new):
+    """Codex review round 1: the slug check must not ride on the block's OTHER fields being valid."""
+    monkeypatch.setattr(d, "_git_branch_exists", lambda ref: False)
+    path = tmp_path / "LANE-file-name.md"
+    path.write_text(CONTRACT.replace(old, new, 1), encoding="utf-8")
+    result = _plan(path, "--slug", "lane-other", "--model", "sonnet", "--effort", "high")
+    assert result.exit_code != 0, result.output
+    assert "lane-other" in result.output and "lane-real" in result.output
+    assert "{" not in result.output, "a refusal prints no plan"
