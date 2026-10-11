@@ -18,6 +18,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -2852,3 +2853,41 @@ def test_the_sealed_bundles_transport_row_passes_over_a_grown_registry_tree(tmp_
     shutil.copytree(sealed, shrunk / "docs" / "handoffs" / _SEALED_BUNDLE)
     by2 = _bd(vhp.verify_boot(shrunk / "docs" / "handoffs" / _SEALED_BUNDLE, shrunk))
     assert by2["BD-transport"].status == "fail", by2["BD-transport"].detail
+
+
+# --- handoff-verify-fix (B2-W4): a cp1252 redirect must not crash; warn tally is honest ----
+
+_ARROW_ANCHOR = ("PU", "quote a section whose heading carries an arrow",
+                 "`VISION.md` `## Gone\u2192Moved`", "the anchor moved",
+                 "`grep x VISION.md`")
+
+
+def test_cli_redirected_under_cp1252_does_not_crash_and_exits_zero(tmp_path):
+    """A redirected run on a Windows cp1252 console must not die on a non-cp1252 glyph
+    (here `\u2192` echoed back in an anchor-missing detail). The traceback exited 1, which a
+    caller reads as a gate FAIL; a WARN-only verification must exit 0."""
+    bundle = _init_bundle(tmp_path, [_PASS_ANCHOR, _ARROW_ANCHOR])
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    p = subprocess.run([sys.executable, str(Path(vhp.__file__)), str(bundle)],
+                       capture_output=True, env=env)
+    out = p.stdout.decode("cp1252", errors="replace")
+    err = p.stderr.decode("cp1252", errors="replace")
+    assert "Traceback" not in err and "UnicodeEncodeError" not in err, err
+    assert p.returncode == 0, (p.returncode, out, err)
+    assert "1 pass, 0 fail, 1 warn" in out, out
+
+
+def test_summary_warn_count_equals_the_warn_rows(tmp_path, monkeypatch, capsys):
+    """Every non-pass, non-fail row is a WARN row; the summary's warn tally must equal the
+    number of rows printed as WARN — including the committed-bundle `warn` status."""
+    bundle = _empty_bundle(tmp_path)
+    rows = [vhp.ProbeResult("BD-ci", "warn", "drift", bundle.name),
+            vhp.ProbeResult("BD-rulings", "warn", "drift", bundle.name),
+            vhp.ProbeResult("PY", "anchor-missing", "anchor not found", bundle.name),
+            vhp.ProbeResult("PS", "skipped", "exe absent", bundle.name),
+            vhp.ProbeResult("P1", "pass", "ok", bundle.name)]
+    monkeypatch.setattr(vhp, "verify", lambda *a, **k: rows)
+    assert vhp.main([str(bundle), "--exact"]) == 0
+    out = capsys.readouterr().out
+    warn_rows = sum(1 for r in rows if r.status not in ("pass", "fail"))
+    assert f"1 pass, 0 fail, {warn_rows} warn" in out, out

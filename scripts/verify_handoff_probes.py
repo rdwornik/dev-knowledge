@@ -232,7 +232,7 @@ _FALLBACK_EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-prog
 @dataclass(frozen=True)
 class ProbeResult:
     probe_id: str   # the table's `#` column, e.g. "P2" (or "" when absent)
-    status: str     # 'pass' | 'fail' | 'anchor-missing' | 'skipped'
+    status: str     # 'pass' | 'fail' | 'anchor-missing' | 'skipped' | 'warn'
     detail: str     # evidence (pipe-free)
     bundle: str     # bundle dir name
     # [#473] B': the ORIGINAL locator(s) this row carried that named a DIFFERENT bundle
@@ -1986,6 +1986,11 @@ def main(argv=None) -> int:
 
     Errors RETURN a code rather than raising SystemExit, so the callable is testable and the
     audit adapter can never be killed by a usage mistake."""
+    # A redirected run on a cp1252 console must not die on a glyph the codec lacks: the
+    # traceback's exit 1 reads as a gate FAIL. Degrade the glyph, never the verdict.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     argv = sys.argv[1:] if argv is None else argv
     parser = argparse.ArgumentParser(
         prog="verify_handoff_probes.py",
@@ -2043,7 +2048,7 @@ def main(argv=None) -> int:
               f"another bundle; interpreted relative to '{bundle.name}' instead: "
               + ", ".join(foreign))
     fails = sum(1 for r in results if r.status == "fail")
-    warns = sum(1 for r in results if r.status in ("anchor-missing", "skipped"))
+    warns = sum(1 for r in results if r.status not in ("pass", "fail"))
     passes = sum(1 for r in results if r.status == "pass")
     print(f"verify_handoff_probes: {len(results)} probe(s) — "
           f"{passes} pass, {fails} fail, {warns} warn ({bundle.name})")

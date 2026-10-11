@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B2 handoff-verify-fix): a cp1252-redirected handoff verify exits 0 and its warn count is true
+
+**Anchors:** `b4e4ed59` (fix) and `41d12215` (RED test). Branch `worktree-handoff-verify-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
+
+**Did:** `scripts/verify_handoff_probes.py` main() reconfigures stdout and stderr with `errors="replace"`, so a redirected run under cp1252 no longer crashes with UnicodeEncodeError (the old exit 1 read as a gate FAIL). The warn tally now counts the `warn` status rows. Reviewed APPROVE by Codex (gpt-5.6-terra).
+
+**Result:** `tests/test_verify_handoff_probes.py`: 191 passed. The live bundle under cp1252 exits 0 with "38 pass, 0 fail, 4 warn".
+
 ### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B1 stop-fail-closed): Stop hooks fail closed; the launchers are shell-neutral
 
 **Anchors:** `ff0833e7` (fix 2), `7eb745ba` (RED 2), `088ff1c8` (fix), `1d0f3e0c` (RED). Branch `worktree-stop-fail-closed`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
