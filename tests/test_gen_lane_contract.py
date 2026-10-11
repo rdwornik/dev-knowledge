@@ -1587,6 +1587,19 @@ def test_distilled_vendor_is_provider_routers_first_eligible_for_the_role():
         assert (vendor, used_role) == (expected, role)
 
 
+def test_distilled_vendors_covers_every_d12_role_from_provider_router():
+    """Codex round 1: D12 names read / test / review / implement vendors; each must come from
+    `provider_router.route`, with `test` mapped to the registry's `verify` role."""
+    import provider_router as _pr
+
+    rows = glc.distilled_vendors(".dev-knowledge")
+    assert [r[0] for r in rows] == ["read", "test", "review", "implement"]
+    by_role = {d12: (reg, vendor) for d12, reg, vendor in rows}
+    assert by_role["test"][0] == "verify"
+    for d12, (reg, vendor) in by_role.items():
+        assert vendor == _pr.route(reg, ".dev-knowledge", strict=False)[0].provider, d12
+
+
 def test_cmd_distill_emits_a_vendor_line_per_d12(tmp_path, monkeypatch):
     import provider_router as _pr
 
@@ -1598,6 +1611,10 @@ def test_cmd_distill_emits_a_vendor_line_per_d12(tmp_path, monkeypatch):
     expected = _pr.route("implement", ".dev-knowledge", strict=False)[0].provider
     assert f"- **vendor:** `{expected}`" in result.output
     assert "provider_router" in result.output
+    for d12, reg in (("read", "read"), ("test", "verify"), ("review", "review"),
+                     ("implement", "implement")):
+        vendor = _pr.route(reg, ".dev-knowledge", strict=False)[0].provider
+        assert f"  - `{d12}` (registry role `{reg}`): `{vendor}`" in result.output, d12
 
 
 def test_distilled_effort_follows_the_size_table():
