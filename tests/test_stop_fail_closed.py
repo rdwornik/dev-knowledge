@@ -54,6 +54,23 @@ def _run(command: str, env: dict, stdin: str = _FRESH) -> subprocess.CompletedPr
                           input=stdin, capture_output=True, text=True, timeout=60)
 
 
+def _run_unset(command: str, cwd: Path, env: dict | None = None) -> subprocess.CompletedProcess:
+    """The command with CLAUDE_PROJECT_DIR UNSET (a reader that does not set it), from `cwd`.
+    `UV_PROJECT` points `uv run --locked` at this repo's declared environment so a cwd outside
+    the repo still resolves the locked interpreter -- it does not change the shell's cwd."""
+    base = {k: v for k, v in os.environ.items()
+            if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_LANE", "HARNESS_SESSION_FILE")}
+    base.update({"UV_PROJECT": str(_REPO), **(env or {})})
+    return subprocess.run([_bash(), "-c", command], cwd=cwd, env=base, input=_FRESH,
+                          capture_output=True, text=True, timeout=60)
+
+
+def _git_tree(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q", str(path)], check=True, capture_output=True)
+    return path
+
+
 @pytest.mark.parametrize("script", _SCRIPTS)
 def test_the_declared_stop_command_does_not_swallow_its_exit_code(script):
     command = _declared(script)
@@ -63,9 +80,70 @@ def test_the_declared_stop_command_does_not_swallow_its_exit_code(script):
 
 @pytest.mark.parametrize("script", _SCRIPTS)
 def test_the_declared_stop_command_fails_closed_when_the_script_is_missing(script, tmp_path):
-    proc = _run(_declared(script), {"CLAUDE_PROJECT_DIR": str(tmp_path / "nowhere"),
-                                    "HARNESS_LANE": "stop-fail-closed"})
+    """A root resolves (a git tree) but the gate's script is not in it: never a clean allow."""
+    proc = _run_unset(_declared(script), _git_tree(tmp_path / "tree"),
+                      {"HARNESS_LANE": "stop-fail-closed"})
     assert proc.returncode != 0, "a gate that cannot run must not read as a clean allow"
+
+
+@pytest.mark.parametrize("script", _SCRIPTS)
+def test_unset_project_dir_outside_any_git_tree_allows(script, tmp_path):
+    """No CLAUDE_PROJECT_DIR and no git root: nothing identifies a lane, so Stop is allowed --
+    never a `/scripts/...` path that exits 2 before the script can decide (Codex R1 HIGH)."""
+    cwd = tmp_path / "loose"
+    cwd.mkdir()
+    probe = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=cwd, capture_output=True)
+    if probe.returncode == 0:
+        pytest.skip("tmp_path sits inside a git tree on this box")
+    proc = _run_unset(_declared(script), cwd)
+    assert proc.returncode == 0, (proc.stdout, proc.stderr)
+    assert proc.stdout.strip() == ""
+
+
+@pytest.mark.parametrize("script", _SCRIPTS)
+def test_unset_project_dir_in_a_non_lane_git_tree_allows(script, tmp_path):
+    """No CLAUDE_PROJECT_DIR, cwd inside a NON-lane checkout that carries the scripts: the real
+    gate runs from the git root, finds no lane, and allows -- even with a bad report on disk."""
+    project = _git_tree(tmp_path / "primary")
+    (project / "scripts").mkdir()
+    for name in _SCRIPTS + ("transport_report.py",):
+        shutil.copy2(_REPO / "scripts" / name, project / "scripts" / name)
+    session = tmp_path / "SESSION-x.md"
+    session.write_text(_BAD, encoding="utf-8")
+    proc = _run_unset(_declared(script), project / "scripts",
+                      {"HARNESS_SESSION_FILE": str(session),
+                       "HARNESS_RECEIPTS_DIR": str(tmp_path / "r")})
+    assert proc.returncode == 0, (proc.stdout, proc.stderr)
+    assert proc.stdout.strip() == ""
+
+
+def test_unset_project_dir_in_a_lane_subdirectory_still_blocks_a_bad_report(tmp_path):
+    """No CLAUDE_PROJECT_DIR, cwd a SUBDIRECTORY of this lane worktree: the launcher resolves the
+    root through git, the real gate runs, and a bad report still blocks with exit 2."""
+    session = tmp_path / "SESSION-stop-fail-closed.md"
+    session.write_text(_BAD, encoding="utf-8")
+    proc = _run_unset(_declared("lane_handback_gate.py"), _REPO / "scripts",
+                      {"HARNESS_LANE": "stop-fail-closed", "HARNESS_SESSION_FILE": str(session)})
+    assert proc.returncode == 2, (proc.returncode, proc.stdout, proc.stderr)
+    assert "malformed" in proc.stderr.lower(), proc.stderr
+
+
+def test_the_declared_command_is_shell_neutral_under_powershell(tmp_path):
+    """Copilot CLI runs hook commands through PowerShell, which sets no CLAUDE_PROJECT_DIR and
+    does not expand `$VAR`. The same declared string must still reach the real gate."""
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if not shell:
+        pytest.skip("no PowerShell on PATH")
+    session = tmp_path / "SESSION-stop-fail-closed.md"
+    session.write_text(_BAD, encoding="utf-8")
+    base = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    base.update({"HARNESS_LANE": "stop-fail-closed", "HARNESS_SESSION_FILE": str(session),
+                 "HARNESS_STOP_HOOK_ACTIVE": "false"})  # PowerShell -Command need not forward stdin
+    proc = subprocess.run([shell, "-NoProfile", "-Command", _declared("lane_handback_gate.py")],
+                          cwd=_REPO, env=base, stdin=subprocess.DEVNULL, capture_output=True,
+                          text=True, timeout=60)
+    assert proc.returncode == 2, (proc.returncode, proc.stdout, proc.stderr)
+    assert "malformed" in proc.stderr.lower(), proc.stderr
 
 
 def test_a_bad_lane_report_blocks_stop_through_the_declared_command(tmp_path):
