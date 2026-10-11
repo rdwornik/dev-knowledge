@@ -1673,10 +1673,19 @@ def substrate_live(repo_root: Path, shape: str) -> Optional[bool]:
     return sub.live if sub else None
 
 
+_PROSE_TARGET_RE = re.compile(r"\.md$")
+
+
 def lane_kind_for_row(row: BuildListRow) -> str:
-    """`code` when the row's prior-art names code or config it touches; `text` otherwise
-    (prose-only subjects). Feeds `LaneSpec.kind`, whose routing default keys on it (`[#885]`
-    clause 2) — derived from the row's own type tags, never guessed from the subject text."""
+    """`text` when the row's `removes` column names only markdown targets — the lane's own
+    deliverable is a prose edit, whatever organs its prior-art merely mentions (a WIRE intake
+    that removes a README caveat was distilled as `code`, on opus: DIGEST-TOOLS-IN-USE-2026-10-11
+    item 5). Otherwise `code` when the prior-art names code or config it touches, else `text`.
+    Feeds `LaneSpec.kind`, whose routing default keys on it (`[#885]` clause 2) — derived from
+    the row's own columns, never guessed from the subject text."""
+    targets = _ORGAN_TOKEN_RE.findall(row.removes)
+    if targets and all(_PROSE_TARGET_RE.search(t) for t in targets):
+        return "text"
     return "code" if re.search(r"\(code|\(config", row.prior_art) else "text"
 
 
@@ -1693,6 +1702,55 @@ def distilled_model(lane_kind: str) -> str:
     return "sonnet" if lane_kind == "text" else DEFAULT_MODEL
 
 
+#: Lane kind -> `provider_router` role (D12, T7). A distilled lane PRODUCES, so it routes as
+#: `implement`; a `review` lane routes as `review`. The router owns the provider order.
+KIND_TO_ROUTER_ROLE: dict[str, str] = {"text": "implement", "code": "implement",
+                                       "review": "review"}
+
+
+#: The vendor roles the distilled contract names, in order: D12's read / test / review /
+#: implement plus D14's verify. Each is routed by `provider_router` from the registry role of
+#: the same name, except `test`: the registry has no `test` role, and the operator ruled (R96
+#: addendum, 2026-10-11) that `test` routes to copilot per D12/R8 while `verify` stays the
+#: registry's anthropic per D14 -- so `test` is NOT read through `verify`.
+VENDOR_ROLES: tuple[str, ...] = ("read", "test", "verify", "review", "implement")
+RULED_VENDORS: dict[str, tuple[str, str]] = {
+    "test": ("copilot-enterprise", "ruled R96 addendum, D12/R8")}
+
+
+def _first_eligible(role: str, repo: str) -> str:
+    """The first eligible provider `provider_router.route` returns — read from the router,
+    never a second copy of its table. Refused or empty is `UNROUTED (<reason>)`, not a guess."""
+    try:
+        from scripts import provider_router as _pr  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — path-shim fallback
+        import provider_router as _pr  # noqa: PLC0415
+    try:
+        candidates = _pr.route(role, repo, strict=False)
+    except Exception as exc:  # noqa: BLE001 — an unroutable role is a named gap, never a crash
+        return f"UNROUTED ({exc})"
+    return candidates[0].provider if candidates else "UNROUTED (no eligible provider)"
+
+
+def distilled_vendor(lane_kind: str, repo: str) -> tuple[str, str]:
+    """(vendor, role) for THIS lane's own role in `repo`."""
+    role = KIND_TO_ROUTER_ROLE.get(lane_kind, "implement")
+    return (_first_eligible(role, repo), role)
+
+
+def distilled_vendors(repo: str) -> list[tuple[str, str, str]]:
+    """(role, source, vendor) for every role in `VENDOR_ROLES`. `source` names where the
+    vendor came from: the registry role routed, or the ruling that pins it."""
+    rows = []
+    for role in VENDOR_ROLES:
+        if role in RULED_VENDORS:
+            vendor, ruling = RULED_VENDORS[role]
+            rows.append((role, ruling, vendor))
+        else:
+            rows.append((role, f"registry role `{role}`", _first_eligible(role, repo)))
+    return rows
+
+
 def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
                         organ_lines: tuple[str, ...], backlog: Optional[tuple[str, str]],
                         dependent_lines: tuple[str, ...], live: Optional[bool]) -> str:
@@ -1702,6 +1760,7 @@ def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
     reserves for ONE bounded model call and are emitted as marked SLOTs, never filled."""
     diverges = "" if delta_kind.upper() == row.delta else (
         " — **DIVERGES from the row's recorded delta; a reclassification, not a defect**")
+    vendor, role = distilled_vendor(spec.kind, spec.repo)
     parts = [
         "## Distilled from (kind, subject)\n",
         f"kind (this lane): `{delta_kind.upper()}` · BUILD-LIST row delta: `{row.delta}`"
@@ -1709,6 +1768,12 @@ def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
         f"- **prior-art:** {row.prior_art}",
         f"- **removes:** {row.removes}",
         f"- **size:** `{row.size}` -> effort `{spec.effort}` (S->medium, M->high, L->xhigh)",
+        f"- **vendor:** `{vendor}` — first eligible of `provider_router.route('{role}', "
+        f"'{spec.repo}')` (D12); model `{spec.model}`, effort `{spec.effort}`",
+        "- **vendors by role** (D12 read/test/review/implement, D14 verify; first eligible of "
+        "`provider_router.route(role, repo)` unless a ruling pins it):",
+        *(f"  - `{role}` ({source}): `{vendor}`"
+          for role, source, vendor in distilled_vendors(spec.repo)),
         "- **backlog:** " + (f"[#{backlog[0]}] status={backlog[1]}" if backlog
                              else "no `tasks/*.md` row's title mentions this subject") + "\n",
         "## Organs this lane calls (`ecosystem/organ-index.md`)\n",

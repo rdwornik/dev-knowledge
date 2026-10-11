@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B5 distill-kind-fix): a WIRE intake renders its own kind; the distiller emits a per-role D12 vendor block
+
+**Anchors:** `8d4dee0e`, `3bab9415` and `92fa4c75` (fixes); `5ec356a5`, `239f67c1` and `6afb44c6` (RED tests). Branch `worktree-distill-kind-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
+
+**Did:** The kind keys on the row's `removes` target, so a WIRE intake renders as `text`, not `code`. The distiller emits a per-role vendor block (read, test, verify, review, implement) taken from `provider_router`, except `test`, which the operator ruling (R96 addendum, 2026-10-11) pins to copilot per D12/R8, while `verify` stays anthropic per D14. Codex (gpt-5.6-terra): round 1 REQUEST-CHANGES; rounds 2 and 3 APPROVE.
+
+**Result:** `tests/test_gen_lane_contract.py` + `tests/test_provider_router.py`: 225 passed, 1 skipped.
+
 ### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B4 read-gate-fix): the read gate refuses a non-UTF-8 source; quotes inside code spans pair correctly
 
 **Anchors:** `abd90058` (fix) and `4b4395fd` (RED test). Branch `worktree-read-gate-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
