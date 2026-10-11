@@ -29,7 +29,10 @@ sys.path.insert(0, _SCRIPTS)
 import audit as aud  # noqa: E402
 import generate_organ_index as goi  # noqa: E402
 import graph_queries as gq  # noqa: E402
-from audit_checks import check_organ_truth as cot  # noqa: E402
+
+# audit.py imports its registry as `scripts.audit_checks` when that resolves, so a bare
+# `audit_checks.check_organ_truth` import is a second module object and patching it misses.
+cot = sys.modules[aud.check_organ_truth.__module__]
 
 _REPO = Path(__file__).resolve().parent.parent
 

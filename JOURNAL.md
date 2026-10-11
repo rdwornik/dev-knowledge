@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-11 (b) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane A1 organ-truth-fix): main's red organ-truth test is repaired
+
+**Anchors:** `9b0321dd` -- branch `worktree-organ-truth-fix`, merged `--no-ff` through `worktree-integrate-b2-w4` by `merge_path.py land`.
+
+**Did:** landed the one-file fix of `tests/test_organ_truth.py`: the test patches the `check_organ_truth` module object that `audit.py` holds (`sys.modules[aud.check_organ_truth.__module__]`), not a second import of it. Reviewed APPROVE by Codex (gpt-5.6-terra) in BATCH-HYGIENE-PREP leg 3.
+
+**Result:** `tests/test_organ_truth.py` 41 passed. `[#1103]` stays open: its six registry ties are lane D4's.
+
+**Changes:** `tests/test_organ_truth.py`.
+
+**Next:** B2-W4 lane A2 `scope-guard-copilot`. Order: `to-cc/BATCH-B2-W4-COPILOT-2026-10-11.md` (transport).
+
 ### 2026-10-11 (a) - CC (Opus 5.5, integrator seat B2-W3, cycle 3): the B2-W3 close ledgers land; the [#1103] row close does not, because six registry entries still name that row
 
 **Anchors:** `4f288e82` `1ff83f18` -- branch `chore/b2-w3-close-ledgers`, merged `--no-ff` through `worktree-integrate-b2-w3`.
