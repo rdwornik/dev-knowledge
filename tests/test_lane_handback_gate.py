@@ -294,7 +294,10 @@ def test_exactly_one_new_stop_entry_for_the_gate():
     cmds = [c for c in _stop_commands() if "lane_handback_gate.py" in c["command"]]
     assert len(cmds) == 1, cmds
     command = cmds[0]["command"]
-    assert command == 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/lane_handback_gate.py"', command
+    assert command.startswith('uv run --locked python -c "'), command
+    assert "s='/scripts/lane_handback_gate.py'" in command and "runpy.run_path(d+s" in command, command
+    assert "'git','rev-parse','--show-toplevel'" in command, "root falls back to git when the variable is unset"
+    assert "$" not in command, "shell-neutral: no `$` expansion (Codex R1 HIGH)"
     assert "||" not in command, "R96: Stop gates fail closed -- the exit code is never swallowed"
     assert cmds[0]["timeout"] <= 15
 

@@ -465,11 +465,17 @@ def test_the_declared_stop_command_skips_fast_with_no_handback(tmp_path):
 
 
 def test_the_declared_stop_command_fails_closed_when_the_script_cannot_be_found(tmp_path):
-    """`python <missing file>` exits 2 -- a Stop hook's block-and-continue. Operator ruling R96
-    (D8 / T5.3) dropped the `|| true` that used to absorb it: a gate that cannot run must not read
-    as a clean allow. The script's own never-blocks invariant is unchanged (every path returns 0)."""
-    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path / "nowhere")}
-    proc = subprocess.run([_bash(), "-c", _declared_command()], env=env, capture_output=True, text=True, timeout=30)
+    """A root resolves (a git tree) but the script is not in it: the launcher's run_path raises,
+    a non-zero exit. Operator ruling R96 (D8 / T5.3) dropped the `|| true` that used to absorb it:
+    a gate that cannot run must not read as a clean allow. The script's own never-blocks invariant
+    is unchanged (every path returns 0). With NO root resolvable the launcher allows -- see
+    tests/test_stop_fail_closed.py."""
+    tree = tmp_path / "tree"
+    subprocess.run(["git", "init", "-q", str(tree)], check=True, capture_output=True)
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    env["UV_PROJECT"] = str(_REPO)
+    proc = subprocess.run([_bash(), "-c", _declared_command()], cwd=tree, env=env, capture_output=True, text=True,
+                          timeout=30)
     assert proc.returncode != 0, proc.stderr
 
 

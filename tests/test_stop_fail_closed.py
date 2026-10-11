@@ -142,7 +142,10 @@ def test_the_declared_command_is_shell_neutral_under_powershell(tmp_path):
     proc = subprocess.run([shell, "-NoProfile", "-Command", _declared("lane_handback_gate.py")],
                           cwd=_REPO, env=base, stdin=subprocess.DEVNULL, capture_output=True,
                           text=True, timeout=60)
-    assert proc.returncode == 2, (proc.returncode, proc.stdout, proc.stderr)
+    # `pwsh -Command` reports any failed native command as exit 1, so the exact 2 is not visible
+    # here; the gate ran (its reason is on stderr) and the JSON block rides stdout either way.
+    assert proc.returncode != 0, (proc.returncode, proc.stdout, proc.stderr)
+    assert json.loads(proc.stdout)["decision"] == "block", proc.stdout
     assert "malformed" in proc.stderr.lower(), proc.stderr
 
 

@@ -22,8 +22,9 @@ NEVER BLOCKS THE SESSION (DECLARE-NIGHT N3). The hook returns 0 on every path: a
 `exit_code` is non-zero, never exit code 2 (a Stop hook's "block and continue"), never a `decision` on
 stdout. Nothing is killed or truncated: the worker has no deadline. Since operator ruling R96 (D8 / T5.3) the
 declared Stop command no longer ends in `|| true`, so this invariant is carried by the script alone; what the
-command now lets through is an interpreter or launch failure (e.g. a missing script: python exits 2), which
-fails closed instead of reading as a clean allow.
+command now lets through is an interpreter or launch failure (e.g. a git root that lacks this script), which
+fails closed instead of reading as a clean allow. The command is a shell-neutral launcher: it prefers
+CLAUDE_PROJECT_DIR, else the git root, and with no root at all exits 0 -- nothing there can identify a lane.
 
 THE WAKE (LANE-B2-W1-b2-integrator-liveness, batch B2-W1). FOUNDATION's integrator learnt of a handback from
 a 10-minute cron, so every handback waited 1-2 minutes for pickup. This guard already is the event, so the
