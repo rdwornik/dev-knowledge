@@ -1546,6 +1546,60 @@ def test_lane_kind_for_row_reads_code_vs_text_from_prior_art():
     assert glc.lane_kind_for_row(text_row) == "text"
 
 
+_WIRE_INTAKE_ROW = (
+    "| intake | `docs/intake/` ADR-98 spine (prose) ; generated Contents block ; "
+    "`intake-index-freshness` hook (config, `stages: [manual]`) | WIRE | the Contents-block "
+    "staleness caveat in `docs/intake/README.md` | S | no |\n")
+
+
+def test_lane_kind_for_row_keys_on_what_the_row_removes():
+    """DIGEST-TOOLS-IN-USE-2026-10-11 (5): a WIRE intake that only removes a README caveat was
+    distilled as `code`, on opus, because prior-art merely MENTIONED a config hook."""
+    row = glc.BuildListRow(
+        "intake", "`docs/intake/` (prose) ; `intake-index-freshness` hook (config)", "WIRE",
+        "the Contents-block staleness caveat in `docs/intake/README.md`", "S", "no")
+    assert glc.lane_kind_for_row(row) == "text"
+
+
+def test_cmd_distill_renders_a_wire_intake_as_its_own_kind_not_code(tmp_path, monkeypatch):
+    repo_root = _distill_repo(tmp_path)
+    (repo_root / "protocols" / "BUILD-LIST.md").write_text(
+        _BUILD_LIST_FIXTURE + _WIRE_INTAKE_ROW, encoding="utf-8")
+    monkeypatch.setattr(glc, "_SCRIPTS", repo_root / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "intake", "--stdout"])
+    assert result.exit_code == 0, result.output
+    assert "**Kind:** `code`" not in result.output
+    assert "**Kind:** `text`" in result.output
+    assert "kind (this lane): `WIRE`" in result.output
+    assert "| sonnet |" in result.output
+    assert glc.parse_contract(result.output).ok
+
+
+def test_distilled_vendor_is_provider_routers_first_eligible_for_the_role():
+    """D12 (T7): the distiller names a VENDOR, routed by `provider_router`, not only a tier."""
+    import provider_router as _pr
+
+    for kind, role in (("code", "implement"), ("text", "implement"), ("review", "review")):
+        expected = _pr.route(role, ".dev-knowledge", strict=False)[0].provider
+        vendor, used_role = glc.distilled_vendor(kind, ".dev-knowledge")
+        assert (vendor, used_role) == (expected, role)
+
+
+def test_cmd_distill_emits_a_vendor_line_per_d12(tmp_path, monkeypatch):
+    import provider_router as _pr
+
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "widget polish", "--stdout"])
+    assert result.exit_code == 0, result.output
+    expected = _pr.route("implement", ".dev-knowledge", strict=False)[0].provider
+    assert f"- **vendor:** `{expected}`" in result.output
+    assert "provider_router" in result.output
+
+
 def test_distilled_effort_follows_the_size_table():
     assert glc.distilled_effort("S") == "medium"
     assert glc.distilled_effort("M") == "high"
