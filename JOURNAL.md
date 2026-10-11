@@ -21,6 +21,16 @@
 
 ---
 
+### 2026-10-11 (c) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane A2 scope-guard-copilot): the scope-guard hook runs under every shell and allows outside a git tree
+
+**Anchors:** `55922ff4` (fix) and `799b53dc` (RED test) on top of `f9cdeb3d` / `bc1f2b22` -- branch `worktree-scope-guard-copilot`, merged `--no-ff` through `worktree-integrate-b2-w4` by `merge_path.py land`.
+
+**Did:** replaced the `$(git rev-parse --show-toplevel)` launcher in `.claude/settings.json`'s PreToolUse scope-guard hook with a shell-neutral `python -c` that asks git for the root and runpy-runs `scripts/hooks/scope_guard.py`. It exits 0 outside a git tree, which closes Codex's HIGH on `f9cdeb3d`: there the old form resolved `C:\scripts\hooks\scope_guard.py` and denied with exit 2. `tests/test_scope_guard_hook_command.py` now runs the declared command for real under bash, pwsh and Windows PowerShell. Reviewed APPROVE by Codex (gpt-5.6-terra).
+
+**Result:** scope_guard_hook_command + hooks_no_powershell + hook_watchdog + scope_guard: 98 passed. Ruff clean.
+
+**Next:** lane B1 stop-fail-closed.
+
 ### 2026-10-11 (b) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane A1 organ-truth-fix): main's red organ-truth test is repaired
 
 **Anchors:** `9b0321dd` -- branch `worktree-organ-truth-fix`, merged `--no-ff` through `worktree-integrate-b2-w4` by `merge_path.py land`.
