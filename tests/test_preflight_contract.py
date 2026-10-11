@@ -733,3 +733,14 @@ def test_an_unallocated_id_says_so_as_its_live_value(tmp_path):
     report = pf.verify(_write(tmp_path, "# C\n\n- the open row [#7999] is the subject\n"), root)
     line = _dead_line(report, "7999")
     assert "dead: [#7999]" in line and "live:" in line and "no row" in line, line
+
+def test_an_unreadable_task_entry_degrades_the_live_value_never_crashes(tmp_path):
+    """`_live_id_value` only enriches a failure already decided; an unreadable `tasks/` entry
+    (here a DIRECTORY matching the id's file glob) must not turn that FAIL into exit 2."""
+    root = _dead_id_repo(tmp_path)
+    (root / "tasks" / "7004-unreadable.md").mkdir()
+    contract = _write(tmp_path, "# C\n\n- the open row [#7004] is the subject\n")
+    report = pf.verify(contract, root)
+    line = _dead_line(report, "7004")
+    assert "dead: [#7004]" in line and "live: unknown" in line, line
+    assert pf.main([str(contract), "--repo-root", str(root)]) == 1
