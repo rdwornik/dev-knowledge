@@ -84,7 +84,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --locked python \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/scope_guard.py\"",
+            "command": "uv run --locked python \"$(git rev-parse --show-toplevel)/scripts/hooks/scope_guard.py\"",
             "timeout": 15
           }
         ]
