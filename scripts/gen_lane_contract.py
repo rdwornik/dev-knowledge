@@ -1708,11 +1708,16 @@ KIND_TO_ROUTER_ROLE: dict[str, str] = {"text": "implement", "code": "implement",
                                        "review": "review"}
 
 
-def distilled_vendor(lane_kind: str, repo: str) -> tuple[str, str]:
-    """(vendor, role): the first eligible provider `provider_router.route` returns for the
-    lane's role in `repo` — read from the router, never a second copy of its table. A refused
-    or empty route is reported as `UNROUTED (<reason>)`, not guessed."""
-    role = KIND_TO_ROUTER_ROLE.get(lane_kind, "implement")
+#: D12 (T7) role -> `ecosystem/provider-registry.yaml` role. D12 says "test"; the registry has no
+#: `test` role, and `verify` ("Confirm the work holds ... the lane's RED-first tests") is the one
+#: that carries testing, so `test` routes through `verify` and the contract says so.
+D12_ROLE_TO_REGISTRY_ROLE: dict[str, str] = {"read": "read", "test": "verify",
+                                             "review": "review", "implement": "implement"}
+
+
+def _first_eligible(role: str, repo: str) -> str:
+    """The first eligible provider `provider_router.route` returns — read from the router,
+    never a second copy of its table. Refused or empty is `UNROUTED (<reason>)`, not a guess."""
     try:
         from scripts import provider_router as _pr  # noqa: PLC0415
     except ImportError:  # pragma: no cover — path-shim fallback
@@ -1720,10 +1725,20 @@ def distilled_vendor(lane_kind: str, repo: str) -> tuple[str, str]:
     try:
         candidates = _pr.route(role, repo, strict=False)
     except Exception as exc:  # noqa: BLE001 — an unroutable role is a named gap, never a crash
-        return (f"UNROUTED ({exc})", role)
-    if not candidates:
-        return ("UNROUTED (no eligible provider)", role)
-    return (candidates[0].provider, role)
+        return f"UNROUTED ({exc})"
+    return candidates[0].provider if candidates else "UNROUTED (no eligible provider)"
+
+
+def distilled_vendor(lane_kind: str, repo: str) -> tuple[str, str]:
+    """(vendor, role) for THIS lane's own role in `repo`."""
+    role = KIND_TO_ROUTER_ROLE.get(lane_kind, "implement")
+    return (_first_eligible(role, repo), role)
+
+
+def distilled_vendors(repo: str) -> list[tuple[str, str, str]]:
+    """(D12 role, registry role, vendor) for every D12 role, in D12's order."""
+    return [(d12, reg, _first_eligible(reg, repo))
+            for d12, reg in D12_ROLE_TO_REGISTRY_ROLE.items()]
 
 
 def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
@@ -1745,6 +1760,10 @@ def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
         f"- **size:** `{row.size}` -> effort `{spec.effort}` (S->medium, M->high, L->xhigh)",
         f"- **vendor:** `{vendor}` — first eligible of `provider_router.route('{role}', "
         f"'{spec.repo}')` (D12); model `{spec.model}`, effort `{spec.effort}`",
+        "- **vendors by D12 role** (first eligible of `provider_router.route(role, repo)`; "
+        "D12 `test` routes through registry role `verify` — the registry has no `test` role):",
+        *(f"  - `{d12}` (registry role `{reg}`): `{vendor}`"
+          for d12, reg, vendor in distilled_vendors(spec.repo)),
         "- **backlog:** " + (f"[#{backlog[0]}] status={backlog[1]}" if backlog
                              else "no `tasks/*.md` row's title mentions this subject") + "\n",
         "## Organs this lane calls (`ecosystem/organ-index.md`)\n",
