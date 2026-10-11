@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B4 read-gate-fix): the read gate refuses a non-UTF-8 source; quotes inside code spans pair correctly
+
+**Anchors:** `abd90058` (fix) and `4b4395fd` (RED test). Branch `worktree-read-gate-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.
+
+**Did:** The read gate refuses a source that is not valid UTF-8, and masks backtick code spans before pairing quotation marks, so quotes inside JSON or regex text no longer misalign. Reviewed APPROVE by Codex (gpt-5.6-terra).
+
+**Result:** Targeted tests: 37 passed. Open: only backtick code spans are masked.
+
 ### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B3 dispatch-plan-fix): plan refuses a --slug the Dispatch block disagrees with; the --token-cap doc matches --help
 
 **Anchors:** `9bd0ac25` and `df2cee50` (fixes); `1ca2c05f` and `d923b674` (RED tests). Branch `worktree-dispatch-plan-fix`, merged `--no-ff` through `worktree-integrate-b2-w4-b` by `merge_path.py land`. The slug is `B2-W4-B` because `worktree-integrate-b2-w4` still holds the refused A2 candidate `4168f996`, and moving it would need `--force`.

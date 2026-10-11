@@ -22,6 +22,20 @@ route's output file. Whitespace inside a quotation is normalized
 text, which is normalized the same way -- "and nothing else" (AMEND v3): no fuzzy matching,
 no case folding, no punctuation stripping.
 
+CODE SPANS ARE OPAQUE TO QUOTE PAIRING (B2-W4 read-gate-fix, DIGEST-TOOLS-IN-USE-2026-10-11
+defect 4): a markdown code span -- a run of N backticks closed by the next run of exactly N
+backticks, CommonMark's rule -- is masked before pairing, so a `"` inside one (JSON such as
+`{"a": "b"}`, a regex such as `r"\"[^\"]+\""`) never opens or closes a quotation. A code
+span is not itself a quotation; one inside a quotation is part of it. Such a quotation is
+found in the source if its text is there either verbatim or with each code span's backtick
+delimiters removed (the delimiters are markdown markup, not source text). An unclosed
+backtick run is literal text, as in CommonMark.
+
+A SOURCE THAT CANNOT BE DECODED IS REFUSED, NOT READ (defect 3): plain-text sources must be
+UTF-8; anything else raises `ReadGateError`, and `run_read_gate` returns a refused
+`ReadGateResult` (`refusal="source-not-utf8:..."`) without invoking any route -- no route
+can be verified against text the gate cannot decode.
+
 THE LEDGER: `logs/READ-OUTCOMES.jsonl`. The render's own placeholder name already matches
 this repo's `logs/<NAME>.jsonl` append-only convention exactly (`PROVIDER-BENCH-RUNS.jsonl`,
 `LANE-COSTS.jsonl`, `QUOTA-READS.jsonl`), so it is kept rather than renamed -- no
@@ -49,6 +63,8 @@ LEDGER_REL = "logs/READ-OUTCOMES.jsonl"
 
 PRINT_TIMEOUT_MARKER = "print timeout"
 _QUOTE_RE = re.compile(r'"([^"]+)"|“([^”]+)”')
+_CODE_SPAN_RE = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.DOTALL)
+_QUOTE_CHARS_RE = re.compile("[\"“”]")
 _WS_RE = re.compile(r"\s+")
 
 
@@ -64,26 +80,53 @@ def normalize_whitespace(text: str) -> str:
 
 def extract_quotations(output_text: str) -> list[str]:
     """Every run of text between a matching pair of quotation marks (straight `"..."` or
-    curly `“...”`), whitespace-normalized. See the module docstring for why this,
-    and only this, counts as a quotation."""
+    curly `“...”`), whitespace-normalized; quotation marks inside a code span are
+    masked out of the pairing. See the module docstring for why this, and only this,
+    counts as a quotation."""
+    masked = _CODE_SPAN_RE.sub(
+        lambda m: _QUOTE_CHARS_RE.sub("\0", m.group(0)), output_text
+    )
     found = []
-    for straight, curly in _QUOTE_RE.findall(output_text):
-        normalized = normalize_whitespace(straight or curly)
+    for match in _QUOTE_RE.finditer(masked):
+        group = 1 if match.group(1) is not None else 2
+        normalized = normalize_whitespace(output_text[match.start(group) : match.end(group)])
         if normalized:
             found.append(normalized)
     return found
+
+
+def strip_code_span_delimiters(text: str) -> str:
+    """`text` with every code span's backtick delimiters removed, its content kept."""
+    return _CODE_SPAN_RE.sub(lambda m: m.group(2), text)
+
+
+def quotation_in_source(quotation: str, normalized_source: str) -> bool:
+    """Literal substring check, verbatim or with code-span delimiters removed (see the
+    module docstring)."""
+    if quotation in normalized_source:
+        return True
+    stripped = normalize_whitespace(strip_code_span_delimiters(quotation))
+    return bool(stripped) and stripped in normalized_source
 
 
 # --- source extraction (DONE-ITEM 1) ---------------------------------------------------------
 
 
 def extract_source_text(source_path: Path) -> str:
+    """Source text by suffix; raises `ReadGateError` (never `UnicodeDecodeError`) on a
+    plain-text source that is not UTF-8."""
     suffix = source_path.suffix.lower()
     if suffix == ".pdf":
         return _extract_pdf_text(source_path)
     if suffix == ".epub":
         return _extract_epub_text(source_path)
-    return source_path.read_text(encoding="utf-8")
+    try:
+        return source_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ReadGateError(
+            f"{source_path}: source is not UTF-8 ({exc.reason} at byte {exc.start}); "
+            "refusing to read it -- re-encode the source as UTF-8"
+        ) from exc
 
 
 def _extract_pdf_text(source_path: Path) -> str:
@@ -143,7 +186,7 @@ def verify_read(output_path: Optional[Path], log_text: str, source_text: str) ->
         return ReadVerdict(False, "no-quotation-in-output")
     normalized_source = normalize_whitespace(source_text)
     for quotation in quotations:
-        if quotation not in normalized_source:
+        if not quotation_in_source(quotation, normalized_source):
             return ReadVerdict(False, f"quotation-not-in-source:{quotation[:80]!r}")
     return ReadVerdict(True, None)
 
@@ -199,9 +242,13 @@ class ReadGateResult:
     served_route: Optional[str]
     output_path: Optional[Path]
     attempts: list[RouteOutcome] = field(default_factory=list)
+    refusal: Optional[str] = None
 
     def failure_summary(self) -> str:
-        """Every route and its failed check -- DONE-ITEM 2's failure-naming half."""
+        """Every route and its failed check -- DONE-ITEM 2's failure-naming half -- or, for a
+        refused source, the refusal (no route was attempted)."""
+        if self.refusal is not None:
+            return f"source refused: {self.refusal}"
         return "; ".join(f"{a.route}: {a.failed_check}" for a in self.attempts)
 
 
@@ -215,8 +262,14 @@ def run_read_gate(
 ) -> ReadGateResult:
     """Walk `roles.read` in the registry's declared order; verify each read; fall through on
     a failed check; return the first verified result, or a failure naming every route and its
-    failed check (all attempts are always in `.attempts`, verified or not)."""
-    source_text = extract_source_text(source_path)
+    failed check (all attempts are always in `.attempts`, verified or not). A source that
+    is not UTF-8 is refused before any route is invoked (`.refusal` set, no ledger line)."""
+    try:
+        source_text = extract_source_text(source_path)
+    except ReadGateError as exc:
+        if not isinstance(exc.__cause__, UnicodeDecodeError):
+            raise
+        return ReadGateResult(False, None, None, [], refusal=f"source-not-utf8:{exc}")
     source_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
     attempts: list[RouteOutcome] = []
     for route in load_read_routes(registry_path):
