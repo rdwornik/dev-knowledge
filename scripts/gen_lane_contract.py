@@ -1708,11 +1708,14 @@ KIND_TO_ROUTER_ROLE: dict[str, str] = {"text": "implement", "code": "implement",
                                        "review": "review"}
 
 
-#: D12 (T7) role -> `ecosystem/provider-registry.yaml` role. D12 says "test"; the registry has no
-#: `test` role, and `verify` ("Confirm the work holds ... the lane's RED-first tests") is the one
-#: that carries testing, so `test` routes through `verify` and the contract says so.
-D12_ROLE_TO_REGISTRY_ROLE: dict[str, str] = {"read": "read", "test": "verify",
-                                             "review": "review", "implement": "implement"}
+#: The vendor roles the distilled contract names, in order: D12's read / test / review /
+#: implement plus D14's verify. Each is routed by `provider_router` from the registry role of
+#: the same name, except `test`: the registry has no `test` role, and the operator ruled (R96
+#: addendum, 2026-10-11) that `test` routes to copilot per D12/R8 while `verify` stays the
+#: registry's anthropic per D14 -- so `test` is NOT read through `verify`.
+VENDOR_ROLES: tuple[str, ...] = ("read", "test", "verify", "review", "implement")
+RULED_VENDORS: dict[str, tuple[str, str]] = {
+    "test": ("copilot-enterprise", "ruled R96 addendum, D12/R8")}
 
 
 def _first_eligible(role: str, repo: str) -> str:
@@ -1736,9 +1739,16 @@ def distilled_vendor(lane_kind: str, repo: str) -> tuple[str, str]:
 
 
 def distilled_vendors(repo: str) -> list[tuple[str, str, str]]:
-    """(D12 role, registry role, vendor) for every D12 role, in D12's order."""
-    return [(d12, reg, _first_eligible(reg, repo))
-            for d12, reg in D12_ROLE_TO_REGISTRY_ROLE.items()]
+    """(role, source, vendor) for every role in `VENDOR_ROLES`. `source` names where the
+    vendor came from: the registry role routed, or the ruling that pins it."""
+    rows = []
+    for role in VENDOR_ROLES:
+        if role in RULED_VENDORS:
+            vendor, ruling = RULED_VENDORS[role]
+            rows.append((role, ruling, vendor))
+        else:
+            rows.append((role, f"registry role `{role}`", _first_eligible(role, repo)))
+    return rows
 
 
 def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
@@ -1760,10 +1770,10 @@ def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
         f"- **size:** `{row.size}` -> effort `{spec.effort}` (S->medium, M->high, L->xhigh)",
         f"- **vendor:** `{vendor}` — first eligible of `provider_router.route('{role}', "
         f"'{spec.repo}')` (D12); model `{spec.model}`, effort `{spec.effort}`",
-        "- **vendors by D12 role** (first eligible of `provider_router.route(role, repo)`; "
-        "D12 `test` routes through registry role `verify` — the registry has no `test` role):",
-        *(f"  - `{d12}` (registry role `{reg}`): `{vendor}`"
-          for d12, reg, vendor in distilled_vendors(spec.repo)),
+        "- **vendors by role** (D12 read/test/review/implement, D14 verify; first eligible of "
+        "`provider_router.route(role, repo)` unless a ruling pins it):",
+        *(f"  - `{role}` ({source}): `{vendor}`"
+          for role, source, vendor in distilled_vendors(spec.repo)),
         "- **backlog:** " + (f"[#{backlog[0]}] status={backlog[1]}" if backlog
                              else "no `tasks/*.md` row's title mentions this subject") + "\n",
         "## Organs this lane calls (`ecosystem/organ-index.md`)\n",
