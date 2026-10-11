@@ -325,8 +325,15 @@ def _live_id_value(repo_root: Path, tid: str) -> str:
     tasks = Path(repo_root) / "tasks"
     if not tasks.is_dir():
         return "unknown (no tasks/ directory to look it up in)"
-    for path in sorted(tasks.glob(f"{tid}-*.md")) + sorted(tasks.glob(f"{tid}.md")):
-        text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        candidates = sorted(tasks.glob(f"{tid}-*.md")) + sorted(tasks.glob(f"{tid}.md"))
+    except OSError as exc:
+        return f"unknown (cannot list tasks/: {type(exc).__name__})"
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except (OSError, UnicodeDecodeError) as exc:
+            return f"unknown (cannot read {path.name}: {type(exc).__name__})"
         m = _TASK_ID_RE.search(text[:1200])
         if m is None or m.group(1) != tid:
             continue
