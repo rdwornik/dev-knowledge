@@ -313,6 +313,35 @@ def _open_backlog_ids(repo_root: Path) -> set[str]:
                                                                    errors="replace")))
 
 
+_SUCCESSOR_RE = re.compile(r"(?i)\bsuperseded\b[^\[\n]{0,40}?\bby\s+\[#(\d+)\]")
+
+
+def _live_id_value(repo_root: Path, tid: str) -> str:
+    """What a non-open `[#id]` IS now, read from its `tasks/` row -- the live value a FAIL names.
+
+    Never raises: this only enriches a failure already decided, so an unreadable `tasks/`
+    degrades the wording ("unknown"), never the verdict.
+    """
+    tasks = Path(repo_root) / "tasks"
+    if not tasks.is_dir():
+        return "unknown (no tasks/ directory to look it up in)"
+    for path in sorted(tasks.glob(f"{tid}-*.md")) + sorted(tasks.glob(f"{tid}.md")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        m = _TASK_ID_RE.search(text[:1200])
+        if m is None or m.group(1) != tid:
+            continue
+        title = _TASK_TITLE_RE.search(text[:1200])
+        status = _TASK_STATUS_RE.search(text[:1200])
+        value = (status.group(1).strip().upper() if status else "UNKNOWN-STATUS")
+        successor = _SUCCESSOR_RE.search(text)
+        if successor:
+            value += f" by [#{successor.group(1)}]"
+        if title:
+            value += f" (row {title.group(1).strip()!r})"
+        return value
+    return f"no row [#{tid}] allocated in tasks/"
+
+
 def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
     """Extract every locator claim in `contract` and check it against `repo_root`."""
     try:
@@ -418,7 +447,9 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
                     continue
                 tid = m.group(1)
                 ok = tid in open_ids
-                add("backlog-id", f"[#{tid}]", ok, "" if ok else "not open in BACKLOG.md")
+                add("backlog-id", f"[#{tid}]", ok,
+                    "" if ok else f"not open in BACKLOG.md -- dead: [#{tid}] -> live: "
+                                  f"{_live_id_value(repo_root, tid)}")
 
     # Predicate (vi) rides the LOCATOR run as well as the freeze run, because that is where its
     # subject lives: a declared input is a locator claim, and `/preflight` is the surface a seat
