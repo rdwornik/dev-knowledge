@@ -153,8 +153,8 @@ def test_lane_end_guard_stop_entry_runs_through_uv_run_locked_python():
     commands = [c for c in _stop_commands() if "lane_end_guard.py" in c]
     assert len(commands) == 1, f"expected exactly one lane_end_guard Stop entry, found {commands}"
     command = commands[0]
-    assert command.startswith('uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/lane_end_guard.py"'), command
-    assert command.endswith("|| true"), command
+    assert command == 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/lane_end_guard.py"', command
+    assert "||" not in command, "R96: Stop gates fail closed -- the exit code is never swallowed"
 
 
 # --- sanity: the count of SessionStart commands is pinned, not just non-decreasing ----------

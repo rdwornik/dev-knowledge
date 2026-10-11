@@ -47,7 +47,10 @@ before it ever reads a session file or `stop_hook_active`.
 THE STOP-HOOK CONTRACT this repo has already corrected against the live runtime (CC 2.1.178,
 `session_end_backpressure.py`'s own docstring): `{"decision":"block","reason":...}` on stdout
 blocks the stop; plain stdout or a bare non-zero exit do not reach the model. This gate uses the
-same JSON contract.
+same JSON contract AND, since operator ruling R96 (D8 / T5.3, "Stop gates fail closed (drop
+`|| true`)"), exits 2 with the reason on stderr -- Claude Code's documented Stop-hook
+block-and-continue -- so a refusal reaches the host by its exit code too, now that the declared
+command no longer swallows it.
 
 THREE NAMED REASONS, not one generic refusal (`classify`): the closing line can be `missing`
 (no HANDBACK-shaped text anywhere), `backtick-wrapped` (a shaped candidate exists but sits
@@ -83,7 +86,9 @@ convention -- fail-CLOSED on a real, positively-detected bad line, fail-OPEN on 
 else): an unresolvable transport, an unreadable session file, or an internal exception in this
 script all return 0 with no decision, exactly like `lane_end_guard.py`'s own REFUSED/skip
 paths. Only a session file this gate could actually read and found lacking, on a fresh stop
-attempt, ever blocks.
+attempt, ever blocks. What R96 changed is the WRAPPER, not this posture: an interpreter that
+cannot start or a script that is not there now surfaces as a non-zero exit instead of being
+masked to 0 by the declared command.
 
 FLOOR: hub-only, for the same one-line reason as `lane_end_guard.py` and `transport_report.py`:
 it reads the operator's transport drive and the lane's own harness environment, neither of
@@ -111,6 +116,7 @@ STATUS_MISSING = "missing"
 STATUS_WRAPPED = "backtick-wrapped"
 STATUS_MALFORMED = "malformed"
 
+EXIT_BLOCK = 2  # a Stop hook's block-and-continue; reaches the host since R96 dropped `|| true`
 # A candidate: `HANDBACK <branch> @ <sha>`, with an optional third `<kind>` token. Looser than
 # the full batch-common shape (no fixed kind enum, trailing `review=...`/`HIGH:n` tokens
 # ignored) -- this gate checks PRESENCE and SHAPE, never merge-eligibility.
@@ -240,12 +246,15 @@ def _read_stop_hook_active(environ: Mapping[str, str]) -> Optional[bool]:
 
 def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.environ,
          root: Path = _ROOT, resolve_transport=None) -> int:
-    """Returns 0 on every path (never the code a Stop hook reads as a raw block). A refusal is
-    communicated ONLY via `{"decision":"block","reason":...}` JSON on stdout -- the live
-    Stop-hook contract this repo already corrected against CC 2.1.178
-    (`session_end_backpressure.py`). Blocks at most once per fresh stop attempt (see the module
-    docstring's FIRE-ONCE section) -- the STRUCTURAL FLOOR: when `stop_hook_active` cannot be
-    read at all, this gate stays silent rather than block unconditionally with no reset signal."""
+    """Returns 0 on every path except a refusal, which returns `EXIT_BLOCK` (2) -- Claude Code's
+    Stop-hook block-and-continue, which feeds stderr back to the model (R96: the declared
+    command no longer ends in `|| true`, so this exit code reaches the host). A refusal is also
+    printed as `{"decision":"block","reason":...}` JSON on stdout -- the live Stop-hook contract
+    this repo already corrected against CC 2.1.178 (`session_end_backpressure.py`) -- and as the
+    plain reason on stderr, so either channel carries it. Blocks at most once per fresh stop
+    attempt (see the module docstring's FIRE-ONCE section) -- the STRUCTURAL FLOOR: when
+    `stop_hook_active` cannot be read at all, this gate stays silent rather than block
+    unconditionally with no reset signal."""
     try:
         lane = resolve_lane(environ, root)
         if not lane:
@@ -267,8 +276,10 @@ def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.en
         status, line = classify(text)
         if status == STATUS_OK:
             return 0
-        print(json.dumps({"decision": "block", "reason": reason(status, line, session)}))
-        return 0
+        why = reason(status, line, session)
+        print(json.dumps({"decision": "block", "reason": why}))
+        print(why, file=sys.stderr)
+        return EXIT_BLOCK
     except Exception as exc:  # noqa: BLE001 -- a broken gate must never brick a session
         print(f"lane_handback_gate: DEGRADED ({exc!r}) -- allowing stop", file=sys.stderr)
         return 0

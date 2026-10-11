@@ -421,7 +421,10 @@ def test_the_default_moment_argv_is_the_doit_lane_end_moment():
 def _bash() -> str:
     """Claude Code runs a hook command through a POSIX shell; `$CLAUDE_PROJECT_DIR` needs one to expand."""
     import shutil
-    exe = shutil.which("bash")
+    # Git Bash before PATH: on Windows `bash` on PATH can be the WSL launcher, which exits 1 before
+    # the command runs -- a false non-zero now that R96 dropped the `|| true` that masked it.
+    exe = next((c for c in (r"C:\Program Files\Git\bin\bash.exe", shutil.which("bash"))
+                if c and Path(c).exists()), None)
     if not exe:
         pytest.skip("no POSIX shell on PATH")
     return exe
@@ -435,7 +438,7 @@ def test_the_declared_stop_command_skips_fast_with_no_handback(tmp_path):
     """The command exactly as settings.json declares it, run as the harness runs it.
 
     Budget raised 3.0 -> 8.0s (LANE-5B-5 lane-hooks-port, 2026-09-25): the declared command is
-    now `uv run --locked python ... || true`, not a bare `python ...` -- this script's own
+    now `uv run --locked python ...` (with `|| true` until R96 dropped it), not a bare `python ...` -- this script's own
     header explains why that was deliberately avoided ("costs ~1 s at startup, more than the
     skip path may [afford]"), and this lane's contract named the invocation explicitly anyway
     (Done-contract item 1). Measured on this box: `uv run --locked python -c pass` alone runs
@@ -461,11 +464,13 @@ def test_the_declared_stop_command_skips_fast_with_no_handback(tmp_path):
     assert elapsed < 1.0, f"the skip path must be well under a second, took {elapsed:.2f}s"
 
 
-def test_the_declared_stop_command_never_blocks_even_when_the_script_cannot_be_found(tmp_path):
-    """`python <missing file>` exits 2 -- a Stop hook's block-and-continue. The declared command must absorb it."""
+def test_the_declared_stop_command_fails_closed_when_the_script_cannot_be_found(tmp_path):
+    """`python <missing file>` exits 2 -- a Stop hook's block-and-continue. Operator ruling R96
+    (D8 / T5.3) dropped the `|| true` that used to absorb it: a gate that cannot run must not read
+    as a clean allow. The script's own never-blocks invariant is unchanged (every path returns 0)."""
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path / "nowhere")}
     proc = subprocess.run([_bash(), "-c", _declared_command()], env=env, capture_output=True, text=True, timeout=30)
-    assert proc.returncode == 0, proc.stderr
+    assert proc.returncode != 0, proc.stderr
 
 
 def test_the_handback_pattern_matches_only_a_closing_line():
