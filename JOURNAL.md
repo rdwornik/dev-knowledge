@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-10-11 (a) - CC (Opus 5.5, integrator seat B2-W3, cycle 3): the B2-W3 close ledgers land; the [#1103] row close does not, because six registry entries still name that row
+
+**Anchors:** `4f288e82` `1ff83f18` -- branch `chore/b2-w3-close-ledgers`, merged `--no-ff` through `worktree-integrate-b2-w3`.
+
+**Did:**
+- Landed the batch's cost rows (`lane_cost.py close` for the seven launched lanes, `seat-close` for four integrator and five dispatcher sessions) and the ci-schedules post-land merge receipt of `fba1a4d8`.
+- Withdrew the `[#1103]` row close carried from cycle 2: its merge `878988a8` (tag `archive/b2-w3-close-1103-carry`) was refused by `land` -- `tests/test_known_reds.py::test_every_live_entry_names_a_row_that_is_still_open` reds once the row is closed, because six live entries in `logs/KNOWN-REDS-REGISTRY.json` still name `[#1103]`.
+- Recorded the last two handbacks as WAITING on named gates: `b2w2-codespace-finish` at `eea31c5d` (the laptop codex cache age) and `b2w2-boot-teaching` at `a9503f76` (after `b2w2-transport-index`).
+
+**Result:** `[#1103]` stays open (its Done-when holds; the registry tie needs re-pointing first). Every B2-W3 lane is MERGED or WAITING on a named gate; the batch close follows.
+
+**Changes:** `logs/LANE-COSTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Abandoned:** the `[#1103]` row close (merge `878988a8`, never on main).
+
+**Next:** the B2-W3 close (trial cut, R65 digest, CLOSED). Receipt: `to-browser/SESSION-integrator-b2-w3-2026-10-09.md` (transport).
+
 ### 2026-10-10 (e) - CC (Opus 5.5, integrator seat B2-W3, cycle 2): lane b2w3-ci-schedules merges -- CI deselects the operator-host tests, the mutation pilot runs nightly, and a pilot that executes no mutant fails instead of reading green
 
 **Anchors:** `ff57acc4` `ea9b0603` `c399a1f7` `82b91cff` `8959760c` `52d0d047` `6e91230b` `3c923880` `5fb4ba26` `028b1f58` `0d3178d7` `f43f95b2` `4ebf6b68` `1bca304b` `fddb5884` `9bee78b5` -- branch `worktree-b2w3-ci-schedules`, merged `--no-ff` through `worktree-integrate-b2-w3`.
