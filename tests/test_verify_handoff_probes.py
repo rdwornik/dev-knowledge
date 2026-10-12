@@ -2482,6 +2482,63 @@ def test_uncommitted_bundle_still_fails_bd_ci_on_live_drift(tmp_path, monkeypatc
     assert by["BD-ci"].status == "fail", by["BD-ci"].detail
 
 
+# --- BW: a COMMITTED bundle's BD-batches drifts every time a batch opens or closes after its
+# cut -- the same historical-row reason [#1330] gives CI/Rulings/Capabilities. Opening a batch
+# must not red the ship-gate on an old bundle; an UNCOMMITTED bundle keeps live FAIL teeth.
+
+_BW_OPEN_MANIFEST = "docs/audits/2026-10-12-technical-batch-bw-manifest.md"
+
+
+def _open_a_batch_after_cut(repo, run):
+    """Commit an OPEN batch manifest (valid, absent closer) AFTER the bundle's cut."""
+    p = repo / _BW_OPEN_MANIFEST
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("---\nbatch: BW\nstatus: open\n"
+                 "closed_by: docs/audits/2026-10-12-technical-batch-bw-close-packet.md\n"
+                 "---\n\n# Batch BW\n", encoding="utf-8")
+    _commit_at(run, _BW_OPEN_MANIFEST, "2026-10-12T12:00:00+02:00", "open batch BW")
+    live = hs.row_batches(repo)                  # sanity: a batch really is open live now
+    assert live.value != "no batch open", live.value
+    return live
+
+
+@_needs_git
+def test_committed_bundle_bd_batches_drift_is_not_a_fail_when_a_batch_opens_later(
+        tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    recorded = hs.StateRow("Batches", "no batch open", "LIVE-DRIFTS",
+                           "batch_manifest.open_batches")
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(Batches=recorded.rendered()),
+        receipt={"manifest": {"source_sha": "c758fe2f847238c7f9bc88797ab13ac106453795",
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+    _open_a_batch_after_cut(repo, run)
+
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-batches"].status in ("warn", "pass"), by["BD-batches"].detail
+
+
+@_needs_git
+def test_uncommitted_bundle_still_fails_bd_batches_on_live_drift(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    recorded = hs.StateRow("Batches", "no batch open", "LIVE-DRIFTS",
+                           "batch_manifest.open_batches")
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(Batches=recorded.rendered()),
+        receipt={"manifest": {"source_sha": "irrelevant-uncommitted",
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _open_a_batch_after_cut(repo, run)        # commits ONLY the manifest; bundle stays untracked
+    assert vhp._bundle_cut_anchor(bundle, repo) == (None, None)
+
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-batches"].status == "fail", by["BD-batches"].detail
+
+
 def test_a_well_formed_boot_data_block_passes_every_row(tmp_path, monkeypatch):
     # lane-handoff-min: a "well-formed" boot now also carries the 7 live state rows -- pin
     # CLAUDE_PROMPTS_DIR OFF (unresolved transport, a real degrade path) so the value this test
