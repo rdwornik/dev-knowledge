@@ -2519,7 +2519,8 @@ def test_committed_bundle_bd_batches_drift_is_not_a_fail_when_a_batch_opens_late
     _open_a_batch_after_cut(repo, run)
 
     by = _bd(vhp.verify(bundle))
-    assert by["BD-batches"].status in ("warn", "pass"), by["BD-batches"].detail
+    assert by["BD-batches"].status == "warn", by["BD-batches"].detail
+    assert "batch opening/closing" in by["BD-batches"].detail, by["BD-batches"].detail
 
 
 def test_uncommitted_bundle_still_fails_bd_batches_on_live_drift(tmp_path, monkeypatch):
