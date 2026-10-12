@@ -6375,7 +6375,7 @@ def _write_publish_receipt(status: str, reason: str, paths: Optional[list] = Non
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(f".{path.name}.tmp")
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8", newline="\n")
         os.replace(tmp, path)
     except OSError as exc:
         logger.warning("ADR-84 publish receipt not written — %s", exc)

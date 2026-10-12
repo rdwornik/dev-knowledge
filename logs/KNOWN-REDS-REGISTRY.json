@@ -125,23 +125,6 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
-    "tests/test_generator_newlines.py::test_every_text_write_in_scripts_pins_newline": {
-      "attribution": "pre-freeze",
-      "task": "[#1341]",
-      "owner": "rob",
-      "expiry": "2026-10-17",
-      "ceiling": {
-        "pattern": "AssertionError: (?P<n>\\d+) text write",
-        "max": 15
-      },
-      "growth": {
-        "from": 14,
-        "to": 15,
-        "unit": "unpinned text-write sites in scripts/",
-        "commits": "4ad29e44..2e7fa5f2: 2cb47aee, 193e9007 (scripts/dispatch.py 1 -> 2 sites), merged at f70154b7",
-        "first_red": "e580518b (2026-09-15)"
-      }
-    },
     "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
       "attribution": "pre-freeze",
       "task": "[#664]",
@@ -594,24 +577,6 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'"
       },
-      "tests/test_generator_newlines.py::test_every_text_write_in_scripts_pins_newline": {
-        "attribution": "pre-freeze",
-        "task": "[#1341]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "AssertionError: (?P<n>\\d+) text write",
-          "max": 15
-        },
-        "growth": {
-          "from": 14,
-          "to": 15,
-          "unit": "unpinned text-write sites in scripts/",
-          "commits": "4ad29e44..2e7fa5f2: 2cb47aee, 193e9007 (scripts/dispatch.py 1 -> 2 sites), merged at f70154b7",
-          "first_red": "e580518b (2026-09-15)"
-        },
-        "signature": "AssertionError: 15 text write(s) in scripts/ inherit platform newline translation -- pass newline=\"\\n\" (see generate_floor._write_text_lf for the precedent):"
-      },
       "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
         "attribution": "pre-freeze",
         "task": "[#664]",
@@ -925,24 +890,6 @@
         "owner": "rob",
         "expiry": "2026-10-31",
         "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'"
-      },
-      "tests/test_generator_newlines.py::test_every_text_write_in_scripts_pins_newline": {
-        "attribution": "pre-freeze",
-        "task": "[#1341]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "AssertionError: (?P<n>\\d+) text write",
-          "max": 15
-        },
-        "growth": {
-          "from": 14,
-          "to": 15,
-          "unit": "unpinned text-write sites in scripts/",
-          "commits": "4ad29e44..2e7fa5f2: 2cb47aee, 193e9007 (scripts/dispatch.py 1 -> 2 sites), merged at f70154b7",
-          "first_red": "e580518b (2026-09-15)"
-        },
-        "signature": "AssertionError: 15 text write(s) in scripts/ inherit platform newline translation -- pass newline=\"\\n\" (see generate_floor._write_text_lf for the precedent):"
       },
       "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
         "attribution": "pre-freeze",

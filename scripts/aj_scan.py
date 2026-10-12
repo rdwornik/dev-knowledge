@@ -175,7 +175,7 @@ class ScanState:
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         body = yaml.safe_dump(self.to_dict(), sort_keys=False, allow_unicode=True)
-        path.write_text(self.HEADER + body, encoding="utf-8")
+        path.write_text(self.HEADER + body, encoding="utf-8", newline="\n")
 
 
 def _parse_iso(value: Optional[str]) -> Optional[datetime]:
