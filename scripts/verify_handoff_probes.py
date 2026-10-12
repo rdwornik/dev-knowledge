@@ -1390,9 +1390,11 @@ def _rule_state(state_fn):
 
 
 #: [#1330]: CI/Rulings/Capabilities wrapped in `_rule_committed_state` (below), never the
-#: plain `_rule_state` above, for a COMMITTED bundle. `_rule_state` itself is UNCHANGED and
-#: stays the live-teeth rule for Batches/Substrates/Transport (not named by the row) and for
-#: every key on an UNCOMMITTED bundle.
+#: plain `_rule_state` above, for a COMMITTED bundle -- and Batches with them (batch BW): a
+#: committed bundle's Batches row drifts every time a batch opens or closes after its cut, so
+#: plain FAIL there made opening ANY batch red the ship-gate. `_rule_state` itself is UNCHANGED
+#: and stays the live-teeth rule for Substrates (not named by the row) and for every key on an
+#: UNCOMMITTED bundle.
 def _rule_committed_state(state_fn):
     """`_rule_state`, plus a targeted FAIL->WARN downgrade for a COMMITTED bundle
     (`ctx.cut_sha is not None`) whose anchored re-derivation still disagrees.
@@ -1408,6 +1410,9 @@ def _rule_committed_state(state_fn):
         (`limit=40`), not a per-commit-forever archive; a sha old enough to have scrolled past
         that window returns NOT-RUN even though it once had a real verdict (measured live:
         the hub's own cut sha).
+      * Batches (batch BW) -- `batch_manifest.open_batches` reads the tree at HEAD only (no
+        ref parameter), so it cannot be anchored to the cut sha; a batch opening or closing
+        after the cut is exactly "the repo moved on", never a wrong record.
       * Rulings/Capabilities -- the transport is an external, non-git directory; a file kept
         at the SAME name and date token is not proven immutable (measured live: the hub's own
         `DIGEST-CAPABILITY-MAP-2026-09-28.md` parses to a DIFFERENT WORKS count today than it
@@ -1427,7 +1432,8 @@ def _rule_committed_state(state_fn):
             return "warn", (
                 f"{detail} — bundle is committed and re-derived anchored to its own cut "
                 f"point; a remaining mismatch cannot be told apart from CI's rolling run "
-                f"window or a mutable transport file having moved on since cut, so this is "
+                f"window, a mutable transport file or a batch opening/closing having moved "
+                f"on since cut, so this is "
                 f"reported rather than blocking the ship-gate on an external gap this organ "
                 f"cannot close")
         return status, detail
@@ -1548,7 +1554,8 @@ def _transport_for(ctx: _BootCtx):
 _STATE_ROW_FNS = {
     # [#1330]: CI/Rulings/Capabilities anchor to the bundle's OWN cut point (ctx.cut_sha /
     # ctx.cut_date, both None for an uncommitted bundle -- live-state teeth, unchanged).
-    # Batches/Substrates/Transport/Seats are untouched: the row names only these three.
+    # Substrates/Transport/Seats are untouched: the row names only these three. Batches is
+    # NOT anchored (open_batches reads HEAD only) but IS in _COMMITTED_STATE_KEYS (batch BW).
     "CI": lambda hs, ctx: hs.row_ci(ctx.repo_root, at_sha=ctx.cut_sha),
     "Batches": lambda hs, ctx: hs.row_batches(ctx.repo_root),
     "Seats": lambda hs, ctx: hs.row_seats(),
@@ -1572,7 +1579,7 @@ _STATE_ROW_FNS = {
 #: The rows judged by `_rule_committed_state` (FAIL -> WARN on a COMMITTED bundle, see its
 #: docstring); every other `_STATE_ROW_FNS` key except Seats keeps the plain `_rule_state`.
 _COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models",
-                         "Plan")
+                         "Plan", "Batches")
 
 
 # [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole
@@ -1738,9 +1745,9 @@ BOOT_DATA_RULES = {
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
     **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
-    # [#1330]: CI/Rulings/Capabilities get the committed-bundle WARN downgrade; the rest of
-    # _STATE_ROW_FNS (Batches/Substrates/Transport — not named by the row) stays plain
-    # _rule_state, FAIL on any mismatch, committed or not.
+    # [#1330]: CI/Rulings/Capabilities (+ Batches, batch BW) get the committed-bundle WARN
+    # downgrade; the rest of _STATE_ROW_FNS (Substrates — not named by the row) stays plain
+    # _rule_state, FAIL on any mismatch, committed or not. Transport/Seats have own rules.
     **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key in _COMMITTED_STATE_KEYS},
     "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"])),

@@ -2485,6 +2485,8 @@ def test_uncommitted_bundle_still_fails_bd_ci_on_live_drift(tmp_path, monkeypatc
 # --- BW: a COMMITTED bundle's BD-batches drifts every time a batch opens or closes after its
 # cut -- the same historical-row reason [#1330] gives CI/Rulings/Capabilities. Opening a batch
 # must not red the ship-gate on an old bundle; an UNCOMMITTED bundle keeps live FAIL teeth.
+# Deliberately NOT `@_needs_git`: a skipif guard would grow the proof-layer ratchet; no git
+# here means these FAIL loudly, which is the honest outcome for a git-backed property.
 
 _BW_OPEN_MANIFEST = "docs/audits/2026-10-12-technical-batch-bw-manifest.md"
 
@@ -2502,7 +2504,6 @@ def _open_a_batch_after_cut(repo, run):
     return live
 
 
-@_needs_git
 def test_committed_bundle_bd_batches_drift_is_not_a_fail_when_a_batch_opens_later(
         tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
@@ -2521,7 +2522,6 @@ def test_committed_bundle_bd_batches_drift_is_not_a_fail_when_a_batch_opens_late
     assert by["BD-batches"].status in ("warn", "pass"), by["BD-batches"].detail
 
 
-@_needs_git
 def test_uncommitted_bundle_still_fails_bd_batches_on_live_drift(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
