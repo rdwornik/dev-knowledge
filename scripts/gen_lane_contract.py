@@ -1673,7 +1673,9 @@ def substrate_live(repo_root: Path, shape: str) -> Optional[bool]:
     return sub.live if sub else None
 
 
-_PROSE_TARGET_RE = re.compile(r"\.md$")
+#: A markdown target, optionally anchored (`README.md#contents`). A bare directory
+#: (`docs/intake/`) is NOT matched: it may hold code, so it falls back to prior-art.
+_PROSE_TARGET_RE = re.compile(r"\.md(?:#[^\s`]*)?$")
 
 
 def lane_kind_for_row(row: BuildListRow) -> str:
