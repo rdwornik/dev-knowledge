@@ -64,6 +64,17 @@ two failed reviews = FAILED. Usage test: Copilot (R8) for a tool, skill or comma
 | D4 | `lane-bw-1103-registry-repoint` | `[#1103]` owner | D | opus / high | Codex | GO |
 | D5 | `lane-bw-1450-boot-teaching` | `[#1450]` owner (carries `worktree-b2w2-boot-teaching` @ `a9503f76`) | D | opus / high | Codex | GO |
 | D6 | `lane-bw-670-harness-probes` | `[#670]` nearest; read-only in `corp-monorepo` | D | opus / high | Codex | GO |
+| D7 | `lane-bw-1439-commit-attribution` | needs operator ruling R100 | D | opus / high | Codex | HELD — runs only if `RATIFICATION-2026-10-12` carries R100; none at freeze |
+| D8 | `lane-bw-1439-transport-index` | `[#1439]` owner (carries `worktree-b2w2-transport-index` @ `14f91ba0`, contract `LANE-1439-b2w2-transport-index`) | D | opus / high | Codex | GO |
+
+**Amended before landing by `to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12.md`** (sha256
+`8d117467…d1b1`, `transport_lint` exit 0), under R98 and R99 (`RATIFICATION-2026-10-12.md` v2):
+X1 — `known-reds-expiry` re-dates nothing and its remaining list goes into the rollup's F0
+section by the end of 2026-10-15; X2 — D1's Done-when is the amendment's five clauses (dispatch
+launches every producer kind, the producer is written to section 3, `land` refuses a branch
+dispatch did not launch, the main thread reviews every lane as architect, a Copilot and a Codex
+lane end to end); X3 — D7 and D8 above, at most 6 lanes at a time; X4 — each wave's rollup
+section at most 3 KB. D3 lands R93-R99.
 
 Contracts: `docs/audits/2026-10-12-technical-batch-bw-launch-contracts/LANE-bw-<id>-<slug>.md`.
 F1's four are frozen with this manifest; Wave C's and Wave D's are frozen on the integration
@@ -112,7 +123,10 @@ wave's merging and is recorded.
    `to-browser/DIGEST-PROPOSAL-ADR-LANE-REPORT-CONTRACT-2026-10-11.md`. `merged_sha` stays null
    (the integrator fills it). Lint it: `uv run --locked python scripts/transport_lint.py check
    <file>` exit 0. Touch no other transport file.
-10. **Never ask the operator.** A blocker is recorded (`INPUT_REQUIRED` with `operator_action`),
+10. **Architect review (R99.2).** After the handback the orchestrator reviews the result against
+    this contract's Done-when and records the verdict in the report's `intent_met`
+    (`evaluator.vendor: anthropic`, the orchestrator's session id); the Codex review stays.
+11. **Never ask the operator.** A blocker is recorded (`INPUT_REQUIRED` with `operator_action`),
     and the lane hands back.
 
 ## 5 · Closed by
