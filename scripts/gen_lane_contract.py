@@ -1673,10 +1673,19 @@ def substrate_live(repo_root: Path, shape: str) -> Optional[bool]:
     return sub.live if sub else None
 
 
+_PROSE_TARGET_RE = re.compile(r"\.md$")
+
+
 def lane_kind_for_row(row: BuildListRow) -> str:
-    """`code` when the row's prior-art names code or config it touches; `text` otherwise
-    (prose-only subjects). Feeds `LaneSpec.kind`, whose routing default keys on it (`[#885]`
-    clause 2) — derived from the row's own type tags, never guessed from the subject text."""
+    """`text` when the row's `removes` column names only markdown targets — the lane's own
+    deliverable is a prose edit, whatever organs its prior-art merely mentions (a WIRE intake
+    that removes a README caveat was distilled as `code`, on opus: DIGEST-TOOLS-IN-USE-2026-10-11
+    item 5). Otherwise `code` when the prior-art names code or config it touches, else `text`.
+    Feeds `LaneSpec.kind`, whose routing default keys on it (`[#885]` clause 2) — derived from
+    the row's own columns, never guessed from the subject text."""
+    targets = _ORGAN_TOKEN_RE.findall(row.removes)
+    if targets and all(_PROSE_TARGET_RE.search(t) for t in targets):
+        return "text"
     return "code" if re.search(r"\(code|\(config", row.prior_art) else "text"
 
 
