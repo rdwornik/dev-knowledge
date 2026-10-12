@@ -465,8 +465,12 @@ def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restam
 def _hstate_modules():
     """Every loaded copy of `handoff_state` (bare and package-qualified): the generator resolves
     it as `scripts.handoff_state` first, the verifier as bare `handoff_state` -- a patch on one
-    copy only would let the two sides read different live values."""
+    copy only would let the two sides read different live values. BOTH copies are loaded first
+    -- the verifier's bare one, and the generator's through its own `gh._hstate()` -- so the pin
+    holds in a fresh process too (batch BW lane bw-926-main-red: a copy imported AFTER the pin was
+    never patched, and the cut then recorded the live CI verdict)."""
     import handoff_state  # noqa: F401, PLC0415 -- ensure the bare copy is loaded
+    gh._hstate()  # ensure the copy the generator resolves is loaded
     return [m for k, m in list(sys.modules.items())
             if k in ("handoff_state", "scripts.handoff_state") and m is not None]
 
