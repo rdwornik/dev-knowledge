@@ -253,6 +253,27 @@ def test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store(tmp_
     assert lock.read_text(encoding="utf-8") == taken
 
 
+def test_two_acquisitions_in_one_clock_tick_never_share_a_token(tmp_path: Path, monkeypatch):
+    """[#1344]'s cause, made deterministic instead of left to the runner's clock.
+
+    The token was `pid + time.time_ns()`, and Python 3.12 on Windows reads a ~15.6 ms clock,
+    so two acquisitions by one process inside one tick wrote the SAME token -- the overrun
+    builder's stale release then matched its successor's lock, and the two lock tests above
+    flaked on the windows leg (21 of 35 runs for one of them). Freezing the clock here is
+    that tick on every OS: a token must identify the ACQUISITION, not the instant.
+    """
+    monkeypatch.setattr(gs.time, "time_ns", lambda: 1_000_000_000)
+    lock = tmp_path / "FPG.rebuild-lock"
+    first = gs.acquire_rebuild_lock(lock)
+    _age(lock)
+    second = gs.acquire_rebuild_lock(lock)
+    assert first is not None and second is not None
+    assert second != first, "two acquisitions in one clock tick share a token"
+
+    gs.release_rebuild_lock(lock, first)               # the stale holder's release
+    assert lock.exists(), "a stale token released its successor's lock"
+
+
 def test_a_concurrent_READER_cannot_break_a_rebuild(tiny_repo: Path, tmp_path: Path):
     """THE CROSS-WORKER COLLISION, reduced to the one fact that produces it.
 
