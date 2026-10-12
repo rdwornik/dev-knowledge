@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-12 (a) - CC (Opus 5.5, orchestrator and integrator, batch BW = B2-W4 finish, F0): the batch manifest lands before any lane boots
+
+**Anchors:** `ac295172` (manifest + four F1 contracts). Branch `docs/bw-manifest`, merged `--no-ff` through `worktree-integrate-bw` by `merge_path.py land`.
+
+**Did:** F0 of `to-cc/BATCH-B2-W4-CC-FINISH-2026-10-12.md` (`transport_lint` exit 0). Main `c1b65e6d`. `lane_boot.py preflight` refused twice: the name `lane-b2w4-…` (batch token must be 1-3 letters, so the batch is `BW`), then "no committed manifest declares an open batch" -- `open_batches` was `[]`, and the Copilot run's A1 and B1-B6 booted with no manifest at all. Actions: 9,459/3,000 min but `billed: none` (public repo), runs still start. Main's own conductor is red: windows 1 unregistered regression (`test_gen_handoff.py::test_filled_rerender_regenerates_probes_md_so_a_tamper_cannot_survive`) and `commit-gate` on `journal_day_letters` -- five 2026-10-11 entries all lettered (d), and their headings share 63 leading characters, so the [#926] correction-by-addition (a 60-character pointer) cannot resolve them.
+
+**Next:** bind the integrator seat, boot F1's four lanes (hook-launcher, distill-kind-fix, known-reds-expiry, b2w3-carry), one land for the wave.
+
 ### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B6 preflight-dead-id): a dead [#id] names its live value; provider_router refuses an unknown role in one line
 
 **Anchors:** `ed944746` and `f678225e` (fixes); `a9b6667b` and `b628e3b0` (RED tests). Branch `worktree-preflight-dead-id`, merged `--no-ff` through `worktree-integrate-b2-w4-c` by `merge_path.py land`. The slug is `B2-W4-C` because `worktree-integrate-b2-w4` holds the refused A2 candidate `4168f996` and `-b` holds the refused B5 candidate `6f97472d`; moving either would need `--force`.
