@@ -1561,6 +1561,28 @@ def test_lane_kind_for_row_keys_on_what_the_row_removes():
     assert glc.lane_kind_for_row(row) == "text"
 
 
+def test_lane_kind_for_row_reads_an_anchored_markdown_target_as_prose():
+    """Codex r1 HIGH: `README.md#caveat` is still a prose target; the fragment is not a suffix."""
+    row = glc.BuildListRow(
+        "intake", "`intake-index-freshness` hook (config)", "WIRE",
+        "the caveat at `docs/intake/README.md#contents`", "S", "no")
+    assert glc.lane_kind_for_row(row) == "text"
+
+
+@pytest.mark.parametrize(("removes", "expected"), [
+    # no backticked target at all -> the removes column says nothing; prior-art decides
+    ("the manual override", "code"),
+    # mixed prose + code targets -> the lane edits code, so prior-art decides
+    ("`docs/x.md` and `scripts/x.py`", "code"),
+    # a bare directory is ambiguous (prose or code) -> not read as prose; prior-art decides
+    ("the caveat in `docs/intake/`", "code"),
+])
+def test_lane_kind_for_row_falls_back_to_prior_art_unless_every_target_is_markdown(
+        removes, expected):
+    row = glc.BuildListRow("s", "`x.py` (code, fires)", "WIRE", removes, "M", "no")
+    assert glc.lane_kind_for_row(row) == expected
+
+
 def test_cmd_distill_renders_a_wire_intake_as_its_own_kind_not_code(tmp_path, monkeypatch):
     repo_root = _distill_repo(tmp_path)
     (repo_root / "protocols" / "BUILD-LIST.md").write_text(
