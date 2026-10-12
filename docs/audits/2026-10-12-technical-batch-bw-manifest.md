@@ -52,6 +52,7 @@ two failed reviews = FAILED. Usage test: Copilot (R8) for a tool, skill or comma
 | F1-B5 | `lane-bw-1447-distill-kind-fix` | `[#1447]` nearest (carries `worktree-distill-kind-fix` @ `8d4dee0e`, narrowed by R97(b)) | F1 | opus / high | Codex | GO |
 | F1-KR | `lane-bw-912-known-reds-expiry` | `[#912]` `[#664]` `[#1340]` `[#1341]` `[#1343]` `[#1344]` owner | F1 | opus / high | Codex | GO |
 | F1-W3 | `lane-bw-893-b2w3-carry` | `[#893]` nearest (cycle-4 `5eacd135`, tag `archive/b2-w3-close-carry`) | F1 | sonnet / medium | n/a — ledger lines | GO |
+| F1-MR | `lane-bw-926-main-red` | `[#926]` owner (journal leg), nearest (Windows `test_gen_handoff` leg) — added before F0's land by `to-cc/BATCH-BW-NIGHT-2026-10-13.md` R2 | F1 | opus / high | Codex | GO |
 | C1 | `lane-bw-1368-lane-report-rollup` | `[#1368]` nearest | C | opus / high | Codex | GO |
 | C2 | `lane-bw-958-required-tools` | `[#958]` nearest | C | opus / high | Codex | GO |
 | C3 | `lane-bw-735-reuse-gate` | `[#735]` nearest | C | opus / high | Codex | GO |
