@@ -9,9 +9,12 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 _REPO = Path(__file__).resolve().parents[1]
 _SCRIPTS = _REPO / "scripts"
@@ -336,3 +339,230 @@ def test_digest_lane_form_is_the_moment_command_and_never_fails_the_lane(tmp_pat
                           capture_output=True, text=True, timeout=60)
     assert proc.returncode == 0, proc.stderr
     assert LANE in proc.stdout
+
+
+# --- [#1368] the section-3 LANE REPORT schema and the section-4 batch rollup ---------------------
+#
+# RED-first (lane-bw-1368-lane-report-rollup). The schema is `ecosystem/schema/lane_report.py`
+# (pydantic, already locked) and its generated JSON Schema file `lane-report.schema.json`; the
+# rollup is this module's `--manifest` mode, reading the batch manifest's lane table
+# (`batch_manifest.manifest_lane_rows`) and each `LANE-END-<lane>.md`'s one fenced json block
+# (`handback_schema.parse_lane_report_block`).
+
+if str(_REPO) not in sys.path:
+    sys.path.insert(0, str(_REPO))
+
+_SCHEMA_FILE = _REPO / "ecosystem" / "schema" / "lane-report.schema.json"
+
+
+def _lane_report(lane: str = "lane-x-1-demo", state: str = "COMPLETED", results=("PASS",),
+                 **over) -> dict:
+    """The section-3 example of `DIGEST-PROPOSAL-ADR-LANE-REPORT-CONTRACT-2026-10-11.md`,
+    with its alternatives resolved to one concrete value each."""
+    row = {
+        "lane": lane, "batch": "B2-W3", "task": "[#1103]", "kind": "code", "state": state,
+        "done": {"met": 4, "total": 4},
+        "checks": [{"name": f"check-{i}", "how": "deterministic", "result": r,
+                    "evidence": "tests/test_x.py:1"} for i, r in enumerate(results)],
+        "intent_met": {"verdict": "YES",
+                       "evaluator": {"vendor": "copilot", "model": "gpt-5", "session": "s-1"}},
+        "unresolved": [], "operator_action": None, "merged_sha": None,
+        "producer": {"vendor": "claude", "model": "claude-opus-5-5", "session": "p-1"},
+        "cost_usd": None,
+        "evidence": {"branch": f"worktree-{lane}", "check_run": None, "audit": None},
+    }
+    row.update(over)
+    return row
+
+
+def _write_lane_end(folder: Path, lane: str, report: dict) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"LANE-END-{lane}.md"
+    path.write_text(
+        "carried-by: OPEN\nkind: LANE_END\ndate: 2026-10-13\nsupersedes: none\n"
+        f"summary: fixture\nby: test\n\n# LANE-END-{lane}\n\n{lane} | one line\n\n"
+        "```json\n" + json.dumps(report) + "\n```\n", encoding="utf-8", newline="\n")
+    return path
+
+
+_MANIFEST = """---
+batch: ZZ
+---
+
+# Batch ZZ -- manifest
+
+## 2 · The lanes
+
+| # | Lane slug | Rows | Wave | Model / effort | Review | State |
+|---|---|---|---|---|---|---|
+| F1-A | `lane-zz-1-alpha` | `[#1]` | F1 | opus / high | Codex | GO |
+| F1-B | `lane-zz-2-beta` | `[#2]` | F1 | opus / high | Codex | GO |
+| F1-C | `lane-zz-3-gamma` | `[#3]` | F1 | opus / high | Codex | GO |
+| C1 | `lane-zz-4-delta` | `[#4]` | C | opus / high | Codex | GO |
+
+## 3 · Integration
+
+Mentions `lane-zz-9-not-a-lane` outside the table.
+"""
+
+
+def test_the_lane_report_schema_accepts_the_section_3_example():
+    from ecosystem.schema.lane_report import LaneReport
+    report = LaneReport.model_validate(_lane_report())
+    assert report.state == "COMPLETED"
+
+
+def test_the_lane_report_schema_accepts_the_shape_the_f1_lanes_wrote():
+    """intent_met may be null (the orchestrator writes it) or carry a note; review may be
+    present or null -- every F1 LANE-END on the transport uses one of these."""
+    from ecosystem.schema.lane_report import LaneReport
+    LaneReport.model_validate(_lane_report(intent_met=None, review=None))
+    LaneReport.model_validate(_lane_report(
+        intent_met={"verdict": "UNSURE", "note": "architect R99.2",
+                    "evaluator": {"vendor": "anthropic", "model": "m", "session": "s"}},
+        review={"vendor": "openai", "model": "gpt-5.6-terra", "session": "01a1",
+                "verdict": "APPROVE", "nonce": "8f3a1c7e"}))
+
+
+def test_the_lane_report_schema_rejects_a_report_missing_state():
+    import pydantic
+    from ecosystem.schema.lane_report import LaneReport
+    row = _lane_report()
+    del row["state"]
+    with pytest.raises(pydantic.ValidationError):
+        LaneReport.model_validate(row)
+
+
+def test_the_lane_report_schema_rejects_a_state_outside_the_closed_enum():
+    import pydantic
+    from ecosystem.schema.lane_report import LaneReport
+    for bad in ("DONE", "completed", "UNSURE", ""):
+        with pytest.raises(pydantic.ValidationError):
+            LaneReport.model_validate(_lane_report(state=bad))
+
+
+def test_the_lane_report_schema_rejects_a_vacuous_completed():
+    """S-56 Done 4c: every check NOT_RUN (or no check at all) cannot be COMPLETED."""
+    import pydantic
+    from ecosystem.schema.lane_report import LaneReport
+    with pytest.raises(pydantic.ValidationError, match="NOT_RUN"):
+        LaneReport.model_validate(_lane_report(results=("NOT_RUN", "NOT_RUN")))
+    with pytest.raises(pydantic.ValidationError, match="NOT_RUN"):
+        LaneReport.model_validate(_lane_report(results=()))
+    # the same checks are fine on a state that claims nothing passed
+    LaneReport.model_validate(_lane_report(state="FAILED", results=("NOT_RUN",)))
+    LaneReport.model_validate(_lane_report(results=("NOT_RUN", "PASS")))
+
+
+def test_the_schema_file_is_the_models_own_json_schema():
+    """The committed file is generated, never hand-edited: it equals the model's schema, so the
+    file `claude -p --json-schema` receives and the validator the rollup runs cannot drift."""
+    from ecosystem.schema.lane_report import SCHEMA_FILE, json_schema
+    assert SCHEMA_FILE == _SCHEMA_FILE
+    assert json.loads(_SCHEMA_FILE.read_text(encoding="utf-8")) == json_schema()
+
+
+def test_the_schema_file_parses_as_a_json_schema_carrying_the_three_rules():
+    schema = json.loads(_SCHEMA_FILE.read_text(encoding="utf-8"))
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert schema["type"] == "object"
+    assert "state" in schema["required"]
+    assert schema["properties"]["state"]["enum"] == [
+        "COMPLETED", "FAILED", "REJECTED", "INPUT_REQUIRED", "CANCELED"]
+    rule = schema["allOf"][0]
+    assert rule["if"]["properties"]["state"]["const"] == "COMPLETED"
+    assert rule["then"]["properties"]["checks"]["contains"]["properties"]["result"]["enum"] == [
+        "PASS", "FAIL"]
+    # every $ref resolves inside the file -- a dangling ref is a schema the CLI cannot use
+    text = _SCHEMA_FILE.read_text(encoding="utf-8")
+    for ref in set(re.findall(r'"\$ref":\s*"#/\$defs/([^"]+)"', text)):
+        assert ref in schema["$defs"], ref
+
+
+def test_parse_lane_report_block_reads_the_one_json_fence():
+    hs = _mod("handback_schema")
+    text = ("# LANE-END-x\n\n### MOMENT-X.json\n\n```json\n{\"organ\": \"x\"}\n```\n\n"
+            "```json\n" + json.dumps(_lane_report()) + "\n```\n")
+    assert hs.parse_lane_report_block(text)["lane"] == "lane-x-1-demo"
+    assert hs.parse_lane_report_block("# no block here\n") is None
+
+
+def test_manifest_lane_rows_reads_the_numbered_lanes_table():
+    bm = _mod("batch_manifest")
+    rows = bm.manifest_lane_rows(_MANIFEST)
+    assert rows == [("lane-zz-1-alpha", "F1"), ("lane-zz-2-beta", "F1"),
+                    ("lane-zz-3-gamma", "F1"), ("lane-zz-4-delta", "C")]
+
+
+def test_manifest_lane_rows_reads_this_batchs_own_manifest():
+    bm = _mod("batch_manifest")
+    text = (_REPO / "docs" / "audits" / "2026-10-12-technical-batch-bw-manifest.md").read_text(
+        encoding="utf-8")
+    f1 = [slug for slug, wave in bm.manifest_lane_rows(text) if wave == "F1"]
+    assert f1 == ["lane-bw-1001-hook-launcher", "lane-bw-1447-distill-kind-fix",
+                  "lane-bw-912-known-reds-expiry", "lane-bw-893-b2w3-carry", "lane-bw-926-main-red"]
+
+
+def test_the_rollup_prints_an_absent_lane_as_missing_and_totals_by_state(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_lane_end(reports, "lane-zz-1-alpha", _lane_report("lane-zz-1-alpha"))
+    _write_lane_end(reports, "lane-zz-2-beta", _lane_report(
+        "lane-zz-2-beta", state="INPUT_REQUIRED", operator_action="rule R98 on 58 entries",
+        unresolved=["one", "two"]))
+    # lane-zz-3-gamma: no report.  lane-zz-4-delta: another wave, out of the F1 rollup.
+    _write_lane_end(reports, "lane-zz-4-delta", _lane_report("lane-zz-4-delta"))
+    out = ld.render_rollup("ZZ", _MANIFEST, reports, wave="F1")
+    lines = out.rstrip("\n").splitlines()
+    assert len(lines) <= 25
+    assert lines[0] == "batch ZZ wave F1 | expected 3 | received 2 | MISSING: lane-zz-3-gamma"
+    assert any(line.startswith("lane-zz-3-gamma | MISSING") for line in lines)
+    assert any(line.startswith("lane-zz-1-alpha | COMPLETED 4/4 | check-0 PASS") for line in lines)
+    assert "lane-zz-4-delta" not in out
+    assert "totals: COMPLETED 1 · INPUT_REQUIRED 1 · MISSING 1" in lines
+    assert "- lane-zz-2-beta: rule R98 on 58 entries" in lines
+
+
+def test_the_rollup_counts_an_invalid_report_as_received_but_never_as_a_state(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_lane_end(reports, "lane-zz-1-alpha", _lane_report("lane-zz-1-alpha", results=("NOT_RUN",)))
+    (reports / "LANE-END-lane-zz-2-beta.md").write_text("# old prose report, no json\n",
+                                                       encoding="utf-8")
+    _write_lane_end(reports, "lane-zz-3-gamma", _lane_report("lane-zz-3-gamma", state="FAILED"))
+    out = ld.render_rollup("ZZ", _MANIFEST, reports, wave="F1")
+    assert "expected 3 | received 3 | MISSING: none" in out
+    assert "lane-zz-1-alpha | INVALID" in out and "lane-zz-2-beta | INVALID" in out
+    assert "totals: FAILED 1 · INVALID 2" in out
+
+
+def test_the_rollup_never_exceeds_25_lines(tmp_path):
+    ld = _mod("lane_digest")
+    rows = "\n".join(f"| X{i} | `lane-zz-{i}-l` | `[#{i}]` | F1 | o | C | GO |" for i in range(1, 41))
+    manifest = ("## 2 · The lanes\n\n| # | Lane slug | Rows | Wave | Model / effort | Review | State |\n"
+                "|---|---|---|---|---|---|---|\n" + rows + "\n")
+    reports = tmp_path / "to-browser"
+    for i in range(1, 41, 2):
+        _write_lane_end(reports, f"lane-zz-{i}-l", _lane_report(
+            f"lane-zz-{i}-l", state="INPUT_REQUIRED", operator_action=f"act {i}"))
+    out = ld.render_rollup("ZZ", manifest, reports, wave="F1")
+    lines = out.rstrip("\n").splitlines()
+    assert len(lines) <= 25
+    assert lines[0].startswith("batch ZZ wave F1 | expected 40 | received 20 | MISSING: ")
+    assert "totals: INPUT_REQUIRED 20 · MISSING 20" in lines
+
+
+def test_the_rollup_cli_reads_a_synthetic_transport(tmp_path):
+    manifest = tmp_path / "manifest.md"
+    manifest.write_text(_MANIFEST, encoding="utf-8")
+    drive = tmp_path / "drive"
+    _write_lane_end(drive / "to-browser", "lane-zz-1-alpha", _lane_report("lane-zz-1-alpha"))
+    proc = subprocess.run(
+        [sys.executable, str(_DIGEST), "--manifest", str(manifest), "--wave", "F1",
+         "--reports-root", str(drive)],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+        env={**os.environ, "CLAUDE_PROMPTS_DIR": str(tmp_path / "nonexistent-drive"),
+             "PYTHONIOENCODING": "utf-8"})
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.startswith("batch ZZ wave F1 | expected 3 | received 1 | MISSING: ")
+    assert "lane-zz-2-beta | MISSING" in proc.stdout
