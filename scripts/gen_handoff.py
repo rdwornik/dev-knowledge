@@ -3409,6 +3409,7 @@ def _section_current_state(repo_root: Path, inputs: StateInputs,
 def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str]":
     named: "list[str]" = []
     items: "list[str]" = []
+    absent: "list[str]" = []
     seen: "set[str]" = set()
     texts = [(Path(p).name, _read_input(p)[0]) for p in inputs.rollups]
     texts.append(("LEDGER", ledger))
@@ -3417,6 +3418,10 @@ def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str
             continue
         found = _past_error_items(text)
         if found is None:
+            # Named, never skipped (Codex r1 HIGH): a past error a source records only in free
+            # text -- F0.2's "lanes booted with no manifest" sits in the LEDGER's F0 findings --
+            # is not inferred from prose; the source's missing block is printed instead.
+            absent.append(f"- MISSING: a {_PAST_ERRORS_KEY} block in {label}")
             continue
         named.append(label)
         for item in found:
@@ -3427,8 +3432,8 @@ def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str
     src = (f"source: the `{_PAST_ERRORS_KEY}` blocks of the rollups and the LEDGER"
            f" (found in: {', '.join(named) or 'none'})")
     if not items:
-        return [src, f"- MISSING: a {_PAST_ERRORS_KEY} block in any rollup or the LEDGER"]
-    return [src, *items]
+        return [src, f"- MISSING: a {_PAST_ERRORS_KEY} block in any rollup or the LEDGER", *absent]
+    return [src, *items, *absent]
 
 
 def _section_priorities(repo_root: Path, ledger: "str | None", ledger_why: str) -> "list[str]":
@@ -3590,6 +3595,25 @@ def _section_map(inputs: StateInputs, root: Path) -> "list[str]":
         if len(shown) > _STATE_DIFF_SHOWN:
             out.append(f"  ({len(shown) - _STATE_DIFF_SHOWN} more {key})")
     return out
+
+
+def _state_input_refusal(path: Path, label: str, repo_root: Path,
+                         transport: "Path | None") -> "str | None":
+    """Why an explicitly named state input may not be read, or None when it may.
+
+    Committed or generated inputs only (Done-contract item 1; Codex r1 HIGH): an override is
+    admitted when it lies on the transport (where the rollups and the LEDGER are generated) or
+    is a file git TRACKS in this repo. Anything else -- a loose local file -- is refused, so a
+    handoff state can never be rendered from a surface nobody committed or generated."""
+    if transport is not None and _inside(path, transport):
+        return None
+    if _inside(path, repo_root):
+        rel = Path(path).resolve().relative_to(Path(repo_root).resolve()).as_posix()
+        tracked, _out = _git_status(repo_root, "ls-files", "--error-unmatch", "--", rel)
+        if tracked:
+            return None
+    return (f"--{label} {Path(path).as_posix()} is neither on the transport nor a file tracked "
+            "in this repo -- the handoff state reads committed or generated inputs only")
 
 
 def render_handoff_state(repo_root: Path, inputs: StateInputs, *, today: "str | None" = None) -> str:
@@ -4039,7 +4063,18 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
          ledger: "Path | None" = None, map_record: "Path | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     if state_out is not None:
-        live = default_state_inputs(_REPO_ROOT)
+        # The dry cut's target rule (Codex r1 HIGH): never a path a bundle could be committed
+        # from -- outside every git work tree, or ignored by the one it is in.
+        refusal = _dry_cut_refusal(state_out.parent, _REPO_ROOT)
+        transport = transport_root()
+        named = [(p, "rollup") for p in rollups] + [(p, k) for p, k in
+                                                    ((ledger, "ledger"), (map_record, "map-record"))
+                                                    if p is not None]
+        for path, label in named:
+            refusal = refusal or _state_input_refusal(path, label, _REPO_ROOT, transport)
+        if refusal:
+            raise SystemExit(f"[error] {refusal}")
+        live = default_state_inputs(_REPO_ROOT, transport)
         inputs = StateInputs(rollups=tuple(rollups) or live.rollups,
                              ledger=ledger or live.ledger,
                              map_record=map_record or live.map_record,
