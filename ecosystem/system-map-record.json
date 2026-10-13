@@ -1,14 +1,14 @@
 {
- "built_at": "08b28334478638f8ecb443f3b54f38eb50add652",
+ "built_at": "d5276dded8724658fe57b5d6a83c906b8a37b886",
  "diff": {
   "added": [],
   "added_count": 0,
-  "baseline": true,
+  "baseline": false,
   "removed": [],
   "removed_count": 0
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "2c34bb3e2a9435edf6e0b178d2e9a4628618c889c2db0c78d4a4ac98f318c81d",
+ "map_sha": "47a6388cda3cec80b4fe0976f979d93ba1c2eb9704243cff85dbdd6b2da5518c",
  "node_count": 380,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
@@ -392,6 +392,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": null,
+ "previous_sha": "2c34bb3e2a9435edf6e0b178d2e9a4628618c889c2db0c78d4a4ac98f318c81d",
  "schema": "system-map-record/1"
 }
