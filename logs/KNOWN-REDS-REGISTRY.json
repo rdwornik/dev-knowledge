@@ -41,26 +41,6 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
-    "tests/test_boot_retrieval.py::test_repo_tracked_boot_base_is_under_its_ceiling": {
-      "attribution": {
-        "first_bad_sha": "d7ce1d43e5c74d2e20785dda54ec1db4f68b7203",
-        "lane": "buildlist-l6-hazard"
-      },
-      "task": "[#1340]",
-      "owner": "rob",
-      "expiry": "2026-10-17",
-      "ceiling": {
-        "pattern": "(?P<n>[\\d,]+) B tracked boot base",
-        "max": 41174
-      },
-      "growth": {
-        "from": 40544,
-        "to": 41174,
-        "unit": "bytes (CLAUDE.md + imports + rules/)",
-        "commits": "4ad29e44..2e7fa5f2: 6415639c fd9d6e49 511073f9 06778a15 c4a095c3 5abf6106",
-        "first_red": "2a62d7d0 (2026-09-19, 40,980 B)"
-      }
-    },
     "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
       "attribution": "pre-freeze",
       "task": "[#912]",
@@ -483,27 +463,6 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: operational:"
       },
-      "tests/test_boot_retrieval.py::test_repo_tracked_boot_base_is_under_its_ceiling": {
-        "attribution": {
-          "first_bad_sha": "d7ce1d43e5c74d2e20785dda54ec1db4f68b7203",
-          "lane": "buildlist-l6-hazard"
-        },
-        "task": "[#1340]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "(?P<n>[\\d,]+) B tracked boot base",
-          "max": 41174
-        },
-        "growth": {
-          "from": 40544,
-          "to": 41174,
-          "unit": "bytes (CLAUDE.md + imports + rules/)",
-          "commits": "4ad29e44..2e7fa5f2: 6415639c fd9d6e49 511073f9 06778a15 c4a095c3 5abf6106",
-          "first_red": "2a62d7d0 (2026-09-19, 40,980 B)"
-        },
-        "signature": "AssertionError: 41,174 B tracked boot base exceeds 40,000"
-      },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
         "task": "[#912]",
@@ -796,27 +755,6 @@
         "owner": "rob",
         "expiry": "2026-10-31",
         "signature": "AssertionError: operational:"
-      },
-      "tests/test_boot_retrieval.py::test_repo_tracked_boot_base_is_under_its_ceiling": {
-        "attribution": {
-          "first_bad_sha": "d7ce1d43e5c74d2e20785dda54ec1db4f68b7203",
-          "lane": "buildlist-l6-hazard"
-        },
-        "task": "[#1340]",
-        "owner": "rob",
-        "expiry": "2026-10-17",
-        "ceiling": {
-          "pattern": "(?P<n>[\\d,]+) B tracked boot base",
-          "max": 41174
-        },
-        "growth": {
-          "from": 40544,
-          "to": 41174,
-          "unit": "bytes (CLAUDE.md + imports + rules/)",
-          "commits": "4ad29e44..2e7fa5f2: 6415639c fd9d6e49 511073f9 06778a15 c4a095c3 5abf6106",
-          "first_red": "2a62d7d0 (2026-09-19, 40,980 B)"
-        },
-        "signature": "AssertionError: 41,174 B tracked boot base exceeds 40,000"
       },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
