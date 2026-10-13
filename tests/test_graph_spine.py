@@ -824,6 +824,32 @@ def _quarantine_problems(node_id: str, *, cause_marker: str, script: str) -> lis
 _LOCK_FLAKE_CAUSE_WITNESS = "test_two_acquisitions_in_one_clock_tick_never_share_a_token"
 
 
+def _fixed_at_cause_problems(witness: str, *, task: str, tmp_path: Path, monkeypatch,
+                             namespace: dict | None = None) -> list[str]:
+    """What is missing from a FIXED-AT-CAUSE disposition, the second honest exit from the
+    quarantine: the cause has its own pinned witness test in this module, it cites the task
+    the quarantine named, it is not skipped/skipif/xfail, and it PASSES -- run here, now, not
+    read as a claim. A witness that is absent, unmarked-for-task, silenced or failing is a
+    problem; an empty list means the cause is fixed and proved."""
+    namespace = globals() if namespace is None else namespace
+    fn = namespace.get(witness)
+    if not callable(fn) or not witness.startswith("test_"):
+        return [f"no pinned witness test {witness!r} for the cause"]
+    problems: list[str] = []
+    if task not in (fn.__doc__ or ""):
+        problems.append(f"witness {witness} does not cite {task}")
+    marks = {m.name for m in getattr(fn, "pytestmark", [])}
+    if marks & {"skip", "skipif", "xfail"}:
+        problems.append(f"witness {witness} is silenced ({sorted(marks)})")
+    workdir = tmp_path / "cause-witness"
+    workdir.mkdir(parents=True)
+    try:
+        fn(workdir, monkeypatch)
+    except AssertionError as exc:
+        problems.append(f"witness {witness} FAILS: {exc}")
+    return problems
+
+
 @pytest.mark.parametrize("name", [
     "test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store",
     "test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock",
