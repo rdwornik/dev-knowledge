@@ -1236,3 +1236,13 @@ def test_d1_a_detached_spawn_on_windows_gives_the_child_a_hidden_console_not_non
     assert flags & 0x00000200, "CREATE_NEW_PROCESS_GROUP"
     assert not flags & 0x00000008, "DETACHED_PROCESS silently no-ops a .cmd shim"
     assert d.detach_flags(windows=False) == 0
+
+
+def test_d1_a_copilot_producer_on_auto_carries_no_reasoning_effort():
+    """Found by the R8 usage test: `copilot -p --model auto --reasoning-effort low` exits at once --
+    'Model "auto" does not support reasoning effort configuration'."""
+    auto = d.producer_argv("copilot", "auto", "lane-x", "low", "p", session_id="s")
+    pinned = d.producer_argv("copilot", "gpt-5.6-luna", "lane-x", "low", "p", session_id="s")
+
+    assert "--reasoning-effort" not in auto and auto[auto.index("--model") + 1] == "auto"
+    assert pinned[pinned.index("--reasoning-effort") + 1] == "low"
