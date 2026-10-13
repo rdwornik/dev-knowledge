@@ -1803,3 +1803,18 @@ def test_query_index_function_filters_parsed_rows(t, world):
     got = t.query_index(text, kind="DIGEST", date="2026-10-09", seat="Tech-Architect-43", slug_to_seat=slug)
     assert [e["path"] for e in got] == ["to-browser/DIGEST-gamma-2026-10-09.md"]
     assert t.query_index(text, kind="NO_SUCH_KIND", slug_to_seat=slug) == []
+
+
+def test_query_reads_an_explicit_index_and_refuses_cleanly_with_no_transport(t, world, tmp_path, capsys, monkeypatch):
+    _written_index(t, world, tmp_path)
+    copy = tmp_path / "INDEX-copy.md"
+    copy.write_bytes((world["browser"] / "INDEX.md").read_bytes())
+    seat_file = _seat_file(tmp_path)
+
+    def no_transport(_explicit):
+        raise t._tr.TransportRefused("CLAUDE_PROMPTS_DIR is not set")
+    monkeypatch.setattr(t, "_resolve_root", no_transport)
+    capsys.readouterr()
+    assert t.main(["query", "--index", str(copy), "--seat-ids", str(seat_file), "--kind", "PLAN"]) == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-cc/PLAN-x-v2.md"]
+    assert t.main(["query", "--seat-ids", str(seat_file), "--kind", "PLAN"]) == 2

@@ -34,7 +34,9 @@ other writer is this module's own generated surface (LANE-1439-b2w2-transport-in
 classified write), `inventory` and `seat-ids` rewrite their sections of `ecosystem/seat-ids.yaml`,
 and `janitor --apply --expect-manifest <hash>` MOVES -- never deletes or overwrites -- the
 `-superseded` files of registered, attributable kinds into `<folder>/archive/YYYY-MM/`. The
-`janitor` without `--apply` is a dry run that prints the move list and its hash.
+`janitor` without `--apply` is a dry run that prints the move list and its hash. `query` (lane
+bw-1439-transport-index) is a pure read of that generated INDEX: the rows for a kind, a date (or its
+prefix) and a seat (or a session slug the seat map resolves), so a reader never opens INDEX.md by hand.
 """
 from __future__ import annotations
 
@@ -42,6 +44,7 @@ import argparse
 import hashlib
 import itertools
 import json
+import logging
 import os
 import re
 import sys
@@ -69,6 +72,7 @@ ROLE_WRITERS = ("operator", "lane", "integrator")
 #: file that holds the seat-ID map and the landing inventory (LANE-1439-b2w2-transport-index).
 INDEX_NAME = "INDEX.md"
 REPO_TOKEN = "dev-knowledge"
+_log = logging.getLogger("transport")
 DEFAULT_SEAT_IDS = _ROOT / "ecosystem" / "seat-ids.yaml"
 
 
@@ -823,6 +827,44 @@ def parse_index(text: str) -> dict:
     return {"header": header, "entries": entries, "edges": edges}
 
 
+QUERY_STATUSES = ("current", "superseded", "unattributed", "all")
+
+
+def _norm_kind(kind: str) -> str:
+    return kind.strip().upper().replace("-", "_")
+
+
+def query_index(text: str, *, kind: Optional[str] = None, date: Optional[str] = None,
+                seat: Optional[str] = None, status: str = "current",
+                slug_to_seat: Optional[dict[str, str]] = None) -> list[dict]:
+    """The INDEX rows that match every filter given, in the INDEX's own order. `kind` matches the
+    kind name without case (a hyphen reads as an underscore); `date` matches the row's date or its
+    prefix (`2026-10` is the month); `seat` matches the row's writer group (`writer_key`) -- a
+    `Tech-Architect-NN`, `UNKNOWN`, or a session slug the seat map resolves to its seat; `status` is
+    one of `QUERY_STATUSES`. Each returned row carries its `seat` (the writer group). A pure read of
+    the generated text: no live file is opened."""
+    if status not in QUERY_STATUSES:
+        raise ValueError(f"status {status!r} is not one of {', '.join(QUERY_STATUSES)}")
+    slug_to_seat = dict(slug_to_seat or {})
+    want_seat = None
+    if seat is not None:
+        want_seat = slug_to_seat.get(seat.strip(), seat.strip()).lower()
+    want_kind = _norm_kind(kind) if kind is not None else None
+    out: list[dict] = []
+    for e in parse_index(text)["entries"]:
+        if status != "all" and e["status"] != status:
+            continue
+        if want_kind is not None and _norm_kind(e["kind"]) != want_kind:
+            continue
+        if date is not None and not e["date"].startswith(date.strip()):
+            continue
+        group = writer_key(e["by"], slug_to_seat)
+        if want_seat is not None and group.lower() != want_seat:
+            continue
+        out.append({**e, "seat": group})
+    return out
+
+
 def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = None,
                 trigger: str = "index", registry: Optional[list[Kind]] = None) -> str:
     """The whole INDEX text, rebuilt from the live files. Raises `EmptySeatMap` with no seats."""
@@ -1503,6 +1545,42 @@ def _cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_query(args: argparse.Namespace) -> int:
+    """Rows of the generated INDEX for a kind / date / seat: 0 with matches, 1 with none, 2 when the
+    INDEX or the seat map cannot be read. Matches go to stdout (the INDEX row verbatim, or JSON);
+    diagnostics go through `logging` to stderr."""
+    try:
+        index_path = (Path(args.index) if args.index
+                      else _resolve_root(args.transport_root) / "to-browser" / INDEX_NAME)
+    except _tr.TransportRefused as exc:
+        _log.error("query: %s (pass --index or --transport-root)", exc)
+        return 2
+    try:
+        text = index_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        _log.error("query: cannot read the INDEX at %s (%s); run `index --write`", index_path, exc)
+        return 2
+    try:
+        seats, _inv = load_seat_ids(_seat_ids_path(args))
+    except SeatIdsError as exc:
+        _log.error("query: %s", exc)
+        return 2
+    try:
+        rows = query_index(text, kind=args.kind, date=args.date, seat=args.seat, status=args.status,
+                           slug_to_seat={s["session"]: s["seat"] for s in seats})
+    except ValueError as exc:
+        _log.error("query: %s", exc)
+        return 2
+    if args.json:
+        sys.stdout.write(json.dumps(rows, indent=2, ensure_ascii=False) + "\n")
+    else:
+        for r in rows:
+            sys.stdout.write(f"- {r['path']} | {r['kind']} | {r['subject']} | {r['date']} | by: {r['by']}\n")
+    if not rows:
+        _log.warning("query: no INDEX row matches (status=%s)", args.status)
+    return 0 if rows else 1
+
+
 def _cmd_seat_ids(args: argparse.Namespace) -> int:
     root = _resolve_root(args.transport_root)
     if not root.is_dir():
@@ -1646,6 +1724,17 @@ def _parser() -> argparse.ArgumentParser:
     sm.add_argument("--write", action="store_true", help="rewrite the seats section")
     sm.add_argument("--check", action="store_true", help="exit 1 when the file's seats are stale or empty")
     si.set_defaults(func=_cmd_seat_ids)
+    q = sub.add_parser("query", help="rows of the generated INDEX for a kind, a date and a seat "
+                                     "(a pure read of INDEX.md; exit 1 when nothing matches)")
+    q.add_argument("--transport-root", default=None)
+    q.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
+    q.add_argument("--index", default=None, help="the INDEX file to read (default: <transport>/to-browser/INDEX.md)")
+    q.add_argument("--kind", default=None, help="a registered kind, e.g. LANE_END (case and -/_ ignored)")
+    q.add_argument("--date", default=None, help="YYYY-MM-DD, or a prefix such as YYYY-MM")
+    q.add_argument("--seat", default=None, help="Tech-Architect-NN, a session slug of the seat map, or UNKNOWN")
+    q.add_argument("--status", default="current", choices=QUERY_STATUSES)
+    q.add_argument("--json", action="store_true", help="print the matches as a JSON list")
+    q.set_defaults(func=_cmd_query)
     j = sub.add_parser("janitor", help="move -superseded files of attributable kinds into archive/ "
                                        "(dry run by default; --apply needs the reviewed manifest hash)")
     j.add_argument("--transport-root", default=None)
