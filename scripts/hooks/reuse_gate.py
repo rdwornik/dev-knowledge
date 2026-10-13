@@ -233,10 +233,11 @@ def _neighbour(root: Path, rel: str) -> str:
 
 
 def _denied(rel: str, contract_rel: str, neighbour: str) -> str:
+    folder = rel.rsplit("/", 1)[0]
     return (f"DENIED (reuse gate, R96 D7): new file {rel} is not named by {contract_rel}'s "
             f"Done-contract and no why search covers its neighbours -- run `/why {neighbour}` "
-            f"(uv run --locked python scripts/file_purpose_graph.py why {neighbour}) first, "
-            "or name the file in the contract.")
+            f"(uv run --locked python scripts/file_purpose_graph.py why {neighbour}; any file in "
+            f"{folder}/ counts) first, or name the file in the contract.")
 
 
 def decide(payload: object, root: Path = REPO_ROOT,
