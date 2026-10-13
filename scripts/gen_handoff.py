@@ -3367,6 +3367,8 @@ def _generated_rollup(inputs: StateInputs, root: Path) -> "tuple[list[str], str]
         return [], ""
     cmd = f"lane_digest.py --manifest {_display_path(inputs.manifest, root)}"
     try:
+        if _inside(inputs.manifest, root):        # a committed input too (Codex r5 HIGH)
+            _assert_committed(root, _display_path(inputs.manifest, root))
         sys.path.insert(0, str(_SCRIPTS))
         import lane_digest as _ld  # noqa: PLC0415 -- deferred sibling import, the idiom
         text = Path(inputs.manifest).read_text(encoding="utf-8")
