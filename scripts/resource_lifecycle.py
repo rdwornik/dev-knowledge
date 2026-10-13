@@ -269,8 +269,19 @@ def _windows_process_table() -> list[Proc]:
             continue
         created = row.get("CreationDate")
         age = 0.0
-        if isinstance(created, str):
-            # ConvertTo-Json renders a CIM datetime as `/Date(1789…)/` epoch milliseconds.
+        if isinstance(created, str) and "Date(" not in created:
+            # PowerShell 7's ConvertTo-Json renders it ISO-8601; `tree_pids` compares these ages,
+            # so an unparsed one (0.0) would silence its creation-order rule.
+            try:
+                started = datetime.fromisoformat(created)
+                if started.tzinfo is None:
+                    started = started.astimezone()
+                age = max(0.0, (now - started).total_seconds())
+            except ValueError:
+                age = 0.0
+        elif isinstance(created, str):
+            # Windows PowerShell 5.1's ConvertTo-Json renders a CIM datetime as `/Date(1789…)/`
+            # epoch milliseconds.
             digits = "".join(ch for ch in created if ch.isdigit() or ch == "-")
             if digits.lstrip("-").isdigit():
                 try:
