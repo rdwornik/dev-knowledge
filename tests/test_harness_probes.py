@@ -206,3 +206,26 @@ def test_the_witness_hook_records_the_event_it_was_handed(tmp_path):
     )
     line = json.loads(out.read_text(encoding="utf-8").splitlines()[0])
     assert line["event"] == "Stop" and line["source"] == "plugin"
+
+
+# ------------------------------------------------------------------ the evidence excerpt
+
+_STREAM = "\n".join([
+    json.dumps({"type": "system", "subtype": "init", "plugins": [{"name": "dk-harness-probe"}]}),
+    json.dumps({"type": "assistant", "message": {"content": "x" * 5000}}),
+    json.dumps({"type": "result", "result": "dk-harness-probe check ok version=0.0.1",
+                "is_error": False, "num_turns": 2}),
+])
+
+
+def test_the_stream_summary_keeps_the_facts_a_verdict_rests_on_and_drops_the_bulk():
+    summary = hp.stream_summary(_STREAM)
+    assert "dk-harness-probe" in summary and "check ok" in summary and "is_error=False" in summary
+    assert "x" * 100 not in summary
+
+
+def test_the_excerpt_keeps_its_head_when_the_bulk_is_long():
+    """The first run's excerpt kept only the TAIL, which cut the hub probe's refusal off the
+    front of the P-3 evidence; the head carries the facts, so it must survive truncation."""
+    text = "[hub probe exit 128] fatal: unable to access\n" + "y" * 5000
+    assert hp._excerpt(text).startswith("[hub probe exit 128] fatal")
