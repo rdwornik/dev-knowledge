@@ -38,16 +38,19 @@ that resolves through `scripts/` on `sys.path`. FPG's own `ast` pass resolves th
 so a leaf's `imports` is the UNION of both, and `meta.grimp` / `meta.fpg_imports` report each
 source's edge count separately. No edge is invented to close the gap.
 
-DETERMINISM. Same checkout (tree and HEAD) -> byte-identical JSON: every collection is
-sorted, the JSON is dumped with sorted keys and ASCII escapes, and nothing reads the clock or
-the user's home. The map sha is sha256 of those bytes. The record file is EXCLUDED from the
-leaf set, so committing a new record never changes the map it records.
+DETERMINISM. Same tree -> byte-identical JSON: every collection is sorted, the JSON is
+dumped with sorted keys and ASCII escapes, and nothing reads the clock, the user's home or
+the commit history. A leaf's LAST COMMIT is history, not tree (two identical trees reached
+by different histories differ in it -- Codex r1 HIGH), so `last_commits()` feeds the HTML
+only and stays out of the hashed JSON. The map sha is sha256 of the JSON bytes. The record
+file is EXCLUDED from the leaf set, so committing a new record never changes the map it
+records.
 
 WHAT IS COMMITTED (Done-contract item 4). The JSON and HTML are regenerate-on-demand outputs
 and are GITIGNORED, on the `ecosystem/trends.html` precedent (`.gitignore`): a committed
 generated page goes stale and then needs a freshness gate to police a staleness that only
-exists because it is committed; and a leaf's `last_commit` moves on every commit, so a
-committed JSON would churn. What IS committed is `ecosystem/system-map-record.json` -- the
+exists because it is committed; and the JSON moves with every content change of
+any leaf, so a committed JSON would churn. What IS committed is `ecosystem/system-map-record.json` -- the
 map sha, the previous sha, the added/removed node diff and the node list the next diff is
 taken against -- the place the handoff generator (lane D2) reads. A rebuild that yields the
 same sha leaves the record byte-untouched, so `/map` on an unchanged tree dirties nothing.
@@ -188,8 +191,15 @@ def _area(rel: str) -> str:
     return rel.split("/", 1)[0]
 
 
-def _last_commits(root: Path, leaves: list[str]) -> dict[str, str]:
-    """{path: 12-char sha of the newest commit touching it}, from ONE `git log` pass."""
+def last_commits(root: Path, leaves: list[str] | None = None) -> dict[str, str]:
+    """{path: 12-char sha of the newest commit touching it}, from ONE `git log` pass.
+
+    HISTORY, not tree: rendered on the HTML page only, never part of the hashed JSON."""
+    root = Path(root).resolve()
+    if leaves is None:
+        leaves = [p for p in _all_files(root) if _is_leaf(p)]
+    if not leaves:
+        return {}
     text = _git(root, "log", "--format=%x01%H", "--name-only", "--no-renames", "--",
                 *sorted({_area(p) for p in leaves}))
     if text is None:
@@ -383,7 +393,6 @@ def build_map(repo_root: Path | str) -> dict:
     harness = _harness(root)
     process = _process(root, harness)
     providers = _providers(root)
-    last = _last_commits(root, leaves)
 
     imports: dict[str, set[str]] = {p: set() for p in leaves}
     imported_by: dict[str, set[str]] = {p: set() for p in leaves}
@@ -408,7 +417,7 @@ def build_map(repo_root: Path | str) -> dict:
         except fpg.UnknownFile:
             answer = None
         row = {"path": rel, "area": _area(rel), "explained": answer is not None,
-               "tests": [], "last_commit": last.get(rel), "organs":
+               "tests": [], "organs":
                sorted(organ_by_script.get(rel, []))}
         if rel.endswith(".py"):
             stem = Path(rel).stem
@@ -565,7 +574,7 @@ def _e(value) -> str:
     return html.escape("" if value is None else str(value), quote=True)
 
 
-def _leaf_html(row: dict) -> str:
+def _leaf_html(row: dict, history: dict[str, str]) -> str:
     badges = []
     if not row["explained"]:
         badges.append(f'<span class="badge warn">{UNEXPLAINED}</span>')
@@ -594,13 +603,15 @@ def _leaf_html(row: dict) -> str:
         f'<div>imported by: {items(row["imported_by"])}</div>'
         f'<div>tests: {items(row["tests"])}</div>'
         f'<div>organs: {items(row["organs"])}</div>'
-        f'<div>last commit: <code>{_e(row["last_commit"] or "none")}</code></div>'
+        f'<div>last commit: <code>{_e(history.get(row["path"]) or "none")}</code></div>'
         f"</details>"
     )
 
 
-def render_html(data: dict, sha: str) -> str:
-    """ONE static page from the map dict. No network, no model; deterministic."""
+def render_html(data: dict, sha: str, history: dict[str, str] | None = None) -> str:
+    """ONE static page from the map dict (plus the optional `last_commits` history, which is
+    shown per leaf but is not part of the hashed JSON). No network, no model."""
+    history = history or {}
     files = data["files"]
     meta = data["meta"]
     out = [
@@ -642,11 +653,11 @@ def render_html(data: dict, sha: str) -> str:
             inner = "".join(
                 f'<details><summary><code>{_e(g["area"])}</code> '
                 f'<span class="muted">({len(g["files"])})</span></summary>'
-                + "".join(_leaf_html(files[p]) for p in g["files"]) + "</details>"
+                + "".join(_leaf_html(files[p], history) for p in g["files"]) + "</details>"
                 for g in module["groups"])
             count = sum(len(g["files"]) for g in module["groups"])
         else:
-            inner = "".join(_leaf_html(files[p]) for p in module["files"])
+            inner = "".join(_leaf_html(files[p], history) for p in module["files"])
             count = len(module["files"])
         out.append(f'<details><summary>{_e(module["label"])} '
                    f'<span class="muted">({count})</span></summary>{inner}</details>')
@@ -716,7 +727,7 @@ def write_outputs(repo_root: Path | str, out_dir: Path | str, record_path: Path 
     out.mkdir(parents=True, exist_ok=True)
     json_path, html_path = out / JSON_NAME, out / HTML_NAME
     json_path.write_bytes(blob)
-    html_path.write_bytes(render_html(data, sha).encode("utf-8"))
+    html_path.write_bytes(render_html(data, sha, last_commits(root)).encode("utf-8"))
 
     old = _read_record(record_file)
     paths = {"json_path": json_path.as_posix(), "html_path": html_path.as_posix()}
