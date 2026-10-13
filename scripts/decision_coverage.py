@@ -1036,7 +1036,8 @@ def _archived_superseded(root: Path) -> list[Decision]:
         return []
     try:
         fields, _missing, _extra = vas.scan_zone(zone)
-    except vas.CorpusUnusable:
+    except (vas.CorpusUnusable, OSError) as exc:
+        logger.warning("lifecycle: archive zone not read (%r)", exc)
         return []
     out = []
     for field in fields:
@@ -1066,7 +1067,14 @@ def script_citations(repo_root, numbers: set[str]) -> dict[str, tuple[str, ...]]
     if not scripts.is_dir():
         return {}
     for path in sorted(scripts.rglob("*.py")):
-        cited = {m.group(1) for m in pattern.finditer(_read(path))} & numbers
+        try:
+            text = _read(path)
+        except OSError as exc:
+            # A WARN scan never raises: a script that vanished or cannot be read is skipped
+            # and SAID, never silently counted as citing nothing.
+            logger.warning("lifecycle: skipped unreadable script %s: %s", path, exc)
+            continue
+        cited = {m.group(1) for m in pattern.finditer(text)} & numbers
         for number in cited:
             hits[number].add(path.relative_to(root).as_posix())
     return {n: tuple(sorted(paths)) for n, paths in hits.items() if paths}
@@ -1694,7 +1702,12 @@ def main(argv: list[str] | None = None) -> int:
                 print("decision-coverage: NOTE — dispositions naming decisions that are gone: "
                       + ", ".join(stale))
             # The [#242] lifecycle legs WARN and never change the exit code (see their block).
-            flags = adr_lifecycle(root, found, today=_dt.date.today())
+            try:
+                flags = adr_lifecycle(root, found, today=_dt.date.today())
+            except Exception as exc:  # noqa: BLE001 -- a WARN leg never decides the exit code
+                logger.warning("lifecycle: legs not measured (%r); coverage's verdict stands",
+                               exc)
+                flags = []
             for flag in flags:
                 logger.warning(flag.render())
             if flags:
