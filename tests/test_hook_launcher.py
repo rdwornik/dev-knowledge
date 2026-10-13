@@ -10,7 +10,8 @@ Done-contract, as this file checks it:
      flag, no `;` program text;
   4. every entry that has to survive a foreign shell runs through the one launcher, in exactly
      one shape (the three former inline `python -c` entries: the PreToolUse scope guard and B1's
-     two Stop gates).
+     two Stop gates; and, since lane `lane-bw-1001-sessionstart-one`, the ONE SessionStart entry
+     `scripts/hooks/session_start.py`).
 
 The behaviour of each real hook through its declared command stays pinned where it was:
 `tests/test_scope_guard_hook_command.py` (scope guard, three shells) and
@@ -47,6 +48,7 @@ _SHAPE = ('uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/' +
 _LAUNCHED = {
     "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py"],
     "Stop": ["scripts/lane_end_guard.py", "scripts/lane_handback_gate.py"],
+    "SessionStart": ["scripts/hooks/session_start.py"],
 }
 
 
