@@ -641,12 +641,15 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
     which runs are refused, never how a refusal is reported.
 
     ADR-129 item 12/L7 adds `--trial-cut` (the batch-close stage) -- a genuinely new flag, so
-    the set gains exactly one member rather than losing or renaming any existing one."""
+    the set gains exactly one member rather than losing or renaming any existing one.
+
+    Batch BW lane D2 `handoff-gen` ([#680] nearest) adds the four state dry-run flags
+    `--state-out`, `--rollup`, `--ledger`, `--map-record` -- again additions only."""
     expected_flags = {
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
         "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
-        "--boot-dispatch",
+        "--boot-dispatch", "--state-out", "--rollup", "--ledger", "--map-record",
     }
     actual_flags: set[str] = set()
     for p in gh.main.params:
