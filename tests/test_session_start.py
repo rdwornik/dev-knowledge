@@ -259,3 +259,37 @@ def test_a_straggler_cannot_print_past_the_cap_once_the_output_is_composed():
         assert "[late] after the deadline" not in out
     finally:
         sys.stdout, sys.stderr = saved
+
+
+def test_the_cap_holds_even_when_protected_lines_alone_exceed_it():
+    def floods():
+        for i in range(500):
+            print(f"[hook-BROKEN] guard-{i} DECLARED BROKEN " + "z" * 200)
+
+    out, _err = ss.run([_reader("floods", floods)])
+    assert len(out.encode("utf-8")) <= ss.OUTPUT_CAP_BYTES
+    assert out.splitlines()[0].startswith("[hook-BROKEN] guard-0 ")
+    assert "[session-start] cut" in out.splitlines()[-1]
+
+
+def test_a_helper_thread_a_finished_reader_left_behind_cannot_write_past_the_digest():
+    saved = sys.stdout, sys.stderr
+    written = threading.Event()
+    late_target = []
+
+    def leaves_a_writer():
+        def later():
+            time.sleep(0.3)
+            late_target.append(sys.stdout)
+            print("[late] from a helper thread")
+            written.set()
+        threading.Thread(target=later, daemon=True).start()
+
+    try:
+        out, _err = ss.run([_reader("leaves", leaves_a_writer)], silence_stragglers=True)
+        assert written.wait(3)
+        assert late_target and late_target[0] is not saved[0]
+        assert isinstance(late_target[0], ss._Sink)
+        assert "[late] from a helper thread" not in out
+    finally:
+        sys.stdout, sys.stderr = saved

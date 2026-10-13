@@ -17,9 +17,11 @@ in the declared order -- never finish order, so the boot text reads the same eve
 WHAT IT BOUNDS. The composed stdout -- what Claude Code folds into the session's context -- is
 held to `OUTPUT_CAP_BYTES`, each line to `LINE_CAP_BYTES`. A line over the line cap is shortened
 in place. If the total is still over the cap, lines are cut from the END, but a line whose tag
-is in `PROTECTED_TAGS` (a refusal, a warning, a failure this file reports itself) is never cut:
-the cut costs digest detail, never a warning. The cut is announced in one line that says how
-many lines went and how to read them all (`--full`, by hand).
+is in `PROTECTED_TAGS` (a refusal, a warning, a failure this file reports itself) goes last:
+it is shortened further before it is cut, and cut only when protected lines alone exceed the
+cap, so the cut costs digest detail before it costs a warning, and the cap is a hard bound. The
+cut is announced in one line that says how many lines went and how to read them all (`--full`,
+by hand).
 
 WHAT IT DOES NOT DO. It does not refuse: a SessionStart hook cannot stop a session (measured,
 recorded in `scripts/fleet_health.py`), so it always exits 0. A reader that exits non-zero, or
@@ -61,8 +63,8 @@ LINE_CAP_BYTES = 240
 #: the settings entry's own timeout (60 s) so the entry always gets to print what it has.
 DEADLINE_S = 45.0
 
-#: Lines that are never cut by the overflow rule: refusals, warnings and failures. The tag is a
-#: line's leading `[...]` token.
+#: Lines the overflow rule cuts last: refusals, warnings and failures. The tag is a line's
+#: leading `[...]` token.
 PROTECTED_TAGS = frozenset({
     "[prompts]", "[prompts-guard]", "[billing]", "[gh]", "[self-arm]", "[asks]",
     "[hook-BROKEN]", "[hook-ADVISORY]", "[session-start]",
@@ -291,8 +293,9 @@ def _shorten(line: str, cap: int) -> str:
 
 def compose(lines: Sequence[str], cap: int = OUTPUT_CAP_BYTES,
             line_cap: int = LINE_CAP_BYTES) -> list[str]:
-    """`lines` shortened to `line_cap` each and cut from the end to fit `cap`, never cutting a
-    protected line; the cut, if any, announced in one last protected line."""
+    """`lines` shortened to `line_cap` each and cut from the end to fit `cap`; the cut, if any,
+    announced in one last line. Unprotected lines go first; a protected line is shortened before
+    it is cut, and cut only when protected lines alone exceed the cap -- the cap always holds."""
     kept = [_shorten(line, line_cap) for line in lines]
 
     def size(ls: Sequence[str]) -> int:
@@ -300,9 +303,10 @@ def compose(lines: Sequence[str], cap: int = OUTPUT_CAP_BYTES,
 
     if size(kept) <= cap:
         return kept
-    dropped = 0
+    budget = cap - 200  # room for the notice line below
     total = size(kept)
-    budget = cap - 160  # room for the notice line below
+    dropped = 0
+    # 1. Cut unprotected lines from the end.
     i = len(kept) - 1
     while i >= 0 and total > budget:
         if _tag(kept[i]) not in PROTECTED_TAGS:
@@ -310,13 +314,17 @@ def compose(lines: Sequence[str], cap: int = OUTPUT_CAP_BYTES,
             del kept[i]
             dropped += 1
         i -= 1
-    kept.append(f"[session-start] cut {dropped} line(s) at the {cap}-byte cap -- full text: "
-                f"uv run --locked python scripts/hooks/session_start.py {_FULL_FLAG}")
-    # Protected lines alone can still exceed the cap; shorten them further rather than drop one.
-    while size(kept) > cap and line_cap > 60:
+    # 2. Protected lines alone can still exceed it: shorten them further first ...
+    while size(kept) > budget and line_cap > 60:
         line_cap -= 20
-        kept = [_shorten(line, line_cap) for line in kept[:-1]] + kept[-1:]
-    return kept
+        kept = [_shorten(line, line_cap) for line in kept]
+    # 3. ... and only then cut them too, from the end, so the cap is a hard bound, never a goal.
+    while kept and size(kept) > budget:
+        kept.pop()
+        dropped += 1
+    notice = (f"[session-start] cut {dropped} line(s) at the {cap}-byte cap -- full text: "
+              f"uv run --locked python scripts/hooks/session_start.py {_FULL_FLAG}")
+    return kept + [_shorten(notice, min(LINE_CAP_BYTES, cap - size(kept) - 1))]
 
 
 def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
@@ -324,9 +332,10 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
         silence_stragglers: bool = False) -> tuple[str, str]:
     """Run `readers` in this interpreter, one thread each; return (stdout, stderr) composed.
 
-    With `silence_stragglers` (the hook's own call), a reader still running at the deadline
-    leaves `sys.stdout` / `sys.stderr` pointed at a sink rather than the real streams, so its
-    late lines cannot reach the context past the cap; the caller writes to the streams it saved."""
+    With `silence_stragglers` (the hook's own call), `sys.stdout` / `sys.stderr` are left
+    pointed at a sink rather than the real streams -- a reader past the deadline, or a helper
+    thread a finished reader left behind, cannot reach the context past the cap; the caller
+    writes the composed output to the streams it saved before the call."""
     _ensure_paths()
     stray_out, stray_err = io.StringIO(), io.StringIO()
     out_router, err_router = _ThreadRouter(stray_out), _ThreadRouter(stray_err)
@@ -344,7 +353,10 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
             res.done.wait(max(0.0, end - time.monotonic()))
     finally:
         sys.stdout, sys.stderr, sys.stdin = saved
-        if silence_stragglers and not all(res.done.is_set() for res in results):
+        if silence_stragglers:
+            # Unconditionally: a reader that RETURNED may have left a helper thread that writes
+            # later, and a reader past the deadline is still running -- neither may reach the
+            # real streams once the composed, capped output is the only thing written there.
             sys.stdout, sys.stderr = _Sink(), _Sink()
 
     out_lines: list[str] = []
