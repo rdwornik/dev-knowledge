@@ -711,7 +711,8 @@ def repo_toplevel(cwd: Path) -> Path:
 
 
 def producer_argv(kind: str, model: str, slug: str, effort: str, prompt: str,
-                  permission_mode: str = "bypassPermissions", session_id: str = "") -> list[str]:
+                  permission_mode: str = "bypassPermissions", session_id: str = "",
+                  contract_dir: str = "") -> list[str]:
     """The argv for one producer kind. Built, never run here.
 
     * claude  -- `claude -p` (headless, the section-3 schema enforced by `--json-schema`), in its own
@@ -731,7 +732,9 @@ def producer_argv(kind: str, model: str, slug: str, effort: str, prompt: str,
         if model == COPILOT_AUTO_MODEL:   # copilot refuses an effort on `auto` (R8 usage test)
             at = argv.index("--reasoning-effort")
             argv = argv[:at] + argv[at + 2:]
-        return [*argv, "--session-id", session_id]
+        # `--add-dir`: the contract lives on the transport, outside the worktree, and a `-p` run
+        # has no one to approve reading it (R8 usage test) -- admit that one directory, no more.
+        return [*argv, "--session-id", session_id, *(["--add-dir", contract_dir] if contract_dir else [])]
     raise DispatchRefused(f"producer {kind!r} has no head in dispatch.py; known: "
                           f"{', '.join(_PRODUCER_PROVIDER)}")
 
@@ -769,7 +772,8 @@ def producer_route(kind: str, request: "LaunchRequest", repo: str, router=None) 
     if status == ROUTE_ROUTED and not model:
         status, reason = ROUTE_MISSING, f"the registry pins no model for {PRODUCER_REGISTRY[kind]}"
     argv = (producer_argv(kind, model, request.slug, request.effort, request.prompt,
-                          request.permission_mode, request.session_id or "<session-id>")
+                          request.permission_mode, request.session_id or "<session-id>",
+                          str(request.contract.parent))
             if status == ROUTE_ROUTED else [])
     return ProducerRoute(kind, PRODUCER_REGISTRY[kind], status, model, reason, argv)
 
@@ -907,7 +911,7 @@ class LaunchRequest:
     def argv(self) -> list[str]:
         if self.producer:
             return producer_argv(self.producer, self.model, self.slug, self.effort, self.prompt,
-                                 self.permission_mode, self.session_id)
+                                 self.permission_mode, self.session_id, str(self.contract.parent))
         return build_plan(self.provider, self.model, self.slug, self.effort, self.prompt,
                           self.permission_mode).argv
 
