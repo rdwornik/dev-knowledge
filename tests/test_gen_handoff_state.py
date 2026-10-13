@@ -276,3 +276,26 @@ def test_a_state_out_symlink_into_the_repo_is_refused(tmp_path, monkeypatch):
         "--ledger", str(inputs.ledger), "--map-record", str(inputs.map_record)])
     assert res.exit_code != 0
     assert not target.exists()
+
+
+def test_an_unreadable_source_is_missing_in_section_two_even_beside_a_good_one(tmp_path):
+    """Codex r3 HIGH: a rollup that cannot be read is named MISSING even when the LEDGER supplies
+    past errors -- one good source never hides an absent one."""
+    inputs = _inputs(tmp_path)
+    both = gh.StateInputs(rollups=(tmp_path / "NO-ROLLUP.md",), ledger=inputs.ledger,
+                          map_record=inputs.map_record)
+    errors = _sections(gh.render_handoff_state(_repo(tmp_path), both, today=_TODAY))[
+        "2. Past errors with no check yet"]
+    assert "booted with no manifest" in errors
+    assert "MISSING: rollup" in errors and "NO-ROLLUP.md" in errors
+
+
+def test_sections_one_to_three_name_their_input_files(tmp_path):
+    """Codex r3 HIGH: a source line names the FILE it read, not a bare 'LEDGER' or 'rollups'."""
+    sections = _sections(gh.render_handoff_state(_repo(tmp_path), _inputs(tmp_path), today=_TODAY))
+    for title in gh.STATE_SECTION_TITLES[:3]:
+        source = next(ln for ln in sections[title].splitlines() if ln.startswith("source:"))
+        assert "LEDGER.md" in source, (title, source)
+    for title in gh.STATE_SECTION_TITLES[:2]:
+        source = next(ln for ln in sections[title].splitlines() if ln.startswith("source:"))
+        assert "ROLLUP.md" in source, (title, source)
