@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import shlex
 import shutil
@@ -163,8 +164,11 @@ def _now() -> str:
 
 def _sh(command: str, *, cwd: Optional[str] = None, timeout: int = 900) -> tuple[int, str]:
     """Run one command in a LOGIN bash (codespace secrets and ~/.local/bin live there)."""
+    # The driver itself runs under `uv run --with click`, whose VIRTUAL_ENV must not leak into
+    # the consumer's uv commands (uv warns and ignores it, which pollutes the evidence).
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
     try:
-        proc = subprocess.run(["bash", "-lc", command], cwd=cwd, capture_output=True,
+        proc = subprocess.run(["bash", "-lc", command], cwd=cwd, capture_output=True, env=env,
                               text=True, encoding="utf-8", errors="replace", timeout=timeout)
     except subprocess.TimeoutExpired as exc:
         return 124, f"TIMEOUT after {timeout}s: {exc}"
@@ -172,8 +176,27 @@ def _sh(command: str, *, cwd: Optional[str] = None, timeout: int = 900) -> tuple
 
 
 def _excerpt(text: str) -> str:
+    """Keep the HEAD: callers put the facts a verdict rests on first, the bulk after."""
     text = text.strip()
-    return text if len(text) <= _EXCERPT_CHARS else "..." + text[-_EXCERPT_CHARS:]
+    return text if len(text) <= _EXCERPT_CHARS else text[:_EXCERPT_CHARS] + "..."
+
+
+def stream_summary(stream: str) -> str:
+    """The facts of a `claude -p --output-format stream-json` run: init plugins and the result."""
+    lines = []
+    for raw in stream.splitlines():
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "system" and event.get("subtype") == "init":
+            lines.append(f"init.plugins={_init_plugins(raw)}")
+        elif event.get("type") == "result":
+            lines.append(f"result={event.get('result')!r} is_error={event.get('is_error')} "
+                         f"num_turns={event.get('num_turns')}")
+    return "\n".join(lines) or "(no stream-json events)"
 
 
 def _receipt(probe: str, command: str, exit_code: int, log: str, codespace: str,
@@ -248,7 +271,9 @@ def run_remote(ref: str, codespace: str) -> dict:
                              {"uv_lock_lines": lock_lines[:6], "uv_version": context["uv_version"]}))
 
     # P-1 -- install the stand-in into a scratch project, materialise its plugin from package
-    # data, install that plugin from the materialised marketplace, and watch one hook fire.
+    # data, install that plugin from the materialised marketplace at PROJECT scope (the ADR's
+    # "project .claude/" route: it writes enabledPlugins into <project>/.claude/settings.json),
+    # and watch one hook fire.
     scratch = Path("/tmp/harness-consumer")
     shutil.rmtree(scratch, ignore_errors=True)
     scratch.mkdir(parents=True)
@@ -256,7 +281,7 @@ def run_remote(ref: str, codespace: str) -> dict:
     setup = (f"uv init --bare --name harness-consumer-probe && uv add {shlex.quote(spec)} && "
              f"uv run --locked {PACKAGE} install {market} && "
              f"claude plugin marketplace add {market} && "
-             f"claude plugin install {PACKAGE}@dk-harness-probe-local")
+             f"claude plugin install {PACKAGE}@dk-harness-probe-local --scope project")
     setup_code, setup_out = _sh(setup, cwd=str(scratch))
     witness = Path("/tmp/harness-probe-witness.jsonl")
     p1_cmd, p1_code, p1_out = _claude("Reply with the single word OK.", str(scratch), witness,
@@ -264,9 +289,17 @@ def run_remote(ref: str, codespace: str) -> dict:
     plugins = _init_plugins(p1_out)
     fired = _witness_events(witness)
     loaded = any(PACKAGE in p for p in plugins)
+    settings = scratch / ".claude" / "settings.json"
+    p1_log = "\n".join([
+        stream_summary(p1_out),
+        "witness=" + (witness.read_text(encoding="utf-8").strip() if witness.is_file() else ""),
+        "project .claude/settings.json=" + (settings.read_text(encoding="utf-8").strip()
+                                             if settings.is_file() else "(absent)"),
+        "setup tail: " + setup_out.strip()[-400:],
+    ])
     receipts.append(_receipt(
         "P-1", f"{setup} && {p1_cmd}", p1_code if setup_code == 0 else setup_code,
-        setup_out + "\n" + p1_out, codespace,
+        p1_log, codespace,
         p1_verdict(plugin_loaded=loaded and setup_code == 0, fired_events=fired),
         {"init_plugins": plugins, "witness_events": fired}))
 
@@ -285,7 +318,8 @@ def run_remote(ref: str, codespace: str) -> dict:
         ".insteadOf")
     receipts.append(_receipt(
         "P-3", f"{block} && git ls-remote {HUB_URL} HEAD && {p3_cmd}", p3_code,
-        f"[hub probe exit {probe_code}] {probe_out.strip()}\n{p3_out}", codespace,
+        f"[hub probe exit {probe_code}] {probe_out.strip()}\n{stream_summary(p3_out)}\n"
+        f"witness={p3_fired}", codespace,
         p3_verdict(hub_reachable=probe_code == 0, lane_exit=p3_code,
                    organ_seen=ORGAN_MARKER in p3_out, fired_events=p3_fired),
         {"hub_probe_exit": probe_code, "witness_events": p3_fired}))
