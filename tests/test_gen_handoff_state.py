@@ -181,7 +181,8 @@ def test_the_writer_puts_the_state_in_the_bundle_file(tmp_path):
     assert out.read_text(encoding="utf-8").count("\n## ") == 7
 
 
-def test_the_cli_dry_run_writes_only_the_scratch_path(tmp_path):
+def test_the_cli_dry_run_writes_only_the_scratch_path(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: tmp_path)
     inputs = _inputs(tmp_path)
     out = tmp_path / "scratch" / "HANDOFF_STATE.md"
     handoffs = Path(gh._REPO_ROOT) / "docs" / "handoffs"
@@ -194,3 +195,41 @@ def test_the_cli_dry_run_writes_only_the_scratch_path(tmp_path):
     assert out.is_file() and out.read_text(encoding="utf-8").count("\n## ") == 7
     after = sorted(p.name for p in handoffs.iterdir()) if handoffs.is_dir() else []
     assert before == after, "a state dry run must not write a bundle"
+
+
+def test_a_state_out_inside_the_repo_is_refused(tmp_path, monkeypatch):
+    """Codex r1 HIGH: `--state-out` takes the dry cut's target rule -- never a committable path."""
+    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: tmp_path)
+    inputs = _inputs(tmp_path)
+    target = Path(gh._REPO_ROOT) / "docs" / "handoffs" / "bw680-never" / "HANDOFF_STATE.md"
+    res = CliRunner().invoke(gh.main, [
+        "--state-out", str(target), "--rollup", str(inputs.rollups[0]),
+        "--ledger", str(inputs.ledger), "--map-record", str(inputs.map_record)])
+    assert res.exit_code != 0
+    assert not target.exists() and not target.parent.exists()
+
+
+def test_an_input_neither_committed_nor_on_the_transport_is_refused(tmp_path, monkeypatch):
+    """Codex r1 HIGH: an override input must be a generated transport surface or a tracked file."""
+    transport = tmp_path / "transport"
+    transport.mkdir()
+    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: transport)
+    loose = tmp_path / "loose"
+    loose.mkdir()
+    inputs = _inputs(loose)
+    out = tmp_path / "scratch" / "HANDOFF_STATE.md"
+    res = CliRunner().invoke(gh.main, ["--state-out", str(out), "--rollup", str(inputs.rollups[0])])
+    assert res.exit_code != 0 and "rollup" in res.output
+    assert not out.exists()
+
+
+def test_each_source_without_a_past_errors_block_is_named_missing(tmp_path):
+    """Codex r1 HIGH (F0.2): a source that records no PAST ERRORS block is named, never skipped --
+    a past error recorded only in free text shows up as that source's MISSING line."""
+    inputs = _inputs(tmp_path)
+    (tmp_path / "LEDGER.md").write_text(_LEDGER.replace("PAST ERRORS WITH NO CHECK YET", "OTHER"),
+                                        encoding="utf-8")
+    text = gh.render_handoff_state(_repo(tmp_path), inputs, today=_TODAY)
+    errors = _sections(text)["2. Past errors with no check yet"]
+    assert "dispositioned orphan" in errors
+    assert "MISSING: a PAST ERRORS WITH NO CHECK YET block in LEDGER" in errors
