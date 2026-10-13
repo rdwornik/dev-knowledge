@@ -244,6 +244,112 @@ def is_landable(verdict) -> bool:
             and not getattr(verdict, "missing_contexts", ()))
 
 
+# --- the lane gate: a lane `dispatch` did not launch does not land (lane-bw-1374, D1) --------
+#
+# R96 D6 / R99: lanes are launched ONLY through `scripts/dispatch.py`, which appends every launch
+# to its launch ledger (`dispatch.read_lane_launches`). `land` reads the commits it is about to
+# land (`base..sha`), finds every `worktree-lane-*` branch in them -- by the integrator's merge
+# subject (`Merge branch 'worktree-lane-...'`) AND by any local or `origin/` lane ref whose tip is
+# in the range, so a custom merge message does not hide one -- and refuses the land, naming each
+# lane the ledger does not carry. `worktree-integrate-*` (the integrator's own branch) is not a
+# lane: it never matches the `worktree-lane-` prefix.
+#
+# PROSPECTIVE, NEVER RETRO (how, and why): the gate did not exist when this batch's lanes were
+# launched by the orchestrator's Agent tool, so two things exempt a lane. (1) ERA: a lane whose
+# FIRST commit in the range predates `LAUNCH_GATE_ERA` -- committer time, so a rebase re-dates
+# it and is gated. (2) GRANDFATHER: a lane a manifest in `GRANDFATHER_MANIFESTS` names (batch
+# BW's in-flight lanes, which may still commit after the era). Both lists are closed: a new
+# exemption is an edit to one of them, with a diff. HONEST LIMIT: the ledger is per user and per
+# machine (see `dispatch.launch_ledger_path`); a lane dispatched elsewhere is refused here.
+
+LANE_BRANCH_PREFIX = "worktree-lane-"
+#: Lanes whose first commit is before this instant are not gated (they predate the gate).
+LAUNCH_GATE_ERA = datetime(2026, 10, 14, tzinfo=timezone.utc)
+#: Manifests whose lanes table names lanes launched before the gate existed (repo-relative).
+GRANDFATHER_MANIFESTS = ("docs/audits/2026-10-12-technical-batch-bw-manifest.md",)
+_MERGED_LANE_RE = re.compile(r"^Merge (?:remote-tracking )?branch '(?:origin/)?(worktree-lane-[^']+)'")
+
+
+class LaneGateUnreadable(RuntimeError):
+    """The range or the lane refs could not be read: the gate cannot tell, so `land` refuses."""
+
+
+def lane_branches_in(git: Runner, base: str, sha: str) -> dict:
+    """lane slug -> its tip, for every `worktree-lane-*` branch whose work is in `base..sha`."""
+    code, out = git(["log", "--format=%H%x09%P%x09%s", f"{base}..{sha}"])
+    if code != 0:
+        raise LaneGateUnreadable(f"git log {base[:12]}..{sha[:12]} failed: {out.strip()[:160]}")
+    in_range: set = set()
+    found: dict = {}
+    for line in out.splitlines():
+        parts = line.split("\t", 2)
+        if len(parts) < 3:
+            continue
+        commit, parents, subject = parts
+        in_range.add(commit.strip().lower())
+        merged, second = _MERGED_LANE_RE.match(subject), parents.split()[1:2]
+        if merged and second:
+            found[merged.group(1)[len("worktree-"):]] = second[0]
+    code, out = git(["for-each-ref", "--format=%(refname:short)%09%(objectname)",
+                     f"refs/heads/{LANE_BRANCH_PREFIX}*", f"refs/remotes/origin/{LANE_BRANCH_PREFIX}*"])
+    if code != 0:
+        raise LaneGateUnreadable(f"git for-each-ref failed: {out.strip()[:160]}")
+    for line in out.splitlines():
+        name, _, tip = line.partition("\t")
+        name = name.strip().removeprefix("origin/")
+        if name.startswith(LANE_BRANCH_PREFIX) and tip.strip().lower() in in_range:
+            found.setdefault(name[len("worktree-"):], tip.strip())
+    return found
+
+
+def _first_commit_at(git: Runner, base: str, tip: str) -> Optional[datetime]:
+    """The committer time of the lane's earliest commit in `base..tip`; None when it has none."""
+    code, out = git(["log", "--format=%ct", f"{base}..{tip}"])
+    if code != 0:
+        raise LaneGateUnreadable(f"git log {base[:12]}..{tip[:12]} failed: {out.strip()[:160]}")
+    stamps = [int(s) for s in out.split() if s.strip().isdigit()]
+    return datetime.fromtimestamp(min(stamps), tz=timezone.utc) if stamps else None
+
+
+def grandfathered_lanes(root: Path) -> set:
+    """Every lane slug the `GRANDFATHER_MANIFESTS` lanes tables name. A missing manifest names none."""
+    import batch_manifest
+    lanes: set = set()
+    for rel in GRANDFATHER_MANIFESTS:
+        try:
+            text = (Path(root) / rel).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        lanes.update(slug for slug, _wave in batch_manifest.manifest_lane_rows(text))
+    return lanes
+
+
+def launched_lanes() -> set:
+    """Every lane slug `dispatch.py` has launched, from its launch ledger."""
+    import dispatch
+    return set(dispatch.read_lane_launches())
+
+
+def undispatched_lanes(git: Runner, root: Path, base: str, sha: str, *,
+                       launched_fn: Optional[Callable] = None,
+                       grandfathered_fn: Optional[Callable] = None) -> list:
+    """The lanes in `base..sha` that `dispatch` did not launch and no exemption covers, sorted."""
+    found = lane_branches_in(git, base, sha)
+    if not found:
+        return []
+    launched = (launched_fn or launched_lanes)()
+    exempt = (grandfathered_fn or grandfathered_lanes)(root)
+    blocked = []
+    for slug, tip in sorted(found.items()):
+        if slug in launched or slug in exempt:
+            continue
+        first = _first_commit_at(git, base, tip)
+        if first is not None and first < LAUNCH_GATE_ERA:
+            continue
+        blocked.append(slug)
+    return blocked
+
+
 # --- land -------------------------------------------------------------------------------------
 
 @dataclass
@@ -264,10 +370,13 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
          timeout_s: int = 900, interval_s: int = 20, git: Optional[Runner] = None,
          verdict_fn: Optional[Callable] = None, record_push_fn: Optional[Callable] = None,
          record_suite_fn: Optional[Callable] = None, no_push: bool = False,
-         run_id: Optional[int] = None) -> LandResult:
+         run_id: Optional[int] = None, launched_fn: Optional[Callable] = None,
+         grandfathered_fn: Optional[Callable] = None) -> LandResult:
     """Integration branch first, then the SAME sha to main. See the module docstring.
 
-    Refuses (never lands) when: `sha` is not a merge commit whose first parent is `base`;
+    Refuses (never lands) when: `sha` is not a merge commit whose first parent is `base`; it
+    carries a `worktree-lane-*` branch `dispatch.py` did not launch (`undispatched_lanes`, D1 --
+    in no-push mode too);
     `origin/main` is no longer `base` (before the integration push AND again before the push to
     main); the push to the integration branch fails; CI's verdict for `sha` is not landable. The
     first refusal wins and nothing after it runs.
@@ -299,6 +408,17 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                       f"{sha} is not a two-parent merge commit whose first parent is the "
                       f"integration base {base} (git said: {out.strip()[:160]!r})")
     sha = parts[0]
+
+    try:
+        blocked = undispatched_lanes(git, root, base, sha, launched_fn=launched_fn,
+                                     grandfathered_fn=grandfathered_fn)
+    except LaneGateUnreadable as exc:
+        return refuse("LANE-GATE-UNREADABLE", f"cannot tell which lanes {sha[:12]} lands: {exc}")
+    if blocked:
+        return refuse("LANE-NOT-DISPATCHED",
+                      f"lane(s) {', '.join(blocked)} were not launched by `dispatch.py` (no launch "
+                      f"record in its ledger): launch lanes with `dispatch.py launch`, or name the "
+                      f"lane in a GRANDFATHER manifest by a recorded ruling")
 
     if no_push:
         verdict = read_verdict(sha, base=base, root=root, timeout_s=timeout_s,

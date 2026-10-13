@@ -57,6 +57,27 @@ currently resolving to; the launch still runs with the alias exactly as the cont
 because resolving it here would be the same silent repoint the registry's own ALIAS DRIFT note
 exists to make visible instead of committing again.
 
+PRODUCER KINDS AND THE LAUNCH LEDGER (lane-bw-1374, D1; R96 D6, R99). Lanes are launched ONLY
+through this module. `launch --producer <kind>` launches one of `PRODUCER_KINDS` -- `claude -p` at
+the contract's own model (the distiller's tier), `codex exec`, `copilot -p` -- each in
+`worktree-<slug>`, after `provider_router` has said a route for that kind exists in the repo; a kind
+without one (Grok today: no head here, and not admitted for `implement`) is refused and named
+MISSING. `producers <contract>` prints every kind's route and argv and starts nothing. EVERY launch
+(the contract-head path too) appends one row to the launch ledger (`launch_ledger_path`) carrying
+the section-3 `producer` field -- vendor, model, session id -- which the batch rollup
+(`lane_digest.py --manifest`) reads against each LANE REPORT, and which `merge_path.py land` reads to
+refuse a `worktree-lane-*` branch this module never launched.
+
+THE ARCHITECT HOOK POINT (R99.2, D1 Done 4). The integrator -- the orchestrator's main thread, never
+a lane -- reviews every lane against its frozen contract AS THE ARCHITECT after the lane's HANDBACK
+and BEFORE merging it into `worktree-integrate-<batch>`: it reads `LANE-END-<lane>.md`, judges the
+Done-contract, and writes the verdict into that report's `intent_met` (`verdict` YES|NO|UNSURE,
+`evaluator.vendor: anthropic`, its own model and session id, an optional `note`). The rollup
+validates it with `ecosystem/schema/lane_report.IntentMet` and prints `intent <V> (<vendor>)` per
+lane. The other-vendor CODE review stays where it is: the lane runs Codex and records it in the
+report's `review` (served model, session id, nonce -- R59). Nothing in this module performs either
+review; the hook point is the report, and `land` is where an undispatched lane stops.
+
 HONEST LIMITS
   * `launch` runs `doit moment:pre-launch` from the HUB root (dodo.py's own root) and spawns from the
     CALLER's cwd: a lane's worktree is created in the repo the operator stands in.
@@ -79,7 +100,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional, Sequence
@@ -595,6 +616,240 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
     return Plan(argv, "transcript")
 
 
+# --- producer kinds: one argv per kind, routed by `provider_router` (lane-bw-1374, D1) -----------
+#
+# R96 D6 / R99: a lane is launched by THIS module or it is not a lane -- `merge_path.py land`
+# refuses a `worktree-lane-*` branch the launch ledger below does not name. `--producer` picks the
+# producer KIND; the router (`provider_router.py`, the registry + the per-repo allowlist) decides
+# whether a route for it exists in this repo and, for a non-Claude kind, which model it runs. A
+# Claude producer runs at the DISTILLER'S TIER -- the contract's own `| Model |` cell, which
+# `gen_lane_contract.distilled_model` wrote -- never the router's implement pin. Grok has no head
+# here (AX21-3: its CLI's flags are unverified) and is not admitted for `implement`, so its route
+# is recorded MISSING rather than guessed.
+
+#: The producer kinds, in the order `producers` prints them.
+PRODUCER_KINDS = ("claude", "codex", "copilot", "grok")
+#: kind -> the provider id `ecosystem/provider-registry.yaml` and the router use for it.
+PRODUCER_REGISTRY = {"claude": "anthropic", "codex": "openai", "copilot": "copilot-enterprise",
+                     "grok": "xai"}
+#: kind -> the `PROVIDERS` key this module launches it through. A kind absent here has no head.
+_PRODUCER_PROVIDER = {"claude": "anthropic", "codex": "codex", "copilot": "copilot"}
+#: provider (a `PROVIDERS` key) -> the vendor named in the section-3 `producer` field.
+_VENDOR = {"codex": "openai", "copilot": "copilot-enterprise"}
+ROUTE_ROUTED = "ROUTED"
+ROUTE_MISSING = "MISSING"
+#: Copilot's own "let Copilot pick" model value (`copilot --help`), used when the registry pins none.
+COPILOT_AUTO_MODEL = "auto"
+#: The registry role a producer route is judged in.
+PRODUCER_ROLE = "implement"
+
+
+@dataclass(frozen=True)
+class ProducerRoute:
+    """One producer kind's route in a repo: ROUTED with its argv, or MISSING with the reason."""
+    kind: str
+    provider: str
+    status: str
+    model: str
+    reason: str
+    argv: list = field(default_factory=list)
+
+
+class _Router:
+    """The default router seam: `provider_router.py` and its registry, loaded lazily."""
+
+    @staticmethod
+    def _module():
+        try:
+            from scripts import provider_router as pr
+        except ImportError:  # pragma: no cover -- whichever entry point the caller used
+            import provider_router as pr
+        return pr
+
+    @classmethod
+    def explain(cls, role: str, repo: str, **kw):
+        return cls._module().explain(role, repo, **kw)
+
+    @classmethod
+    def allowlist(cls, repo: str, path: Optional[Path] = None) -> list[str]:
+        return cls._module().allowlist(repo, path)
+
+    @classmethod
+    def licences(cls) -> dict:
+        return cls._module()._registry.licences()
+
+    @classmethod
+    def provider_model(cls, provider: str) -> Optional[str]:
+        """The first model the registry pins for `provider`: its `implement` entry, else the first
+        role that names one (openai has no implement entry; its pin is the reviewer's)."""
+        roles = cls._module()._registry.roles()
+        for name in [PRODUCER_ROLE, *[r for r in roles if r != PRODUCER_ROLE]]:
+            for entry in (roles.get(name) or {}).get("order") or []:
+                if entry.get("provider") == provider and entry.get("model"):
+                    return str(entry["model"])
+        return None
+
+
+def repo_name(cwd: Optional[Path] = None) -> str:
+    """The repository the launch acts in, by its MAIN checkout's directory name (a worktree's own
+    directory is the lane's name, not the repo's): the parent of `git rev-parse --git-common-dir`."""
+    done = _control(["git", "-C", str(cwd or Path.cwd()), "rev-parse", "--path-format=absolute",
+                     "--git-common-dir"])
+    if done is None or done.returncode != 0 or not done.stdout.strip():
+        raise DispatchRefused("cannot tell which repository this is (git rev-parse --git-common-dir "
+                              "failed); pass --repo")
+    return Path(done.stdout.strip()).parent.name
+
+
+def producer_argv(kind: str, model: str, slug: str, effort: str, prompt: str,
+                  permission_mode: str = "bypassPermissions", session_id: str = "") -> list[str]:
+    """The argv for one producer kind. Built, never run here.
+
+    * claude  -- `claude -p` (headless, the section-3 schema enforced by `--json-schema`), in its own
+                 `--worktree <slug>`, its session id fixed up front (`--session-id`) so the launch
+                 record names it before the session has served a turn.
+    * codex   -- `codex exec` WITHOUT its managed `--worktree`: `launch_lane` provisions
+                 `worktree-<slug>` and starts it there, so the branch is one `land` can name.
+    * copilot -- `copilot -p`, its session id fixed by `--session-id`; started in the provisioned
+                 worktree too (it has no worktree flag of its own)."""
+    if kind == "claude":
+        argv = build_plan("anthropic", model, slug, effort, prompt, permission_mode, streamed=True).argv
+        return [*argv[:2], "-n", slug, "--worktree", slug, "--session-id", session_id, *argv[2:]]
+    if kind == "codex":
+        return [a for a in build_plan("codex", model, slug, effort, prompt).argv if a != "--worktree"]
+    if kind == "copilot":
+        argv = build_plan("copilot", model, slug, effort, prompt).argv
+        return [*argv, "--session-id", session_id]
+    raise DispatchRefused(f"producer {kind!r} has no head in dispatch.py; known: "
+                          f"{', '.join(_PRODUCER_PROVIDER)}")
+
+
+def _route_status(kind: str, repo: str, router) -> tuple[str, str, Optional[str]]:
+    """`(status, reason, registry model)` for one kind in `repo`, from the router's own gates."""
+    provider = PRODUCER_REGISTRY[kind]
+    reasons: list[str] = []
+    if kind not in _PRODUCER_PROVIDER:
+        reasons.append(f"no `{kind}` head in dispatch.py (AX21-3: a CLI whose flags are unverified "
+                       "is not launched)")
+    verdict = next((v for v in router.explain(PRODUCER_ROLE, repo) if v.provider == provider), None)
+    if verdict is not None:
+        if verdict.refusal:
+            reasons.append(f"router refuses {provider} for `{PRODUCER_ROLE}` in {repo}: "
+                           f"{verdict.refusal} -- {verdict.reason}")
+    else:   # not declared for `implement` (openai): the two gates that bind every role still do
+        if provider not in router.allowlist(repo):
+            reasons.append(f"router: {provider} is off-allowlist in {repo}")
+        elif router.licences().get(provider, "unknown") != "permitted":
+            reasons.append(f"router: {provider}'s licence is not `permitted`")
+    model = (verdict.model if verdict is not None and verdict.model else None) or router.provider_model(provider)
+    return (ROUTE_MISSING, "; ".join(reasons), model) if reasons else (ROUTE_ROUTED, "routed", model)
+
+
+def producer_route(kind: str, request: "LaunchRequest", repo: str, router=None) -> ProducerRoute:
+    """One kind's route for `request` in `repo`. A Claude producer keeps the contract's model (the
+    distiller's tier); another kind runs the registry's pin (Copilot: `auto` when none is pinned)."""
+    if kind not in PRODUCER_KINDS:
+        raise DispatchRefused(f"unknown producer {kind!r}; known: {', '.join(PRODUCER_KINDS)}")
+    router = router or _Router
+    status, reason, pinned = _route_status(kind, repo, router)
+    model = request.model if kind == "claude" else (
+        pinned or (COPILOT_AUTO_MODEL if kind == "copilot" else ""))
+    if status == ROUTE_ROUTED and not model:
+        status, reason = ROUTE_MISSING, f"the registry pins no model for {PRODUCER_REGISTRY[kind]}"
+    argv = (producer_argv(kind, model, request.slug, request.effort, request.prompt,
+                          request.permission_mode, request.session_id or "<session-id>")
+            if status == ROUTE_ROUTED else [])
+    return ProducerRoute(kind, PRODUCER_REGISTRY[kind], status, model, reason, argv)
+
+
+def producer_routes(request: "LaunchRequest", repo: str, router=None) -> list[ProducerRoute]:
+    """Every producer kind's route, in `PRODUCER_KINDS` order. Builds argv; launches nothing."""
+    return [producer_route(kind, request, repo, router) for kind in PRODUCER_KINDS]
+
+
+# --- the launch ledger: the record `land` and the rollup read (lane-bw-1374, D1) -----------------
+#
+# One JSON line per launch, in the per-user state directory (`platformdirs.user_state_dir`, the
+# home `merge_path.py`'s run events use) -- NOT `logs/receipts/`, which is per checkout: the
+# integrator's `land` runs in `worktree-integrate-<batch>`, a different checkout from the one the
+# lane was dispatched from, and must still see the launch. HONEST LIMIT: per user and per machine;
+# a lane dispatched on another machine (a Codespace) is not in this ledger, and `land` refuses it.
+
+LAUNCH_LEDGER_ENV = "DEV_KNOWLEDGE_LANE_LAUNCHES"
+LAUNCH_LEDGER_NAME = "LANE-LAUNCHES.jsonl"
+LAUNCH_LEDGER_SCHEMA = "lane-launch/1"
+
+
+def launch_ledger_path() -> Path:
+    """`$DEV_KNOWLEDGE_LANE_LAUNCHES` if set, else the per-user OS state directory."""
+    override = os.environ.get(LAUNCH_LEDGER_ENV)
+    if override:
+        return Path(override)
+    import platformdirs
+    return Path(platformdirs.user_state_dir("dev-knowledge", appauthor=False)) / LAUNCH_LEDGER_NAME
+
+
+def producer_of(request: "LaunchRequest", result: "LaunchResult") -> dict:
+    """The section-3 `producer` field (vendor, model, session id) for a launch. The model is the
+    one REQUESTED -- the served one is not attestable at launch; the session is the id fixed up
+    front, else the listing's, else the job id."""
+    return {"vendor": _VENDOR.get(request.provider, request.provider), "model": request.model,
+            "session": result.session_id or request.session_id or result.job_id}
+
+
+def record_lane_launch(request: "LaunchRequest", result: "LaunchResult") -> Optional[Path]:
+    """Append the launch to the ledger; the path written, or None when a test run did not redirect
+    it (a test never writes the real home). Raises OSError when the write fails."""
+    if not os.environ.get(LAUNCH_LEDGER_ENV) and os.environ.get("PYTEST_CURRENT_TEST"):
+        return None
+    path = launch_ledger_path()
+    row = {"schema": LAUNCH_LEDGER_SCHEMA, "at": _stamp(), "slug": request.slug,
+           "branch": f"worktree-{request.slug}", "kind": request.producer or _provider(request.provider).head,
+           "provider": request.provider, "producer": producer_of(request, result),
+           "job_id": result.job_id, "worktree": result.worktree, "batch": request.batch,
+           "contract": str(request.contract)}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as sink:
+        sink.write(json.dumps(row) + "\n")
+    return path
+
+
+def read_lane_launches(path: Optional[Path] = None) -> dict[str, dict]:
+    """slug -> its NEWEST ledger row. {} when the ledger is absent; an unparseable line is skipped
+    (it names no lane, so it can only fail to admit one -- never admit a wrong one)."""
+    try:
+        text = Path(path or launch_ledger_path()).read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    rows: dict[str, dict] = {}
+    for line in text.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and isinstance(row.get("slug"), str) and row["slug"]:
+            rows[row["slug"]] = row
+    return rows
+
+
+def provision_worktree(repo_root: Path, slug: str) -> Path:
+    """`git worktree add -b worktree-<slug> .claude/worktrees/<slug>` from `repo_root`'s HEAD -- the
+    same name `claude --worktree <slug>` produces, so every producer kind's work is on a branch
+    `land` can name. Refuses when the branch or the directory already exists."""
+    path = Path(repo_root) / ".claude" / "worktrees" / slug
+    if path.exists():
+        raise LaunchRefused(f"{path} already exists; not provisioning a second worktree for {slug}")
+    try:
+        done = subprocess.run(["git", "-C", str(repo_root), "worktree", "add", "-b", f"worktree-{slug}",
+                               str(path), "HEAD"], capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=120)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        raise LaunchRefused(f"could not provision worktree-{slug}: {type(exc).__name__}: {exc}") from exc
+    if done.returncode != 0:
+        raise LaunchRefused(f"could not provision worktree-{slug}: {_tail(done.stdout + done.stderr, 300)}")
+    return path
+
+
 @dataclass(frozen=True)
 class LaunchRequest:
     """Everything a launch needs, resolved: what to run, for which lane, from which contract."""
@@ -606,6 +861,10 @@ class LaunchRequest:
     contract: Path
     batch: str = ""
     token_cap: Optional[int] = None
+    #: A `PRODUCER_KINDS` member when launched with `--producer`; '' for the contract-head launch.
+    producer: str = ""
+    #: The session id fixed up front (`--session-id`) for a claude / copilot producer; '' otherwise.
+    session_id: str = ""
 
     @property
     def session_name(self) -> str:
@@ -617,8 +876,22 @@ class LaunchRequest:
 
     @property
     def argv(self) -> list[str]:
+        if self.producer:
+            return producer_argv(self.producer, self.model, self.slug, self.effort, self.prompt,
+                                 self.permission_mode, self.session_id)
         return build_plan(self.provider, self.model, self.slug, self.effort, self.prompt,
                           self.permission_mode).argv
+
+    @property
+    def detached(self) -> bool:
+        """Spawned detached (a log file, no handle kept): codex, copilot, and a `claude -p` producer."""
+        return _provider(self.provider).head in _DETACHED_HEADS or self.producer == "claude"
+
+    @property
+    def provisions_worktree(self) -> bool:
+        """`launch_lane` provisions `worktree-<slug>` itself: a codex or copilot PRODUCER, whose CLI
+        would otherwise run in a codex-managed tree or the caller's own checkout."""
+        return self.producer in ("codex", "copilot")
 
 
 @dataclass(frozen=True)
@@ -674,10 +947,17 @@ def contract_slug(path: Path, line: Optional[DispatchLine], slug: str = "") -> s
 
 def request_from_contract(contract: Path, *, slug: str = "", provider: str = "", model: str = "",
                           effort: str = "", permission_mode: str = "", batch: str = "",
-                          token_cap: Optional[int] = None) -> LaunchRequest:
+                          token_cap: Optional[int] = None, producer: str = "", repo: str = "",
+                          router=None) -> LaunchRequest:
     """Resolve a contract into a `LaunchRequest`. Explicit arguments beat the Dispatch block, which
     beats the file name (slug) and the `| Model | Mode | Effort |` table (model, effort). Two
-    sources that disagree are a refusal, never a quiet pick."""
+    sources that disagree are a refusal, never a quiet pick.
+
+    `producer` (a `PRODUCER_KINDS` member) re-aims the request at that kind through the router
+    (`producer_route`); a route that does not exist in `repo` is refused, naming it MISSING."""
+    explicit_model = model
+    if producer and provider and _PRODUCER_PROVIDER.get(producer) != provider:
+        raise DispatchRefused(f"--provider {provider!r} and --producer {producer!r} disagree; pass one")
     path = Path(contract)
     text = path.read_text(encoding="utf-8", errors="replace")
     line = parse_dispatch_block(text)
@@ -713,11 +993,31 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
                               f"{', '.join(sorted(PERMISSION_MODES))}")
     if token_cap is not None:
         validate_cap(token_cap)
-    return LaunchRequest(
+    request = LaunchRequest(
         slug=slug, provider=provider, model=model, effort=EFFORTS[effort.lower()],
         permission_mode=permission_mode or (line.permission_mode if line else "") or "bypassPermissions",
         contract=path.resolve(), batch=batch or os.environ.get("HARNESS_BATCH", ""),
         token_cap=token_cap)
+    if not producer:
+        return request
+    return _producer_request(request, producer, repo=repo, model_given=bool(explicit_model), router=router)
+
+
+def _producer_request(request: LaunchRequest, producer: str, *, repo: str, model_given: bool,
+                      router=None) -> LaunchRequest:
+    """`request` re-aimed at one producer kind, or `LaunchRefused` (exit 5) naming the MISSING route.
+    The kind replaces the contract's head; a Claude producer keeps the contract's model (the
+    distiller's tier), another kind runs the router's pin unless `--model` named one."""
+    import uuid
+    if producer not in PRODUCER_KINDS:
+        raise DispatchRefused(f"unknown producer {producer!r}; known: {', '.join(PRODUCER_KINDS)}")
+    session_id = str(uuid.uuid4()) if producer in ("claude", "copilot") else ""
+    aimed = replace(request, producer=producer, session_id=session_id,
+                                provider=_PRODUCER_PROVIDER.get(producer, request.provider))
+    route = producer_route(producer, aimed, repo or repo_name(), router)
+    if route.status != ROUTE_ROUTED:
+        raise LaunchRefused(f"producer {producer} for {request.slug}: route {ROUTE_MISSING} -- {route.reason}")
+    return aimed if model_given or producer == "claude" else replace(aimed, model=route.model)
 
 
 # --- receipts: the launch receipt, the job-to-lane record, the spend rows -------------------------
@@ -951,14 +1251,15 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
     prints its job id and exits). With one, the child is DETACHED with its stdout in that file and
     this returns at once with its pid (`codex exec` runs for the length of the lane). Nothing here
     keeps a handle that could later end the child."""
+    argv = list(argv)
     if log_path is None:
-        done = subprocess.run(list(argv), env=dict(env), cwd=str(cwd), capture_output=True,
+        done = subprocess.run(argv, env=dict(env), cwd=str(cwd), capture_output=True,
                               text=True, encoding="utf-8", errors="replace")
         return Spawned(done.returncode, done.stdout + done.stderr, None)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     flags = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else 0
     with open(log_path, "ab") as sink:
-        child = subprocess.Popen(list(argv), env=dict(env), cwd=str(cwd), stdin=subprocess.DEVNULL,
+        child = subprocess.Popen(argv, env=dict(env), cwd=str(cwd), stdin=subprocess.DEVNULL,
                                  stdout=sink, stderr=subprocess.STDOUT, creationflags=flags,
                                  start_new_session=(os.name != "nt"))
     return Spawned(0, "", child.pid)
@@ -995,7 +1296,7 @@ def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]
     receipt = receipt or {}
     job = str(receipt.get("job_id") or "")
     provider = str(receipt.get("provider") or "")
-    if provider in _DETACHED_HEADS:  # codex, copilot: self-identified by pid, never claude-listed
+    if provider in _DETACHED_HEADS or receipt.get("detached"):  # self-identified by pid, never claude-listed
         pid = receipt.get("pid")
         if isinstance(pid, int):
             return f"{provider} job {job} (pid {pid}) is still running" if process_alive(pid) else ""
@@ -1051,6 +1352,7 @@ def launch_lane(request: LaunchRequest, *,
                 agents: Callable[[], list[dict]] = None,
                 cwd: Optional[Path] = None, environ: Optional[Mapping[str, str]] = None,
                 secrets_file: Optional[Path] = None, sleep: Callable[[float], None] = time.sleep,
+                provision: Optional[Callable[[Path, str], Path]] = None,
                 ) -> LaunchResult:
     """Refuse a collision, run `pre-launch`, and only then spawn -- exactly once.
 
@@ -1082,10 +1384,11 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"pre-launch refused {request.slug}: {outcome.reason}")
 
         codex = provider.head == "codex"
-        # DETACHED (codex, copilot): `Popen` + the platform's detach flags, stdout to a log file,
-        # no handle kept here -- never `subprocess.run` to completion in the caller's own process
-        # (wave 5b blind spot 8: a Copilot producer ran as a dispatcher shell and died with it).
-        detached = provider.head in _DETACHED_HEADS
+        # DETACHED (codex, copilot, a `claude -p` producer): `Popen` + the platform's detach flags,
+        # stdout to a log file, no handle kept here -- never `subprocess.run` to completion in the
+        # caller's own process (wave 5b blind spot 8: a Copilot producer ran as a dispatcher shell
+        # and died with it).
+        detached = request.detached
         log_path = receipts_dir() / f"LAUNCH-LOG-{request.slug.upper()}.jsonl" if detached else None
         # The INTENT receipt goes down before the spawn: a launch interrupted after the provider
         # started still leaves a fresh receipt, which holds the slug while the listing catches up.
@@ -1093,13 +1396,20 @@ def launch_lane(request: LaunchRequest, *,
             _write_json(_receipt_path(request.slug), {
                 "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None,
                 "job_id": "pending", "slug": request.slug, "provider": request.provider,
-                "batch": request.batch, "contract": str(request.contract)})
+                "detached": detached, "batch": request.batch, "contract": str(request.contract)})
         except OSError as exc:
             raise LaunchRefused(f"cannot write the launch receipt for {request.slug} ({exc}); refusing "
                                 "to start a lane nothing can record") from exc
+        spawn_cwd = cwd
+        if request.provisions_worktree:   # a codex / copilot PRODUCER runs in worktree-<slug>
+            try:
+                spawn_cwd = Path((provision or provision_worktree)(cwd, request.slug))
+            except Exception:
+                _receipt_path(request.slug).unlink(missing_ok=True)
+                raise
         began = time.time()
         try:
-            started = spawn(request.argv, env, cwd, log_path) if detached else spawn(request.argv, env, cwd)
+            started = spawn(request.argv, env, spawn_cwd, log_path) if detached else spawn(request.argv, env, spawn_cwd)
         except OSError as exc:
             _receipt_path(request.slug).unlink(missing_ok=True)
             raise LaunchRefused(f"{request.argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
@@ -1109,22 +1419,30 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"{request.argv[0]} exited {started.returncode} -- no lane was started: "
                                 f"{_tail(started.stdout, 300)}")
         # From here a lane IS running: whatever fails below, the receipt is still written.
-        self_identified = provider.head if detached else ""
+        self_identified = ("claude-p" if request.producer == "claude" else provider.head) if detached else ""
         job_id, session_id, reported_name = _identify(request, started, self_identified, agents, sleep, began)
         result = LaunchResult(
             slug=request.slug, provider=request.provider, model_requested=request.model,
-            model_reported=NOT_ATTESTABLE if detached else MODEL_PENDING,
+            model_reported=NOT_ATTESTABLE if provider.head in _DETACHED_HEADS else MODEL_PENDING,
             job_id=job_id or "unresolved",
-            worktree=("(codex-managed)" if codex
+            worktree=(str(spawn_cwd) if request.provisions_worktree
+                      else "(codex-managed)" if codex
                       else str(cwd) if provider.head == "copilot"  # no --worktree flag of its own
                       else str(cwd / ".claude" / "worktrees" / request.slug)),
             session_name=request.session_name, session_name_reported=reported_name,
-            session_id=session_id, pid=started.pid, log_path=str(log_path or ""), argv=list(request.argv))
+            session_id=session_id or request.session_id, pid=started.pid, log_path=str(log_path or ""),
+            argv=list(request.argv))
         try:
             _write_launch_records(request, result)
         except OSError as exc:
             raise LaunchIncomplete(f"{request.slug} WAS started (job {result.job_id}) but its launch receipt "
                                    f"could not be written ({exc}). It is running; nothing was stopped.") from exc
+        try:
+            record_lane_launch(request, result)
+        except OSError as exc:
+            raise LaunchIncomplete(f"{request.slug} WAS started (job {result.job_id}) but the launch ledger "
+                                   f"could not be written ({exc}): `merge_path.py land` will refuse its "
+                                   "branch as undispatched. It is running; nothing was stopped.") from exc
         if result.job_id == "unresolved":
             raise LaunchIncomplete(
                 f"{request.slug} was started ({request.argv[0]} exited 0) but no job could be identified: its "
@@ -1789,6 +2107,9 @@ def cli() -> None:
                        It never stops, pauses or kills a lane -- not on an over-cap
                        reading, not on unreadable usage.
     plan    CONTRACT   print the launch plan as JSON; starts nothing.
+    producers CONTRACT print every producer kind's route (claude -p, codex exec,
+                       copilot -p, grok) as the router decides it in this repo, with
+                       its argv, or MISSING with the reason. Starts nothing.
     queue   CONTRACTS  the launch order (priority, Starts after, serialize-group,
                        substrate), and, unless --dry-run, one pass or a bounded
                        --watch loop firing whatever clears the dependency/cap/RAM
@@ -1818,8 +2139,15 @@ def cli() -> None:
               default=Path.home() / "Documents" / ".secrets" / ".env", show_default=True)
 @click.option("--dry-run", is_flag=True, help="Print the resolved request as JSON and start nothing "
                                               "(pre-launch is NOT run).")
+@click.option("--producer", type=click.Choice(PRODUCER_KINDS), default=None,
+              help="Launch this producer kind instead of the Dispatch block's head: claude -p (at the "
+                   "contract's own model), codex exec, copilot -p -- each in worktree-<slug>. A kind "
+                   "the router gives no route in this repo (grok, today) is refused, named MISSING.")
+@click.option("--repo", default="", help="The repo the router judges the producer route in. "
+                                         "Default: this checkout's repository name.")
 def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str, batch: str,
-               token_cap: Optional[int], secrets_file: Path, dry_run: bool) -> None:
+               token_cap: Optional[int], secrets_file: Path, dry_run: bool, producer: Optional[str],
+               repo: str) -> None:
     """Run `pre-launch`, then spawn the lane exactly once.
 
     Reads the contract's Dispatch block for the head program (claude|codex), the slug (-n /
@@ -1831,9 +2159,10 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
     path = (Path(contract).resolve() if Path(contract).is_file()
             else resolve_contract(contract, prompts_dir()))
     request = request_from_contract(path, slug=slug, provider=provider, model=model, effort=effort,
-                                    batch=batch, token_cap=token_cap)
+                                    batch=batch, token_cap=token_cap, producer=producer or "", repo=repo)
     if dry_run:
         click.echo(json.dumps({"schema": 1, "slug": request.slug, "provider": request.provider,
+                               "producer": request.producer, "session_id": request.session_id,
                                "model": request.model, "effort": request.effort, "batch": request.batch,
                                "token_cap": request.token_cap, "session_name": request.session_name,
                                "contract": str(request.contract), "prompt": request.prompt,
@@ -1845,6 +2174,23 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
                f"{result.session_name_reported or result.session_name!r}, model {result.model_requested} "
                f"(reported: {result.model_reported})", err=True)
     click.echo(json.dumps(asdict(result)))
+
+
+@cli.command("producers")
+@click.argument("contract")
+@click.option("--repo", default="", help="The repo the router judges each route in. Default: this "
+                                         "checkout's repository name.")
+def producers_cmd(contract: str, repo: str) -> None:
+    """Print every producer kind's route for CONTRACT as JSON. Builds argv; starts nothing.
+
+    A Claude producer runs `claude -p` at the contract's own model (the distiller's tier); codex
+    and copilot run the model the provider registry pins (copilot: `auto` when none is pinned).
+    A kind with no route in the repo -- no head here, or refused by the router -- is MISSING,
+    with the reason; `launch --producer <kind>` refuses it the same way."""
+    path = (Path(contract).resolve() if Path(contract).is_file()
+            else resolve_contract(contract, prompts_dir()))
+    request = request_from_contract(path)
+    click.echo(json.dumps([asdict(r) for r in producer_routes(request, repo or repo_name())], indent=2))
 
 
 def _plan_dispatch_line(path: Path) -> Optional[DispatchLine]:

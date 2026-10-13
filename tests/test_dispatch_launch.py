@@ -1114,12 +1114,18 @@ def test_d1_a_route_the_router_refuses_is_missing_for_that_kind(contract):
 def test_d1_a_producer_launch_writes_its_producer_into_the_launch_record(contract, tmp_path, ledger):
     from ecosystem.schema.lane_report import Agent
     request = _request(contract, producer="copilot", repo=".dev-knowledge")
-    spawn = FakeClaude([])
+    seen, provisioned = {}, tmp_path / ".claude" / "worktrees" / request.slug
 
-    result, spawn, _ = _launch(request, tmp_path, spawn=spawn)
+    def spawn(argv, env, cwd, log_path=None):
+        seen["argv"], seen["cwd"], seen["log"] = list(argv), Path(cwd), log_path
+        return d.Spawned(returncode=0, stdout="", pid=4321)
 
-    argv = spawn.calls[0]
-    assert argv[:2] == ["copilot", "-p"]
+    result = d.launch_lane(request, prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path,
+                           provision=lambda root, slug: provisioned)
+
+    argv = seen["argv"]
+    assert argv[:2] == ["copilot", "-p"] and seen["log"] is not None
+    assert seen["cwd"] == provisioned and result.worktree == str(provisioned),         "a copilot producer runs in worktree-<slug>, never the caller's own checkout"
     row = d.read_lane_launches(ledger)[request.slug]
     producer = Agent.model_validate(row["producer"])
     assert producer.vendor == "copilot-enterprise"
@@ -1167,5 +1173,10 @@ def test_d1_a_test_run_never_writes_the_launch_ledger_into_the_real_home(contrac
 
     monkeypatch.setattr(d, "launch_ledger_path", home)
     request = _request(contract, producer="codex", repo=".dev-knowledge")
+    spawn = FakeClaude([], stdout="")
 
-    _launch(request, tmp_path)
+    result = d.launch_lane(request, prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path,
+                           provision=lambda root, slug: tmp_path)
+
+    assert spawn.calls[0][:2] == ["codex", "exec"] and "--worktree" not in spawn.calls[0]
+    assert result.job_id == "codex-4321"

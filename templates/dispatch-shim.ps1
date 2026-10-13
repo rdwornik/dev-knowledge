@@ -26,6 +26,9 @@
                          `dispatch.py queue` directly.
     repair  <slug> <contract>   relaunch a repair into slug's EXISTING worktree, never a fresh
                          `--worktree`. Not wrapped by this shim -- run `dispatch.py repair` directly.
+    producers <contract> every producer kind's route (claude -p, codex exec, copilot -p, grok) as
+                         JSON, or MISSING with the reason; starts nothing. Not wrapped by this shim
+                         -- run `dispatch.py producers`, and `dispatch.py launch --producer <kind>`.
 
   Plus the codespace legs (LANE-5B4-10, R17) -- not wrapped by this shim, run each directly:
     codespace-exec     <contract>   create the codespace, ship the contract and a generated

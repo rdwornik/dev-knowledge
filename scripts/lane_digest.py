@@ -391,13 +391,26 @@ class RollupLane:
     action: Optional[str] = None
 
 
-def rollup_lane(reports_dir: Path, name: str) -> RollupLane:
+def _launched_by(launch: Optional[dict]) -> Optional[dict]:
+    producer = (launch or {}).get("producer")
+    return producer if isinstance(producer, dict) and producer.get("vendor") else None
+
+
+def rollup_lane(reports_dir: Path, name: str, launch: Optional[dict] = None) -> RollupLane:
     """One expected lane, read from `<reports_dir>/LANE-END-<name>.md`. Absent: MISSING. Present
-    but without a valid section-3 block: INVALID, counted as received and never as a state."""
+    but without a valid section-3 block: INVALID, counted as received and never as a state.
+
+    `launch` is the lane's row in `dispatch.py`'s launch ledger (D1), when it has one: a MISSING
+    lane is named with the producer dispatch launched, and a report whose `producer.vendor` is not
+    the launched one is INVALID -- the report does not describe the run that was started."""
     path = reports_dir / f"{_tr.ARTIFACT_PREFIX}{name}.md"
+    launched = _launched_by(launch)
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
+        if launched:
+            return RollupLane(name, STATE_MISSING, f"{name} | {STATE_MISSING} | launched by "
+                              f"{launched['vendor']}/{launched.get('model')} ({launched.get('session')})")
         return RollupLane(name, STATE_MISSING, f"{name} | {STATE_MISSING} | no {path.name} on the transport")
     row = _sibling("handback_schema").parse_lane_report_block(text)
     if row is None:
@@ -414,15 +427,21 @@ def rollup_lane(reports_dir: Path, name: str) -> RollupLane:
     if report.lane != name:
         return RollupLane(name, STATE_INVALID,
                           f"{name} | {STATE_INVALID} | the report names lane {report.lane!r}")
+    if launched and report.producer.vendor != launched["vendor"]:
+        return RollupLane(name, STATE_INVALID,
+                          f"{name} | {STATE_INVALID} | the report names producer "
+                          f"{report.producer.vendor!r} but dispatch launched {launched['vendor']!r}")
     return RollupLane(name, report.state, report_line(report), report.operator_action)
 
 
-def render_rollup(batch: str, manifest_text: str, reports_dir: Path, wave: Optional[str] = None) -> str:
+def render_rollup(batch: str, manifest_text: str, reports_dir: Path, wave: Optional[str] = None,
+                  launches: Optional[dict] = None) -> str:
     """The section-4 rollup, at most `ROLLUP_MAX_LINES` lines. Expected lanes come from the
-    manifest's lanes table (one wave when `wave` is named); a lane with no report is MISSING."""
+    manifest's lanes table (one wave when `wave` is named); a lane with no report is MISSING.
+    `launches` is `dispatch.read_lane_launches()` (slug -> its launch row), read by `rollup_lane`."""
     rows = _sibling("batch_manifest").manifest_lane_rows(manifest_text)
     expected = [slug for slug, w in rows if wave is None or (w or "").lower() == wave.lower()]
-    lanes = [rollup_lane(reports_dir, name) for name in expected]
+    lanes = [rollup_lane(reports_dir, name, (launches or {}).get(name)) for name in expected]
     missing = [lane.name for lane in lanes if lane.state == STATE_MISSING]
     title = f"batch {batch}" + (f" wave {wave}" if wave else "")
     header = (f"{title} | expected {len(lanes)} | received {len(lanes) - len(missing)} | "
@@ -508,7 +527,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             text = manifest.read_text(encoding="utf-8")
             folder = _tr.resolve_transport(args.reports_root or None)
             batch = args.batch or _manifest_batch(text, manifest)
-            out = render_rollup(batch, text, folder, wave=args.wave)
+            # D1: the launch ledger `dispatch.py` writes (`$DEV_KNOWLEDGE_LANE_LAUNCHES`, else
+            # the per-user state home) -- read, never written, here.
+            launches = _sibling("dispatch").read_lane_launches()
+            out = render_rollup(batch, text, folder, wave=args.wave, launches=launches)
             sys.stdout.buffer.write(out.encode("utf-8"))
             sys.stdout.flush()
             return EXIT_OK
