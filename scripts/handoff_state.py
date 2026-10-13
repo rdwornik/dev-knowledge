@@ -97,6 +97,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import hashlib
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -989,6 +990,228 @@ def resolve_reading_path(transport: "Path | None") -> "list[ReadingResult]":
     An unresolved transport (None) reads every item MISSING -- never a pass (the E-29 posture the
     transport rows share). Names and section titles only."""
     return [_resolve_item(transport, item) for item in READING_PATH]
+
+
+# ========================================================================= the boot's CITATIONS
+#
+# R95 D1 (operator, 2026-10-10; BW lane D5, [#1450]). The reading-path check above proves the
+# five things the boot tells a seat to READ resolve. R95 D1 extends that to every R-number, ADR
+# and path `protocols/HANDOFF_BOOT.md` CITES: the boot is the browser Project's one knowledge
+# file, a seat acts on what it names, and a citation that no longer resolves sends it to a ruling
+# that was never landed, an ADR whose status moved, or a file that is gone. The check runs at the
+# handoff cut (`gen_handoff`'s `boot_citations` preflight row, ADR-129's gate).
+#
+# Library-first: nothing new is parsed here. The landed-id set is `_LANDED_RE` (the `Landed`
+# row's reader); the ADR leg is `validate_adr_status`'s header and README-index readers ([#242]);
+# the path leg is `verify_handoff_probes`' backtick-span and file-token tokenizer, the one the
+# probe gate already resolves boot pointers with. This layer only joins them.
+#
+# HONEST LIMITS
+#   * "Superseded" is read from the register's own words, not from a field: a ruling's bullet
+#     saying `withdrawn` or `superseded ... by R<m>`, or any register sentence `R<n> is
+#     superseded/replaced/withdrawn` or `supersedes/replaces R<n>`. A supersession recorded only
+#     on the transport is invisible here. Backtick spans are dropped first, so a file name such
+#     as `RATIFICATION-...-v2-superseded.md` is not a supersession.
+#   * The ADR leg compares the ADR file's own status line with the README index (R95 D1's
+#     "matches docs/decisions/README.md"); the "and the rulings" half of D1 has no machine-read
+#     surface and is not checked.
+#   * A path is only what the shared tokenizer calls one (a backticked token ending in a known
+#     extension). A placeholder (`LEDGER-<repo>.md`), a glob (`SEAT-LESSONS-*.md`) or a bare
+#     directory is not a path citation. `to-browser/` and `to-cc/` paths resolve against the
+#     transport; with no transport they are `NO-TRANSPORT`, not a pass. A bare basename
+#     resolves when at least one repo file carries it (a bundle file such as `PROBES.md` lives
+#     in every bundle).
+#   * A ruling ratified on the transport but not yet bulleted in the register is `UNLANDED` and
+#     names the ratification file. It is not `OK`, and the cut's row reports it by name; the row
+#     does not refuse on it alone, because the landing debt already has its own organ
+#     (`decision_coverage.py rulings`, `GRACE_BATCHES`) and the boot pointing at a ratified ruling
+#     is correct. A ruling ratified NOWHERE is `MISSING` and refuses.
+
+CITATION_OK = "OK"
+CITATION_STATUSES = (CITATION_OK, "MISSING", "UNLANDED", "SUPERSEDED", "MISMATCH", "UNINDEXED",
+                     "NO-TRANSPORT")
+
+#: `R47`, `R47.1`, `R96` -- not the `R` inside `ADR-87`, `PR12` or a word.
+_CITED_R_RE = re.compile(r"(?<![\w.-])R(\d+)(?:\.(\d+))?(?![\w-])")
+_CITED_ADR_RE = re.compile(r"(?<![\w-])ADR-(\d+)(?!\d)")
+_BACKTICK_RE = re.compile(r"`[^`\n]*`")
+#: One register bullet: from `- **R<n>` to the next blank line, bullet or heading.
+_RULING_BULLET_RE = re.compile(r"(?ms)^- \*\*R(\d+)\b.*?(?=^[ \t]*$|^- |^#|\Z)")
+_TRANSPORT_PREFIXES = ("to-browser/", "to-cc/")
+
+
+@dataclass(frozen=True)
+class Citation:
+    """One citation the boot makes and how it resolved. `kind` is `ruling`, `adr` or `path`."""
+    kind: str
+    ref: str
+    status: str
+    detail: str
+
+
+def _ruling_bullets(register: str) -> "dict[int, str]":
+    """`{n: the first bullet block landing R<n>}`, backtick spans removed."""
+    out: dict[int, str] = {}
+    for m in _RULING_BULLET_RE.finditer(register):
+        out.setdefault(int(m.group(1)), _BACKTICK_RE.sub("", m.group(0)))
+    return out
+
+
+def _supersession(rid: str, bullet: "str | None", register_plain: str) -> "str | None":
+    """Why `rid` (`R47` or `R47.1`) is out of force, or None. See the honest limits above."""
+    if "." not in rid and bullet is not None:
+        if re.match(rf"- \*\*{rid}\*\*\s*[—–-]+\s*withdrawn\b", bullet, re.I):
+            return "its register bullet says it is withdrawn"
+        for m in re.finditer(r"(?i)\bsuperseded\b(?:\s+in\s+substance)?\s+by\s+(R\d+)", bullet):
+            if not re.search(r"R\d+\.\d", bullet[max(0, m.start() - 40):m.start()]):
+                return f"its register bullet says it is superseded by {m.group(1)}"
+    esc = re.escape(rid)
+    after = re.search(rf"(?i)(?<![\w.]){esc}(?!\w|\.\d)\**\s*(?::|is|was|has been)?\s*"
+                      r"(?:superseded|withdrawn|replaced)\b", register_plain)
+    if after:
+        return f"the register says {after.group(0)!r}"
+    before = re.search(rf"(?i)\b(?:supersedes|replaces|withdraws)\s+{esc}(?!\w|\.\d)",
+                       register_plain)
+    if before:
+        return f"the register says {before.group(0)!r}"
+    return None
+
+
+def _ratified_on_transport(transport: "Path | None", n: int) -> "Path | None":
+    """The newest live `RATIFICATION-*.md` carrying an `R<n>` heading, or None."""
+    for p in reversed(_live_transport_docs(transport, "RATIFICATION")):
+        text = _read_text(p)
+        if text and re.search(rf"(?m)^#{{1,6}}\s+R{n}\b", text):
+            return p
+    return None
+
+
+def _ruling_citations(boot: str, repo_root: Path, transport: "Path | None") -> "list[Citation]":
+    reg_path = Path(repo_root) / "protocols" / "STANDING_RULINGS.md"
+    register = reg_path.read_text(encoding="utf-8")          # unreadable -> the caller's FAIL
+    landed = {int(n) for n in _LANDED_RE.findall(register)}
+    bullets = _ruling_bullets(register)
+    plain = _BACKTICK_RE.sub("", register)
+    cited: list[str] = []
+    for m in _CITED_R_RE.finditer(boot):
+        rid = f"R{m.group(1)}" + (f".{m.group(2)}" if m.group(2) else "")
+        if rid not in cited:
+            cited.append(rid)
+    out: list[Citation] = []
+    for rid in cited:
+        n = int(rid[1:].split(".")[0])
+        if n not in landed:
+            src = _ratified_on_transport(transport, n)
+            if src is not None:
+                out.append(Citation("ruling", rid, "UNLANDED",
+                                    f"ratified in to-browser/{src.name}, not yet bulleted in "
+                                    "protocols/STANDING_RULINGS.md -- it lands through a "
+                                    "rulings-landing lane"))
+            else:
+                out.append(Citation("ruling", rid, "MISSING",
+                                    "no `- **R<n>` bullet in protocols/STANDING_RULINGS.md"
+                                    + ("" if transport is not None
+                                       else " (no transport to look for a ratification in)")))
+            continue
+        why = _supersession(f"R{n}", bullets.get(n), plain)
+        if why is None and "." in rid:
+            why = _supersession(rid, None, plain)
+        out.append(Citation("ruling", rid, "SUPERSEDED", why) if why
+                   else Citation("ruling", rid, CITATION_OK, "landed in the register"))
+    return out
+
+
+def _adr_module():
+    try:
+        import validate_adr_status as _vas                 # noqa: PLC0415
+    except ImportError:                                    # imported as `scripts.handoff_state`
+        from scripts import validate_adr_status as _vas    # type: ignore[no-redef]  # noqa: PLC0415
+    return _vas
+
+
+def _adr_citations(boot: str, repo_root: Path) -> "list[Citation]":
+    cited: list[str] = []
+    for m in _CITED_ADR_RE.finditer(boot):
+        adr = f"ADR-{int(m.group(1))}"
+        if adr not in cited:
+            cited.append(adr)
+    if not cited:
+        return []
+    vas = _adr_module()
+    decisions = Path(repo_root) / "docs" / "decisions"
+    fields, _missing, extra = vas.scan_zone(decisions)     # unreadable -> the caller's FAIL
+    header = vas.header_status_map(fields, extra)
+    index = vas.index_effective_status((decisions / "README.md").read_text(encoding="utf-8"))
+    out: list[Citation] = []
+    for adr in cited:
+        head, idx = header.get(adr), index.get(adr)
+        if head is None:
+            out.append(Citation("adr", adr, "MISSING",
+                                "no single docs/decisions/ADR file with a status line"))
+        elif idx is None:
+            out.append(Citation("adr", adr, "UNINDEXED",
+                                f"header {head!r}, but no docs/decisions/README.md index row"))
+        elif head != idx:
+            out.append(Citation("adr", adr, "MISMATCH",
+                                f"header {head!r} != docs/decisions/README.md {idx!r}"))
+        else:
+            out.append(Citation("adr", adr, CITATION_OK, f"{head}, as the README index says"))
+    return out
+
+
+def _vhp_module():
+    try:
+        import verify_handoff_probes as _vhp               # noqa: PLC0415
+    except ImportError:                                    # imported as `scripts.handoff_state`
+        from scripts import verify_handoff_probes as _vhp  # type: ignore[no-redef]  # noqa: PLC0415
+    return _vhp
+
+
+def _path_citations(boot: str, repo_root: Path, transport: "Path | None") -> "list[Citation]":
+    vhp = _vhp_module()
+    root = Path(repo_root)
+    cited: list[str] = []
+    for span in vhp.backtick_spans(boot):
+        for tok in vhp.file_tokens(span):
+            if tok not in cited:
+                cited.append(tok)
+    bare = {tok for tok in cited if "/" not in tok and not (root / tok).is_file()}
+    carried: set[str] = set()
+    if bare:
+        # ONE walk for every bare name, pruned exactly as `vhp._basename_matches` prunes it (a
+        # walk per name measured ~11 s on the live boot).
+        for _dir, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if not vhp._excluded((d,))]
+            carried.update(bare.intersection(filenames))
+    out: list[Citation] = []
+    for tok in cited:
+        if tok.startswith(_TRANSPORT_PREFIXES):
+            if transport is None:
+                out.append(Citation("path", tok, "NO-TRANSPORT",
+                                    "a transport path, and no transport was resolved"))
+            elif (Path(transport) / tok).is_file():
+                out.append(Citation("path", tok, CITATION_OK, "on the transport"))
+            else:
+                out.append(Citation("path", tok, "MISSING", "not on the transport"))
+        elif (root / tok).is_file():
+            out.append(Citation("path", tok, CITATION_OK, "in the repo"))
+        elif tok in carried:
+            out.append(Citation("path", tok, CITATION_OK, "a repo file carries this name"))
+        else:
+            out.append(Citation("path", tok, "MISSING", "no such repo file"))
+    return out
+
+
+def boot_citations(repo_root: "Path | str", transport: "Path | None" = None, *,
+                   boot_text: "str | None" = None) -> "list[Citation]":
+    """Every R-number, ADR and path `protocols/HANDOFF_BOOT.md` cites, each with how it resolved
+    (R95 D1). `boot_text` replaces the file's text (a fixture). Raises when the register or the
+    ADR corpus is unreadable: the caller turns that into a FAIL, not a pass."""
+    root = Path(repo_root)
+    boot = (boot_text if boot_text is not None
+            else (root / "protocols" / "HANDOFF_BOOT.md").read_text(encoding="utf-8"))
+    return (_ruling_citations(boot, root, transport) + _adr_citations(boot, root)
+            + _path_citations(boot, root, transport))
 
 
 # ============================================================================================ CLI

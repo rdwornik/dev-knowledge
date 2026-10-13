@@ -124,7 +124,13 @@ def _fixture_transport(tmp_path: Path, today: str) -> Path:
     (t / "to-cc").mkdir(parents=True)
     (t / "to-browser" / "LEDGER-dev-knowledge.md").write_text(f"refreshed {today}\n", encoding="utf-8")
     (t / "to-browser" / f"RATIFICATION-{today}.md").write_text(
-        "# Ratification -- test fixture\n\n## R70 — a fixture ruling\n\n## R71 — another\n", encoding="utf-8")
+        "# Ratification -- test fixture\n\n## R70 — a fixture ruling\n\n## R71 — another\n"
+        "\n## R96 — fixture\n\n## R97 — fixture\n", encoding="utf-8")
+    # The boot's own citations resolve at the cut (R95 D1, `boot_citations`): the two transport
+    # files its reading path names; R96 / R97 (ratified above) are named as owed by the row until
+    # the rulings-landing lane (BW D3) bullets them in the register.
+    (t / "to-browser" / "INDEX.md").write_text("# INDEX -- test fixture\n", encoding="utf-8")
+    (t / "to-browser" / "MAP-DISPATCH.md").write_text("# MAP -- test fixture\n", encoding="utf-8")
     (t / "to-cc" / "BATCH-FIXTURE-OPEN.md").write_text(
         "carried-by: OPEN\nlands-via: a fixture\n\n# an open decision\n", encoding="utf-8")
     return t
@@ -354,7 +360,7 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 #: the front matter AND add the new pair when the body changes. Old pairs stay (the history).
 _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
-    2: "e4fb55c3f5227fda04f7a14209fdd2539d84eaa4f2072bf32ae8d671d5637c39",
+    2: "8bc5a6f8afc1545fe10cb50d086875c796fc33fd0ddc6c0175ca0d399c62bf43",
 }
 
 

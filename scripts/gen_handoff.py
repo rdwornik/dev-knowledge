@@ -699,6 +699,8 @@ PREFLIGHT_ROW_NAMES = (
     # register's own 1-9 numbering -- which two operator rulings and this module's own
     # docstrings cite by number -- keeps meaning what it meant.
     "p11_carriage",
+    # Row 11, added by BW lane D5 ([#1450], R95 D1), appended for the same reason row 10 was.
+    "boot_citations",
 )
 
 
@@ -1902,6 +1904,52 @@ def _row_p11_carriage(transport, repo_root) -> PreflightRow:
                         f"{len(carried)} OPEN){tail}")
 
 
+def _row_boot_citations(repo_root, transport) -> PreflightRow:
+    """Row 11 -- R95 D1: every R-number, ADR and path `protocols/HANDOFF_BOOT.md` cites resolves.
+
+    The boot is the browser Project's one knowledge file, so a cut that ships it with a ruling
+    that never landed, an ADR whose status moved or a path that is gone teaches the next seat a
+    dead end. The predicates are `handoff_state.boot_citations` (read them there); this row only
+    renders them. A ruling ratified on the transport but not yet in the register is `UNLANDED`:
+    named in the evidence line, not a refusal on its own -- its landing debt is
+    `decision_coverage.py rulings`' to refuse (`GRACE_BATCHES`), and a ruling ratified nowhere
+    is `MISSING`, which does refuse.
+    """
+    locator = "protocols/HANDOFF_BOOT.md x handoff_state.boot_citations (R95 D1)"
+    if not (Path(repo_root) / "protocols" / "HANDOFF_BOOT.md").is_file():
+        return _na_row("boot_citations", "SUBJECT-ABSENT",
+                       "no protocols/HANDOFF_BOOT.md -- nothing is cited", locator)
+    try:
+        cites = _hstate().boot_citations(repo_root, transport)
+    except Exception as exc:                                  # noqa: BLE001 -- fail closed
+        return PreflightRow("boot_citations", PREFLIGHT_FAIL, locator,
+                            f"the citation check could not run: {exc!r}")
+    if not cites:
+        return _na_row("boot_citations", "SUBJECT-ABSENT",
+                       "the boot cites no R-number, ADR or path", locator)
+    ok = _hstate().CITATION_OK
+    unlanded = [c for c in cites if c.status == "UNLANDED"]
+    bad = [c for c in cites if c.status not in (ok, "UNLANDED")]
+    kinds = {k: sum(1 for c in cites if c.kind == k) for k in ("ruling", "adr", "path")}
+    counted = (f"{kinds['ruling']} ruling(s), {kinds['adr']} ADR(s), "
+               f"{kinds['path']} path(s)")
+    owed = ""
+    if unlanded:
+        owed = (f"; {len(unlanded)} ratified but NOT yet landed in protocols/STANDING_RULINGS.md "
+                "(owed by a rulings-landing lane; decision_coverage.py rulings refuses the debt): "
+                + "; ".join(f"{c.ref} -- {c.detail.split(',')[0]}" for c in unlanded))
+    if bad:
+        shown = "; ".join(f"{c.ref} {c.status}: {c.detail}" for c in bad[:6])
+        more = f" +{len(bad) - 6} more" if len(bad) > 6 else ""
+        return PreflightRow("boot_citations", PREFLIGHT_FAIL, locator,
+                            f"{len(bad)} of {len(cites)} citation(s) do not resolve "
+                            f"({counted} cited): {shown}{more}{owed}")
+    resolved = len(cites) - len(unlanded)
+    return PreflightRow("boot_citations", PREFLIGHT_PASS, locator,
+                        f"{resolved} of {len(cites)} citation(s) resolve ({counted} cited)"
+                        f"{owed}")
+
+
 #: Item 12/L7: the two rows keyed to TODAY's transport state. At a cut they are real hygiene;
 #: at a batch-close trial cut they are false-red by construction (proposal PM3) -- the
 #: transport's ledger/ratification are refreshed once per window, not once per trial cut.
@@ -1919,7 +1967,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
                    repo_name: "str | None" = None, sessions_root=None,
                    memory_path=None, bundle_dir: "Path | None" = None,
                    force_filled: bool = False, trial_cut: bool = False) -> list[PreflightRow]:
-    """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2).
+    """The hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2).
 
     `bundle_dir` / `force_filled` ([#1123]) name the bundle a `--filled` re-render is about to
     write, so row 1 can tell its own known BD-manifest circularity from an unrelated hard-fail
@@ -1960,6 +2008,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_memory_within_cap(memory_path or _memory_path(repo_root)),
         _row_worktree_owners(repo_root, sessions_root),
         _row_p11_carriage(transport, repo_root),
+        _row_boot_citations(repo_root, transport),
     ]
 
 
@@ -3315,7 +3364,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     if not dry_cut:     # a dry cut cannot be committed, so it seals no commit-boundary claim
         assert_batch_boundary(repo_root)
         assert_boundary_hygiene(repo_root)
-    # Gate 3, the TEN preflight rows -- runs at EVERY cut, dry or real (ADR-129 item 1/L1): it
+    # Gate 3, the preflight rows -- runs at EVERY cut, dry or real (ADR-129 item 1/L1): it
     # is a property of the window the bundle would seal, not of the commit boundary gates 1-2
     # guard. Still before mkdir -- a refused cut writes nothing. [#1123]: name the bundle THIS
     # call is about to (re-)write, so row 1 can tell a `--filled` re-render's own known

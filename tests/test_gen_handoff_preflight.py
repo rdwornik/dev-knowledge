@@ -841,3 +841,20 @@ def test_no_boot_is_n_a_with_a_reason(tmp_path, _quiet_hub):
     rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
     row = next(r for r in rows if r.name == "boot_citations")
     assert row.status == gh.PREFLIGHT_NA and "SUBJECT-ABSENT" in row.detail, row.render()
+
+
+def test_a_ratified_but_unlanded_ruling_is_named_not_silently_passed(tmp_path, _quiet_hub):
+    """The D3 dependency: R96 is ratified on the transport and lands in the register only through
+    a rulings-landing lane. The row names it as owed; the debt itself is refused by
+    `decision_coverage.py rulings`, so it is not a second refusal here."""
+    repo = _hub_stub(tmp_path)
+    _seed_boot(repo, "# Boot\n\nR41 and R96.\n")
+    transport = _transport(tmp_path)
+    (transport / "to-browser" / "RATIFICATION-2026-10-11.md").write_text(
+        "# RATIFICATION\n\n## R96 — a package, ratified\n", encoding="utf-8")
+    rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    row = next(r for r in rows if r.name == "boot_citations")
+    assert row.status == gh.PREFLIGHT_PASS, row.render()
+    assert "1 of 2 citation(s) resolve" in row.detail, row.detail
+    assert "NOT yet landed" in row.detail and "R96" in row.detail, row.detail
+    assert "RATIFICATION-2026-10-11.md" in row.detail, row.detail
