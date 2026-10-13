@@ -191,6 +191,31 @@ def test_tree_pids_still_reaches_a_child_created_in_the_same_instant_as_its_pare
     assert rl.tree_pids(10, table=table) == (10, 11, 12)
 
 
+def test_the_windows_table_reads_creation_time_in_both_json_date_shapes(monkeypatch):
+    """The creation-order rule above is only as good as the ages it compares: an unparsed
+    CreationDate reads as age 0.0, and equal ages are parenthood, so the rule would go silent.
+    Windows PowerShell 5.1 (`powershell`, what `_windows_process_table` runs) serialises a
+    DateTime as `/Date(<epoch ms>)/`; PowerShell 7 serialises it as ISO-8601 (Codex r1 on the
+    BW F1 land repair). Both must yield real, ordered ages."""
+    import json as _json
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    older, newer = now - timedelta(hours=2), now - timedelta(seconds=30)
+    rows = [
+        {"ProcessId": 7852, "ParentProcessId": 2204, "WorkingSetSize": 1, "Name": "bash.exe",
+         "CreationDate": f"/Date({int(older.timestamp() * 1000)})/"},
+        {"ProcessId": 2204, "ParentProcessId": 3002, "WorkingSetSize": 1, "Name": "python.exe",
+         "CreationDate": newer.astimezone().isoformat()},
+    ]
+    monkeypatch.setattr(rl.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(
+        a[0], 0, stdout=_json.dumps(rows), stderr=""))
+    ages = {p.pid: p.age_seconds for p in rl._windows_process_table()}
+    assert 7000 < ages[7852] < 7400, ages
+    assert 0 < ages[2204] < 300, ages
+    assert rl.tree_pids(2204, table=rl._windows_process_table()) == (2204,)
+
+
 _TASKKILL_TREE = re.compile(r'"taskkill"[^\]\n]*"/T"')
 
 
