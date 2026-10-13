@@ -264,7 +264,7 @@ def is_landable(verdict) -> bool:
 
 LANE_BRANCH_PREFIX = "worktree-lane-"
 #: Lanes whose first commit is before this instant are not gated (they predate the gate).
-LAUNCH_GATE_ERA = datetime(2026, 10, 14, tzinfo=timezone.utc)
+LAUNCH_GATE_ERA = datetime(2026, 10, 13, tzinfo=timezone.utc)
 #: Manifests whose lanes table names lanes launched before the gate existed (repo-relative).
 GRANDFATHER_MANIFESTS = ("docs/audits/2026-10-12-technical-batch-bw-manifest.md",)
 _MERGED_LANE_RE = re.compile(r"^Merge (?:remote-tracking )?branch '(?:origin/)?(worktree-lane-[^']+)'")
