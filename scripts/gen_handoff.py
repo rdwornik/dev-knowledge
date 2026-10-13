@@ -3578,9 +3578,19 @@ def _section_map(inputs: StateInputs, root: Path) -> "list[str]":
         return out + [f"- MISSING: map diff ({why})"]
     try:
         rec = json.loads(text)
-        diff = rec.get("diff") or {}
+        diff = rec.get("diff")
     except (ValueError, AttributeError) as exc:
         return out + [f"- MISSING: map diff ({label}: {type(exc).__name__})"]
+    # Codex r2 HIGH: a record lacking the sha or the diff counts is an absent map diff, never a
+    # clean `+0 -0` -- "no change" and "no record of the change" must not read alike.
+    lacking = [] if rec.get("map_sha") else ["map_sha"]
+    if not isinstance(diff, dict):
+        lacking.append("diff")
+    elif not diff.get("baseline"):
+        lacking += [k for k in ("added_count", "removed_count")
+                    if not isinstance(diff.get(k), int)]
+    if lacking:
+        return out + [f"- MISSING: map diff ({label} lacks {', '.join(lacking)})"]
     out += [f"- map_sha: {rec.get('map_sha') or 'MISSING'}",
             f"- previous_sha: {rec.get('previous_sha') or 'none'}",
             f"- built_at: {rec.get('built_at') or 'unknown'}",
@@ -3610,8 +3620,13 @@ def _state_input_refusal(path: Path, label: str, repo_root: Path,
     if _inside(path, repo_root):
         rel = Path(path).resolve().relative_to(Path(repo_root).resolve()).as_posix()
         tracked, _out = _git_status(repo_root, "ls-files", "--error-unmatch", "--", rel)
-        if tracked:
+        # Tracked is not committed (Codex r2 HIGH): the bytes read must equal HEAD's blob.
+        clean, _out = _git_status(repo_root, "diff", "--quiet", "HEAD", "--", rel)
+        if tracked and clean:
             return None
+        if tracked:
+            return (f"--{label} {Path(path).as_posix()} differs from HEAD -- the handoff state "
+                    "reads committed bytes only; commit or revert it first")
     return (f"--{label} {Path(path).as_posix()} is neither on the transport nor a file tracked "
             "in this repo -- the handoff state reads committed or generated inputs only")
 
@@ -4065,7 +4080,9 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
     if state_out is not None:
         # The dry cut's target rule (Codex r1 HIGH): never a path a bundle could be committed
         # from -- outside every git work tree, or ignored by the one it is in.
-        refusal = _dry_cut_refusal(state_out.parent, _REPO_ROOT)
+        # Judged where the FILE resolves (Codex r2 HIGH): a symlink in a scratch dir may point
+        # into a work tree, and `write_text` follows it.
+        refusal = _dry_cut_refusal(state_out.resolve().parent, _REPO_ROOT)
         transport = transport_root()
         named = [(p, "rollup") for p in rollups] + [(p, k) for p, k in
                                                     ((ledger, "ledger"), (map_record, "map-record"))
