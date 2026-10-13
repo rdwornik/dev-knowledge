@@ -352,12 +352,15 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
         for res in results:
             res.done.wait(max(0.0, end - time.monotonic()))
     finally:
-        sys.stdout, sys.stderr, sys.stdin = saved
         if silence_stragglers:
-            # Unconditionally: a reader that RETURNED may have left a helper thread that writes
-            # later, and a reader past the deadline is still running -- neither may reach the
-            # real streams once the composed, capped output is the only thing written there.
-            sys.stdout, sys.stderr = _Sink(), _Sink()
+            # Unconditionally, and WITHOUT restoring the real streams first (no window in which
+            # a late writer could see them): a reader that RETURNED may have left a helper thread
+            # that writes later, and a reader past the deadline is still running -- neither may
+            # reach the real streams once the composed, capped output is the only thing written
+            # there. The caller writes that output to the streams it saved before the call.
+            sys.stdout, sys.stderr, sys.stdin = _Sink(), _Sink(), saved[2]
+        else:
+            sys.stdout, sys.stderr, sys.stdin = saved
 
     out_lines: list[str] = []
     err_parts: list[str] = []

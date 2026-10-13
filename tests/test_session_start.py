@@ -293,3 +293,29 @@ def test_a_helper_thread_a_finished_reader_left_behind_cannot_write_past_the_dig
         assert "[late] from a helper thread" not in out
     finally:
         sys.stdout, sys.stderr = saved
+
+
+def test_a_writer_running_through_the_whole_call_never_sees_the_real_streams():
+    """Codex r2: no restore-then-sink window. A helper thread polls `sys.stdout` in a tight loop
+    from before the readers finish until after `run` returns; it must never see the real one."""
+    saved = sys.stdout, sys.stderr
+    stop = threading.Event()
+    seen_real = []
+
+    def spawns_a_poller():
+        def poll():
+            while not stop.is_set():
+                if sys.stdout is saved[0] or sys.stderr is saved[1]:
+                    seen_real.append(True)
+        threading.Thread(target=poll, daemon=True).start()
+
+    try:
+        for _ in range(20):
+            ss.run([_reader("poller", spawns_a_poller)], silence_stragglers=True)
+            time.sleep(0.01)
+            sys.stdout, sys.stderr = ss._Sink(), ss._Sink()  # stay silenced between calls
+    finally:
+        stop.set()
+        time.sleep(0.05)
+        sys.stdout, sys.stderr = saved
+    assert not seen_real
