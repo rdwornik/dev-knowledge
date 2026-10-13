@@ -1462,3 +1462,121 @@ def test_no_f_string_ruling_id_template_remains_in_decision_coverage():
     prefix `R-` wherever its shape heuristics happen to catch it. Build the id with `_ruling_id`."""
     text = (REPO_ROOT / "scripts" / "decision_coverage.py").read_text(encoding="utf-8")
     assert not re.search(r"(?<![A-Za-z0-9_])R\{", text), "an `R{...}` template survives"
+
+
+# --------------------------------------------- witness 9: the ADR LIFECYCLE legs ([#242], R96 D11)
+#
+# Three WARN legs over the ADR corpus: Proposed for more than `PROPOSED_MAX_AGE_DAYS`, Accepted
+# with no implementing evidence, and Superseded with code still citing it. Every predicate takes
+# `today` from its caller -- no wall clock inside -- so the fixtures below pin one day.
+
+#: The pinned "today" every lifecycle fixture is aged against.
+LIFECYCLE_TODAY = _dt.date(2026, 10, 13)
+
+
+def _flagged(flags, leg: str) -> list[str]:
+    return sorted(f.decision.label for f in flags if f.leg == leg)
+
+
+def test_N_is_one_named_constant_of_14_days():
+    assert dc.PROPOSED_MAX_AGE_DAYS == 14
+
+
+def test_the_lifecycle_predicate_reads_no_wall_clock(tiny_decisions: Path, tiny_store):
+    """`today` is REQUIRED: a predicate that defaulted it would read the wall clock."""
+    found = dc.decisions(tiny_decisions, tiny_store)
+    with pytest.raises(TypeError):
+        dc.adr_lifecycle(tiny_decisions, found)  # type: ignore[call-arg]
+
+
+def test_a_Proposed_ADR_older_than_14_days_is_flagged_and_13_or_14_is_not(
+        tiny_decisions: Path, tiny_store):
+    """(a) 15 days old -> flagged; 14 and 13 days old -> not ("older than 14 days")."""
+    _adr(tiny_decisions, 910, "Proposed", "2026-09-28", "proposed-fifteen-days")
+    _adr(tiny_decisions, 911, "Proposed", "2026-09-29", "proposed-fourteen-days")
+    _adr(tiny_decisions, 912, "Proposed", "2026-09-30", "proposed-thirteen-days")
+    found = dc.decisions(tiny_decisions, tiny_store)
+    flags = dc.adr_lifecycle(tiny_decisions, found, today=LIFECYCLE_TODAY)
+    stale = _flagged(flags, dc.LEG_PROPOSED_STALE)
+    assert "ADR-910" in stale
+    assert "ADR-911" not in stale and "ADR-912" not in stale
+    # ADR-902 is Proposed and dated IN_ERA (2026-09-12), 31 days before the pinned day.
+    assert "ADR-902" in stale
+    # The SAME tree aged against an earlier day flags nothing: the age comes from `today`.
+    early = dc.adr_lifecycle(tiny_decisions, found, today=_dt.date(2026, 9, 20))
+    assert "ADR-910" not in _flagged(early, dc.LEG_PROPOSED_STALE)
+
+
+def test_an_Accepted_ADR_with_no_implementing_evidence_is_flagged(tiny_decisions: Path,
+                                                                   tiny_store):
+    """(b) Reuses the module's own evidence legs: an implementing row (open or closed) or a
+    written disposition. ADR-901 has neither; ADR-905 has neither and is pre-era, and the WARN
+    leg names it anyway -- the era bounds REFUSALS, not reports."""
+    found = dc.decisions(tiny_decisions, tiny_store)
+    flags = dc.adr_lifecycle(tiny_decisions, found, today=LIFECYCLE_TODAY)
+    assert _flagged(flags, dc.LEG_ACCEPTED_UNEVIDENCED) == ["ADR-901", "ADR-905"]
+
+
+def test_a_written_disposition_is_evidence_for_the_accepted_leg(tiny_decisions: Path,
+                                                                tiny_store):
+    register = {"adr:901": dc.Disposition(reason="fixture", owner="fixture owner")}
+    found = dc.decisions(tiny_decisions, tiny_store, dispositions=register)
+    flags = dc.adr_lifecycle(tiny_decisions, found, today=LIFECYCLE_TODAY)
+    assert _flagged(flags, dc.LEG_ACCEPTED_UNEVIDENCED) == ["ADR-905"]
+
+
+def test_a_Superseded_ADR_still_cited_by_a_live_script_is_flagged(tiny_decisions: Path,
+                                                                   tiny_store):
+    """(c) ADR-903 is Superseded; a live `scripts/` module still cites it -> flagged, naming
+    the script. A superseded ADR nothing cites is not flagged, and a citation of a longer
+    number (`ADR-9030`) is not a citation of ADR-903."""
+    _adr(tiny_decisions, 913, "Superseded", IN_ERA, "superseded-and-clean")
+    _write(tiny_decisions / "scripts" / "still_here.py",
+           '"""Implements ADR-903\'s rule; unrelated to ADR-9130."""\n')
+    found = dc.decisions(tiny_decisions, tiny_store)
+    flags = dc.adr_lifecycle(tiny_decisions, found, today=LIFECYCLE_TODAY)
+    assert _flagged(flags, dc.LEG_SUPERSEDED_CODE_LEFT) == ["ADR-903"]
+    (flag,) = [f for f in flags if f.leg == dc.LEG_SUPERSEDED_CODE_LEFT]
+    assert "scripts/still_here.py" in flag.detail
+
+
+def test_an_ARCHIVED_superseded_ADR_still_cited_is_flagged(tiny_decisions: Path, tiny_store):
+    """H3 archives superseded ADRs out of the live zone, which is exactly where the code they
+    leave behind is easiest to forget -- the leg reads `docs/decisions/archive/` too."""
+    _write(tiny_decisions / "docs" / "decisions" / "archive" / "ADR-914-archived.md",
+           "# ADR-914: archived\n\n**Status:** Superseded by ADR-900\n**Date:** 2026-01-05\n")
+    _write(tiny_decisions / "scripts" / "hooks" / "legacy.py", "# ADR-914 leg\n")
+    found = dc.decisions(tiny_decisions, tiny_store)
+    flags = dc.adr_lifecycle(tiny_decisions, found, today=LIFECYCLE_TODAY)
+    assert "ADR-914" in _flagged(flags, dc.LEG_SUPERSEDED_CODE_LEFT)
+
+
+def test_the_lifecycle_legs_WARN_and_never_refuse_a_commit(tiny_decisions: Path,
+                                                           tmp_path: Path):
+    """The `decision-coverage` hook must not start refusing on day one. With the one in-era
+    refusing decision (ADR-901) disposed of by an implementing row, every lifecycle leg still
+    fires on this tree -- and `check` exits 0, printing the WARN lines."""
+    _row(tiny_decisions, 802, "open", "ADR-901", "the open row that implements ADR-901")
+    _row(tiny_decisions, 803, "open", "intake-900", "the open row that implements intake 900")
+    _write(tiny_decisions / "scripts" / "still_here.py", "# ADR-903\n")
+    out = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "decision_coverage.py"), "check", "--no-transport",
+         "--repo-root", str(tiny_decisions), "--db", str(tmp_path / "cli" / "FPG.db"),
+         "--staged"],
+        capture_output=True, text=True, timeout=300)
+    assert out.returncode == 0, out.stdout + out.stderr
+    text = out.stdout + out.stderr
+    assert "WARN" in text and "ADR-905" in text and "ADR-903" in text and "ADR-902" in text
+
+
+def test_the_lifecycle_cli_lists_the_legs_and_exits_zero(tiny_decisions: Path, tmp_path: Path):
+    out = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "decision_coverage.py"), "lifecycle", "--no-transport",
+         "--repo-root", str(tiny_decisions), "--db", str(tmp_path / "cli" / "FPG.db"),
+         "--today", "2026-10-13"],
+        capture_output=True, text=True, timeout=300)
+    assert out.returncode == 0, out.stdout + out.stderr
+    text = out.stdout + out.stderr
+    for leg in (dc.LEG_PROPOSED_STALE, dc.LEG_ACCEPTED_UNEVIDENCED, dc.LEG_SUPERSEDED_CODE_LEFT):
+        assert leg in text
+    assert "ADR-901" in text
