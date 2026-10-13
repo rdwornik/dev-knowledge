@@ -728,6 +728,9 @@ def producer_argv(kind: str, model: str, slug: str, effort: str, prompt: str,
         return [a for a in build_plan("codex", model, slug, effort, prompt).argv if a != "--worktree"]
     if kind == "copilot":
         argv = build_plan("copilot", model, slug, effort, prompt).argv
+        if model == COPILOT_AUTO_MODEL:   # copilot refuses an effort on `auto` (R8 usage test)
+            at = argv.index("--reasoning-effort")
+            argv = argv[:at] + argv[at + 2:]
         return [*argv, "--session-id", session_id]
     raise DispatchRefused(f"producer {kind!r} has no head in dispatch.py; known: "
                           f"{', '.join(_PRODUCER_PROVIDER)}")
