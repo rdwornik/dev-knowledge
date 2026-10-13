@@ -1018,3 +1018,29 @@ def test_d1_the_bw_manifest_grandfathers_its_own_in_flight_lanes():
     lanes = mp.grandfathered_lanes(Path(__file__).resolve().parents[1])
 
     assert "lane-bw-1374-lane-controller" in lanes and "lane-bw-680-handoff-gen" in lanes
+
+
+# Codex round 1 HIGH: a custom merge subject plus a deleted lane branch hid a lane from the gate.
+# A merge in the range must NAME its source (`Merge branch '<name>'`) or merge a live ref's tip;
+# otherwise it is UNATTRIBUTED and refused -- the gate cannot tell it is not a lane.
+
+def test_d1_a_merge_that_names_no_source_and_no_live_ref_is_refused_as_unattributed():
+    rig = LaneRig(subjects=[f"{TIP}\t{BASE} {LANE_TIP}\tintegrate: hand-made work, branch deleted"])
+
+    result = _gated(rig)
+
+    assert result.state == "LANE-UNATTRIBUTED" and not result.landed and rig.pushes() == []
+    assert TIP[:12] in result.reason
+
+
+def test_d1_a_custom_subject_merge_of_a_live_non_lane_ref_is_attributed_and_lands():
+    rig = LaneRig(subjects=[f"{TIP}\t{BASE} {LANE_TIP}\tintegrate: the land repair"],
+                  refs=f"fix/bw-c-land-repair\t{LANE_TIP}")
+
+    assert _gated(rig).landed
+
+
+def test_d1_a_merge_by_sha_is_unattributed():
+    rig = LaneRig(subjects=[f"{TIP}\t{BASE} {LANE_TIP}\tMerge commit '{LANE_TIP[:8]}' into worktree-integrate-b"])
+
+    assert _gated(rig).state == "LANE-UNATTRIBUTED"

@@ -1190,3 +1190,29 @@ def test_d1_spawn_resolves_an_npm_cmd_shim_on_windows_before_createprocess():
     assert d.resolve_program(["copilot", "-p", "x"], which=which, windows=True) == [r"C:\npm\copilot.CMD", "-p", "x"]
     assert d.resolve_program(["nope", "a"], which=which, windows=True) == ["nope", "a"], "unresolved: unchanged"
     assert d.resolve_program(["copilot", "-p"], which=which, windows=False) == ["copilot", "-p"], "POSIX: untouched"
+
+
+
+# Codex round 1 HIGHs: the producer must reach the lane's own section-3 field, and a producer
+# launch must run from the repository root whatever directory the CLI was invoked from.
+
+@pytest.mark.parametrize("kind", ["claude", "codex", "copilot"])
+def test_d1_a_producer_prompt_carries_its_section_3_producer_field(contract, kind):
+    request = _request(contract, producer=kind, repo=".dev-knowledge")
+
+    assert request.session_id, "every producer launch fixes its session / launch id up front"
+    prompt = request.argv[-1]
+    assert f"vendor={d.PRODUCER_REGISTRY[kind] if kind != 'claude' else 'anthropic'}" in prompt
+    assert f"model={request.model}" in prompt and f"session={request.session_id}" in prompt
+    assert '"' not in prompt, "no quote may reach a .cmd shim's argv"
+
+
+def test_d1_the_launch_cli_runs_a_producer_from_the_repository_root(contract, tmp_path, monkeypatch, ledger):
+    seen = {}
+    top = tmp_path / "repo-root"
+    monkeypatch.setattr(d, "repo_toplevel", lambda cwd: top)
+    monkeypatch.setattr(d, "launch_lane", lambda request, **kw: seen.update(kw) or pytest.skip("captured"))
+
+    CliRunner().invoke(d.cli, ["launch", str(contract), "--producer", "copilot", "--repo", ".dev-knowledge"])
+
+    assert seen.get("cwd") == top

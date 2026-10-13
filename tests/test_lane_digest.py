@@ -590,3 +590,18 @@ def test_d1_a_report_whose_producer_is_not_the_launched_one_is_invalid(tmp_path)
 
     assert ("lane-zz-1-alpha | INVALID | the report names producer 'claude' but dispatch "
             "launched 'copilot-enterprise'") in out
+
+
+def test_d1_a_report_whose_producer_session_is_not_the_launched_one_is_invalid(tmp_path):
+    """Codex round 1 HIGH: the rollup compared the vendor alone."""
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_lane_end(reports, "lane-zz-1-alpha", _lane_report("lane-zz-1-alpha"))  # session 'p-1'
+    launches = {"lane-zz-1-alpha": {"producer": {"vendor": "claude", "model": "claude-opus-5-5",
+                                                 "session": "another-run"}}}
+    out = ld.render_rollup("ZZ", _MANIFEST, reports, wave="F1", launches=launches)
+
+    assert "lane-zz-1-alpha | INVALID | the report names producer session 'p-1' but dispatch launched 'another-run'" in out
+    matching = {"lane-zz-1-alpha": {"producer": {"vendor": "claude", "model": "x", "session": "p-1"}}}
+    assert "lane-zz-1-alpha | COMPLETED" in ld.render_rollup("ZZ", _MANIFEST, reports, wave="F1",
+                                                              launches=matching)
