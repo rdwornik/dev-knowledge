@@ -316,3 +316,21 @@ def test_a_repo_input_that_differs_from_head_is_missing_not_read(tmp_path):
     assert "MISSING: .methodology.yaml (differs from HEAD" in dated
     assert "uncommitted-entry" not in dated
     assert "2026-10-16" in dated   # the clean registry is still read
+
+
+def test_a_batch_manifest_that_differs_from_head_is_missing_not_read(tmp_path):
+    """Codex r5 HIGH: the manifest the generated rollup reads is a committed input too."""
+    root = _repo(tmp_path)
+    manifest = root / "docs" / "audits" / "batch-manifest.md"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("---\nbatch: BX\n---\n# manifest\n", encoding="utf-8")
+    for args in (["init", "-q"], ["add", "-A"],
+                 ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "r"]):
+        gh._git_status(root, *args)
+    manifest.write_text("---\nbatch: BX-EDITED\n---\n# manifest\n", encoding="utf-8")
+    base = _inputs(tmp_path)
+    inputs = gh.StateInputs(rollups=base.rollups, ledger=base.ledger, map_record=base.map_record,
+                            manifest=manifest, reports_dir=tmp_path)
+    state = _sections(gh.render_handoff_state(root, inputs, today=_TODAY))["1. Current state"]
+    assert "MISSING: generated rollup" in state and "differs from HEAD" in state
+    assert "BX-EDITED" not in state
