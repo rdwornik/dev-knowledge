@@ -74,16 +74,15 @@ records it `manual_until` the date this lane's handback states) -- it is run by 
 
 Stdlib + `psutil` only (already declared, `pyproject.toml`; the same library `resource_lifecycle.py`
 and `memory_admission_gate.py` already use for process-tree reads -- library-first). The kill
-itself uses `taskkill /T /F` on Windows, fired and not awaited, the identical pattern
-`bounded_hook.py::_kill_tree` already uses and for the same reason: a wrapper that waits on its
-own kill has moved the unbounded wait one level down.
+walks the tree with `psutil` on every OS (never `taskkill /T`: see `kill_tree`) and is not
+awaited, the posture `bounded_hook.py::_kill_tree` takes for the same reason: a wrapper that
+waits on its own kill has moved the unbounded wait one level down.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -259,27 +258,23 @@ def append_record(row: dict) -> Path | None:
 # --- kill ------------------------------------------------------------------------------------
 
 def kill_tree(pid: int) -> None:
-    """FIRED, NOT AWAITED on Windows (`taskkill /T` runs on after this returns) -- identical
-    posture to `bounded_hook.py::_kill_tree` and for the same reason: a watchdog that waits on
-    its own kill has moved the unbounded wait one level down.
+    """NOT AWAITED, on every OS -- identical posture to `bounded_hook.py::_kill_tree` and for the
+    same reason: a watchdog that waits on its own kill has moved the unbounded wait one level down.
 
-    ON POSIX, `.kill()` is a single non-blocking syscall per process (SIGKILL is not caught or
-    ignorable, so it is not a wait either): the recursive `children()` walk is a `psutil` read
-    of the live process tree (`/proc` on Linux), not a wait on anything the killed processes do.
+    `.kill()` is a single non-blocking call per process (SIGKILL on POSIX, which is not caught or
+    ignorable; TerminateProcess on Windows, which only requests the kill): the recursive
+    `children()` walk is a `psutil` read of the live process tree, not a wait on anything the
+    killed processes do. ONE PATH FOR BOTH OSES (batch BW F1 land repair): Windows used
+    `taskkill /T`, which builds its tree from ParentProcessId with no creation-time check --
+    Windows keeps a dead parent's pid there and recycles pids, so taskkill adopts any older
+    process naming ours (pytest workers, once). psutil's `children()` drops a child older than
+    the root.
     A bare `os.kill(pid, 9)` -- an EARLIER version of this function -- kills only the named pid,
     contradicting the whole-tree contract (Codex terra review, LANE-5B5-5-lane-hook-watchdog);
     `bounded_hook.py::_kill_tree`'s own `os.killpg` is not reused here because it depends on the
     target being its own process-group leader (`start_new_session=True` at spawn time), which
     this module does not control -- the process it is killing was created by something else
     entirely (that is the whole point: it never ran a line of its own)."""
-    if os.name == "nt":
-        try:
-            subprocess.Popen(["taskkill", "/T", "/F", "/PID", str(pid)],
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
-        except OSError:
-            pass
-        return
     try:
         root = psutil.Process(pid)
     except psutil.NoSuchProcess:

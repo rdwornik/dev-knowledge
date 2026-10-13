@@ -818,18 +818,91 @@ def _quarantine_problems(node_id: str, *, cause_marker: str, script: str) -> lis
     return problems
 
 
+#: The pinned witness of the [#1344] cause, fixed in `scripts/graph_store.py` (the lock token
+#: now carries a uuid per acquisition). Its presence and its PASSING are what let the two lock
+#: tests leave the registry -- see `_fixed_at_cause_problems`.
+_LOCK_FLAKE_CAUSE_WITNESS = "test_two_acquisitions_in_one_clock_tick_never_share_a_token"
+
+
+def _fixed_at_cause_problems(witness: str, *, task: str, tmp_path: Path, monkeypatch,
+                             namespace: dict | None = None) -> list[str]:
+    """What is missing from a FIXED-AT-CAUSE disposition, the second honest exit from the
+    quarantine: the cause has its own pinned witness test in this module, it cites the task
+    the quarantine named, it is not skipped/skipif/xfail, and it PASSES -- run here, now, not
+    read as a claim. A witness that is absent, unmarked-for-task, silenced or failing is a
+    problem; an empty list means the cause is fixed and proved."""
+    namespace = globals() if namespace is None else namespace
+    fn = namespace.get(witness)
+    if not callable(fn) or not witness.startswith("test_"):
+        return [f"no pinned witness test {witness!r} for the cause"]
+    problems: list[str] = []
+    if task not in (fn.__doc__ or ""):
+        problems.append(f"witness {witness} does not cite {task}")
+    marks = {m.name for m in getattr(fn, "pytestmark", [])}
+    if marks & {"skip", "skipif", "xfail"}:
+        problems.append(f"witness {witness} is silenced ({sorted(marks)})")
+    workdir = tmp_path / "cause-witness"
+    workdir.mkdir(parents=True)
+    try:
+        fn(workdir, monkeypatch)
+    except AssertionError as exc:
+        problems.append(f"witness {witness} FAILS: {exc}")
+    return problems
+
+
 @pytest.mark.parametrize("name", [
     "test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store",
     "test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock",
 ])
-def test_the_windows_lock_flake_is_quarantined_with_its_cause_and_rates_not_skipped(name):
-    """foundation-8 item 2. The cause lives in `scripts/graph_store.py` (the lock token is
-    `pid + time_ns`, and Windows' clock ticks every 15.6 ms, so two acquisitions in one tick
-    share a token) -- not a test defect and not this lane's to edit -- so the test is
-    QUARANTINED in the registry with its task, owner, expiry and measured rates, and keeps
+def test_the_windows_lock_flake_is_quarantined_with_its_cause_and_rates_not_skipped(
+        name, tmp_path, monkeypatch):
+    """foundation-8 item 2, as amended by batch BW F1 (lane known-reds-expiry fixed [#1344] at
+    cause). The cause lived in `scripts/graph_store.py` (the lock token was `pid + time_ns`,
+    and Windows' clock ticks every 15.6 ms, so two acquisitions in one tick shared a token).
+    The test has exactly TWO honest states, and it must be in one of them:
+
+      * QUARANTINED -- a windows registry entry with its task, owner, expiry, cause and
+        measured rates (`_quarantine_problems` returns nothing); or
+      * FIXED AT CAUSE -- the cause's own pinned witness test is present, cites [#1344], is
+        not silenced, and PASSES when run here (`_fixed_at_cause_problems` returns nothing).
+
+    Neither holding is a failure that names both gaps. Either way the lock test itself keeps
     RUNNING: no skip, skipif or xfail."""
     node_id = f"tests/test_graph_spine.py::{name}"
-    assert _quarantine_problems(node_id, cause_marker="time_ns",
-                                script="scripts/graph_store.py") == []
+    quarantined = _quarantine_problems(node_id, cause_marker="time_ns",
+                                       script="scripts/graph_store.py")
+    if quarantined != []:
+        fixed = _fixed_at_cause_problems(_LOCK_FLAKE_CAUSE_WITNESS, task="[#1344]",
+                                         tmp_path=tmp_path, monkeypatch=monkeypatch)
+        assert fixed == [], (f"{name} is neither quarantined ({quarantined}) nor fixed at "
+                             f"cause ({fixed})")
     marks = {m.name for m in getattr(globals()[name], "pytestmark", [])}
     assert not marks & {"skip", "skipif", "xfail"}, f"{name} is silently skipped"
+
+
+def test_the_lock_flake_disposition_is_not_vacuous(tmp_path, monkeypatch):
+    """The trip for the amendment above: with NO registry entry, a fixed-at-cause leg that is
+    absent, uncited, silenced or failing must each still report a problem -- otherwise the
+    either/or gate would pass on nothing."""
+    node_id = "tests/test_graph_spine.py::test_no_such_lock_test_is_registered"
+    assert _quarantine_problems(node_id, cause_marker="time_ns",
+                                script="scripts/graph_store.py"), "an unregistered node passed"
+
+    def test_failing_witness(path, _monkeypatch):
+        """[#1344] stand-in whose cause is NOT fixed."""
+        raise AssertionError("two acquisitions in one clock tick share a token")
+
+    def test_uncited_witness(path, _monkeypatch):
+        """Names no task."""
+
+    @pytest.mark.skip(reason="silenced")
+    def test_silenced_witness(path, _monkeypatch):
+        """[#1344] stand-in that never runs."""
+
+    namespace = {f.__name__: f for f in (test_failing_witness, test_uncited_witness,
+                                         test_silenced_witness)}
+    for index, witness in enumerate(("test_absent_witness", *namespace)):
+        problems = _fixed_at_cause_problems(witness, task="[#1344]",
+                                            tmp_path=tmp_path / str(index),
+                                            monkeypatch=monkeypatch, namespace=namespace)
+        assert problems, f"{witness} passed the fixed-at-cause leg"
