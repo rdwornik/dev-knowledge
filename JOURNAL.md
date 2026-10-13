@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-13 (e) - CC (Opus 5.5, successor integrator, batch BW close): Wave D receipt closed, R4 hygiene, the BW close packet
+
+**Anchors:** `208dddbf` (receipt b2-w4-d closed), `31be212b` (close packet), `8e00b78d` (Wave D on main). Branch `worktree-integrate-bw`, landed by `merge_path.py land --slug b2-w4-close`.
+
+**Did:** Wave D's first land (`2709d9a7`) was refused REGRESSED by one new red (`scripts/harness_probes.py:448` write_text without newline=); one repair (`b6d19b6c`, Codex APPROVE) and one re-land put `8e00b78d` on main, PRE-EXISTING. R4: worktrees 19 -> 2, local branches 23 -> 17, origin 20 -> 14, stashes 0; every unmerged branch kept and tagged `archive/2026-10-13/<branch>` (14 tags); the two dirty seats' content archived, no `--force`. The close packet is the manifest's `closed_by`.
+
+**Result:** batch BW closes when this lands. D1, D5, D7 held to the next batch; D2 failed.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl`, `docs/audits/2026-10-12-technical-batch-bw-close-packet.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** operator deletes the archived branches if wanted; `gen_handoff.py --mode architect --preflight-only` before the cut; next batch: D1/D5 fixes, D7 GO amendment, [#863].
+
 ### 2026-10-13 (d) - CC (Opus 5.5, successor orchestrator and integrator, batch BW = B2-W4 finish, Wave D): rulings landed, registry re-pointed, harness probes pass, transport index; R98 re-dates 58 known reds; D1, D5 and D7 held
 
 **Anchors:** `b06c621a` (D4 registry-repoint, `266e29b1`), `214ea12e` (D3 rulings-landing, `6564955c`), `1fdeae35` (D6 harness-probes, `96e03fe4`), `a880ed01` (D8 transport-index, `7c2c2f11`), `dc24b371` (R98 re-date, integrator). Branch `worktree-integrate-bw`, landed by `merge_path.py land --slug b2-w4-d`.
