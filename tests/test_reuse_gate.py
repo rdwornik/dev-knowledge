@@ -221,7 +221,7 @@ def test_file_purpose_graph_why_writes_the_record(mini, monkeypatch):
     """`file_purpose_graph.py why` is the record's producer: running it in a lane leaves a record
     the gate then reads (answered or refused -- the search is what is recorded)."""
     root, env = mini
-    fpg = _load("file_purpose_graph", _REPO / "scripts" / "file_purpose_graph.py")
+    import file_purpose_graph as fpg   # bare: `pythonpath` carries scripts/ (pyproject)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     monkeypatch.setenv("HARNESS_LANE", _LANE)
