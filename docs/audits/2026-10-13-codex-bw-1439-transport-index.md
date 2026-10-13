@@ -29,20 +29,9 @@ branch's two earlier rounds are in `docs/audits/2026-10-10-codex-b2w2-transport-
   POSIX rename, shared write/move lock, unreadable-head cache invalidation, and BOM-aware `by:`
   detection. The query implementation correctly operates on INDEX content and has meaningful
   filter/exit-code tests."
-- **Disposition of rounds 1–2:** this record was committed (`7d98fac6`) with both rounds, the
-  per-item evidence below and the full dry-run move list (Appendix).
-- **Round 3:** head `c10f33b2`, codex session `01a1350b-1b7f-76c2-bb1a-b79f50bf91ff`, served model
-  `gpt-5.6-terra` (reasoning effort low). Proof of reading: `NONCE-ECHO 93f2c6ad` / `HEAD c10f33b2`;
-  returned nonce `6bd4a8e1`. Verdict **REQUEST-CHANGES**, HIGH 1 / MED 0 / LOW 0: the disposition line
-  above said the LANE REPORT was written before round 3, which was false. Its verification, verbatim:
-  "`14f91ba0` is an ancestor; the audit contains 245 move entries, all `superseded`, plus seven skips;
-  the unreviewed code fixes and query implementation appear to close their cited issues."
-- **Disposition of round 3 (the chronology):** the LANE REPORT
-  (`to-browser/LANE-END-lane-bw-1439-transport-index.md` on the transport, batch manifest §4 rule 9)
-  is written AFTER the last review round, from this record plus that round's served model, session
-  id and returned nonce; it is not part of this diff. The last round's identity is carried by the
-  LANE REPORT and the handback, not by this file, since a record cannot contain the nonce of a review
-  of itself.
+- **Disposition of rounds 1–2:** this record is committed with both rounds, the per-item evidence
+  below and the full dry-run move list (Appendix), and the LANE REPORT is written on the transport
+  before round 3.
 
 ---
 
@@ -377,3 +366,26 @@ skipped: to-browser/PROPOSAL-ADR-COPILOT-DISTRIBUTION-2026-09-29-v1-superseded.m
 skipped: to-browser/SIGNAL-B2-W1-AMEND-3-GREEN-2026-10-04-v1-superseded.md (UNATTRIBUTED)
 skipped: to-cc/CONTRACT-github-profile-copy-2026-09-10-v1-superseded.md (UNATTRIBUTED)
 ```
+
+---
+
+## Amendment 1 (2026-10-13, after review rounds 3 and 4) — the text above is kept as committed in `7d98fac6`
+
+- **Correction.** The line above "the LANE REPORT is written on the transport before round 3" is
+  **false and is withdrawn**. The LANE REPORT (`to-browser/LANE-END-lane-bw-1439-transport-index.md`
+  on the transport, batch manifest §4 rule 9) is written AFTER the last review round, from this
+  record plus that round's served model, session id and returned nonce; it is not part of this diff.
+  A record cannot carry the nonce of a review of itself, so the last round's identity is carried by
+  the LANE REPORT and the handback.
+- **Round 3:** head `c10f33b2`, codex session `01a1350b-1b7f-76c2-bb1a-b79f50bf91ff`, served model
+  `gpt-5.6-terra` (reasoning effort low). Proof of reading: `NONCE-ECHO 93f2c6ad` / `HEAD c10f33b2`;
+  returned nonce `6bd4a8e1`. Verdict **REQUEST-CHANGES**, HIGH 1: the false chronology line above.
+  Its verification, verbatim: "`14f91ba0` is an ancestor; the audit contains 245 move entries, all
+  `superseded`, plus seven skips; the unreviewed code fixes and query implementation appear to close
+  their cited issues."
+- **Round 4:** head `b59a076a`, codex session `01a1350f-4ddb-7f03-9d20-ba23da38e909`, served model
+  `gpt-5.6-terra` (reasoning effort low). Proof of reading: `NONCE-ECHO e07a5b19` / `HEAD b59a076a`;
+  returned nonce `4c8f1a7e`. Verdict **REQUEST-CHANGES**, HIGH 1: commit `b59a076a` corrected the
+  chronology by rewriting the committed text in place. Disposition: this file is restored to its
+  `7d98fac6` bytes, and the correction and both rounds are carried by this appended amendment
+  (CLAUDE.md §5 rule 3: supersede with an in-file amendment marker, never edit in place).
