@@ -18,11 +18,18 @@ appends one JSON line per search to `WHY-SEARCHES.jsonl` in the lane's receipts 
 `$HARNESS_RECEIPTS_DIR`, else `<root>/logs/receipts/` (gitignored), the home `lane_end_guard.py`
 already writes its receipts to. A refused `why` is recorded too: the search is what the rule asks
 for, and "nothing explains this file" is an answer. Each line carries `lane`, `path`, `outcome`,
-`session` and `at`. The gate counts a record of THIS lane only. It does not filter on `session`:
-`CLAUDE_CODE_SESSION_ID` is inherited by child hosts (measured in-lane 2026-10-13: a `copilot -p`
-child carried its parent's id while its own hook payload carried its own), so a session-keyed
-match would refuse the very search a child just ran. The lane worktree is the session boundary --
-one checkout is one committing session (AGENTS.md), and the receipts directory dies with it.
+`sessions` and `at`. The gate counts a record of THIS lane whose `sessions` hold the hook
+payload's `session_id` -- a search from an earlier session does not count (Codex r1 HIGH).
+
+WHICH SESSION RAN THE SEARCH (measured in-lane 2026-10-13). The `why` process learns its session
+from the environment its host agent gave its shell: Claude Code exports `CLAUDE_CODE_SESSION_ID`,
+Copilot CLI 1.0.96 exports `COPILOT_AGENT_SESSION_ID` -- each equal to the `session_id` in that
+host's own PreToolUse payload. A child host INHERITS its parent's variable too (a `copilot -p`
+under a Claude Code session sees both), and the environment cannot say which one is innermost, so
+the record carries every id present (`SESSION_ENV_VARS`). Consequence, stated: a parent agent's
+write can be covered by a search its own child agent ran -- a search inside the parent's session
+tree, never one from an unrelated or earlier session. A payload that carries no `session_id` (no
+host measured sends none) falls back to any record of the lane, and logs that it did.
 
 THE ACTIVE CONTRACT. The lane slug is `lane_end_guard.resolve_lane` (`$HARNESS_LANE`, else the
 worktree directory name under `.claude/worktrees/`); its contract file is
@@ -88,6 +95,8 @@ PATH_FIELDS = ("file_path", "notebook_path", "path")
 
 #: The record, in the lane's receipts directory.
 WHY_RECORD_NAME = "WHY-SEARCHES.jsonl"
+#: Where a host agent puts its session id for its shell (see WHICH SESSION RAN THE SEARCH).
+SESSION_ENV_VARS = ("COPILOT_AGENT_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
 _CONTRACT_GLOB = "docs/audits/*-launch-contracts/{name}"
 
 _DONE_HEADING = re.compile(r"^##\s+Done[- ]contract\b.*$", re.IGNORECASE | re.MULTILINE)
@@ -169,7 +178,7 @@ def record_why(root: Path, path: str, outcome: str,
     home = receipts_dir(root, environ)
     home.mkdir(parents=True, exist_ok=True)
     line = {"lane": lane, "path": path.replace("\\", "/").removeprefix("./"), "outcome": outcome,
-            "session": environ.get("CLAUDE_CODE_SESSION_ID"),
+            "sessions": [environ[v] for v in SESSION_ENV_VARS if environ.get(v)],
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     target = home / WHY_RECORD_NAME
     with target.open("a", encoding="utf-8") as fh:
@@ -177,8 +186,12 @@ def record_why(root: Path, path: str, outcome: str,
     return target
 
 
-def _neighbour_searched(root: Path, environ: Mapping[str, str], lane: str, rel: str) -> bool:
+def _neighbour_searched(root: Path, environ: Mapping[str, str], lane: str, rel: str,
+                        session: Optional[str]) -> bool:
     parent = rel.rsplit("/", 1)[0]
+    if not session:
+        LOG.info("reuse-gate: the payload carries no session_id -- any why record of %s counts",
+                 lane)
     try:
         lines = (receipts_dir(root, environ) / WHY_RECORD_NAME).read_text(encoding="utf-8")
     except OSError:
@@ -189,6 +202,9 @@ def _neighbour_searched(root: Path, environ: Mapping[str, str], lane: str, rel: 
         except ValueError:
             continue
         if not isinstance(rec, dict) or rec.get("lane") != lane:
+            continue
+        sessions = rec.get("sessions")
+        if session and not (isinstance(sessions, list) and session in sessions):
             continue
         searched = str(rec.get("path", "")).rstrip("/")
         if searched == parent or (searched.rsplit("/", 1)[0] == parent and searched != rel):
@@ -266,7 +282,9 @@ def decide(payload: object, root: Path = REPO_ROOT,
             return "allow", "no active lane contract"
         if _contract_names(rel, named_paths(done_contract(contract.read_text(encoding="utf-8")))):
             return "allow", "the lane contract names this file"
-        if _neighbour_searched(root, environ, lane, rel):
+        session = payload.get("session_id")
+        if _neighbour_searched(root, environ, lane, rel,
+                               session if isinstance(session, str) else None):
             return "allow", "a why search covers a neighbour"
         contract_rel = contract.relative_to(root).as_posix()
         return "block", _denied(rel, contract_rel, _neighbour(root, rel))

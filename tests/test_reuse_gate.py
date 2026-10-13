@@ -73,7 +73,7 @@ def mini(tmp_path):
     (root / "scripts" / "hooks" / "neighbour.py").write_text("y = 1\n", encoding="utf-8")
     (root / ".claude" / "commands").mkdir(parents=True)
     (root / "docs" / "notes").mkdir(parents=True)
-    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts")}
+    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts"), "CLAUDE_CODE_SESSION_ID": "s-1"}
     return root, env
 
 
@@ -120,8 +120,37 @@ def test_a_why_record_from_another_directory_or_lane_does_not_count(mini):
     gate.record_why(root, "docs/notes/a.md", "answered", env)               # wrong directory
     receipts = Path(env["HARNESS_RECEIPTS_DIR"])
     with (receipts / gate.WHY_RECORD_NAME).open("a", encoding="utf-8") as fh:  # wrong lane
-        fh.write(json.dumps({"lane": "lane-other", "path": "scripts/existing.py"}) + "\n")
+        fh.write(json.dumps({"lane": "lane-other", "path": "scripts/existing.py",
+                             "sessions": ["s-1"]}) + "\n")
     assert gate.decide(_write("scripts/unnamed_new.py", root), root, env)[0] == "block"
+
+
+def test_a_why_record_from_an_earlier_session_does_not_count(mini):
+    """Done-contract 1(b): the record must exist FOR THIS SESSION (Codex r1 HIGH)."""
+    root, env = mini
+    gate.record_why(root, "scripts/existing.py", "answered", {**env, "CLAUDE_CODE_SESSION_ID": "old"})
+    assert gate.decide(_write("scripts/unnamed_new.py", root), root, env)[0] == "block"
+
+
+def test_a_copilot_search_counts_for_the_copilot_session_that_ran_it(mini):
+    """Copilot CLI exports COPILOT_AGENT_SESSION_ID to its shell and sends the same id as the hook
+    payload's session_id; it also inherits the parent Claude Code session's variable (measured)."""
+    root, env = mini
+    child = {**env, "CLAUDE_CODE_SESSION_ID": "parent", "COPILOT_AGENT_SESSION_ID": "cp-1"}
+    gate.record_why(root, "scripts/existing.py", "answered", child)
+    payload = _write("scripts/unnamed_new.py", root)
+    assert gate.decide({**payload, "session_id": "cp-1"}, root, env)[0] == "allow"
+    assert gate.decide({**payload, "session_id": "unrelated"}, root, env)[0] == "block"
+
+
+def test_a_payload_with_no_session_id_falls_back_to_the_lane_and_logs(mini, caplog):
+    root, env = mini
+    gate.record_why(root, "scripts/existing.py", "answered", env)
+    payload = _write("scripts/unnamed_new.py", root)
+    del payload["session_id"]
+    with caplog.at_level(logging.INFO, logger="reuse_gate"):
+        assert gate.decide(payload, root, env)[0] == "allow"
+    assert "no session_id" in caplog.text
 
 
 # ============================================================== 2. ALLOW
