@@ -294,15 +294,22 @@ def _feed(stream, payload: bytes) -> None:
 
 def _kill_tree(proc: subprocess.Popen) -> None:
     if os.name == "nt":
-        # FIRED, NOT AWAITED. `taskkill /T` was measured taking >10 s on a loaded box, and a
-        # wrapper that waits on its own kill has moved the unbounded wait one level down.
-        # taskkill runs on after this process exits; its std handles are DEVNULL, so it holds
-        # no pipe of ours or the harness's.
+        # NOT AWAITED: TerminateProcess only requests the kill, so nothing here waits on the
+        # dying tree (`taskkill /T`, the earlier verb, was measured taking >10 s on a loaded
+        # box). The tree comes from psutil, never `taskkill /T`: Windows keeps a dead parent's
+        # pid in ParentProcessId and recycles pids, and taskkill adopts any process naming
+        # ours -- the pytest workers, once (batch BW F1 land repair). `children()` drops a
+        # child older than the root. Lazy import: only a timed-out hook pays for psutil.
         try:
-            subprocess.Popen(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
-        except OSError:
+            import psutil  # noqa: PLC0415
+
+            root = psutil.Process(proc.pid)
+            for member in (*root.children(recursive=True), root):
+                try:
+                    member.kill()
+                except psutil.Error:
+                    pass
+        except Exception:  # noqa: BLE001 -- psutil missing or the root gone; proc.kill() below
             pass
     else:
         try:

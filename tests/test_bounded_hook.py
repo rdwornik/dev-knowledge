@@ -87,7 +87,21 @@ def _kill_pid_file(pid_file: Path) -> None:
         return
     pid = int(pid_file.read_text(encoding="utf-8").strip())
     if os.name == "nt":
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(pid)], capture_output=True)
+        # psutil, never `taskkill /T`: Windows keeps a dead parent's pid in ParentProcessId and
+        # recycles pids, so taskkill adopts older processes naming this one -- the pytest workers,
+        # once (batch BW F1 land repair). psutil's children() drops a child older than the root.
+        import psutil  # noqa: PLC0415
+
+        try:
+            root = psutil.Process(pid)
+            members = [*root.children(recursive=True), root]
+        except psutil.Error:
+            members = []
+        for member in members:
+            try:
+                member.kill()
+            except psutil.Error:
+                pass
     else:
         try:
             os.kill(pid, 9)
