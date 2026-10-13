@@ -202,7 +202,7 @@ def _write_claim_result(path: Path, **fields) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"schema": 1, "organ": "quota_daily", "finished_at": _now_stamp(), **fields}
         tmp = path.with_name(f".{path.name}.tmp")
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8", newline="\n")
         os.replace(tmp, path)
     except OSError:
         pass

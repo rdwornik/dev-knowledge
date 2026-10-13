@@ -397,7 +397,7 @@ def write_marker(repo_root: Path, env: dict | None = None, probe: LiveProbe | No
     path = marker_path(repo_root, env=env, probe=probe)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = collect(repo_root, env=env, probe=probe, writer=writer)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
     return path
 
 

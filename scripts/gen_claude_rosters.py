@@ -165,9 +165,9 @@ def render_adrs(decisions_dir: Path = _DECISIONS_DIR) -> str:
         f"# Recent ADRs (last {_RECENT_ADR_COUNT} by number) — generated from "
         "`docs/decisions/ADR-*.md` headers",
         "",
-        "> Mechanical list (number - status - date - title). The editorial one-liners live in",
-        "> `docs/decisions/README.md`; the decision content lives in each ADR.",
-        "> Do not hand-edit. Regenerate: `python scripts/gen_claude_rosters.py --write`",
+        # ONE line: this file is in the boot closure and CLAUDE.md §11 already carries the
+        # lead-in ([#1340], PLAN-CI-BASELINE-2026-10-01 cut C2).
+        "> Regenerate: `uv run --locked python scripts/gen_claude_rosters.py --write`",
         "",
         _GENERATED_NOTE,
         "",
