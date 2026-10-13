@@ -38,9 +38,11 @@ import re
 import shlex
 import shutil
 import subprocess
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
+from urllib.parse import parse_qs, urlsplit
 
 import click
 
@@ -62,6 +64,8 @@ FLIP_ROUTES: dict[str, str] = {
 }
 
 HUB_URL = "https://github.com/rdwornik/dev-knowledge"
+#: P-3 rewrites the hub URL to this host; a hub probe counts as refused only if it names it.
+HUB_SENTINEL_HOST = "hub-unreachable.invalid"
 PACKAGE = "dk-harness-probe"
 FIXTURE_SUBDIR = "tests/fixtures/harness-probe-pkg"
 CONSUMER_DIR = "/workspaces/corp-monorepo"
@@ -145,15 +149,87 @@ def p1_verdict(*, plugin_loaded: bool, fired_events: list[str]) -> str:
     return "PASS" if plugin_loaded and fired_events else "FAIL"
 
 
-def p2_verdict(exit_code: int, lock_text: str, package: str) -> str:
-    named = re.search(rf'^name = "{re.escape(package)}"$', lock_text or "", re.MULTILINE)
-    return "PASS" if exit_code == 0 and named else "FAIL"
+def _lock_git_source(lock_text: str, package: str) -> Optional[str]:
+    """The `source.git` URL uv.lock records for ``package``, or None (absent / not a git source)."""
+    try:
+        lock = tomllib.loads(lock_text or "")
+    except tomllib.TOMLDecodeError:
+        return None
+    for pkg in lock.get("package", []):
+        if pkg.get("name") == package:
+            source = pkg.get("source") or {}
+            return source.get("git") if isinstance(source, dict) else None
+    return None
 
 
-def p3_verdict(*, hub_reachable: bool, lane_exit: int, organ_seen: bool,
-               fired_events: list[str]) -> str:
-    ok = (not hub_reachable) and lane_exit == 0 and organ_seen and bool(fired_events)
+def p2_verdict(exit_code: int, lock_text: str, package: str, *, repo: str, subdir: str,
+               ref: str) -> str:
+    """PASS only if uv exited 0 AND the lock pins ``package`` to ``repo``'s ``subdir`` at ``ref``.
+
+    A name match alone is not enough (Codex r1): a local or unrelated package of the same name
+    would pass, which is not the git-URL subdirectory mechanism P-2 is about.
+    """
+    git = _lock_git_source(lock_text, package)
+    if exit_code != 0 or not git:
+        return "FAIL"
+    parsed = urlsplit(git)
+    query = parse_qs(parsed.query)
+    ok = (f"{parsed.scheme}://{parsed.netloc}{parsed.path}" == repo
+          and query.get("subdirectory") == [subdir]
+          and parsed.fragment == ref)
     return "PASS" if ok else "FAIL"
+
+
+def hub_refused(probe_exit: int, probe_out: str) -> bool:
+    """True only when the hub probe failed BECAUSE of the sentinel rewrite, not for any reason."""
+    return probe_exit != 0 and HUB_SENTINEL_HOST in (probe_out or "")
+
+
+def p3_verdict(*, hub_probe_exit: int, hub_probe_out: str, lane_exit: int, organ_seen: bool,
+               fired_events: list[str]) -> str:
+    ok = (hub_refused(hub_probe_exit, hub_probe_out) and lane_exit == 0 and organ_seen
+          and bool(fired_events))
+    return "PASS" if ok else "FAIL"
+
+
+def _events(stream: str) -> Iterable[dict]:
+    for raw in stream.splitlines():
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(event, dict):
+            yield event
+
+
+def _content_text(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(c.get("text", "") for c in content if isinstance(c, dict))
+    return ""
+
+
+def organ_ran(stream: str, command_fragment: str, marker: str) -> bool:
+    """True only if a Bash tool_use ran ``command_fragment`` AND ITS OWN tool_result holds
+    ``marker`` -- the model repeating the marker in its reply is not the organ running (Codex r1).
+    """
+    uses: set[str] = set()
+    results: dict[str, str] = {}
+    for event in _events(stream):
+        content = (event.get("message") or {}).get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if (event.get("type") == "assistant" and block.get("type") == "tool_use"
+                    and block.get("name") == "Bash"
+                    and command_fragment in str((block.get("input") or {}).get("command", ""))):
+                uses.add(block.get("id"))
+            elif event.get("type") == "user" and block.get("type") == "tool_result":
+                results[block.get("tool_use_id")] = _content_text(block.get("content"))
+    return any(marker in results.get(use_id, "") for use_id in uses)
 
 
 # ------------------------------------------------------------------ the remote run
@@ -267,7 +343,8 @@ def run_remote(ref: str, codespace: str) -> dict:
     lock = (copy / "uv.lock").read_text(encoding="utf-8") if (copy / "uv.lock").is_file() else ""
     lock_lines = [ln for ln in lock.splitlines() if PACKAGE in ln or "subdirectory=" in ln]
     receipts.append(_receipt("P-2", f"cd /tmp/p2-corp (copy of {CONSUMER_DIR}) && {p2_cmd}",
-                             p2_code, p2_out, codespace, p2_verdict(p2_code, lock, PACKAGE),
+                             p2_code, p2_out, codespace, p2_verdict(p2_code, lock, PACKAGE, repo=HUB_URL,
+                                                                  subdir=FIXTURE_SUBDIR, ref=ref),
                              {"uv_lock_lines": lock_lines[:6], "uv_version": context["uv_version"]}))
 
     # P-1 -- install the stand-in into a scratch project, materialise its plugin from package
@@ -305,24 +382,30 @@ def run_remote(ref: str, codespace: str) -> dict:
 
     # P-3 -- make the hub unreachable at the git transport, prove it, then run a lane that uses
     # the harness organ and the plugin.
-    block = (f"git config --global url.https://hub-unreachable.invalid/rdwornik/dev-knowledge"
-             f".insteadOf {HUB_URL}")
-    _sh(block)
-    probe_code, probe_out = _sh(f"GIT_TERMINAL_PROMPT=0 timeout 60 git ls-remote {HUB_URL} HEAD")
+    rewrite_key = f"url.https://{HUB_SENTINEL_HOST}/rdwornik/dev-knowledge.insteadOf"
+    block = f"git config --global {rewrite_key} {HUB_URL}"
+    block_code, block_out = _sh(block)
+    hub_probe = f"GIT_TERMINAL_PROMPT=0 timeout 60 git ls-remote {HUB_URL} HEAD"
+    probe_code, probe_out = _sh(hub_probe)
     lane_prompt = (f"Run the shell command `uv run --locked {PACKAGE} check` in the current "
                    "directory and reply with its output verbatim.")
     p3_cmd, p3_code, p3_out = _claude(lane_prompt, str(scratch), witness,
                                       "--max-turns 4 --allowedTools Bash")
     p3_fired = _witness_events(witness)
-    _sh("git config --global --unset url.https://hub-unreachable.invalid/rdwornik/dev-knowledge"
-        ".insteadOf")
+    _sh(f"git config --global --unset {rewrite_key}")
+    organ_seen = organ_ran(p3_out, f"{PACKAGE} check", ORGAN_MARKER)
+    # Three SEPARATE commands, each with its own exit code: the hub probe is EXPECTED to fail,
+    # so they are not an `&&` chain (Codex r1). exit_code is the lane's.
     receipts.append(_receipt(
-        "P-3", f"{block} && git ls-remote {HUB_URL} HEAD && {p3_cmd}", p3_code,
-        f"[hub probe exit {probe_code}] {probe_out.strip()}\n{stream_summary(p3_out)}\n"
-        f"witness={p3_fired}", codespace,
-        p3_verdict(hub_reachable=probe_code == 0, lane_exit=p3_code,
-                   organ_seen=ORGAN_MARKER in p3_out, fired_events=p3_fired),
-        {"hub_probe_exit": probe_code, "witness_events": p3_fired}))
+        "P-3", f"(1) {block}  (2) {hub_probe}  (3) {p3_cmd}", p3_code,
+        f"[(1) exit {block_code}] {block_out.strip()}\n"
+        f"[(2) hub probe exit {probe_code}, expected nonzero] {probe_out.strip()}\n"
+        f"[(3) lane exit {p3_code}] organ tool_result seen={organ_seen}\n"
+        f"{stream_summary(p3_out)}\nwitness={p3_fired}", codespace,
+        p3_verdict(hub_probe_exit=probe_code, hub_probe_out=probe_out, lane_exit=p3_code,
+                   organ_seen=organ_seen and block_code == 0, fired_events=p3_fired),
+        {"block_exit": block_code, "hub_probe_exit": probe_code, "lane_exit": p3_code,
+         "organ_tool_result_seen": organ_seen, "witness_events": p3_fired}))
 
     context["consumer_after"] = _consumer_state()
     return {"context": context, "receipts": receipts}
