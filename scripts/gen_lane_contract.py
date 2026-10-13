@@ -71,6 +71,20 @@ row (name, how=deterministic, result, evidence) for the lane-report rollup. Abse
 = `NOT_RUN`, never a vacuous PASS. The `emit` path does not write the line yet: a contract
 author adds it by hand under `**Kind:**`.
 
+REAL-TRANSCRIPT RUN ([#958] Done 4, 2026-10-13, lane-bw-958-required-tools). No frozen BW
+contract declares required tools (they predate the line, and a frozen contract is not edited),
+so a scratch copy of `LANE-bw-912-known-reds-expiry.md` was given
+`**Required tools:** `tool:Bash`, `command:file_purpose_graph.py why`, `command:codex exec`,
+`flag:--locked`, `skill:why`` and checked against that F1 lane's own transcript
+(`~/.claude/projects/C--Users-1028120-Documents-Dev--dev-knowledge/
+ac626cdc-c6a7-43cd-b960-6a1af9f0ae37/subagents/agent-a5ff29cf6bf40d775.jsonl`): 116 tool
+calls read, `required-tools FAIL: missing skill:why`, exit 1 (the lane ran the graph `why`
+through Bash, never the Skill). The same line minus `skill:why`: `required-tools PASS`, exit 0.
+Against the orchestrator session file `ac626cdc-c6a7-43cd-b960-6a1af9f0ae37.jsonl`: 970 tool
+calls across 13 transcript files (session + 12 `subagents/`), `required-tools PASS`, exit 0
+(the session file alone holds 223 of them and also PASSes, so this run does not by itself
+prove the subagent leg — the fixture tests do).
+
 Layer-2 / read-only with respect to tracked spine files (ADR-28/36): writes ONLY the
 contract path it is given, and never JOURNAL / BACKLOG / any index.
 
