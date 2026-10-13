@@ -179,3 +179,20 @@ def test_the_cli_prints_the_path_and_the_map_sha(tmp_path):
 def test_the_map_command_runs_the_generator():
     text = (_REPO_ROOT / ".claude" / "commands" / "map.md").read_text(encoding="utf-8")
     assert "scripts/system_map.py build" in text
+
+
+def test_identical_trees_with_different_histories_give_identical_json(tmp_path):
+    """Codex r1 HIGH: the map is a function of the TREE, not of the commit history. A per-file
+    last-commit sha is history, so it is shown in the HTML and kept out of the hashed JSON."""
+    one = _tree(tmp_path / "one")
+    two = _tree(tmp_path / "two")
+    _write(two / "scripts" / "alpha.py", '"""Alpha: an interim edit."""\nVALUE = 2\n')
+    _git(two, "commit", "-q", "-am", "interim")
+    _write(two / "scripts" / "alpha.py", '"""Alpha: the imported module."""\nVALUE = 1\n')
+    _git(two, "commit", "-q", "-am", "revert interim")
+    assert sm.render_json(sm.build_map(one)) == sm.render_json(sm.build_map(two))
+    # the history is still shown on the page
+    html = sm.render_html(sm.build_map(two), "0" * 64, sm.last_commits(two))
+    head = subprocess.run(["git", "-C", str(two), "rev-parse", "HEAD"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+    assert head[:12] in html
