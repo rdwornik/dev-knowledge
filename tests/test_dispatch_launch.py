@@ -1180,3 +1180,13 @@ def test_d1_a_test_run_never_writes_the_launch_ledger_into_the_real_home(contrac
 
     assert spawn.calls[0][:2] == ["codex", "exec"] and "--worktree" not in spawn.calls[0]
     assert result.job_id == "codex-4321"
+
+
+def test_d1_spawn_resolves_an_npm_cmd_shim_on_windows_before_createprocess():
+    """`CreateProcess` ignores PATHEXT, so a bare `copilot` / `codex` (npm `.cmd` shims) is WinError 2
+    and every detached producer launch on Windows is refused before it starts."""
+    which = {"copilot": r"C:\npm\copilot.CMD", "claude": r"C:\bin\claude.EXE"}.get
+
+    assert d.resolve_program(["copilot", "-p", "x"], which=which, windows=True) == [r"C:\npm\copilot.CMD", "-p", "x"]
+    assert d.resolve_program(["nope", "a"], which=which, windows=True) == ["nope", "a"], "unresolved: unchanged"
+    assert d.resolve_program(["copilot", "-p"], which=which, windows=False) == ["copilot", "-p"], "POSIX: untouched"
