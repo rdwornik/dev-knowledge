@@ -292,25 +292,41 @@ def _feed(stream, payload: bytes) -> None:
             pass
 
 
+def _kill_tree_windows(pid: int) -> None:
+    """Kill `pid` and its descendants, deepest first, without waiting on any of them.
+
+    NOT AWAITED: TerminateProcess only requests the kill, so nothing here waits on the dying
+    tree (`taskkill /T`, the earlier verb, was measured taking >10 s on a loaded box). The tree
+    comes from psutil, never `taskkill /T`: Windows keeps a dead parent's pid in
+    ParentProcessId and recycles pids, and taskkill adopts any process naming ours -- the
+    pytest workers, once (batch BW F1 land repair). `children()` drops a child older than the
+    root. Lazy import: only a timed-out hook pays for psutil. A tree it cannot read or a member
+    it cannot kill is LOGGED, never silent (Codex r2); a child already gone is not an error.
+    """
+    try:
+        import psutil  # noqa: PLC0415
+    except ImportError as exc:
+        LOG.warning("[hook-bypass] psutil unavailable; only pid %s itself is killed: %r", pid, exc)
+        return
+    try:
+        root = psutil.Process(pid)
+        members = [*root.children(recursive=True), root]
+    except psutil.Error as exc:
+        LOG.warning("[hook-bypass] could not read the process tree of pid %s; only it is "
+                    "killed: %r", pid, exc)
+        return
+    for member in members:
+        try:
+            member.kill()
+        except psutil.NoSuchProcess:
+            pass
+        except psutil.Error as exc:
+            LOG.warning("[hook-bypass] could not kill pid %s under %s: %r", member.pid, pid, exc)
+
+
 def _kill_tree(proc: subprocess.Popen) -> None:
     if os.name == "nt":
-        # NOT AWAITED: TerminateProcess only requests the kill, so nothing here waits on the
-        # dying tree (`taskkill /T`, the earlier verb, was measured taking >10 s on a loaded
-        # box). The tree comes from psutil, never `taskkill /T`: Windows keeps a dead parent's
-        # pid in ParentProcessId and recycles pids, and taskkill adopts any process naming
-        # ours -- the pytest workers, once (batch BW F1 land repair). `children()` drops a
-        # child older than the root. Lazy import: only a timed-out hook pays for psutil.
-        try:
-            import psutil  # noqa: PLC0415
-
-            root = psutil.Process(proc.pid)
-            for member in (*root.children(recursive=True), root):
-                try:
-                    member.kill()
-                except psutil.Error:
-                    pass
-        except Exception:  # noqa: BLE001 -- psutil missing or the root gone; proc.kill() below
-            pass
+        _kill_tree_windows(proc.pid)
     else:
         try:
             os.killpg(proc.pid, 9)
