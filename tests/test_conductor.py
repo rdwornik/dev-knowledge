@@ -15,6 +15,7 @@ exact defect the window_metrics discipline exists to prevent.
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -831,7 +832,15 @@ def test_the_session_start_hook_is_wired_in_settings_json(cond):
     settings = json.loads((_REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
     commands = [h["command"] for block in settings["hooks"]["SessionStart"]
                 for h in block["hooks"]]
-    assert any("conductor.py" in c and "session-start" in c for c in commands),         "the conductor SessionStart surface is not wired into .claude/settings.json"
+    # lane-bw-1001-sessionstart-one ([#1001]): SessionStart is ONE entry,
+    # scripts/hooks/session_start.py, which imports the conductor and calls its `session-start`.
+    assert any(c.endswith(" scripts/hooks/session_start.py") for c in commands), commands
+    sys.path.insert(0, str(_REPO / "scripts" / "hooks"))
+    import session_start
+    reader = next((r for r in session_start.READERS if r.script == "scripts/conductor.py"), None)
+    assert reader is not None, (
+        "the conductor SessionStart surface is not wired into the one SessionStart entry")
+    assert "session-start" in inspect.getsource(reader.entry)
 
 
 def test_the_two_conductor_surfaces_are_floor_components_in_the_manifest(cond):

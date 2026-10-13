@@ -493,7 +493,11 @@ surfaces:
     kind: settings-hook-block
     tier: {hub: MUST, consumer: MUST}
     probe: {type: settings_hook, event: SessionStart, token: pre_commit install}
-    local_names: {.dev-knowledge: arm_hooks.py}
+    # [#1001] lane-bw-1001-sessionstart-one: the hub's nine SessionStart entries are ONE,
+    # scripts/hooks/session_start.py, which imports arm_hooks.py (and the other readers) into
+    # one interpreter. The hub's local name follows the entry; that arm_hooks.py stays one of
+    # its readers is pinned by tests/test_session_start.py.
+    local_names: {.dev-knowledge: session_start.py}
     ownership:
       value: methodology-generic
       reason: "SessionStart pre-commit-arm hook block -- methodology-shipped self-arm organ (MUST both); methodology-owned (RF-2 hub self-arm)."
@@ -604,10 +608,12 @@ surfaces:
         # lane_end_guard.py added 2026-09-22 by wave-4 lane W4-4 (connection-hygiene),
         # closing the gap left by the Stop hook W3-D wired (merged df0c1ac8) without this
         # declaration -- DIGEST-WAVE3-2026-09-21.md queue item 7.
+        # session_start.py added 2026-10-13 by lane-bw-1001-sessionstart-one ([#1001]) in the
+        # same act as its SessionStart entry: the one entry that replaced the nine.
         .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
                          changelog_sentinel.py, block_immutable_edits.py,
                          deny_and_point.py, resource_lifecycle.py, codespace_regime.py,
-                         lane_end_guard.py]
+                         lane_end_guard.py, session_start.py]
         corp-monorepo: [surface-conformance.ps1]
     ownership:
       value: methodology-generic

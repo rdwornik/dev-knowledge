@@ -207,6 +207,11 @@ POSTURES: tuple[Posture, ...] = (
             "test_bounded_hook.py::test_the_live_settings_pass_the_check already asserts every "
             ".claude/settings.json PreToolUse registration carries a POSTURES entry -- landing "
             "the new hook without this one line would red an existing, unrelated test."),
+    Posture("session-start", "scripts/hooks/session_start.py", "fail-open", False,
+            "[#1001] the ONE SessionStart entry (lane-bw-1001-sessionstart-one): it imports the "
+            "nine former SessionStart readers into one interpreter, each of them fail-open "
+            "surfacing (their own entries above keep their ids for the transcript history). A "
+            "SessionStart hook cannot refuse, so a bypass loses one boot digest, never a gate."),
 )
 
 

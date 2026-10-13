@@ -212,3 +212,50 @@ def test_stderr_is_kept_apart_from_the_injected_stdout():
 @pytest.mark.parametrize("reader", ss.READERS, ids=lambda r: r.reader_id)
 def test_each_real_reader_names_a_script_on_disk(reader):
     assert (_REPO / reader.script).is_file()
+
+
+def test_the_parity_arm_probe_follows_the_one_entry_and_arm_hooks_stays_its_reader():
+    """`ecosystem/parity-surfaces.yaml` settings-precommit-arm names the hub's arm hook by its
+    local name. It now names this entry, which is honest only while arm_hooks.py is one of its
+    readers -- the coupling this test holds."""
+    import yaml
+
+    rows = yaml.safe_load((_REPO / "ecosystem" / "parity-surfaces.yaml").read_text(
+        encoding="utf-8"))["surfaces"]
+    arm = next(r for r in rows if r["id"] == "settings-precommit-arm")
+    assert arm["local_names"][".dev-knowledge"] == Path(_TARGET).name
+    assert "scripts/arm_hooks.py" in {r.script for r in ss.READERS}
+
+
+def test_a_reader_that_reads_stdin_until_eof_gets_the_payload_once():
+    chunks = []
+
+    def drains():
+        while True:
+            chunk = sys.stdin.read(4096)
+            if not chunk:
+                break
+            chunks.append(chunk)
+
+    ss.run([_reader("drain", drains)], payload='{"a": 1}', deadline_s=2)
+    assert chunks == ['{"a": 1}']
+
+
+def test_a_straggler_cannot_print_past_the_cap_once_the_output_is_composed():
+    gate = threading.Event()
+    saved = sys.stdout, sys.stderr
+
+    def late():
+        gate.wait(5)
+        print("[late] after the deadline")
+
+    try:
+        out, _err = ss.run([_reader("late", late)], deadline_s=0.2, silence_stragglers=True)
+        silenced = sys.stdout
+        gate.set()
+        time.sleep(0.3)
+        assert silenced is not saved[0]
+        assert silenced.write("x") == 1  # a sink: it accepts and discards
+        assert "[late] after the deadline" not in out
+    finally:
+        sys.stdout, sys.stderr = saved
