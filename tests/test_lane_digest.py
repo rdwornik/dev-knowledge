@@ -566,3 +566,27 @@ def test_the_rollup_cli_reads_a_synthetic_transport(tmp_path):
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.startswith("batch ZZ wave F1 | expected 3 | received 1 | MISSING: ")
     assert "lane-zz-2-beta | MISSING" in proc.stdout
+
+
+
+# --- lane-bw-1374-lane-controller (D1): the rollup reads the launch record's producer -----------
+
+def test_d1_the_rollup_names_the_producer_dispatch_launched_for_a_missing_lane(tmp_path):
+    ld = _mod("lane_digest")
+    launches = {"lane-zz-3-gamma": {"producer": {"vendor": "openai", "model": "gpt-6-astra",
+                                                 "session": "codex-77"}}}
+    out = ld.render_rollup("ZZ", _MANIFEST, tmp_path / "none", wave="F1", launches=launches)
+
+    assert "lane-zz-3-gamma | MISSING | launched by openai/gpt-6-astra (codex-77)" in out
+
+
+def test_d1_a_report_whose_producer_is_not_the_launched_one_is_invalid(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_lane_end(reports, "lane-zz-1-alpha", _lane_report("lane-zz-1-alpha"))  # vendor 'claude'
+    launches = {"lane-zz-1-alpha": {"producer": {"vendor": "copilot-enterprise", "model": "auto",
+                                                 "session": "s"}}}
+    out = ld.render_rollup("ZZ", _MANIFEST, reports, wave="F1", launches=launches)
+
+    assert ("lane-zz-1-alpha | INVALID | the report names producer 'claude' but dispatch "
+            "launched 'copilot-enterprise'") in out

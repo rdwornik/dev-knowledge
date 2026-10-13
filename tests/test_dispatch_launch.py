@@ -1049,3 +1049,123 @@ def test_process_alive_sends_no_signal(monkeypatch):
     monkeypatch.setattr(d, "_control", lambda argv: seen.append(argv) or subprocess.CompletedProcess(argv, 0, '"x","4321"', ""))
     d.process_alive(4321)
     assert seen and seen[0][0] in ("tasklist", "ps")
+
+
+
+# --- lane-bw-1374-lane-controller (D1): every producer kind, the launch record ------------------
+#
+# RED-first. Done-contract 1: `dispatch` launches each producer kind with the flags the router
+# picks -- `claude -p` at the distiller's tier, `codex exec`, `copilot -p`, Grok when a route
+# exists (otherwise MISSING) -- and these tests build each argv without launching. Done-contract
+# 2: each launch writes its producer (vendor, model, session id) into a launch record the LANE
+# REPORT, the rollup and `land` read.
+
+@pytest.fixture
+def ledger(tmp_path, monkeypatch):
+    path = tmp_path / "state" / "LANE-LAUNCHES.jsonl"
+    monkeypatch.setenv(d.LAUNCH_LEDGER_ENV, str(path))
+    return path
+
+
+def test_d1_producer_routes_build_every_kind_without_launching(contract):
+    request = _request(contract)
+    routes = {r.kind: r for r in d.producer_routes(request, repo=".dev-knowledge")}
+
+    assert list(routes) == list(d.PRODUCER_KINDS) == ["claude", "codex", "copilot", "grok"]
+    claude, codex, copilot, grok = (routes[k] for k in d.PRODUCER_KINDS)
+    assert claude.status == codex.status == copilot.status == d.ROUTE_ROUTED
+    assert claude.argv[:2] == ["claude", "-p"] and codex.argv[:2] == ["codex", "exec"]
+    assert copilot.argv[:2] == ["copilot", "-p"]
+    # the distiller's tier: the contract's own Model cell, never the router's implement pin
+    assert claude.model == "sonnet" and claude.argv[claude.argv.index("--model") + 1] == "sonnet"
+    assert "--worktree" in claude.argv and "--session-id" in claude.argv
+    assert "--session-id" in copilot.argv
+    # the router picks the non-Claude models from the registry, never the contract's Claude alias
+    assert codex.model != "sonnet" and copilot.model != "sonnet"
+    # Grok: no route exists today (not admitted for implement; no grok head) -> recorded MISSING
+    assert grok.status == d.ROUTE_MISSING and grok.argv == [] and grok.reason
+
+
+def test_d1_a_route_the_router_refuses_is_missing_for_that_kind(contract):
+    class Router:
+        @staticmethod
+        def explain(role, repo, **kw):
+            return [type("V", (), {"provider": "copilot-enterprise", "model": None,
+                                   "refusal": "off-allowlist", "reason": "not here"})()]
+
+        @staticmethod
+        def allowlist(repo, path=None):
+            return ["anthropic", "openai"]
+
+        @staticmethod
+        def licences():
+            return {"anthropic": "permitted", "openai": "permitted"}
+
+        @staticmethod
+        def provider_model(provider):
+            return None
+
+    routes = {r.kind: r for r in d.producer_routes(_request(contract), repo="x", router=Router)}
+
+    assert routes["copilot"].status == d.ROUTE_MISSING and "off-allowlist" in routes["copilot"].reason
+    assert routes["claude"].status == d.ROUTE_ROUTED
+
+
+def test_d1_a_producer_launch_writes_its_producer_into_the_launch_record(contract, tmp_path, ledger):
+    from ecosystem.schema.lane_report import Agent
+    request = _request(contract, producer="copilot", repo=".dev-knowledge")
+    spawn = FakeClaude([])
+
+    result, spawn, _ = _launch(request, tmp_path, spawn=spawn)
+
+    argv = spawn.calls[0]
+    assert argv[:2] == ["copilot", "-p"]
+    row = d.read_lane_launches(ledger)[request.slug]
+    producer = Agent.model_validate(row["producer"])
+    assert producer.vendor == "copilot-enterprise"
+    assert producer.session == argv[argv.index("--session-id") + 1] == request.session_id
+    assert row["branch"] == f"worktree-{request.slug}" and row["kind"] == "copilot"
+
+
+def test_d1_a_claude_p_launch_is_detached_and_its_session_id_is_the_records(contract, tmp_path, ledger):
+    request = _request(contract, producer="claude", repo=".dev-knowledge")
+    seen = {}
+
+    def spawn(argv, env, cwd, log_path=None):
+        seen["argv"], seen["log"] = list(argv), log_path
+        return d.Spawned(returncode=0, stdout="", pid=999)
+
+    result = d.launch_lane(request, prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path)
+
+    assert seen["argv"][:2] == ["claude", "-p"] and seen["log"] is not None, "detached, never run to completion"
+    assert result.session_id == request.session_id
+    row = d.read_lane_launches(ledger)[request.slug]
+    assert row["producer"] == {"vendor": "anthropic", "model": "sonnet", "session": request.session_id}
+
+
+def test_d1_a_missing_route_refuses_the_launch_and_spawns_nothing(contract, tmp_path, ledger):
+    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--producer", "grok"])
+
+    assert out.exit_code == d.EXIT_REFUSED and "MISSING" in out.output
+    assert not ledger.exists()
+    assert not list(Path(os.environ["HARNESS_RECEIPTS_DIR"]).glob("LAUNCH-*.json")), "nothing launched"
+
+def test_d1_the_producers_verb_prints_every_kind_and_starts_nothing(contract, ledger):
+    out = CliRunner().invoke(d.cli, ["producers", str(contract), "--repo", ".dev-knowledge"])
+
+    assert out.exit_code == 0, out.output
+    rows = json.loads(out.output)
+    assert [r["kind"] for r in rows] == ["claude", "codex", "copilot", "grok"]
+    assert rows[3]["status"] == "MISSING" and not ledger.exists()
+
+
+def test_d1_a_test_run_never_writes_the_launch_ledger_into_the_real_home(contract, tmp_path, monkeypatch):
+    monkeypatch.delenv(d.LAUNCH_LEDGER_ENV, raising=False)
+
+    def home():
+        raise AssertionError("a test run resolved the real launch-ledger home")
+
+    monkeypatch.setattr(d, "launch_ledger_path", home)
+    request = _request(contract, producer="codex", repo=".dev-knowledge")
+
+    _launch(request, tmp_path)

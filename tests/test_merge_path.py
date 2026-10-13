@@ -191,6 +191,8 @@ class Rig:
             target = args[2].split(":", 1)[1]
             rc = self.push_main_rc if target == "refs/heads/main" else self.push_integration_rc
             return rc, "" if rc == 0 else "remote: rejected"
+        if args[0] in ("log", "for-each-ref"):   # the D1 lane gate's reads: no lane in the range
+            return 0, ""
         return 1, "unexpected"
 
     def verdict_fn(self, sha, **kwargs):
@@ -921,3 +923,98 @@ def test_a_test_run_never_writes_the_real_home_unless_it_redirects(monkeypatch):
     monkeypatch.delenv(mp.EVENTS_PATH_ENV, raising=False)
 
     assert mp.emit_run_event("a", "ok", 0.1) is None
+
+
+
+# --- lane-bw-1374-lane-controller (D1): `land` refuses a lane branch `dispatch` did not launch ---
+#
+# RED-first. Done-contract 3: a hand-made `worktree-lane-*` branch with no launch record is
+# refused, and the refusal names the lane; a dispatched one is not; the integrator's own
+# `worktree-integrate-*` merge is not a lane. Gated PROSPECTIVELY: a lane whose first commit
+# predates `LAUNCH_GATE_ERA`, or that a grandfathered manifest names, is never retro-refused.
+
+LANE_TIP = "c" * 40
+NEW = "1800000000"       # 2027-01-15, after the era
+OLD = "1760000000"       # 2025-10-09, before the era
+
+
+@dataclass
+class LaneRig(Rig):
+    subjects: list = field(default_factory=lambda: [
+        f"{TIP}\t{BASE} {LANE_TIP}\tMerge branch 'worktree-lane-zz-1-hand-made' into worktree-integrate-b"])
+    refs: str = ""
+    lane_times: str = NEW
+    log_rc: int = 0
+
+    def git(self, args):
+        if args[0] == "log":
+            self.calls.append(list(args))
+            if self.log_rc:
+                return self.log_rc, "fatal: bad revision"
+            if args[-1] == f"{BASE}..{TIP}":
+                return 0, "\n".join(self.subjects)
+            return 0, self.lane_times
+        if args[0] == "for-each-ref":
+            self.calls.append(list(args))
+            return 0, self.refs
+        return super().git(args)
+
+
+def _gated(rig, launched=(), grandfathered=(), **kw):
+    return _land(rig, launched_fn=lambda: set(launched),
+                 grandfathered_fn=lambda root: set(grandfathered), **kw)
+
+
+@pytest.mark.parametrize("no_push", [False, True])
+def test_d1_land_refuses_a_hand_made_lane_branch_and_names_it(no_push):
+    rig = LaneRig()
+
+    result = _gated(rig, no_push=no_push)
+
+    assert result.state == "LANE-NOT-DISPATCHED" and not result.landed and not result.would_land
+    assert "lane-zz-1-hand-made" in result.reason
+    assert rig.pushes() == [] and rig.recorded == [], "refused before any push or CI read"
+
+
+def test_d1_land_admits_a_dispatched_lane():
+    result = _gated(LaneRig(), launched={"lane-zz-1-hand-made"})
+
+    assert result.landed and result.state == "PASS"
+
+
+def test_d1_the_integrators_own_integrate_merge_is_not_a_lane():
+    rig = LaneRig(subjects=[f"{TIP}\t{BASE} {LANE_TIP}\tMerge branch 'worktree-integrate-bw' @ 68a82db1"])
+
+    assert _gated(rig).landed
+
+
+def test_d1_a_live_lane_ref_in_the_range_is_gated_even_under_a_custom_merge_message():
+    rig = LaneRig(subjects=[f"{TIP}\t{BASE} {LANE_TIP}\tintegrate: something", f"{LANE_TIP}\t{BASE}\tfeat: x"],
+                  refs=f"origin/worktree-lane-zz-2-renamed\t{LANE_TIP}\nworktree-lane-zz-3-elsewhere\t{'e' * 40}")
+
+    result = _gated(rig)
+
+    assert result.state == "LANE-NOT-DISPATCHED" and "lane-zz-2-renamed" in result.reason
+    assert "lane-zz-3-elsewhere" not in result.reason, "a lane ref outside the range is not in this land"
+
+
+def test_d1_a_lane_older_than_the_era_is_grandfathered_not_retro_refused():
+    assert _gated(LaneRig(lane_times=f"{NEW}\n{OLD}")).landed
+
+
+def test_d1_a_lane_a_grandfathered_manifest_names_is_not_refused():
+    assert _gated(LaneRig(), grandfathered={"lane-zz-1-hand-made"}).landed
+
+
+def test_d1_an_unreadable_range_fails_closed():
+    rig = LaneRig(log_rc=128)
+
+    result = _gated(rig)
+
+    assert result.state == "LANE-GATE-UNREADABLE" and not result.landed and rig.pushes() == []
+
+
+def test_d1_the_bw_manifest_grandfathers_its_own_in_flight_lanes():
+    lanes = mp.grandfathered_lanes(Path(__file__).resolve().parents[1])
+
+    assert "lane-bw-1374-lane-controller" in lanes and "lane-bw-680-handoff-gen" in lanes
