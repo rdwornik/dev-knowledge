@@ -29,9 +29,20 @@ branch's two earlier rounds are in `docs/audits/2026-10-10-codex-b2w2-transport-
   POSIX rename, shared write/move lock, unreadable-head cache invalidation, and BOM-aware `by:`
   detection. The query implementation correctly operates on INDEX content and has meaningful
   filter/exit-code tests."
-- **Disposition of rounds 1–2:** this record is committed with both rounds, the per-item evidence
-  below and the full dry-run move list (Appendix), and the LANE REPORT is written on the transport
-  before round 3.
+- **Disposition of rounds 1–2:** this record was committed (`7d98fac6`) with both rounds, the
+  per-item evidence below and the full dry-run move list (Appendix).
+- **Round 3:** head `c10f33b2`, codex session `01a1350b-1b7f-76c2-bb1a-b79f50bf91ff`, served model
+  `gpt-5.6-terra` (reasoning effort low). Proof of reading: `NONCE-ECHO 93f2c6ad` / `HEAD c10f33b2`;
+  returned nonce `6bd4a8e1`. Verdict **REQUEST-CHANGES**, HIGH 1 / MED 0 / LOW 0: the disposition line
+  above said the LANE REPORT was written before round 3, which was false. Its verification, verbatim:
+  "`14f91ba0` is an ancestor; the audit contains 245 move entries, all `superseded`, plus seven skips;
+  the unreviewed code fixes and query implementation appear to close their cited issues."
+- **Disposition of round 3 (the chronology):** the LANE REPORT
+  (`to-browser/LANE-END-lane-bw-1439-transport-index.md` on the transport, batch manifest §4 rule 9)
+  is written AFTER the last review round, from this record plus that round's served model, session
+  id and returned nonce; it is not part of this diff. The last round's identity is carried by the
+  LANE REPORT and the handback, not by this file, since a record cannot contain the nonce of a review
+  of itself.
 
 ---
 
