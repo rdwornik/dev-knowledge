@@ -4574,7 +4574,9 @@ _JOURNAL_DAY_LETTER_FLOOR = "2026-07-30"
 _JOURNAL_CORRECTION_EXPIRES = date(2026, 11, 18)
 # A correction entry is a dated heading carrying the uppercase word CORRECTION.
 _JOURNAL_CORRECTION_HEADING_RE = re.compile(r"^### \d{4}-\d{2}-\d{2} \([^)]+\).*\bCORRECTION\b")
-# How much of each colliding heading line the correction must quote to POINT at that block.
+# The MINIMUM of each colliding heading line the correction must quote to POINT at that block;
+# where the colliding headings share a longer prefix the pointer grows to the shortest prefix
+# that tells them apart (`_journal_pointers`; the five 2026-10-11 (d) headings share 69).
 _JOURNAL_POINTER_CHARS = 60
 
 
@@ -4594,18 +4596,34 @@ def _journal_blocks(text: str) -> list[tuple[str, str]]:
     return out
 
 
+def _journal_pointers(headings: list[str]) -> list[str] | None:
+    """The shortest prefixes, at least `_JOURNAL_POINTER_CHARS` long, that tell every colliding
+    heading line apart -- or None when no quote can (two identical lines, or one line contained
+    in another, so quoting the longer would also "quote" the shorter: ambiguous is not
+    corrected)."""
+    if any(a in b for i, a in enumerate(headings) for j, b in enumerate(headings) if i != j):
+        return None
+    for n in range(_JOURNAL_POINTER_CHARS, max(map(len, headings)) + 1):
+        pointers = [h[:n] for h in headings]
+        if not any(a in b for i, a in enumerate(pointers)
+                   for j, b in enumerate(pointers) if i != j):
+            return pointers
+    return None  # pragma: no cover -- unreachable once no heading is contained in another
+
+
 def _journal_collision_corrected(blocks: list[tuple[str, str]], date_str: str, letter: str) -> bool:
     """Is the `date (letter)` collision named by a LATER correction pointing at every block?
 
     LATER = above every colliding block (the file is newest-first). POINTING = the correction
-    quotes the first `_JOURNAL_POINTER_CHARS` characters of each colliding heading line; if two
-    colliding headings share that prefix a quote cannot tell them apart, so the collision is NOT
-    resolved (ambiguous is not corrected).
+    quotes, for each colliding heading line, the `_journal_pointers` prefix -- at least
+    `_JOURNAL_POINTER_CHARS` characters, longer where the headings share a longer prefix, so a
+    quote always names ONE block. Headings no prefix can tell apart are NOT resolved (ambiguous
+    is not corrected).
     """
     tag = f"### {date_str} ({letter})"
     idx = [i for i, (h, _) in enumerate(blocks) if h.startswith(tag)]
-    pointers = [blocks[i][0][:_JOURNAL_POINTER_CHARS] for i in idx]
-    if len(set(pointers)) != len(pointers):
+    pointers = _journal_pointers([blocks[i][0] for i in idx])
+    if pointers is None:
         return False
     for heading, block in blocks[:min(idx)]:
         if not _JOURNAL_CORRECTION_HEADING_RE.match(heading):
@@ -4656,7 +4674,7 @@ def check_journal_day_letters(repo_path: Path) -> list[Finding]:
     # narrowing is never applied invisibly.
     tail = ""
     if corrected and not expired:
-        tail = (f"; {label(corrected)} resolved by a later CORRECTION entry naming both blocks "
+        tail = (f"; {label(corrected)} resolved by a later CORRECTION entry naming every colliding block "
                 f"([#926] correction-by-addition, expires "
                 f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()})")
     if open_dupes:
