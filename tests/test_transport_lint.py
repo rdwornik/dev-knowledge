@@ -526,3 +526,55 @@ def test_the_template_proof_check_refuses_unrelated_prose_adjacent_to_a_numbered
           "   a nonce or content hash.\n\n## Do not\n")
     item = _r59_item_in_done_contract(ok)
     assert "R59 proof of read" in item and "nonce or content hash" in item
+
+
+# --- R95 D3 (lane bw-1378-rulings-landing): SEAT-LESSONS is a registered kind -------------------
+#
+# R95 D3 (`to-browser/RATIFICATION-2026-10-10.md`): "`SEAT-LESSONS` goes into
+# `ecosystem/transport-registry.yaml`, so the file that v2's reading path names passes the lint."
+# RED on the base: the live `SEAT-LESSONS-2026-10-10.md` is refused `unknown-kind`.
+
+#: The head of the live `to-browser/SEAT-LESSONS-2026-10-10.md` (v2), its key lines byte for byte
+#: as written by the architect seat, so the classification leg runs with no transport.
+SEAT_LESSONS_HEAD = (
+    "carried-by: OPEN\n"
+    "kind: SEAT-LESSONS\n"
+    "date: 2026-10-10\n"
+    "supersedes: SEAT-LESSONS-2026-10-10-v1-superseded.md\n"
+    "summary: What an architect seat gets wrong.\n"
+    "\n"
+    "# SEAT-LESSONS — learn from the seats before you\n"
+)
+
+
+def test_seat_lessons_is_a_registered_versioned_non_decision_to_browser_kind(t, registry):
+    for name in ("SEAT-LESSONS-2026-10-10.md", "SEAT-LESSONS-2026-10-10-v1-superseded.md",
+                 "SEAT-LESSONS-2026-10-10-v3.md"):
+        kind = t.classify(name, registry)
+        assert kind is not None and kind.name == "SEAT_LESSONS", name
+        assert kind.folder == "to-browser" and kind.decision is False and kind.versioned is True
+    # The digest of the same name stays a DIGEST: the longer prefix is not shadowed.
+    assert t.classify("DIGEST-SEAT-LESSONS-2026-09-28.md", registry).name == "DIGEST"
+
+
+def test_a_seat_lessons_file_lints_clean_in_to_browser_and_is_refused_elsewhere(lint):
+    assert lint.lint_text("SEAT-LESSONS-2026-10-10.md", "to-browser", SEAT_LESSONS_HEAD) == []
+    codes = [f.code for f in lint.lint_text("SEAT-LESSONS-2026-10-10.md", "to-cc",
+                                            SEAT_LESSONS_HEAD)]
+    assert codes == ["wrong-folder"]
+
+
+def test_the_live_seat_lessons_file_passes_transport_lint_check(lint):
+    """Done-contract item 4: the LIVE file R95 names passes `transport_lint.py check`. Read where
+    the transport is declared; with none, the leg is named UNVERIFIED, never passed in silence."""
+    declared = (os.environ.get("CLAUDE_PROMPTS_DIR") or "").strip().strip('"')
+    folder = Path(declared) / "to-browser" if declared else None
+    live = sorted(folder.glob("SEAT-LESSONS-*.md")) if folder and folder.is_dir() else []
+    live = [p for p in live if "superseded" not in p.name]
+    if not live:
+        import warnings
+        warnings.warn("UNVERIFIED: no live SEAT-LESSONS file read -- no transport declared or "
+                      "none present.", UserWarning, stacklevel=1)
+        return
+    for path in live:
+        assert lint.main(["check", str(path)]) == 0, path.name
