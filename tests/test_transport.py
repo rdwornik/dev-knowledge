@@ -1714,3 +1714,92 @@ def test_a_platform_with_no_atomic_no_replace_rename_refuses_the_apply_and_moves
         t.janitor_apply(world["root"], plan["manifest_sha256"], seats=SEATS)
     assert src.read_bytes() == before
     assert not (world["browser"] / "archive").exists()           # refused before any directory was made
+
+
+# =====================================================================================================
+# lane bw-1439-transport-index ([#1439], batch BW wave D), Done 3: a query on the generated INDEX finds
+# the transport files for a kind, a date and a seat -- a reader never opens INDEX.md by hand. The query
+# reads the INDEX only (never the live files), so a test deletes a live file after the INDEX is written
+# and still expects its row.
+# =====================================================================================================
+
+def _written_index(t, world, tmp_path) -> list[str]:
+    _snapshot_world(world)
+    seat_file = _seat_file(tmp_path)
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    return args
+
+
+def _query_paths(out: str) -> list[str]:
+    return [ln[2:].split(" | ", 1)[0] for ln in out.splitlines() if ln.startswith("- ")]
+
+
+def test_query_returns_the_files_of_a_kind_date_and_seat_from_the_index_alone(t, world, tmp_path, capsys):
+    args = _written_index(t, world, tmp_path)
+    (world["browser"] / "DIGEST-beta-2026-10-09.md").unlink()     # the query reads the INDEX, not the drive
+    capsys.readouterr()
+    rc = t.main(["query", "--kind", "DIGEST", "--date", "2026-10-09", "--seat", "Tech-Architect-44", *args])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert _query_paths(out) == ["to-browser/DIGEST-beta-2026-10-09.md", "to-browser/DIGEST-delta-2026-10-09.md"]
+    # every printed row is the INDEX's own row, verbatim
+    index_text = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    for ln in out.splitlines():
+        if ln.startswith("- "):
+            assert ln in index_text.splitlines()
+
+
+def test_query_resolves_a_session_slug_to_its_seat_and_matches_kind_without_case(t, world, tmp_path, capsys):
+    args = _written_index(t, world, tmp_path)
+    capsys.readouterr()
+    rc = t.main(["query", "--kind", "digest", "--date", "2026-10-09",
+                 "--seat", "2026-10-02-dev-knowledge-architect", *args])
+    assert rc == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-browser/DIGEST-gamma-2026-10-09.md"]
+
+
+def test_query_date_prefix_status_and_unknown_writer(t, world, tmp_path, capsys):
+    args = _written_index(t, world, tmp_path)
+    capsys.readouterr()
+    assert t.main(["query", "--kind", "DIGEST", "--date", "2026-10", "--seat", "UNKNOWN", *args]) == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-browser/DIGEST-nosigner-2026-10-07.md"]
+    assert t.main(["query", "--kind", "DIGEST", "--status", "superseded", *args]) == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-browser/DIGEST-old-2026-10-01-superseded.md"]
+    assert t.main(["query", "--kind", "DIGEST", "--status", "unattributed", *args]) == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-browser/DIGEST-nosignal-2026-10-03.md"]
+    # default status is current: the superseded and UNATTRIBUTED digests are not returned
+    assert t.main(["query", "--kind", "DIGEST", *args]) == 0
+    got = _query_paths(capsys.readouterr().out)
+    assert len(got) == 6 and "to-browser/DIGEST-old-2026-10-01-superseded.md" not in got
+    assert t.main(["query", "--kind", "PLAN", "--status", "all", *args]) == 0
+    assert _query_paths(capsys.readouterr().out) == ["to-cc/PLAN-x-v2.md", "to-cc/PLAN-x-v1.md"]
+
+
+def test_query_exit_codes_no_match_is_1_and_a_missing_index_is_2(t, world, tmp_path, capsys):
+    seat_file = _seat_file(tmp_path)
+    args = ["--transport-root", str(world["root"]), "--seat-ids", str(seat_file)]
+    assert t.main(["query", "--kind", "DIGEST", *args]) == 2      # no INDEX yet
+    _written_index(t, world, tmp_path)
+    capsys.readouterr()
+    assert t.main(["query", "--kind", "DIGEST", "--date", "1999-01-01", *args]) == 1
+    assert _query_paths(capsys.readouterr().out) == []
+
+
+def test_query_json_carries_kind_date_seat_and_status(t, world, tmp_path, capsys):
+    import json
+    args = _written_index(t, world, tmp_path)
+    capsys.readouterr()
+    assert t.main(["query", "--kind", "PLAN", "--json", *args]) == 0
+    got = json.loads(capsys.readouterr().out)
+    assert got == [{"path": "to-cc/PLAN-x-v2.md", "kind": "PLAN", "subject": "Plan two", "date": "2026-10-06",
+                    "by": TA44, "seat": "Tech-Architect-44", "status": "current"}]
+
+
+def test_query_index_function_filters_parsed_rows(t, world):
+    _snapshot_world(world)
+    text = _index(t, world["root"])
+    slug = {s["session"]: s["seat"] for s in SEATS}
+    got = t.query_index(text, kind="DIGEST", date="2026-10-09", seat="Tech-Architect-43", slug_to_seat=slug)
+    assert [e["path"] for e in got] == ["to-browser/DIGEST-gamma-2026-10-09.md"]
+    assert t.query_index(text, kind="NO_SUCH_KIND", slug_to_seat=slug) == []
