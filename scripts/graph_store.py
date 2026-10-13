@@ -61,6 +61,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -378,7 +379,11 @@ def acquire_rebuild_lock(lock: Path) -> str | None:
     """
     if _lock_expired(lock):
         _remove_if_held(lock, _lock_identity(lock))
-    token = f"{os.getpid()} {time.time_ns()}\n"
+    # pid + time alone is NOT unique per acquisition: Python 3.12 on Windows reads a ~15.6 ms
+    # clock, so two acquisitions by one process inside one tick wrote the same token and a
+    # stale release matched its successor ([#1344]). The uuid makes the token name the
+    # ACQUISITION; pid and time stay for the human reading a lock file left behind.
+    token = f"{os.getpid()} {time.time_ns()} {uuid.uuid4().hex}\n"
     try:
         with open(lock, "x", encoding="utf-8") as handle:
             handle.write(token)

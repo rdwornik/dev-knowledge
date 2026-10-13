@@ -1546,6 +1546,84 @@ def test_lane_kind_for_row_reads_code_vs_text_from_prior_art():
     assert glc.lane_kind_for_row(text_row) == "text"
 
 
+_WIRE_INTAKE_ROW = (
+    "| intake | `docs/intake/` ADR-98 spine (prose) ; generated Contents block ; "
+    "`intake-index-freshness` hook (config, `stages: [manual]`) | WIRE | the Contents-block "
+    "staleness caveat in `docs/intake/README.md` | S | no |\n")
+
+
+def test_lane_kind_for_row_keys_on_what_the_row_removes():
+    """DIGEST-TOOLS-IN-USE-2026-10-11 (5): a WIRE intake that only removes a README caveat was
+    distilled as `code`, on opus, because prior-art merely MENTIONED a config hook."""
+    row = glc.BuildListRow(
+        "intake", "`docs/intake/` (prose) ; `intake-index-freshness` hook (config)", "WIRE",
+        "the Contents-block staleness caveat in `docs/intake/README.md`", "S", "no")
+    assert glc.lane_kind_for_row(row) == "text"
+
+
+def test_lane_kind_for_row_reads_an_anchored_markdown_target_as_prose():
+    """Codex r1 HIGH: `README.md#caveat` is still a prose target; the fragment is not a suffix."""
+    row = glc.BuildListRow(
+        "intake", "`intake-index-freshness` hook (config)", "WIRE",
+        "the caveat at `docs/intake/README.md#contents`", "S", "no")
+    assert glc.lane_kind_for_row(row) == "text"
+
+
+@pytest.mark.parametrize(("removes", "expected"), [
+    # no backticked target at all -> the removes column says nothing; prior-art decides
+    ("the manual override", "code"),
+    # mixed prose + code targets -> the lane edits code, so prior-art decides
+    ("`docs/x.md` and `scripts/x.py`", "code"),
+    # a bare directory is ambiguous (prose or code) -> not read as prose; prior-art decides
+    ("the caveat in `docs/intake/`", "code"),
+])
+def test_lane_kind_for_row_falls_back_to_prior_art_unless_every_target_is_markdown(
+        removes, expected):
+    row = glc.BuildListRow("s", "`x.py` (code, fires)", "WIRE", removes, "M", "no")
+    assert glc.lane_kind_for_row(row) == expected
+
+
+def test_cmd_distill_renders_a_wire_intake_as_its_own_kind_not_code(tmp_path, monkeypatch):
+    repo_root = _distill_repo(tmp_path)
+    (repo_root / "protocols" / "BUILD-LIST.md").write_text(
+        _BUILD_LIST_FIXTURE + _WIRE_INTAKE_ROW, encoding="utf-8")
+    monkeypatch.setattr(glc, "_SCRIPTS", repo_root / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "intake", "--stdout"])
+    assert result.exit_code == 0, result.output
+    assert "**Kind:** `code`" not in result.output
+    assert "**Kind:** `text`" in result.output
+    assert "kind (this lane): `WIRE`" in result.output
+    assert "| sonnet |" in result.output
+    assert glc.parse_contract(result.output).ok
+
+
+def test_gen_lane_contract_imports_no_vendor_router_and_distill_emits_no_vendor_block(
+        tmp_path, monkeypatch):
+    """`[#1447]` R97(b): the kind fix lands WITHOUT the D12 vendor emission — importing
+    `provider_router` pulls `cost_usage_telemetry` into the distiller's graph and was refused
+    REGRESSED (run 38167083961, `[#691]` Half B). Guard both the import and the output."""
+    import ast
+
+    tree = ast.parse(Path(glc.__file__).read_text(encoding="utf-8"))
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name.rsplit(".", 1)[-1] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imported.add((node.module or "").rsplit(".", 1)[-1])
+            imported.update(alias.name for alias in node.names)
+    assert not imported & {"provider_router", "cost_usage_telemetry"}, imported
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "widget polish", "--stdout"])
+    assert result.exit_code == 0, result.output
+    assert "**vendor:**" not in result.output
+    assert "provider_router" not in result.output
+
+
 def test_distilled_effort_follows_the_size_table():
     assert glc.distilled_effort("S") == "medium"
     assert glc.distilled_effort("M") == "high"

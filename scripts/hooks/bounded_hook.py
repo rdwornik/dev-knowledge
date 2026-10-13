@@ -444,7 +444,7 @@ def _write_json(path: Path, data: dict) -> bool:
     tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
         os.replace(tmp, path)
     except OSError as exc:
         LOG.warning("[hook-rate] could not write %s: %r", path, exc)

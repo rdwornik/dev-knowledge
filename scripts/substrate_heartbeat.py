@@ -280,7 +280,7 @@ def write_receipt(repo_root: Path, reading: Reading, path: Path | None = None,
     readings[reading.substrate] = reading.as_dict()
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(Receipt(readings).as_dict(), indent=2, sort_keys=True) + "\n",
-                      encoding="utf-8")
+                      encoding="utf-8", newline="\n")
     return target
 
 

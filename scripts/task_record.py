@@ -461,7 +461,7 @@ def _cmd_new(args: argparse.Namespace) -> int:
     rec = TaskRecord(id=args.id, title=args.title, status=TaskStatus(args.status),
                       kill_candidates=KillCandidates(none_reason=args.kill_candidates_none))
     out = Path(args.record)
-    out.write_text(rec.model_dump_json(indent=2), encoding="utf-8")
+    out.write_text(rec.model_dump_json(indent=2), encoding="utf-8", newline="\n")
     print(f"task_record: wrote {out}")
     return 0
 
@@ -482,7 +482,7 @@ def _cmd_set(args: argparse.Namespace) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"task_record: set REFUSED (nothing written) — {exc}", file=sys.stderr)
         return 1
-    path.write_text(rec.model_dump_json(indent=2), encoding="utf-8")
+    path.write_text(rec.model_dump_json(indent=2), encoding="utf-8", newline="\n")
     print(f"task_record: updated {path}")
     return 0
 
@@ -510,7 +510,7 @@ def _cmd_close(args: argparse.Namespace) -> int:
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"task_record: close REFUSED (nothing written) — {exc}", file=sys.stderr)
         return 1
-    path.write_text(rec.model_dump_json(indent=2), encoding="utf-8")
+    path.write_text(rec.model_dump_json(indent=2), encoding="utf-8", newline="\n")
     print(f"task_record: closed {path}")
     return 0
 

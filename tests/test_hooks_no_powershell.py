@@ -153,10 +153,13 @@ def test_lane_end_guard_stop_entry_runs_through_uv_run_locked_python():
     commands = [c for c in _stop_commands() if "lane_end_guard.py" in c]
     assert len(commands) == 1, f"expected exactly one lane_end_guard Stop entry, found {commands}"
     command = commands[0]
-    assert command.startswith('uv run --locked python -c "'), command
-    assert "s='/scripts/lane_end_guard.py'" in command and "runpy.run_path(d+s" in command, command
-    assert "'git','rev-parse','--show-toplevel'" in command, "root falls back to git when the variable is unset"
-    assert "$" not in command, "shell-neutral: no `$` expansion (Codex R1 HIGH)"
+    # lane-bw-1001-hook-launcher: the inline `python -c` launcher became the ONE shared
+    # scripts/hooks/hook_launcher.py; its exact shape, and its shell-neutrality under bash, pwsh
+    # and Windows PowerShell, are pinned by tests/test_hook_launcher.py.
+    assert command.startswith("uv run --locked python "), command
+    assert "scripts/hooks/hook_launcher.py" in command, command
+    assert command.endswith(" scripts/lane_end_guard.py"), command
+    assert " -c " not in command, "no inline code in a hook command"
     assert "||" not in command, "R96: Stop gates fail closed -- the exit code is never swallowed"
 
 
