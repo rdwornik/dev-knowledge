@@ -306,10 +306,33 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
                            owner="the operator's ratification act, tracked at ADR-121's Status line"),
     "adr:122": Disposition(reason=_AWAITING_RATIFICATION,
                            owner="the operator's ratification act, tracked at ADR-122's Status line"),
-    "adr:123": Disposition(reason=_AWAITING_RATIFICATION,
-                           owner="the operator's ratification act, tracked at ADR-123's Status line"),
-    "adr:124": Disposition(reason=_AWAITING_RATIFICATION,
-                           owner="the operator's ratification act, tracked at ADR-124's Status line"),
+    # -- ADR-123 / ADR-124: Accepted 2026-10-11 by R96, implementing rows OWED -- lane
+    # bw-1378-rulings-landing (batch BW). A HOLDING entry, stated as one: R96's own Carriage says
+    # "Their carrier rows are filed through intake", and the BW manifest (section 1) bars a lane
+    # from filing a row, so the status flip lands before the rows do. The reason says so in words
+    # rather than reading as settled; the entry is removed the day a row carries
+    # `implements: ADR-123` / `ADR-124`, which then outranks it (`_state`).
+    "adr:123": Disposition(
+        reason="Accepted 2026-10-11 by R96 (RATIFICATION-2026-10-11: O9, N = 1 corp-monorepo, "
+               "order corp-monorepo > ai-council > win-tooling, patch automatic / minor+ "
+               "reviewed, reasoned time-boxed opt-out, 3 named repos). NOT built: no "
+               "packages/harness/ exists. Its implementing rows are owed through intake per "
+               "R96's Carriage and are not yet filed; this entry holds the decision visible "
+               "until they are, and is removed then.",
+        owner="the batch BW integrator, who files ADR-123's carrier rows through intake at the "
+              "BW close packet (manifest section 1, ADR-98/ADR-111); re-open if BW closes "
+              "without them"),
+    "adr:124": Disposition(
+        reason="Accepted 2026-10-11 by R96 (RATIFICATION-2026-10-11: S2, by ratchet, hub plus 3, "
+               "D5 checked). NOT fully built: D5's `## Quality attributes` section is checked "
+               "only for /decide drafts (scripts/decide_checks.py), not by "
+               "validate_adr_status.py, and the one-tool-at-a-time adoption lanes (tach, "
+               "pyright in CI, the 15 ruff families) have not landed. Its implementing rows are owed through "
+               "intake per R96's Carriage and are not yet filed; this entry holds the decision "
+               "visible until they are, and is removed then.",
+        owner="the batch BW integrator, who files ADR-124's carrier rows through intake at the "
+              "BW close packet (manifest section 1, ADR-98/ADR-111); re-open if BW closes "
+              "without them"),
     "adr:125": Disposition(reason=_AWAITING_RATIFICATION,
                            owner="the operator's ratification act, tracked at ADR-125's Status line"),
     "adr:126": Disposition(reason=_AWAITING_RATIFICATION,

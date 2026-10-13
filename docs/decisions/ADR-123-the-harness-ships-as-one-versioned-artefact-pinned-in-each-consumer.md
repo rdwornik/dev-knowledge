@@ -1,6 +1,6 @@
 # ADR-123: The harness ships as one versioned artefact, pinned in each consumer and upgraded by pull request
 
-- **Status:** Proposed
+- **Status:** Accepted (ADR-94 in-place edit; ratified 2026-10-11, RATIFICATION-2026-10-11 R96 — option O9, N = 1 `corp-monorepo`, consumer order corp-monorepo > ai-council > win-tooling, patch upgrades automatic and minor or above reviewed, a reasoned and time-boxed opt-out, scope of 3 named repos)
 - **Date:** 2026-09-25
 - **Decision tier:** Architecture (Path A — the architect's technical proposal under ADR-108 §A, drafted by
   `lane-adr-drafts` on `LANE-5B2-11-adr-drafts.md`, batch WAVE5B-N2 row 11). **Stays Proposed until the operator

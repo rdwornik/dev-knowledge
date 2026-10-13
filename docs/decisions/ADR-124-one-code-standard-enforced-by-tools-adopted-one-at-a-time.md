@@ -1,6 +1,6 @@
 # ADR-124: One code standard, enforced by existing tools adopted one at a time; every ADR carries its quality attributes
 
-- **Status:** Proposed
+- **Status:** Accepted (ADR-94 in-place edit; ratified 2026-10-11, RATIFICATION-2026-10-11 R96 — option S2, by ratchet, hub plus 3, D5 checked)
 - **Date:** 2026-09-25
 - **Decision tier:** Architecture (Path A — the architect's technical proposal under ADR-108 §A, drafted by
   `lane-adr-drafts` on `LANE-5B2-11-adr-drafts.md`, batch WAVE5B-N2 row 11). **Stays Proposed until the operator
