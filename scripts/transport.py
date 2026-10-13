@@ -1732,7 +1732,7 @@ def _parser() -> argparse.ArgumentParser:
     q.add_argument("--kind", default=None, help="a registered kind, e.g. LANE_END (case and -/_ ignored)")
     q.add_argument("--date", default=None, help="YYYY-MM-DD, or a prefix such as YYYY-MM")
     q.add_argument("--seat", default=None, help="Tech-Architect-NN, a session slug of the seat map, or UNKNOWN")
-    q.add_argument("--status", default="current", choices=QUERY_STATUSES)
+    q.add_argument("--status", default="current", choices=QUERY_STATUSES, help="which INDEX section (default: current)")
     q.add_argument("--json", action="store_true", help="print the matches as a JSON list")
     q.set_defaults(func=_cmd_query)
     j = sub.add_parser("janitor", help="move -superseded files of attributable kinds into archive/ "
