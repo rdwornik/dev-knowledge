@@ -229,6 +229,15 @@ def test_file_purpose_graph_why_writes_the_record(mini, monkeypatch):
     assert gate.decide(_write("scripts/hooks/fresh.py", root), root, env)[0] == "allow"
 
 
+def test_a_test_run_that_did_not_redirect_the_home_writes_no_record(mini):
+    """`test_deny_and_point.py` runs `why scripts/gen_task_tree.py` against the live tree; in a lane
+    worktree that left a record that opened the gate for the whole of `scripts/` (measured)."""
+    root, _ = mini
+    env = {"PYTEST_CURRENT_TEST": "tests/test_x.py::test_y (call)", "HARNESS_LANE": _LANE}
+    assert gate.record_why(root, "scripts/existing.py", "answered", env) is None
+    assert not (root / "logs").exists()
+
+
 def test_outside_a_lane_record_why_writes_nothing(tmp_path):
     root = tmp_path / "primary"
     (root / "scripts").mkdir(parents=True)
@@ -238,17 +247,20 @@ def test_outside_a_lane_record_why_writes_nothing(tmp_path):
 
 # ============================================================== 4. WIRE
 
-def test_main_prints_a_block_and_exits_2(mini, monkeypatch, capsys):
+def test_main_prints_the_documented_deny_and_exits_0(mini, monkeypatch, capsys):
+    """The deny is Claude Code's documented `hookSpecificOutput` form at exit 0: measured against
+    Copilot CLI 1.0.96, an exit 2 reaches the model only as "hook errored", this form verbatim."""
     root, env = mini
     monkeypatch.setattr(gate, "REPO_ROOT", root)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("HARNESS_LANE", raising=False)
     monkeypatch.setattr("sys.stdin", _Stdin(json.dumps(_write("scripts/unnamed_new.py", root))))
-    assert gate.main() == 2
-    out = capsys.readouterr()
-    assert json.loads(out.out.strip())["decision"] == "block"
-    assert "/why" in out.err
+    assert gate.main() == 0
+    out = json.loads(capsys.readouterr().out.strip())["hookSpecificOutput"]
+    assert out["hookEventName"] == "PreToolUse"
+    assert out["permissionDecision"] == "deny"
+    assert "/why" in out["permissionDecisionReason"]
 
 
 class _Stdin:
@@ -308,8 +320,9 @@ def test_in_a_lane_the_declared_command_denies_an_unnamed_new_file(shell, tmp_pa
     env = _shell_env(HARNESS_LANE="lane-bw-735-reuse-gate", HARNESS_RECEIPTS_DIR=str(tmp_path))
     payload = _write("scripts/x_probe.py", _REPO)
     proc = _run_declared(shell, _REPO, payload, env)
-    assert proc.returncode != 0, (shell, proc.returncode, proc.stdout, proc.stderr)
-    assert json.loads(proc.stdout.strip().splitlines()[-1])["decision"] == "block", proc.stdout
+    assert proc.returncode == 0, (shell, proc.returncode, proc.stdout, proc.stderr)
+    out = json.loads(proc.stdout.strip().splitlines()[-1])["hookSpecificOutput"]
+    assert out["permissionDecision"] == "deny", proc.stdout
 
 
 @pytest.mark.parametrize("shell", sorted(_shells._SHELLS))
@@ -317,6 +330,7 @@ def test_in_a_lane_the_declared_command_allows_an_existing_file(shell, tmp_path)
     env = _shell_env(HARNESS_LANE="lane-bw-735-reuse-gate", HARNESS_RECEIPTS_DIR=str(tmp_path))
     proc = _run_declared(shell, _REPO, _write("scripts/hooks/reuse_gate.py", _REPO), env)
     assert proc.returncode == 0, (shell, proc.returncode, proc.stdout, proc.stderr)
+    assert "deny" not in proc.stdout, proc.stdout
 
 
 @pytest.mark.parametrize("shell", sorted(_shells._SHELLS))

@@ -33,9 +33,24 @@ a call is a real candidate, so an ordinary Write pays only the stdlib prefilter.
 NEVER A WEDGE. Outside a lane (no slug), or in a worktree with no contract on disk (an integration
 worktree), the rule ALLOWS and LOGS. Any error inside the gate allows and logs (posture fail-open,
 `bounded_hook.POSTURES` "reuse-gate"). `DEV_KNOWLEDGE_REUSE_GATE_DISABLE=1` allows every call, and
-says so on stderr. To DENY: `{"decision":"block",...}` on stdout, the one-line reason on stderr,
-exit 2 -- the `scope_guard.py` wire. Registered in `.claude/settings.json` through the shared
-launcher `scripts/hooks/hook_launcher.py` (matcher `Write|Edit|MultiEdit|NotebookEdit`).
+says so on stderr.
+
+THE WIRE. To DENY it prints Claude Code's documented PreToolUse form on stdout and exits 0:
+`{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+"permissionDecisionReason": <one line>}}`. Not the `scope_guard.py` wire (`{"decision":"block"}` +
+exit 2): measured in-lane 2026-10-13 against Copilot CLI 1.0.96, which honours this file's hooks,
+an exit 2 is denied as "hook errored" and the reason never reaches the model, while this JSON form
+reaches it verbatim ("Denied by preToolUse hook: <reason>"). Item 3's remedy line is only a remedy
+if the agent can read it. To ALLOW it exits 0 silently. Registered in `.claude/settings.json`
+through the shared launcher `scripts/hooks/hook_launcher.py` (matcher
+`Write|Edit|MultiEdit|NotebookEdit`).
+
+A TEST RUN NEVER WRITES THE LIVE RECORD. A test that runs `why` in a lane worktree
+(`test_deny_and_point.py` executes `why scripts/gen_task_tree.py` against the real tree) would
+otherwise leave a record that silently opens the gate for `scripts/` -- measured in-lane: it did,
+and the R8 usage probe was wrongly allowed. So under pytest (`PYTEST_CURRENT_TEST`, which pytest
+exports and subprocesses inherit) `record_why` writes only when `$HARNESS_RECEIPTS_DIR` redirects
+the home.
 
 HONEST LIMIT. It reads the tool call's target path only: a file created by a Bash/PowerShell
 command (`>`, `New-Item`) is not seen -- the Done-contract binds Write/Edit calls, and parsing
@@ -142,9 +157,12 @@ def _contract_names(rel: str, names: set[str]) -> bool:
 
 def record_why(root: Path, path: str, outcome: str,
                environ: Mapping[str, str] = os.environ) -> Optional[Path]:
-    """Append one `why` search to the lane's record; None (nothing written) outside a lane.
+    """Append one `why` search to the lane's record; None (nothing written) outside a lane, or
+    under a test run that has not redirected the receipts home.
 
     Called by `file_purpose_graph.py why`, the record's one producer."""
+    if environ.get("PYTEST_CURRENT_TEST") and not environ.get("HARNESS_RECEIPTS_DIR"):
+        return None
     lane = lane_of(root, environ)
     if not lane:
         return None
@@ -264,10 +282,14 @@ def main() -> int:
         payload = None
     decision, reason = decide(payload, REPO_ROOT, os.environ)
     if decision == "block":
-        sys.stdout.write(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=True) + "\n")
-        sys.stderr.write(reason + "\n")   # the hook wire: Claude Code feeds stderr back on exit 2
-        return 2
+        sys.stdout.write(json.dumps(deny_output(reason), ensure_ascii=True) + "\n")
     return 0
+
+
+def deny_output(reason: str) -> dict:
+    """The PreToolUse deny both Claude Code and Copilot CLI read (see THE WIRE)."""
+    return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                   "permissionDecisionReason": reason}}
 
 
 if __name__ == "__main__":
