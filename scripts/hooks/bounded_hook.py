@@ -207,6 +207,16 @@ POSTURES: tuple[Posture, ...] = (
             "test_bounded_hook.py::test_the_live_settings_pass_the_check already asserts every "
             ".claude/settings.json PreToolUse registration carries a POSTURES entry -- landing "
             "the new hook without this one line would red an existing, unrelated test."),
+    Posture("reuse-gate", "reuse_gate.py", "fail-open", False,
+            "PreToolUse reuse gate (batch BW lane-bw-735-reuse-gate, [#735] nearest, R96 D7). "
+            "Fail-OPEN by its own design: outside a lane, with no contract on disk, or on any "
+            "error it allows and logs, so a harness timeout skipping it loses one reuse check, "
+            "never a session. It fires only on Write|Edit|MultiEdit|NotebookEdit."),
+    Posture("session-start", "scripts/hooks/session_start.py", "fail-open", False,
+            "[#1001] the ONE SessionStart entry (lane-bw-1001-sessionstart-one): it imports the "
+            "nine former SessionStart readers into one interpreter, each of them fail-open "
+            "surfacing (their own entries above keep their ids for the transcript history). A "
+            "SessionStart hook cannot refuse, so a bypass loses one boot digest, never a gate."),
 )
 
 

@@ -102,6 +102,22 @@ def test_a_non_claude_provider_is_not_refused_and_gets_its_own_head(tmp_path):
     assert plan.metering == "stream"
 
 
+def test_a_headless_claude_lane_returns_its_report_under_the_lane_report_schema():
+    """[#1368] Done 3: the one `claude -p` argv dispatch builds passes the section-3 LANE REPORT
+    schema FILE as `--json-schema` (the CLI takes the schema inline, so the value is the file's
+    content), and the value parses back to exactly that file."""
+    from pathlib import Path
+    schema_file = Path(d.__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
+    argv = d.build_plan("anthropic", "opus", "lane-x", "high", "prompt text", streamed=True).argv
+    assert argv[:2] == ["claude", "-p"]
+    value = argv[argv.index("--json-schema") + 1]
+    assert json.loads(value) == json.loads(schema_file.read_text(encoding="utf-8"))
+    assert "\n" not in value   # one argv token, compact
+    assert argv[-1] == "prompt text"
+    # the transcript-metered --bg launch is interactive-shaped, not print mode: no schema there
+    assert "--json-schema" not in d.build_plan("anthropic", "opus", "lane-x", "high", "p").argv
+
+
 def test_an_unknown_provider_is_refused_naming_the_known_ones(tmp_path):
     r = _dry(tmp_path, provider="grok")
     assert r.exit_code != 0

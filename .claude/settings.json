@@ -1,6 +1,8 @@
 {
   "disableAllHooks": false,
   "//scope-guard-R15-2026-09-27": "PreToolUse R15 scope guard (scripts/hooks/scope_guard.py), run through the shared shell-neutral launcher scripts/hooks/hook_launcher.py -- pinned by tests/test_scope_guard_hook_command.py and tests/test_hook_launcher.py.",
+  "//reuse-gate-R96-D7-2026-10-13": "PreToolUse reuse gate (scripts/hooks/reuse_gate.py, [#735] nearest): in a lane, a Write/Edit creating a new file under scripts/ or .claude/ that the lane contract does not name and no file_purpose_graph why search covers is denied; outside a lane it allows and logs. Run through the shared launcher scripts/hooks/hook_launcher.py -- pinned by tests/test_reuse_gate.py and tests/test_hook_launcher.py. Escape: DEV_KNOWLEDGE_REUSE_GATE_DISABLE=1.",
+  "//sessionstart-one-2026-10-13": "[#1001] (batch BW lane lane-bw-1001-sessionstart-one, R96 D9): the NINE SessionStart entries (arm_hooks, surface_triage, changelog_sentinel, conductor session-start, resource_lifecycle session-start, codespace_regime session-start, billing_leak_sentinel, fleet_health, hooks/quota_daily) are ONE entry, scripts/hooks/session_start.py, run through the shared launcher scripts/hooks/hook_launcher.py; it imports the nine readers into one interpreter and bounds the injected text (OUTPUT_CAP_BYTES). Measurement: docs/audits/2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md. Pinned by tests/test_session_start.py and tests/test_hook_launcher.py.",
   "//stop-gates-fail-closed-R96-2026-10-11": "Stop gates scripts/lane_end_guard.py and scripts/lane_handback_gate.py, run through the shared launcher scripts/hooks/hook_launcher.py and failing closed (R96) -- pinned by tests/test_stop_fail_closed.py and tests/test_hook_launcher.py.",
   "//hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17": {
     "why": "Operator order 2026-09-17 (handoff cut), correcting the indiscriminate disableAllHooks of bc8ddda5/9af353f7: lane ab-808 measured which hooks wedge (docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md, AMENDMENT 1, week to 2026-09-17, event-fired denominator). The three parity-REQUIRED hooks were not among the nine over the bar: session_end_backpressure 8% (58/725), deny_and_point 2% (182/9,382), arm_hooks not in the measured table. They are restored below and run; the nine are off individually. disableAllHooks is set FALSE here explicitly because the user-level ~/.claude/settings.json still sets it true and would otherwise suppress this file.",
@@ -89,6 +91,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --locked python ${CLAUDE_PROJECT_DIR:+\"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_launcher.py\"} $(git rev-parse --no-revs --no-flags -- ./$(git rev-parse --path-format=relative --show-toplevel)scripts/hooks/hook_launcher.py) -m os scripts/hooks/reuse_gate.py",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -96,48 +108,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/arm_hooks.py\"",
+            "command": "uv run --locked python ${CLAUDE_PROJECT_DIR:+\"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_launcher.py\"} $(git rev-parse --no-revs --no-flags -- ./$(git rev-parse --path-format=relative --show-toplevel)scripts/hooks/hook_launcher.py) -m os scripts/hooks/session_start.py",
             "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.py\"",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/changelog_sentinel.py\"",
-            "timeout": 20
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/conductor.py\" session-start",
-            "timeout": 25
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/resource_lifecycle.py\" session-start",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/codespace_regime.py\" session-start",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/billing_leak_sentinel.py\"",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\"",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/hooks/quota_daily.py\"",
-            "timeout": 15
           }
         ]
       }

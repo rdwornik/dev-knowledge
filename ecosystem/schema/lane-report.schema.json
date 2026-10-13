@@ -1,0 +1,393 @@
+{
+  "$defs": {
+    "Agent": {
+      "additionalProperties": false,
+      "description": "Who did the work or the judging: vendor, served model, session id.",
+      "properties": {
+        "vendor": {
+          "minLength": 1,
+          "title": "Vendor",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "session": {
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vendor",
+        "model",
+        "session"
+      ],
+      "title": "Agent",
+      "type": "object"
+    },
+    "Check": {
+      "additionalProperties": false,
+      "description": "One check run on the lane. `NOT_RUN` is not a pass.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "how": {
+          "enum": [
+            "deterministic",
+            "llm"
+          ],
+          "title": "How",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "evidence": {
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "result",
+        "evidence"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Done": {
+      "additionalProperties": false,
+      "description": "How many of the contract's Done items the lane met, out of how many.",
+      "properties": {
+        "met": {
+          "minimum": 0,
+          "title": "Met",
+          "type": "integer"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "met",
+        "total"
+      ],
+      "title": "Done",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "description": "Pointers to where the evidence lives; the narrative stays in git, CI and the transport.",
+      "properties": {
+        "branch": {
+          "minLength": 1,
+          "title": "Branch",
+          "type": "string"
+        },
+        "check_run": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Check Run"
+        },
+        "audit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Audit"
+        }
+      },
+      "required": [
+        "branch",
+        "check_run",
+        "audit"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "IntentMet": {
+      "additionalProperties": false,
+      "description": "The isolated evaluator's verdict. `UNSURE` is a first-class answer, never a pass.",
+      "properties": {
+        "verdict": {
+          "enum": [
+            "YES",
+            "NO",
+            "UNSURE"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/Agent"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "verdict",
+        "evaluator"
+      ],
+      "title": "IntentMet",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "description": "The reviewer's own record (R59): served model, session id and the nonce it returned.",
+      "properties": {
+        "vendor": {
+          "minLength": 1,
+          "title": "Vendor",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "session": {
+          "minLength": 1,
+          "title": "Session",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "APPROVE",
+            "REQUEST-CHANGES"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "nonce": {
+          "minLength": 1,
+          "title": "Nonce",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vendor",
+        "model",
+        "session",
+        "verdict",
+        "nonce"
+      ],
+      "title": "Review",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "COMPLETED"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "checks": {
+            "contains": {
+              "properties": {
+                "result": {
+                  "enum": [
+                    "PASS",
+                    "FAIL"
+                  ]
+                }
+              },
+              "required": [
+                "result"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "Section-3 LANE REPORT, schema 1.0.0 (ecosystem/schema/lane_report.py; generated, never hand-edited).",
+  "properties": {
+    "lane": {
+      "minLength": 1,
+      "title": "Lane",
+      "type": "string"
+    },
+    "batch": {
+      "minLength": 1,
+      "title": "Batch",
+      "type": "string"
+    },
+    "task": {
+      "minLength": 1,
+      "title": "Task",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "code",
+        "doc",
+        "config",
+        "research"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "COMPLETED",
+        "FAILED",
+        "REJECTED",
+        "INPUT_REQUIRED",
+        "CANCELED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "done": {
+      "$ref": "#/$defs/Done"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "intent_met": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IntentMet"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unresolved": {
+      "items": {
+        "maxLength": 120,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Unresolved",
+      "type": "array"
+    },
+    "operator_action": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Operator Action"
+    },
+    "merged_sha": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{7,40}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Merged Sha"
+    },
+    "producer": {
+      "$ref": "#/$defs/Agent"
+    },
+    "cost_usd": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cost Usd"
+    },
+    "evidence": {
+      "$ref": "#/$defs/Evidence"
+    },
+    "review": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Review"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "lane",
+    "batch",
+    "task",
+    "kind",
+    "state",
+    "done",
+    "checks",
+    "intent_met",
+    "unresolved",
+    "operator_action",
+    "merged_sha",
+    "producer",
+    "cost_usd",
+    "evidence"
+  ],
+  "title": "LaneReport",
+  "type": "object"
+}

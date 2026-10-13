@@ -84,6 +84,7 @@ Usage:
     python scripts/decision_coverage.py check   [--repo-root .] [--db PATH] [--staged PATH ...]
     python scripts/decision_coverage.py ledger  [--repo-root .] [--db PATH]
     python scripts/decision_coverage.py metrics [--repo-root .] [--db PATH]
+    python scripts/decision_coverage.py lifecycle [--repo-root .] [--db PATH] [--today YYYY-MM-DD]   # WARN only, exit 0 ([#242])
     python scripts/decision_coverage.py rulings [--repo-root .] [--no-transport]   # exit 1 = refused, 2 = leg (a) not measured
 """
 
@@ -972,6 +973,159 @@ def metrics(found: list[Decision], today: _dt.date | None = None, *,
         transport_measured=transport_measured)
 
 
+# ------------------------------------------------- the ADR lifecycle legs ([#242], R96 D11)
+#
+# Three WARN legs over the ADR corpus, ruled by R96 D11 (package T5.6): an ADR that has sat at
+# `Proposed` for more than `PROPOSED_MAX_AGE_DAYS`, one `Accepted` with no implementing evidence,
+# and one `Superseded` whose code is still cited by a live script.
+#
+# WARN, NOT A REFUSAL, and the reason is the same one the era bound above states: measured on
+# the live tree when these legs landed, every leg is non-empty on decisions no committer can
+# repair in the commit that would be refused (an unratified ADR is the operator's reserved act;
+# a grandfathered Accepted ADR predates the `implements:` key). So `check` prints the flags and
+# its exit code is unchanged, and the `lifecycle` subcommand lists them and exits 0.
+#
+# EVIDENCE IS THE MODULE'S OWN. Leg (b) is `uncovered()` narrowed to ADRs -- an implementing row
+# (open or closed, from the store) or a written disposition is evidence, nothing else is -- but
+# over the WHOLE population, not the era, because the era bounds refusals and this refuses
+# nothing.
+#
+# WHAT LEG (c) DOES NOT SEE: a citation is not an implementation. A script that names a
+# superseded ADR in a historical comment is flagged exactly like one that still implements it;
+# telling them apart is a reviewer's judgement, which is one more reason the leg is WARN. The
+# citation scan reads `scripts/**/*.py` directly rather than the store: FPG-1 carries no
+# script -> ADR citation edge today, and growing one is an FPG-1 change outside this lane.
+
+#: R96 D11's N: an ADR `Proposed` for MORE than this many days is flagged (15 yes, 14 no).
+PROPOSED_MAX_AGE_DAYS = 14
+
+#: The two ADR statuses the lifecycle legs select, named here like `ADR_ACCEPTED` above.
+ADR_PROPOSED = "Proposed"
+ADR_SUPERSEDED = "Superseded"
+
+LEG_PROPOSED_STALE = "proposed-stale"
+LEG_ACCEPTED_UNEVIDENCED = "accepted-unevidenced"
+LEG_SUPERSEDED_CODE_LEFT = "superseded-code-left"
+LIFECYCLE_LEGS: tuple[str, ...] = (LEG_PROPOSED_STALE, LEG_ACCEPTED_UNEVIDENCED,
+                                   LEG_SUPERSEDED_CODE_LEFT)
+
+#: Where "live scripts" live. Tests are not scripts; a test fixture naming an ADR is not code
+#: left behind by it.
+LIVE_SCRIPTS_REL = "scripts"
+
+
+@dataclass(frozen=True)
+class LifecycleFlag:
+    """One WARN: which leg fired, on which decision, and the fact that fired it."""
+    leg: str
+    decision: Decision
+    detail: str
+
+    def render(self) -> str:
+        return f"WARN {self.leg}: {self.decision.label} ({self.decision.locator}) -- {self.detail}"
+
+
+def _archived_superseded(root: Path) -> list[Decision]:
+    """Superseded ADRs H3 moved to `docs/decisions/archive/` -- outside `decisions()`'s live
+    population, and exactly where code they leave behind is easiest to forget. A file whose
+    status this reader cannot parse is skipped: it is not evidence of anything here."""
+    import validate_adr_status as vas  # noqa: PLC0415
+
+    zone = root / "docs" / "decisions" / "archive"
+    if not zone.is_dir():
+        return []
+    try:
+        fields, _missing, _extra = vas.scan_zone(zone)
+    except (vas.CorpusUnusable, OSError) as exc:
+        logger.warning("lifecycle: archive zone not read (%r)", exc)
+        return []
+    out = []
+    for field in fields:
+        if field.value != ADR_SUPERSEDED:
+            continue
+        number = vas.adr_number(field.path).removeprefix("ADR-")
+        if not number:
+            continue
+        out.append(Decision(
+            key=f"{fpg.NODE_ADR}:{number}", kind=KIND_ADR, label=f"ADR-{number}",
+            status=field.value, state=STATE_SUPERSEDED, date=None, date_source="absent",
+            rows=(), open_rows=(), locator=field.path.relative_to(root).as_posix()))
+    return out
+
+
+def script_citations(repo_root, numbers: set[str]) -> dict[str, tuple[str, ...]]:
+    """`{ADR number: (live script paths citing it, sorted)}` for each of `numbers`.
+
+    `ADR-N` cites N and never N0; a zero-padded `ADR-0N` cites N too.
+    """
+    root = Path(repo_root)
+    if not numbers:
+        return {}
+    pattern = re.compile(r"\bADR-0*(\d+)(?![0-9])")
+    hits: dict[str, set[str]] = {n: set() for n in numbers}
+    scripts = root / LIVE_SCRIPTS_REL
+    if not scripts.is_dir():
+        return {}
+    for path in sorted(scripts.rglob("*.py")):
+        try:
+            text = _read(path)
+        except OSError as exc:
+            # A WARN scan never raises: a script that vanished or cannot be read is skipped
+            # and SAID, never silently counted as citing nothing.
+            logger.warning("lifecycle: skipped unreadable script %s: %s", path, exc)
+            continue
+        cited = {m.group(1) for m in pattern.finditer(text)} & numbers
+        for number in cited:
+            hits[number].add(path.relative_to(root).as_posix())
+    return {n: tuple(sorted(paths)) for n, paths in hits.items() if paths}
+
+
+def adr_lifecycle(repo_root, found: list[Decision], *, today: _dt.date) -> list[LifecycleFlag]:
+    """R96 D11's three legs over the ADRs in `found`. WARN only -- see the block above.
+
+    `today` is REQUIRED and keyword-only: the predicate reads no wall clock, so the same tree
+    always answers the same way for the same day.
+    """
+    root = Path(repo_root)
+    adrs = [d for d in found if d.kind == KIND_ADR]
+    flags: list[LifecycleFlag] = []
+
+    for d in adrs:
+        if d.status == ADR_PROPOSED and d.date is not None:
+            age = (today - d.date).days
+            if age > PROPOSED_MAX_AGE_DAYS:
+                flags.append(LifecycleFlag(
+                    LEG_PROPOSED_STALE, d,
+                    f"Proposed for {age}d (> {PROPOSED_MAX_AGE_DAYS}d, dated by {d.date_source}); "
+                    "ratify, reject or re-date it"))
+
+    for d in uncovered(adrs):
+        flags.append(LifecycleFlag(
+            LEG_ACCEPTED_UNEVIDENCED, d,
+            "Accepted with neither an implementing row nor a written disposition"
+            + ("" if d.in_era else f" (predates {ARM_DATE.isoformat()}: counted, not refused)")))
+
+    superseded = [d for d in adrs if d.status == ADR_SUPERSEDED]
+    live_keys = {d.key for d in superseded}
+    superseded += [d for d in _archived_superseded(root) if d.key not in live_keys]
+    citations = script_citations(root, {d.key.removeprefix(f"{fpg.NODE_ADR}:")
+                                        for d in superseded})
+    for d in superseded:
+        paths = citations.get(d.key.removeprefix(f"{fpg.NODE_ADR}:"))
+        if paths:
+            flags.append(LifecycleFlag(
+                LEG_SUPERSEDED_CODE_LEFT, d,
+                f"Superseded and still cited by {len(paths)} live script(s): " + ", ".join(paths)))
+
+    order = {leg: i for i, leg in enumerate(LIFECYCLE_LEGS)}
+    return sorted(flags, key=lambda f: (order[f.leg], f.decision.key))
+
+
+def lifecycle_counts(flags: list[LifecycleFlag]) -> dict[str, int]:
+    """Flags per leg, every leg present -- a zero is a measured zero, not a missing key."""
+    return {leg: sum(1 for f in flags if f.leg == leg) for leg in LIFECYCLE_LEGS}
+
+
 # -------------------------------------------------- the ruling register leg ([#721], R79.3)
 #
 # R79 item 3 (operator, 2026-10-04): *"no decision is ever forgotten"* -- every ratified ruling
@@ -1503,6 +1657,12 @@ def main(argv: list[str] | None = None) -> int:
                        help="leg 1 only -- the commit's own decision files")
     sub.add_parser("ledger", parents=[common], help="emit A9-2's decision ledger (writes nothing)")
     sub.add_parser("metrics", parents=[common], help="emit A9-3's four numbers")
+    lifecycle = sub.add_parser(
+        "lifecycle", parents=[common],
+        help="WARN on ADRs Proposed > 14 days, Accepted without evidence, Superseded with code "
+             "left ([#242]); always exits 0")
+    lifecycle.add_argument("--today", type=_dt.date.fromisoformat, default=None,
+                           help="the day to age against, YYYY-MM-DD (default: the system date)")
     sub.add_parser("rulings", parents=[common],
                    help="refuse while a ratified ruling is unlanded past one batch, or landed "
                         "with neither a row nor a 'no implementation required' (R79.3, [#721])")
@@ -1536,10 +1696,24 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "check":
             findings = decision_coverage(root, store, staged=args.staged, transport=transport,
                                          era_leg=not args.no_era)
-            stale = stale_dispositions(decisions(root, store, transport=transport))
+            found = decisions(root, store, transport=transport)
+            stale = stale_dispositions(found)
             if stale:
                 print("decision-coverage: NOTE — dispositions naming decisions that are gone: "
                       + ", ".join(stale))
+            # The [#242] lifecycle legs WARN and never change the exit code (see their block).
+            try:
+                flags = adr_lifecycle(root, found, today=_dt.date.today())
+            except Exception as exc:  # noqa: BLE001 -- a WARN leg never decides the exit code
+                logger.warning("lifecycle: legs not measured (%r); coverage's verdict stands",
+                               exc)
+                flags = []
+            for flag in flags:
+                logger.warning(flag.render())
+            if flags:
+                logger.warning("lifecycle: " + " / ".join(
+                    f"{leg} {n}" for leg, n in lifecycle_counts(flags).items())
+                    + " (WARN only; the exit code is coverage's alone)")
             if not findings:
                 print("decision-coverage: OK")
                 return 0
@@ -1549,6 +1723,14 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"    {finding.evidence}")
             return 1
         found = decisions(root, store, transport=transport)
+        if args.command == "lifecycle":
+            flags = adr_lifecycle(root, found, today=args.today or _dt.date.today())
+            for flag in flags:
+                logger.warning(flag.render())
+            counts = lifecycle_counts(flags)
+            logger.info("lifecycle: " + " / ".join(f"{leg} {n}" for leg, n in counts.items())
+                        + " (WARN only; exit 0)")
+            return 0
         print(render_ledger(found) if args.command == "ledger" else metrics(found).render())
         return 0
     except PopulationUnreadable as exc:

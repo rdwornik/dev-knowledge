@@ -529,6 +529,17 @@ class Plan:
     metering: str
 
 
+#: The section-3 LANE REPORT JSON Schema ([#1368]) -- generated from
+#: `ecosystem/schema/lane_report.LaneReport`, never hand-edited.
+LANE_REPORT_SCHEMA = Path(__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
+
+
+def lane_report_schema_arg() -> str:
+    """The LANE REPORT schema as ONE compact argv token, for `claude -p --json-schema`."""
+    schema = json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8"))
+    return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
+
+
 def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
                permission_mode: str = "bypassPermissions", streamed: bool = False) -> Plan:
     p = _provider(provider)
@@ -568,8 +579,13 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
                 "-n", slug]
         return Plan(argv, "stream")
     if streamed:  # a headless claude, for a substrate that cannot hand over a transcript
+        # [#1368] Done 3: the lane's final answer is its section-3 LANE REPORT, enforced by the
+        # CLI's own flag rather than a tool of ours. `--json-schema` takes the schema INLINE
+        # (`claude --help`, 2.1.296), so the value is the schema file's content, compacted to one
+        # token -- the file stays the single source (`ecosystem/schema/lane_report.py`).
         argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model,
-                "--effort", eff, "--permission-mode", permission_mode, prompt]
+                "--effort", eff, "--permission-mode", permission_mode,
+                "--json-schema", lane_report_schema_arg(), prompt]
         return Plan(argv, "stream")
     # `-n <slug>` names the session, so the Agent View row is the lane's own name and not the
     # contract prompt's first words. --permission-mode is not optional: nobody is at a --bg lane's

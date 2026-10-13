@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import py_compile
-import re
 from datetime import date
 from pathlib import Path
 
@@ -63,7 +62,6 @@ _STILL_DISABLED_HOOK_NAMES = ("surface-closures.ps1",)
 # 2026-09-22 measurement and this is a distinct, later re-arm event by a different lane.
 _LANE_962_REARMED_HOOK_NAMES = ("fleet_health.py",)
 
-_COMMAND_SCRIPT_RE = re.compile(r'"\$CLAUDE_PROJECT_DIR/scripts/([^"]+\.(?:py|ps1))"')
 
 _TODAY = date(2026, 9, 22)  # this lane's filing date; the contract's own frame of reference
 
@@ -72,22 +70,30 @@ def _load_settings() -> dict:
     return json.loads(_SETTINGS.read_text(encoding="utf-8"))
 
 
-def _session_start_commands(settings: dict) -> list[str]:
-    groups = settings["hooks"]["SessionStart"]
-    commands: list[str] = []
-    for group in groups:
-        for hook in group["hooks"]:
-            commands.append(hook["command"])
-    return commands
+# lane-bw-1001-sessionstart-one ([#1001]): the nine SessionStart entries became ONE entry,
+# `scripts/hooks/session_start.py` through the shared launcher, which IMPORTS each former reader.
+# A hook is "wired in SessionStart" now when it is one of that entry's READERS; the timeout that
+# bounds it is the one entry's. The questions this module asks are unchanged -- is it wired
+# exactly once, does it carry a positive timeout, does the script it names exist and parse.
+
+def _session_start_entry(settings: dict) -> dict:
+    entries = [h for g in settings["hooks"]["SessionStart"] for h in g["hooks"]]
+    assert len(entries) == 1, entries
+    return entries[0]
 
 
-def _script_path_from_command(command: str) -> Path:
-    """Extract the `scripts/<name>` path a SessionStart command invokes, resolved to disk."""
-    m = _COMMAND_SCRIPT_RE.search(command)
-    assert m is not None, f"command names no $CLAUDE_PROJECT_DIR/scripts/*.py|*.ps1 file: {command!r}"
-    # A powershell -File command may carry a trailing argument (e.g. "session-start") after the
-    # closing quote; the regex already stops at the closing quote, so this is just the script.
-    return _REPO / "scripts" / m.group(1)
+def _reader_scripts() -> list[str]:
+    import sys
+    sys.path.insert(0, str(_REPO / "scripts" / "hooks"))
+    import session_start
+    return [r.script for r in session_start.READERS]
+
+
+def _reader_script_path(hook_name: str) -> Path:
+    matching = [s for s in _reader_scripts() if Path(s).name == hook_name]
+    assert len(matching) == 1, (
+        f"{hook_name} should be exactly one reader of the SessionStart entry, found {matching}")
+    return _REPO / matching[0]
 
 
 # --- Done-contract 5a: every armed hook's command is runnable -------------------------------
@@ -95,30 +101,28 @@ def _script_path_from_command(command: str) -> Path:
 def test_every_session_start_command_names_a_script_that_exists():
     # DECIDED-BY-LANE (lane-wire-quota-distiller, repair 2 of 2, LANE-5B3-2-wire-quota-distiller.md):
     # count moved 8 -> 9 with the addition of scripts/hooks/quota_daily.py, the daily
-    # quota_watch.py SessionStart trigger. Neither this file nor test_hooks_no_powershell.py is
-    # this lane's ownership; the settings.json hunk that reds them is, so the fix lands here.
+    # quota_watch.py SessionStart trigger. lane-bw-1001-sessionstart-one ([#1001]): the nine are
+    # now the READERS of ONE entry, scripts/hooks/session_start.py.
     settings = _load_settings()
-    commands = _session_start_commands(settings)
-    assert len(commands) == 9, (
+    entry = _session_start_entry(settings)
+    assert entry["command"].endswith(" scripts/hooks/session_start.py"), entry
+    assert (_REPO / "scripts" / "hooks" / "session_start.py").is_file()
+    readers = _reader_scripts()
+    assert len(readers) == 9, (
         f"expected arm_hooks.py, the six [#956] re-armed hooks, [#962]'s fleet_health.py, and "
         f"lane-wire-quota-distiller's scripts/hooks/quota_daily.py (9 total), found "
-        f"{len(commands)}: {commands}"
+        f"{len(readers)}: {readers}"
     )
-    for command in commands:
-        path = _script_path_from_command(command)
-        assert path.is_file(), f"SessionStart command names a script that does not exist: {path}"
+    for script in readers:
+        path = _REPO / script
+        assert path.is_file(), f"SessionStart reader names a script that does not exist: {path}"
 
 
 @pytest.mark.parametrize("hook_name", _REARMED_HOOK_NAMES)
 def test_rearmed_hook_is_wired_in_session_start(hook_name):
     settings = _load_settings()
-    commands = _session_start_commands(settings)
-    matching = [c for c in commands if hook_name in c]
-    assert len(matching) == 1, (
-        f"{hook_name} should appear exactly once in hooks.SessionStart, found {len(matching)}"
-    )
-    group = settings["hooks"]["SessionStart"][0]
-    entry = next(h for h in group["hooks"] if hook_name in h["command"])
+    _reader_script_path(hook_name)
+    entry = _session_start_entry(settings)
     assert isinstance(entry.get("timeout"), int) and entry["timeout"] > 0, (
         f"{hook_name}'s SessionStart entry has no explicit positive timeout: {entry}"
     )
@@ -132,10 +136,7 @@ def test_rearmed_hook_script_is_runnable(hook_name, tmp_path):
     without a guaranteed `powershell`/`pwsh` on every box (unlike the live audit, which measured
     real invocation on this one).
     """
-    settings = _load_settings()
-    commands = _session_start_commands(settings)
-    command = next(c for c in commands if hook_name in c)
-    path = _script_path_from_command(command)
+    path = _reader_script_path(hook_name)
     assert path.is_file()
     if path.suffix == ".py":
         out = tmp_path / f"{path.stem}.pyc"
@@ -193,13 +194,8 @@ def test_no_stale_disabled_entries_remain_for_the_six_rearmed_hooks():
 @pytest.mark.parametrize("hook_name", _LANE_962_REARMED_HOOK_NAMES)
 def test_lane_962_rearmed_hook_is_wired_in_session_start(hook_name):
     settings = _load_settings()
-    commands = _session_start_commands(settings)
-    matching = [c for c in commands if hook_name in c]
-    assert len(matching) == 1, (
-        f"{hook_name} should appear exactly once in hooks.SessionStart, found {len(matching)}"
-    )
-    group = settings["hooks"]["SessionStart"][0]
-    entry = next(h for h in group["hooks"] if hook_name in h["command"])
+    _reader_script_path(hook_name)
+    entry = _session_start_entry(settings)
     assert isinstance(entry.get("timeout"), int) and entry["timeout"] > 0, (
         f"{hook_name}'s SessionStart entry has no explicit positive timeout: {entry}"
     )
@@ -207,10 +203,7 @@ def test_lane_962_rearmed_hook_is_wired_in_session_start(hook_name):
 
 @pytest.mark.parametrize("hook_name", _LANE_962_REARMED_HOOK_NAMES)
 def test_lane_962_rearmed_hook_script_is_runnable(hook_name, tmp_path):
-    settings = _load_settings()
-    commands = _session_start_commands(settings)
-    command = next(c for c in commands if hook_name in c)
-    path = _script_path_from_command(command)
+    path = _reader_script_path(hook_name)
     assert path.is_file()
     out = tmp_path / f"{path.stem}.pyc"
     py_compile.compile(str(path), cfile=str(out), doraise=True)

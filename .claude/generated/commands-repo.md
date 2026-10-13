@@ -14,6 +14,7 @@
 - `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v7 — CC-owned residual + thin browser boot
 - `/lane-boot` — Boot ONE batch lane — provision its worktree per the naming enum, seed it, load the frozen contract, and state the V-2 decision budget before any work starts.
 - `/lane-integrate` — Walk a batch's merge queue serially from the primary checkout, then run the refuse-to-finish checklist mechanically — the batch does not close while an item is open.
+- `/map` — Regenerate the system map (one JSON and one static HTML page, no LLM) from the file-purpose graph, grimp, the organ index and the harness, and print the paths and the map sha.
 - `/preflight` — Verify every repo locator a contract or prompt cites — file:line, headings, SHAs, [#id] liveness — BEFORE acting on it. Read-only, adoption-first, wired into no gate.
 - `/save` — Stage all changes and commit with a descriptive Conventional Commits message
 - `/spine` — Run the harness spine (stage table in ecosystem/harness.yaml) for a change kind and subject, stopping at the first missing stage.

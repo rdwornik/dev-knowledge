@@ -115,10 +115,36 @@ def _wired_emission_texts(clone: Path) -> list[str]:
                 p = clone / tok
             if p.exists():
                 try:
-                    texts.append(p.read_text(encoding="utf-8", errors="replace"))
+                    text = p.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
+                texts.append(text)
+                if p.suffix == ".py":
+                    texts.extend(_imported_sibling_texts(p, text))
     return texts
+
+
+#: A top-level-or-indented bare `import <name>` line -- how `scripts/hooks/session_start.py` reaches
+#: each SessionStart reader it runs in-process ([#1001], lane-bw-1001-sessionstart-one).
+_BARE_IMPORT_RE = re.compile(r"^[ \t]*import ([A-Za-z_]\w*)[ \t]*$", re.MULTILINE)
+
+
+def _imported_sibling_texts(script: Path, text: str) -> list[str]:
+    """ONE hop past a wired script: the text of each module it imports by bare name that lives in
+    the script's own directory or its parent (the `scripts/` + `scripts/hooks/` layout). A hook
+    that runs its readers by import emits what those readers print, so their text is part of the
+    self-emission surface exactly as the script's own text is."""
+    out: list[str] = []
+    for name in sorted(set(_BARE_IMPORT_RE.findall(text))):
+        for directory in (script.parent, script.parent.parent):
+            candidate = directory / f"{name}.py"
+            if candidate.is_file():
+                try:
+                    out.append(candidate.read_text(encoding="utf-8", errors="replace"))
+                except OSError:
+                    pass
+                break
+    return out
 
 
 def outer_only_markers(clone: Path | str | None,

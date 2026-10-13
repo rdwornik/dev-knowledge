@@ -34,7 +34,6 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 _SETTINGS = _REPO / ".claude" / "settings.json"
 
-_UV_LOCKED_PY = re.compile(r'^uv run --locked python "\$CLAUDE_PROJECT_DIR/scripts/[^"]+\.py"$')
 
 #: A real interpreter invocation -- `powershell`/`powershell.exe`/`pwsh`/`pwsh.exe` as a
 #: whole word (never a substring of a longer identifier, so e.g. a hypothetical
@@ -128,18 +127,32 @@ def test_a_matcher_naming_the_powershell_tool_alone_is_not_flagged():
 
 # --- Done-contract 1: both former-PowerShell SessionStart hooks are uv run --locked python ---
 
-def test_surface_triage_is_wired_as_uv_run_locked_python():
-    commands = [c for c in _session_start_commands() if "surface_triage" in c]
-    assert len(commands) == 1, f"expected exactly one surface_triage entry, found {commands}"
-    assert _UV_LOCKED_PY.match(commands[0]), commands[0]
-    assert commands[0].endswith('scripts/surface_triage.py"')
+# lane-bw-1001-sessionstart-one ([#1001]): the nine SessionStart entries became ONE, run through
+# the shared launcher (`scripts/hooks/session_start.py`, which imports each former reader). The two
+# ported readers are no longer separate `uv run --locked python "<script>"` entries; what this file
+# still guards is that they are reached through `uv run --locked python`, never PowerShell -- the
+# one entry's command starts that way, and both ported `.py` modules are among its readers.
+
+def _session_start_readers() -> set[str]:
+    import sys
+    sys.path.insert(0, str(_REPO / "scripts" / "hooks"))
+    import session_start
+    return {r.script for r in session_start.READERS}
 
 
-def test_billing_leak_sentinel_is_wired_as_uv_run_locked_python():
-    commands = [c for c in _session_start_commands() if "billing_leak_sentinel" in c]
-    assert len(commands) == 1, f"expected exactly one billing_leak_sentinel entry, found {commands}"
-    assert _UV_LOCKED_PY.match(commands[0]), commands[0]
-    assert commands[0].endswith('scripts/billing_leak_sentinel.py"')
+def test_the_one_session_start_entry_runs_through_uv_run_locked_python():
+    commands = _session_start_commands()
+    assert len(commands) == 1, commands
+    assert commands[0].startswith("uv run --locked python "), commands[0]
+    assert commands[0].endswith(" scripts/hooks/session_start.py"), commands[0]
+
+
+def test_surface_triage_is_a_reader_of_the_one_entry():
+    assert "scripts/surface_triage.py" in _session_start_readers()
+
+
+def test_billing_leak_sentinel_is_a_reader_of_the_one_entry():
+    assert "scripts/billing_leak_sentinel.py" in _session_start_readers()
 
 
 def test_the_ported_scripts_exist_on_disk():
@@ -173,5 +186,9 @@ def test_lane_end_guard_stop_entry_runs_through_uv_run_locked_python():
 # lane's own rewiring -- a name asserting "unchanged" while the file's own diff changes the
 # count would be a false claim baked into the test's identity, not just its body.
 
-def test_session_start_command_count_is_nine():
-    assert len(_session_start_commands()) == 9, _session_start_commands()
+#
+# lane-bw-1001-sessionstart-one ([#1001]): the count is ONE command carrying the nine readers.
+
+def test_session_start_command_count_is_one_carrying_nine_readers():
+    assert len(_session_start_commands()) == 1, _session_start_commands()
+    assert len(_session_start_readers()) == 9, _session_start_readers()
