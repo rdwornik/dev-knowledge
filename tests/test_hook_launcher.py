@@ -225,6 +225,21 @@ def test_bash_prefers_the_claude_project_dir_over_the_cwds_tree(tmp_path):
     assert _same(report["cwd"], elsewhere)
 
 
+def test_bash_with_a_project_dir_that_lacks_the_launcher_fails_closed(tmp_path):
+    """DECIDED (Codex r1 HIGH, disputed -- see the launcher docstring, "A CLAUDE_PROJECT_DIR
+    WITHOUT THE LAUNCHER"): when the variable is set it is trusted, exactly as every other
+    `"$CLAUDE_PROJECT_DIR/scripts/..."` entry in the file trusts it and as the pre-A2 scope-guard
+    entry did. A project dir that lacks the launcher is never a silent allow; it does not fall
+    back to the cwd's tree either, because no shell construct can test a file's existence
+    without spawning a process on every tool call."""
+    stale = tmp_path / "stale"
+    stale.mkdir()
+    tree = _git_tree(tmp_path / "tree", with_launcher=True)
+    proc = _launch("bash", tree, _env(CLAUDE_PROJECT_DIR=str(stale)))
+    assert proc.returncode != 0, (proc.stdout, proc.stderr)
+    assert proc.stdout.strip() == ""
+
+
 def test_bash_with_the_project_dir_outside_every_git_tree_still_runs_the_hook(tmp_path):
     project = _git_tree(tmp_path / "project", with_launcher=True)
     loose = tmp_path / "loose"

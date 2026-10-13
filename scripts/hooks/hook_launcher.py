@@ -35,6 +35,19 @@ does not carry this file -> python cannot open it and exits 2 (fail CLOSED, R96)
 all -> exit 0. Under bash with `CLAUDE_PROJECT_DIR` set the project copy wins (it is first on the
 line), so a session whose cwd wandered into another checkout still runs ITS project's hooks.
 
+A CLAUDE_PROJECT_DIR WITHOUT THE LAUNCHER (decided; Codex r1 raised it). When bash has the
+variable it is trusted: python is handed `$CLAUDE_PROJECT_DIR/scripts/hooks/hook_launcher.py`
+and, if that file is missing, exits 2 -- fail closed, no fallback to the cwd's tree. B1's inline
+launchers fell back; this shape cannot without a cost on every tool call, because bash has no
+file test that is not a command (a glob that matches nothing stays literal), and a command means
+a spawned process per hook firing. The case is narrow by construction: Claude Code reads these
+hooks from `$CLAUDE_PROJECT_DIR/.claude/settings.json`, and the command and the launcher land in
+one commit, so the declaring tree carries the launcher unless that tree is rewound under a live
+session -- where the cwd's tree is almost always the same rewound tree and a fallback would find
+nothing either. Every other entry in the file (`"$CLAUDE_PROJECT_DIR/scripts/<x>.py"`) and the
+pre-A2 scope-guard entry (`"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/scope_guard.py"`) trust the
+variable the same way. Pinned by `test_bash_with_a_project_dir_that_lacks_the_launcher_fails_closed`.
+
 HONEST COST. Bash evaluates the git locator even when `CLAUDE_PROJECT_DIR` already decided the
 answer: no construct is evaluated by PowerShell yet skipped by bash, because PowerShell reads
 every `${...}` as an empty variable, so the PowerShell-visible locator cannot sit inside a bash
