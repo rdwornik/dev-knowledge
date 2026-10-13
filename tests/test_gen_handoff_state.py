@@ -299,3 +299,20 @@ def test_sections_one_to_three_name_their_input_files(tmp_path):
     for title in gh.STATE_SECTION_TITLES[:2]:
         source = next(ln for ln in sections[title].splitlines() if ln.startswith("source:"))
         assert "ROLLUP.md" in source, (title, source)
+
+
+def test_a_repo_input_that_differs_from_head_is_missing_not_read(tmp_path):
+    """Codex r4 HIGH: a repo-local input with uncommitted edits is never sealed into the state --
+    its section prints MISSING and the uncommitted bytes are not rendered."""
+    root = _repo(tmp_path)
+    for args in (["init", "-q"], ["add", "-A"],
+                 ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "r"]):
+        gh._git_status(root, *args)
+    (root / ".methodology.yaml").write_text(
+        "sanctioned_divergences:\n  - component: uncommitted-entry\n    reason: r\n"
+        "    review_date: 2026-10-20\n", encoding="utf-8")
+    dated = _sections(gh.render_handoff_state(root, _inputs(tmp_path), today=_TODAY))[
+        "5. Dated items"]
+    assert "MISSING: .methodology.yaml (differs from HEAD" in dated
+    assert "uncommitted-entry" not in dated
+    assert "2026-10-16" in dated   # the clean registry is still read
