@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 import gen_handoff as gh
@@ -233,3 +234,45 @@ def test_each_source_without_a_past_errors_block_is_named_missing(tmp_path):
     errors = _sections(text)["2. Past errors with no check yet"]
     assert "dispositioned orphan" in errors
     assert "MISSING: a PAST ERRORS WITH NO CHECK YET block in LEDGER" in errors
+
+
+def test_an_incomplete_map_record_is_missing_not_a_clean_zero_diff(tmp_path):
+    """Codex r2 HIGH: a record without `map_sha` or the diff counts is MISSING, never `+0 -0`."""
+    inputs = _inputs(tmp_path)
+    (tmp_path / "map-record.json").write_text(json.dumps({"node_count": 3}), encoding="utf-8")
+    mapd = _sections(gh.render_handoff_state(_repo(tmp_path), inputs, today=_TODAY))[
+        "7. Map sha and diff"]
+    assert "MISSING: map diff" in mapd
+    assert "+0 -0" not in mapd
+
+
+def test_a_tracked_input_with_uncommitted_edits_is_refused(tmp_path, monkeypatch):
+    """Codex r2 HIGH: a tracked file is committed only when it does not differ from HEAD."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    rec = repo / "record.json"
+    rec.write_text(json.dumps(_MAP), encoding="utf-8")
+    for args in (["init", "-q"], ["add", "record.json"],
+                 ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "r"]):
+        gh._git_status(repo, *args)
+    assert gh._state_input_refusal(rec, "map-record", repo, None) is None
+    rec.write_text(json.dumps({**_MAP, "map_sha": "edited"}), encoding="utf-8")
+    assert "map-record" in (gh._state_input_refusal(rec, "map-record", repo, None) or "")
+
+
+def test_a_state_out_symlink_into_the_repo_is_refused(tmp_path, monkeypatch):
+    """Codex r2 HIGH: the output file is judged where it RESOLVES, not where its parent sits."""
+    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: tmp_path)
+    inputs = _inputs(tmp_path)
+    target = Path(gh._REPO_ROOT) / "docs" / "handoffs" / "bw680-never-link.md"
+    link = tmp_path / "scratch" / "HANDOFF_STATE.md"
+    link.parent.mkdir()
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("this platform refuses an unprivileged symlink")
+    res = CliRunner().invoke(gh.main, [
+        "--state-out", str(link), "--rollup", str(inputs.rollups[0]),
+        "--ledger", str(inputs.ledger), "--map-record", str(inputs.map_record)])
+    assert res.exit_code != 0
+    assert not target.exists()
