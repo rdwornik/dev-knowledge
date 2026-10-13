@@ -1523,6 +1523,18 @@ def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
     return out
 
 
+def pending_rulings(repo_root, population: "list[FileRuling]",
+                    refused: "list[Finding]") -> tuple[str, ...]:
+    """The rulings of `population` that are NOT landed in the register and NOT refused -- the ones
+    the grace period still covers. Information, never a refusal: it lets the command NAME a ruling
+    before it lands, so "0 unlanded" after a landing has a before to be compared with (lane
+    bw-1378-rulings-landing). Ordered by number, each id once."""
+    landed = {e.number for e in parse_register(_read_register(Path(repo_root)))}
+    gone = {f.subject for f in refused}
+    numbers = sorted({r.number for r in population if r.number not in landed})
+    return tuple(_ruling_id(n) for n in numbers if _ruling_id(n) not in gone)
+
+
 class _Unmeasured:
     """The leg-(a) "not measured" marker. TRUTHY on purpose (N2 reviewer P1, repair 2): `None` and
     `[]` are both falsy, so a reader writing `not report.unlanded` read an unmeasured leg as clean.
@@ -1549,6 +1561,9 @@ class RulingsReport:
     unmeasured_reason: str = ""
     files_read: int = 0
     rulings_read: int = 0
+    #: Unlanded rulings the grace period still covers (`pending_rulings`). Empty when leg (a) was
+    #: not measured -- an unread transport names nothing pending, and that is not a pass either.
+    pending: tuple[str, ...] = ()
 
     def _findings(self) -> list[Finding]:
         """Both legs' findings. PRIVATE on purpose: an unmeasured leg contributes none, so this is
@@ -1593,6 +1608,9 @@ class RulingsReport:
             lines.append(f"  leg (a) landed within a batch: {len(self.unlanded)} unlanded past "
                          f"{GRACE_BATCHES} closed batch(es) -- read {self.rulings_read} ruling(s) in "
                          f"{self.files_read} non-superseded RATIFICATION file(s)")
+            lines.append(f"  leg (a) pending within grace: {len(self.pending)}"
+                         + (" -- " + ", ".join(self.pending) if self.pending else "")
+                         + " (not landed yet; named, not refused)")
         return "\n".join(lines)
 
 
@@ -1616,7 +1634,8 @@ def rulings_report(repo_root, *, transport=_UNSET, floor: int = FIRST_GATED_RULI
     except TransportUnreadable as exc:
         return RulingsReport(uncarried, UNMEASURED, counts, str(exc))
     return RulingsReport(uncarried, unlanded, counts, files_read=len(files),
-                         rulings_read=len(population))
+                         rulings_read=len(population),
+                         pending=pending_rulings(root, population, unlanded))
 
 
 # --------------------------------------------------------------------------------------- CLI
