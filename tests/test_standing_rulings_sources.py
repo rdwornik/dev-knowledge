@@ -459,19 +459,19 @@ def test_r58_is_landed_from_its_proposal_and_its_ratifying_line(entries_ar):
     assert "R58 is ratified" in blocks[1].body
 
 
-def test_the_bundles_landed_row_reads_through_r92_with_every_id_present():
+def test_the_bundles_landed_row_reads_through_r99_with_every_id_present():
     """Item 1: `handoff_state.row_landed` (W1-9's row) is read, not changed. On this tree it says
-    `through R92` (section AS, batch B2-W2 lane `b2w2-rulings-landing`, extends section AR's R79),
-    and every id from R1 to R92 is bulleted."""
+    `through R99` (section AT, batch BW lane `bw-1378-rulings-landing`, extends section AS's R92),
+    and every id from R1 to R99 is bulleted."""
     import sys as _sys
     scripts = str(_REPO / "scripts")
     if scripts not in _sys.path:
         _sys.path.insert(0, scripts)
     import handoff_state as hs
     row = hs.row_landed(_REPO)
-    assert row.value.startswith("through R92 "), row.value
+    assert row.value.startswith("through R99 "), row.value
     ids = {int(n) for n in hs._LANDED_RE.findall(_REGISTER.read_text(encoding="utf-8"))}
-    assert set(range(1, 93)) <= ids, sorted(set(range(1, 93)) - ids)
+    assert set(range(1, 100)) <= ids, sorted(set(range(1, 100)) - ids)
 
 
 # ======================================================================================
@@ -645,3 +645,201 @@ def test_the_gate_passes_on_the_live_ratification_files_under_a_simulated_b2_w2_
     refused = [f.subject for f in report.unlanded if f.subject in ours]
     assert not refused, f"R80-R92 still unlanded under a simulated B2-W2 close: {refused}"
     assert not [f.subject for f in report.uncarried if f.subject in ours]
+
+
+# ======================================================================================
+# SECTION AT -- R93..R99 (batch BW, wave D, lane `bw-1378-rulings-landing`, row [#1378] nearest)
+# ======================================================================================
+#
+# Same two legs as AQ, AR and AS, plus the gate they exist for. RED-first on main d8619ab0: that
+# tree's register stops at R92, so the gate refuses R93..R95 once batch BW reads CLOSED, the live
+# `decision_coverage.py rulings` names all seven as pending, and every test below that reads
+# section AT fails there.
+
+REQUIRED_IDS_AT = [f"R{n}" for n in range(93, 100)]
+
+_T10 = "to-browser/RATIFICATION-2026-10-10.md"
+_T11 = "to-browser/RATIFICATION-2026-10-11.md"
+_T12 = "to-browser/RATIFICATION-2026-10-12.md"
+#: The FILE of each source. The 10-10 file is v3 and the 10-12 file is v2 (each rewritten in
+#: place); `RATIFICATION-2026-10-12-v1-superseded.md` is not a source.
+EXPECTED_SOURCES_AT: dict[str, list[str]] = {
+    **{f"R{n}": [_T10] for n in (93, 94, 95)},
+    "R96": [_T11],
+    **{f"R{n}": [_T12] for n in (97, 98, 99)},
+}
+FIRST_LINE_TOKEN_AT = {f"R{n}": f"## R{n} " for n in range(93, 100)}
+_AT_FILE_DATES = {_T10: "2026-10-10", _T11: "2026-10-11", _T12: "2026-10-12"}
+
+
+@pytest.fixture(scope="module")
+def entries_at():
+    return parse_entries(_REGISTER.read_text(encoding="utf-8"), "AT")
+
+
+def test_section_at_lands_every_ruling_r93_to_r99_exactly_once(entries_at):
+    missing = [i for i in REQUIRED_IDS_AT if i not in entries_at]
+    dup = [i for i, v in entries_at.items() if len(v) > 1]
+    extra = [i for i in entries_at if i not in REQUIRED_IDS_AT]
+    assert not missing, f"section AT of protocols/STANDING_RULINGS.md lacks: {missing}"
+    assert not dup, f"entries landed more than once: {dup}"
+    assert not extra, f"section AT carries entries outside R93-R99: {extra}"
+
+
+def test_every_at_entry_carries_the_verbatim_blocks_its_sources_require(entries_at):
+    problems = []
+    for rid in REQUIRED_IDS_AT:
+        if rid not in entries_at:
+            continue
+        blocks = entries_at[rid][0][1]
+        got = [b.path for b in blocks]
+        if sorted(set(got)) != sorted(set(EXPECTED_SOURCES_AT[rid])):
+            problems.append(f"{rid}: block sources {sorted(set(got))} != {EXPECTED_SOURCES_AT[rid]}")
+        for b in blocks:
+            if not b.body.strip():
+                problems.append(f"{rid}: an empty verbatim block for {b.path}:{b.first}-{b.last}")
+    assert entries_at, "section AT is absent -- R93-R99 are not landed"
+    assert not problems, "\n".join(problems)
+
+
+def test_each_at_primary_block_starts_at_its_own_ruling(entries_at):
+    problems = []
+    for rid in REQUIRED_IDS_AT:
+        if rid not in entries_at or not entries_at[rid][0][1]:
+            continue
+        first = entries_at[rid][0][1][0].body.split("\n")[0]
+        if FIRST_LINE_TOKEN_AT[rid] not in first:
+            problems.append(f"{rid}: first line {first[:80]!r} lacks {FIRST_LINE_TOKEN_AT[rid]!r}")
+    assert entries_at and not problems, "\n".join(problems) or "section AT is absent"
+
+
+def test_at_blocks_match_their_sources_where_the_transport_is_reachable(entries_at):
+    transport = _transport_root()
+    mismatched, unreachable = [], []
+    for rid in REQUIRED_IDS_AT:
+        for b in (entries_at.get(rid) or [("", [])])[0][1]:
+            verdict, detail = diff_block(b, transport)
+            if verdict == "mismatch":
+                mismatched.append(f"{rid}: {detail}")
+            elif verdict == "unreachable":
+                unreachable.append(f"{rid}: {b.path} ({detail})")
+    assert entries_at, "section AT is absent -- nothing to diff"
+    assert not mismatched, "landed text differs from its source:\n" + "\n".join(mismatched)
+    if transport is not None:
+        assert not unreachable, "a declared transport lacks sources:\n" + "\n".join(unreachable)
+    elif unreachable:
+        warnings.warn(
+            f"UNVERIFIED: {len(unreachable)} transport-sourced block(s) of section AT not diffed "
+            f"-- no transport declared. Unreachable: " + "; ".join(unreachable), UserWarning,
+            stacklevel=1)
+
+
+def test_every_at_entry_is_carried_by_a_row_or_a_written_disposition():
+    """Done-contract item 1's carriage leg, read through the gate's own parser: each of R93..R99
+    has a `Carried by:` line the gate accepts (a carrying row, or `no implementation required —
+    <why> (owner: <who>)`)."""
+    dc = _decision_coverage()
+    entries = {e.number: e for e in dc.parse_register(_REGISTER.read_text(encoding="utf-8"))}
+    missing = [n for n in range(93, 100) if n not in entries]
+    assert not missing, f"not landed: {missing}"
+    refused = {f.subject: f.evidence for f in dc.uncarried_rulings(_REPO)
+               if f.subject in set(REQUIRED_IDS_AT)}
+    assert refused == {}, refused
+
+
+def _at_transport(tmp_path: Path, *, bw_closed: bool) -> Path:
+    """A transport holding the three RATIFICATION files of R93..R99 (headings only, dated as the
+    live files are) and the batch clock: B2-W3 CLOSED 2026-10-11, and BW CLOSED when asked."""
+    folder = tmp_path / "t" / "to-browser"
+    folder.mkdir(parents=True)
+    for path, day in _AT_FILE_DATES.items():
+        ids = [r for r in REQUIRED_IDS_AT if EXPECTED_SOURCES_AT[r] == [path]]
+        head = f"carried-by: OPEN\nkind: RATIFICATION\ndate: {day}\n\n# RATIFICATION - {day}\n\n"
+        body = "\n\n".join(f"## {r} — a ruling" for r in ids)
+        (folder / Path(path).name).write_text(head + body + "\n", encoding="utf-8", newline="\n")
+    (folder / "STATE-BATCH-B2-W3.md").write_text("CLOSED 2026-10-11T12:00Z\n", encoding="utf-8")
+    if bw_closed:
+        (folder / "STATE-BATCH-BW.md").write_text("CLOSED 2026-10-14T23:59Z\n", encoding="utf-8")
+    return tmp_path / "t"
+
+
+def _repo_without_section_at(tmp_path: Path) -> Path:
+    """A copy of the register without section AT -- the tree at d8619ab0 -- and the task rows."""
+    import shutil
+    root = tmp_path / "repo"
+    (root / "protocols").mkdir(parents=True)
+    text = _REGISTER.read_text(encoding="utf-8")
+    if "## AT. " in text:
+        start, end = text.index("## AT. "), text.index("## Editing note")
+        text = text[:start] + text[end:]
+    (root / "protocols" / "STANDING_RULINGS.md").write_text(text, encoding="utf-8", newline="\n")
+    shutil.copytree(_REPO / "tasks", root / "tasks")
+    return root
+
+
+def test_without_section_at_the_gate_names_r93_to_r99_pending_then_refuses_after_a_bw_close(
+        tmp_path):
+    """The RED-first witness (Done-contract item 2), kept as a test: the register as it stood at
+    d8619ab0 names all seven pending inside the grace period, and refuses R93..R95 (two closed
+    batches after 2026-10-10) once BW reads CLOSED -- so the clock arms the refusal."""
+    dc = _decision_coverage()
+    bare = _repo_without_section_at(tmp_path)
+    open_ = dc.rulings_report(bare, transport=_at_transport(tmp_path / "a", bw_closed=False))
+    assert open_.unlanded == []
+    assert list(open_.pending) == REQUIRED_IDS_AT
+    assert "pending within grace: 7" in open_.render()
+    closed = dc.rulings_report(bare, transport=_at_transport(tmp_path / "b", bw_closed=True))
+    assert sorted(f.subject for f in closed.unlanded) == ["R93", "R94", "R95"]
+    assert not closed.passed
+
+
+def test_the_gate_reports_r93_to_r99_landed_and_carried_under_a_simulated_bw_close(tmp_path):
+    """Done-contract item 2: `decision_coverage.py rulings` reports 0 unlanded and 0 pending for
+    R93..R99 with BW CLOSED, all seven read, and every landed entry carried."""
+    dc = _decision_coverage()
+    report = dc.rulings_report(_REPO, transport=_at_transport(tmp_path, bw_closed=True))
+    assert report.unlanded is not dc.UNMEASURED
+    assert report.rulings_read == len(REQUIRED_IDS_AT)
+    assert report.unlanded == [], [f.subject for f in report.unlanded]
+    assert list(report.pending) == []
+    assert report.uncarried == [], [f.subject for f in report.uncarried]
+    assert report.passed
+
+
+def test_the_live_ratification_files_leave_nothing_of_r93_to_r99_pending():
+    """The same reading against the operator's real RATIFICATION files wherever the transport is
+    reachable; with none declared the leg is named UNVERIFIED, never passed in silence."""
+    transport = _transport_root()
+    if transport is None or not (transport / "to-browser").is_dir():
+        warnings.warn("UNVERIFIED: R93-R99 were not read against the live RATIFICATION files -- "
+                      "no transport declared.", UserWarning, stacklevel=1)
+        return
+    dc = _decision_coverage()
+    report = dc.rulings_report(_REPO, transport=transport)
+    assert report.unlanded is not dc.UNMEASURED, report.unmeasured_reason
+    ours = set(REQUIRED_IDS_AT)
+    assert not [f.subject for f in report.unlanded if f.subject in ours]
+    assert not [r for r in report.pending if r in ours], report.pending
+    assert not [f.subject for f in report.uncarried if f.subject in ours]
+
+# --- R96: ADR-123 and ADR-124 Accepted, the status line only (ADR-94) ------------------------
+
+_ADRS_R96 = {123: "ADR-123-the-harness-ships-as-one-versioned-artefact-pinned-in-each-consumer.md",
+             124: "ADR-124-one-code-standard-enforced-by-tools-adopted-one-at-a-time.md"}
+
+
+@pytest.mark.parametrize("number", sorted(_ADRS_R96))
+def test_r96_accepts_adr_123_and_124_on_the_status_line_and_the_index_agrees(number):
+    """Done-contract item 3: the status line reads Accepted and cites R96; the README index row
+    agrees (the header<->index coherence leg of `validate_adr_status`), and the decision register
+    no longer says the ADR awaits ratification."""
+    adr = (_REPO / "docs" / "decisions" / _ADRS_R96[number]).read_text(encoding="utf-8")
+    status = next(ln for ln in adr.splitlines() if ln.startswith("- **Status:**"))
+    assert status.startswith("- **Status:** Accepted"), status
+    assert "R96" in status, status
+    index = (_REPO / "docs" / "decisions" / "README.md").read_text(encoding="utf-8")
+    row = next(ln for ln in index.splitlines() if ln.startswith(f"| ADR-{number} |"))
+    assert "| **Accepted" in row and "**Proposed.**" not in row, row[:120]
+    dc = _decision_coverage()
+    disp = dc.DECISION_DISPOSITIONS.get(f"adr:{number}")
+    assert disp is None or disp.reason != dc._AWAITING_RATIFICATION
