@@ -132,20 +132,79 @@ def test_p1_passes_only_when_the_plugin_loaded_AND_a_hook_fired():
     assert hp.p1_verdict(plugin_loaded=False, fired_events=["Stop"]) == "FAIL"
 
 
-def test_p2_passes_only_on_exit_zero_AND_the_lock_naming_the_package():
-    lock = '[[package]]\nname = "dk-harness-probe"\nsource = { git = "https://x?subdirectory=y#abc" }\n'
-    assert hp.p2_verdict(0, lock, "dk-harness-probe") == "PASS"
-    assert hp.p2_verdict(1, lock, "dk-harness-probe") == "FAIL"
-    assert hp.p2_verdict(0, "[[package]]\nname = \"other\"\n", "dk-harness-probe") == "FAIL"
+_REPO = "https://github.com/rdwornik/dev-knowledge"
+_SUB = "tests/fixtures/harness-probe-pkg"
+_REF = "c85ff2c249d72538bb0fefd7cd0b8d083741a22e"
 
 
-def test_p3_fails_when_the_hub_was_still_reachable():
-    ok = dict(hub_reachable=False, lane_exit=0, organ_seen=True, fired_events=["Stop"])
+def _lock(name="dk-harness-probe", git=None):
+    git = git or f"{_REPO}?subdirectory=tests%2Ffixtures%2Fharness-probe-pkg&rev={_REF}#{_REF}"
+    return (f'version = 1\n\n[[package]]\nname = "{name}"\nversion = "0.0.1"\n'
+            f'source = {{ git = "{git}" }}\n')
+
+
+def _p2(exit_code=0, lock=None):
+    return hp.p2_verdict(exit_code, _lock() if lock is None else lock, "dk-harness-probe",
+                         repo=_REPO, subdir=_SUB, ref=_REF)
+
+
+def test_p2_passes_only_on_exit_zero_AND_the_lock_pinning_the_git_subdirectory_at_the_ref():
+    assert _p2() == "PASS"
+    assert _p2(exit_code=1) == "FAIL"
+    assert _p2(lock=_lock(name="other")) == "FAIL"
+
+
+def test_p2_refuses_a_lock_whose_source_is_not_the_requested_git_subdirectory_and_ref():
+    """Codex r1 HIGH: a name match alone let a local or unrelated package pass P-2."""
+    local = '[[package]]\nname = "dk-harness-probe"\nsource = { editable = "x" }\n'
+    assert _p2(lock=local) == "FAIL"
+    other_sub = f"{_REPO}?subdirectory=elsewhere&rev={_REF}#{_REF}"
+    assert _p2(lock=_lock(git=other_sub)) == "FAIL"
+    other_ref = f"{_REPO}?subdirectory=tests%2Ffixtures%2Fharness-probe-pkg#deadbeef"
+    assert _p2(lock=_lock(git=other_ref)) == "FAIL"
+    other_repo = f"https://github.com/x/y?subdirectory=tests%2Ffixtures%2Fharness-probe-pkg#{_REF}"
+    assert _p2(lock=_lock(git=other_repo)) == "FAIL"
+
+
+_REFUSAL = ("fatal: unable to access 'https://hub-unreachable.invalid/rdwornik/dev-knowledge/': "
+            "Could not resolve host: hub-unreachable.invalid")
+
+
+def test_p3_passes_only_on_the_sentinel_refusal_a_clean_lane_the_organ_and_a_hook():
+    ok = dict(hub_probe_exit=128, hub_probe_out=_REFUSAL, lane_exit=0, organ_seen=True,
+              fired_events=["Stop"])
     assert hp.p3_verdict(**ok) == "PASS"
-    assert hp.p3_verdict(**dict(ok, hub_reachable=True)) == "FAIL"
+    assert hp.p3_verdict(**dict(ok, hub_probe_exit=0)) == "FAIL"
     assert hp.p3_verdict(**dict(ok, lane_exit=1)) == "FAIL"
     assert hp.p3_verdict(**dict(ok, organ_seen=False)) == "FAIL"
     assert hp.p3_verdict(**dict(ok, fired_events=[])) == "FAIL"
+
+
+def test_p3_refuses_a_hub_probe_that_failed_for_another_reason():
+    """Codex r1 HIGH: any nonzero ls-remote read as 'hub unreachable'."""
+    ok = dict(hub_probe_exit=127, hub_probe_out="bash: git: command not found", lane_exit=0,
+              organ_seen=True, fired_events=["Stop"])
+    assert hp.p3_verdict(**ok) == "FAIL"
+
+
+def _ev(kind, content):
+    return json.dumps({"type": kind, "message": {"content": content}})
+
+
+def test_organ_ran_needs_a_bash_tool_use_of_the_organ_AND_its_tool_result():
+    """Codex r1 HIGH: the marker anywhere in the stream let a parroted reply pass."""
+    use = _ev("assistant", [{"type": "tool_use", "id": "t1", "name": "Bash",
+                             "input": {"command": "uv run --locked dk-harness-probe check"}}])
+    res = _ev("user", [{"type": "tool_result", "tool_use_id": "t1",
+                        "content": [{"type": "text", "text": "dk-harness-probe check ok version=0.0.1"}]}])
+    parrot = json.dumps({"type": "result", "result": "dk-harness-probe check ok version=0.0.1"})
+    frag, marker = "dk-harness-probe check", "dk-harness-probe check ok"
+    assert hp.organ_ran("\n".join([use, res]), frag, marker) is True
+    assert hp.organ_ran(parrot, frag, marker) is False
+    assert hp.organ_ran("\n".join([use, parrot]), frag, marker) is False
+    other = _ev("user", [{"type": "tool_result", "tool_use_id": "t2",
+                          "content": "dk-harness-probe check ok"}])
+    assert hp.organ_ran("\n".join([use, other]), frag, marker) is False
 
 
 # ------------------------------------------------------------------ the audit file + CLI
