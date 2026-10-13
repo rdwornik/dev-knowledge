@@ -1854,3 +1854,169 @@ def test_the_distilled_contract_is_written_through_the_same_lint_gate():
     assert source.count("target.write_text(") == 0, "a bare write bypasses the transport lint"
     assert source.count("_write_contract(target, text)") == 2   # `emit` and `distill`
     assert source.count("_transport.emit(") == 1                # the one call both go through
+
+
+
+# --- [#958] required tools: the contract declares them, a transcript check verdicts them -----
+#
+# Done-contract 1-3 of `LANE-bw-958-required-tools.md`: a contract may carry ONE
+# `**Required tools:**` line that `check` validates through `parse_contract` (no second
+# parser), and `required-tools CONTRACT TRANSCRIPT` reads a session transcript and prints
+# `required-tools PASS` / `required-tools FAIL: missing <names>` with exit 0/1, or the same
+# verdict as a `checks` row (`--json`) the lane-report rollup reads.
+
+_REQUIRED_LINE = ("**Required tools:** `skill:why`, `tool:Bash`, "
+                  "`command:file_purpose_graph.py why`, `flag:--json-schema`")
+
+
+def _with_required(contract: str, line: str = _REQUIRED_LINE) -> str:
+    """The emitted contract with a required-tools line placed under its `**Kind:**` line."""
+    head, sep, tail = contract.partition("\n**Kind:**")
+    assert sep, "fixture contract carries no Kind line"
+    first, _nl, rest = tail.partition("\n")
+    return f"{head}{sep}{first}\n\n{line}\n{rest}"
+
+
+def _tool_use(name: str, tool_input: dict, **top) -> str:
+    import json as _json
+    record = {"type": "assistant", **top,
+              "message": {"role": "assistant",
+                          "content": [{"type": "tool_use", "id": "toolu_x", "name": name,
+                                       "input": tool_input}]}}
+    return _json.dumps(record)
+
+
+def _all_four_calls(nested_flag: bool = False) -> list[str]:
+    flag_top = {"parent_tool_use_id": "toolu_parent"} if nested_flag else {}
+    return [
+        _tool_use("Skill", {"skill": "why", "args": "scripts/x.py"}),
+        _tool_use("Bash", {"command": "uv run --locked python scripts/file_purpose_graph.py "
+                                      "why scripts/x.py"}),
+        _tool_use("Bash", {"command": "claude -p go --json-schema report.json"}, **flag_top),
+    ]
+
+
+def _write_lines(path: Path, lines: list[str]) -> Path:
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def test_required_tools_absent_is_legal_and_recovers_nothing(local_contract):
+    parsed = glc.parse_contract(local_contract)
+    assert parsed.problems == ()
+    assert parsed.required_tools == ()
+
+
+def test_required_tools_line_is_recovered_by_the_one_contract_parser(local_contract):
+    parsed = glc.parse_contract(_with_required(local_contract))
+    assert parsed.problems == (), parsed.problems
+    assert parsed.required_tools == ("skill:why", "tool:Bash",
+                                     "command:file_purpose_graph.py why", "flag:--json-schema")
+
+
+@pytest.mark.parametrize("line, needle", [
+    ("**Required tools:** `verb:why`", "kind 'verb'"),
+    ("**Required tools:** `flag:json-schema`", "must start with '-'"),
+    ("**Required tools:** `skill:`", "empty"),
+    ("**Required tools:** `tool:Bash`, `tool:Bash`", "twice"),
+    ("**Required tools:** skill:why", "no backticked entry"),
+    ("**Required tools:** `tool:Bash` and more", "outside backticks"),
+])
+def test_check_refuses_a_malformed_required_tools_line(local_contract, line, needle):
+    parsed = glc.parse_contract(_with_required(local_contract, line))
+    assert any(needle in p for p in parsed.problems), parsed.problems
+
+
+def test_check_refuses_two_required_tools_lines(local_contract):
+    text = _with_required(_with_required(local_contract), "**Required tools:** `tool:Read`")
+    parsed = glc.parse_contract(text)
+    assert any("2 `**Required tools:**` lines" in p for p in parsed.problems), parsed.problems
+
+
+def test_a_required_tools_line_quoted_inside_a_fence_is_not_a_declaration(local_contract):
+    text = local_contract + "\n```\n**Required tools:** `verb:nonsense`\n```\n"
+    parsed = glc.parse_contract(text)
+    assert parsed.problems == ()
+    assert parsed.required_tools == ()
+
+
+def test_the_check_cli_refuses_a_bad_required_tools_line(tmp_path, local_contract):
+    path = tmp_path / "LANE-a-539-ch8-codification.md"
+    path.write_text(_with_required(local_contract, "**Required tools:** `verb:x`"),
+                    encoding="utf-8")
+    result = CliRunner().invoke(glc.cli, ["check", str(path)])
+    assert result.exit_code == 1
+
+
+def test_required_tools_all_present_is_PASS_exit_0(tmp_path, local_contract):
+    contract = tmp_path / "LANE.md"
+    contract.write_text(_with_required(local_contract), encoding="utf-8")
+    transcript = _write_lines(tmp_path / "s.jsonl", _all_four_calls())
+    result = CliRunner().invoke(glc.cli, ["required-tools", str(contract), str(transcript)])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0] == "required-tools PASS"
+
+
+def test_required_tools_one_missing_is_FAIL_naming_it_exit_1(tmp_path, local_contract):
+    contract = tmp_path / "LANE.md"
+    contract.write_text(_with_required(local_contract), encoding="utf-8")
+    transcript = _write_lines(tmp_path / "s.jsonl", _all_four_calls()[:2])
+    result = CliRunner().invoke(glc.cli, ["required-tools", str(contract), str(transcript)])
+    assert result.exit_code == 1, result.output
+    assert result.output.splitlines()[0] == "required-tools FAIL: missing flag:--json-schema"
+
+
+def test_a_call_nested_under_a_subagent_still_counts(tmp_path, local_contract):
+    """`stream-json` marks a subagent's call with `parent_tool_use_id`; it is the lane's call."""
+    contract = tmp_path / "LANE.md"
+    contract.write_text(_with_required(local_contract), encoding="utf-8")
+    lines = _all_four_calls(nested_flag=True)
+    assert '"parent_tool_use_id"' in lines[-1]
+    transcript = _write_lines(tmp_path / "s.jsonl", lines)
+    result = CliRunner().invoke(glc.cli, ["required-tools", str(contract), str(transcript)])
+    assert result.exit_code == 0, result.output
+
+
+def test_a_call_in_the_on_disk_subagents_directory_still_counts(tmp_path, local_contract):
+    """Claude Code files a subagent's turns under `<session>/subagents/*.jsonl`, not inline."""
+    contract = tmp_path / "LANE.md"
+    contract.write_text(_with_required(local_contract), encoding="utf-8")
+    calls = _all_four_calls()
+    transcript = _write_lines(tmp_path / "sess.jsonl", calls[:2])
+    sub = tmp_path / "sess" / "subagents"
+    sub.mkdir(parents=True)
+    _write_lines(sub / "agent-a1.jsonl", calls[2:])
+    result = CliRunner().invoke(glc.cli, ["required-tools", str(contract), str(transcript)])
+    assert result.exit_code == 0, result.output
+
+
+def test_required_tools_json_is_one_checks_row_in_the_report_shape(tmp_path, local_contract):
+    import json as _json
+    contract = tmp_path / "LANE.md"
+    contract.write_text(_with_required(local_contract), encoding="utf-8")
+    transcript = _write_lines(tmp_path / "s.jsonl", _all_four_calls()[:2])
+    result = CliRunner().invoke(glc.cli, ["required-tools", "--json", str(contract),
+                                          str(transcript)])
+    assert result.exit_code == 1, result.output
+    row = _json.loads(result.output)
+    assert set(row) == {"name", "how", "result", "evidence"}
+    assert (row["name"], row["how"], row["result"]) == ("required-tools", "deterministic", "FAIL")
+    assert "required-tools" in row["evidence"] and str(transcript) in row["evidence"]
+
+
+def test_a_contract_declaring_no_required_tools_is_NOT_RUN_not_a_vacuous_PASS(
+        tmp_path, local_contract):
+    contract = tmp_path / "LANE.md"
+    contract.write_text(local_contract, encoding="utf-8")
+    transcript = _write_lines(tmp_path / "s.jsonl", _all_four_calls())
+    result = CliRunner().invoke(glc.cli, ["required-tools", str(contract), str(transcript)])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0].startswith("required-tools NOT_RUN")
+
+
+def test_matching_is_by_kind_not_by_substring_of_the_whole_record():
+    calls = [("Bash", {"command": "echo skill:why --json-schemaX"}),
+             ("Skill", {"skill": "tier1-lifecycle:ship"})]
+    missing = glc.missing_required_tools(
+        ("skill:why", "flag:--json-schema", "skill:ship", "tool:Read"), calls)
+    assert missing == ("skill:why", "flag:--json-schema", "tool:Read")
