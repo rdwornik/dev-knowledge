@@ -252,7 +252,10 @@ def is_landable(verdict) -> bool:
 # subject (`Merge branch 'worktree-lane-...'`) AND by any local or `origin/` lane ref whose tip is
 # in the range, so a custom merge message does not hide one -- and refuses the land, naming each
 # lane the ledger does not carry. `worktree-integrate-*` (the integrator's own branch) is not a
-# lane: it never matches the `worktree-lane-` prefix.
+# lane: it never matches the `worktree-lane-` prefix. A merge in the range that names no source
+# branch (a custom subject, `Merge commit '<sha>'`) and merges no live ref's tip is refused
+# LANE-UNATTRIBUTED: the gate cannot tell it is not a lane. HONEST LIMIT: a lane squashed or
+# fast-forwarded into the integration branch leaves no merge and no name, and is not seen.
 #
 # PROSPECTIVE, NEVER RETRO (how, and why): the gate did not exist when this batch's lanes were
 # launched by the orchestrator's Agent tool, so two things exempt a lane. (1) ERA: a lane whose
@@ -267,39 +270,62 @@ LANE_BRANCH_PREFIX = "worktree-lane-"
 LAUNCH_GATE_ERA = datetime(2026, 10, 13, tzinfo=timezone.utc)
 #: Manifests whose lanes table names lanes launched before the gate existed (repo-relative).
 GRANDFATHER_MANIFESTS = ("docs/audits/2026-10-12-technical-batch-bw-manifest.md",)
-_MERGED_LANE_RE = re.compile(r"^Merge (?:remote-tracking )?branch '(?:origin/)?(worktree-lane-[^']+)'")
+#: A merge subject that NAMES its source branch -- git's own default, which the integrator keeps.
+_NAMED_MERGE_RE = re.compile(r"^Merge (?:remote-tracking )?branch '([^']+)'")
 
 
 class LaneGateUnreadable(RuntimeError):
     """The range or the lane refs could not be read: the gate cannot tell, so `land` refuses."""
 
 
-def lane_branches_in(git: Runner, base: str, sha: str) -> dict:
-    """lane slug -> its tip, for every `worktree-lane-*` branch whose work is in `base..sha`."""
+class LaneGateUnattributed(RuntimeError):
+    """A merge in the range names no source and merges no live ref's tip: it could be a lane."""
+
+
+def lane_branches_in(git: Runner, base: str, sha: str) -> "tuple[dict, list]":
+    """`(lanes, unattributed)` for the commits in `base..sha`.
+
+    `lanes`: lane slug -> its tip, for every `worktree-lane-*` branch whose work is in the range --
+    named by a merge subject (`Merge branch 'worktree-lane-...'`) or by a live local / `origin/`
+    ref whose tip is in the range. `unattributed`: every merge in the range that names no source
+    branch in its subject AND whose merged tip no live ref points at (a custom message over a
+    deleted branch, a `Merge commit '<sha>'`) -- the gate cannot tell such a merge is not a lane,
+    so `land` refuses it rather than let it through (Codex round 1, HIGH)."""
     code, out = git(["log", "--format=%H%x09%P%x09%s", f"{base}..{sha}"])
     if code != 0:
         raise LaneGateUnreadable(f"git log {base[:12]}..{sha[:12]} failed: {out.strip()[:160]}")
-    in_range: set = set()
-    found: dict = {}
+    commits = []
     for line in out.splitlines():
-        parts = line.split("\t", 2)
-        if len(parts) < 3:
-            continue
-        commit, parents, subject = parts
-        in_range.add(commit.strip().lower())
-        merged, second = _MERGED_LANE_RE.match(subject), parents.split()[1:2]
-        if merged and second:
-            found[merged.group(1)[len("worktree-"):]] = second[0]
-    code, out = git(["for-each-ref", "--format=%(refname:short)%09%(objectname)",
-                     f"refs/heads/{LANE_BRANCH_PREFIX}*", f"refs/remotes/origin/{LANE_BRANCH_PREFIX}*"])
+        parts = line.split("	", 2)
+        if len(parts) == 3:
+            commits.append((parts[0].strip().lower(), parts[1].split(), parts[2]))
+    code, refs_out = git(["for-each-ref", "--format=%(refname:short)%09%(objectname)",
+                          "refs/heads", "refs/remotes/origin"])
     if code != 0:
-        raise LaneGateUnreadable(f"git for-each-ref failed: {out.strip()[:160]}")
-    for line in out.splitlines():
-        name, _, tip = line.partition("\t")
-        name = name.strip().removeprefix("origin/")
-        if name.startswith(LANE_BRANCH_PREFIX) and tip.strip().lower() in in_range:
-            found.setdefault(name[len("worktree-"):], tip.strip())
-    return found
+        raise LaneGateUnreadable(f"git for-each-ref failed: {refs_out.strip()[:160]}")
+    names_at: dict = {}
+    for line in refs_out.splitlines():
+        name, _, tip = line.partition("	")
+        names_at.setdefault(tip.strip().lower(), []).append(name.strip().removeprefix("origin/"))
+    in_range = {commit for commit, _parents, _subject in commits}
+    found: dict = {}
+    unattributed: list = []
+    for commit, parents, subject in commits:
+        if len(parents) < 2:
+            continue
+        merged = parents[1].lower()
+        named = _NAMED_MERGE_RE.match(subject)
+        if named:
+            source = named.group(1).removeprefix("origin/")
+            if source.startswith(LANE_BRANCH_PREFIX):
+                found[source[len("worktree-"):]] = merged
+        elif not names_at.get(merged):
+            unattributed.append(f"{commit[:12]} ({subject.strip()[:60]!r})")
+    for tip, names in names_at.items():
+        for name in names:
+            if name.startswith(LANE_BRANCH_PREFIX) and tip in in_range:
+                found.setdefault(name[len("worktree-"):], tip)
+    return found, unattributed
 
 
 def _first_commit_at(git: Runner, base: str, tip: str) -> Optional[datetime]:
@@ -333,8 +359,11 @@ def launched_lanes() -> set:
 def undispatched_lanes(git: Runner, root: Path, base: str, sha: str, *,
                        launched_fn: Optional[Callable] = None,
                        grandfathered_fn: Optional[Callable] = None) -> list:
-    """The lanes in `base..sha` that `dispatch` did not launch and no exemption covers, sorted."""
-    found = lane_branches_in(git, base, sha)
+    """The lanes in `base..sha` that `dispatch` did not launch and no exemption covers, sorted.
+    Raises `LaneGateUnattributed` when a merge in the range cannot be attributed at all."""
+    found, unattributed = lane_branches_in(git, base, sha)
+    if unattributed:
+        raise LaneGateUnattributed(", ".join(unattributed))
     if not found:
         return []
     launched = (launched_fn or launched_lanes)()
@@ -414,6 +443,11 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                                      grandfathered_fn=grandfathered_fn)
     except LaneGateUnreadable as exc:
         return refuse("LANE-GATE-UNREADABLE", f"cannot tell which lanes {sha[:12]} lands: {exc}")
+    except LaneGateUnattributed as exc:
+        return refuse("LANE-UNATTRIBUTED",
+                      f"merge(s) {exc} name no source branch and merge no live ref's tip, so the "
+                      f"gate cannot tell they are not lanes: re-merge with git's default subject "
+                      f"(`Merge branch '<name>'`) or keep the source ref until the land")
     if blocked:
         return refuse("LANE-NOT-DISPATCHED",
                       f"lane(s) {', '.join(blocked)} were not launched by `dispatch.py` (no launch "

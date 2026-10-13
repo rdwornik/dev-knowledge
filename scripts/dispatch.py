@@ -701,6 +701,15 @@ def repo_name(cwd: Optional[Path] = None) -> str:
     return Path(done.stdout.strip()).parent.name
 
 
+def repo_toplevel(cwd: Path) -> Path:
+    """The repository root of `cwd` (`git rev-parse --show-toplevel`): a producer launch runs from
+    there whatever directory the CLI was invoked in (Codex round 1, HIGH)."""
+    done = _control(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"])
+    if done is None or done.returncode != 0 or not done.stdout.strip():
+        raise LaunchRefused(f"{cwd} is not inside a git repository; a producer is launched from a repo root")
+    return Path(done.stdout.strip())
+
+
 def producer_argv(kind: str, model: str, slug: str, effort: str, prompt: str,
                   permission_mode: str = "bypassPermissions", session_id: str = "") -> list[str]:
     """The argv for one producer kind. Built, never run here.
@@ -793,8 +802,10 @@ def producer_of(request: "LaunchRequest", result: "LaunchResult") -> dict:
     """The section-3 `producer` field (vendor, model, session id) for a launch. The model is the
     one REQUESTED -- the served one is not attestable at launch; the session is the id fixed up
     front, else the listing's, else the job id."""
+    if request.producer:
+        return request.producer_field
     return {"vendor": _VENDOR.get(request.provider, request.provider), "model": request.model,
-            "session": result.session_id or request.session_id or result.job_id}
+            "session": result.session_id or result.job_id}
 
 
 def record_lane_launch(request: "LaunchRequest", result: "LaunchResult") -> Optional[Path]:
@@ -872,7 +883,22 @@ class LaunchRequest:
 
     @property
     def prompt(self) -> str:
-        return f"Read and execute the frozen contract at {self.contract}"
+        base = f"Read and execute the frozen contract at {self.contract}"
+        if not self.producer:
+            return base
+        # D1 Done 2: the producer reaches the lane's OWN section-3 field. Plain `key=value` words,
+        # never quotes -- a quote does not survive an npm `.cmd` shim's argv on Windows.
+        producer = self.producer_field
+        return (f"{base} -- your LANE REPORT section-3 producer field is: vendor={producer['vendor']} "
+                f"model={producer['model']} session={producer['session']}")
+
+    @property
+    def producer_field(self) -> dict:
+        """The section-3 `producer` this launch writes: vendor, the model requested, and the id fixed
+        up front -- the CLI's own session id for claude / copilot (`--session-id`), the dispatch
+        launch id for codex (whose CLI takes none; its thread id lands in its `--json` log)."""
+        return {"vendor": _VENDOR.get(self.provider, self.provider), "model": self.model,
+                "session": self.session_id}
 
     @property
     def argv(self) -> list[str]:
@@ -1011,7 +1037,7 @@ def _producer_request(request: LaunchRequest, producer: str, *, repo: str, model
     import uuid
     if producer not in PRODUCER_KINDS:
         raise DispatchRefused(f"unknown producer {producer!r}; known: {', '.join(PRODUCER_KINDS)}")
-    session_id = str(uuid.uuid4()) if producer in ("claude", "copilot") else ""
+    session_id = str(uuid.uuid4())   # claude/copilot: `--session-id`; codex: the dispatch launch id
     aimed = replace(request, producer=producer, session_id=session_id,
                                 provider=_PRODUCER_PROVIDER.get(producer, request.provider))
     route = producer_route(producer, aimed, repo or repo_name(), router)
@@ -2183,7 +2209,8 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
                                "argv": request.argv}))
         return
     result = launch_lane(request, prelaunch=run_prelaunch, spawn=spawn_process, agents=list_agents,
-                         secrets_file=secrets_file)
+                         secrets_file=secrets_file,
+                         cwd=repo_toplevel(Path.cwd()) if request.producer else None)
     click.echo(f"[dispatch] launched {result.slug}: job {result.job_id}, session name "
                f"{result.session_name_reported or result.session_name!r}, model {result.model_requested} "
                f"(reported: {result.model_reported})", err=True)

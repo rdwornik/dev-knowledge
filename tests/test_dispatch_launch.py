@@ -1201,7 +1201,8 @@ def test_d1_a_producer_prompt_carries_its_section_3_producer_field(contract, kin
     request = _request(contract, producer=kind, repo=".dev-knowledge")
 
     assert request.session_id, "every producer launch fixes its session / launch id up front"
-    prompt = request.argv[-1]
+    prompt = request.prompt
+    assert prompt in request.argv, "the prompt the lane receives is this one"
     assert f"vendor={d.PRODUCER_REGISTRY[kind] if kind != 'claude' else 'anthropic'}" in prompt
     assert f"model={request.model}" in prompt and f"session={request.session_id}" in prompt
     assert '"' not in prompt, "no quote may reach a .cmd shim's argv"
@@ -1211,8 +1212,14 @@ def test_d1_the_launch_cli_runs_a_producer_from_the_repository_root(contract, tm
     seen = {}
     top = tmp_path / "repo-root"
     monkeypatch.setattr(d, "repo_toplevel", lambda cwd: top)
-    monkeypatch.setattr(d, "launch_lane", lambda request, **kw: seen.update(kw) or pytest.skip("captured"))
 
-    CliRunner().invoke(d.cli, ["launch", str(contract), "--producer", "copilot", "--repo", ".dev-knowledge"])
+    def capture(request, **kw):
+        seen.update(kw)
+        raise d.LaunchRefused("captured")
 
+    monkeypatch.setattr(d, "launch_lane", capture)
+
+    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--producer", "copilot", "--repo", ".dev-knowledge"])
+
+    assert out.exit_code == d.EXIT_REFUSED and "captured" in out.output
     assert seen.get("cwd") == top

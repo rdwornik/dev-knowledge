@@ -401,8 +401,9 @@ def rollup_lane(reports_dir: Path, name: str, launch: Optional[dict] = None) -> 
     but without a valid section-3 block: INVALID, counted as received and never as a state.
 
     `launch` is the lane's row in `dispatch.py`'s launch ledger (D1), when it has one: a MISSING
-    lane is named with the producer dispatch launched, and a report whose `producer.vendor` is not
-    the launched one is INVALID -- the report does not describe the run that was started."""
+    lane is named with the producer dispatch launched, and a report whose `producer.vendor` or
+    `producer.session` is not the launched one is INVALID -- the report does not describe the run
+    that was started."""
     path = reports_dir / f"{_tr.ARTIFACT_PREFIX}{name}.md"
     launched = _launched_by(launch)
     try:
@@ -431,6 +432,11 @@ def rollup_lane(reports_dir: Path, name: str, launch: Optional[dict] = None) -> 
         return RollupLane(name, STATE_INVALID,
                           f"{name} | {STATE_INVALID} | the report names producer "
                           f"{report.producer.vendor!r} but dispatch launched {launched['vendor']!r}")
+    if launched and launched.get("session") and report.producer.session != launched["session"]:
+        # the vendor alone matches ANY run of that vendor; the session names THIS one (Codex r1)
+        return RollupLane(name, STATE_INVALID,
+                          f"{name} | {STATE_INVALID} | the report names producer session "
+                          f"{report.producer.session!r} but dispatch launched {launched['session']!r}")
     return RollupLane(name, report.state, report_line(report), report.operator_action)
 
 
