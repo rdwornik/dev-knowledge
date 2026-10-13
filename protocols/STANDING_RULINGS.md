@@ -6298,6 +6298,216 @@ Landed by `b2w2-rulings-landing` (batch B2-W2, lane 6, row [#1446]; the seat acc
 
 **Expiry:** none of R80–R92 expire on their own, except R92, which is bounded to batch B2-W2 and spent when it closes; the entries above land text, and each Carried-by line names what is and is not built.
 
+## AT. RATIFICATION 2026-10-10 → 2026-10-12 R93–R99 — landed verbatim from their sources, each carried by a row or by a written "no implementation required" (operator, 2026-10-10 → 2026-10-12)
+
+Landed by `bw-1378-rulings-landing` (batch BW = B2-W4 finish, wave D, nearest row [#1378]; ordered by `to-cc/BATCH-B2-W4-CC-FINISH-2026-10-12.md` F3 and, for R98 and R99, by `to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12.md` as the BW manifest section 2 records). R1–R92 are landed at §AM to §AS above and are not repeated here. The shape is §AS's: each entry carries its ruling's **source section byte for byte** in a fenced block whose info string is `verbatim <source>:<first line>-<last line>`, and `tests/test_standing_rulings_sources.py` diffs every block against its source range wherever the transport is reachable.
+
+**Two lines of every entry are read by a gate,** as in §AS: the bullet `- **R<n> — …` (counted by `scripts/handoff_state.py`) and the `**Carried by:**` line (judged by `scripts/decision_coverage.py rulings`). Before this section the command named R93–R99 pending within the grace period (`leg (a) pending within grace: 7`); with it, none is pending and none is unlanded.
+
+**Sources.** `RATIFICATION-2026-10-10.md` is v3 (it supersedes v2, which held R93 and R94) and `RATIFICATION-2026-10-12.md` is v2; `RATIFICATION-2026-10-12-v1-superseded.md` is not a source. A range cited in a live file is valid for the version named in its entry. There is no R100: the operator ruling batch BW's D7 waits on has not been given.
+
+**Carriers.** No open row names any of R93–R99, and a BW lane files no row (BW manifest section 1: findings are filed through intake at batch close, ADR-98/ADR-111, never by a lane computing the next id). Every entry is therefore carried by a written disposition, and each one says plainly which part is built, which part is a batch's own rule, and which part is **OWED** with no row yet: R94's `seat-cycle` mechanism, R95's D1/D2 citation check, and the carrier rows of ADR-123 and ADR-124 (R96). Those dispositions are holding entries, replaced by the rows' ids when the BW integrator files them through intake.
+
+**Not landed here.** Each file's `## Carriage` section is the transcriber's routing note, not a ruling, and stays on the transport; so do the seat rulings S-43 to S-45 that R93 and R94 cite in `to-cc/AMEND-BATCH-B2-W3-GO-2026-10-10.md`.
+
+- **R93 — B2-W3 GO, conditional; R73 set aside for B2-W3 under R92's controls** (operator, 2026-10-10; full text `RATIFICATION-2026-10-10.md:11` (v3)). In force as: the GO for batch B2-W3 takes effect only when the isolated measurability check over the amended B2-W3 set leaves 0 CRITICAL and 0 HIGH findings, the render writing `GO CONDITION (R93): MET` before any seat-order paste is valid; R73's exam gate is set aside for exactly B2-W3 under R92's five controls (a) to (e), each stated MET, NOT MET or NOT-RUN with its evidence in the B2-W3 CLOSE report; after B2-W3 the R73 gate applies again until a seat passes or the operator rules otherwise. **Bounds R73** (section AR) for one batch, as R92 (section AS) did for B2-W2. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a one-batch exception, spent when batch B2-W3 closed: its condition and its five controls were that batch's own rules, reported in its CLOSE report, and from the next batch R73 applies as written, its mechanism being [#1373] (owner: the B2-W3 integrator, who states each control MET, NOT MET or NOT-RUN in the batch CLOSE report; reopen if R73's gate is found set aside for a later batch without an operator ruling)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-10.md:11-33
+  ## R93 — B2-W3 GO, conditional; R73 set aside for B2-W3 under R92's controls (operator, 2026-10-10)
+
+  **Original:** "GO B2-W3 if the measurability check leaves no CRITICAL or HIGH finding. R73: set aside for B2-W3 under R92's controls (a) to (e), each reported MET / NOT MET / NOT-RUN at close."
+
+  **Context:**
+  - R92 (`RATIFICATION-2026-10-09`) set R73 aside for B2-W2 only: "For any batch after B2-W2, the R73 gate applies again, until a seat passes or the operator rules otherwise." This ruling is the operator ruling otherwise, for B2-W3.
+  - The seat failed its exam twice: 4/12, then 7/12 with the critical questions 3/3 (`SEAT-EXAM-RESULT-2026-10-09`, `-2`).
+  - The fresh-seat exam (control e) needs `boot-teaching`, and that lane is in B2-W3.
+
+  1. **Scope.** Exactly batch B2-W3: the four new lanes, plus the four lanes carried from B2-W2 (S-33). Nothing else is dispatched by this seat under R93.
+  2. **The condition.**
+     - The GO takes effect only when the isolated measurability check over the amended B2-W3 set leaves 0 CRITICAL and 0 HIGH findings.
+     - The check of 2026-10-10 (`DIGEST-AMEND-B2-W3-2026-10-10` §3) left HIGH findings unresolved: `b2w3-ci-schedules.4a` and `b2w2-transport-index.2`.
+     - The seat rules them in `to-cc/AMEND-BATCH-B2-W3-GO-2026-10-10.md` (S-43). The render re-checks the reworded items and writes the verdict line `GO CONDITION (R93): MET` or `NOT MET`.
+     - The seat-order pastes are valid only after that line reads MET.
+  3. **Controls** (R92's, for B2-W3):
+     - (a) CC challenges every lane's intent and frozen closure (R41) before the render.
+     - (b) An isolated agent on a different model checks that every Done-when is measurable, with a RED-first test and a vacuity check.
+     - (c) The render is GREEN.
+     - (d) The operator's pastes of the seat orders are the GO.
+     - (e) After the boot-teaching lane merges, a fresh seat sits a new exam (S2).
+  4. **Reporting.** The B2-W3 integrator's CLOSE report states each control as MET, NOT MET or NOT-RUN, with its evidence path (S-42, active under this ruling: S-44).
+  5. **After B2-W3.** The R73 gate applies again, until a seat passes or the operator rules otherwise.
+  ```
+
+- **R94 — seat context lifecycle: the integrator and dispatcher hand over by mechanism** (operator, 2026-10-10; full text `RATIFICATION-2026-10-10.md:35` (v3)). In force as: `PROPOSAL-ADR-SEAT-CONTEXT-CYCLE-2026-10-10` is ratified as written. D1: mechanized rotation now (a Stop-hook gate for bound seats measures context tokens and bind age and, at a no-merge point, makes the seat run one hand-over verb that launches, verifies, releases and unbinds; claim generation fences merges, pushes and launches), compaction re-injection as the backstop, stateless tick seats as a later ADR. D2: one lane, `seat-cycle`, builds it in B2-W4. D3 ([#1421]): at CYCLE-END a seat may remove its predecessor's seat worktree only when clean and 0 commits ahead of origin/main, with plain `git worktree remove`, recorded in the receipt; anything else is listed for the operator. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the work R94 orders is OWED and has no row yet: D2 orders a `seat-cycle` lane in B2-W4, batch BW froze none, D3's teardown is the scope of [#1421], which does not name R94, and R94's Carriage files its row through intake (ADR-111), which a BW lane may not do (BW manifest section 1); this line is a holding entry, replaced by that row's id when it is filed (owner: the batch BW integrator, who files R94's row through intake at the BW close packet; reopen if BW closes without it)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-10.md:35-55
+  ## R94 — seat context lifecycle: the integrator and dispatcher hand over by mechanism (operator, 2026-10-10)
+
+  **Original:** "Seat-cycle ADR: D1 yes; D2 B2-W4; D3 yes."
+
+  The operator ratifies `to-browser/PROPOSAL-ADR-SEAT-CONTEXT-CYCLE-2026-10-10.md` as written, with three decisions.
+
+  1. **D1 — the design.**
+     - **Now:** option C, mechanized rotation.
+     - A Stop-hook gate for bound seats measures context tokens and bind age.
+     - At the threshold, and only at a no-merge point, the gate makes the seat run one hand-over verb.
+     - That verb launches the successor from the order's Dispatch line, verifies it, then releases and unbinds.
+     - Claim generation fences merges, pushes and launches.
+     - **Backstop:** option B, compaction re-injection. A SessionStart (`compact` / `resume`) hook re-prints the order, the state file, the last STATE line and the Cycle rule. Seats launch with an explicit auto-compact window.
+     - **Later direction:** option D, stateless tick seats, in its own ADR.
+     - The ADR's §5 is the specification and its §6 holds the usability measures.
+  2. **D2 — when.** One lane, `seat-cycle`, builds the mechanism in batch **B2-W4**. B2-W3 runs the interim rule S-45 (`to-cc/AMEND-BATCH-B2-W3-GO-2026-10-10.md`): the Cycle check rides every wake, and a compaction is a trigger.
+  3. **D3 — teardown** ([#1421]). At CYCLE-END, a seat may remove its predecessor's seat worktree, under all of these conditions:
+     - only when it is clean and 0 commits ahead of origin/main;
+     - with `git worktree remove` and never `--force`;
+     - with the outcome recorded in the receipt.
+     Anything else is listed for the operator. This applies once the mechanism lands. Until then, B2-W3's seats list their leftovers (S-45.5).
+  ```
+
+- **R95 — boot drift: D1 to D5 accepted as recommended** (operator, 2026-10-10; full text `RATIFICATION-2026-10-10.md:57` (v3)). In force as: D1, every R-number, ADR and path `protocols/HANDOFF_BOOT.md` cites is checked in code at the handoff cut (exists, not superseded, status agrees with `docs/decisions/README.md`); D2, the cut prints the boot's sha8 and the architect's first tool call compares its Project copy with it, a mismatch failing the boot; D3, `SEAT-LESSONS` is a registered transport kind; D4, the 2026-10-03 Drive copy of HANDOFF_BOOT is renamed superseded, not deleted (done 2026-10-10 16:28Z); D5, the fresh-seat exam of R93 control (e) draws from SEAT-LESSONS v2 and its key stays off the transport the examined seat reads (O4: yes). The section's closing note records the operator's renewed Claude login. D3 is built by this lane: the `SEAT_LESSONS` row of `ecosystem/transport-registry.yaml`, witnessed by `tests/test_transport_lint.py`. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; D3 is built by this lane (the SEAT_LESSONS kind in ecosystem/transport-registry.yaml, witnessed by tests/test_transport_lint.py), D4 was done on 2026-10-10 and D5 rides R93 control (e); D1, the citation check at the cut, and D2's cut-side sha8 print are OWED, their row is filed through the next render per R95's Carriage and is not filed yet (owner: the batch BW integrator, who files the D1 and D2 row through intake at the BW close packet; reopen if BW closes without it)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-10.md:57-85
+  ## R95 — boot drift: D1 to D5 accepted as recommended (operator, 2026-10-10)
+
+  **Original:** "D1–D5: tak, zgodnie z rekomendacją."
+
+  **Source:** `to-browser/DIGEST-BOOT-DRIFT-2026-10-10.md` §6, with the seat's recommendation "yes" for each item.
+
+  1. **D1 — citations are checked in code.**
+     - Boot-teaching's planned Done 6 ("every reading-path item resolves") is extended to every R-number, ADR and path that `protocols/HANDOFF_BOOT.md` cites:
+       - each R-number exists in `protocols/STANDING_RULINGS.md` and no later ruling supersedes it;
+       - each ADR's status matches `docs/decisions/README.md` and the rulings;
+       - each path exists.
+     - The check runs at the handoff cut (ADR-129's gate).
+     - **Carrier:** a follow-up row after `b2w2-boot-teaching` ([#1443]) merges, filed by the next render. The building lane is not amended (SEAT-LESSONS lesson 15).
+  2. **D2 — the Project copy is compared at boot.**
+     - The cut prints the boot's sha8.
+     - The architect's first tool call at boot computes the sha256 of its claude.ai Project copy of `HANDOFF_BOOT.md` and compares it with that sha8, or with `origin/main:protocols/HANDOFF_BOOT.md` when there is no cut. A mismatch is the boot's FAIL.
+     - **Run once on 2026-10-10 for this seat:** the Project copy and the repo copy are byte-identical (`3b097159be4f`, 17,924 B).
+  3. **D3 — the SEAT-LESSONS kind is registered.**
+     - `SEAT-LESSONS` goes into `ecosystem/transport-registry.yaml`, so the file that v2's reading path names passes the lint.
+     - **Carrier:** a ROWS-OWED line at `b2w2-transport-index`'s close ([#1439]); no AMEND while it builds.
+  4. **D4 — the stale Drive copy is superseded.**
+     - The 2026-10-03 copy of `HANDOFF_BOOT.md` (Drive id `16BEd7D7OnfHRZ75pIwt_-3kBfi_dxG7M`, in `to-browser/archive/2026-10/`) is renamed `HANDOFF_BOOT-2026-10-03-copy-superseded.md`. It is not deleted.
+     - Done 2026-10-10 16:28Z.
+     - It had been moved into that archive folder at 15:34Z, by a writer this record does not witness.
+  5. **D5 — the fresh-seat exam draws from SEAT-LESSONS v2.**
+     - The exam of R93 control (e) is due after boot-teaching merges (`STANDING_RULINGS.md:6271`). It includes lessons 42–48 and the recurrences.
+     - **The exam key stays off the transport the examined seat can read.** This answers the carried QUESTION O4: yes.
+
+  **Also recorded.** The operator renewed the Claude login: "przestań o to pytać, już zrobione" (2026-10-10). The OPERATOR-ACTION is closed.
+  ```
+
+- **R96 — the B2-W3 aftermath package, ratified** (operator, 2026-10-11; full text `RATIFICATION-2026-10-11.md:11`). In force as: `DIGEST-RATIFICATION-PACKAGE-2026-10-11` P1 is ratified at its recommendation, every row D1-D12, A123.1-A123.5 and A124, with the lane-report contract proposal v2 behind D1-D4; three changes: D13, Grok is allowed (`provider_router` may list a Grok route where the registry admits one); D14, B2-W4 producers are Codex for code and Copilot for config and tests, with Claude Code verifying only (replaced for the rest of B2-W4 by R97.1); D15, `grimp` may be added with `uv add` for `system-map` only. ADR-123 and ADR-124 are Accepted (status lines edited in place by this lane, ADR-94). B2-W4's order: organ-truth-fix first, then scope-guard-copilot and stop-fail-closed, then the rest at most 6 in parallel. D10, managed hooks with `allowManagedHooksOnly` once D6-D9 are green, is the operator's own global-config act. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the package's rows are carried by the B2-W4 lane list that R96 itself GOes (batch BW manifest sections 0 and 2; Wave C, landed at d8619ab0, holds the lane-report rollup, required-tools, the reuse gate, one SessionStart entry, the ADR lifecycle and the system map with grimp under D15), D14 is replaced by R97.1, and ADR-123 and ADR-124 flip to Accepted with this entry while their carrier rows are owed through intake per R96's Carriage (owner: the batch BW integrator, who reports the package rows and files the ADR-123 and ADR-124 rows through intake at the BW close packet; reopen if BW closes without them)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-11.md:11-34
+  ## R96 — the B2-W3 aftermath package, ratified (operator, 2026-10-11)
+
+  **Original:** "Ja jestem fanem Groka. Grok jest na tak jak najbardziej. Te wszystko reszta pójdę za Twoimi decyzjami na tak."
+
+  **What it ratifies:**
+  - **The source:** `to-browser/DIGEST-RATIFICATION-PACKAGE-2026-10-11.md`, P1 (sha `cf5f0dd0…`, Codex blind check with the canary caught 2/2).
+  - **Every row of P1 at its recommendation:** D1–D12, A123.1–A123.5 and A124.
+  - **The proposal behind D1–D4:** `to-browser/DIGEST-PROPOSAL-ADR-LANE-REPORT-CONTRACT-2026-10-11.md` v2.
+
+  **Three changes:**
+  1. **D13 — Grok is allowed.** The standing "grok billing: no" is lifted. `provider_router` may list a Grok route where the registry admits one.
+  2. **D14 — Producers for B2-W4.**
+     - Codex produces code lanes.
+     - Copilot on `claude-opus-5.5` produces config and test lanes (R8).
+     - Claude Code verifies only.
+     - This overrides the package's P2 "producer A" column.
+  3. **D15 — `grimp` may be added** with `uv add`, for `system-map` only. The lock change rides that lane.
+
+  **The order of B2-W4:**
+  1. `organ-truth-fix` comes first, because a red main blocks every merge.
+  2. Then `scope-guard-copilot` and `stop-fail-closed`.
+  3. Then the rest, at most 6 in parallel, each in its own named worktree.
+
+  **Global-config acts (the operator's own):** D10, managed hooks with `allowManagedHooksOnly`, once D6–D9 are green.
+  ```
+
+- **R97 — Claude Code runs the rest of B2-W4; CI economy** (operator, 2026-10-12; full text `RATIFICATION-2026-10-12.md:11` (v2)). In force as: Claude Code orchestrates and produces the rest of B2-W4 through subagent lanes, each in its own worktree, the main thread keeping every git mutation serial; Codex reviews each code lane, Copilot runs the R8 usage tests, Grok may review; this replaces R96 D14. (a) each lane runs its targeted pytest locally, a wave's approved lanes merge into one integration branch with one `land` and one CI run, and a re-run is allowed only when the sole red is a registered flake ([#1344] class); (b) B5 is narrowed to the WIRE-intake kind fix; (c) the B2-W3 seat leftovers land or are proven on main before their worktrees go, `--force` only when the diff against origin/main is empty. (a) to (c) are the architect's decisions under the operator's standing word (R96). **Replaces R96 D14** for the rest of B2-W4. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a batch-scoped executor and CI-economy ruling that batch BW applies as its own rules (BW manifest sections 2 to 4: subagent lanes in named worktrees, one integration branch and one land per wave, a re-run only on a registered flake; B5 narrowed in lane bw-1447-distill-kind-fix; the B2-W3 leftovers in lane bw-893-b2w3-carry), spent when B2-W4 closes (owner: the batch BW integrator, who reports a to c in the BW close packet; reopen if a wave lands with more than one CI run outside a registered flake)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-12.md:11-27
+  ## R97 — Claude Code runs the rest of B2-W4; CI economy (operator, 2026-10-12)
+
+  **Original:** "Już nie działajmy na Copilocie ... Mamy zresetowane wszystko ... wszystko może być przez CC zarządzane."
+
+  1. **Executor.**
+     - Claude Code orchestrates and produces through subagent lanes, each in its own worktree.
+     - The main thread keeps every git mutation serial.
+     - Codex reviews each code lane, Copilot runs the LLM usage tests (R8), and Grok may review (R96 D13).
+     - This replaces R96 D14 for the rest of B2-W4.
+  2. **(a) CI economy.**
+     - Each lane runs its targeted `pytest` locally.
+     - The approved lanes of a wave merge into ONE integration branch: one `land`, one CI run.
+     - A re-run is allowed only when the sole red is a registered flake (`[#1344]` class).
+  3. **(b) B5** is narrowed to the WIRE-intake kind fix. Vendor emission waits for `[#691]` Half B, so it imports no `cost_usage_telemetry`.
+  4. **(c) B2-W3 seat leftovers** (three dirty integrator seats; cycle-4 at `5eacd135`, tag `archive/b2-w3-close-carry`):
+     - their missing lines land, or are proven to be on main, before the worktrees go;
+     - `--force` only when `git diff` against origin/main is empty.
+  ```
+
+- **R98 — known reds: decide on the numbers** (operator, 2026-10-12; full text `RATIFICATION-2026-10-12.md:29` (v2)). In force as: R98 authorizes no re-date of any `logs/KNOWN-REDS-REGISTRY.json` entry; lane `known-reds-expiry` fixes every entry it can at its cause, removes an entry whose red no longer reproduces, lists the rest each with its reason and goes `INPUT_REQUIRED`; the operator rules on that list by the end of 2026-10-15, because from 2026-10-16 forty [#912] entries expire and `land` then refuses every merge. **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — R98 authorizes nothing to build; its one act, the list, is lane bw-912-known-reds-expiry's output into the rollup's F0 section (to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12 X1), and the ruling on it is the operator's (owner: the operator, who rules on the F0 list by the end of 2026-10-15, the BW integrator carrying the list; reopen if a known-reds entry is re-dated without a later ruling)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-12.md:29-37
+  ## R98 — known reds: decide on the numbers (operator, 2026-10-12)
+
+  **Original:** "ja pójdę za Twoją rekomendację" (option C of LEDGER v182 O1).
+
+  1. **R98 authorizes NO re-date** of any `logs/KNOWN-REDS-REGISTRY.json` entry.
+  2. **Lane `known-reds-expiry`** (BATCH-B2-W4-CC-FINISH F0.4):
+     - fixes every entry it can at its cause, and removes an entry whose red no longer reproduces;
+     - lists the rest, each with its reason, and goes `INPUT_REQUIRED`.
+  3. **The operator rules on that list by the end of 2026-10-15.** From 2026-10-16, 40 `[#912]` entries expire, and `land` refuses every merge once one has (`known_reds.py:264`).
+  ```
+
+- **R99 — Claude Code orchestrates everything; Claude is the reviewing architect; the browser reads little** (operator, 2026-10-12, standing; full text `RATIFICATION-2026-10-12.md:39` (v2)). In force as: the Claude Code main thread launches every producer through `dispatch` and `provider_router` (Claude subagents at the distiller's tier, `codex exec`, `copilot -p`, Grok and any routed model), and the operator does not start a vendor by hand for lane work; the main thread reviews every lane against its contract and Done-when as the architect, an other-vendor review staying for code; per review turn the browser architect reads the LEDGER, one generated rollup and the map diff, at most 20 KB in all, a longer surface being a defect of the tool that produced it; the mechanism is D1 `lane-controller` (sharpened by `to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12`), C1 the rollup, C6 the map, D2 the handoff generator and D8 the transport index; until D1 lands R99 is a request, after it `land` refuses a lane dispatch did not launch. **Standing.** **Status:** landed as text by `bw-1378-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; a standing direction whose mechanism is batch BW's own lanes: C1 the rollup and C6 the map landed at d8619ab0, and D1 lane-controller (its Done-when the R99 AMEND's X2), D2 the handoff generator and D8 the transport index run in Wave D (owner: the batch BW integrator, who reports D1, D2 and D8 in the BW close packet; reopen if D1 does not land, since land then still admits a lane dispatch did not launch)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-12.md:39-62
+  ## R99 — Claude Code orchestrates everything; Claude is the reviewing architect; the browser reads little (operator, 2026-10-12, standing)
+
+  **Original:** "Ja bym chciał, żeby w przyszłości Copilot był odpalany przez CC. Wszystko musi być CC, jest orkiestratorem. Sonetów, opusów, AI, modeli, kodeksów, groków, Copilotów i wszystkiego. Cloud [Claude] musi być jednym wielkim architektem, robiącym review pracy. I musimy optymalizować względem przeglądarki, żebyś nie czytał zbyt dużo plików markdown."
+
+  1. **One orchestrator.**
+     - The Claude Code main thread launches every producer through `dispatch` and `provider_router`:
+       - Claude subagents, at the tier the distiller names (Sonnet or Opus);
+       - Codex (`codex exec`);
+       - Copilot (`copilot -p`);
+       - Grok, and any other routed model.
+     - The operator does not start a vendor by hand for lane work. He pastes one order to Claude Code.
+  2. **Claude reviews as the architect.**
+     - The main thread reviews every lane's result against its contract and its Done-when.
+     - An other-vendor review stays for code (Codex doctrine).
+  3. **Browser economy.**
+     - Per review turn, the browser architect reads three things: the LEDGER, one generated rollup, and the map diff. The target is at most 20 KB in all.
+     - A longer surface is a defect of the tool that produced it, not a reason to read more.
+  4. **Mechanism, not prose:**
+     - D1 `lane-controller`, as sharpened by `to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12`;
+     - C1 the rollup;
+     - C6 the map;
+     - D2 the handoff generator;
+     - D8 the transport index.
+     - Until D1 lands, R99 is a request; after it lands, `land` refuses a lane that dispatch did not launch.
+  ```
+
+**Expiry:** R93 is bounded to batch B2-W3 and spent when it closed; R97 is bounded to the rest of B2-W4; R98's operator ruling is due by the end of 2026-10-15; R94, R95, R96 and R99 do not expire on their own. The entries above land text, and each Carried-by line names what is and is not built.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
