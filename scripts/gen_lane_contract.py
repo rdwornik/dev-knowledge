@@ -62,6 +62,15 @@ outside them — and LOGS A WARNING naming the divergence whenever `max` is sele
 conflict surfaces at generation time rather than at the operator's terminal. Choosing
 between the two enums is a ruling, and a generator is not the place one gets made.
 
+REQUIRED TOOLS ([#958], R96 D4). A contract MAY carry one `**Required tools:**` line of
+backticked `<kind>:<value>` entries (`tool:` `skill:` `command:` `flag:`); `check` validates it
+through `parse_contract`, and `required-tools CONTRACT TRANSCRIPT` reads a session transcript
+(plus its `subagents/` transcripts) through `organ_usage_metric`'s existing reader and prints
+`required-tools PASS` / `required-tools FAIL: missing <names>`, or with `--json` one `checks`
+row (name, how=deterministic, result, evidence) for the lane-report rollup. Absent declaration
+= `NOT_RUN`, never a vacuous PASS. The `emit` path does not write the line yet: a contract
+author adds it by hand under `**Kind:**`.
+
 Layer-2 / read-only with respect to tracked spine files (ADR-28/36): writes ONLY the
 contract path it is given, and never JOURNAL / BACKLOG / any index.
 
@@ -449,6 +458,25 @@ _SHAPE_LINE_RE = re.compile(r"^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)`", re.MULTILI
 #: records about itself: unanchored, a contract EXPLAINING the field mid-sentence wins the
 #: precedence race over the real declaration further down.
 _KIND_LINE_RE = re.compile(r"^\*\*Kind:\*\*\s+`(?P<kind>[a-z-]+)`", re.MULTILINE)
+
+#: `[#958]` (R96 D4, proposal §9 A). OPTIONAL: a contract MAY name the tools, skills, commands
+#: and flags its lane must use, as backticked `<kind>:<value>` entries on ONE line. Absent is
+#: legal — nothing is required of a lane that declares nothing — but a present line is held to
+#: the grammar below, and `required-tools` turns it into a `checks` row. Anchored at line start
+#: and read from de-fenced prose for the reason `_KIND_LINE_RE` gives.
+_REQUIRED_TOOLS_LINE_RE = re.compile(r"^\*\*Required tools:\*\*[ \t]*(?P<body>.*)$",
+                                     re.MULTILINE)
+_BACKTICKED_RE = re.compile(r"`([^`]*)`")
+
+#: What each kind matches in a transcript (see `missing_required_tools`):
+#:   tool:<Name>     a `tool_use` block whose name is exactly <Name> (`tool:Bash`)
+#:   skill:<name>    a `Skill` call whose `skill` is <name>, or `<plugin>:<name>`
+#:   command:<text>  a Bash/PowerShell call whose command text contains <text>
+#:   flag:<-flag>    a Bash/PowerShell call carrying <-flag> as a token (or `<-flag>=...`)
+REQUIRED_TOOL_KINDS: tuple[str, ...] = ("tool", "skill", "command", "flag")
+
+#: The `checks` row name the lane-report rollup reads (`[#1368]`, report §3 shape).
+REQUIRED_TOOLS_CHECK = "required-tools"
 
 #: The command line for each shape, keyed so `find_command_line` and `parse_contract` read
 #: ONE table rather than each carrying its own if-chain that could drift from the other.
@@ -1185,11 +1213,63 @@ class ParsedContract:
     #: `[#885]` — the declared lane kind, or None when the contract declares none (reported).
     kind: Optional[str] = None
     receipt_fields: tuple[str, ...] = ()
+    #: `[#958]` — the declared `<kind>:<value>` entries, `()` when the contract declares none.
+    required_tools: tuple[str, ...] = ()
     problems: tuple[str, ...] = field(default=())
 
     @property
     def ok(self) -> bool:
         return not self.problems
+
+
+def parse_required_tools(prose: str) -> tuple[tuple[str, ...], list[str]]:
+    """`(entries, problems)` for the `**Required tools:**` line of DE-FENCED contract prose.
+
+    The one reader of the line: `parse_contract` calls it for `check`, and `required-tools`
+    reads `parse_contract`'s result, so the grammar has no second parser. Every problem is
+    reported, not the first; entries are kept in declaration order, duplicates dropped.
+    """
+    problems: list[str] = []
+    matches = list(_REQUIRED_TOOLS_LINE_RE.finditer(prose))
+    if not matches:
+        return (), problems
+    if len(matches) > 1:
+        problems.append(
+            f"contract carries {len(matches)} `**Required tools:**` lines — one line declares "
+            "them all, so two cannot disagree")
+    entries: list[str] = []
+    for match in matches:
+        body = match.group("body").strip()
+        tokens = _BACKTICKED_RE.findall(body)
+        if not tokens:
+            problems.append(
+                "`**Required tools:**` line carries no backticked entry — write each as "
+                f"`<kind>:<value>`, kind in {{{' | '.join(REQUIRED_TOOL_KINDS)}}}")
+            continue
+        leftover = _BACKTICKED_RE.sub("", body).replace(",", "").strip()
+        if leftover:
+            problems.append(
+                f"`**Required tools:**` line carries text outside backticks ({leftover!r}) — "
+                "the line is entries only, comma-separated")
+        for token in tokens:
+            kind, sep, value = token.partition(":")
+            if not sep or kind not in REQUIRED_TOOL_KINDS:
+                problems.append(
+                    f"required tool {token!r} has kind {kind!r}, outside "
+                    f"{{{' | '.join(REQUIRED_TOOL_KINDS)}}} — write `<kind>:<value>`")
+                continue
+            if not value.strip() or value != value.strip():
+                problems.append(
+                    f"required tool {token!r} has an empty or space-padded value")
+                continue
+            if kind == "flag" and not value.startswith("-"):
+                problems.append(f"required tool {token!r}: a flag must start with '-'")
+                continue
+            if token in entries:
+                problems.append(f"required tool {token!r} is declared twice")
+                continue
+            entries.append(token)
+    return tuple(entries), problems
 
 
 def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedContract:
@@ -1493,10 +1573,92 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         if ask_class not in prose:
             problems.append(f"decision budget is missing ask-class {ask_class}")
 
+    required_tools, tool_problems = parse_required_tools(prose)
+    problems.extend(tool_problems)
+
     return ParsedContract(
         sections=sections, slug=slug, contract_file=contract_file, branch=branch,
         shape=shape, command=command, effort=effort, model=model, mode=mode, kind=kind,
-        receipt_fields=found_receipt, problems=tuple(problems))
+        receipt_fields=found_receipt, required_tools=required_tools,
+        problems=tuple(problems))
+
+
+# --- [#958] required tools: a deterministic transcript check -------------------------------
+
+def _shell_tokens(command: str) -> list[str]:
+    """Whitespace-and-quote tokens of a shell command; a line `shlex` cannot parse falls back
+    to a plain split rather than raising — one odd quoting form must not sink the verdict."""
+    import shlex
+    try:
+        return shlex.split(command, posix=True)
+    except ValueError:
+        return command.split()
+
+
+def missing_required_tools(required: "tuple[str, ...]",
+                           calls: "list[tuple[str, dict]]") -> "tuple[str, ...]":
+    """The declared entries no call in `calls` (`(tool_name, tool_input)`) satisfies, in
+    declaration order. Matching is per KIND (`REQUIRED_TOOL_KINDS`), never a substring of the
+    whole record: `echo skill:why` is not a Skill call, and `--json-schemaX` is not the flag."""
+    from organ_usage_metric import _dap  # the shell-tool vocabulary, one source
+    shell_tools = frozenset(_dap.SHELL_TOOLS)
+    names = {name for name, _ in calls}
+    skills: set[str] = set()
+    commands: list[str] = []
+    for name, tool_input in calls:
+        if name == "Skill" and isinstance(tool_input.get("skill"), str):
+            skills.add(tool_input["skill"].strip().lstrip("/"))
+        elif name in shell_tools and isinstance(tool_input.get("command"), str):
+            commands.append(tool_input["command"])
+    token_sets = [set(_shell_tokens(c)) for c in commands]
+
+    def satisfied(entry: str) -> bool:
+        kind, _, value = entry.partition(":")
+        if kind == "tool":
+            return value in names
+        if kind == "skill":
+            return any(s == value or s.endswith(":" + value) for s in skills)
+        if kind == "command":
+            wanted = value.replace("\\", "/")
+            return any(wanted in c.replace("\\", "/") for c in commands)
+        if kind == "flag":
+            return any(value in toks or any(t.startswith(value + "=") for t in toks)
+                       for toks in token_sets)
+        return False
+
+    return tuple(entry for entry in required if not satisfied(entry))
+
+
+def transcript_files(transcript: Path) -> "list[Path]":
+    """The session transcript plus every subagent transcript Claude Code filed beside it.
+
+    Claude Code writes a subagent's turns to `<session-stem>/subagents/agent-*.jsonl`, not
+    inline, so a lane that delegated a required call would read FAIL from the session file
+    alone. A `stream-json` capture instead carries them inline with `parent_tool_use_id`, and
+    the reader below counts those lines like any other.
+    """
+    sub = transcript.with_suffix("") / "subagents"
+    return [transcript, *(sorted(sub.glob("*.jsonl")) if sub.is_dir() else [])]
+
+
+def transcript_tool_calls(transcript: Path) -> "list[tuple[str, dict]]":
+    """Every `tool_use` call in a session transcript and its subagents' transcripts.
+
+    REUSES `organ_usage_metric._iter_tool_calls` — the repo's streaming, malformed-line-
+    tolerant transcript reader — rather than a second JSONL reader. It reads `message.content`
+    on every record whatever else the record carries, so a line marked `parent_tool_use_id`
+    (a subagent's call, in `stream-json`) is counted as the lane's own.
+    """
+    from organ_usage_metric import _iter_tool_calls
+    return [(name, tool_input)
+            for path in transcript_files(transcript)
+            for _ts, name, tool_input in _iter_tool_calls(path)]
+
+
+def required_tools_row(result: str, evidence: str) -> "dict[str, str]":
+    """One `checks` row in the lane-report §3 shape — what the rollup (`[#1368]`) reads."""
+    return {"name": REQUIRED_TOOLS_CHECK, "how": "deterministic", "result": result,
+            "evidence": evidence}
 
 
 # --- distillation: (kind, subject) -> contract, composed from other organs (BUILD-MODE.md exit
@@ -1906,6 +2068,48 @@ def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
     failed += _check_manifest_contract_agreement(contracts)
 
     if failed:
+        raise SystemExit(1)
+
+
+@cli.command("required-tools")
+@click.argument("contract", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("transcript", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--json", "as_json", is_flag=True, default=False,
+              help="print the verdict as one lane-report `checks` row instead of a line")
+def cmd_required_tools(contract: Path, transcript: Path, as_json: bool) -> None:
+    """`[#958]`: did the session in TRANSCRIPT use every tool CONTRACT requires?
+
+    Prints `required-tools PASS` (exit 0) or `required-tools FAIL: missing <names>` (exit 1).
+    A contract that declares no required tools prints `required-tools NOT_RUN` and exits 0:
+    nothing was required, and a vacuous PASS would read as evidence it is not. A malformed
+    declaration is refused (exit 2) — a verdict over a line `check` refuses means nothing.
+    `--json` prints the same verdict as one `checks` row (name, how, result, evidence).
+    """
+    import json
+
+    entries, problems = parse_required_tools(
+        strip_fenced_blocks(contract.read_text(encoding="utf-8")))
+    if problems:
+        for problem in problems:
+            logger.error("%s: %s", contract, problem)
+        raise SystemExit(2)
+    evidence = (f"uv run --locked python scripts/gen_lane_contract.py required-tools "
+                f"{contract} {transcript}")
+    if not entries:
+        result, line = "NOT_RUN", "required-tools NOT_RUN: contract declares no required tools"
+        missing: tuple[str, ...] = ()
+    else:
+        calls = transcript_tool_calls(transcript)
+        logger.info("%s: %d tool call(s) read across %d transcript file(s)", transcript,
+                    len(calls), len(transcript_files(transcript)))
+        missing = missing_required_tools(entries, calls)
+        result = "FAIL" if missing else "PASS"
+        line = (f"required-tools FAIL: missing {', '.join(missing)}" if missing
+                else "required-tools PASS")
+        if missing:
+            evidence += f" -> missing {', '.join(missing)}"
+    click.echo(json.dumps(required_tools_row(result, evidence)) if as_json else line)
+    if missing:
         raise SystemExit(1)
 
 
