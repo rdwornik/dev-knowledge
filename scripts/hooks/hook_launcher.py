@@ -35,6 +35,14 @@ does not carry this file -> python cannot open it and exits 2 (fail CLOSED, R96)
 all -> exit 0. Under bash with `CLAUDE_PROJECT_DIR` set the project copy wins (it is first on the
 line), so a session whose cwd wandered into another checkout still runs ITS project's hooks.
 
+HONEST COST. Bash evaluates the git locator even when `CLAUDE_PROJECT_DIR` already decided the
+answer: no construct is evaluated by PowerShell yet skipped by bash, because PowerShell reads
+every `${...}` as an empty variable, so the PowerShell-visible locator cannot sit inside a bash
+`${VAR:-...}` default. Measured on the operator's box (Git Bash, 8 warm runs, scope guard, an
+allowed Read): median 1.70s for the inline `python -c` launcher this replaces, 2.30s for this
+shape -- the two git subshells. A host that runs hooks under bash without the variable needs
+them anyway; the price is paid by the host that does not.
+
 ARGV CONTRACT. The LAST argument is the hook script, repo-relative (`scripts/lane_end_guard.py`).
 Everything before it is locator residue -- the git locator's path when bash also had the project
 variable, and the `-m os` pair -- and is ignored. Keeping the target a literal repo path is what
