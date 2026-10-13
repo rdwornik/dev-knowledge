@@ -1243,6 +1243,19 @@ def _pre_launch_gaps(hub: Path) -> list[str]:
     return gaps
 
 
+def resolve_program(argv: Sequence[str], *, which: Optional[Callable[[str], Optional[str]]] = None,
+                    windows: Optional[bool] = None) -> list[str]:
+    """`argv` with its program resolved through PATHEXT on Windows (lane-bw-1374, found by its R8
+    usage test): `CreateProcess` does not consult PATHEXT, so an npm-installed `copilot` / `codex`
+    -- a `.cmd` shim -- is WinError 2 when named bare. Unresolved, or off Windows: unchanged."""
+    import shutil
+    argv = list(argv)
+    if not argv or not (os.name == "nt" if windows is None else windows):
+        return argv
+    found = (which or shutil.which)(argv[0])
+    return [found, *argv[1:]] if found else argv
+
+
 def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
                   log_path: Optional[Path] = None) -> Spawned:
     """THE process boundary -- the one place a provider is started, and the one thing tests replace.
@@ -1251,7 +1264,8 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
     prints its job id and exits). With one, the child is DETACHED with its stdout in that file and
     this returns at once with its pid (`codex exec` runs for the length of the lane). Nothing here
     keeps a handle that could later end the child."""
-    argv = list(argv)
+    import shutil
+    argv = resolve_program(argv, which=lambda name: shutil.which(name, path=env.get("PATH")))
     if log_path is None:
         done = subprocess.run(argv, env=dict(env), cwd=str(cwd), capture_output=True,
                               text=True, encoding="utf-8", errors="replace")
