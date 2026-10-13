@@ -87,7 +87,21 @@ def _kill_pid_file(pid_file: Path) -> None:
         return
     pid = int(pid_file.read_text(encoding="utf-8").strip())
     if os.name == "nt":
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(pid)], capture_output=True)
+        # psutil, never `taskkill /T`: Windows keeps a dead parent's pid in ParentProcessId and
+        # recycles pids, so taskkill adopts older processes naming this one -- the pytest workers,
+        # once (batch BW F1 land repair). psutil's children() drops a child older than the root.
+        import psutil  # noqa: PLC0415
+
+        try:
+            root = psutil.Process(pid)
+            members = [*root.children(recursive=True), root]
+        except psutil.Error:
+            members = []
+        for member in members:
+            try:
+                member.kill()
+            except psutil.Error:
+                pass
     else:
         try:
             os.kill(pid, 9)
@@ -186,6 +200,73 @@ def test_a_guard_within_its_bound_is_relayed_verbatim_and_records_nothing(tmp_pa
     # No BYPASS is written. One RUN row is: the bypass rate needs its denominator (operator
     # ruling 2026-09-17), and a run is not a skip -- `surface` never lists it as one.
     assert [r["reason"] for r in _records(log)] == ["ok"]
+
+
+class _FakePsutil:
+    """A `psutil` stand-in for the Windows tree kill: records kills, raises on demand."""
+
+    class Error(Exception):
+        pass
+
+    class NoSuchProcess(Error):
+        pass
+
+    def __init__(self, *, children=(), on_process=None, on_kill=None):
+        self.killed: list[int] = []
+        fake = self
+
+        class _Proc:
+            def __init__(self, pid):
+                if on_process is not None:
+                    raise on_process
+                self.pid = pid
+
+            def children(self, recursive=False):
+                assert recursive, "a one-generation walk is the defect the wrapper exists for"
+                return [_Child(pid) for pid in children]
+
+            def kill(self):
+                fake.killed.append(self.pid)
+
+        class _Child(_Proc):
+            def __init__(self, pid):
+                self.pid = pid
+
+            def kill(self):
+                if on_kill is not None and self.pid in on_kill:
+                    raise on_kill[self.pid]
+                fake.killed.append(self.pid)
+
+        self.Process = _Proc
+
+
+def test_the_windows_tree_kill_walks_with_psutil_and_survives_a_vanished_child(monkeypatch):
+    """BW F1 land repair: the Windows tree kill is a psutil walk (never `taskkill /T`), deepest
+    first, root last; a child that exits before its kill is not an error and stops nothing."""
+    module = _load_wrapper()
+    fake = _FakePsutil(children=(41, 42), on_kill={41: _FakePsutil.NoSuchProcess("gone")})
+    monkeypatch.setitem(sys.modules, "psutil", fake)
+    module._kill_tree_windows(40)
+    assert fake.killed == [42, 40]
+
+
+def test_the_windows_tree_kill_reports_a_tree_it_could_not_read(monkeypatch, caplog):
+    """Codex r2 HIGH: a psutil failure must not abandon the descendants SILENTLY -- it is logged,
+    and the caller's own `proc.kill()` still takes the top process."""
+    module = _load_wrapper()
+    monkeypatch.setitem(sys.modules, "psutil",
+                        _FakePsutil(on_process=_FakePsutil.Error("access denied")))
+    with caplog.at_level("WARNING"):
+        module._kill_tree_windows(40)
+    assert "40" in caplog.text and "access denied" in caplog.text, caplog.text
+
+
+def test_the_windows_tree_kill_does_not_swallow_an_unexpected_error(monkeypatch):
+    """Only psutil's own errors and a missing psutil are expected; anything else surfaces."""
+    module = _load_wrapper()
+    monkeypatch.setitem(sys.modules, "psutil", _FakePsutil(on_process=RuntimeError("bug")))
+    with pytest.raises(RuntimeError, match="bug"):
+        module._kill_tree_windows(40)
 
 
 # --- Done-contract 2: every registered hook carries an explicit bound, and a check refuses ----

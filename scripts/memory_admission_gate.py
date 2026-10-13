@@ -254,7 +254,7 @@ def _read_reservations(directory: Path) -> dict:
 def _write_reservations(directory: Path, data: dict) -> None:
     path = directory / _RESERVATIONS_FILE
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(data), encoding="utf-8")
+    tmp.write_text(json.dumps(data), encoding="utf-8", newline="\n")
     os.replace(tmp, path)
 
 

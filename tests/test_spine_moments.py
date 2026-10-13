@@ -99,7 +99,21 @@ def test_a_second_spine_run_after_a_completed_one_executes_zero_tasks(tmp_path):
 
 def _kill_tree(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        # psutil, never `taskkill /T`: Windows keeps a dead parent's pid in ParentProcessId and
+        # recycles pids, so taskkill adopts older processes naming this one -- the pytest workers,
+        # once (batch BW F1 land repair). psutil's children() drops a child older than the root.
+        import psutil  # noqa: PLC0415
+
+        try:
+            root = psutil.Process(proc.pid)
+            members = [*root.children(recursive=True), root]
+        except psutil.Error:
+            members = []
+        for member in members:
+            try:
+                member.kill()
+            except psutil.Error:
+                pass
     else:
         import signal  # noqa: PLC0415
         os.killpg(os.getpgid(proc.pid), signal.SIGKILL)

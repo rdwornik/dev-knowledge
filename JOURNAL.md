@@ -21,6 +21,27 @@
 
 ---
 
+### 2026-10-13 (b) - CC (Opus 5.5, orchestrator and integrator, batch BW = B2-W4 finish, F1): five lanes close waves A and B; main's two unregistered reds are fixed at cause
+
+**Anchors:** `116e40c5` (hook-launcher, `95933cc7`), `d2366be2` (main-red, `45c241fa`), `a0b0448c` (known-reds-expiry, `6ad5e16b`), `74d4a0ea` (distill-kind-fix, `20aab43f`), `a8109025` (b2w3-carry, `c1f8432c`), `e336ab50` (Wave C contracts). Branch `worktree-integrate-bw`, landed by `merge_path.py land --slug b2-w4-f1`.
+
+**Did:** Successor orchestrator (night order `to-cc/BATCH-BW-NIGHT-2026-10-13.md`) after session 2d59e52d died at F0. F0 landed `3db32c1a` PRE-EXISTING (run 38319729602). F1 ran five subagent lanes from `/lane-boot`-provisioned worktrees, each Codex-reviewed to APPROVE and architect-reviewed (R99.2): one shared hook launcher replaces every inline `python -c` hook; B5 narrowed to the WIRE-intake kind fix (R97b); 8 expiring known reds fixed at cause and removed, 58 listed for R98, none re-dated; the B2-W3 cycle-4 ledger lines; the Windows `test_gen_handoff` tamper test made hermetic and the `[#926]` correction pointer grown to the shortest distinguishing prefix (correction (a) below).
+
+**Next:** Wave C (C1-C6) on the landed launcher; R98 ruling owed by 2026-10-15.
+
+### 2026-10-13 (a) - CC (Opus 5.5, integrator, batch BW): CORRECTION -- 2026-10-11 carries five entries lettered (d); [#926]
+
+**Correction by addition** (JOURNAL is append-only; none of the five entries is edited). Batch B2-W4's integration landed five 2026-10-11 entries that all carry the letter (d). Read them in this order, top to bottom as they stand in the file, as (d), (e), (f), (g), (h) -- each one names its block by its full heading line:
+
+- `### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B6 preflight-dead-id): a dead [#id] names its live value; provider_router refuses an unknown role in one line`
+- `### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B4 read-gate-fix): the read gate refuses a non-UTF-8 source; quotes inside code spans pair correctly`
+- `### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B3 dispatch-plan-fix): plan refuses a --slug the Dispatch block disagrees with; the --token-cap doc matches --help`
+- `### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B2 handoff-verify-fix): a cp1252-redirected handoff verify exits 0 and its warn count is true`
+- `### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B1 stop-fail-closed): Stop hooks fail closed; the launchers are shell-neutral`
+
+**Why a full-line quote:** the five headings share 69 leading characters, more than the 60-character minimum pointer, so `audit.py::_journal_pointers` (batch BW lane bw-926-main-red) asks for the shortest prefix that tells them apart; these five full lines are pairwise distinct and none contains another, so quoting each in full names exactly one block. **Honest limit:** this clears `journal_day_letters` only until the [#926] narrowing expires (2026-11-18); after that the collision counts again and [#926] must be re-ruled.
+
+
 ### 2026-10-12 (a) - CC (Opus 5.5, orchestrator and integrator, batch BW = B2-W4 finish, F0): the batch manifest lands before any lane boots
 
 **Anchors:** `ac295172` (manifest + four F1 contracts). Branch `docs/bw-manifest`, merged `--no-ff` through `worktree-integrate-bw` by `merge_path.py land`.

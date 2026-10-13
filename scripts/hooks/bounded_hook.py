@@ -292,18 +292,41 @@ def _feed(stream, payload: bytes) -> None:
             pass
 
 
+def _kill_tree_windows(pid: int) -> None:
+    """Kill `pid` and its descendants, deepest first, without waiting on any of them.
+
+    NOT AWAITED: TerminateProcess only requests the kill, so nothing here waits on the dying
+    tree (`taskkill /T`, the earlier verb, was measured taking >10 s on a loaded box). The tree
+    comes from psutil, never `taskkill /T`: Windows keeps a dead parent's pid in
+    ParentProcessId and recycles pids, and taskkill adopts any process naming ours -- the
+    pytest workers, once (batch BW F1 land repair). `children()` drops a child older than the
+    root. Lazy import: only a timed-out hook pays for psutil. A tree it cannot read or a member
+    it cannot kill is LOGGED, never silent (Codex r2); a child already gone is not an error.
+    """
+    try:
+        import psutil  # noqa: PLC0415
+    except ImportError as exc:
+        LOG.warning("[hook-bypass] psutil unavailable; only pid %s itself is killed: %r", pid, exc)
+        return
+    try:
+        root = psutil.Process(pid)
+        members = [*root.children(recursive=True), root]
+    except psutil.Error as exc:
+        LOG.warning("[hook-bypass] could not read the process tree of pid %s; only it is "
+                    "killed: %r", pid, exc)
+        return
+    for member in members:
+        try:
+            member.kill()
+        except psutil.NoSuchProcess:
+            pass
+        except psutil.Error as exc:
+            LOG.warning("[hook-bypass] could not kill pid %s under %s: %r", member.pid, pid, exc)
+
+
 def _kill_tree(proc: subprocess.Popen) -> None:
     if os.name == "nt":
-        # FIRED, NOT AWAITED. `taskkill /T` was measured taking >10 s on a loaded box, and a
-        # wrapper that waits on its own kill has moved the unbounded wait one level down.
-        # taskkill runs on after this process exits; its std handles are DEVNULL, so it holds
-        # no pipe of ours or the harness's.
-        try:
-            subprocess.Popen(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
-        except OSError:
-            pass
+        _kill_tree_windows(proc.pid)
     else:
         try:
             os.killpg(proc.pid, 9)
@@ -444,7 +467,7 @@ def _write_json(path: Path, data: dict) -> bool:
     tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
         os.replace(tmp, path)
     except OSError as exc:
         LOG.warning("[hook-rate] could not write %s: %r", path, exc)

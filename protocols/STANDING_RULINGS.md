@@ -239,6 +239,16 @@ enum stays the checkable surface either way.
   which pins the ORDER rather than the membership.
 - **Unchanged by this:** the four author-chosen serial-arc prefixes; the integrator's deliberate
   absence of a prefix of its own; the validator's read-only, wired-into-no-gate posture.
+- **Why `automation/*` is protected from MERGE IS ATOMIC** — relocated verbatim from
+  `.claude/rules/git-discipline.md` (2026-10-13, `[#1340]` boot cut C3; the rule there now
+  points here):
+
+  > Reason: an `automation/<slug>` lane is an
+  > organ-produced replication branch (the fourth machine-produced lane prefix, B5) whose
+  > *whole purpose* is to live outside `main` — `automation/fleet-audit` is the live instance,
+  > and `audit.py::check_fleet_audit_replication` asserts it stays replicated to origin. It is
+  > therefore never "a merged branch left alive", and deleting it breaks the organ rather than
+  > tidying after it.
 
 ### B6 · An anchor discharges by APPEND ONLY
 
@@ -992,6 +1002,19 @@ evidence). Three consequences, ruled as one decision:
    ~365/yr growth mechanism without a separate retention rule.
 3. **The absorb step becomes an organ** by amending `[#419]`/`[#426]` — their territory, so no fresh
    row is born for it.
+
+**Why the `claude/conformance-*` protection narrowed to the unabsorbed** — relocated verbatim
+from `.claude/rules/git-discipline.md` (2026-10-13, `[#1340]` boot cut C3; the rule there now
+points here):
+
+> Why the narrowing was needed, recorded so it is not re-litigated: the protection existed
+> because *nothing absorbed*, so the branches were the only copy. Once absorb is an act the
+> repo performs, "keep it after absorbing" preserves nothing and merely converts an
+> unmerged-and-kept branch into a merged-and-kept one — reinstating the ~319–365 branches/yr
+> accumulation the ruling exists to end. The pre-absorb guarantee is untouched: an unabsorbed
+> digest is still never deleted. **The two protected globs now have opposite lifecycles on
+> purpose** — `automation/*` is protected permanently (it lives outside `main` by design),
+> `claude/conformance-*` only until absorbed.
 
 ### I-I1 · `[#360]` — the author's intent is unrecoverable
 

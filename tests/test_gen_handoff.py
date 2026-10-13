@@ -465,8 +465,12 @@ def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restam
 def _hstate_modules():
     """Every loaded copy of `handoff_state` (bare and package-qualified): the generator resolves
     it as `scripts.handoff_state` first, the verifier as bare `handoff_state` -- a patch on one
-    copy only would let the two sides read different live values."""
+    copy only would let the two sides read different live values. BOTH copies are loaded first
+    -- the verifier's bare one, and the generator's through its own `gh._hstate()` -- so the pin
+    holds in a fresh process too (batch BW lane bw-926-main-red: a copy imported AFTER the pin was
+    never patched, and the cut then recorded the live CI verdict)."""
     import handoff_state  # noqa: F401, PLC0415 -- ensure the bare copy is loaded
+    gh._hstate()  # ensure the copy the generator resolves is loaded
     return [m for k, m in list(sys.modules.items())
             if k in ("handoff_state", "scripts.handoff_state") and m is not None]
 
@@ -484,6 +488,26 @@ def _live_state(monkeypatch, *, ci: str, seats: str, seat_ids=()):
             "Seats", seats, "LIVE-DRIFTS", "seat_registry.seat_health_line(elapsed=False)"))
     monkeypatch.setattr(seat_registry, "seats",
                         lambda *_a, **_k: [types.SimpleNamespace(session_id=s) for s in seat_ids])
+
+
+def test_live_state_pins_the_copy_the_generator_imports_even_when_it_is_not_loaded_yet(
+        monkeypatch):
+    """Batch BW lane bw-926-main-red: `_live_state` must pin the `handoff_state` copy
+    `gen_handoff._hstate()` resolves even when nothing has imported it yet -- the state of a
+    fresh process or an xdist worker whose first test is a `_cut_and_fill` one. Before this, the
+    pin reached only the copies already in `sys.modules`, the generator then imported an
+    UNPATCHED `scripts.handoff_state`, the cut recorded the LIVE CI verdict (`gh` against the
+    stub repo) instead of the pinned row, and BD-ci's identity waiver refused:
+    `test_filled_rerender_regenerates_probes_md_so_a_tamper_cannot_survive` failed run alone,
+    and in CI only when it was the first such test on its worker (Windows run 38249609543)."""
+    import scripts  # noqa: PLC0415 -- the namespace package the generator resolves through
+
+    monkeypatch.delitem(sys.modules, "scripts.handoff_state", raising=False)
+    monkeypatch.delattr(scripts, "handoff_state", raising=False)
+    _live_state(monkeypatch, ci="`abc1234` GREEN (run 1)", seats=_SEATS_AT_CUT)
+    generator_copy = gh._hstate()
+    assert generator_copy.row_ci.__module__ == __name__, "the generator's copy is unpinned"
+    assert generator_copy.row_seats.__module__ == __name__, "the generator's copy is unpinned"
 
 
 def _probes_findings(bundle):

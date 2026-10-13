@@ -121,14 +121,11 @@ def render(manifest_path: Path) -> str:
     out: list[str] = [
         f"# Methodology-deployed roster — generated (manifest v{version})",
         "",
-        "> **This is the manifest-declared DEPLOYABLE methodology corpus** — the commands /",
-        "> hooks / config a *fully-deployed consumer* receives, generated from",
-        "> `deploy/manifest-v*.yaml`. It is **NOT** a filesystem inventory of this repo: the hub",
-        "> is the methodology *source*, so this list includes components (e.g. the floor) the hub",
-        "> itself does not install. Currency is by **regeneration**, not a review stamp — this",
-        "> file is deliberately out of `DEFAULT_FRESHNESS_FILES`.",
-        ">",
-        "> Do not hand-edit. Regenerate: `python scripts/gen_methodology_roster.py --write`",
+        # ONE line, not the old 9-line blockquote: CLAUDE.md's own lead-in to this import
+        # already says what it is, and this file is in the boot closure, so every byte here is
+        # paid by every session ([#1340], PLAN-CI-BASELINE-2026-10-01 cut C1).
+        "> The manifest-declared DEPLOYABLE methodology corpus, not a filesystem inventory of "
+        "the hub. Regenerate: `uv run --locked python scripts/gen_methodology_roster.py --write`",
         "",
         _GENERATED_NOTE,
     ]

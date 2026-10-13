@@ -269,8 +269,19 @@ def _windows_process_table() -> list[Proc]:
             continue
         created = row.get("CreationDate")
         age = 0.0
-        if isinstance(created, str):
-            # ConvertTo-Json renders a CIM datetime as `/Date(1789…)/` epoch milliseconds.
+        if isinstance(created, str) and "Date(" not in created:
+            # PowerShell 7's ConvertTo-Json renders it ISO-8601; `tree_pids` compares these ages,
+            # so an unparsed one (0.0) would silence its creation-order rule.
+            try:
+                started = datetime.fromisoformat(created)
+                if started.tzinfo is None:
+                    started = started.astimezone()
+                age = max(0.0, (now - started).total_seconds())
+            except ValueError:
+                age = 0.0
+        elif isinstance(created, str):
+            # Windows PowerShell 5.1's ConvertTo-Json renders a CIM datetime as `/Date(1789…)/`
+            # epoch milliseconds.
             digits = "".join(ch for ch in created if ch.isdigit() or ch == "-")
             if digits.lstrip("-").isdigit():
                 try:
@@ -397,11 +408,22 @@ def tree_pids(root_pid: int, table: Optional[Sequence[Proc]] = None) -> tuple[in
     the root is killed finds nothing and a teardown built that way reaps nothing while
     reporting success. `tests/test_resource_lifecycle.py::
     test_teardown_snapshots_the_tree_before_killing_the_root` pins the ordering.
+
+    A RECYCLED PARENT PID IS NOT PARENTHOOD. Windows never clears ParentProcessId when a
+    parent exits, and it recycles pids, so a live process whose parent died keeps naming a
+    pid that a NEW process may now hold. A child is therefore taken only when it is no older
+    than the process it names as parent -- the same creation-time rule
+    `psutil.Process.children` applies. Without it, a teardown root handed a recycled pid
+    adopts the old orphan and its whole subtree (batch BW F1's CI run 38336723372 lost four
+    pytest workers that way); `tests/test_resource_lifecycle.py::
+    test_tree_pids_never_adopts_an_older_process_through_a_recycled_parent_pid` pins it. A
+    root absent from the table has no age to compare, so no child of it is verifiable.
     """
     rows = list(table) if table is not None else process_table()
-    children: dict[int, list[int]] = {}
+    age = {proc.pid: proc.age_seconds for proc in rows}
+    children: dict[int, list[Proc]] = {}
     for proc in rows:
-        children.setdefault(proc.ppid, []).append(proc.pid)
+        children.setdefault(proc.ppid, []).append(proc)
     ordered: list[int] = []
     frontier = [root_pid]
     seen = {root_pid}
@@ -409,10 +431,13 @@ def tree_pids(root_pid: int, table: Optional[Sequence[Proc]] = None) -> tuple[in
         ordered.extend(frontier)
         nxt: list[int] = []
         for pid in frontier:
+            parent_age = age.get(pid)
             for child in children.get(pid, ()):
-                if child not in seen:
-                    seen.add(child)
-                    nxt.append(child)
+                if parent_age is None or child.age_seconds > parent_age:
+                    continue            # older than its named parent: that pid was recycled
+                if child.pid not in seen:
+                    seen.add(child.pid)
+                    nxt.append(child.pid)
         frontier = nxt
     return tuple(ordered)
 

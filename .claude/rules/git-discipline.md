@@ -26,12 +26,7 @@ safety check.
 
 **`automation/*` is EXPLICITLY PROTECTED** (operator ruling 2026-08-10, seat-27 checklist
 3c-3; register `.dev-knowledge/protocols/STANDING_RULINGS.md` I-D). It joins
-`claude/conformance-*` on the protection list. Reason: an `automation/<slug>` lane is an
-organ-produced replication branch (the fourth machine-produced lane prefix, B5) whose
-*whole purpose* is to live outside `main` — `automation/fleet-audit` is the live instance,
-and `audit.py::check_fleet_audit_replication` asserts it stays replicated to origin. It is
-therefore never "a merged branch left alive", and deleting it breaks the organ rather than
-tidying after it.
+`claude/conformance-*` on the protection list. Reason: STANDING_RULINGS B5.
 
 **`claude/conformance-*` protection is scoped to the UNABSORBED** (operator ruling
 2026-08-10, Fork 3; register `.dev-knowledge/protocols/STANDING_RULINGS.md` I-F3). A digest
@@ -39,14 +34,8 @@ branch is protected **until it is absorbed**, and an **absorbed** branch deletes
 merge under MERGE IS ATOMIC — no separate authorization, no per-instance
 `operator-authorized` subject line.
 
-Why the narrowing was needed, recorded so it is not re-litigated: the protection existed
-because *nothing absorbed*, so the branches were the only copy. Once absorb is an act the
-repo performs, "keep it after absorbing" preserves nothing and merely converts an
-unmerged-and-kept branch into a merged-and-kept one — reinstating the ~319–365 branches/yr
-accumulation the ruling exists to end. The pre-absorb guarantee is untouched: an unabsorbed
-digest is still never deleted. **The two protected globs now have opposite lifecycles on
-purpose** — `automation/*` is protected permanently (it lives outside `main` by design),
-`claude/conformance-*` only until absorbed.
+**The two protected globs have opposite lifecycles on purpose** — `automation/*` permanently,
+`claude/conformance-*` until absorbed. Why: STANDING_RULINGS I-F3.
 
 - verify: `git branch --merged main` lists nothing but `main`, `automation/*`, and any
   `claude/conformance-*` not yet absorbed.

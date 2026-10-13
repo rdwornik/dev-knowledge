@@ -730,7 +730,7 @@ def _spend_path(slug: str) -> Path:
 
 def _write_json(path: Path, body: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def read_launch_receipt(slug: str) -> Optional[dict]:
@@ -2543,7 +2543,7 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
     manifest_path.write_text(
         json.dumps({"name": name, "batch": batch, "lane": lane, "files": manifest},
                    indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+        encoding="utf-8", newline="\n")
     recovered = bool(manifest)
     if not recovered:
         # NOTHING TO RECOVER IS NOT A FAILURE (Save-CodespaceLaneHarvest's own doctrine) -- an

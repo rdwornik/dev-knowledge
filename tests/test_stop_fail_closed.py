@@ -65,6 +65,16 @@ def _run_unset(command: str, cwd: Path, env: dict | None = None) -> subprocess.C
                           capture_output=True, text=True, timeout=60)
 
 
+def _copy_gates(project: Path) -> None:
+    """A project that carries the two gates, what they import, and the shared launcher every
+    declared Stop command runs through (scripts/hooks/hook_launcher.py, lane-bw-1001)."""
+    (project / "scripts" / "hooks").mkdir(parents=True)
+    for name in _SCRIPTS + ("transport_report.py",):
+        shutil.copy2(_REPO / "scripts" / name, project / "scripts" / name)
+    shutil.copy2(_REPO / "scripts" / "hooks" / "hook_launcher.py",
+                 project / "scripts" / "hooks" / "hook_launcher.py")
+
+
 def _git_tree(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", str(path)], check=True, capture_output=True)
@@ -105,9 +115,7 @@ def test_unset_project_dir_in_a_non_lane_git_tree_allows(script, tmp_path):
     """No CLAUDE_PROJECT_DIR, cwd inside a NON-lane checkout that carries the scripts: the real
     gate runs from the git root, finds no lane, and allows -- even with a bad report on disk."""
     project = _git_tree(tmp_path / "primary")
-    (project / "scripts").mkdir()
-    for name in _SCRIPTS + ("transport_report.py",):
-        shutil.copy2(_REPO / "scripts" / name, project / "scripts" / name)
+    _copy_gates(project)
     session = tmp_path / "SESSION-x.md"
     session.write_text(_BAD, encoding="utf-8")
     proc = _run_unset(_declared(script), project / "scripts",
@@ -174,9 +182,7 @@ def test_outside_a_lane_the_declared_stop_command_still_allows(script, tmp_path)
     """A non-lane checkout: the scripts are copied into a project dir that is NOT under
     `.claude/worktrees/`, so `resolve_lane` finds no lane. A bad report on disk must not block."""
     project = tmp_path / "primary"
-    (project / "scripts").mkdir(parents=True)
-    for name in _SCRIPTS + ("transport_report.py",):
-        shutil.copy2(_REPO / "scripts" / name, project / "scripts" / name)
+    _copy_gates(project)
     session = tmp_path / "SESSION-x.md"
     session.write_text(_BAD, encoding="utf-8")
     env = {k: v for k, v in os.environ.items() if k != "HARNESS_LANE"}

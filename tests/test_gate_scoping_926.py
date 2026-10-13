@@ -108,6 +108,94 @@ def test_the_journal_expiry_is_a_real_date_the_check_reads():
     assert isinstance(aud._JOURNAL_CORRECTION_EXPIRES, _dt.date)
 
 
+# batch BW lane bw-926-main-red: the 2026-10-11 (d) collision -- FIVE entries lettered (d) whose
+# heading lines share 69 leading characters, more than the fixed 60-character pointer, so no
+# correction could tell them apart and the collision was unresolvable by construction. The
+# pointer is now the SHORTEST prefix (at least 60 characters) that distinguishes every colliding
+# heading; the headings below are the five live ones, verbatim.
+D5 = [
+    "### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B6 preflight-dead-id): "
+    "a dead [#id] names its live value; provider_router refuses an unknown role in one line",
+    "### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B4 read-gate-fix): "
+    "the read gate refuses a non-UTF-8 source; quotes inside code spans pair correctly",
+    "### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B3 dispatch-plan-fix): "
+    "plan refuses a --slug the Dispatch block disagrees with; the --token-cap doc matches --help",
+    "### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B2 handoff-verify-fix): "
+    "a cp1252-redirected handoff verify exits 0 and its warn count is true",
+    "### 2026-10-11 (d) - Copilot CLI (claude-opus-5.5, batch B2-W4 lane B1 stop-fail-closed): "
+    "Stop hooks fail closed; the launchers are shell-neutral",
+]
+D5_BODY = "".join(f"{h}\nbody\n\n" for h in D5)
+D5_HEADING = "### 2026-10-13 (b) - CC: CORRECTION -- 2026-10-11 carries five entries lettered (d)"
+
+
+def _d5_correction(*pointers: str) -> str:
+    body = "\n".join(f"- `{p}` -- pointer" for p in pointers)
+    return f"{D5_HEADING}\n\nThe collision 2026-10-11 (d):\n{body}\n\n"
+
+
+def test_five_headings_sharing_more_than_60_chars_are_resolvable_by_a_full_quote(
+        tmp_path, monkeypatch):
+    """(i) THE correction clears it: a later CORRECTION quoting each colliding heading in full."""
+    assert len(set(h[:aud._JOURNAL_POINTER_CHARS] for h in D5)) == 1   # the premise, measured
+    f = _journal(tmp_path, monkeypatch, _d5_correction(*D5) + D5_BODY,
+                 today=_dt.date(2026, 10, 13))
+    assert f.status == "pass", f.evidence
+    assert "2026-10-11 (d) resolved" in f.evidence and "[#926]" in f.evidence
+
+
+def test_a_quote_only_as_long_as_the_shared_prefix_does_not_resolve(tmp_path, monkeypatch):
+    """Ambiguous is not corrected: a pointer that cannot tell the five blocks apart names none."""
+    shared = D5[0][:69]
+    assert all(h.startswith(shared) for h in D5)
+    f = _journal(tmp_path, monkeypatch, _d5_correction(*[shared] * 5) + D5_BODY,
+                 today=_dt.date(2026, 10, 13))
+    assert f.status == "fail"
+
+
+def test_a_correction_quoting_four_of_the_five_does_not_resolve(tmp_path, monkeypatch):
+    f = _journal(tmp_path, monkeypatch, _d5_correction(*D5[:4]) + D5_BODY,
+                 today=_dt.date(2026, 10, 13))
+    assert f.status == "fail"
+    assert "2026-10-11 (d)" in f.evidence.partition("; ")[0]
+
+
+def test_a_new_uncorrected_duplicate_still_fails_beside_the_corrected_five(tmp_path, monkeypatch):
+    """(ii) a NEW, uncorrected duplicate still FAILs -- the corrected one stays only disclosed."""
+    new_a = "### 2026-10-13 (a) - CC: the wave entry"
+    new_b = "### 2026-10-13 (a) - CC: a second wave entry re-using the letter"
+    text = f"{new_a}\nbody\n\n{new_b}\nbody\n\n" + _d5_correction(*D5) + D5_BODY
+    f = _journal(tmp_path, monkeypatch, text, today=_dt.date(2026, 10, 13))
+    assert f.status == "fail"
+    failing, _, disclosed = f.evidence.partition("; ")
+    assert "2026-10-13 (a)" in failing and "2026-10-11 (d)" not in failing
+    assert "2026-10-11 (d) resolved" in disclosed
+
+
+def test_identical_colliding_headings_are_never_resolvable(tmp_path, monkeypatch):
+    """No prefix of two IDENTICAL heading lines tells them apart, so no quote can resolve them."""
+    same = "### 2026-10-11 (d) - CC: the very same heading line, twice"
+    text = _d5_correction(same) + f"{same}\nbody one\n\n{same}\nbody two\n"
+    f = _journal(tmp_path, monkeypatch, text, today=_dt.date(2026, 10, 13))
+    assert f.status == "fail"
+
+
+def test_a_heading_that_is_a_prefix_of_another_is_never_resolvable(tmp_path, monkeypatch):
+    """Quoting the longer heading would also 'quote' the shorter one, so pointing is ambiguous."""
+    short = "### 2026-10-11 (d) - CC: a heading line that is long enough to pass sixty characters"
+    long_ = short + " and then carries on"
+    text = _d5_correction(long_) + f"{short}\nbody\n\n{long_}\nbody\n"
+    f = _journal(tmp_path, monkeypatch, text, today=_dt.date(2026, 10, 13))
+    assert f.status == "fail"
+
+
+def test_the_five_way_correction_still_expires_by_itself(tmp_path, monkeypatch):
+    day_after = aud._JOURNAL_CORRECTION_EXPIRES + _dt.timedelta(days=1)
+    f = _journal(tmp_path, monkeypatch, _d5_correction(*D5) + D5_BODY, today=day_after)
+    assert f.status == "fail"
+    assert "[#926]" in f.evidence and "expired" in f.evidence
+
+
 # --- substrate_declaration: leg 8 scoped to pre-launch ------------------------------------
 
 LAUNCH_DIR = "docs/audits/2026-09-17-technical-batchq-launch-contracts"
