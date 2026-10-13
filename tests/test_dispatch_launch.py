@@ -1223,3 +1223,16 @@ def test_d1_the_launch_cli_runs_a_producer_from_the_repository_root(contract, tm
 
     assert out.exit_code == d.EXIT_REFUSED and "captured" in out.output
     assert seen.get("cwd") == top
+
+
+def test_d1_a_detached_spawn_on_windows_gives_the_child_a_hidden_console_not_none():
+    """Found by the R8 usage test: under `DETACHED_PROCESS` an npm `.cmd` shim (cmd.exe running
+    node) exits 0 having done NOTHING and written nothing -- both fixture lanes vanished silently.
+    `CREATE_NO_WINDOW` gives it a hidden console; `CREATE_NEW_PROCESS_GROUP` keeps it detached
+    from the dispatcher's Ctrl+C."""
+    flags = d.detach_flags(windows=True)
+
+    assert flags & 0x08000000, "CREATE_NO_WINDOW"
+    assert flags & 0x00000200, "CREATE_NEW_PROCESS_GROUP"
+    assert not flags & 0x00000008, "DETACHED_PROCESS silently no-ops a .cmd shim"
+    assert d.detach_flags(windows=False) == 0
