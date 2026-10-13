@@ -13,6 +13,7 @@ already have and is exactly what the frozen contract says proves nothing.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import time
@@ -148,6 +149,67 @@ def test_teardown_snapshots_the_tree_before_killing_the_root(tmp_path):
             "nothing to reap even though the process is right there")
     finally:
         _reap(grandchild, parent.pid)
+
+
+# ------------------------------------------------- a recycled parent pid is not parenthood
+#
+# Batch BW F1 land repair (CI run 38336723372, windows leg): four xdist workers went "node
+# down: Not properly terminated" one after another, ~100 ms apart, in the order gw3, gw2, gw1,
+# gw0, while the master lived on -- at ~75 % of the run, where this module's teardown tests
+# sit in collection order. Windows never clears a process's ParentProcessId when the parent
+# exits, and it recycles pids. A live process whose parent died keeps NAMING that dead pid
+# (on the operator's box: wininit, explorer, and every Git Bash background subshell that
+# hosts a `uv run pytest`). When a NEW process -- a teardown root -- is handed that recycled
+# pid, a walk keyed on ppid alone adopts the old process and its whole subtree: the pytest
+# master's host shell, the master, the workers. Killed deepest-first, the workers die in
+# reverse creation order until the killer kills its own worker; the master, shallower,
+# survives. `taskkill /T` walks ParentProcessId the same way.
+
+def _proc(pid: int, ppid: int, age_seconds: float, name: str) -> "rl.Proc":
+    return rl.Proc(pid=pid, ppid=ppid, rss_bytes=0, age_seconds=age_seconds, name=name)
+
+
+def test_tree_pids_never_adopts_an_older_process_through_a_recycled_parent_pid():
+    table = [
+        # a background shell whose parent (pid 2204) exited an hour ago -- it still names 2204
+        _proc(7852, 2204, 3600.0, "bash"),
+        _proc(3001, 7852, 3500.0, "python"),   # the pytest master it hosts
+        _proc(3002, 3001, 3400.0, "python"),   # an xdist worker
+        # a teardown root spawned by that worker NOW, and handed the recycled pid 2204
+        _proc(2204, 3002, 2.0, "python"),
+        _proc(5001, 2204, 1.5, "python"),      # the root's real child
+        _proc(5002, 5001, 1.0, "python"),      # and grandchild
+    ]
+    assert rl.tree_pids(2204, table=table) == (2204, 5001, 5002), (
+        "the walk adopted processes OLDER than the root through its recycled pid -- a teardown "
+        "of this tree kills the pytest master's shell, the master and the workers")
+
+
+def test_tree_pids_still_reaches_a_child_created_in_the_same_instant_as_its_parent():
+    """The conforming control: equal ages (`ps` reports whole seconds) are parenthood."""
+    table = [_proc(10, 1, 5.0, "root"), _proc(11, 10, 5.0, "child"), _proc(12, 11, 4.0, "gc")]
+    assert rl.tree_pids(10, table=table) == (10, 11, 12)
+
+
+_TASKKILL_TREE = re.compile(r'"taskkill"[^\]\n]*"/T"')
+
+
+def test_no_process_tree_kill_shells_out_to_taskkill_slash_t():
+    """`taskkill /T` builds its tree from ParentProcessId with no creation-time check, so it
+    carries the same recycled-pid adoption as the walk above; `psutil.Process.children(
+    recursive=True)` (already a dependency) drops any child older than its root. Every
+    process-tree kill in the code and the suite goes through psutil instead."""
+    seeds = ['["task' + 'kill", "/T", "/F", "/PID", str(pid)]',
+             '["task' + 'kill", "/F", "/T", "/PID", str(proc.pid)]']
+    assert all(_TASKKILL_TREE.search(seed) for seed in seeds), "the detector is blind"
+    offenders = []
+    for top in ("scripts", "tests", "plugins", "deploy"):
+        for path in sorted((REPO_ROOT / top).rglob("*.py")):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for number, line in enumerate(text.splitlines(), 1):
+                if _TASKKILL_TREE.search(line):
+                    offenders.append(f"{path.relative_to(REPO_ROOT).as_posix()}:{number}")
+    assert offenders == [], f"process-tree kills through taskkill /T: {offenders}"
 
 
 # --------------------------------------------------------------------------- allocation refusal
