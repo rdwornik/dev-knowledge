@@ -175,6 +175,13 @@ dev = [
     # NO ecosystem/dependency-baseline.yaml row -- read_gate.py is HUB-ONLY today (consumed by
     # LANE-5B5-10-lane-m06-reread.md in-repo), same reasoning as psutil/filelock/platformdirs.
     "pdfplumber>=0.11.10",
+    # grimp (BSD-2) -- scripts/system_map.py's module import graph (lane-bw-781-system-map,
+    # batch BW wave C6). AUTHORIZATION: R96 D15 "`uv add grimp`" for this lane only; EXACT pin
+    # per ADR-106 (3.17, released 2026-09-04, the newest release at least two weeks old when
+    # added). Ships prebuilt abi3 wheels and declares no dependency of its own: the lock gains one package.
+    # NO ecosystem/dependency-baseline.yaml row -- system_map.py is HUB-ONLY, ships in no
+    # carrier, same reasoning as psutil/filelock/platformdirs/pdfplumber above.
+    "grimp==3.17",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
