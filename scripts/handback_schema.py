@@ -298,6 +298,30 @@ def render_lane_end_report(lane: str, generated: str, commits: list[str], change
     return "\n".join(parts)
 
 
+#: Any fenced ```json block, at the start of a line.
+_JSON_FENCE_RE = re.compile(r"^```json[ \t]*\n(.*?)\n```", re.MULTILINE | re.DOTALL)
+
+
+def parse_lane_report_block(text: str) -> Optional[dict]:
+    """The section-3 LANE REPORT object of a `LANE-END-<lane>.md` ([#1368]), or `None`.
+
+    The section-3 form (manifest rule 9) carries ONE fenced json block; the older lane-end form
+    above also fences each embedded receipt as json. So the report is the first fenced block
+    whose content parses to an object naming `lane` and `state` or `checks` -- a receipt names
+    an `organ`, never either (a report missing `state` is still returned, so the validator can
+    say so). Shape validation is NOT done here: that is
+    `ecosystem/schema/lane_report.LaneReport`, which the rollup (`lane_digest.py --manifest`)
+    runs on what this returns. Never raises; `None` means no such block."""
+    for body in _JSON_FENCE_RE.findall(text.replace("\r\n", "\n")):
+        try:
+            row = json.loads(body)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and "lane" in row and ("state" in row or "checks" in row):
+            return row
+    return None
+
+
 # --- 4. REFUSED order --------------------------------------------------------------------------
 
 @dataclass(frozen=True)

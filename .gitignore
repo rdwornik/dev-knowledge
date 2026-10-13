@@ -197,3 +197,11 @@ logs/prompts/
 # sub-directory, gitignored, so it never meets the hermetization gate. Undated names: logs_retention would
 # move a dated one out from under its own doit target.
 logs/receipts/
+
+# SYSTEM MAP outputs ([#781] nearest; lane-bw-781-system-map; scripts/system_map.py build, the /map
+# command). Regenerate-on-demand, never committed -- the ecosystem/trends.html precedent above: a
+# committed generated page goes stale and then needs a gate to police it, and the JSON changes
+# whenever any leaf's content changes, so a committed JSON would churn. The COMMITTED surface is
+# ecosystem/system-map-record.json (the map sha, the previous sha and the node diff).
+ecosystem/system-map.json
+ecosystem/system-map.html

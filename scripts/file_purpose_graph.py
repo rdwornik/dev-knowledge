@@ -112,6 +112,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib.util
 import json
 import re
 import shlex
@@ -1868,6 +1869,19 @@ def list_nodes(graph: PurposeGraph) -> list[tuple[str, str, int, int]]:
     return sorted(rows)
 
 
+def _record_why_search(root: Path, rel: str, outcome: str) -> None:
+    """Leave the `why` record the PreToolUse reuse gate reads (`scripts/hooks/reuse_gate.py`,
+    `[#735]` nearest): one line per search, in a lane only. The gate owns the record's format;
+    this command is its one producer. A record that cannot be written never costs the answer."""
+    spec = importlib.util.spec_from_file_location("reuse_gate", _SCRIPTS / "hooks" / "reuse_gate.py")
+    try:
+        gate = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gate)
+        gate.record_why(root, rel, outcome)
+    except Exception as exc:  # noqa: BLE001 -- the record never costs the answer
+        print(f"[why] the reuse-gate record was not written: {exc!r}", file=sys.stderr)
+
+
 def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Query the file-purpose graph (FPG-1). Read-only; wired into no gate.")
@@ -1921,8 +1935,10 @@ def _main(argv: list[str] | None = None) -> int:
     try:
         answer = why(graph, args.path)
     except UnknownFile as exc:
+        _record_why_search(root, _normalise(root, args.path), "refused")
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
+    _record_why_search(root, answer.path, "answered")
     print(render(answer, limit=args.limit))
     if args.depth > 1:
         reachable = sorted(graph.transitive_consumers(answer.node.key))

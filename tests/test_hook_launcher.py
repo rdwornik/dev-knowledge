@@ -10,7 +10,8 @@ Done-contract, as this file checks it:
      flag, no `;` program text;
   4. every entry that has to survive a foreign shell runs through the one launcher, in exactly
      one shape (the three former inline `python -c` entries: the PreToolUse scope guard and B1's
-     two Stop gates).
+     two Stop gates; and, since lane `lane-bw-1001-sessionstart-one`, the ONE SessionStart entry
+     `scripts/hooks/session_start.py`).
 
 The behaviour of each real hook through its declared command stays pinned where it was:
 `tests/test_scope_guard_hook_command.py` (scope guard, three shells) and
@@ -45,8 +46,9 @@ _SHAPE = ('uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/' +
 #: The entries that must survive a shell other than Claude Code's POSIX one (Copilot CLI runs
 #: `.claude/settings.json` hooks through PowerShell on Windows, with no CLAUDE_PROJECT_DIR).
 _LAUNCHED = {
-    "PreToolUse": ["scripts/hooks/scope_guard.py"],
+    "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py"],
     "Stop": ["scripts/lane_end_guard.py", "scripts/lane_handback_gate.py"],
+    "SessionStart": ["scripts/hooks/session_start.py"],
 }
 
 
@@ -79,7 +81,7 @@ def test_each_shell_neutral_entry_is_the_one_launcher_shape(event, target):
     assert commands == [launch_command(target)], commands
 
 
-def test_every_launched_entry_is_one_of_the_named_three():
+def test_every_launched_entry_is_one_of_the_named_entries():
     """No fourth entry grows its own variant: whatever reaches the launcher uses the one shape."""
     launched = sorted(cmd for _, cmd in _hook_commands() if "hook_launcher.py" in cmd)
     expected = sorted(launch_command(t) for targets in _LAUNCHED.values() for t in targets)

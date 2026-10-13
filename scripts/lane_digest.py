@@ -51,7 +51,9 @@ FLOOR: hub-only. One-line reason: it reads the hub's lane receipts and cost ledg
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
+import logging
 import os
 import re
 import sys
@@ -319,6 +321,137 @@ def reports_root_lanes(reports_dir: Path, lane_names: Sequence[str], costs: dict
     return lanes
 
 
+# --- the section-4 batch rollup ([#1368]) ---------------------------------------------------------
+#
+# DIGEST-PROPOSAL-ADR-LANE-REPORT-CONTRACT-2026-10-11 section 4, adopted by R96 D1: input = the batch
+# manifest's expected lanes plus the received `LANE-END-<lane>.md` reports; output at most 25 lines --
+# a header with the batch, expected N, received N and the MISSING set difference; one section-3 line
+# per lane; totals by state; the operator actions, collected. A script, not an LLM.
+#
+# WHY HERE AND NOT A NEW SCRIPT. No "close-lines generator" exists under `scripts/` by that name
+# (MISSING: close-lines generator, recorded by the lane); this module is its nearest neighbour -- it
+# already reads `LANE-END-<lane>.md` off the transport against a NAMED roster and names a lane with
+# no report rather than dropping it (`reports_root_lanes`). The rollup reuses that resolver
+# (`transport_report.resolve_transport`), the manifest owner's table reader
+# (`batch_manifest.manifest_lane_rows`) and the LANE-END shape owner's block reader
+# (`handback_schema.parse_lane_report_block`), and validates with the contract's own model
+# (`ecosystem/schema/lane_report.LaneReport`). Those imports are lazy, so the Stop-hook digest path
+# above keeps its zero-dependency floor.
+
+ROLLUP_MAX_LINES = 25
+STATE_MISSING = "MISSING"
+STATE_INVALID = "INVALID"
+_ROLLUP_MAX_ACTIONS = 6
+_CHECK_NAME_MAX = 24
+_TEXT_MAX = 160
+_NONE = "—"
+
+_log = logging.getLogger("lane_digest")
+
+
+def _sibling(name: str):
+    """A sibling `scripts/` module, whichever entry point the caller used."""
+    try:
+        return importlib.import_module(f"scripts.{name}")
+    except ImportError:
+        return importlib.import_module(name)
+
+
+def _lane_report_model():
+    if str(_ROOT) not in sys.path:
+        sys.path.insert(0, str(_ROOT))
+    from ecosystem.schema.lane_report import LaneReport
+    return LaneReport
+
+
+def _clip(text: str, limit: int) -> str:
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def report_line(report) -> str:
+    """The section-3 one-line rendering of a validated `LaneReport`:
+    `lane | STATE met/total | check RESULT · ... | intent V (vendor) | sha | $cost | action | open n`."""
+    checks = " · ".join(f"{_clip(c.name, _CHECK_NAME_MAX)} {c.result}" for c in report.checks)
+    intent = (f"intent {report.intent_met.verdict} ({report.intent_met.evaluator.vendor})"
+              if report.intent_met else f"intent {_NONE}")
+    sha = report.merged_sha[:8] if report.merged_sha else _NONE
+    cost = f"${report.cost_usd:,.2f}" if report.cost_usd is not None else f"${_NONE}"
+    action = "action yes" if report.operator_action else f"action {_NONE}"
+    still_open = f"open {len(report.unresolved)}" if report.unresolved else f"open {_NONE}"
+    return " | ".join([report.lane, f"{report.state} {report.done.met}/{report.done.total}",
+                       checks or "no checks", intent, sha, cost, action, still_open])
+
+
+@dataclass
+class RollupLane:
+    name: str
+    state: str
+    line: str
+    action: Optional[str] = None
+
+
+def rollup_lane(reports_dir: Path, name: str) -> RollupLane:
+    """One expected lane, read from `<reports_dir>/LANE-END-<name>.md`. Absent: MISSING. Present
+    but without a valid section-3 block: INVALID, counted as received and never as a state."""
+    path = reports_dir / f"{_tr.ARTIFACT_PREFIX}{name}.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return RollupLane(name, STATE_MISSING, f"{name} | {STATE_MISSING} | no {path.name} on the transport")
+    row = _sibling("handback_schema").parse_lane_report_block(text)
+    if row is None:
+        return RollupLane(name, STATE_INVALID, f"{name} | {STATE_INVALID} | no section-3 json block")
+    import pydantic
+    try:
+        report = _lane_report_model().model_validate(row)
+    except pydantic.ValidationError as exc:
+        first = exc.errors()[0]
+        where = ".".join(str(p) for p in first.get("loc", ())) or "report"
+        _log.warning("%s: invalid lane report (%d error(s))", name, exc.error_count())
+        reason = _clip(f"{where}: {first.get('msg')}", 120)
+        return RollupLane(name, STATE_INVALID, f"{name} | {STATE_INVALID} | {reason}")
+    if report.lane != name:
+        return RollupLane(name, STATE_INVALID,
+                          f"{name} | {STATE_INVALID} | the report names lane {report.lane!r}")
+    return RollupLane(name, report.state, report_line(report), report.operator_action)
+
+
+def render_rollup(batch: str, manifest_text: str, reports_dir: Path, wave: Optional[str] = None) -> str:
+    """The section-4 rollup, at most `ROLLUP_MAX_LINES` lines. Expected lanes come from the
+    manifest's lanes table (one wave when `wave` is named); a lane with no report is MISSING."""
+    rows = _sibling("batch_manifest").manifest_lane_rows(manifest_text)
+    expected = [slug for slug, w in rows if wave is None or (w or "").lower() == wave.lower()]
+    lanes = [rollup_lane(reports_dir, name) for name in expected]
+    missing = [lane.name for lane in lanes if lane.state == STATE_MISSING]
+    title = f"batch {batch}" + (f" wave {wave}" if wave else "")
+    header = (f"{title} | expected {len(lanes)} | received {len(lanes) - len(missing)} | "
+              f"{STATE_MISSING}: {', '.join(missing) or 'none'}")
+    order = list(_lane_report_model().model_fields["state"].annotation.__args__) + [
+        STATE_INVALID, STATE_MISSING]
+    counts = {s: sum(1 for lane in lanes if lane.state == s) for s in order}
+    totals = "totals: " + (" · ".join(f"{s} {n}" for s, n in counts.items() if n) or "no lanes")
+    actions = [f"- {lane.name}: {_clip(lane.action, _TEXT_MAX)}" for lane in lanes if lane.action]
+    if actions:
+        shown = actions[:_ROLLUP_MAX_ACTIONS]
+        if len(actions) > len(shown):
+            shown.append(f"- (+{len(actions) - len(shown)} more operator actions)")
+        action_block = ["operator actions:"] + shown
+    else:
+        action_block = ["operator actions: none"]
+    room = ROLLUP_MAX_LINES - 2 - len(action_block)
+    lane_lines = [lane.line for lane in lanes]
+    if len(lane_lines) > room:
+        cut = len(lane_lines) - (room - 1)
+        lane_lines = lane_lines[: room - 1] + [f"(+{cut} more lanes; MISSING ones are named in the header)"]
+    return "\n".join([header, *lane_lines, totals, *action_block]) + "\n"
+
+
+def _manifest_batch(manifest_text: str, manifest: Path) -> str:
+    match = re.search(r"^batch:\s*(\S+)\s*$", manifest_text.split("\n---", 1)[0], re.M)
+    return match.group(1) if match else manifest.stem
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 class _Parser(argparse.ArgumentParser):
@@ -353,6 +486,13 @@ def _parser() -> argparse.ArgumentParser:
                    help="a JSON file written by `ci_red_age.py --out-json` (since/hours/sha/url, "
                         "or a literal `null`); its OPERATOR-ACTION line renders at batch close "
                         "when main has been red past ci_red_age.RED_AGE_THRESHOLD_H")
+    p.add_argument("--manifest", default=None,
+                   help="[#1368] the section-4 rollup: a batch manifest whose lanes table names the "
+                        "expected lanes; each one's LANE-END-<lane>.md is read under --reports-root "
+                        "(bare: CLAUDE_PROMPTS_DIR, User scope first) and validated against "
+                        "ecosystem/schema/lane-report.schema.json's model; at most 25 lines")
+    p.add_argument("--wave", default=None,
+                   help="with --manifest: only the lanes whose Wave cell is this value (e.g. F1)")
     return p
 
 
@@ -363,8 +503,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         except ValueError as exc:
             print(f"lane_digest: bad arguments: {exc}", file=sys.stderr)
             return EXIT_FAILED
+        if args.manifest:
+            manifest = Path(args.manifest)
+            text = manifest.read_text(encoding="utf-8")
+            folder = _tr.resolve_transport(args.reports_root or None)
+            batch = args.batch or _manifest_batch(text, manifest)
+            out = render_rollup(batch, text, folder, wave=args.wave)
+            sys.stdout.buffer.write(out.encode("utf-8"))
+            sys.stdout.flush()
+            return EXIT_OK
         repo = Path(args.repo) if args.repo else _ROOT
-        costs = load_costs(Path(args.costs_file) if args.costs_file else repo / "logs" / "LANE-COSTS.jsonl")
+        costs =load_costs(Path(args.costs_file) if args.costs_file else repo / "logs" / "LANE-COSTS.jsonl")
         # A named roster (`--lanes`, or `$HARNESS_LANES` -- see the module docstring) selects the
         # reports view even through the UNEDITED harness.yaml row, whose `--lane {batch}
         # --receipts-dir {receipts}` never changes: a roster is what distinguishes "digest this
