@@ -61,7 +61,7 @@ Instrument: `git worktree list`, `git branch`, `git ls-remote --heads origin`, `
 | | worktrees (incl. primary) | local branches | origin branches | stashes |
 |---|---|---|---|---|
 | before R4 | 19 | 23 | 20 | 0 |
-| at this packet | 2 (primary + integrate-bw, removed after this land) | 17 | 15 | 0 |
+| at this packet | 2 (primary + integrate-bw, removed after this land) | 17 | 14 | 0 |
 
 Merged and deleted (local + origin): the four landed Wave D lanes, `worktree-b2w2-transport-index`,
 `worktree-scope-guard-copilot`; `fix/bw-d-land-repair` (local only, never pushed). Every unmerged
