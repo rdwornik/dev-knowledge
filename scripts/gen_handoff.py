@@ -38,6 +38,8 @@ from __future__ import annotations
 import datetime as _dt
 import importlib
 import importlib.util
+import json
+import logging
 import os
 import re
 import shutil
@@ -72,6 +74,7 @@ __all__ = [
     "CarriageVerdict",
     "PreflightError",
     "PreflightRow",
+    "StateInputs",
     "BundleIdentityError",
     "DryCutTargetError",
     "GenResult",
@@ -91,6 +94,7 @@ __all__ = [
     "collect_hints",
     "collect_state",
     "decision_files",
+    "default_state_inputs",
     "detect_fill_state",
     "dispatch_form",
     "fixed_slots",
@@ -100,6 +104,7 @@ __all__ = [
     "preflight_rows",
     "publish_bundle",
     "reflow_framing",
+    "render_handoff_state",
     "spec_version",
     "standing_vs_new",
     "verify_published",
@@ -3161,6 +3166,477 @@ def _write_decision_ledger(bundle_dir: Path, repo_root: Path) -> "Path | None":
     return out
 
 
+# --- HANDOFF STATE: the seven F4 sections (batch BW lane D2 `handoff-gen`, row [#680] nearest) --
+#
+# WHAT THIS IS. Base order F4 (`to-cc/BATCH-B2-W4-CC-FINISH-2026-10-12.md`, D2): "the handoff is
+# generated from the rollups, the LEDGER and the map diff". Proposal section 9 B: no seat authors
+# the handoff's state by hand. `render_handoff_state` is that render -- SEVEN fixed sections, in a
+# fixed order, each opening with a `source:` line that names the file or command it was read
+# from, so a reader can re-derive any line rather than trust it.
+#
+# READS ONLY COMMITTED OR GENERATED INPUTS. The rollups (the transport DIGEST rollup, and the
+# section-4 rollup `lane_digest.py --manifest` renders from the LANE-END reports), the LEDGER
+# (`to-browser/LEDGER-<repo>.md`), the committed map record (`ecosystem/system-map-record.json`,
+# written by `system_map.py build`), and committed repo files (`tasks/`, `docs/decisions/`,
+# `logs/KNOWN-REDS-REGISTRY.json`, `.methodology.yaml`, `ecosystem/harness.yaml`). Nothing is
+# typed in here as a fact; the only declared content is the section titles and the pointer list.
+#
+# DEGRADED, NEVER ABSENT (DEFECT E-29, the decision ledger's posture). An input that cannot be
+# read prints `MISSING: <input> (<why>)` in its section; a section is never silently empty,
+# because an empty "past errors" section reads to the incoming seat as "there are none".
+#
+# HONEST LIMIT. Section 2 carries what the rollups and the LEDGER RECORD under a heading or key
+# reading "PAST ERRORS WITH NO CHECK YET". An error recorded anywhere else (a free-text F0
+# finding, a JOURNAL line) is not found, and the section says MISSING rather than inferring one.
+
+#: The bundle file the state is written to, beside DECISION_LEDGER.md and FUNNEL_HEALTH.md.
+HANDOFF_STATE_FILE = "HANDOFF_STATE.md"
+
+#: The seven F4 items, in the order F4 lists them. The order is the contract; tests pin it.
+STATE_SECTION_TITLES = (
+    "1. Current state",
+    "2. Past errors with no check yet",
+    "3. Priorities and backlog",
+    "4. Ratification queue",
+    "5. Dated items",
+    "6. Methodology pointers",
+    "7. Map sha and diff",
+)
+
+#: Methodology pointers -- POINTERS only, never prose copies (F4's own rule for boot v2). Each is
+#: checked to exist at render time; an absent one renders MISSING.
+STATE_POINTERS = (
+    ("protocols/HANDOFF_PROCESS.md", "the handoff process: boundary invariants, the cut, the probes"),
+    ("protocols/PLAYBOOK.md", "Ch8 session boundaries: lanes, dispatch, the batch protocol"),
+    ("protocols/STANDING_RULINGS.md", "standing rulings and the V-2 decision budget"),
+    ("ARCHITECTURE.md", "the structural model: organs, automation axes, verification mesh"),
+    ("ecosystem/schema/lane-report.schema.json", "the section-3 lane report"),
+    ("scripts/lane_digest.py", "the section-4 rollup (`--manifest`)"),
+    ("scripts/system_map.py", "the system map and its committed sha record"),
+    (".claude/commands/lane-boot.md", "lane tool: boot one lane"),
+    (".claude/commands/lane-integrate.md", "lane tool: walk the merge queue"),
+)
+
+_PAST_ERRORS_KEY = "PAST ERRORS WITH NO CHECK YET"
+#: The key as it is matched: `PAST ERRORS` and any qualifier up to an optional colon, case-folded;
+#: group 1 is an inline item written on the key's own line.
+_PAST_ERRORS_RE = re.compile(r"(?i)^PAST ERRORS\b[^:]*:?\s*(.*)$")
+_STATE_LIST_MARK_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+")
+_STATE_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
+_STATE_LINES_MAX = 30
+_HTML_COMMENT_RE = re.compile(r"\s*<!--.*?(?:-->|$)")
+_STATE_DIFF_SHOWN = 20
+_STATE_FRONTIER_SHOWN = 5
+
+_log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class StateInputs:
+    """Where the handoff state is read from. `None` (or a path that does not exist) is an absent
+    input, and renders MISSING. `manifest` + `reports_dir` select the generated section-4 rollup
+    (`lane_digest.render_rollup`); without both it is simply not rendered."""
+    rollups: "tuple[Path, ...]" = ()
+    ledger: "Path | None" = None
+    map_record: "Path | None" = None
+    manifest: "Path | None" = None
+    reports_dir: "Path | None" = None
+
+
+def _newest_rollup(transport: "Path | None") -> "Path | None":
+    """The newest `to-browser/DIGEST-*ROLLUP*.md` by the date in its name, then by name."""
+    if transport is None:
+        return None
+    found = [p for p in (Path(transport) / "to-browser").glob("DIGEST-*ROLLUP*.md")
+             if "superseded" not in p.name]
+    if not found:
+        return None
+
+    def _key(p: Path) -> "tuple[str, str]":
+        dates = re.findall(r"\d{4}-\d{2}-\d{2}", p.name)
+        return (max(dates) if dates else "", p.name)
+    return max(found, key=_key)
+
+
+def default_state_inputs(repo_root: Path, transport: "Path | None" = None) -> StateInputs:
+    """The live inputs: the newest DIGEST rollup and the LEDGER on the transport, the committed
+    map record, and -- while a batch is open -- that batch's manifest for the section-4 rollup."""
+    root = Path(repo_root)
+    transport = transport_root() if transport is None else transport
+    rollup = _newest_rollup(transport)
+    name = _main_checkout(root).name.lstrip(".")
+    ledger = Path(transport) / "to-browser" / f"LEDGER-{name}.md" if transport else None
+    batches = _open_batches(root)
+    manifest = root / batches[0].path if batches else None
+    reports = Path(transport) / "to-browser" if transport else None
+    return StateInputs(rollups=(rollup,) if rollup else (), ledger=ledger,
+                       map_record=root / "ecosystem" / "system-map-record.json",
+                       manifest=manifest, reports_dir=reports)
+
+
+def _read_input(path: "Path | None") -> "tuple[str | None, str]":
+    """`(text, why)` -- text None when the input is absent or unreadable, `why` saying which."""
+    if path is None:
+        return None, "not resolvable (no transport or no path given)"
+    try:
+        return Path(path).read_text(encoding="utf-8", errors="replace"), ""
+    except OSError as exc:
+        return None, f"{Path(path).as_posix()}: {type(exc).__name__}"
+
+
+def _display_path(path: "Path | None", root: Path) -> str:
+    """`path` relative to `root` when it lies inside it (a stable, re-derivable locator), else as-is."""
+    if path is None:
+        return "none"
+    try:
+        return Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
+    except (ValueError, OSError):
+        return Path(path).as_posix()
+
+
+def _clip_lines(lines: "list[str]", limit: int = _STATE_LINES_MAX) -> "list[str]":
+    if len(lines) <= limit:
+        return lines
+    return lines[:limit] + [f"(+{len(lines) - limit} more lines in the source)"]
+
+
+def _md_section(text: str, prefix: str) -> "list[str] | None":
+    """The non-blank lines under the first heading whose text starts with `prefix` (case-folded),
+    up to the next heading of the same or a higher level. None when no such heading exists."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        m = _STATE_HEADING_RE.match(line)
+        if not m or not m.group(2).strip().upper().startswith(prefix.upper()):
+            continue
+        level, out = len(m.group(1)), []
+        for nxt in lines[i + 1:]:
+            h = _STATE_HEADING_RE.match(nxt)
+            if h and len(h.group(1)) <= level:
+                break
+            if nxt.strip():
+                out.append(nxt.rstrip())
+        return out
+    return None
+
+
+def _past_error_items(text: str) -> "list[str] | None":
+    """Every item recorded under a `PAST ERRORS WITH NO CHECK YET` heading or list key. None when
+    the text carries no such block at all (as distinct from an empty one)."""
+    lines = text.splitlines()
+    items: "list[str]" = []
+    found = False
+    for i, line in enumerate(lines):
+        key = _PAST_ERRORS_RE.match(line.strip().lstrip("#-* ").replace("**", ""))
+        if not key:
+            continue
+        found = True
+        inline = key.group(1).strip()
+        if inline:
+            items.append(inline)
+        heading = _STATE_HEADING_RE.match(line)
+        indent = len(line) - len(line.lstrip())
+        for nxt in lines[i + 1:]:
+            if not nxt.strip():
+                continue
+            if heading:
+                if _STATE_HEADING_RE.match(nxt):
+                    break
+            elif len(nxt) - len(nxt.lstrip()) <= indent:
+                break
+            items.append(_STATE_LIST_MARK_RE.sub("", nxt).strip())
+    return items if found else None
+
+
+def _rollup_state_lines(text: str) -> "list[str]":
+    """The state a rollup carries: its `summary:` header line, the section-4 header and totals
+    lines (`lane_digest.render_rollup`'s shape), and the body of a `## Totals` section."""
+    out: "list[str]" = []
+    for line in text.splitlines()[:12]:
+        if line.startswith("summary:"):
+            out.append(line.strip())
+    for line in text.splitlines():
+        if re.match(r"^batch \S.*\| expected \d+", line) or line.startswith("totals:"):
+            out.append(line.strip())
+    out += _md_section(text, "Totals") or []
+    return out
+
+
+def _generated_rollup(inputs: StateInputs, root: Path) -> "tuple[list[str], str]":
+    """The section-4 rollup `lane_digest.py --manifest` prints, rendered in-process."""
+    if inputs.manifest is None or inputs.reports_dir is None:
+        return [], ""
+    cmd = f"lane_digest.py --manifest {_display_path(inputs.manifest, root)}"
+    try:
+        sys.path.insert(0, str(_SCRIPTS))
+        import lane_digest as _ld  # noqa: PLC0415 -- deferred sibling import, the idiom
+        text = Path(inputs.manifest).read_text(encoding="utf-8")
+        batch = _ld._manifest_batch(text, Path(inputs.manifest))
+        return _ld.render_rollup(batch, text, Path(inputs.reports_dir)).splitlines(), cmd
+    except Exception as exc:  # noqa: BLE001 -- a surfacing artifact never refuses a cut
+        _log.warning("handoff state: generated rollup degraded -- %r", exc)
+        return [f"MISSING: generated rollup ({cmd}: {type(exc).__name__}: {exc})"], cmd
+
+
+def _section_current_state(repo_root: Path, inputs: StateInputs,
+                           ledger: "str | None", ledger_why: str) -> "list[str]":
+    head = _git(repo_root, "rev-parse", "HEAD").strip() or "unknown"
+    sources = ["`git rev-parse HEAD`", "LEDGER `## STATE`", "rollup state lines"]
+    out = [f"- commit: {head}"]
+    if ledger is None:
+        out.append(f"- MISSING: LEDGER ({ledger_why})")
+    else:
+        state = _md_section(ledger, "STATE")
+        out += (["- LEDGER STATE:"] + [f"  {ln}" for ln in _clip_lines(state)]
+                if state else ["- MISSING: LEDGER `## STATE` section"])
+    if not inputs.rollups:
+        out.append("- MISSING: rollup (no DIGEST rollup resolvable on the transport)")
+    for path in inputs.rollups:
+        text, why = _read_input(path)
+        if text is None:
+            out.append(f"- MISSING: rollup ({why})")
+            continue
+        lines = _rollup_state_lines(text)
+        out.append(f"- rollup {Path(path).name}:")
+        out += [f"  {ln}" for ln in _clip_lines(lines)] or ["  MISSING: rollup state lines"]
+    generated, cmd = _generated_rollup(inputs, repo_root)
+    if cmd:
+        sources.append(f"`{cmd}`")
+        out.append("- generated rollup:")
+        out += [f"  {ln}" for ln in _clip_lines(generated)]
+    return [f"source: {'; '.join(sources)}", *out]
+
+
+def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str]":
+    named: "list[str]" = []
+    items: "list[str]" = []
+    seen: "set[str]" = set()
+    texts = [(Path(p).name, _read_input(p)[0]) for p in inputs.rollups]
+    texts.append(("LEDGER", ledger))
+    for label, text in texts:
+        if text is None:
+            continue
+        found = _past_error_items(text)
+        if found is None:
+            continue
+        named.append(label)
+        for item in found:
+            key = " ".join(item.casefold().split())
+            if key and key not in seen:
+                seen.add(key)
+                items.append(f"{len(items) + 1}. {item} ({label})")
+    src = (f"source: the `{_PAST_ERRORS_KEY}` blocks of the rollups and the LEDGER"
+           f" (found in: {', '.join(named) or 'none'})")
+    if not items:
+        return [src, f"- MISSING: a {_PAST_ERRORS_KEY} block in any rollup or the LEDGER"]
+    return [src, *items]
+
+
+def _section_priorities(repo_root: Path, ledger: "str | None", ledger_why: str) -> "list[str]":
+    out = ["source: LEDGER `## BLOCKED BY` and `## NEXT`; `tasks/` via "
+           "`boot_frontier.load_open_rows` / `score_frontier`"]
+    if ledger is None:
+        out.append(f"- MISSING: LEDGER ({ledger_why})")
+    else:
+        for title in ("BLOCKED BY", "NEXT"):
+            body = _md_section(ledger, title)
+            out += ([f"- {title}:"] + [f"  {ln}" for ln in _clip_lines(body, 15)]
+                    if body else [f"- MISSING: LEDGER `## {title}` section"])
+    try:
+        if not (Path(repo_root) / "tasks").is_dir():
+            raise FileNotFoundError("tasks/ is absent")
+        sys.path.insert(0, str(_SCRIPTS))
+        import boot_frontier as _bf  # noqa: PLC0415 -- deferred sibling import, the idiom
+        import gen_task_tree as _gtt  # noqa: PLC0415
+        rows = _bf.load_open_rows(Path(repo_root))
+        counts: "dict[str, int]" = {}
+        for row in rows:
+            key = _gtt.derive_priority(row.raw) or "P?"
+            counts[key] = counts.get(key, 0) + 1
+        out.append(f"- backlog: {len(rows)} open rows ("
+                   + ", ".join(f"{k} {counts[k]}" for k in sorted(counts)) + ")")
+        scored = _bf.score_frontier(_bf.unblocked_frontier(rows), rows)
+        out.append(f"- top of the unblocked frontier ({min(len(scored), _STATE_FRONTIER_SHOWN)}"
+                   f" of {len(scored)}):")
+        out += [f"  [#{r.id}] {_gtt.derive_priority(r.raw) or 'P?'} - {_gtt.derive_title(r.raw)}"
+                for r in scored[:_STATE_FRONTIER_SHOWN]]
+    except Exception as exc:  # noqa: BLE001 -- degraded, never absent
+        out.append(f"- MISSING: tasks/ open queue ({type(exc).__name__}: {exc})")
+    return out
+
+
+def _section_ratification(repo_root: Path) -> "list[str]":
+    decisions = Path(repo_root) / "docs" / "decisions"
+    out = ["source: `docs/decisions/ADR-*.md` headers (`gen_claude_rosters.collect_recent_adrs`), "
+           "status Proposed; open decisions in full: the bundle's DECISION_LEDGER.md "
+           "(`decision_coverage.render_ledger`)"]
+    try:
+        if not decisions.is_dir():
+            raise FileNotFoundError(f"{decisions.as_posix()} is absent")
+        sys.path.insert(0, str(_SCRIPTS))
+        import gen_claude_rosters as _gcr  # noqa: PLC0415 -- deferred sibling import, the idiom
+        rows = _gcr.collect_recent_adrs(decisions, count=10 ** 6)
+    except Exception as exc:  # noqa: BLE001 -- degraded, never absent
+        return out + [f"- MISSING: docs/decisions/ ({type(exc).__name__}: {exc})"]
+    queue = [r for r in rows if r[1].casefold().startswith("proposed")]
+    out += [f"- ADR-{num} ({_HTML_COMMENT_RE.sub('', status).strip()}, {date}): {title}"
+            for num, status, date, title in queue]
+    return out if queue else out + [f"- none: no ADR is Proposed ({len(rows)} read)"]
+
+
+def _date_flag(day: str, today: str) -> str:
+    try:
+        delta = (_dt.date.fromisoformat(day) - _dt.date.fromisoformat(today)).days
+    except ValueError:
+        return "UNPARSEABLE"
+    if delta < 0:
+        return f"EXPIRED {-delta}d ago"
+    return "TODAY" if delta == 0 else f"in {delta}d"
+
+
+def _known_red_groups(registry: dict) -> "dict[str, dict[str, dict[str, int]]]":
+    """`{expiry: {"tasks": {task: n}, "pools": {pool: n}}}` over every dated registry entry.
+
+    A pool is where the entry sits -- `members`, `hooks`, or one `members_by_os` OS key -- and is
+    reported beside the task counts because one test can be registered in several pools, so a
+    single total would read as that many distinct reds."""
+    pools = [("members", registry.get("members") or {}), ("hooks", registry.get("hooks") or {})]
+    pools += sorted((registry.get("members_by_os") or {}).items())
+    groups: "dict[str, dict[str, dict[str, int]]]" = {}
+    for pool_name, pool in pools:
+        for entry in pool.values():
+            if isinstance(entry, dict) and entry.get("expiry"):
+                group = groups.setdefault(str(entry["expiry"]), {"tasks": {}, "pools": {}})
+                task = str(entry.get("task") or "[#?]")
+                group["tasks"][task] = group["tasks"].get(task, 0) + 1
+                group["pools"][pool_name] = group["pools"].get(pool_name, 0) + 1
+    return groups
+
+
+def _section_dated(repo_root: Path, today: str) -> "list[str]":
+    root = Path(repo_root)
+    out = ["source: `logs/KNOWN-REDS-REGISTRY.json` (expiry; from an expired date `land` "
+           "refuses), `.methodology.yaml` (review_date / expiry), `ecosystem/harness.yaml` "
+           f"(`manual_until:`, via handoff_state.row_dates); as of {today}"]
+    try:
+        registry = json.loads((root / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
+        groups = _known_red_groups(registry)
+        out.append("- known reds by expiry (registry entries; one test may sit in several pools):")
+        for day in sorted(groups):
+            tasks, pools = groups[day]["tasks"], groups[day]["pools"]
+            out.append(f"  {day} [{_date_flag(day, today)}]: {sum(tasks.values())} entries -- "
+                       + ", ".join(f"{t} {n}" for t, n in sorted(tasks.items()))
+                       + " (pools: " + ", ".join(f"{k} {n}" for k, n in pools.items()) + ")")
+        if not groups:
+            out.append("  none dated")
+    except (OSError, ValueError, AttributeError) as exc:
+        out.append(f"- MISSING: logs/KNOWN-REDS-REGISTRY.json ({type(exc).__name__})")
+    try:
+        import yaml  # noqa: PLC0415 -- a declared dependency; deferred like the siblings above
+        data = yaml.safe_load((root / ".methodology.yaml").read_text(encoding="utf-8")) or {}
+        by_day: "dict[str, list[str]]" = {}
+        for entry in data.get("sanctioned_divergences") or []:
+            day = entry.get("expiry") or entry.get("review_date")
+            if day:
+                by_day.setdefault(str(day), []).append(str(entry.get("component")))
+        out.append("- .methodology.yaml time-boxes:")
+        for day in sorted(by_day):
+            comps = by_day[day]
+            out.append(f"  {day} [{_date_flag(day, today)}]: {len(comps)} -- {', '.join(comps)}")
+        if not by_day:
+            out.append("  none dated")
+    except (OSError, ValueError, AttributeError, ImportError) as exc:
+        out.append(f"- MISSING: .methodology.yaml ({type(exc).__name__})")
+    try:
+        row = _hstate().row_dates(root, today=today)
+        out.append(f"- harness fates: {row.value}")
+    except Exception as exc:  # noqa: BLE001 -- degraded, never absent
+        out.append(f"- MISSING: ecosystem/harness.yaml dates ({type(exc).__name__})")
+    return out
+
+
+def _section_pointers(repo_root: Path) -> "list[str]":
+    out = ["source: `gen_handoff.STATE_POINTERS` (declared), each checked to exist in the tree"]
+    for rel, what in STATE_POINTERS:
+        if (Path(repo_root) / rel).exists():
+            out.append(f"- `{rel}` -- {what}")
+        else:
+            out.append(f"- MISSING: {rel} ({what})")
+    return out
+
+
+def _section_map(inputs: StateInputs, root: Path) -> "list[str]":
+    path = inputs.map_record
+    label = _display_path(path, root) if path else "ecosystem/system-map-record.json"
+    out = [f"source: `{label}` (written by `system_map.py build`)"]
+    text, why = _read_input(path)
+    if text is None:
+        return out + [f"- MISSING: map diff ({why})"]
+    try:
+        rec = json.loads(text)
+        diff = rec.get("diff") or {}
+    except (ValueError, AttributeError) as exc:
+        return out + [f"- MISSING: map diff ({label}: {type(exc).__name__})"]
+    out += [f"- map_sha: {rec.get('map_sha') or 'MISSING'}",
+            f"- previous_sha: {rec.get('previous_sha') or 'none'}",
+            f"- built_at: {rec.get('built_at') or 'unknown'}",
+            f"- nodes: {rec.get('node_count', 'unknown')}"]
+    if diff.get("baseline"):
+        out.append("- diff: baseline (first record; nothing to diff against)")
+        return out
+    out.append(f"- diff: +{diff.get('added_count', 0)} -{diff.get('removed_count', 0)} nodes")
+    for sign, key in (("+", "added"), ("-", "removed")):
+        shown = list(diff.get(key) or [])
+        out += [f"  {sign} {node}" for node in shown[:_STATE_DIFF_SHOWN]]
+        if len(shown) > _STATE_DIFF_SHOWN:
+            out.append(f"  ({len(shown) - _STATE_DIFF_SHOWN} more {key})")
+    return out
+
+
+def render_handoff_state(repo_root: Path, inputs: StateInputs, *, today: "str | None" = None) -> str:
+    """The generated handoff state: the seven F4 sections, each naming its source.
+
+    Pure read: it writes nothing and never raises on an unreadable input -- every degradation is
+    a printed `MISSING:` line in the section it belongs to (see the block comment above)."""
+    root = Path(repo_root)
+    today = today or _dt.date.today().isoformat()
+    ledger, ledger_why = _read_input(inputs.ledger)
+    bodies = (
+        _section_current_state(root, inputs, ledger, ledger_why),
+        _section_past_errors(inputs, ledger),
+        _section_priorities(root, ledger, ledger_why),
+        _section_ratification(root),
+        _section_dated(root, today),
+        _section_pointers(root),
+        _section_map(inputs, root),
+    )
+    parts = [f"# HANDOFF STATE -- generated {today}",
+             "",
+             "Generated by `scripts/gen_handoff.py` (`render_handoff_state`) from the rollups, the "
+             "LEDGER, the map diff and committed repo files; owning row [#680]. Do not hand-edit: "
+             "regenerate. A `MISSING:` line is an input that could not be read."]
+    for title, body in zip(STATE_SECTION_TITLES, bodies):
+        parts += ["", f"## {title}", "", *body]
+    return "\n".join(parts) + "\n"
+
+
+def _write_handoff_state(bundle_dir: Path, repo_root: Path, *,
+                         inputs: "StateInputs | None" = None,
+                         today: "str | None" = None) -> "Path | None":
+    """Write `<bundle>/HANDOFF_STATE.md` WHOLE -- the `_write_decision_ledger` contract: written
+    AFTER the seal gate, overwritten rather than spliced, a bundle artifact absent from
+    `assemble_paste`'s manifest (so the answer-free invariant over BOOT / RESIDUAL / PROBES is
+    untouched). With no `inputs` it is HUB-ONLY (`_is_hub`), as the ledger is: its default inputs
+    are the hub's own transport window."""
+    if inputs is None:
+        if not _is_hub(Path(repo_root)):
+            return None
+        inputs = default_state_inputs(Path(repo_root))
+    out = Path(bundle_dir) / HANDOFF_STATE_FILE
+    out.write_text(render_handoff_state(Path(repo_root), inputs, today=today),
+                   encoding="utf-8", newline="\n")
+    return out
+
+
 def journal_draft(slug: str, date: str, state: _State, hints: dict[str, str]) -> str:
     """The JOURNAL generation-entry DRAFT — printed to stdout, NEVER written into the bundle or
     auto-appended to JOURNAL.md. This is where the drift-reference VALUES live (browser never
@@ -3446,6 +3922,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # beside STALE renders. `functional` mode never reaches here, which is HANDOFF_PROCESS
     # §16's one-file scoping and not a judgement about that mode's need for the list.
     _write_decision_ledger(bundle_dir, repo_root)
+    # D2 handoff-gen ([#680] nearest): the seven F4 state sections, generated from the rollups,
+    # the LEDGER and the map diff -- same placement and same contract as the ledger above.
+    _write_handoff_state(bundle_dir, repo_root, today=date)
     # INBOX-dev-knowledge-2026-09-08-038 / AMEND-BATCH-V-001 §1: the five SEAT-BOOT pastes, so
     # the next incoming seat POINTS at a rendered boot instead of composing one. AFTER the seal
     # gate for the same reason the health block is (a refused cut leaves no fresh artifact beside
@@ -3539,11 +4018,38 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                    "correct dispatch (recorded in HANDOFF_RECEIPT.json boot_cost)")
 @click.option("--boot-dispatch", default=None,
               help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
+@click.option("--state-out", "state_out", default=None,
+              type=click.Path(dir_okay=False, path_type=Path),
+              help="D2 dry run: render ONLY the seven handoff-state sections to this file and "
+                   "exit -- no cut, no bundle, no gate")
+@click.option("--rollup", "rollups", multiple=True,
+              type=click.Path(dir_okay=False, path_type=Path),
+              help="with --state-out: a rollup to read (repeatable); default the newest "
+                   "to-browser/DIGEST-*ROLLUP*.md")
+@click.option("--ledger", "ledger", default=None, type=click.Path(dir_okay=False, path_type=Path),
+              help="with --state-out: the LEDGER to read; default to-browser/LEDGER-<repo>.md")
+@click.option("--map-record", "map_record", default=None,
+              type=click.Path(dir_okay=False, path_type=Path),
+              help="with --state-out: the map record; default ecosystem/system-map-record.json")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
          preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
-         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None) -> None:
+         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
+         state_out: "Path | None" = None, rollups: "tuple[Path, ...]" = (),
+         ledger: "Path | None" = None, map_record: "Path | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
+    if state_out is not None:
+        live = default_state_inputs(_REPO_ROOT)
+        inputs = StateInputs(rollups=tuple(rollups) or live.rollups,
+                             ledger=ledger or live.ledger,
+                             map_record=map_record or live.map_record,
+                             manifest=live.manifest, reports_dir=live.reports_dir)
+        text = render_handoff_state(_REPO_ROOT, inputs, today=date)
+        state_out.parent.mkdir(parents=True, exist_ok=True)
+        state_out.write_text(text, encoding="utf-8", newline="\n")
+        click.echo(f"handoff state: {state_out} ({len(text.encode('utf-8'))} B, "
+                   f"{len(STATE_SECTION_TITLES)} sections)")
+        return
     if preflight_only or trial_cut:
         rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
         label = "batch-close trial cut" if trial_cut else "preflight"
