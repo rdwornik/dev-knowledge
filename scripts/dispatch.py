@@ -1282,6 +1282,19 @@ def resolve_program(argv: Sequence[str], *, which: Optional[Callable[[str], Opti
     return [found, *argv[1:]] if found else argv
 
 
+#: Win32 creation flags, as literals so the POSIX import never needs them.
+_CREATE_NO_WINDOW = 0x08000000
+_CREATE_NEW_PROCESS_GROUP = 0x00000200
+
+
+def detach_flags(windows: Optional[bool] = None) -> int:
+    """The creation flags of a detached child. Windows: a HIDDEN console (`CREATE_NO_WINDOW`) in its
+    own process group -- never `DETACHED_PROCESS`, under which an npm `.cmd` shim (cmd.exe running
+    node) exits 0 having done nothing (lane-bw-1374's R8 usage test: both fixture lanes vanished
+    with empty logs). POSIX: 0 (`start_new_session` detaches it instead)."""
+    return (_CREATE_NO_WINDOW | _CREATE_NEW_PROCESS_GROUP) if (os.name == "nt" if windows is None else windows) else 0
+
+
 def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
                   log_path: Optional[Path] = None) -> Spawned:
     """THE process boundary -- the one place a provider is started, and the one thing tests replace.
@@ -1297,7 +1310,7 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
                               text=True, encoding="utf-8", errors="replace")
         return Spawned(done.returncode, done.stdout + done.stderr, None)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    flags = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else 0
+    flags = detach_flags()
     with open(log_path, "ab") as sink:
         child = subprocess.Popen(argv, env=dict(env), cwd=str(cwd), stdin=subprocess.DEVNULL,
                                  stdout=sink, stderr=subprocess.STDOUT, creationflags=flags,
