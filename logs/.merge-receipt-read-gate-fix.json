@@ -1,0 +1,101 @@
+{
+  "slug": "read-gate-fix",
+  "batch": "B2-W4-B",
+  "opened": "2026-10-11T16:50:48+00:00",
+  "host": "HYB-zToF5wlOa8g",
+  "concurrent_seats": 17,
+  "kind": "merge",
+  "merge_sha": "b2719646d328dad8ed09c379dc9ef1b50e9186da",
+  "ordered_model": null,
+  "ran_model": null,
+  "steps": [
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 15.172,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin b2719646d328dad8ed09c379dc9ef1b50e9186da:refs/heads/worktree-integrate-b2-w4-b",
+      "started": "2026-10-11T16:51:12+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T16:51:27+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 12.135,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=b2719646d328dad8ed09c379dc9ef1b50e9186da, baseline=5c273f6fae326dbbb2258003335a008b77c41140)",
+      "started": "2026-10-11T17:07:12+00:00",
+      "raced_with": [],
+      "verdict_state": "UNATTRIBUTED",
+      "baseline_sha": "5c273f6fae326dbbb2258003335a008b77c41140",
+      "flagged": [],
+      "ended": "2026-10-11T17:07:24+00:00"
+    },
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 6.796,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin b2719646d328dad8ed09c379dc9ef1b50e9186da:refs/heads/worktree-integrate-b2-w4-b",
+      "started": "2026-10-11T19:03:19+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T19:03:25+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 12.553,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=b2719646d328dad8ed09c379dc9ef1b50e9186da, baseline=5c273f6fae326dbbb2258003335a008b77c41140)",
+      "started": "2026-10-11T19:03:41+00:00",
+      "raced_with": [],
+      "verdict_state": "PRE-EXISTING",
+      "baseline_sha": "5c273f6fae326dbbb2258003335a008b77c41140",
+      "flagged": [],
+      "ended": "2026-10-11T19:03:53+00:00"
+    },
+    {
+      "step": "push-main",
+      "step_class": "ceremony",
+      "seconds": 15.0,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin b2719646d328dad8ed09c379dc9ef1b50e9186da:refs/heads/main",
+      "started": "2026-10-11T19:04:09+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T19:04:24+00:00"
+    }
+  ],
+  "closed": null,
+  "integration_branch": "worktree-integrate-b2-w4-b",
+  "pushed_sha": "b2719646d328dad8ed09c379dc9ef1b50e9186da",
+  "wall_seconds": 8001.835,
+  "recorded_seconds": 61.656,
+  "unrecorded_seconds": 7940.179,
+  "serial_seconds": 61.656,
+  "suite_verdict": "PRE-EXISTING",
+  "flagged_reds": [],
+  "baseline_split_minutes": {
+    "tests": 0.41,
+    "residual_ceremony": 132.95
+  },
+  "by_class_seconds": {
+    "tests": 24.688,
+    "review": 0.0,
+    "ceremony": 36.968
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "slug": "scope-guard-copilot",
+  "batch": "B2-W4",
+  "opened": "2026-10-11T13:11:54+00:00",
+  "host": "HYB-zToF5wlOa8g",
+  "concurrent_seats": 15,
+  "kind": "merge",
+  "merge_sha": "515e8a359b0bf0f6b7d2a069f21f912e34745e51",
+  "ordered_model": null,
+  "ran_model": null,
+  "steps": [
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 15.031,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin 4168f9964223517c062da0df873b0ed36c2f8cc0:refs/heads/worktree-integrate-b2-w4",
+      "started": "2026-10-11T13:12:12+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T13:12:27+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 31.268,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=4168f9964223517c062da0df873b0ed36c2f8cc0, baseline=e7a97e71e8a3f459bba993c62080fd6540691fda)",
+      "started": "2026-10-11T13:36:21+00:00",
+      "raced_with": [],
+      "verdict_state": "REGRESSED",
+      "baseline_sha": "e7a97e71e8a3f459bba993c62080fd6540691fda",
+      "flagged": [
+        "pytest (windows-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now",
+        "pytest (ubuntu-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now"
+      ],
+      "ended": "2026-10-11T13:36:52+00:00"
+    },
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 16.157,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin 515e8a359b0bf0f6b7d2a069f21f912e34745e51:refs/heads/worktree-integrate-b2-w4-c",
+      "started": "2026-10-11T20:16:02+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T20:16:18+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 26.942,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=515e8a359b0bf0f6b7d2a069f21f912e34745e51, baseline=c1b65e6d555c8ad4ddc768da551725601943e065)",
+      "started": "2026-10-11T20:37:08+00:00",
+      "raced_with": [],
+      "verdict_state": "REGRESSED",
+      "baseline_sha": "c1b65e6d555c8ad4ddc768da551725601943e065",
+      "flagged": [
+        "pytest (ubuntu-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now",
+        "pytest (windows-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now"
+      ],
+      "ended": "2026-10-11T20:37:34+00:00"
+    }
+  ],
+  "closed": null,
+  "integration_branch": "worktree-integrate-b2-w4-c",
+  "pushed_sha": "515e8a359b0bf0f6b7d2a069f21f912e34745e51",
+  "wall_seconds": 26741.859,
+  "recorded_seconds": 89.398,
+  "unrecorded_seconds": 26652.461,
+  "serial_seconds": 89.398,
+  "suite_verdict": "REGRESSED",
+  "flagged_reds": [
+    "pytest (ubuntu-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now",
+    "pytest (windows-latest): [signature-changed] tests/test_audit.py::test_check_fleet_parity_green_on_live_repo -- red on both sides, failing differently now"
+  ],
+  "baseline_split_minutes": {
+    "tests": 0.97,
+    "residual_ceremony": 444.73
+  },
+  "by_class_seconds": {
+    "tests": 58.21,
+    "review": 0.0,
+    "ceremony": 31.188
+  }
+}

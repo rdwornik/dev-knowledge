@@ -1,0 +1,73 @@
+{
+  "slug": "handoff-verify-fix",
+  "batch": "B2-W4-B",
+  "opened": "2026-10-11T15:56:02+00:00",
+  "host": "HYB-zToF5wlOa8g",
+  "concurrent_seats": 19,
+  "kind": "merge",
+  "merge_sha": "e19bf3cccba41842b60e617a9e4846f53edb1942",
+  "ordered_model": null,
+  "ran_model": null,
+  "steps": [
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 16.0,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin e19bf3cccba41842b60e617a9e4846f53edb1942:refs/heads/worktree-integrate-b2-w4-b",
+      "started": "2026-10-11T15:56:28+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T15:56:44+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 13.089,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=e19bf3cccba41842b60e617a9e4846f53edb1942, baseline=dbbef88dc87eaeeb7cd1a68a9045416e948b4357)",
+      "started": "2026-10-11T16:21:07+00:00",
+      "raced_with": [],
+      "verdict_state": "PRE-EXISTING",
+      "baseline_sha": "dbbef88dc87eaeeb7cd1a68a9045416e948b4357",
+      "flagged": [],
+      "ended": "2026-10-11T16:21:20+00:00"
+    },
+    {
+      "step": "push-main",
+      "step_class": "ceremony",
+      "seconds": 15.187,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin e19bf3cccba41842b60e617a9e4846f53edb1942:refs/heads/main",
+      "started": "2026-10-11T16:21:37+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T16:21:52+00:00"
+    }
+  ],
+  "closed": null,
+  "integration_branch": "worktree-integrate-b2-w4-b",
+  "pushed_sha": "e19bf3cccba41842b60e617a9e4846f53edb1942",
+  "wall_seconds": 1535.558,
+  "recorded_seconds": 44.276,
+  "unrecorded_seconds": 1491.282,
+  "serial_seconds": 44.276,
+  "suite_verdict": "PRE-EXISTING",
+  "flagged_reds": [],
+  "baseline_split_minutes": {
+    "tests": 0.22,
+    "residual_ceremony": 25.37
+  },
+  "by_class_seconds": {
+    "tests": 13.089,
+    "review": 0.0,
+    "ceremony": 31.187
+  }
+}

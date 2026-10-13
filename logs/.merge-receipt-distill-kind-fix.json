@@ -1,0 +1,59 @@
+{
+  "slug": "distill-kind-fix",
+  "batch": "B2-W4-B",
+  "opened": "2026-10-11T19:12:35+00:00",
+  "host": "HYB-zToF5wlOa8g",
+  "concurrent_seats": 16,
+  "kind": "merge",
+  "merge_sha": "6f97472d03b92affe5da0e44f0629bc0ce0600ea",
+  "ordered_model": null,
+  "ran_model": null,
+  "steps": [
+    {
+      "step": "push-integration",
+      "step_class": "ceremony",
+      "seconds": 15.703,
+      "ok": true,
+      "returncode": 0,
+      "command": "git push origin 6f97472d03b92affe5da0e44f0629bc0ce0600ea:refs/heads/worktree-integrate-b2-w4-b",
+      "started": "2026-10-11T19:13:13+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null,
+      "flagged": [],
+      "ended": "2026-10-11T19:13:28+00:00"
+    },
+    {
+      "step": "suite",
+      "step_class": "tests",
+      "seconds": 26.443,
+      "ok": false,
+      "returncode": 1,
+      "command": "actions_verdict.verdict_for(sha=6f97472d03b92affe5da0e44f0629bc0ce0600ea, baseline=b2719646d328dad8ed09c379dc9ef1b50e9186da)",
+      "started": "2026-10-11T19:37:01+00:00",
+      "raced_with": [],
+      "verdict_state": "REGRESSED",
+      "baseline_sha": "b2719646d328dad8ed09c379dc9ef1b50e9186da",
+      "flagged": [],
+      "ended": "2026-10-11T19:37:27+00:00"
+    }
+  ],
+  "closed": null,
+  "integration_branch": "worktree-integrate-b2-w4-b",
+  "pushed_sha": "6f97472d03b92affe5da0e44f0629bc0ce0600ea",
+  "wall_seconds": 1492.899,
+  "recorded_seconds": 42.146,
+  "unrecorded_seconds": 1450.753,
+  "serial_seconds": 42.146,
+  "suite_verdict": "REGRESSED",
+  "flagged_reds": [],
+  "baseline_split_minutes": {
+    "tests": 0.44,
+    "residual_ceremony": 24.44
+  },
+  "by_class_seconds": {
+    "tests": 26.443,
+    "review": 0.0,
+    "ceremony": 15.703
+  }
+}
