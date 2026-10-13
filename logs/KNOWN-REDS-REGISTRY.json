@@ -109,7 +109,8 @@
       "attribution": "pre-freeze",
       "task": "[#664]",
       "owner": "rob",
-      "expiry": "2026-10-17"
+      "expiry": "2026-10-31",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
     },
     "tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class": {
       "attribution": {
@@ -118,40 +119,41 @@
       },
       "task": "[#1343]",
       "owner": "rob",
-      "expiry": "2026-10-17",
+      "expiry": "2026-10-31",
       "growth": {
         "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
         "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
         "commits": "c12e72d9 (2026-09-28, adds .claude/commands/decide.md); first red 7b585263 (2026-09-19)"
-      }
+      },
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#1343] its fix is owed in the next batch"
     },
     "tests/test_graph_spine_commit_tier.py::test_the_live_spine_is_ordered_rebuild_first_and_always_runs": {
       "attribution": "witness",
-      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-17"
+      "expiry": "2026-10-31"
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
       "attribution": "witness",
-      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-17"
+      "expiry": "2026-10-31"
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
       "attribution": "witness",
-      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-17"
+      "expiry": "2026-10-31"
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
       "attribution": "witness",
-      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-17"
+      "expiry": "2026-10-31"
     },
     "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
       "attribution": "pre-freeze",
@@ -185,143 +187,143 @@
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
       "attribution": "pre-freeze",
-      "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
       "task": "[#912]",
       "owner": "[#863]",
-      "expiry": "2026-10-16"
+      "expiry": "2026-10-31"
     },
     "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
       "attribution": "pre-freeze",
@@ -540,8 +542,9 @@
         "attribution": "pre-freeze",
         "task": "[#664]",
         "owner": "rob",
-        "expiry": "2026-10-17",
-        "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]"
+        "expiry": "2026-10-31",
+        "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
       },
       "tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class": {
         "attribution": {
@@ -550,41 +553,42 @@
         },
         "task": "[#1343]",
         "owner": "rob",
-        "expiry": "2026-10-17",
+        "expiry": "2026-10-31",
         "growth": {
           "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
           "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
           "commits": "c12e72d9 (2026-09-28, adds .claude/commands/decide.md); first red 7b585263 (2026-09-19)"
         },
-        "signature": "AssertionError: .claude/commands/decide.md: command reached by no wiring surface over triggers/imports. Wire it, retire it, or add a disposition with a reason and an owner to ORPHAN_DISPOSITIONS."
+        "signature": "AssertionError: .claude/commands/decide.md: command reached by no wiring surface over triggers/imports. Wire it, retire it, or add a disposition with a reason and an owner to ORPHAN_DISPOSITIONS.",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#1343] its fix is owed in the next batch"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_live_spine_is_ordered_rebuild_first_and_always_runs": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
         "attribution": "pre-freeze",
@@ -833,8 +837,9 @@
         "attribution": "pre-freeze",
         "task": "[#664]",
         "owner": "rob",
-        "expiry": "2026-10-17",
-        "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]"
+        "expiry": "2026-10-31",
+        "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
       },
       "tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class": {
         "attribution": {
@@ -843,41 +848,42 @@
         },
         "task": "[#1343]",
         "owner": "rob",
-        "expiry": "2026-10-17",
+        "expiry": "2026-10-31",
         "growth": {
           "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
           "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
           "commits": "c12e72d9 (2026-09-28, adds .claude/commands/decide.md); first red 7b585263 (2026-09-19)"
         },
-        "signature": "AssertionError: .claude/commands/decide.md: command reached by no wiring surface over triggers/imports. Wire it, retire it, or add a disposition with a reason and an owner to ORPHAN_DISPOSITIONS."
+        "signature": "AssertionError: .claude/commands/decide.md: command reached by no wiring surface over triggers/imports. Wire it, retire it, or add a disposition with a reason and an owner to ORPHAN_DISPOSITIONS.",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#1343] its fix is owed in the next batch"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_live_spine_is_ordered_rebuild_first_and_always_runs": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
         "attribution": "witness",
-        "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-17"
+        "expiry": "2026-10-31"
       },
       "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
         "attribution": "pre-freeze",
@@ -916,162 +922,162 @@
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
         "attribution": "pre-freeze",
-        "reason": "seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
+        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
         "task": "[#912]",
         "owner": "[#863]",
-        "expiry": "2026-10-16",
+        "expiry": "2026-10-31",
         "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
       },
       "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
