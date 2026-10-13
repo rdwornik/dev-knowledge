@@ -445,7 +445,7 @@ def check_cmd(path: Path) -> None:
 def remote_cmd(ref: str, codespace: str, out: Path) -> None:
     """Run P-2, P-1 and P-3 inside a codespace of the consumer; write the receipts to OUT."""
     result = run_remote(ref, codespace)
-    out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     for row in result["receipts"]:
         logger.info("%s %s (exit %s)", row["probe"], row["verdict"], row["exit_code"])
 
