@@ -3377,10 +3377,20 @@ def _generated_rollup(inputs: StateInputs, root: Path) -> "tuple[list[str], str]
         return [f"MISSING: generated rollup ({cmd}: {type(exc).__name__}: {exc})"], cmd
 
 
+def _named(path: "Path | None") -> str:
+    """An input as its source line names it: the file path, or `unresolved` (Codex r3 HIGH)."""
+    return f"`{Path(path).as_posix()}`" if path is not None else "unresolved"
+
+
+def _rollups_named(inputs: StateInputs) -> str:
+    return ", ".join(_named(p) for p in inputs.rollups) or "none resolvable"
+
+
 def _section_current_state(repo_root: Path, inputs: StateInputs,
                            ledger: "str | None", ledger_why: str) -> "list[str]":
     head = _git(repo_root, "rev-parse", "HEAD").strip() or "unknown"
-    sources = ["`git rev-parse HEAD`", "LEDGER `## STATE`", "rollup state lines"]
+    sources = ["`git rev-parse HEAD`", f"LEDGER {_named(inputs.ledger)} `## STATE`",
+               f"rollup state lines of {_rollups_named(inputs)}"]
     out = [f"- commit: {head}"]
     if ledger is None:
         out.append(f"- MISSING: LEDGER ({ledger_why})")
@@ -3406,15 +3416,18 @@ def _section_current_state(repo_root: Path, inputs: StateInputs,
     return [f"source: {'; '.join(sources)}", *out]
 
 
-def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str]":
+def _section_past_errors(inputs: StateInputs, ledger: "str | None",
+                         ledger_why: str) -> "list[str]":
     named: "list[str]" = []
     items: "list[str]" = []
     absent: "list[str]" = []
     seen: "set[str]" = set()
-    texts = [(Path(p).name, _read_input(p)[0]) for p in inputs.rollups]
-    texts.append(("LEDGER", ledger))
-    for label, text in texts:
+    texts = [(Path(p).name, "rollup", *_read_input(p)) for p in inputs.rollups]
+    texts.append(("LEDGER", "LEDGER", ledger, ledger_why))
+    for label, kind, text, why in texts:
         if text is None:
+            # An unreadable source is named even when another one supplies items (Codex r3 HIGH).
+            absent.append(f"- MISSING: {kind} ({why})")
             continue
         found = _past_error_items(text)
         if found is None:
@@ -3429,15 +3442,16 @@ def _section_past_errors(inputs: StateInputs, ledger: "str | None") -> "list[str
             if key and key not in seen:
                 seen.add(key)
                 items.append(f"{len(items) + 1}. {item} ({label})")
-    src = (f"source: the `{_PAST_ERRORS_KEY}` blocks of the rollups and the LEDGER"
-           f" (found in: {', '.join(named) or 'none'})")
+    src = (f"source: the `{_PAST_ERRORS_KEY}` blocks of the rollups {_rollups_named(inputs)} "
+           f"and the LEDGER {_named(inputs.ledger)} (found in: {', '.join(named) or 'none'})")
     if not items:
         return [src, f"- MISSING: a {_PAST_ERRORS_KEY} block in any rollup or the LEDGER", *absent]
     return [src, *items, *absent]
 
 
-def _section_priorities(repo_root: Path, ledger: "str | None", ledger_why: str) -> "list[str]":
-    out = ["source: LEDGER `## BLOCKED BY` and `## NEXT`; `tasks/` via "
+def _section_priorities(repo_root: Path, ledger_path: "Path | None", ledger: "str | None",
+                        ledger_why: str) -> "list[str]":
+    out = [f"source: LEDGER {_named(ledger_path)} `## BLOCKED BY` and `## NEXT`; `tasks/` via "
            "`boot_frontier.load_open_rows` / `score_frontier`"]
     if ledger is None:
         out.append(f"- MISSING: LEDGER ({ledger_why})")
@@ -3641,8 +3655,8 @@ def render_handoff_state(repo_root: Path, inputs: StateInputs, *, today: "str | 
     ledger, ledger_why = _read_input(inputs.ledger)
     bodies = (
         _section_current_state(root, inputs, ledger, ledger_why),
-        _section_past_errors(inputs, ledger),
-        _section_priorities(root, ledger, ledger_why),
+        _section_past_errors(inputs, ledger, ledger_why),
+        _section_priorities(root, inputs.ledger, ledger, ledger_why),
         _section_ratification(root),
         _section_dated(root, today),
         _section_pointers(root),
