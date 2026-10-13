@@ -1246,3 +1246,13 @@ def test_d1_a_copilot_producer_on_auto_carries_no_reasoning_effort():
 
     assert "--reasoning-effort" not in auto and auto[auto.index("--model") + 1] == "auto"
     assert pinned[pinned.index("--reasoning-effort") + 1] == "low"
+
+
+def test_d1_a_copilot_producer_may_read_the_contract_it_is_told_to_execute(contract):
+    """Found by the R8 usage test: copilot -p in worktree-<slug> was DENIED reading the contract on
+    the transport ('no one to approve' -- the path is outside its working directory) and did
+    nothing. `--add-dir <the contract's directory>` admits exactly that directory."""
+    request = _request(contract, producer="copilot", repo=".dev-knowledge")
+
+    argv = request.argv
+    assert argv[argv.index("--add-dir") + 1] == str(request.contract.parent)
