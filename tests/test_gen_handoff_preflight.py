@@ -88,12 +88,13 @@ def _quiet_hub(monkeypatch):
 # --- the row contract: PASS / FAIL / n-a, each with a LOCATOR ----------------------------
 
 def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_hub):
-    """The register's shape: ten rows, each PASS/FAIL with a locator. A row with no locator
+    """The register's shape: eleven rows, each PASS/FAIL with a locator. A row with no locator
     reports a verdict the operator cannot act on. (Nine as ratified; row 10 — P11 decision
-    carriage — was added 2026-09-08 by `[#643]`, the third member of the rows-1-and-7 family.)"""
+    carriage — was added 2026-09-08 by `[#643]`, the third member of the rows-1-and-7 family;
+    row 11 — the boot's citations, R95 D1 — by BW lane D5, `[#1450]`.)"""
     repo = _hub_stub(tmp_path)
     rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
-    assert len(rows) == 10
+    assert len(rows) == 11
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     for r in rows:
         assert r.status in (gh.PREFLIGHT_PASS, gh.PREFLIGHT_FAIL, gh.PREFLIGHT_NA)
@@ -728,7 +729,7 @@ def test_the_p11_row_is_in_the_roster_and_cites_the_family_precedent(tmp_path, _
     transport = _seven_file_short(tmp_path, carriers_set=True)
     assert "p11_carriage" in gh.PREFLIGHT_ROW_NAMES
     rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
-    assert len(rows) == 10
+    assert len(rows) == 11
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     row = next(r for r in rows if r.name == "p11_carriage")
     assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
@@ -784,3 +785,59 @@ def test_the_qualified_reference_discharges_exactly_the_one_it_names(tmp_path, _
     short = gh.carriage_shortfall(transport, tmp_path / "repo",
                                   residual="carried OPEN: `to-cc/DECLARE-SHARED.md` [#643]")
     assert [v.path.parent.name for v in short] == ["to-browser"], [v.detail for v in short]
+
+
+# --- BW lane D5 ([#1450]), R95 D1: row 11 -- the boot's citations resolve at the cut ---------
+# RED-first: there was no `boot_citations` row, so the roster and both behaviours below failed
+# at `e31d9b64`. The predicates are `handoff_state.boot_citations` (tests/test_handoff_state.py);
+# these tests pin the WIRING: the row is in the cut's gate and a seeded bad citation refuses it.
+
+def _seed_boot(repo, boot: str) -> None:
+    (repo / "protocols").mkdir(parents=True, exist_ok=True)
+    (repo / "protocols" / "HANDOFF_BOOT.md").write_text(boot, encoding="utf-8")
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "# Register\n\n- **R41 — CC challenges the browser** (operator).\n", encoding="utf-8")
+    dec = repo / "docs" / "decisions"
+    dec.mkdir(parents=True, exist_ok=True)
+    (dec / "ADR-7-x.md").write_text("# ADR-7: x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    (dec / "README.md").write_text(
+        "| ADR | Date | Title |\n|---|---|---|\n| ADR-7 | 2026-01-01 | x |\n", encoding="utf-8")
+
+
+def test_the_boot_citations_row_is_the_last_row_of_the_cut_gate():
+    assert gh.PREFLIGHT_ROW_NAMES[-1] == "boot_citations"
+    assert "boot_citations" not in gh.PREFLIGHT_NON_BLOCKING_ROWS      # a FAIL refuses the cut
+    assert "boot_citations" not in gh.TRIAL_CUT_EXCLUDED_ROWS          # and it runs at batch close
+
+
+def test_a_boot_citing_a_missing_ruling_refuses_the_cut(tmp_path, _quiet_hub):
+    """The R95 D1 fixture at the gate: a boot citing R999, which no register bullet lands."""
+    repo = _hub_stub(tmp_path)
+    _seed_boot(repo, "# Boot\n\nR41 and R999 and **ADR-7**; `protocols/STANDING_RULINGS.md`.\n")
+    transport = _transport(tmp_path)
+    rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    row = next(r for r in rows if r.name == "boot_citations")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+    assert "R999" in row.detail and "MISSING" in row.detail, row.detail
+    with pytest.raises(gh.PreflightError) as exc:
+        gh.assert_preflight(repo, transport=transport, today=_TODAY)
+    assert "boot_citations" in str(exc.value)
+
+
+def test_a_boot_whose_citations_all_resolve_passes_and_counts_them(tmp_path, _quiet_hub):
+    repo = _hub_stub(tmp_path)
+    _seed_boot(repo, "# Boot\n\nR41 and **ADR-7**; `protocols/STANDING_RULINGS.md`.\n")
+    rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
+    row = next(r for r in rows if r.name == "boot_citations")
+    assert row.status == gh.PREFLIGHT_PASS, row.render()
+    assert "1 ruling(s), 1 ADR(s), 1 path(s)" in row.detail, row.detail
+
+
+def test_no_boot_is_n_a_with_a_reason(tmp_path, _quiet_hub):
+    repo = _hub_stub(tmp_path)
+    boot = repo / "protocols" / "HANDOFF_BOOT.md"
+    if boot.exists():
+        boot.unlink()
+    rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
+    row = next(r for r in rows if r.name == "boot_citations")
+    assert row.status == gh.PREFLIGHT_NA and "SUBJECT-ABSENT" in row.detail, row.render()

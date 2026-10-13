@@ -600,3 +600,83 @@ def test_the_review_record_names_the_contract_and_the_served_model():
     assert "LANE-1443-b2w2-boot-teaching" in text
     assert re.search(r"gpt-6-astra|gpt-6\.1-sol", text), "no served model id"
     assert re.search(r"NONCE-[0-9a-f]{12}|\b[0-9a-f]{64}\b", text), "no nonce or content hash"
+
+
+# =============================================================================================
+# BW lane D5 (lane-bw-1450-boot-teaching, [#1450]; order F4 of BATCH-B2-W4-CC-FINISH): boot v2
+# carries five POINTERS, never prose copies -- R96 and R97; the section-3 lane report and the
+# rollup; the equilibrium (the browser opens and closes the loop and is not an arbiter, the harness
+# holds the truth, the operator decides); the architect's reading contract (the rollup and the map
+# sha); the lane tools of the order's rule 3. RED-first: every test below failed at `e31d9b64`.
+# =============================================================================================
+
+#: pointer -> (the literal the boot carries, the repo file it points at, or None for a ruling).
+_F4_TARGETS = (
+    ("`ecosystem/schema/lane-report.schema.json`", "ecosystem/schema/lane-report.schema.json"),
+    ("`scripts/lane_digest.py`", "scripts/lane_digest.py"),
+    ("`ecosystem/system-map-record.json`", "ecosystem/system-map-record.json"),
+    ("`/map`", ".claude/commands/map.md"),
+    ("`/lane-boot`", ".claude/commands/lane-boot.md"),
+    ("`/lane-integrate`", ".claude/commands/lane-integrate.md"),
+    ("`scripts/merge_path.py land`", "scripts/merge_path.py"),
+    ("`scripts/file_purpose_graph.py why`", "scripts/file_purpose_graph.py"),
+)
+
+#: Words that live at the pointers' homes and would only appear in the boot as a prose COPY.
+_F4_HOME_ONLY = ("CI economy", "Browser economy", "grimp", "intent_met", "D14", "known-reds")
+
+
+def _bullet_lines(boot: str, starts: str) -> "list[str]":
+    """The bullet that starts with `starts`, joined with its indented continuation lines."""
+    lines = boot.splitlines()
+    out = []
+    for i, ln in enumerate(lines):
+        if ln.startswith(starts):
+            block = [ln]
+            for nxt in lines[i + 1:]:
+                if not nxt.startswith("  ") or nxt.lstrip().startswith(("- ", "1.", "2.")):
+                    break
+                block.append(nxt)
+            out.append(" ".join(s.strip() for s in block))
+    return out
+
+
+def test_r96_and_r97_are_one_pointer_line_in_the_rulings_section():
+    boot = _BOOT.read_text(encoding="utf-8")
+    rulings = re.search(r"(?ms)^## Rulings every window carries\b.*?(?=^## |\Z)", boot).group(0)
+    lines = [ln for ln in rulings.splitlines() if ln.startswith("- **R96**")]
+    assert len(lines) == 1, "R96 starts exactly one bullet in the Rulings section"
+    assert "**R97**" in lines[0]
+    assert len(lines[0].encode("utf-8")) <= 160, f"a pointer, not a copy: {len(lines[0])} B"
+
+
+def test_the_equilibrium_is_a_pointer_on_the_floor_item_that_names_adr_87():
+    boot = _BOOT.read_text(encoding="utf-8")
+    (item,) = _bullet_lines(boot, "3. **The equilibrium contract**")
+    low = item.lower()
+    for words in ("adr-87", "open and close the loop", "not an arbiter",
+                  "the harness holds the truth", "the operator decides", "r96"):
+        assert words in low, f"the equilibrium item lacks {words!r}: {item}"
+    assert len(item.encode("utf-8")) <= 260, f"a pointer, not a copy: {len(item)} B"
+
+
+def test_the_lane_report_rollup_reading_contract_and_lane_tools_point_at_live_homes():
+    boot = _BOOT.read_text(encoding="utf-8")
+    mech = re.search(r"(?ms)^## Mechanisms to lean on\b.*?(?=^## |\Z)", boot)
+    assert mech is not None
+    sec = mech.group(0)
+    for literal, home in _F4_TARGETS:
+        assert literal in sec, f"the Mechanisms section lacks the pointer {literal}"
+        assert (_REPO / home).is_file(), f"{literal}: its home {home} does not resolve"
+    low = _plain(sec).lower()
+    assert "section 3" in low and "rollup" in low and "reading contract" in low and "map" in low
+    (report,) = _bullet_lines(sec, "- **Lane report and rollup**")
+    (tools,) = _bullet_lines(sec, "- **Lane tools**")
+    for pointer in (report, tools):
+        assert len(pointer.encode("utf-8")) <= 330, f"a pointer, not a copy: {pointer}"
+
+
+def test_the_f4_pointers_carry_no_prose_copied_from_their_homes():
+    boot = _BOOT.read_text(encoding="utf-8")
+    copied = [w for w in _F4_HOME_ONLY if w in boot]
+    assert not copied, f"text that belongs at the pointer's home is in the boot: {copied}"

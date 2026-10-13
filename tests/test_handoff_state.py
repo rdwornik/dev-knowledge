@@ -1367,3 +1367,123 @@ def test_an_exam_named_alias_of_another_file_never_wins_the_exam_slot(tmp_path, 
                 self.with_name("SEAT-EXAM-RESULT-2099-01-01.md") if self.name == alias.name
                 else real_resolve(self, strict=strict)))
     assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+
+
+# =============================================================================================
+# BW lane D5 (lane-bw-1450-boot-teaching, [#1450]), R95 D1: every R-number, ADR and path the
+# boot cites resolves -- the R is landed and not superseded, the ADR's status matches the README
+# index, the path exists. RED-first: `boot_citations` did not exist, so every test below failed
+# at `e31d9b64` (the carried branch taken in) with an AttributeError at RUN time.
+# =============================================================================================
+
+_CITE_REGISTER = (
+    "# Register\n\n"
+    "- **R41 — CC challenges the browser** (operator). In force as written.\n"
+    "- **R10** — withdrawn. At no point in force.\n"
+    "- **R2** — secrets, amended by R13. Superseded in substance by R13 below.\n"
+    "- **R39 — cycle 2 closes** (operator). **R39.3 is superseded by R40** (second block).\n"
+    "- **R40 — the process engine** (operator; full text `RATIFICATION-2026-09-29-v11-superseded.md`).\n"
+)
+
+
+def _cite_repo(tmp_path: Path, *, adr_header: str = "Accepted", index_title: str = "x") -> Path:
+    repo = tmp_path / "repo"
+    (repo / "protocols").mkdir(parents=True)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(_CITE_REGISTER, encoding="utf-8")
+    dec = repo / "docs" / "decisions"
+    dec.mkdir(parents=True)
+    (dec / "ADR-7-x.md").write_text(f"# ADR-7: x\n\n- **Status:** {adr_header}\n", encoding="utf-8")
+    (dec / "README.md").write_text(
+        "| ADR | Date | Title |\n|---|---|---|\n"
+        f"| ADR-7 | 2026-01-01 | {index_title} |\n", encoding="utf-8")
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "real.py").write_text("x\n", encoding="utf-8")
+    (repo / "docs" / "handoffs" / "b1").mkdir(parents=True)
+    (repo / "docs" / "handoffs" / "b1" / "PROBES.md").write_text("x\n", encoding="utf-8")
+    return repo
+
+
+def _cites(repo: Path, boot: str, transport: "Path | None" = None) -> "dict[str, hs.Citation]":
+    return {c.ref: c for c in hs.boot_citations(repo, transport, boot_text=boot)}
+
+
+def test_a_cited_ruling_missing_from_the_register_is_reported_not_passed(tmp_path):
+    """The R95 D1 fixture: a boot citing a ruling the register never landed (R999) is caught."""
+    repo = _cite_repo(tmp_path)
+    got = _cites(repo, "- **R41** -- challenge. Also R999 here.\n")
+    assert got["R41"].status == hs.CITATION_OK, got["R41"]
+    assert got["R999"].status == "MISSING", got["R999"]
+    assert got["R999"].kind == "ruling"
+
+
+def test_a_withdrawn_or_superseded_ruling_is_not_a_pass(tmp_path):
+    repo = _cite_repo(tmp_path)
+    got = _cites(repo, "R10, R2, R39.3, R39, R40 and R41.\n")
+    assert got["R10"].status == "SUPERSEDED", got["R10"]           # its bullet: withdrawn
+    assert got["R2"].status == "SUPERSEDED", got["R2"]             # superseded in substance by R13
+    assert got["R39.3"].status == "SUPERSEDED", got["R39.3"]       # "R39.3 is superseded by R40"
+    assert got["R39"].status == hs.CITATION_OK, got["R39"]         # a sub-item does not take R39
+    assert got["R40"].status == hs.CITATION_OK, got["R40"]         # a `-superseded.md` file name is not
+    assert got["R41"].status == hs.CITATION_OK, got["R41"]
+
+
+def test_a_ruling_ratified_on_the_transport_but_not_landed_is_unlanded_and_names_its_file(tmp_path):
+    """The D3 dependency, stated rather than passed: R96 is ratified on the transport and only
+    lands in the register through a rulings-landing lane."""
+    repo = _cite_repo(tmp_path)
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "RATIFICATION-2026-10-11.md").write_text(
+        "# RATIFICATION\n\n## R96 — the package, ratified\n", encoding="utf-8")
+    got = _cites(repo, "R96 and R97.\n", t)
+    assert got["R96"].status == "UNLANDED", got["R96"]
+    assert "RATIFICATION-2026-10-11.md" in got["R96"].detail
+    assert got["R97"].status == "MISSING", got["R97"]
+
+
+@pytest.mark.parametrize("header,title,status", [
+    ("Accepted", "x", hs.CITATION_OK),
+    ("Proposed", "x", "MISMATCH"),                 # the index reads Accepted (no marker)
+    ("Proposed", "**Proposed** x", hs.CITATION_OK),
+])
+def test_a_cited_adr_status_must_match_the_readme_index(tmp_path, header, title, status):
+    repo = _cite_repo(tmp_path, adr_header=header, index_title=title)
+    got = _cites(repo, "**ADR-7** and ADR-9.\n")
+    assert got["ADR-7"].status == status, got["ADR-7"]
+    assert got["ADR-9"].status == "MISSING", got["ADR-9"]
+    assert got["ADR-9"].kind == "adr"
+
+
+def test_a_cited_path_must_exist_in_the_repo_or_on_the_transport(tmp_path):
+    repo = _cite_repo(tmp_path)
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "INDEX.md").write_text("x\n", encoding="utf-8")
+    boot = ("`scripts/real.py`, `scripts/gone.py`, `PROBES.md`, `to-browser/INDEX.md`, "
+            "`to-cc/GONE.md`, `LEDGER-<repo>.md`, `SEAT-LESSONS-*.md`\n")
+    got = _cites(repo, boot, t)
+    assert got["scripts/real.py"].status == hs.CITATION_OK
+    assert got["scripts/gone.py"].status == "MISSING"
+    assert got["PROBES.md"].status == hs.CITATION_OK               # a bundle file, by its name
+    assert got["to-browser/INDEX.md"].status == hs.CITATION_OK
+    assert got["to-cc/GONE.md"].status == "MISSING"
+    assert not any("<" in r or "*" in r for r in got), "a placeholder or glob is not a path"
+    no_t = _cites(repo, "`to-browser/INDEX.md`\n", None)
+    assert no_t["to-browser/INDEX.md"].status == "NO-TRANSPORT"
+
+
+def test_the_live_boot_cites_nothing_unresolved_beyond_the_rulings_d3_lands():
+    """The live boot against the live register, ADR index and tree. R96 and R97 are ratified
+    (RATIFICATION-2026-10-11 / -12) and land in `protocols/STANDING_RULINGS.md` only with BW lane
+    D3 (`lane-bw-1378-rulings-landing`); until that merge they are the one permitted non-OK, and
+    the moment D3 lands they are OK like every other citation. Transport paths are out of scope
+    here (no transport in a test run)."""
+    repo = Path(hs.__file__).resolve().parent.parent
+    cites = hs.boot_citations(repo, None)
+    refs = {c.ref for c in cites}
+    assert {"R96", "R97"} <= refs, "the boot carries the R96 and R97 pointers (F4)"
+    bad = [c for c in cites
+           if c.status != hs.CITATION_OK
+           and not (c.ref in {"R96", "R97"} and c.status == "MISSING")
+           and not (c.kind == "path" and c.status == "NO-TRANSPORT")]
+    assert not bad, bad
