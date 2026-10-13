@@ -3377,6 +3377,21 @@ def _generated_rollup(inputs: StateInputs, root: Path) -> "tuple[list[str], str]
         return [f"MISSING: generated rollup ({cmd}: {type(exc).__name__}: {exc})"], cmd
 
 
+class _UncommittedInput(RuntimeError):
+    """A repo-local input whose working-tree bytes differ from HEAD (Codex r4 HIGH)."""
+
+
+def _assert_committed(root: Path, rel: str) -> None:
+    """Raise `_UncommittedInput` when `rel` (a file or a directory) differs from HEAD in `root`.
+
+    Committed inputs only: a cut is taken from committed state, so an uncommitted edit to an
+    input is rendered as MISSING rather than sealed into the bundle. A root git cannot answer
+    about (no repository -- a test fixture) has no HEAD to differ from, and is read as is."""
+    ok, out = _git_status(root, "status", "--porcelain", "--untracked-files=all", "--", rel)
+    if ok and out.strip():
+        raise _UncommittedInput(f"{rel} (differs from HEAD; commit or revert it first)")
+
+
 def _named(path: "Path | None") -> str:
     """An input as its source line names it: the file path, or `unresolved` (Codex r3 HIGH)."""
     return f"`{Path(path).as_posix()}`" if path is not None else "unresolved"
@@ -3463,6 +3478,7 @@ def _section_priorities(repo_root: Path, ledger_path: "Path | None", ledger: "st
     try:
         if not (Path(repo_root) / "tasks").is_dir():
             raise FileNotFoundError("tasks/ is absent")
+        _assert_committed(Path(repo_root), "tasks")
         sys.path.insert(0, str(_SCRIPTS))
         import boot_frontier as _bf  # noqa: PLC0415 -- deferred sibling import, the idiom
         import gen_task_tree as _gtt  # noqa: PLC0415
@@ -3491,6 +3507,7 @@ def _section_ratification(repo_root: Path) -> "list[str]":
     try:
         if not decisions.is_dir():
             raise FileNotFoundError(f"{decisions.as_posix()} is absent")
+        _assert_committed(Path(repo_root), "docs/decisions")
         sys.path.insert(0, str(_SCRIPTS))
         import gen_claude_rosters as _gcr  # noqa: PLC0415 -- deferred sibling import, the idiom
         rows = _gcr.collect_recent_adrs(decisions, count=10 ** 6)
@@ -3537,6 +3554,7 @@ def _section_dated(repo_root: Path, today: str) -> "list[str]":
            "refuses), `.methodology.yaml` (review_date / expiry), `ecosystem/harness.yaml` "
            f"(`manual_until:`, via handoff_state.row_dates); as of {today}"]
     try:
+        _assert_committed(root, "logs/KNOWN-REDS-REGISTRY.json")
         registry = json.loads((root / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
         groups = _known_red_groups(registry)
         out.append("- known reds by expiry (registry entries; one test may sit in several pools):")
@@ -3547,10 +3565,13 @@ def _section_dated(repo_root: Path, today: str) -> "list[str]":
                        + " (pools: " + ", ".join(f"{k} {n}" for k, n in pools.items()) + ")")
         if not groups:
             out.append("  none dated")
+    except _UncommittedInput as exc:
+        out.append(f"- MISSING: {exc}")
     except (OSError, ValueError, AttributeError) as exc:
         out.append(f"- MISSING: logs/KNOWN-REDS-REGISTRY.json ({type(exc).__name__})")
     try:
         import yaml  # noqa: PLC0415 -- a declared dependency; deferred like the siblings above
+        _assert_committed(root, ".methodology.yaml")
         data = yaml.safe_load((root / ".methodology.yaml").read_text(encoding="utf-8")) or {}
         by_day: "dict[str, list[str]]" = {}
         for entry in data.get("sanctioned_divergences") or []:
@@ -3563,11 +3584,16 @@ def _section_dated(repo_root: Path, today: str) -> "list[str]":
             out.append(f"  {day} [{_date_flag(day, today)}]: {len(comps)} -- {', '.join(comps)}")
         if not by_day:
             out.append("  none dated")
+    except _UncommittedInput as exc:
+        out.append(f"- MISSING: {exc}")
     except (OSError, ValueError, AttributeError, ImportError) as exc:
         out.append(f"- MISSING: .methodology.yaml ({type(exc).__name__})")
     try:
+        _assert_committed(root, "ecosystem/harness.yaml")
         row = _hstate().row_dates(root, today=today)
         out.append(f"- harness fates: {row.value}")
+    except _UncommittedInput as exc:
+        out.append(f"- MISSING: {exc}")
     except Exception as exc:  # noqa: BLE001 -- degraded, never absent
         out.append(f"- MISSING: ecosystem/harness.yaml dates ({type(exc).__name__})")
     return out
@@ -3587,6 +3613,11 @@ def _section_map(inputs: StateInputs, root: Path) -> "list[str]":
     path = inputs.map_record
     label = _display_path(path, root) if path else "ecosystem/system-map-record.json"
     out = [f"source: `{label}` (written by `system_map.py build`)"]
+    if path is not None and _inside(path, root):
+        try:
+            _assert_committed(root, label)
+        except _UncommittedInput as exc:
+            return out + [f"- MISSING: map diff ({exc})"]
     text, why = _read_input(path)
     if text is None:
         return out + [f"- MISSING: map diff ({why})"]
