@@ -682,6 +682,60 @@ def manifest_lane_slugs(text: str) -> set[str]:
     return out
 
 
+#: `[#1368]`: the lanes heading as later manifests number it (`## 2 · The lanes`, batch BW). A
+#: separate constant on purpose: widening `_LANES_HEADING_RE` would change what the `[#630]`
+#: freeze comparison above reads, which is not this row's to change.
+_NUMBERED_LANES_HEADING_RE = re.compile(
+    r"^ {0,3}#{1,6}\s*(?:\d+\s*[·.:-]?\s*)?THE LANES\b.*$", re.I | re.M)
+
+
+def _table_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def manifest_lane_rows(text: str) -> list[tuple[str, Optional[str]]]:
+    """`(slug, wave)` for each row of a manifest's lanes table, in table order (`[#1368]`).
+
+    The expected-lane roster the batch rollup (`lane_digest.py --manifest`) compares the
+    received LANE-END reports against. The section is found by `_NUMBERED_LANES_HEADING_RE`
+    (`## THE LANES` or `## 2 · The lanes`) and bounded by the next heading, as
+    `manifest_lane_slugs` bounds it; within it, a row's slug is the first lane-shaped token in
+    its `Lane slug` cell (else anywhere on the row, the `manifest_lane_slugs` rule), and its
+    wave is the `Wave` cell when the table has that column, else `None`. A slug repeated on a
+    later row is kept once. Empty when the manifest has no lanes heading."""
+    heading = _NUMBERED_LANES_HEADING_RE.search(text)
+    if heading is None:
+        return []
+    start = heading.end()
+    nxt = _ANY_HEADING_RE.search(text, start)
+    body = text[start:nxt.start()] if nxt else text[start:]
+    header: Optional[list[str]] = None
+    rows: list[tuple[str, Optional[str]]] = []
+    seen: set[str] = set()
+    for line in body.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = _table_cells(line)
+        if header is None:
+            header = [c.lower() for c in cells]
+            continue
+        if all(set(c) <= set("-: ") for c in cells):
+            continue   # the |---|---| separator
+        slug_col = header.index("lane slug") if "lane slug" in header else None
+        wave_col = header.index("wave") if "wave" in header else None
+        source = cells[slug_col] if slug_col is not None and slug_col < len(cells) else line
+        match = _SLUG_TOKEN_RE.search(source) or _SLUG_TOKEN_RE.search(line)
+        if not match:
+            continue
+        slug = match.group(0).lower()
+        if slug in seen:
+            continue
+        seen.add(slug)
+        wave = cells[wave_col] if wave_col is not None and wave_col < len(cells) else None
+        rows.append((slug, wave or None))
+    return rows
+
+
 def freeze_manifest_contract_agreement(manifest_text: str,
                                        contracts: Mapping[str, str]) -> list[Refusal]:
     """`[#630]` -- the manifest's declared lane slugs and the batch's contract slugs must be
