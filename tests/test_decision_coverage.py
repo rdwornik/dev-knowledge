@@ -1276,6 +1276,40 @@ def test_an_unmeasured_report_never_renders_as_a_bare_OK(tmp_path: Path):
     assert "NOT MEASURED" in head and not head.rstrip().endswith(": OK")
 
 
+def test_an_unlanded_ruling_inside_the_grace_period_is_NAMED_pending_not_refused(tmp_path: Path):
+    """lane bw-1378-rulings-landing, Done-contract item 2: the command names a ruling that is not
+    landed yet, while the grace period still covers it, so 'reports 0 unlanded' after a landing
+    has a before it can be compared with. Pending is information: it never refuses."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-08.md": _ratification("2026-09-08", "R98", "R99"),
+                   "RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R70")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-09")})        # ONE batch: inside grace
+    report = dc.rulings_report(root, transport=transport)
+    assert report.unlanded == [] and report.passed
+    assert list(report.pending) == ["R98", "R99"]
+    assert "pending within grace: 2 -- R98, R99" in report.render()
+    assert report.exit_code(no_transport=False) == 0
+
+
+def test_a_refused_ruling_is_not_also_counted_pending(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R98")}, _TWO_CLOSED)
+    report = dc.rulings_report(root, transport=transport)
+    assert _names(report.unlanded) == ["R98"] and list(report.pending) == []
+    assert "pending within grace: 0" in report.render()
+
+
+def test_an_unmeasured_report_names_nothing_pending(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    report = dc.rulings_report(root, transport=None)
+    assert list(report.pending) == [] and "pending within grace" not in report.render()
+
+
 def test_the_rulings_cli_exits_2_when_the_transport_is_unreadable(tmp_path: Path, monkeypatch,
                                                                   capsys):
     root = tmp_path / "r"

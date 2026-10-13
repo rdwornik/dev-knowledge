@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-13 (d) - CC (Opus 5.5, successor orchestrator and integrator, batch BW = B2-W4 finish, Wave D): rulings landed, registry re-pointed, harness probes pass, transport index; R98 re-dates 58 known reds; D1, D5 and D7 held
+
+**Anchors:** `b06c621a` (D4 registry-repoint, `266e29b1`), `214ea12e` (D3 rulings-landing, `6564955c`), `1fdeae35` (D6 harness-probes, `96e03fe4`), `a880ed01` (D8 transport-index, `7c2c2f11`), `dc24b371` (R98 re-date, integrator). Branch `worktree-integrate-bw`, landed by `merge_path.py land --slug b2-w4-d`.
+
+**Did:** Order `to-cc/BATCH-BW-FINISH-2026-10-13.md` v2 (R98, R100, R101). Vendor discovery: Codex live (gpt-5.6-terra); Copilot CLI live with no printed model list; Grok and Gemini have no `provider_router` route (MISSING). D1 and D5 were reviewed only: Codex r1 REQUEST-CHANGES on both; D1's new `land` gate refuses the integrator's own no-change merges as LANE-UNATTRIBUTED (measured on `271d7f35` and `2d81452c`), so D1 is held; D5's R95 D1 citation check reads R97's "replaces R96 D14" as superseding all of R96, so its gate fails once D3's rulings are in, and D5 is held. D7 was refused by `lane_boot.py preflight` (the manifest row is HELD and no GO amendment is on main) and did not run. R98: the 58 remaining `logs/KNOWN-REDS-REGISTRY.json` entries ([#912] 40, [#664] 15, [#1343] 3) re-dated to 2026-10-31, each citing R98.
+
+**Result:** Wave D lands D3, D4, D6, D8 and R98. D2 FAILED (operator cost ruling). D1, D5, D7 held to the next batch. D5 boot v2 stays unlanded (17,822 B, sha256 `91178f8b…1396`).
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `JOURNAL.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md` (regenerated); the lanes' own files per their merges.
+
+**Next:** R4 hygiene to zero, R5 close packet and `gen_handoff.py --mode architect --preflight-only`; next batch: D1/D5 fix rounds, D7 GO amendment, [#863] prompts-guard re-arm.
+
 ### 2026-10-13 (c) - CC (Opus 5.5, orchestrator and integrator, batch BW = B2-W4 finish, Wave C): lane reports get a schema and a rollup; contracts declare required tools; a reuse gate; one SessionStart entry; ADR lifecycle; a system map
 
 **Anchors:** `9dbf08bd` (C1 lane-report-rollup, `0e188918`), `9f235dce` (C2 required-tools, `40369bd8`), `2c713060` (C3 reuse-gate, `6605ce24`), `d3858efb` (C4 sessionstart-one, `a4bf266a`), `9a499ec2` (C5 adr-lifecycle, `a1500c9e`), `83c8d36d` (C6 system-map, `ced069e5`), `d59d56b8` (Wave D contracts). Branch `worktree-integrate-bw`, landed by `merge_path.py land --slug b2-w4-c`.

@@ -1,0 +1,18 @@
+# Stand-in for the ADR-123 `dk-harness` workspace member, used ONLY by the step-0 probes
+# (scripts/harness_probes.py, [#670] nearest). It is not the harness: it carries one console
+# script and a plugin as package data so a fresh codespace can (P-2) install it by git URL +
+# subdirectory under the pinned uv, (P-1) materialise a plugin from its package data, and
+# (P-3) run its organ with the hub unreachable. Step 1 carves the real `packages/harness/`.
+[project]
+name = "dk-harness-probe"
+version = "0.0.1"
+description = "ADR-123 step-0 probe stand-in (not the harness)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+dk-harness-probe = "dk_harness_probe:main"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12"]
+build-backend = "uv_build"

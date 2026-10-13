@@ -1,0 +1,6 @@
+{
+  "name": "dk-harness-probe",
+  "version": "0.0.1",
+  "description": "ADR-123 step-0 probe plugin: three hooks that only record that they fired.",
+  "author": {"name": "Rob (.dev-knowledge methodology hub)"}
+}

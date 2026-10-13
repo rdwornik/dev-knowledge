@@ -306,10 +306,33 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
                            owner="the operator's ratification act, tracked at ADR-121's Status line"),
     "adr:122": Disposition(reason=_AWAITING_RATIFICATION,
                            owner="the operator's ratification act, tracked at ADR-122's Status line"),
-    "adr:123": Disposition(reason=_AWAITING_RATIFICATION,
-                           owner="the operator's ratification act, tracked at ADR-123's Status line"),
-    "adr:124": Disposition(reason=_AWAITING_RATIFICATION,
-                           owner="the operator's ratification act, tracked at ADR-124's Status line"),
+    # -- ADR-123 / ADR-124: Accepted 2026-10-11 by R96, implementing rows OWED -- lane
+    # bw-1378-rulings-landing (batch BW). A HOLDING entry, stated as one: R96's own Carriage says
+    # "Their carrier rows are filed through intake", and the BW manifest (section 1) bars a lane
+    # from filing a row, so the status flip lands before the rows do. The reason says so in words
+    # rather than reading as settled; the entry is removed the day a row carries
+    # `implements: ADR-123` / `ADR-124`, which then outranks it (`_state`).
+    "adr:123": Disposition(
+        reason="Accepted 2026-10-11 by R96 (RATIFICATION-2026-10-11: O9, N = 1 corp-monorepo, "
+               "order corp-monorepo > ai-council > win-tooling, patch automatic / minor+ "
+               "reviewed, reasoned time-boxed opt-out, 3 named repos). NOT built: no "
+               "packages/harness/ exists. Its implementing rows are owed through intake per "
+               "R96's Carriage and are not yet filed; this entry holds the decision visible "
+               "until they are, and is removed then.",
+        owner="the batch BW integrator, who files ADR-123's carrier rows through intake at the "
+              "BW close packet (manifest section 1, ADR-98/ADR-111); re-open if BW closes "
+              "without them"),
+    "adr:124": Disposition(
+        reason="Accepted 2026-10-11 by R96 (RATIFICATION-2026-10-11: S2, by ratchet, hub plus 3, "
+               "D5 checked). NOT fully built: D5's `## Quality attributes` section is checked "
+               "only for /decide drafts (scripts/decide_checks.py), not by "
+               "validate_adr_status.py, and the one-tool-at-a-time adoption lanes (tach, "
+               "pyright in CI, the 15 ruff families) have not landed. Its implementing rows are owed through "
+               "intake per R96's Carriage and are not yet filed; this entry holds the decision "
+               "visible until they are, and is removed then.",
+        owner="the batch BW integrator, who files ADR-124's carrier rows through intake at the "
+              "BW close packet (manifest section 1, ADR-98/ADR-111); re-open if BW closes "
+              "without them"),
     "adr:125": Disposition(reason=_AWAITING_RATIFICATION,
                            owner="the operator's ratification act, tracked at ADR-125's Status line"),
     "adr:126": Disposition(reason=_AWAITING_RATIFICATION,
@@ -1523,6 +1546,18 @@ def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
     return out
 
 
+def pending_rulings(repo_root, population: "list[FileRuling]",
+                    refused: "list[Finding]") -> tuple[str, ...]:
+    """The rulings of `population` that are NOT landed in the register and NOT refused -- the ones
+    the grace period still covers. Information, never a refusal: it lets the command NAME a ruling
+    before it lands, so "0 unlanded" after a landing has a before to be compared with (lane
+    bw-1378-rulings-landing). Ordered by number, each id once."""
+    landed = {e.number for e in parse_register(_read_register(Path(repo_root)))}
+    gone = {f.subject for f in refused}
+    numbers = sorted({r.number for r in population if r.number not in landed})
+    return tuple(_ruling_id(n) for n in numbers if _ruling_id(n) not in gone)
+
+
 class _Unmeasured:
     """The leg-(a) "not measured" marker. TRUTHY on purpose (N2 reviewer P1, repair 2): `None` and
     `[]` are both falsy, so a reader writing `not report.unlanded` read an unmeasured leg as clean.
@@ -1549,6 +1584,9 @@ class RulingsReport:
     unmeasured_reason: str = ""
     files_read: int = 0
     rulings_read: int = 0
+    #: Unlanded rulings the grace period still covers (`pending_rulings`). Empty when leg (a) was
+    #: not measured -- an unread transport names nothing pending, and that is not a pass either.
+    pending: tuple[str, ...] = ()
 
     def _findings(self) -> list[Finding]:
         """Both legs' findings. PRIVATE on purpose: an unmeasured leg contributes none, so this is
@@ -1593,6 +1631,9 @@ class RulingsReport:
             lines.append(f"  leg (a) landed within a batch: {len(self.unlanded)} unlanded past "
                          f"{GRACE_BATCHES} closed batch(es) -- read {self.rulings_read} ruling(s) in "
                          f"{self.files_read} non-superseded RATIFICATION file(s)")
+            lines.append(f"  leg (a) pending within grace: {len(self.pending)}"
+                         + (" -- " + ", ".join(self.pending) if self.pending else "")
+                         + " (not landed yet; named, not refused)")
         return "\n".join(lines)
 
 
@@ -1616,7 +1657,8 @@ def rulings_report(repo_root, *, transport=_UNSET, floor: int = FIRST_GATED_RULI
     except TransportUnreadable as exc:
         return RulingsReport(uncarried, UNMEASURED, counts, str(exc))
     return RulingsReport(uncarried, unlanded, counts, files_read=len(files),
-                         rulings_read=len(population))
+                         rulings_read=len(population),
+                         pending=pending_rulings(root, population, unlanded))
 
 
 # --------------------------------------------------------------------------------------- CLI

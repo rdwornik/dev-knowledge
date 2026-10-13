@@ -177,6 +177,23 @@ kinds:
     repo_scope: hub
     versioned: false
 
+  - kind: SEAT_LESSONS
+    prefix: "SEAT-LESSONS-"
+    pattern: '^SEAT-LESSONS-[0-9]{4}-[0-9]{2}-[0-9]{2}(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [operator]
+    readers: []
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      R95 D3 (`to-browser/RATIFICATION-2026-10-10.md`, operator 2026-10-10): the few-shot lessons
+      an architect seat reads at boot and appends to at handoff (R73), `SEAT-LESSONS-<date>.md`,
+      revised in place with `-v<n>-superseded` predecessors. Not code-built: the architect seat
+      writes it through Drive, and HANDOFF_BOOT names the newest non-superseded file by pattern.
+      Registered so the file v2's reading path names passes `transport_lint.py check` (it was
+      refused `unknown-kind`). `DIGEST-SEAT-LESSONS-*` stays a DIGEST.
+
   - kind: MERGE_PLAN
     prefix: "MERGE-PLAN-"
     pattern: '^MERGE-PLAN-[A-Za-z0-9._-]+\.md$'
@@ -1329,3 +1346,18 @@ kinds:
       `STATE-<batch-slug>[-dispatcher].json`, the seat state file `scripts/seat_state.py write`
       keeps (schema `dev-knowledge-seat-state/1`). The `.json` twin of the bare STATE kind, which
       is `.md` only; without it a wake's sweep flags the live state files every time.
+
+  # --- b2w2-transport-index (LANE-1439, batch B2-W3) ----------------------------------------
+  - kind: INDEX
+    prefix: "INDEX.md"
+    pattern: '^INDEX\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [transport]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `to-browser/INDEX.md`, the generated index of the current transport files of this repository,
+      grouped by kind and writer, newest first (`transport.py index --write`; `transport.py` also
+      refreshes it from `write()` / `append()` once it exists). Generated, so it is rewritten
+      whole by the `transport` writer and not edited by hand. It lists itself.
