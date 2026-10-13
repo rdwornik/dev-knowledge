@@ -1580,3 +1580,36 @@ def test_the_lifecycle_cli_lists_the_legs_and_exits_zero(tiny_decisions: Path, t
     for leg in (dc.LEG_PROPOSED_STALE, dc.LEG_ACCEPTED_UNEVIDENCED, dc.LEG_SUPERSEDED_CODE_LEFT):
         assert leg in text
     assert "ADR-901" in text
+
+
+def test_an_unreadable_script_is_skipped_not_raised(tiny_decisions: Path, monkeypatch):
+    """Codex review r1 HIGH: a WARN scan must not be able to raise out of `check`."""
+    _write(tiny_decisions / "scripts" / "gone.py", "# ADR-903\n")
+    _write(tiny_decisions / "scripts" / "here.py", "# ADR-903\n")
+    real = dc._read
+
+    def _flaky(path: Path) -> str:
+        if path.name == "gone.py":
+            raise OSError("vanished mid-scan")
+        return real(path)
+
+    monkeypatch.setattr(dc, "_read", _flaky)
+    assert dc.script_citations(tiny_decisions, {"903"}) == {"903": ("scripts/here.py",)}
+
+
+def test_a_failing_lifecycle_scan_leaves_checks_exit_code_alone(tiny_decisions: Path,
+                                                                tmp_path: Path, monkeypatch,
+                                                                caplog):
+    """Codex review r1 HIGH: whatever the lifecycle legs raise, `check` answers coverage's
+    verdict -- here a clean one, so 0 -- and says the legs were not measured."""
+    _row(tiny_decisions, 802, "open", "ADR-901", "the open row that implements ADR-901")
+    _row(tiny_decisions, 803, "open", "intake-900", "the open row that implements intake 900")
+
+    def _boom(*_args, **_kwargs):
+        raise OSError("lifecycle scan failed")
+
+    monkeypatch.setattr(dc, "adr_lifecycle", _boom)
+    code = dc.main(["check", "--no-transport", "--repo-root", str(tiny_decisions),
+                    "--db", str(tmp_path / "cli" / "FPG.db"), "--staged"])
+    assert code == 0
+    assert "not measured" in caplog.text
