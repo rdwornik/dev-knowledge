@@ -1490,7 +1490,7 @@ def test_decisions_name_every_registry_cli_and_a_provider_without_one(tmp_path):
     items = d.credential_decisions(_cfg(tmp_path))
     by = {i.cli: i for i in items}
     assert {"codex", "claude", "agy"} <= set(by)
-    assert by["agy"].action == "waiting" and "keyring" in by["agy"].detail
+    assert by["agy"].action == "gap" and "keyring" in by["agy"].detail  # spec G1: a recorded GAP, not a wait
     assert by["claude"].route == "secret-token" and by["claude"].action == "not-mirrored"
     assert [i.cli for i in items if i.action == "no-cli"] == ["deepseek"]
 
@@ -1525,7 +1525,7 @@ def test_the_codespace_exec_verb_builds_a_real_mirror_by_default(tmp_path, monke
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# c\n", encoding="utf-8")
     res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
-                                     "--argv-json", '["claude"]'])
+                                     "--argv-json", '["claude"]', "--batch", "B1"])
     assert res.exit_code == 0, res.output
     assert isinstance(seen.get("mirror"), d.MirrorConfig)
 
@@ -2016,8 +2016,14 @@ def _bash_or_skip() -> str:
         pytest.skip("no bash on PATH can run a command here (ADR-127: skipped with its reason, not passed)")
 
 
+#: git under some harnesses runs with `safe.bareRepository=explicit`; the local bare "origin" must be usable.
+_GIT_BARE_OK = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "safe.bareRepository",
+                "GIT_CONFIG_VALUE_0": "all"}
+
+
 def _git(cwd, *args):
-    return subprocess.run(["git", *args], cwd=str(cwd), check=True, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(["git", *args], cwd=str(cwd), check=True, capture_output=True, text=True,
+                          env={**os.environ, **_GIT_BARE_OK}).stdout.strip()
 
 
 def _git_lane(base: Path, branch: str = "worktree-x"):
@@ -2025,7 +2031,8 @@ def _git_lane(base: Path, branch: str = "worktree-x"):
     if shutil.which("git") is None:
         pytest.skip("no git on PATH")
     origin, checkout = base / "origin.git", base / "checkout"
-    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True,
+                   env={**os.environ, **_GIT_BARE_OK})
     checkout.mkdir()
     _git(checkout, "init", "-q", "-b", "main")
     for key, value in (("user.name", "t"), ("user.email", "t@example.invalid"), ("commit.gpgsign", "false")):
@@ -2049,7 +2056,7 @@ def _lane_env(base: Path) -> dict:
     home.mkdir(exist_ok=True)
     return {**os.environ, "HOME": home.as_posix(), "PATH": str(stubbin) + os.pathsep + os.environ.get("PATH", ""),
             "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
-            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid", **_GIT_BARE_OK}
 
 
 def _run_runner(base: Path, body: str, workdir: Path, env: dict) -> None:
