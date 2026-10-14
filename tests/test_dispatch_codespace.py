@@ -42,7 +42,11 @@ def _private_receipt_homes(tmp_path_factory, monkeypatch):
     reach the operator's `~/.claude/remote-runs` or the tracked `logs/CODESPACE-RECEIPTS.jsonl`."""
     root = tmp_path_factory.mktemp("receipt-homes")
     monkeypatch.setattr(d, "DEFAULT_HARVEST_ROOT", root / "remote-runs")
-    monkeypatch.setattr(_regime, "_REPO_ROOT", root / "repo")
+    # `dispatch` and this file may hold two module objects of the regime (`scripts.codespace_regime` and
+    # `codespace_regime`): the default ledger is read from whichever one the code calls, so patch all
+    for mod in {id(m): m for m in (_regime, d.regime, sys.modules.get("scripts.codespace_regime"),
+                                   sys.modules.get("codespace_regime")) if m is not None}.values():
+        monkeypatch.setattr(mod, "_REPO_ROOT", root / "repo")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -2398,3 +2402,26 @@ def test_the_leak_check_flags_a_credential_byte_in_a_harvested_file(tmp_path):
     flagged = {rel for rel, text in texts.items() if d.leak_check({"codex": codex_bytes}, [text])}
     assert flagged == {"run.log"}, "the finding names the harvested file that carries the bytes"
     assert d.leak_check({"codex": codex_bytes}, list(texts.values())) == ["codex"]
+
+
+_TRACKED_LEDGER = Path(d.__file__).resolve().parents[1] / "logs" / "CODESPACE-RECEIPTS.jsonl"
+
+
+def test_the_codespace_suites_never_write_the_tracked_ledger_or_the_home_receipts(tmp_path):
+    """A representative exec that names NO receipt seam (the shape of the old callers) must leave the
+    tracked regime ledger and `~/.claude/remote-runs/B1` exactly as they were."""
+    home_b1 = Path.home() / ".claude" / "remote-runs" / "B1"
+
+    def state():
+        ledger = _TRACKED_LEDGER.read_bytes() if _TRACKED_LEDGER.is_file() else None
+        home = sorted((str(p), p.stat().st_mtime_ns) for p in home_b1.rglob("*")) if home_b1.exists() else []
+        return ledger, home
+
+    before = state()
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=_FakeGh(
+        receipt_written=copy.deepcopy(_GOOD_RECEIPT)), batch="B1")
+    assert result.ok, result.failure
+    assert result.steps, "the exec did write its step rows -- to the private test home"
+    assert state() == before
