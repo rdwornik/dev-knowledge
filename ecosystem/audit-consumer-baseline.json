@@ -2,11 +2,11 @@
   "_": "Committed baseline for the docs/audits consumer ratchet ([#595]). Regenerate: python scripts/consumer_at_landing.py --write-baseline. Contract, pool definition and honest limits: scripts/consumer_at_landing.py (module docstring).",
   "detector_id": "consumer-at-landing/v4",
   "measured_at": "2026-10-14",
-  "measured_at_sha": "08d3f501",
+  "measured_at_sha": "0599a040",
   "corpus": 1445,
   "pool_files": 1175,
   "unconsumed": 802,
-  "provenance": "BW-window re-stamp (2026-10-14): the artifacts owed by docs/audits/2026-10-12-technical-batch-bw-close-packet.md ROWS-OWED are now consumed by rows [#1510]-[#1532] and intake 107 (f4c0eebe); measured on the green-main lane tree at 08d3f501",
+  "provenance": "BW-window re-stamp (2026-10-14), measured on the green-main lane tree at 0599a040: +18 undated LANE-bw-*.md launch contracts ADMITTED to the baseline as owed debt, still UNCONSUMED (an undated name cannot be consumed by citation; dated-name tokenizer), each carried by backlog rows [#1510]-[#1527]; -1 drained 2026-10-10-verification-b2w3-red-burn-down-review.md; the 5 dated audits owed by docs/audits/2026-10-12-technical-batch-bw-close-packet.md ROWS-OWED are consumed by rows [#1528]-[#1532] + intake 107 (f4c0eebe)",
   "artifacts": [
     "1a-L01.md",
     "1a-L02.md",
