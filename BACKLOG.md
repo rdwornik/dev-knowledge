@@ -821,6 +821,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1531] [P3][S] 2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md has no consumer -- its finding is owned or dispositioned · tasks/1531-2026-10-13-technical-lane-bw-1001-sessionstart-measurement-has-no-consumer.md
 - [#1532] [P3][S] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned · tasks/1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
+- [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
 
 ---
 

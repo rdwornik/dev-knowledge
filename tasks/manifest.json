@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "28cc18ec58be8e3259eeb94a2b15c8ec53acbf01f8c92ed2916be6b13967e9fb",
+  "generated_sha256": "6efd4a636fc347d74beae611c4c327f37d4fa6c96d02b8aa14c262c37deaa723",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3126,6 +3126,10 @@
     {
       "task": 1533,
       "file": "1533-the-system-map-refresh-is-not-a-closed-loop.md"
+    },
+    {
+      "task": 1534,
+      "file": "1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md"
     },
     {
       "prose": ""
