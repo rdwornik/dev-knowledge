@@ -2724,28 +2724,28 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
                     invoker: Optional[Callable[..., GhResult]] = None,
                     sleep: Callable[[float], None] = time.sleep,
                     run_timeout_s: float = RUN_TIMEOUT_SECONDS,
-                    mirror: Optional[MirrorConfig] = None, batch: str = "",
+                    mirror: Optional[MirrorConfig] = None, batch: str,
                     receipts_root: Optional[Path] = None,
                     ledger_path: Optional[Path] = None) -> ExecResult:
-    """`_codespace_exec_core` plus the FINISH witnesses. With a `batch` every step of the line --
-    create, credentials, run, commit, handback -- writes one row of `<receipts_root>/<batch>/<slug>/
-    steps.jsonl` (`ExecResult.steps` carries the same rows), the regime ledger gets its open row once
-    the box exists, and a run whose lane committed and pushed nothing, or returned no valid handback,
-    is FAILED at that step. Without a `batch` the call is the bare launch and nothing here runs."""
+    """`_codespace_exec_core` plus the FINISH witnesses. `batch` is a required keyword: every step of
+    the line -- create, credentials, run, commit, handback -- writes one row of `<receipts_root>/
+    <batch>/<slug>/steps.jsonl` (`ExecResult.steps` carries the same rows), the regime ledger gets its
+    open row once the box exists, and a run whose lane committed and pushed nothing, or returned no
+    valid handback, is FAILED at that step. An empty `batch` is refused before any `gh` call."""
+    if not batch:
+        raise ValueError("codespace_exec needs a non-empty batch: the FINISH receipts and gates are not optional")
     rows: list[dict] = []
-    steps_path = (_harvest_dir(batch, slug, root=receipts_root) / "steps.jsonl") if batch else None
+    steps_path = _harvest_dir(batch, slug, root=receipts_root) / "steps.jsonl"
 
     def rec(step: str, ok: bool, codespace: str = "", evidence: Optional[dict] = None,
             failure: str = "", fate: Optional[dict] = None) -> None:
-        if not batch:
-            return
         rows.append(write_step(steps_path, batch, slug, codespace, step, ok, evidence, failure, fate))
 
     result = _codespace_exec_core(repo, branch, slug, contract, head_argv, machine=machine,
                                   idle_timeout=idle_timeout, retention=retention, workdir=workdir,
                                   invoker=invoker, sleep=sleep, run_timeout_s=run_timeout_s,
                                   mirror=mirror, batch=batch, rec=rec, ledger_path=ledger_path)
-    return replace(result, steps=tuple(rows)) if batch else result
+    return replace(result, steps=tuple(rows))
 
 
 def write_step(path: Path, batch: str, lane: str, codespace: str, step: str, ok: bool,
@@ -2785,7 +2785,7 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
                     invoker: Optional[Callable[..., GhResult]] = None,
                     sleep: Callable[[float], None] = time.sleep,
                     run_timeout_s: float = RUN_TIMEOUT_SECONDS,
-                    mirror: Optional[MirrorConfig] = None, batch: str = "",
+                    mirror: Optional[MirrorConfig] = None, batch: str,
                     rec: Optional[Callable[..., None]] = None,
                     ledger_path: Optional[Path] = None) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
