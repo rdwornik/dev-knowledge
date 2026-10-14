@@ -36,6 +36,15 @@ import dispatch as d
 cs = d.cs
 
 
+@pytest.fixture(autouse=True)
+def _private_receipt_homes(tmp_path_factory, monkeypatch):
+    """Every exec/delete now writes step rows and regime rows: a test that names no seam must never
+    reach the operator's `~/.claude/remote-runs` or the tracked `logs/CODESPACE-RECEIPTS.jsonl`."""
+    root = tmp_path_factory.mktemp("receipt-homes")
+    monkeypatch.setattr(d, "DEFAULT_HARVEST_ROOT", root / "remote-runs")
+    monkeypatch.setattr(_regime, "_REPO_ROOT", root / "repo")
+
+
 # ---------------------------------------------------------------------------------------------
 # run_gh / format_gh_line
 # ---------------------------------------------------------------------------------------------
@@ -177,6 +186,8 @@ def _ssh_reply(argv, *, log: str = _HEALTHY_LOG):
     """What a `codespace ssh` answers: the creation log when it is asked for, else nothing."""
     if "creation.log" in " ".join(argv):
         return d.GhResult(ok=True, exit_code=0, stdout=log)
+    if argv[-1].endswith("handback.json"):      # the lane's LANE REPORT, pulled back by `cat`
+        return d.GhResult(ok=True, exit_code=0, stdout=json.dumps(_LANE_REPORT))
     return d.GhResult(ok=True, exit_code=0, stdout="")
 
 
@@ -224,11 +235,11 @@ class _FakeGh:
 def test_codespace_exec_happy_path_returns_the_receipt(tmp_path):
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# contract\n", encoding="utf-8")
-    receipt = {"exit_code": 0, "is_error": False, "status": "success"}
+    receipt = copy.deepcopy(_GOOD_RECEIPT)
     fake = _FakeGh(receipt_written=receipt)
 
     result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert result.name == "fluffy-space-1"
@@ -238,8 +249,9 @@ def test_codespace_exec_happy_path_returns_the_receipt(tmp_path):
     # run, cp receipt back -- no `list` call: the name is never reconstructed (codex terra P1,
     # 2026-09-27)
     verbs = [" ".join(c[:2]) for c in fake.calls]
+    # ... then the handback is pulled back by `ssh cat` (the lane's LANE REPORT)
     assert verbs == ["codespace create", "codespace ssh", "codespace ssh", "codespace cp",
-                     "codespace cp", "codespace ssh", "codespace cp"]
+                     "codespace cp", "codespace ssh", "codespace cp", "codespace ssh"]
 
 
 def test_codespace_exec_refuses_on_create_failure_without_further_calls(tmp_path):
@@ -247,7 +259,7 @@ def test_codespace_exec_refuses_on_create_failure_without_further_calls(tmp_path
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(fail_at="codespace create")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "create exited" in result.failure
@@ -262,7 +274,7 @@ def test_codespace_exec_refuses_when_create_returns_no_name(tmp_path):
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(created_name="")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
     assert not result.ok
     assert "no name" in result.failure
     assert len(fake.calls) == 1  # nothing else was attempted without a name in hand
@@ -274,7 +286,7 @@ def test_codespace_exec_refuses_with_no_receipt_gate(tmp_path):
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(receipt_written=None)  # the cp-back call succeeds but writes nothing
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
     assert not result.ok
     assert "no receipt" in result.failure
 
@@ -287,7 +299,7 @@ def test_codespace_exec_creates_the_workdir_before_shipping_anything_into_it(tmp
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(fail_at="codespace ssh mkdir")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "creating" in result.failure
@@ -303,7 +315,7 @@ def test_codespace_exec_still_pulls_the_receipt_after_a_failed_runner(tmp_path):
     receipt = {"exit_code": 1, "is_error": True, "status": "error"}
     fake = _FakeGh(receipt_written=receipt, fail_at="codespace ssh run")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "runner exited" in result.failure
@@ -318,7 +330,7 @@ def test_codespace_exec_rejects_a_receipt_that_reports_is_error(tmp_path):
     receipt = {"exit_code": 1, "is_error": True, "status": "error_during_execution"}
     fake = _FakeGh(receipt_written=receipt)  # ssh itself reports ok=True
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert result.receipt == receipt
@@ -342,7 +354,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
@@ -350,7 +362,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
 
     prompt = f"Read and execute the frozen contract at {contract}"
     result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", prompt],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert str(contract) not in captured["runner_body"], "the local path leaked into the runner"
@@ -380,7 +392,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
@@ -391,7 +403,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
     prompt = f"Read and execute the frozen contract at {absolute_contract}"
     relative_contract = Path("LANE-x.md")
     result = d.codespace_exec("me/repo", "main", "lane-x", relative_contract,
-                              ["claude", "-p", prompt], invoker=fake)
+                              ["claude", "-p", prompt], invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert str(absolute_contract) not in captured["runner_body"], \
@@ -416,14 +428,14 @@ def test_codespace_exec_runs_the_agent_in_the_checkout_derived_from_repo(tmp_pat
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
         raise AssertionError(f"unexpected gh call: {argv}")
 
     result = d.codespace_exec("me/dev-knowledge", "main", "lane-x", contract, ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     cd_line = next(ln for ln in captured["runner_body"].splitlines() if ln.startswith("cd "))
@@ -438,7 +450,7 @@ def test_codespace_exec_refuses_an_empty_argv_without_calling_gh(tmp_path):
     def fake(argv):  # pragma: no cover -- must not be reached
         raise AssertionError("gh must not be called with an empty argv")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, [], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, [], invoker=fake, batch="B1")
     assert not result.ok
     assert "empty" in result.failure
 
@@ -767,9 +779,9 @@ def test_the_planned_run_step_is_a_login_shell(tmp_path):
 
 
 def test_the_executed_run_step_is_a_login_shell(tmp_path):
-    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    fake = _FakeGh(receipt_written=copy.deepcopy(_GOOD_RECEIPT))
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert result.ok, result.failure
     run_calls = [c for c in fake.calls if c[:2] == ["codespace", "ssh"] and "bash" in c]
     assert len(run_calls) == 1
@@ -855,7 +867,7 @@ def test_a_recovery_container_is_refused_before_anything_ships_or_runs(tmp_path)
     (Alpine, no uv/claude/gh) was handed the lane."""
     fake = _FakeGh(log=_RECOVERY_LOG)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.name == "fluffy-space-1", "the box was created, so it is named for teardown"
     assert "recovery" in result.failure
@@ -868,7 +880,7 @@ def test_an_unreadable_creation_log_is_refused_after_a_bounded_number_of_reads(t
     fake = _FakeGh(log="")
     slept: list[float] = []
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=slept.append)
+                              invoker=fake, sleep=slept.append, batch="B1")
     assert not result.ok and "indeterminate" in result.failure
     reads = [c for c in fake.calls if "creation.log" in " ".join(c)]
     assert len(reads) == d.CREATION_LOG_ATTEMPTS == 3
@@ -886,21 +898,23 @@ def test_a_log_that_is_not_finished_on_the_first_read_is_read_again(tmp_path):
             return d.GhResult(True, 0, "fluffy-1\n")
         if verb == "codespace cp":
             if argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if "creation.log" in " ".join(argv):
             return d.GhResult(True, 0, next(answers))
+        if argv[-1].endswith("handback.json"):
+            return d.GhResult(True, 0, json.dumps(_LANE_REPORT))
         return d.GhResult(True, 0, "")
 
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=lambda s: None)
+                              invoker=fake, sleep=lambda s: None, batch="B1")
     assert result.ok, result.failure
 
 
 def test_a_creation_failure_without_a_recovery_line_is_refused_too(tmp_path):
     fake = _FakeGh(log="[x] postCreateCommand failed with exit code 1.\nContainer creation failed.\n")
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=lambda s: None)
+                              invoker=fake, sleep=lambda s: None, batch="B1")
     assert not result.ok and "creation-failed" in result.failure
 
 
@@ -947,7 +961,7 @@ def test_a_run_whose_transport_died_fails_with_a_fate_naming_the_step(tmp_path, 
     """D4/D5, RED on cd3ab8a6: the failure was a bare string; the lane had no fate."""
     fake = _FakeGh(receipt_written=None, fail_at="codespace ssh run", fail_code=code)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate["fate"] == "FAILED" and result.fate["step"] == "run"
     assert word in result.fate["reason"]
@@ -956,7 +970,7 @@ def test_a_run_whose_transport_died_fails_with_a_fate_naming_the_step(tmp_path, 
 def test_a_missing_receipt_after_a_clean_run_fails_with_a_receipt_step_fate(tmp_path):
     fake = _FakeGh(receipt_written=None)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate["fate"] == "FAILED" and result.fate["step"] == "receipt"
 
@@ -966,15 +980,15 @@ def test_a_stalled_receipt_is_a_failed_run_with_the_runners_own_fate(tmp_path):
                "fate": {"fate": "FAILED", "step": "run", "reason": "no progress for 901s"}}
     fake = _FakeGh(receipt_written=receipt)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate == receipt["fate"]
 
 
 def test_a_successful_exec_has_no_fate_failure(tmp_path):
-    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    fake = _FakeGh(receipt_written=copy.deepcopy(_GOOD_RECEIPT))
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert result.ok and result.fate == {}
 
 
@@ -1338,6 +1352,8 @@ class _MirrorGh(_FakeGh):
         if verb == "status":
             text, rc = self.status.get(tail[1], ("Logged in", 0))
             return d.GhResult(rc == 0, rc, text)
+        if verb in ("agy-signin-start", "agy-signin-code"):
+            return d.GhResult(False, 70, "")     # no URL: the gap is recorded, the launch goes on
         if verb == "claude-version":
             return d.GhResult(True, 0, f"{self.remote_claude} (Claude Code)\n")
         if verb == "claude-install":
@@ -1350,9 +1366,9 @@ class _MirrorGh(_FakeGh):
 def _run_mirrored(tmp_path, fake, cfg):
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# contract\n", encoding="utf-8")
-    fake.receipt_written = {"exit_code": 0, "is_error": False, "status": "success"}
+    fake.receipt_written = copy.deepcopy(_GOOD_RECEIPT)
     return d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
-                            invoker=fake, mirror=cfg)
+                            invoker=fake, mirror=cfg, batch="B1")
 
 
 def _ran(fake) -> bool:
@@ -2347,3 +2363,38 @@ def test_no_credential_byte_reaches_any_step_row_or_ledger_row(tmp_path):
     ledger = (tmp_path / "ledger.jsonl").read_text(encoding="utf-8")
     assert len(_rows(tmp_path)) >= 7 and ledger.strip(), "the flow really wrote its rows (no vacuous pass)"
     assert d.leak_check({"codex": codex_bytes}, [steps, ledger]) == []
+
+
+# ----- round 2 (judge R1): batch is required; a credential byte in a harvested file is flagged -------
+
+def test_codespace_exec_without_a_batch_is_refused_not_a_silent_bare_launch(tmp_path):
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    calls = []
+
+    def fake(argv, *a):  # pragma: no cover -- must not be reached
+        calls.append(list(argv))
+        raise AssertionError("no gh call may be made without a batch")
+
+    with pytest.raises(TypeError):
+        d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    with pytest.raises(ValueError):
+        d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="")
+    assert calls == []
+
+
+def test_the_leak_check_flags_a_credential_byte_in_a_harvested_file(tmp_path):
+    """NEGATIVE CONTROL, may already be GREEN on arrival: the leak check must flag a harvested
+    `run.log` that holds the (fake) codex cache bytes -- proof the clean-flow test is not vacuous."""
+    cfg = _cfg(tmp_path)
+    codex_bytes = (cfg.home / ".codex" / "auth.json").read_bytes()
+    result = _fin_exec(tmp_path, _FinishGh(), cfg)
+    assert result.ok, result.failure
+    remote = {"run.log": codex_bytes.decode("utf-8") + "\n", "receipt.json": "{}\n"}
+    harvested = d.codespace_harvest(result.name, batch=_FIN_BATCH, lane="lane-x", out_root=tmp_path / "rr",
+                                    invoker=_ssh_cat_fake(remote))
+    assert harvested.ok, harvested.failure
+    texts = {rel: (harvested.out_dir / rel).read_text(encoding="utf-8") for rel in harvested.files}
+    flagged = {rel for rel, text in texts.items() if d.leak_check({"codex": codex_bytes}, [text])}
+    assert flagged == {"run.log"}, "the finding names the harvested file that carries the bytes"
+    assert d.leak_check({"codex": codex_bytes}, list(texts.values())) == ["codex"]

@@ -111,11 +111,22 @@ def test_a_headless_claude_lane_returns_its_report_under_the_lane_report_schema(
     argv = d.build_plan("anthropic", "opus", "lane-x", "high", "prompt text", streamed=True).argv
     assert argv[:2] == ["claude", "-p"]
     value = argv[argv.index("--json-schema") + 1]
-    assert json.loads(value) == json.loads(schema_file.read_text(encoding="utf-8"))
+    on_file = json.loads(schema_file.read_text(encoding="utf-8"))
+    # claude 2.1.300 rejects a draft 2020-12 `$schema` in `--json-schema`: the value is the file minus it
+    assert json.loads(value) == {k: v for k, v in on_file.items() if k != "$schema"}
     assert "\n" not in value   # one argv token, compact
     assert argv[-1] == "prompt text"
     # the transcript-metered --bg launch is interactive-shaped, not print mode: no schema there
     assert "--json-schema" not in d.build_plan("anthropic", "opus", "lane-x", "high", "p").argv
+
+
+def test_the_headless_claude_json_schema_arg_carries_no_dollar_schema():
+    from pathlib import Path
+    schema_file = Path(d.__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
+    on_file = json.loads(schema_file.read_text(encoding="utf-8"))
+    value = d.lane_report_schema_arg()
+    assert "$schema" not in json.loads(value)
+    assert json.loads(value) == {k: v for k, v in on_file.items() if k != "$schema"}
 
 
 def test_an_unknown_provider_is_refused_naming_the_known_ones(tmp_path):
