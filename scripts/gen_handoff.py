@@ -157,10 +157,12 @@ _VERIFIER_NAMES = frozenset({"BOOT_DATA_BEGIN", "BOOT_DATA_END", "BOOT_PROSE_BEG
 def _vhp():
     """`verify_handoff_probes`, resolved under both entry shapes (package, or `scripts/` on
     `sys.path`) — the same dual shim as `canonical_docs`, run when first needed."""
+    # The flat name first: with both roots importable the package spelling is a SECOND module
+    # object, which a caller patching `verify_handoff_probes.verify` would not reach.
     try:
-        from scripts import verify_handoff_probes as vhp  # noqa: PLC0415
-    except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
         import verify_handoff_probes as vhp  # noqa: PLC0415
+    except ImportError:  # pragma: no cover - exercised by the package entrypoint
+        from scripts import verify_handoff_probes as vhp  # noqa: PLC0415
     return vhp
 
 
@@ -2709,6 +2711,100 @@ def bundle_manifest(bundle_dir: Path, *, source_sha: "str | None",
     }
 
 
+class RestampRefusedError(RuntimeError):
+    """`restamp_manifest` refused: the bundle's only defect is not a fill-surface BD-manifest
+    mismatch, so re-stamping would bless something else."""
+
+
+#: R107: every use of the re-stamp verb appends one line here, outside the bundle (append-only
+#: JSONL, the `logs/MERGE-RECEIPTS.jsonl` convention); a refusal is a use too.
+RESTAMP_RECEIPTS_FILE = "logs/HANDOFF-RESTAMP-RECEIPTS.jsonl"
+
+
+def _append_restamp_receipt(repo_root: Path, bundle_dir: "Path | None", *, files: dict,
+                            reason: "str | None", outcome: "str | None" = None,
+                            slug: "str | None" = None) -> None:
+    import json  # noqa: PLC0415
+    _, head = _git_status(repo_root, "rev-parse", "HEAD")
+    bundle = None
+    if bundle_dir is not None:
+        slug = bundle_dir.name if slug is None else slug
+        try:
+            bundle = bundle_dir.relative_to(repo_root).as_posix()
+        except ValueError:
+            bundle = None
+    entry = {
+        "verb": "restamp-manifest",
+        "slug": slug,
+        "bundle": bundle,
+        "utc": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "ruling": "R107",
+        "files": files,
+        "head_sha": head.strip(),
+        "outcome": outcome or ("refused" if reason else "restamped"),
+        "reason": reason,
+    }
+    path = repo_root / RESTAMP_RECEIPTS_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def restamp_manifest(repo_root: Path, bundle_dir: Path) -> list[str]:
+    """Re-stamp ONLY `manifest.files` of a (possibly git-TRACKED) bundle's receipt to the
+    current `_bundle_file_shas`; returns the sorted names whose recorded sha changed.
+
+    The `--filled` re-render repairs the same circularity but goes through `generate()`, which
+    refuses a tracked bundle and rewrites shipped content. This re-renders nothing: every other
+    receipt key and every other file stays byte-identical. Gated by `_filled_waivable_fails`
+    (fill-surface content changes only, never an added/removed file) AND by the failing-probe
+    set being exactly {BD-manifest} -- BD-ci/BD-seats are waived there only because a re-render
+    re-derives them, which nothing here does. Refuses, writing nothing to the bundle, otherwise.
+    Every call appends exactly one use-receipt (R107: restamped | refused | error) outside the
+    bundle, BEFORE the bundle is touched, so no bundle change exists without a receipt."""
+    try:
+        files, receipt_path, new_text = _restamp_manifest_plan(repo_root, bundle_dir)
+    except RestampRefusedError as exc:
+        _append_restamp_receipt(repo_root, bundle_dir, files={}, reason=str(exc))
+        raise
+    except Exception as exc:
+        _append_restamp_receipt(repo_root, bundle_dir, files={}, outcome="error",
+                                reason=f"{type(exc).__name__}: {exc}")
+        raise
+    tmp = receipt_path.with_name(receipt_path.name + ".restamp.tmp")
+    try:
+        tmp.write_text(new_text, encoding="utf-8", newline="\n")
+        _append_restamp_receipt(repo_root, bundle_dir, files=files, reason=None)
+        tmp.replace(receipt_path)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return sorted(files)
+
+
+def _restamp_manifest_plan(repo_root: Path, bundle_dir: Path) -> "tuple[dict, Path, str]":
+    """The gated computation, writing nothing: `({name: {"old": sha, "new": sha}}, receipt path,
+    new receipt text)`."""
+    import json  # noqa: PLC0415
+    vhp = _vhp()
+    failing = sorted({r.probe_id for r in vhp.verify(bundle_dir, repo_root=repo_root)
+                      if r.status == "fail"})
+    if failing != ["BD-manifest"]:
+        raise RestampRefusedError(
+            f"{bundle_dir.name}: a manifest re-stamp repairs BD-manifest and nothing else, but the "
+            f"failing probe(s) are {failing or 'none'}")
+    ok, why, _count = _filled_waivable_fails(repo_root, bundle_dir)
+    if not ok:
+        raise RestampRefusedError(f"{bundle_dir.name}: {why}")
+    receipt_path = bundle_dir / vhp.RECEIPT_FILE
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    manifest = receipt["manifest"]
+    recorded, current = manifest["files"], _bundle_file_shas(bundle_dir)
+    manifest["files"] = current
+    changed = {rel: {"old": recorded.get(rel), "new": current[rel]}
+               for rel in sorted(current) if recorded.get(rel) != current[rel]}
+    return changed, receipt_path, json.dumps(receipt, indent=2, ensure_ascii=False) + "\n"
+
+
 class ManifestPathError(ValueError):
     """A manifest `files` key does not resolve under the root it is joined against — an
     absolute path or a `..` escape. The manifest travels inside a JSON receipt, so a tampered
@@ -3534,6 +3630,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               type=click.Path(file_okay=False, path_type=Path),
               help="render + assemble a real bundle into DIR (must be OUTSIDE the repo), skipping "
                    "the cut-boundary gates; it is never a handoff and can never be committed")
+@click.option("--restamp-manifest", "restamp", is_flag=True, default=False,
+              help="re-stamp ONLY manifest.files in the receipt of the committed bundle named by "
+                   "--slug (fill-surface content changes only; re-renders nothing)")
 @click.option("--boot-turns", type=int, default=None,
               help="the operator's tally: turns the superseded bundle's seat took to its first "
                    "correct dispatch (recorded in HANDOFF_RECEIPT.json boot_cost)")
@@ -3542,8 +3641,31 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
          preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
-         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None) -> None:
+         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
+         restamp: bool = False) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
+    if restamp:
+        def _refuse(reason: str, bundle: "Path | None" = None) -> None:
+            _append_restamp_receipt(_REPO_ROOT, bundle, files={}, reason=reason, slug=slug)
+            raise SystemExit(f"[error] {reason}")
+
+        if not slug:
+            _refuse("--restamp-manifest needs --slug <bundle-slug>")
+        handoffs = (_REPO_ROOT / "docs" / "handoffs").resolve()
+        if (any(c in slug for c in "/\\") or slug in (".", "..") or ":" in slug
+                or Path(slug).is_absolute()):
+            _refuse(f"--slug {slug!r} must be a single path component under docs/handoffs")
+        bundle_dir = _REPO_ROOT / "docs" / "handoffs" / slug
+        if bundle_dir.resolve().parent != handoffs:
+            _refuse(f"--slug {slug!r} does not resolve directly under docs/handoffs")
+        if not bundle_dir.is_dir():
+            _refuse(f"no bundle at {bundle_dir}", bundle_dir)
+        try:
+            changed = restamp_manifest(_REPO_ROOT, bundle_dir)
+        except RestampRefusedError as exc:
+            raise SystemExit(f"[error] {exc}") from exc
+        click.echo(f"Re-stamped manifest.files of {bundle_dir.name}: {', '.join(changed)}")
+        return
     if preflight_only or trial_cut:
         rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
         label = "batch-close trial cut" if trial_cut else "preflight"

@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot -- main's 25 regressions repaired through isolated stage agents (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part B)
+
+**Anchors:** `1656f287` `ff53efd8` `5ed99872` `08d3f501` `0599a040` (RED-first tests), `8788e197` `1c2ec795` (fixes: ci_verdict X3, handoff_state X6, the R107 re-stamp verb), `5540fb39` (R107 re-stamp applied to the 10-14 bundle), `f4c0eebe` (rows [#1510]-[#1532] + intake 107), `c8c9e26e` `86c2d33f` (consumer baseline), `bf4d2f32` (doc-counts). Branch `worktree-green-main-2026-10-14`, cut from `b46836c8`.
+
+**Did:** each stage a separate agent with its own brief and one JSON verdict under the lane's receipts: spec (Opus 5.5), RED tests (Sonnet 5.5), implementer (Copilot CLI claude-sonnet-5.5 twice -- exit -1 at 29 min, then cut by a 45-min watchdog -- finished by a Sonnet 5.5 fallback, R104), constraints (Sonnet 5.5), QA (Copilot claude-sonnet-5.5, two rounds), adversarial A (Codex gpt-5.6-terra, read-only) and B (Grok grok-4.7), judge (Opus 5.5; round 1 REFUSE x4, round 2 LAND). Operator decisions 2026-10-14: export test corrected to the 2026-09-09 ruling in tasks/674; bw912 by `consumer_at_landing --write-baseline` plus one row per owed audit (R106); X2 by ruling R107 (option A). Two transport QUESTION files got their `disposition:` lines.
+
+**Result:** CI run 38637355507 on `bf4d2f32`: pytest green on both legs, known-reds 0 regressions (54 known, 4 witnesses), `ci_verdict` PRE-EXISTING (landable); `gen_handoff.py --preflight-only` exit 0.
+
+**Changes:** `scripts/ci_verdict.py`, `scripts/handoff_state.py`, `scripts/gen_handoff.py`, `tests/test_ci_verdict.py`, `tests/test_handoff_state.py`, `tests/test_handoff_restamp.py` (new), `tests/test_gen_handoff.py`, `tests/test_export_backlog_view.py`, `docs/handoffs/2026-10-14-dev-knowledge-architect/HANDOFF_RECEIPT.json` (manifest.files only), `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` (new), `ecosystem/audit-consumer-baseline.json`, `ecosystem/doc-counts.md`, `tasks/1510-*`..`tasks/1532-*`, `tasks/manifest.json`, `docs/intake/2026-10-14-tech-bw-rows-owed-consumers.md`, generated `BACKLOG.md`, `docs/intake/README.md`, `docs/intake/manifest.json`.
+
+**Next:** land through `merge_path.py land`; Part C lands `worktree-system-map-2026-10-14`. Judge's low note J2.N1: a `restamped` receipt line is appended before the atomic replace, so a failed replace logs restamped on an unchanged bundle.
+
+---
+
 ### 2026-10-14 (a) - CC (Opus 5.5, handoff seat): architect handoff `2026-10-14-dev-knowledge-architect` cut, supplement filled, residual carries its debt (Tech-Architect-44 -> successor)
 
 **Anchors:** `4438afcd` (cut + SUPPLEMENT filled verbatim from SUPPLEMENT-ANSWERS-2026-10-14 v2), `2c4d2a54` (RESIDUAL "Carried debt" + PASTE_THIS re-assembled). Branch `worktree-handoff-2026-10-14`, cut from `2512b210`.

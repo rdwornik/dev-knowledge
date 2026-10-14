@@ -616,6 +616,50 @@ def test_row_dates_groups_the_harness_fates_and_counts_the_overdue(tmp_path):
     assert "2026-10-04 ×2" not in later.value and "4 overdue" in later.value, later.value
 
 
+def test_row_dates_counts_the_inline_flow_mapping_fates_the_live_harness_uses(tmp_path):
+    """X6 RED-first: the live ecosystem/harness.yaml writes every fate as `- {id: .., manual_until: ..}`,
+    which the line-start-anchored regex never saw (the row read 'none; 0 overdue' on a harness with 90
+    dated fates). A YAML comment and a `<date>` template must not be counted."""
+    repo = _repo_with_registries(tmp_path)
+    (repo / "ecosystem" / "harness.yaml").write_text(
+        "# manual_until: 2026-01-01\n"
+        "fates:\n"
+        '  - {id: a, manual_until: 2026-10-04, reason: "x"}\n'
+        "  - {id: b, receipt: R.json, manual_until: 2026-10-19}\n"
+        "  - {id: c, manual_until: <date>}\n",
+        encoding="utf-8")
+    row = hs.row_dates(repo, today="2026-10-03")
+    assert "2026-10-04 ×1" in row.value and "2026-10-19 ×1" in row.value, row.value
+    assert "0 overdue" in row.value, row.value
+    assert "2026-01-01" not in row.value, row.value
+
+
+def _walk_manual_until(node) -> list:
+    found = []
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == "manual_until" and v is not None and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(v)):
+                found.append(str(v))
+            found += _walk_manual_until(v)
+    elif isinstance(node, list):
+        for v in node:
+            found += _walk_manual_until(v)
+    return found
+
+
+def test_row_dates_total_equals_the_dated_manual_until_values_in_the_live_harness():
+    """X6 RED-first: on the live tree the row's upcoming+overdue total equals a yaml.safe_load walk
+    of ecosystem/harness.yaml, and is non-zero (today it reads 'none; 0 overdue')."""
+    import yaml
+    repo_root = Path(__file__).resolve().parents[1]
+    expected = len(_walk_manual_until(
+        yaml.safe_load((repo_root / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))))
+    assert expected > 0
+    # a far-future "today" makes every dated fate overdue, so the overdue count IS the total
+    future = hs.row_dates(repo_root, today="2999-01-01").value
+    assert f"{expected} overdue" in future, future
+
+
 def test_row_dates_degrades_visibly_without_a_harness(tmp_path):
     assert hs.row_dates(tmp_path, today="2026-10-03").value.startswith("unavailable")
 
