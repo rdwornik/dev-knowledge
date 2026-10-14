@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "74ab8423bd0f85e03fee16c464dbf7f60b3e7e0e9927867f57ef977f5651303f",
+  "source_sha256": "2e7b931d22de923eedcc13e64eb345c03aea38325adac6826bd637ae8f0d7bb8",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 98,
+    "item_derived_lines": 99,
     "residue_lines": 297,
-    "total_lines": 395,
+    "total_lines": 396,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -467,6 +467,10 @@
         "consumed-by",
         "origin"
       ],
+      "2026-10-15-tech-ci-verdict-step-window-overlap.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-10-15-tech-map-refresh-closed-loop.md": [
         "consumed-by",
         "origin"
@@ -549,7 +553,7 @@
     },
     {
       "t": "line",
-      "v": "**98 intake documents.**"
+      "v": "**99 intake documents.**"
     },
     {
       "t": "line",
@@ -557,7 +561,7 @@
     },
     {
       "t": "line",
-      "v": "### SEED (15)"
+      "v": "### SEED (16)"
     },
     {
       "t": "line",
@@ -636,6 +640,11 @@
     {
       "t": "item",
       "file": "2026-10-15-tech-map-refresh-closed-loop.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-10-15-tech-ci-verdict-step-window-overlap.md",
       "status": "SEED"
     },
     {
