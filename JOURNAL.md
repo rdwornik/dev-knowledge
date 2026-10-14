@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot closes -- B landed 64704a83, C landed 40e53d58; the residual X3 defect filed
+
+**Anchors:** `42efebd3` (system-map-2026-10-14 merge receipt closed), `c5c3d459` ([#1534] + intake 109). Branch `chore/green-main-tail-2026-10-15`.
+
+**Did:** both lands went through `merge_path.py land` on `worktree-integrate-green-main-2026-10-14` (B: run 38643452410; C: run 38647831805), each PRE-EXISTING (landable) against its base. The Done-when check on the new main found a residual of the X3 fix: on run 38646687088 the retired gate step and the known_reds step share one second, so `ci_verdict --ref 64704a83` (no baseline) reads 12 false new reds while both known-reds compares say PASS, 0 outside the registry. `land` is unaffected (judged against the base). Filed as [#1534] (P1); the judge's two rounds were spent.
+
+**Result:** main's 25 regressions are gone in the known-reds compare (54 known, 4 witnesses, 0 outside the registry, both legs); `ci_verdict` without a baseline still over-reports until [#1534].
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl`, `tasks/1534-*`, `docs/intake/2026-10-15-tech-ci-verdict-step-window-overlap.md`, `tasks/manifest.json`, generated `BACKLOG.md`, `docs/intake/README.md`, `docs/intake/manifest.json`.
+
+**Next:** [#1534]; [#1533]; this carrier merge's own receipt line has no later merge to ride (GAP, LANE-END-green-main-2026-10-14).
+
+---
+
 ### 2026-10-15 (a) - CC (Opus 5.5, orchestrator, R104): the leftover system-map record lands (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part C)
 
 **Anchors:** `c2953534` (system-map record 47a6388c -> 88f1bc52), `627e923a` (synced with main `64704a83`), `35142278` (green-main merge receipt closed), `0c99d77e` ([#1533] + intake 108). Branch `worktree-system-map-2026-10-14`.
