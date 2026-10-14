@@ -38,11 +38,26 @@ INTERFACE FIXED FOR THE IMPLEMENTER (do not rename without changing these tests)
     does not run the preflight. NOTE: adding the flag changes the flag set pinned by the EXISTING
     `tests/test_gen_handoff.py::test_cli_flags_and_refusal_exit_code_are_unchanged`
     (`expected_flags`); the implementer extends that set by exactly `--restamp-manifest`.
+
+R107 ADDITION (operator ruling 2026-10-14, to-browser/RATIFICATION-2026-10-14.md v4): "Every use
+writes a receipt." and "It rewrites only the manifest hashes of the filled files; nothing else
+in the bundle changes." The use-receipt therefore lives OUTSIDE the bundle dir, following the
+repo's committed-ledger convention (`logs/MERGE-RECEIPTS.jsonl`, `logs/CODESPACE-RECEIPTS.jsonl`:
+append-only JSONL, one object per event):
+
+  * PATH: `<repo_root>/logs/HANDOFF-RESTAMP-RECEIPTS.jsonl`, ONE appended line per call to
+    `restamp_manifest` (success AND refusal -- the line is written before the error is raised).
+  * KEYS (all required): `verb` ("restamp-manifest"), `slug` (bundle dir name), `bundle`
+    (repo-relative posix path), `utc` (ISO-8601 UTC timestamp), `ruling` ("R107"), `files`
+    (`{relative name: {"old": sha256, "new": sha256}}` for each file whose recorded sha changed;
+    `{}` on a refusal), `head_sha` (`git rev-parse HEAD` of repo_root), `outcome` ("restamped" |
+    "refused"), `reason` (null on restamped; the refusal message on refused).
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 
 import pytest
@@ -211,3 +226,88 @@ def test_cli_restamp_manifest_refusal_exits_one_and_writes_nothing(tmp_path, mon
     assert result.exit_code == 1, result.output
     assert "SNEAKED-IN.md" in result.output
     assert _snapshot(bundle) == before
+
+
+# --- R107: every use writes a receipt (outside the bundle); only manifest hashes change --------
+
+_USE_RECEIPT = "logs/HANDOFF-RESTAMP-RECEIPTS.jsonl"
+_USE_RECEIPT_KEYS = {"verb", "slug", "bundle", "utc", "ruling", "files", "head_sha", "outcome",
+                     "reason"}
+
+
+def _use_receipts(repo):
+    path = repo / _USE_RECEIPT
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+
+
+def _head(repo):
+    return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def test_R107_a_successful_restamp_writes_exactly_one_use_receipt(tmp_path, monkeypatch):
+    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
+    old_files = json.loads((bundle / vhp.RECEIPT_FILE).read_text(encoding="utf-8"))["manifest"]["files"]
+    assert _use_receipts(repo) == []
+
+    changed = gh.restamp_manifest(repo, bundle)
+
+    receipts = _use_receipts(repo)
+    assert len(receipts) == 1, receipts
+    rec = receipts[0]
+    assert set(rec) == _USE_RECEIPT_KEYS, set(rec) ^ _USE_RECEIPT_KEYS
+    assert rec["verb"] == "restamp-manifest" and rec["ruling"] == "R107"
+    assert rec["slug"] == bundle.name
+    assert rec["bundle"] == bundle.relative_to(repo).as_posix()
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|\+00:00)", rec["utc"]), rec["utc"]
+    assert rec["head_sha"] == _head(repo)
+    assert rec["outcome"] == "restamped" and rec["reason"] is None
+    assert set(rec["files"]) == set(changed) and changed
+    new_files = gh._bundle_file_shas(bundle)
+    for name, pair in rec["files"].items():
+        assert pair == {"old": old_files[name], "new": new_files[name]}, name
+        assert pair["old"] != pair["new"], name
+    assert not (bundle / "logs").exists()                  # the receipt is outside the bundle
+
+
+def test_R107_a_refused_restamp_also_writes_a_use_receipt_with_its_reason(tmp_path, monkeypatch):
+    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
+    (bundle / "SNEAKED-IN.md").write_text("not part of any fill step\n", encoding="utf-8")
+    _commit_all(repo, "add a file")
+
+    with pytest.raises(gh.RestampRefusedError) as exc:
+        gh.restamp_manifest(repo, bundle)
+
+    receipts = _use_receipts(repo)
+    assert len(receipts) == 1, receipts                    # every use, refusals included
+    rec = receipts[0]
+    assert set(rec) == _USE_RECEIPT_KEYS, set(rec) ^ _USE_RECEIPT_KEYS
+    assert rec["outcome"] == "refused" and rec["ruling"] == "R107"
+    assert rec["slug"] == bundle.name and rec["head_sha"] == _head(repo)
+    assert rec["files"] == {}
+    assert "SNEAKED-IN.md" in rec["reason"] and rec["reason"] in str(exc.value)
+
+
+def test_R107_only_the_manifest_hashes_of_the_changed_files_differ_afterwards(
+        tmp_path, monkeypatch):
+    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
+    before = _snapshot(bundle)
+    receipt_before = json.loads(before[vhp.RECEIPT_FILE])
+
+    changed = gh.restamp_manifest(repo, bundle)
+
+    after = _snapshot(bundle)
+    assert set(after) == set(before)
+    assert {n for n in after if n != vhp.RECEIPT_FILE and after[n] != before[n]} == set()
+    receipt_after = json.loads(after[vhp.RECEIPT_FILE])
+    # every key identical except manifest.files, and inside it only the changed files' entries
+    assert {k: v for k, v in receipt_after.items() if k != "manifest"} == \
+        {k: v for k, v in receipt_before.items() if k != "manifest"}
+    assert {k: v for k, v in receipt_after["manifest"].items() if k != "files"} == \
+        {k: v for k, v in receipt_before["manifest"].items() if k != "files"}
+    files_before, files_after = receipt_before["manifest"]["files"], receipt_after["manifest"]["files"]
+    assert set(files_after) == set(files_before)
+    assert {n for n in files_after if files_after[n] != files_before[n]} == set(changed)
