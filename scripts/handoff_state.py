@@ -694,7 +694,25 @@ def row_decisions(transport: "Path | None", repo_root: "Path | str") -> StateRow
     return StateRow("Decisions", value, "LIVE-DRIFTS", evidence)
 
 
-_MANUAL_UNTIL_RE = re.compile(r"(?m)^\s*manual_until:\s*(\d{4}-\d{2}-\d{2})\b")
+
+def _manual_until_dates(node: object) -> list[str]:
+    """Every ISO-dated `manual_until` value under `node`, block or flow mapping alike; a
+    comment never parses into the tree and a non-date value (`<date>`) is skipped."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "manual_until" and isinstance(value, (_dt.date, str)):
+                text = value.isoformat() if isinstance(value, _dt.date) else value
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+                    found.append(text)
+            else:
+                found += _manual_until_dates(value)
+    elif isinstance(node, list):
+        for item in node:
+            found += _manual_until_dates(item)
+    return found
+
+
 #: How many upcoming dates the Dates row names before it says "+ N later".
 DATES_SHOWN = 3
 
@@ -707,8 +725,7 @@ def row_dates(repo_root: "Path | str", *, today: "str | None" = None) -> StateRo
     path = Path(repo_root) / "ecosystem" / "harness.yaml"
     now = today or _dt.date.today().isoformat()
     try:
-        text = path.read_text(encoding="utf-8")
-        dates = _MANUAL_UNTIL_RE.findall(text)
+        dates = _manual_until_dates(yaml.safe_load(path.read_text(encoding="utf-8")))
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Dates", evidence, "LIVE-DRIFTS", exc)
     upcoming: dict[str, int] = {}
