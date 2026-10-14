@@ -23,11 +23,12 @@ def _log_line(text: str) -> str:
 
 
 def _suite_gate_log(baseline: str, regressions: tuple = ()) -> str:
-    lines = [_log_line("conductor suite-baseline gate"), _log_line(""),
-             _log_line(f"baseline sha   : {baseline}"),
-             _log_line("baseline source: Actions `conductor` run **1**, `push`, x"),
-             _log_line("baseline pin   : -n 4"), _log_line("frozen members : 87"), _log_line("")]
-    lines.append(_log_line("pre-existing   : 0"))
+    # The block the VERDICT step prints (`known_reds.render_compare`), not the retired [#802]
+    # suite-baseline gate's: the helper name is kept so each caller's intent reads unchanged.
+    lines = [_log_line("known-reds compare"), _log_line(""),
+             _log_line(f"baseline id    : {baseline}"),
+             _log_line("os key         : ubuntu"), _log_line("pre-existing   : 0"),
+             _log_line("witnesses      : 0")]
     lines.append(_log_line(f"regressions    : {len(regressions)}"))
     for nid in regressions:
         lines.append(_log_line(f"  REGRESSION    {nid}"))
@@ -641,10 +642,10 @@ def test_parse_suite_gate_block_WINDOW_ignores_a_shape_match_outside_the_real_st
     the parser has no notion of "the real one" -- it keeps overwriting as it walks the log, so
     whichever matching line comes LAST wins; here that is a decoy that sorts after the real
     line, which is exactly why an unscoped read cannot be trusted."""
-    real = _log_line_at("2026-09-24T00:05:00.0000000Z", "baseline sha   : c5108329")
-    decoy = _log_line_at("2026-09-24T00:10:00.0000000Z", "baseline sha   : deadbeef00")
+    real = _log_line_at("2026-09-24T00:05:00.0000000Z", "baseline id    : c5108329")
+    decoy = _log_line_at("2026-09-24T00:10:00.0000000Z", "baseline id    : deadbeef00")
     log = "\n".join([_log_line_at("2026-09-24T00:05:00.0000000Z",
-                                  "conductor suite-baseline gate"), real, decoy])
+                                  "known-reds compare"), real, decoy])
     window = (cv.datetime.fromisoformat("2026-09-24T00:04:00+00:00"),
              cv.datetime.fromisoformat("2026-09-24T00:06:00+00:00"))
 
@@ -662,11 +663,11 @@ def test_step_window_reads_the_gate_steps_own_started_and_completed_PADDED_by_on
     `_STEP_WINDOW_PAD`'s docstring."""
     job = {"steps": [{"name": "Sync the locked environment",
                       "startedAt": "2026-09-24T00:00:00Z", "completedAt": "2026-09-24T00:01:00Z"},
-                     {"name": cv.SUITE_GATE_STEP_NAME,
+                     {"name": _live_known_reds_step_name(),
                       "startedAt": "2026-09-24T00:05:00Z",
                       "completedAt": "2026-09-24T00:05:30Z"}]}
 
-    window = cv._step_window(job, cv.SUITE_GATE_STEP_NAME)
+    window = cv._step_window(job, _live_known_reds_step_name())
 
     assert window is not None
     assert window[0].isoformat() == "2026-09-24T00:04:59+00:00"
@@ -677,7 +678,7 @@ def test_step_window_is_NONE_when_the_step_never_ran():
     job = {"steps": [{"name": "Sync the locked environment",
                       "startedAt": "2026-09-24T00:00:00Z", "completedAt": "2026-09-24T00:01:00Z"}]}
 
-    assert cv._step_window(job, cv.SUITE_GATE_STEP_NAME) is None
+    assert cv._step_window(job, _live_known_reds_step_name()) is None
 
 
 # --- foundation-4-merge-gate, repair 2: the merge path's own log reader ----------------------

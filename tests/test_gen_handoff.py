@@ -646,7 +646,7 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
         "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
-        "--boot-dispatch",
+        "--boot-dispatch", "--restamp-manifest",
     }
     actual_flags: set[str] = set()
     for p in gh.main.params:
