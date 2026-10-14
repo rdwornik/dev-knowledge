@@ -3380,3 +3380,46 @@ def test_a_present_codespace_cache_that_is_not_mirrored_keeps_its_reading():
         "claude": {"state": "ok", "detail": "token valid for 7 h", "renew": ""}}
     verdict = cp.compare_environment(_record("local"), remote)
     assert _credential_line(verdict, "claude", "codespace") == "credential claude codespace: ok (token valid for 7 h)"
+
+
+# ============================== codespace-finish-2026-10-14 (stage 2) -- an unsigned CLI is an auth item
+#
+# RED on 0d97edde: agy's laptop sign-in is the OS keyring and the Codespace has none, so
+# `_compare_auth_mechanism` FAILs it as "a different mechanism" before `_auth_items` can NAME it.
+# An unsigned CLI answers through no mechanism at all: it is the missing login the module already names.
+
+def _unsigned_agy_pair():
+    classes = {"claude": "subscription", "codex": "subscription", "grok": "api-key", "agy": "keyring"}
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth_mech"] = _mech(classes)
+    remote["environment"]["auth_mech"] = _mech(dict(classes, agy="none"))
+    remote["environment"]["models"]["agy"] = {"state": "not-probed-auth", "served_id": None,
+                                              "detail": "sign in"}
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    remote["environment"]["auth"] = _auth(agy="unauthenticated")
+    return local, remote
+
+
+def test_c1_names_an_unsigned_cli_as_an_auth_item_not_a_mechanism_fail():
+    local, remote = _unsigned_agy_pair()
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "PASS", verdict
+    assert "except named auth items" in verdict.reason and "agy" in verdict.reason
+    assert "R87" not in verdict.reason and "mechanism" not in verdict.reason
+    assert any(e.startswith("AUTH-ITEM agy") for e in verdict.evidence)
+
+
+def test_c1_still_fails_a_cli_answering_through_an_api_key_the_laptop_does_not_use():
+    """REGRESSION GUARD: GREEN on 0d97edde and must stay green. The unsigned-CLI excuse is for class
+    `none` only; codex answering through `api-key` against the laptop's `subscription` stays the R87
+    FAIL, and so does any other class mismatch."""
+    classes = {"claude": "subscription", "codex": "subscription", "grok": "api-key", "agy": "keyring"}
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth_mech"] = _mech(classes)
+    remote["environment"]["auth_mech"] = _mech(dict(classes, codex="api-key"))
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL"
+    assert "codex" in verdict.reason and "R87" in verdict.reason and "api-key" in verdict.reason
+    remote["environment"]["auth_mech"] = _mech(dict(classes, agy="api-key"))
+    again = cp.compare_environment(local, remote)
+    assert again.status == "FAIL" and "agy" in again.reason and "R87" in again.reason
