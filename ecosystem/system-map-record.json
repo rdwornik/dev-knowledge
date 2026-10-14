@@ -1,15 +1,32 @@
 {
- "built_at": "d5276dded8724658fe57b5d6a83c906b8a37b886",
+ "built_at": "b46836c81589bb1fd0f726279d8d17d9ddb7d5e6",
  "diff": {
-  "added": [],
-  "added_count": 0,
+  "added": [
+   "file:ecosystem/seat-ids.yaml",
+   "file:scripts/harness_probes.py",
+   "file:scripts/hooks/reuse_gate.py",
+   "file:scripts/hooks/session_start.py",
+   "organ:session-hook:PreToolUse: reuse_gate.py",
+   "organ:session-hook:SessionStart: session_start.py"
+  ],
+  "added_count": 6,
   "baseline": false,
-  "removed": [],
-  "removed_count": 0
+  "removed": [
+   "organ:session-hook:SessionStart: arm_hooks.py",
+   "organ:session-hook:SessionStart: billing_leak_sentinel.py",
+   "organ:session-hook:SessionStart: changelog_sentinel.py",
+   "organ:session-hook:SessionStart: codespace_regime.py",
+   "organ:session-hook:SessionStart: conductor.py",
+   "organ:session-hook:SessionStart: fleet_health.py",
+   "organ:session-hook:SessionStart: quota_daily.py",
+   "organ:session-hook:SessionStart: resource_lifecycle.py",
+   "organ:session-hook:SessionStart: surface_triage.py"
+  ],
+  "removed_count": 9
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "47a6388cda3cec80b4fe0976f979d93ba1c2eb9704243cff85dbdd6b2da5518c",
- "node_count": 380,
+ "map_sha": "88f1bc5271dcbc05abd6ed0e34ab34a0183888b13316f20605df8166c113570c",
+ "node_count": 377,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
   "file:.claude/commands/boot-session.md",
@@ -61,6 +78,7 @@
   "file:ecosystem/registry.md",
   "file:ecosystem/routing-table.yaml",
   "file:ecosystem/satellite-onboarding-rulings.yaml",
+  "file:ecosystem/seat-ids.yaml",
   "file:ecosystem/silent-rule-baseline.yaml",
   "file:ecosystem/substrate-registry.yaml",
   "file:ecosystem/tool-versions.yaml",
@@ -193,6 +211,7 @@
   "file:scripts/handback.py",
   "file:scripts/handback_schema.py",
   "file:scripts/handoff_state.py",
+  "file:scripts/harness_probes.py",
   "file:scripts/hook_expiry_verdict.py",
   "file:scripts/hooks/block_immutable_edits.py",
   "file:scripts/hooks/bounded_hook.py",
@@ -200,7 +219,9 @@
   "file:scripts/hooks/hook_launcher.py",
   "file:scripts/hooks/hook_watchdog.py",
   "file:scripts/hooks/quota_daily.py",
+  "file:scripts/hooks/reuse_gate.py",
   "file:scripts/hooks/scope_guard.py",
+  "file:scripts/hooks/session_start.py",
   "file:scripts/id_allocator.py",
   "file:scripts/impacted_tests.py",
   "file:scripts/journal_anchor.py",
@@ -353,17 +374,10 @@
   "organ:rule:git-discipline",
   "organ:session-hook:Notification: claude-notify.ps1",
   "organ:session-hook:PreToolUse: block-onedrive.ps1",
+  "organ:session-hook:PreToolUse: reuse_gate.py",
   "organ:session-hook:PreToolUse: scope_guard.py",
-  "organ:session-hook:SessionStart: arm_hooks.py",
-  "organ:session-hook:SessionStart: billing_leak_sentinel.py",
-  "organ:session-hook:SessionStart: changelog_sentinel.py",
-  "organ:session-hook:SessionStart: codespace_regime.py",
-  "organ:session-hook:SessionStart: conductor.py",
-  "organ:session-hook:SessionStart: fleet_health.py",
-  "organ:session-hook:SessionStart: quota_daily.py",
-  "organ:session-hook:SessionStart: resource_lifecycle.py",
+  "organ:session-hook:SessionStart: session_start.py",
   "organ:session-hook:SessionStart: surface-closures.ps1",
-  "organ:session-hook:SessionStart: surface_triage.py",
   "organ:session-hook:Stop: claude-notify.ps1",
   "organ:session-hook:Stop: lane_end_guard.py",
   "organ:session-hook:Stop: lane_handback_gate.py",
@@ -392,6 +406,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": "2c34bb3e2a9435edf6e0b178d2e9a4628618c889c2db0c78d4a4ac98f318c81d",
+ "previous_sha": "47a6388cda3cec80b4fe0976f979d93ba1c2eb9704243cff85dbdd6b2da5518c",
  "schema": "system-map-record/1"
 }
