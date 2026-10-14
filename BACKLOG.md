@@ -797,6 +797,29 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
 - [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
 - [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
+- [#1510] [P3][S] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned · tasks/1510-lane-bw-1001-hook-launcher-has-no-consumer.md
+- [#1511] [P3][S] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned · tasks/1511-lane-bw-1001-sessionstart-one-has-no-consumer.md
+- [#1512] [P3][S] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned · tasks/1512-lane-bw-1103-registry-repoint-has-no-consumer.md
+- [#1513] [P3][S] LANE-bw-1368-lane-report-rollup.md has no consumer -- its finding is owned or dispositioned · tasks/1513-lane-bw-1368-lane-report-rollup-has-no-consumer.md
+- [#1514] [P3][S] LANE-bw-1374-lane-controller.md has no consumer -- its finding is owned or dispositioned · tasks/1514-lane-bw-1374-lane-controller-has-no-consumer.md
+- [#1515] [P3][S] LANE-bw-1378-rulings-landing.md has no consumer -- its finding is owned or dispositioned · tasks/1515-lane-bw-1378-rulings-landing-has-no-consumer.md
+- [#1516] [P3][S] LANE-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1516-lane-bw-1439-transport-index-has-no-consumer.md
+- [#1517] [P3][S] LANE-bw-1447-distill-kind-fix.md has no consumer -- its finding is owned or dispositioned · tasks/1517-lane-bw-1447-distill-kind-fix-has-no-consumer.md
+- [#1518] [P3][S] LANE-bw-1450-boot-teaching.md has no consumer -- its finding is owned or dispositioned · tasks/1518-lane-bw-1450-boot-teaching-has-no-consumer.md
+- [#1519] [P3][S] LANE-bw-242-adr-lifecycle.md has no consumer -- its finding is owned or dispositioned · tasks/1519-lane-bw-242-adr-lifecycle-has-no-consumer.md
+- [#1520] [P3][S] LANE-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned · tasks/1520-lane-bw-670-harness-probes-has-no-consumer.md
+- [#1521] [P3][S] LANE-bw-680-handoff-gen.md has no consumer -- its finding is owned or dispositioned · tasks/1521-lane-bw-680-handoff-gen-has-no-consumer.md
+- [#1522] [P3][S] LANE-bw-735-reuse-gate.md has no consumer -- its finding is owned or dispositioned · tasks/1522-lane-bw-735-reuse-gate-has-no-consumer.md
+- [#1523] [P3][S] LANE-bw-781-system-map.md has no consumer -- its finding is owned or dispositioned · tasks/1523-lane-bw-781-system-map-has-no-consumer.md
+- [#1524] [P3][S] LANE-bw-893-b2w3-carry.md has no consumer -- its finding is owned or dispositioned · tasks/1524-lane-bw-893-b2w3-carry-has-no-consumer.md
+- [#1525] [P3][S] LANE-bw-912-known-reds-expiry.md has no consumer -- its finding is owned or dispositioned · tasks/1525-lane-bw-912-known-reds-expiry-has-no-consumer.md
+- [#1526] [P3][S] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned · tasks/1526-lane-bw-926-main-red-has-no-consumer.md
+- [#1527] [P3][S] LANE-bw-958-required-tools.md has no consumer -- its finding is owned or dispositioned · tasks/1527-lane-bw-958-required-tools-has-no-consumer.md
+- [#1528] [P3][S] 2026-10-10-codex-b2w2-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1528-2026-10-10-codex-b2w2-transport-index-has-no-consumer.md
+- [#1529] [P3][S] 2026-10-13-codex-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1529-2026-10-13-codex-bw-1439-transport-index-has-no-consumer.md
+- [#1530] [P3][S] 2026-10-13-codex-lane-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned · tasks/1530-2026-10-13-codex-lane-bw-670-harness-probes-has-no-consumer.md
+- [#1531] [P3][S] 2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md has no consumer -- its finding is owned or dispositioned · tasks/1531-2026-10-13-technical-lane-bw-1001-sessionstart-measurement-has-no-consumer.md
+- [#1532] [P3][S] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned · tasks/1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md
 
 ---
 

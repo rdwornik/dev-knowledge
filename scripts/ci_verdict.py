@@ -54,10 +54,10 @@ HONEST LIMITS:
     reads as `not-run`, correctly; so does a merge whose run fired against a rewritten sha.
   * THE SUITE-GATE BLOCK IS READ AS LOGGED TEXT, not re-parsed from `logs/SUITE-BASELINE-FREEZE.md`
     directly -- this organ trusts the runner's own rendering rather than re-deriving it, so a
-    change to `render_suite_gate`'s wording (the `baseline sha   :` / `  REGRESSION    ` prefixes)
+    change to `known_reds.render_compare`'s wording (the `baseline id    :` / `  REGRESSION    ` prefixes)
     is a breaking change to this parser too. Format confirmed live against
     `gh run view --job 107339568361 --log` on run `35907748018`, 2026-09-24. Parsing is SCOPED
-    to the `SUITE_GATE_STEP_NAME` step's own `startedAt`/`completedAt` window (`_step_window`),
+    to the `KNOWN_REDS_STEP_NAME` step's own `startedAt`/`completedAt` window (`_step_window`),
     not the log text's step field -- that field renders as the literal `UNKNOWN STEP` on every
     line of a real `run:` step, measured the same day, so it cannot itself discriminate. Without
     a resolvable window (the step never ran, or its timing is missing) parsing falls back to
@@ -106,12 +106,15 @@ _RUN_FIELDS = "databaseId,headSha,status,conclusion,displayTitle,url,createdAt,u
 #: step's own `startedAt`/`completedAt` window (`_step_window`), read from `gh run view --json
 #: jobs`'s per-job `steps` array, which DOES carry real names and real times.
 _LOG_LINE_RE = re.compile(r"^(?:[^\t]*\t){0,2}(\S+Z) ?(.*)$")
-_BASELINE_SHA_RE = re.compile(r"^baseline sha\s*:\s*(\S+)$")
+_BASELINE_ID_RE = re.compile(r"^baseline id\s*:\s*(\S+)$")
 _REGRESSION_RE = re.compile(r"^  REGRESSION\s+(\S.*)$")
-_SUITE_GATE_HEADER = "conductor suite-baseline gate"
-#: `conductor.yml`'s pytest job, step id `gate` -- the ONLY step whose log this organ trusts
-#: for a baseline id or a regression list. A rename there is a breaking change here too.
-SUITE_GATE_STEP_NAME = "Judge the run against the frozen baseline, by node id ([#802])"
+#: `known_reds.render_compare`'s first line, matched whole so `compare-hook` / `compare-to-base` never read.
+_KNOWN_REDS_HEADER = "known-reds compare"
+#: `conductor.yml`'s pytest job, step id `known_reds` -- the enforced verdict step, and the ONLY
+#: step whose log this organ trusts for a baseline id or a regression list (the `gate` step is
+#: report-only). A rename there is a breaking change here too.
+KNOWN_REDS_STEP_NAME = "Compare against the committed known-reds registry (LANE-5A-1, ADR-121 step 1)"
+SUITE_GATE_STEP_NAME = KNOWN_REDS_STEP_NAME
 
 
 class GhUnavailable(RuntimeError):
@@ -290,9 +293,9 @@ def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> 
                 continue
             if not (window[0] <= ts <= window[1]):
                 continue
-        if line.startswith(_SUITE_GATE_HEADER):
+        if line.rstrip() == _KNOWN_REDS_HEADER:
             found = True
-        bm = _BASELINE_SHA_RE.match(line)
+        bm = _BASELINE_ID_RE.match(line)
         if bm:
             baseline_id = bm.group(1)
         rm = _REGRESSION_RE.match(line)
@@ -578,7 +581,7 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
             continue
         log_text = log_fn(run_id, pytest_job["databaseId"], repo_root=root)
         if log_text:
-            window = _step_window(pytest_job, SUITE_GATE_STEP_NAME)
+            window = _step_window(pytest_job, KNOWN_REDS_STEP_NAME)
             block = parse_suite_gate_block(log_text, window=window)
             baseline_id = baseline_id or block["baseline_id"]
             gate_found = gate_found or block["found"]

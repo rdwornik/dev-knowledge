@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2bdd8cd407d785493d1d22de393102563ea77f01e055b480a0395072fe7afe80",
+  "generated_sha256": "86a8cd5ba3e9af97823ef55916467bf8be4f4bdf808381b2a34d80be26f2f025",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3030,6 +3030,98 @@
     {
       "task": 1483,
       "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
+    },
+    {
+      "task": 1510,
+      "file": "1510-lane-bw-1001-hook-launcher-has-no-consumer.md"
+    },
+    {
+      "task": 1511,
+      "file": "1511-lane-bw-1001-sessionstart-one-has-no-consumer.md"
+    },
+    {
+      "task": 1512,
+      "file": "1512-lane-bw-1103-registry-repoint-has-no-consumer.md"
+    },
+    {
+      "task": 1513,
+      "file": "1513-lane-bw-1368-lane-report-rollup-has-no-consumer.md"
+    },
+    {
+      "task": 1514,
+      "file": "1514-lane-bw-1374-lane-controller-has-no-consumer.md"
+    },
+    {
+      "task": 1515,
+      "file": "1515-lane-bw-1378-rulings-landing-has-no-consumer.md"
+    },
+    {
+      "task": 1516,
+      "file": "1516-lane-bw-1439-transport-index-has-no-consumer.md"
+    },
+    {
+      "task": 1517,
+      "file": "1517-lane-bw-1447-distill-kind-fix-has-no-consumer.md"
+    },
+    {
+      "task": 1518,
+      "file": "1518-lane-bw-1450-boot-teaching-has-no-consumer.md"
+    },
+    {
+      "task": 1519,
+      "file": "1519-lane-bw-242-adr-lifecycle-has-no-consumer.md"
+    },
+    {
+      "task": 1520,
+      "file": "1520-lane-bw-670-harness-probes-has-no-consumer.md"
+    },
+    {
+      "task": 1521,
+      "file": "1521-lane-bw-680-handoff-gen-has-no-consumer.md"
+    },
+    {
+      "task": 1522,
+      "file": "1522-lane-bw-735-reuse-gate-has-no-consumer.md"
+    },
+    {
+      "task": 1523,
+      "file": "1523-lane-bw-781-system-map-has-no-consumer.md"
+    },
+    {
+      "task": 1524,
+      "file": "1524-lane-bw-893-b2w3-carry-has-no-consumer.md"
+    },
+    {
+      "task": 1525,
+      "file": "1525-lane-bw-912-known-reds-expiry-has-no-consumer.md"
+    },
+    {
+      "task": 1526,
+      "file": "1526-lane-bw-926-main-red-has-no-consumer.md"
+    },
+    {
+      "task": 1527,
+      "file": "1527-lane-bw-958-required-tools-has-no-consumer.md"
+    },
+    {
+      "task": 1528,
+      "file": "1528-2026-10-10-codex-b2w2-transport-index-has-no-consumer.md"
+    },
+    {
+      "task": 1529,
+      "file": "1529-2026-10-13-codex-bw-1439-transport-index-has-no-consumer.md"
+    },
+    {
+      "task": 1530,
+      "file": "1530-2026-10-13-codex-lane-bw-670-harness-probes-has-no-consumer.md"
+    },
+    {
+      "task": 1531,
+      "file": "1531-2026-10-13-technical-lane-bw-1001-sessionstart-measurement-has-no-consumer.md"
+    },
+    {
+      "task": 1532,
+      "file": "1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md"
     },
     {
       "prose": ""
