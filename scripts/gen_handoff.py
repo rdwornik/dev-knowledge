@@ -2721,19 +2721,27 @@ class RestampRefusedError(RuntimeError):
 RESTAMP_RECEIPTS_FILE = "logs/HANDOFF-RESTAMP-RECEIPTS.jsonl"
 
 
-def _append_restamp_receipt(repo_root: Path, bundle_dir: Path, *, files: dict,
-                            reason: "str | None") -> None:
+def _append_restamp_receipt(repo_root: Path, bundle_dir: "Path | None", *, files: dict,
+                            reason: "str | None", outcome: "str | None" = None,
+                            slug: "str | None" = None) -> None:
     import json  # noqa: PLC0415
     _, head = _git_status(repo_root, "rev-parse", "HEAD")
+    bundle = None
+    if bundle_dir is not None:
+        slug = bundle_dir.name if slug is None else slug
+        try:
+            bundle = bundle_dir.relative_to(repo_root).as_posix()
+        except ValueError:
+            bundle = None
     entry = {
         "verb": "restamp-manifest",
-        "slug": bundle_dir.name,
-        "bundle": bundle_dir.relative_to(repo_root).as_posix(),
+        "slug": slug,
+        "bundle": bundle,
         "utc": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
         "ruling": "R107",
         "files": files,
         "head_sha": head.strip(),
-        "outcome": "refused" if reason else "restamped",
+        "outcome": outcome or ("refused" if reason else "restamped"),
         "reason": reason,
     }
     path = repo_root / RESTAMP_RECEIPTS_FILE
@@ -2752,18 +2760,30 @@ def restamp_manifest(repo_root: Path, bundle_dir: Path) -> list[str]:
     (fill-surface content changes only, never an added/removed file) AND by the failing-probe
     set being exactly {BD-manifest} -- BD-ci/BD-seats are waived there only because a re-render
     re-derives them, which nothing here does. Refuses, writing nothing to the bundle, otherwise.
-    Every call, refusals included, appends a use-receipt (R107) outside the bundle."""
+    Every call appends exactly one use-receipt (R107: restamped | refused | error) outside the
+    bundle, BEFORE the bundle is touched, so no bundle change exists without a receipt."""
     try:
-        files = _restamp_manifest_files(repo_root, bundle_dir)
+        files, receipt_path, new_text = _restamp_manifest_plan(repo_root, bundle_dir)
     except RestampRefusedError as exc:
         _append_restamp_receipt(repo_root, bundle_dir, files={}, reason=str(exc))
         raise
-    _append_restamp_receipt(repo_root, bundle_dir, files=files, reason=None)
+    except Exception as exc:
+        _append_restamp_receipt(repo_root, bundle_dir, files={}, outcome="error",
+                                reason=f"{type(exc).__name__}: {exc}")
+        raise
+    tmp = receipt_path.with_name(receipt_path.name + ".restamp.tmp")
+    try:
+        tmp.write_text(new_text, encoding="utf-8", newline="\n")
+        _append_restamp_receipt(repo_root, bundle_dir, files=files, reason=None)
+        tmp.replace(receipt_path)
+    finally:
+        tmp.unlink(missing_ok=True)
     return sorted(files)
 
 
-def _restamp_manifest_files(repo_root: Path, bundle_dir: Path) -> dict:
-    """The gated rewrite; returns `{name: {"old": sha, "new": sha}}` for each changed file."""
+def _restamp_manifest_plan(repo_root: Path, bundle_dir: Path) -> "tuple[dict, Path, str]":
+    """The gated computation, writing nothing: `({name: {"old": sha, "new": sha}}, receipt path,
+    new receipt text)`."""
     import json  # noqa: PLC0415
     vhp = _vhp()
     failing = sorted({r.probe_id for r in vhp.verify(bundle_dir, repo_root=repo_root)
@@ -2780,10 +2800,9 @@ def _restamp_manifest_files(repo_root: Path, bundle_dir: Path) -> dict:
     manifest = receipt["manifest"]
     recorded, current = manifest["files"], _bundle_file_shas(bundle_dir)
     manifest["files"] = current
-    receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n",
-                            encoding="utf-8", newline="\n")
-    return {rel: {"old": recorded.get(rel), "new": current[rel]}
-            for rel in sorted(current) if recorded.get(rel) != current[rel]}
+    changed = {rel: {"old": recorded.get(rel), "new": current[rel]}
+               for rel in sorted(current) if recorded.get(rel) != current[rel]}
+    return changed, receipt_path, json.dumps(receipt, indent=2, ensure_ascii=False) + "\n"
 
 
 class ManifestPathError(ValueError):
@@ -3626,11 +3645,21 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
          restamp: bool = False) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     if restamp:
+        def _refuse(reason: str, bundle: "Path | None" = None) -> None:
+            _append_restamp_receipt(_REPO_ROOT, bundle, files={}, reason=reason, slug=slug)
+            raise SystemExit(f"[error] {reason}")
+
         if not slug:
-            raise SystemExit("[error] --restamp-manifest needs --slug <bundle-slug>")
+            _refuse("--restamp-manifest needs --slug <bundle-slug>")
+        handoffs = (_REPO_ROOT / "docs" / "handoffs").resolve()
+        if (any(c in slug for c in "/\\") or slug in (".", "..") or ":" in slug
+                or Path(slug).is_absolute()):
+            _refuse(f"--slug {slug!r} must be a single path component under docs/handoffs")
         bundle_dir = _REPO_ROOT / "docs" / "handoffs" / slug
+        if bundle_dir.resolve().parent != handoffs:
+            _refuse(f"--slug {slug!r} does not resolve directly under docs/handoffs")
         if not bundle_dir.is_dir():
-            raise SystemExit(f"[error] no bundle at {bundle_dir}")
+            _refuse(f"no bundle at {bundle_dir}", bundle_dir)
         try:
             changed = restamp_manifest(_REPO_ROOT, bundle_dir)
         except RestampRefusedError as exc:
