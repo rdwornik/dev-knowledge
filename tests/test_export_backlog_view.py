@@ -27,6 +27,7 @@ import pytest
 import yaml
 
 import export_backlog_view as ebv
+import file_purpose_graph as fpg
 from gen_task_tree import _ORPHAN_RE
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -476,46 +477,69 @@ def test_nothing_under_the_export_path_is_tracked():
                 "cleanup left %s behind" % ebv.DEFAULT_EXPORT_DIR)
 
 
-#: The enforcement surface: everything that could re-point governance at the view. `docs/`
-#: is excluded on purpose — an audit artifact NAMES the export, which is not reading it.
-_ENFORCEMENT_ROOTS = ("scripts", ".claude", "plugins", "deploy", "config", "ecosystem", "templates", "protocols")
-_ENFORCEMENT_FILES = (".pre-commit-config.yaml", "pyproject.toml", "CLAUDE.md")
-_EXPORT_TOKENS = (".backlog-view", "export_backlog_view", ebv.MARKER_NAME)
-#: `.claude/worktrees/` holds FULL CHECKOUTS of this repo (ADR-61/[#107]) — descending into
-#: one finds a second copy of the exporter and reds this test whenever a parallel lane is
-#: live, which is a false positive about the lane, not a finding about governance. The
-#: primary checkout's own copy is what this test is for.
-_SKIPPED_DIRS = {".claude/worktrees", "node_modules", ".git"}
+#: Edge kinds that MEAN "reads / runs": a wiring surface TRIGGERS the module, another script IMPORTS
+#: it. `implements` (a task row claiming ownership), `depends-on`, `references` and the like name
+#: the module without consuming it, so they are not readers. [#674]: the old test grepped the
+#: corpus for the export's NAMES and so tripped on `graph_queries.ORPHAN_DISPOSITIONS`, a dict KEY
+#: naming the module precisely to record that it is an orphan BY DESIGN -- a key is not a `reads`
+#: edge. The relationship is now asked of the FPG-1 graph, which is what computes it.
+_READ_EDGE_KINDS = frozenset({fpg.EDGE_TRIGGERS, fpg.EDGE_IMPORTS})
+_EXPORT_RELPATH = "scripts/export_backlog_view.py"
+
+
+def _readers_of_the_export(repo_root: Path) -> list[str]:
+    """`"<consumer> --<kind>--> export"` for every `triggers`/`imports` in-edge on the exporter."""
+    graph = fpg.build(repo_root)
+    key = graph.key_for_path(_EXPORT_RELPATH)
+    assert key is not None, "the exporter has no FPG-1 node -- the sweep would be vacuous"
+    return [f"{node.key} --{edge.kind}--> {_EXPORT_RELPATH} ({edge.detail})"
+            for edge, node in graph.consumers(key) if edge.kind in _READ_EDGE_KINDS]
 
 
 @pytest.mark.live_repo
 def test_no_gate_hook_or_script_reads_the_export():
-    """Condition 3: governance stays bespoke.
+    """Condition 3: governance stays bespoke -- asserted as the ABSENCE of a reads edge.
 
-    HONEST LIMIT: this greps for the export's OWN names — the path, the module and the
-    marker — which is the real re-pointing risk. It cannot see a gate that shells out to the
-    `backlog` CLI with a path assembled at runtime.
+    Computed from the FPG-1 graph (`file_purpose_graph.build`): no wiring surface (pre-commit,
+    settings hooks, workflows, harness) TRIGGERS the exporter and no script IMPORTS it.
+    HONEST LIMIT: the graph sees wiring and imports, not a gate that shells out to the `backlog`
+    CLI with a path assembled at runtime; the `.backlog-view` directory itself is not a node.
     """
-    allowed = {REPO_ROOT / "scripts" / "export_backlog_view.py", Path(__file__).resolve()}
+    readers = _readers_of_the_export(REPO_ROOT)
+    assert not readers, "the export is read by governance: " + "; ".join(readers)
 
-    def _in_scope(path: Path) -> bool:
-        rel = path.relative_to(REPO_ROOT).as_posix()
-        return not any(rel == skip or rel.startswith(skip + "/") for skip in _SKIPPED_DIRS)
 
-    candidates: list[Path] = [REPO_ROOT / name for name in _ENFORCEMENT_FILES]
-    for root in _ENFORCEMENT_ROOTS:
-        candidates.extend(p for p in (REPO_ROOT / root).rglob("*") if p.is_file() and _in_scope(p))
-    assert len(candidates) > 100, "the enforcement sweep collected almost nothing — it is vacuous"
+def _tiny_repo(tmp_path: Path, *, importer: bool = False, wired: bool = False) -> Path:
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    files = {
+        "scripts/export_backlog_view.py": ["def export():", "    pass"],
+        # The disposition-key shape that tripped the grep: a string naming the exporter, no call.
+        "scripts/graph_queries.py": ['DISPOSITIONS = {"scripts/export_backlog_view.py": "orphan"}'],
+    }
+    if importer:
+        files["scripts/gate.py"] = ["import export_backlog_view", "", "export_backlog_view.export()"]
+    if wired:
+        files[".pre-commit-config.yaml"] = [
+            "repos:", "  - repo: local", "    hooks:", "      - id: view", "        name: view",
+            "        entry: uv run --locked python scripts/export_backlog_view.py",
+            "        language: system"]
+    for rel, lines in files.items():
+        (repo / rel).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return repo
 
-    offenders: list[str] = []
-    for path in candidates:
-        if not path.exists() or path.resolve() in allowed or path.suffix in {".pyc", ".lock"}:
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        for token in _EXPORT_TOKENS:
-            if token in text:
-                offenders.append(f"{path.relative_to(REPO_ROOT).as_posix()} references {token!r}")
-    assert not offenders, "the export is read by governance: " + "; ".join(offenders)
+
+def test_witness_a_disposition_key_naming_the_export_is_not_a_reader(tmp_path):
+    """RED-first control (ADR-108 B): the shape the grep wrongly flagged passes the new assertion."""
+    assert _readers_of_the_export(_tiny_repo(tmp_path)) == []
+
+
+def test_witness_a_script_that_imports_the_export_is_a_reader(tmp_path):
+    """RED-first witness: a genuine reader still FAILS the corrected assertion."""
+    readers = _readers_of_the_export(_tiny_repo(tmp_path, importer=True))
+    assert any("--imports-->" in r and "scripts/gate.py" in r for r in readers), readers
+
+
+def test_witness_a_wiring_surface_that_triggers_the_export_is_a_reader(tmp_path):
+    readers = _readers_of_the_export(_tiny_repo(tmp_path, wired=True))
+    assert any("--triggers-->" in r and ".pre-commit-config.yaml" in r for r in readers), readers
