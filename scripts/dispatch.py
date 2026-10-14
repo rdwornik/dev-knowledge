@@ -542,6 +542,7 @@ LANE_REPORT_SCHEMA = Path(__file__).resolve().parents[1] / "ecosystem" / "schema
 def lane_report_schema_arg() -> str:
     """The LANE REPORT schema as ONE compact argv token, for `claude -p --json-schema`."""
     schema = json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8"))
+    schema.pop("$schema", None)  # claude 2.1.299+ rejects the draft-2020-12 $schema URI
     return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
 
 
