@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (a) - CC (Opus 5.5, orchestrator, R104): the leftover system-map record lands (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part C)
+
+**Anchors:** `c2953534` (system-map record 47a6388c -> 88f1bc52), `627e923a` (synced with main `64704a83`), `35142278` (green-main merge receipt closed), `0c99d77e` ([#1533] + intake 108). Branch `worktree-system-map-2026-10-14`.
+
+**Did:** the map refresh of 2026-10-14 had stopped at its record commit, leaving the branch and its worktree unmerged while main moved; this lands it through `merge_path.py land` and tears it down. B's receipt line rides here (the integration branch cannot carry a non-merge commit without breaking the next merge's first-parent check). The GAP is filed as [#1533]: the map refresh is not a closed loop.
+
+**Result:** (land sha recorded in the LANE-END; the merge carries this entry, so it cannot name itself).
+
+**Changes:** `ecosystem/system-map-record.json`, `logs/MERGE-RECEIPTS.jsonl`, `tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md`, `docs/intake/2026-10-15-tech-map-refresh-closed-loop.md`, `tasks/manifest.json`, generated `BACKLOG.md`, `docs/intake/README.md`, `docs/intake/manifest.json`.
+
+**Next:** teardown via `no_leftovers.py verify`; the last receipt line (this merge's) has no later merge to ride -- recorded as a GAP in the LANE-END.
+
+---
+
 ### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot -- main's 25 regressions repaired through isolated stage agents (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part B)
 
 **Anchors:** `1656f287` `ff53efd8` `5ed99872` `08d3f501` `0599a040` (RED-first tests), `8788e197` `1c2ec795` (fixes: ci_verdict X3, handoff_state X6, the R107 re-stamp verb), `5540fb39` (R107 re-stamp applied to the 10-14 bundle), `f4c0eebe` (rows [#1510]-[#1532] + intake 107), `c8c9e26e` `86c2d33f` (consumer baseline), `bf4d2f32` (doc-counts). Branch `worktree-green-main-2026-10-14`, cut from `b46836c8`.
