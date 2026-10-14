@@ -69,3 +69,175 @@ The **BACKLOG is the spec; items are tickets.** Task-state is: a pointer to `BAC
 in-progress branches (`git branch -v`), and any **drift-flag** `validate_git_backlog` raises (§1 /
 `PROBES.md` P4). Re-narrating item text splits the truth and drifts — the pointer + the drift-flag is
 the whole task-state.
+
+## Carried debt (operator-authorized, 2026-10-14)
+
+Debt this window hands off explicitly (P11 leg 2; DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08). Generated mechanically; no owner invented.
+
+### (a) `carried-by: OPEN` transport files (145)
+
+- `to-cc/AMEND-B2-W1-1-2026-10-04.md`
+- `to-cc/AMEND-B2-W1-2-2026-10-04.md`
+- `to-cc/AMEND-B2-W1-3-2026-10-04.md`
+- `to-cc/AMEND-B2-W1-4-2026-10-05.md`
+- `to-cc/AMEND-B2-W1-5-2026-10-05.md`
+- `to-cc/AMEND-BATCH-B2-W4-CC-FINISH-R99-2026-10-12.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03-v1-superseded.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03-v2-superseded.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-2-2026-10-03.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-2026-10-03.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-3-2026-10-03.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-4-2026-10-03.md`
+- `to-cc/AMEND-BATCH-FOUNDATION-5-2026-10-03.md`
+- `to-cc/AMEND-BATCH-LAUNCH-SEATS-2026-09-29.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE5-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N4-HANDOFF-MIN-2026-09-27.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N5-2026-09-29.md`
+- `to-cc/AMEND-BATCH-WAVE5B-N5-R-CYCLE-2-2026-09-29.md`
+- `to-cc/AMEND-BATCH-night-2026-09-17.md`
+- `to-cc/AMEND-DISPATCH-UNBLOCK-2026-09-17.md`
+- `to-cc/AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20.md`
+- `to-cc/AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01.md`
+- `to-cc/AMEND-INTEGRATOR-MERGE-PATH-2026-09-29-withdrawn.md`
+- `to-cc/AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17.md`
+- `to-cc/AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17.md`
+- `to-cc/AMEND-NIGHT-SALVAGE-2026-09-17.md`
+- `to-cc/AMEND-ORGAN-USE-2026-09-17.md`
+- `to-cc/BATCH-AJ-ALL-MODULES-2026-09-29.md`
+- `to-cc/BATCH-AUDIT-OPEN-LOOPS-2026-09-26.md`
+- `to-cc/BATCH-AUDIT-SPINE-AND-TOOLS-2026-10-04.md`
+- `to-cc/BATCH-AUDIT-TRANSPORT-2026-10-04.md`
+- `to-cc/BATCH-B2-PREP-2026-10-03-v1-superseded.md`
+- `to-cc/BATCH-B2-PREP-2026-10-03.md`
+- `to-cc/BATCH-B2-W1-2026-10-04.md`
+- `to-cc/BATCH-B2-W4-CC-FINISH-2026-10-12.md`
+- `to-cc/BATCH-B2-W4-COPILOT-2026-10-11.md`
+- `to-cc/BATCH-BOOT-TEST-GRADE-2026-10-04.md`
+- `to-cc/BATCH-BW-FINISH-2026-10-13-v1-superseded.md`
+- `to-cc/BATCH-BW-FINISH-2026-10-13.md`
+- `to-cc/BATCH-BW-NIGHT-2026-10-13.md`
+- `to-cc/BATCH-CAPABILITY-MAP-2026-09-25.md`
+- `to-cc/BATCH-CI-TRIAGE-2026-10-03.md`
+- `to-cc/BATCH-CLEANUP-SESSIONS-2026-09-29.md`
+- `to-cc/BATCH-CODESPACE-SECRETS-2026-10-04.md`
+- `to-cc/BATCH-COMMON-B2-W1-2026-10-04.md`
+- `to-cc/BATCH-COMMON-FOUNDATION-2026-10-03.md`
+- `to-cc/BATCH-COMMON-HANDOFF-REDESIGN-BUILD-2026-10-01.md`
+- `to-cc/BATCH-COMMON-HANDOFF-UNBLOCK-2026-09-30.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N1-2026-09-24.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N2-2026-09-25.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N3-2026-09-26.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N4-2026-09-26.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N5-2026-09-29.md`
+- `to-cc/BATCH-COMMON-WAVE5B-N5-R-2026-09-29.md`
+- `to-cc/BATCH-DECIDE-FALSE-POSITIVE-DEFENSE-2026-10-03.md`
+- `to-cc/BATCH-DECIDE-FALSE-POSITIVE-DEFENSE-V2-2026-10-03.md`
+- `to-cc/BATCH-DECIDE-MERGE-LATENCY-2026-10-05.md`
+- `to-cc/BATCH-DECIDE-R59-REV3-2026-10-04.md`
+- `to-cc/BATCH-DECIDE-THROUGHPUT-2026-10-03-v1-superseded.md`
+- `to-cc/BATCH-DECIDE-THROUGHPUT-2026-10-03-v2-superseded.md`
+- `to-cc/BATCH-DECIDE-THROUGHPUT-2026-10-03.md`
+- `to-cc/BATCH-DECISION-AJ-M06-2026-09-28.md`
+- `to-cc/BATCH-DECISION-CI-VERIFICATION-2026-09-26.md`
+- `to-cc/BATCH-DECISION-HANDOFF-REDESIGN-2026-09-30.md`
+- `to-cc/BATCH-DECISION-HANDOFF-SYSTEM-2026-09-26.md`
+- `to-cc/BATCH-DECISION-HANDOFF-SYSTEM-V2-2026-09-28.md`
+- `to-cc/BATCH-DECISION-LANE-RUNTIME-2026-09-28.md`
+- `to-cc/BATCH-DECISION-MEMORY-RESILIENCE-2026-09-27.md`
+- `to-cc/BATCH-DECISION-OWN-TOOLS-2026-09-26.md`
+- `to-cc/BATCH-DECISION-OWN-TOOLS-REVISION-2026-09-26.md`
+- `to-cc/BATCH-DECISION-PROCESS-ENGINE-2026-09-29.md`
+- `to-cc/BATCH-DECISION-REMOTE-OBSERVABILITY-2026-09-26.md`
+- `to-cc/BATCH-DECISION-SELF-MAINTAINING-REPO-2026-09-29.md`
+- `to-cc/BATCH-DECISION-TOKENS-AND-MERGE-2026-09-29.md`
+- `to-cc/BATCH-ENV-GLOBALS-2026-09-23.md`
+- `to-cc/BATCH-EVAL-CODEX-FALSE-POSITIVE-DEFENSE-2026-10-03.md`
+- `to-cc/BATCH-EVAL-R59-V2-ROUND3-2026-10-04.md`
+- `to-cc/BATCH-FOUNDATION-2026-10-03.md`
+- `to-cc/BATCH-GEMINI-READ-DIAG-2026-10-03.md`
+- `to-cc/BATCH-HANDOFF-BOOT-TEST-2026-10-03.md`
+- `to-cc/BATCH-HANDOFF-CUT-2026-09-28.md`
+- `to-cc/BATCH-HANDOFF-CUT-2026-10-06.md`
+- `to-cc/BATCH-HANDOFF-REDESIGN-BUILD-2026-10-01.md`
+- `to-cc/BATCH-HANDOFF-UNBLOCK-2026-09-30.md`
+- `to-cc/BATCH-HARNESS-STATE-2026-09-30.md`
+- `to-cc/BATCH-HYGIENE-PREP-2026-10-11.md`
+- `to-cc/BATCH-LAUNCH-SEATS-2026-09-27.md`
+- `to-cc/BATCH-LAUNCH-SEATS-2026-09-29.md`
+- `to-cc/BATCH-LAUNCH-SEATS-WAVE5B-N5-2026-09-29.md`
+- `to-cc/BATCH-LEFTOVERS-GATE-2026-09-28.md`
+- `to-cc/BATCH-MEMORY-DIAG-2026-10-03.md`
+- `to-cc/BATCH-NIGHT-2026-10-04-v1-superseded.md`
+- `to-cc/BATCH-NIGHT-2026-10-04.md`
+- `to-cc/BATCH-NIGHT-AJ-BENCHMARKS-2026-10-03.md`
+- `to-cc/BATCH-NIGHT-CONSOLIDATION-2026-09-30.md`
+- `to-cc/BATCH-NIGHT-LESSONS-CEREMONY-2026-10-03.md`
+- `to-cc/BATCH-ONBOARDING-CHECK-2026-10-02.md`
+- `to-cc/BATCH-OPERATOR-QUESTIONS-2026-09-30.md`
+- `to-cc/BATCH-P0-GATHER-2026-09-25.md`
+- `to-cc/BATCH-PRECUT-VERIFY-2026-10-01.md`
+- `to-cc/BATCH-RATIFICATION-PACK-2026-09-26.md`
+- `to-cc/BATCH-RATIFICATION-PACKAGE-2026-10-11.md`
+- `to-cc/BATCH-RATIFY-PACKET-2026-09-29.md`
+- `to-cc/BATCH-READONLY-SWEEP-2026-10-09.md`
+- `to-cc/BATCH-RECOVERY-WAVE5B-N2-2026-09-26.md`
+- `to-cc/BATCH-REMOVAL-INVENTORY-2026-10-03.md`
+- `to-cc/BATCH-REPO-CLEANUP-2026-10-05.md`
+- `to-cc/BATCH-RESEARCH-HANDOFF-2026-09-24.md`
+- `to-cc/BATCH-RETRO-DEBATE-HANDOFF-2026-10-02.md`
+- `to-cc/BATCH-RETRO-WINDOW-2026-09-28.md`
+- `to-cc/BATCH-REVIEW-LANE-REPORTS-2026-09-30.md`
+- `to-cc/BATCH-ROW-BROWSER-SEAT-PROBLEM-2026-09-29.md`
+- `to-cc/BATCH-SEAT-CHECKLIST-GRADE-2026-10-10.md`
+- `to-cc/BATCH-SEAT-EXAM-GRADE-2026-10-04.md`
+- `to-cc/BATCH-SEAT-EXAM-GRADE-2026-10-09.md`
+- `to-cc/BATCH-SIZE-PROMPTS-GUARD-2026-10-09.md`
+- `to-cc/BATCH-SPINE-STEP0-2026-10-04.md`
+- `to-cc/BATCH-STATUS-CYCLE-2-2026-09-29.md`
+- `to-cc/BATCH-VALUE-AUDIT-2026-09-29.md`
+- `to-cc/BATCH-VERIFY-ANSWERS-2026-10-03.md`
+- `to-cc/BATCH-VERIFY-ATTRIBUTION-2026-10-10.md`
+- `to-cc/BATCH-VERIFY-CHECKLIST-2026-09-30.md`
+- `to-cc/BATCH-VERIFY-ONBOARDING-2026-10-09.md`
+- `to-cc/BATCH-VERIFY-TOOLS-IN-USE-2026-10-11.md`
+- `to-cc/BATCH-WAVE5B-N1-2026-09-24.md`
+- `to-cc/BATCH-WAVE5B-N2-2026-09-25.md`
+- `to-cc/BATCH-WAVE5B-N3-2026-09-26.md`
+- `to-cc/BATCH-WAVE5B-N4-2026-09-26.md`
+- `to-cc/BATCH-WAVE5B-N5-2026-09-29.md`
+- `to-cc/BATCH-WAVE5B-N5-R-CYCLE-2-2026-09-29.md`
+- `to-cc/BATCH-WAVE5B-N5-RECKONING-2026-09-29.md`
+- `to-cc/BATCH-dispatch-order-2026-09-17.md`
+- `to-cc/BATCH-night-2026-09-17.md`
+- `to-cc/DECLARE-CENSUS-VERDICTS-2026-09-18.md`
+- `to-cc/DECLARE-HARNESS-PROVENANCE-2026-09-08.md`
+- `to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md`
+- `to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md`
+- `to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md`
+
+### (b) Carried QUESTION files (13) — owner from each file's recorded `disposition:`
+
+- `to-browser/archive/2026-09-07/QUESTION-dispatcher-N2.md` — owner: [#610], [#642]
+- `to-browser/archive/2026-09-07/QUESTION-dispatcher-T.md` — owner: [#628]
+- `to-browser/archive/2026-09-07/QUESTION-integrator-N2-win-tooling-merge.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-t-000-reds-spine.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-adr-carrier-split.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-branch-enum-parity.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-carrier-floor-v150-mechanisms.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-deploy-tool-consumer-override.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-dispatch-receipt-is-work.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-handoff-v71-build.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-000-shape-spec-finalize.md` — owner: [#642]
+- `to-browser/archive/2026-09-07/QUESTION-lane-u-628-release-commit.md` — owner: [#642]
+- `to-browser/QUESTION-github-private-now.md` — owner: [#887]
+
+### (c) Carried ship-gate WARN
+
+- `journal_spine_anchor` (WARN, handoff organ set) — owner: unassigned (the preflight evidence names no owning row)

@@ -235,4 +235,10 @@ _(fill: of the NEW-and-undispositioned organs listed above, name which is a DECI
 
 ---
 
-=== END OF PASTE — 3 sections · 15061 bytes ===
+=== SUPPLEMENT.md ===
+
+The outgoing architect's ANSWERS are FILLED, in `docs/handoffs/2026-10-14-dev-knowledge-architect/SUPPLEMENT.md` below its divider — not inlined (the paste gate). Ask CC to pull them before the §13(d) operator-context beat, which then NARROWS to *"anything changed since the supplement was written?"*.
+
+---
+
+=== END OF PASTE — 4 sections · 15395 bytes ===

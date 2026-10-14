@@ -41,7 +41,7 @@
 
 ## What the operator does (paste-pointer)
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The pasted header is DATA + PROSE.** Every DATA row — identity, the destination branch, the
 > role pin's version, the launcher, each pointer — is checked by a `verify_handoff_probes` rule
@@ -62,7 +62,7 @@
 5. **Boot on the ROLE PIN alone (R30).** The browser's first move is core item 3 of
    `protocols/HANDOFF_BOOT.md`. CC holds the probe gate and runs it at the cut (HANDOFF_PROCESS §5),
    not as a boot step; an architect-mode paste carries no probe table.
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2). **The bundle states no drift-flag value:** ask CC to
    re-derive each one live from `PROBES.md`; a FAIL it reports blocks onboarding (the escalation
