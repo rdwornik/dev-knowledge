@@ -339,9 +339,9 @@ AUTH_EQUIVALENT_FOR: dict[str, frozenset[tuple[str, str]]] = {
 }
 
 #: The refresh interval after which Codex refreshes `~/.codex/auth.json` on its next call (OpenAI's
-#: CI/CD auth docs: "approximately 8 days"), and the margin kept so a Codespace's copy can never reach it.
+#: CI/CD auth docs: "approximately 8 days"). The age a copy may be mirrored at is DERIVED from it and
+#: the run bound (`dispatch.codex_mirror_max_age_days`), never typed.
 CODEX_REFRESH_DAYS = 8.0
-CODEX_MIRROR_MAX_AGE_DAYS = 7.0
 
 #: The folders a probe may write into besides the transport root: exactly one, `to-browser/`, where
 #: the lanes' own handbacks go. A probe addresses ONE file there -- never a deeper path, never a
@@ -1789,6 +1789,11 @@ def _compare_auth_mechanism(le: Mapping, re_: Mapping, clis: Sequence[str], prob
         if lc is None or rc is None:
             problems.append(f"no auth mechanism recorded for {cli} on the "
                             f"{'local' if lc is None else 'codespace'} side")
+        elif rc == "none" and ((re_.get("models") or {}).get(cli) or {}).get("state") in (
+                "not-probed-auth", "unauthenticated"):
+            # an unsigned CLI answers through no mechanism: it is the missing login `_auth_items`
+            # names, not a different mechanism (R87 targets one that ANSWERS)
+            evidence.append(f"auth mechanism {cli}: no sign-in on the codespace -- named by the auth items")
         elif lc != rc and (lc, rc) not in AUTH_EQUIVALENT | AUTH_EQUIVALENT_FOR.get(cli, frozenset()):
             problems.append(f"{cli} signs in by {rc} on the codespace but by {lc} on the laptop: not "
                             "the laptop's own sign-in (R87)")
