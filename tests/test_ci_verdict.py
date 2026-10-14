@@ -914,3 +914,111 @@ def test_an_explicit_head_check_wins_over_an_injected_fetch_function():
 
     assert cv._resolve_head_check(stub, injected, "base") is stub
     assert cv._resolve_head_check(stub, injected, None) is None                 # still needs a baseline
+
+
+# --- X3 (green-main-2026-10-14): the organ reads the KNOWN-REDS step, not the retired gate ------
+# RED-first. `SUITE_GATE_STEP_NAME` points at the `[#802]` frozen-baseline step, which
+# conductor.yml marks REPORT-ONLY / retired as the job's verdict (LANE-5B3-8 repair 1); the
+# verdict step is `Compare against the committed known-reds registry` (id: known_reds), whose
+# block is `known_reds.render_compare`'s: header `known-reds compare`, `baseline id    : <id>`,
+# `  known|witness|REGRESSION|SIG-CHANGED  <id>`. The organ must report exactly that step's
+# REGRESSION ids. (The implementer will also need to move the older `_suite_gate_log` fixtures
+# and the tests above that assert on the suite-gate shape to the known-reds shape.)
+
+_KR_BASELINE = "2026-10-04-fdf4f4952211"
+
+
+def _step(name: str, start: str, end: str) -> dict:
+    return {"name": name, "startedAt": start, "completedAt": end}
+
+
+def _known_reds_step_name() -> str:
+    """The step name the organ reads: a re-pointed SUITE_GATE_STEP_NAME, or a new KNOWN_REDS_STEP_NAME."""
+    return getattr(cv, "KNOWN_REDS_STEP_NAME", cv.SUITE_GATE_STEP_NAME)
+
+
+def _live_known_reds_step_name() -> str:
+    import pathlib
+    import yaml
+    wf = pathlib.Path(__file__).resolve().parents[1] / ".github" / "workflows" / "conductor.yml"
+    steps = yaml.safe_load(wf.read_text(encoding="utf-8"))["jobs"]["pytest"]["steps"]
+    return next(s["name"] for s in steps if s.get("id") == "known_reds")
+
+
+def _known_reds_log(ts: str, regressions=(), known=(), witnesses=(), sig_changed=()) -> str:
+    lines = ["known-reds compare", "", f"baseline id    : {_KR_BASELINE}", "os key         : windows",
+             f"pre-existing   : {len(known)}"]
+    lines += [f"  known         {n}" for n in known]
+    lines.append(f"witnesses      : {len(witnesses)}")
+    lines += [f"  witness       {n}" for n in witnesses]
+    lines.append(f"regressions    : {len(regressions)}")
+    lines += [f"  REGRESSION    {n}" for n in regressions]
+    if sig_changed:
+        lines.append(f"changed signature (known id, different failure): {len(sig_changed)}")
+        lines += [f"  SIG-CHANGED   {n}" for n in sig_changed]
+    return "\n".join(_log_line_at(ts, t) for t in lines)
+
+
+def _suite_gate_log_at(ts: str, baseline: str, regressions=()) -> str:
+    lines = ["conductor suite-baseline gate", "", f"baseline sha   : {baseline}", "pre-existing   : 0",
+             f"regressions    : {len(regressions)}"] + [f"  REGRESSION    {n}" for n in regressions]
+    return "\n".join(_log_line_at(ts, t) for t in lines)
+
+
+def test_X3_a_log_with_BOTH_blocks_reports_only_the_known_reds_REGRESSION_ids_and_baseline_id():
+    """The retired gate lists the registered/witness reds as REGRESSION too (29 vs 25 on b46836c8);
+    the organ must report the known-reds step's REGRESSION lines only -- never `known`/`witness`."""
+    job = {"name": _LEG_W, "conclusion": "failure", "databaseId": 10,
+           "steps": [_step("Judge the run against the frozen baseline, by node id ([#802])",
+                           "2026-09-24T00:05:00Z", "2026-09-24T00:05:10Z"),
+                     _step(_known_reds_step_name(), "2026-09-24T00:05:20Z", "2026-09-24T00:05:30Z")]}
+    log = "\n".join([
+        _suite_gate_log_at("2026-09-24T00:05:05.0000000Z", "c5108329",
+                           regressions=("tests/test_x.py::test_real", "tests/test_w.py::test_witness",
+                                        "tests/test_k.py::test_registered")),
+        _known_reds_log("2026-09-24T00:05:25.0000000Z", regressions=("tests/test_x.py::test_real",),
+                        known=("tests/test_k.py::test_registered",),
+                        witnesses=("tests/test_w.py::test_witness",))])
+    jobs = [{"name": _LEG_U, "conclusion": "success", "databaseId": 9}, job]
+
+    verdict = cv.verdict_for(
+        "def456", repo_root=None,
+        list_fn=_list_fn([_run("def456", conclusion="failure")]), jobs_fn=_jobs_fn(jobs),
+        log_fn=_log_fn({10: log}), sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.new_reds == (f"{_LEG_W}: tests/test_x.py::test_real",)
+    assert verdict.baseline_id == _KR_BASELINE
+
+
+def test_X3_the_step_the_organ_reads_is_the_known_reds_step_named_in_the_live_workflow():
+    """Guards a future rename: the organ's step name must equal conductor.yml's `id: known_reds` step."""
+    name = _live_known_reds_step_name()
+    assert _known_reds_step_name() == name
+    job = {"steps": [_step("Sync the locked environment", "2026-09-24T00:00:00Z", "2026-09-24T00:01:00Z"),
+                     _step(name, "2026-09-24T00:05:00Z", "2026-09-24T00:05:30Z")]}
+    window = cv._step_window(job, _known_reds_step_name())
+    assert window is not None
+    assert window[0].isoformat() == "2026-09-24T00:04:59+00:00"
+
+
+def test_X3_a_SIG_CHANGED_id_also_listed_as_REGRESSION_is_reported_once_per_leg():
+    jobs = [{"name": _LEG_U, "conclusion": "failure", "databaseId": 9,
+             "steps": [_step(_known_reds_step_name(), "2026-09-24T00:05:20Z", "2026-09-24T00:05:30Z")]},
+            {"name": _LEG_W, "conclusion": "failure", "databaseId": 10,
+             "steps": [_step(_known_reds_step_name(), "2026-09-24T00:05:20Z", "2026-09-24T00:05:30Z")]}]
+    log = _known_reds_log("2026-09-24T00:05:25.0000000Z",
+                          regressions=("tests/test_x.py::test_a", "tests/test_y.py::test_b"),
+                          sig_changed=("tests/test_x.py::test_a",))
+
+    verdict = cv.verdict_for(
+        "def456", repo_root=None,
+        list_fn=_list_fn([_run("def456", conclusion="failure")]), jobs_fn=_jobs_fn(jobs),
+        log_fn=_log_fn({9: log, 10: log}), sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.baseline_id == _KR_BASELINE        # the block is READ as a known-reds block
+    for leg in (_LEG_U, _LEG_W):
+        assert verdict.new_reds.count(f"{leg}: tests/test_x.py::test_a") == 1, verdict.new_reds
+        assert verdict.new_reds.count(f"{leg}: tests/test_y.py::test_b") == 1, verdict.new_reds
+    assert len(verdict.new_reds) == len(set(verdict.new_reds))
