@@ -2446,7 +2446,8 @@ def _credential_tools_script(allowed: Sequence[str]) -> str:
         '    box="$HOME/.agy-signin"; umask 077',
         '    mkdir -p "$box" && chmod 700 "$box" || exit 65',
         '    rm -f "$box/in" "$box/out" "$box/pid" "$box/holder"; mkfifo "$box/in" || exit 65',
-        '    sleep 900 > "$box/in" &',
+        # own stdin/stderr: a captured caller never sees EOF while the holder inherits its pipes
+        '    sleep 900 < /dev/null > "$box/in" 2>/dev/null &',
         '    echo $! > "$box/holder"',
         '    nohup setsid script -qfec "stty cols 500 rows 50; exec env -u BROWSER timeout 900 agy" '
         '"$box/out" < "$box/in" > /dev/null 2>&1 &',
