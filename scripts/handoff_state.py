@@ -1074,6 +1074,14 @@ def _ruling_bullets(register: str) -> "dict[int, str]":
     return out
 
 
+# A ruling id followed by a clause qualifier (D<n>, item(s), clause(s), point, part, leg,
+# para, §, a parenthesised letter/digit, or a possessive 's/'s) names only part of the
+# ruling, not the whole ruling, so such a match must not count as a full supersession.
+_CLAUSE_QUALIFIER_RE = re.compile(
+    r"(?i)\s*(?:D\d+|items?|clauses?|point|part|leg|para|§|\([A-Za-z0-9]\)|(?:'|\u2019)s)"
+)
+
+
 def _supersession(rid: str, bullet: "str | None", register_plain: str) -> "str | None":
     """Why `rid` (`R47` or `R47.1`) is out of force, or None. See the honest limits above."""
     if "." not in rid and bullet is not None:
@@ -1083,13 +1091,20 @@ def _supersession(rid: str, bullet: "str | None", register_plain: str) -> "str |
             if not re.search(r"R\d+\.\d", bullet[max(0, m.start() - 40):m.start()]):
                 return f"its register bullet says it is superseded by {m.group(1)}"
     esc = re.escape(rid)
-    after = re.search(rf"(?i)(?<![\w.]){esc}(?!\w|\.\d)\**\s*(?::|is|was|has been)?\s*"
-                      r"(?:superseded|withdrawn|replaced)\b", register_plain)
-    if after:
+    for after in re.finditer(
+        rf"(?i)(?<![\w.]){esc}(?!\w|\.\d)"
+        rf"(?P<qual>\s*(?:D\d+|items?|clauses?|point|part|leg|para|§|\([A-Za-z0-9]\)|(?:'|\u2019)s))?"
+        r"\**\s*(?::|is|was|has been)?\s*(?:superseded|withdrawn|replaced)\b",
+        register_plain,
+    ):
+        if after.group("qual"):
+            continue
         return f"the register says {after.group(0)!r}"
-    before = re.search(rf"(?i)\b(?:supersedes|replaces|withdraws)\s+{esc}(?!\w|\.\d)",
-                       register_plain)
-    if before:
+    for before in re.finditer(
+        rf"(?i)\b(?:supersedes|replaces|withdraws)\s+{esc}(?!\w|\.\d)", register_plain
+    ):
+        if _CLAUSE_QUALIFIER_RE.match(register_plain, before.end()):
+            continue
         return f"the register says {before.group(0)!r}"
     return None
 

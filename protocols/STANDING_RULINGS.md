@@ -6508,6 +6508,383 @@ Landed by `bw-1378-rulings-landing` (batch BW = B2-W4 finish, wave D, nearest ro
 
 **Expiry:** R93 is bounded to batch B2-W3 and spent when it closed; R97 is bounded to the rest of B2-W4; R98's operator ruling is due by the end of 2026-10-15; R94, R95, R96 and R99 do not expire on their own. The entries above land text, and each Carried-by line names what is and is not built.
 
+## AU. RATIFICATION 2026-10-13 → 2026-10-15 R100–R102 and R104–R115 — landed verbatim from their sources, each carried by a row or by a written "no implementation required" (operator, 2026-10-13 → 2026-10-15)
+
+Landed by `lane-bu-1450-boot-v2` (batch BU = BUILD-1, lane L5, row [#1538]; ordered by `to-cc/AMEND-BATCH-BUILD1-PREP-2026-10-15.md` v5 L5 and, for the sources, by the BUILD-1 CHALLENGE's L5 verdict in `to-browser/DIGEST-BUILD1-READY-2026-10-15.md`). R1–R99 are landed at §AM to §AT above and are not repeated here. The shape is §AT's: each entry carries its ruling's **source section byte for byte** in a fenced block whose info string is `verbatim <source>:<first line>-<last line>`, and `tests/test_standing_rulings_sources.py` diffs every block against its source range wherever the transport is reachable.
+
+**Two lines of every entry are read by a gate,** as in §AT: the bullet `- **R<n> — …` (counted by `scripts/handoff_state.py`) and the `**Carried by:**` line (judged by `scripts/decision_coverage.py rulings`).
+
+**§AT's "There is no R100" is superseded here.** It was true when §AT landed: R100 was given afterwards, on 2026-10-13 (`RATIFICATION-2026-10-13.md:42`). §AT is append-only and is not edited; this sentence is the correction.
+
+**R103 — no such ruling.** No RATIFICATION file carries an R103 heading or bullet. The id was reserved for the one-shot handoff and never ruled: `RATIFICATION-2026-10-14-v2-superseded.md:5` says "R103 (the one-shot handoff) is NOT ruled here; it waits for Phase 0 evidence", and later files cite "R103 item 4" only as a plan reference. Nothing is landed for it, and a citation of R103 resolves to nothing.
+
+**Sources, by id.** `RATIFICATION-2026-10-13.md` is v2 and holds R100 and R101; its third heading, an R98 of 2026-10-13 (the 58 known reds re-dated to 2026-10-31), is the operator's numbers that §AT's R98 waited on, and is out of this section's range. The 2026-10-14/15 file was rewritten nine times; its v7 says "R102, R104–R106 (v3); R107, R108 (v4); R109, R110 (v5); R112 (v6)" are unchanged and itself holds R111 (amended) and R113–R115. Each entry below is therefore landed from the superseded version v7 names as its source of record, and R111 and R113–R115 from v7. v7 is itself superseded since (v8 and v9 carry R113–R115 "unchanged (v7)"), so every source of R102–R115 is a `-superseded` file. That has a consequence for the gate: `decision_coverage.ratification_files` reads only live, non-superseded files, so it sees R100 and R101 and never sees R102–R115. A range cited in a superseded file is valid for that file.
+
+**Carriers.** No open row names any of R100–R115 with an `owner:` clause, and a BU lane files no row (batch BU common rules §1; findings go through intake at batch close). Every entry is therefore carried by a written disposition naming the row that carries its mechanism where one exists, and saying **OWED** where none does. R111 and R113 carry the BUILD-1 CHALLENGE disposition as their carrier note, as their row [#1538] requires.
+
+**Not landed here.** R116–R120 (v8 and v9 of the 2026-10-14/15 file) are later than this section's range and wait for their own rulings-landing row. Each file's `## Carriage` section is the transcriber's routing note, not a ruling, and stays on the transport.
+
+- **R100 — commit attribution ratified** (operator, 2026-10-13; full text `RATIFICATION-2026-10-13.md:42` (v2)). In force as: the attribution design of `DIGEST-ATTRIBUTION-LIBRARY-FIRST-2026-10-10` is ratified with the correction measured in `REVIEW-ATTRIBUTION-2026-10-10` (`trailer.<key>.command` with `--trim-empty` on git 2.55.0, not `trailer.<key>.cmd`); lane D7 `commit-attribution` builds it. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the mechanism is the attribution trailer whose open row is [#615] (model and version on every model-authored commit), and R100 ratifies its design, it builds nothing itself (owner: the batch that dispatches [#615]; reopen if [#615] closes with a design other than the one R100 ratified)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-13.md:42-47
+  ## R100 — commit attribution ratified (operator, 2026-10-13)
+
+  **Original:** as R98.
+
+  - **The design ratified:** `DIGEST-ATTRIBUTION-LIBRARY-FIRST-2026-10-10`, with the correction measured in `REVIEW-ATTRIBUTION-2026-10-10`: on git 2.55.0, `trailer.<key>.command` with `--trim-empty`, not `trailer.<key>.cmd`.
+  - **Who builds it.** Lane D7 `commit-attribution` builds it; Codex is the producer (R101b).
+  ```
+
+- **R101 — cost policy** (operator, 2026-10-13; full text `RATIFICATION-2026-10-13.md:11` (v2)). In force as: tier by class (Opus/high only for design-heavy code lanes, Sonnet/medium the default, Haiku for read-only fan-out); at most two review rounds; no live-session wait over 30 minutes; every `claude -p` launch records its cost; the reviewer chain is systematic and the reviewer is never the producer's vendor. Items (b) and (c) (Codex producer, Sonnet orchestrator) are amended by R104; (a), (d)-(i) stand (R104's own list). **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the routing half is [#1536] (batch BU lane L2, R104 routing) and the `lane_boot` tier refusal of item (a) is OWED, with no row yet (owner: the batch BU integrator, who files the item-a refusal through intake at batch close; reopen if no row names it by the next batch)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-13.md:11-30
+  ## R101 — cost policy (operator, 2026-10-13)
+
+  **Original:** "musimy sprawić, żeby było bardziej, było optymalne zużycie tokenów, żeby dystrybuować zadania Sonnet, H[aiku] i inne modele Copilot ... [distiller] powinien to robić. Musi być bardziej token efficiency." And on reviewers: "jeżeli nie kodeks nie ma, to zrób Copilot kodeks, jeśli tam nie ma to Groq. Systemowo."
+
+  1. **(a) Tier by class.**
+     - Opus/high only for design-heavy code lanes. Sonnet/medium is the default; Haiku does read-only fan-out.
+     - `lane_boot` must refuse a manifest row whose tier exceeds the distiller's output unless the row cites a ruling. That is a mechanism owed, to be built in the next batch.
+  2. **(b) Producers.** Codex produces bounded code; Copilot and Grok may produce or review. Claude orchestrates and reviews. This replaces R97 item 1.
+  3. **(c) The orchestrator runs on Sonnet/medium.** The architect review is one Opus call per lane, given the diff and the contract.
+  4. **(d) At most two review rounds.** A second REQUEST-CHANGES means FAILED.
+  5. **(e) No wait over 30 minutes in a live session.** A resume block is written, and a fresh session resumes.
+  6. **(f) Cost measured.** Every `claude -p` launch records `total_cost_usd` in the LANE REPORT, and the rollup sums it.
+  7. **(g) Scope.** After BW, harness work is fixes only. The next batch is user-visible: Codespace, the transport index applied, attribution, then a consumer-repo feature.
+  8. **(h) The reviewer chain is systematic:**
+     - Codex, then Copilot with a non-Anthropic model, then Grok (if `provider_router` lists a route), then `INPUT_REQUIRED`;
+     - the reviewer that ran is always recorded.
+
+  9. **(i) Reviewer vendor.**
+     - The reviewer is never the producer's vendor.
+     - Gemini joins the chain wherever `provider_router` lists a route ("wykorzystujemy Gemini, gdzie to potrzebne").
+  ```
+
+- **R102 — the handoff cut and the seat clearance** (operator; full text `RATIFICATION-2026-10-14-v3-superseded.md:11` (v3, "carried unchanged from v1"; v7 names v3)). In force as: the architect handoff cut for window 2026-10-14 ran in architect mode and stopped at the SUPPLEMENT step; seat `ac626cdc` was stopped on the operator's GO; no cut is run with a past `--date`. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a one-window act, spent when the 2026-10-14 cut was merged; its standing half (no back-dated cut) is the cut command's own `--date` handling (owner: the handoff seat of each window; reopen if a cut is found run with a past date)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v3-superseded.md:11-19
+  ## R102 — the handoff cut and the seat clearance (operator; carried unchanged from v1)
+
+  1. **The cut.**
+     - The architect handoff cut of `.dev-knowledge` runs for window **2026-10-14** in architect mode, per `.claude/commands/handoff.md`.
+     - It stops at the SUPPLEMENT step.
+     - The SUPPLEMENT answers are authored by Tech-Architect-44 and transcribed verbatim by CC. Then `/handoff-verify`.
+     - Merging the bundle is the operator's act.
+  2. **The seat clearance.** Background job `ac626cdc` was stopped with `claude stop ac626cdc` on the operator's GO. Seats `cea6438a` and `d2e6dfc2` read absent; the registry was not edited.
+  3. **No back-dating.** The cut is not run with a past `--date`.
+  ```
+
+- **R104 — model roles** (operator, 2026-10-14; full text `RATIFICATION-2026-10-14-v3-superseded.md:21` (v3, as amended by R105 D1; v7 names v3)). In force as: Opus 5.5 plans, decomposes, writes contracts, judges and does the architect review, and Sonnet never plans; Copilot Enterprise is the primary code producer (Sonnet 5.5, or Opus 5.5 with a cited ruling), Sonnet 5.5 subagents the fallback; Sonnet 5.5 writes the RED tests; the reviewer chain is Codex, Grok, Copilot with a non-Anthropic model, Gemini, never the producer's vendor, at most 2 rounds; per R105 D1, code decides what runs next. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the mechanism is [#1536] (batch BU lane L2: implement Copilot-first, the red/qa/judge roles, one model-id source), with the phase runner of R105 D1 in [#1535] (owner: the batch BU integrator, who reports L2 and L1 in the BU close packet; reopen if either lands without the roles R104 names)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v3-superseded.md:21-36
+  ## R104 — model roles (operator, 2026-10-14; carried from v2, amended by R105 D1)
+
+  **The operator's words:**
+  > "dlaczego orkiestrator na sonnecie? Przecież to opus powinien być orkiestratorem, a sonnet egzekutorem. I opus znowu review. … nie możemy przecież używać sonnetu na planowanie. Nigdy. Tylko na execution kodu, pisanie kodu, review kodu … masz kopilota do pisania kodu, kodeks do review, groka i tak dalej. Optymalizuj to wszystko."
+
+  **What stands:**
+  - Opus 5.5 plans, decomposes, writes contracts, judges and does the architect review. Sonnet never plans.
+  - Copilot Enterprise is the primary code producer: Sonnet 5.5 for well-scoped lanes, Opus 5.5 for design-heavy lanes with a cited ruling. Sonnet 5.5 subagents are the fallback, and Grok the alternative.
+  - Sonnet 5.5 writes the RED tests and never produces the code it tests.
+  - The reviewer chain is Codex (terra; astra opt-in for structural work) → Grok → Copilot with a non-Anthropic model → Gemini. The reviewer is never the producer's vendor, with at most 2 rounds.
+  - Reading goes to agy/Gemini first (R105 D3), then Copilot, then Haiku.
+  - R101 (a), (d), (e), (f), (g), (h) and (i) are kept.
+
+  **Amended by R105 D1.** "Opus orchestrates a wave" becomes: **code decides what runs next** (the `conductor.py` phase table and `[#669]` transitions). Opus is called for the plan, judge and architect-review phases.
+
+  **R104's measured check stands for the B-1 close:** Claude usage per landed lane against BW; review rounds per Copilot-produced lane ≤ 1.0, with 0 FAILED for quality; 0 orchestrator-caused rework.
+  ```
+
+- **R105 — finish Conductor E** (operator, 2026-10-14; full text `RATIFICATION-2026-10-14-v3-superseded.md:38` (v3; v7 names v3)). In force as: `DIGEST-OUTER-LOOP-RESEARCH-2026-10-14` v2 §3 D1-D6 are ratified: finish Conductor E (`[#689]` phases, `[#669]` transitions; every lane phase a separate process with an exit-code gate and a receipt); start local on subscriptions; vendor roles in the registry; one Codespace device login; turn on what is built after main is green (D5 (a) janitor + INDEX, (b) boot v2, (c) these rulings, (d) blocking gates); one steel thread, then a prose freeze. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; D1 is [#1535] (batch BU lane L1, the `[#689]` loop step) and [#689]/[#669] themselves, D5 (a) is [#1539], (b) is [#1450], (c) is [#1538], (d) is [#863], and D6's steel thread is [#1430] in BUILD-2 slot 1 (owner: the batch BU integrator, who reports each in the BU close packet; reopen if D1 does not land)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v3-superseded.md:38-57
+  ## R105 — finish Conductor E (operator, 2026-10-14)
+
+  **The operator's words, in TA-45's chat:**
+  > "Pójdę za twoją rekomendacją, ale przeraża mnie to, że okazuje się, że są rzeczy w backlogu, które były ustalone …"
+
+  **What is ratified.** `to-browser/DIGEST-OUTER-LOOP-RESEARCH-2026-10-14.md` v2 §3, D1–D6, as written by Tech-Architect-44:
+  - **D1:** finish Conductor E (`[#689]` phases, `[#669]` transitions; the spine as "row → contract"); every lane phase is a separate process with an exit-code gate and a receipt.
+  - **D2:** start on fallback B (local, every vendor CLI signed in on subscriptions); the move to Actions goes vendor by vendor.
+  - **D3:** vendor roles live in the registry and `provider_router`, not in orders; model ids come from each CLI's own list.
+  - **D4:** agy in a Codespace takes one device login at creation.
+  - **D5:** turn on what is built after main is green: (a) janitor + INDEX; (b) boot v2; (c) the rulings into STANDING_RULINGS; (d) gates that block.
+  - **D6:** one steel thread, then a prose freeze.
+
+  **The seat's additions, recorded in PLAN-HARNESS-2026-10-14 r5:**
+  - F9 before 10-31; the operator rules on it separately.
+  - D5 (a) and (c) run in parallel with (b).
+  - Codespace is the first row after the steel thread.
+  - The green-main pilot's verdicts are the spec for the phase table.
+
+  **Measured goal.** The steel thread passes: a real row closes on main with a receipt per phase, and a planted failure halts at its phase. Evaluated at its close.
+  ```
+
+- **R106 — the backlog is the only entry to work** (seat decision, delegated by the operator, 2026-10-14; full text `RATIFICATION-2026-10-14-v3-superseded.md:59` (v3; v7 names v3)). In force as: all work enters through an OPEN BACKLOG row with a Done-when (`tasks/<id>.md`); BUILD-LIST stops being an entry and is retired once its open items are filed; ids are verified, never guessed; shrinking the backlog is a row run through the loop after the steel thread; the LEDGER shows at most 10 active rows by plain name. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; a standing direction whose mechanisms are the distiller reading `tasks/` in [#1535] and the rows already filed for it (owner: the architect seat, which cites a verified OPEN row in every order; reopen if a code path still reads BUILD-LIST as an entry after [#1535] lands)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v3-superseded.md:59-90
+  ## R106 — the backlog is the only entry to work (seat decision, delegated by the operator, 2026-10-14)
+
+  **The operator's words:**
+  > "Ja nie wiem, czy nadal mamy go ignorować, czy robimy tak, jak mieliśmy zrobić przez backlog … pójdę za twoją rekomendacją, ale musisz to wziąć pod uwagę, że jest jakaś backlog, jest jakiś proces … jeżeli zdecydujesz się robić w jakiś sposób, określony sposób, to musisz być w tym konsekwentny."
+
+  **The decision:**
+  1. **One entry.** From now on, all work enters through a BACKLOG row, `tasks/<id>.md`, OPEN, with a Done-when.
+     - No order, lane, build or commit without one.
+     - Conductor E is built on these rows, through the `phase:` field.
+     - The loop-building work is already carried by rows: `[#689]` and `[#669]`, plus the rows E9 named or files for D5.
+  2. **BUILD-LIST stops being an entry.**
+     - The distiller and spine stage 1 read `tasks/`, not `protocols/BUILD-LIST.md` (G1, inside `[#689]`/`[#669]`).
+     - BUILD-LIST's still-open items are filed as rows through intake, then BUILD-LIST is retired.
+     - BUILD MODE (2026-09-18, which bypassed the process while the process was being built) ends when the steel thread passes. That is its natural exit: from then on, the process exists.
+  3. **Ids are verified, never guessed.**
+     - The seat names only an `[#id]` that CC has confirmed in `tasks/` (the lesson of `[#1374]` and `[#1439]`).
+     - Every order, lane contract and commit carries its id.
+     - New asks go through intake to a row, never straight to a lane.
+  4. **Shrinking the backlog (632 rows) is a row run through the loop after the steel thread.**
+     - A script proposes closures: stale, no consumer, superseded, with the C5 flags.
+     - Rows with a machine-checkable Done-when close automatically on evidence.
+     - The operator approves the rest as ONE list.
+     - No hand triage.
+  5. **The operator does not manage numbers.**
+     - The LEDGER shows at most 10 active rows by plain name.
+     - The ids are for the machine and for CC.
+
+  **Measured check (at the steel-thread close):**
+  - 100 % of orders, lanes and commits after this ruling cite a verified OPEN row;
+  - after `[#689]`/`[#669]` land, no code path reads BUILD-LIST as an entry.
+
+  **Not decided here:** where the backlog is stored (ADR-122: files against GitHub Issues). The `tasks/` files stay until that ADR is ruled.
+  ```
+
+- **R107 — re-stamp a filled handoff bundle** (operator, 2026-10-14; option A; full text `RATIFICATION-2026-10-14-v4-superseded.md:17` (v4; v7 names v4)). In force as: a manifest-only re-stamp verb for a bundle filled after its manifest was stamped: RED test first, a receipt on every use, only the filled files' manifest hashes rewritten; options B and C rejected. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — built: `scripts/gen_handoff.py --restamp-manifest --slug <bundle>` is on main with its receipt (owner: the handoff seat; reopen if `ci_verdict` on main shows a `handoff_probes` regression from a filled bundle)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v4-superseded.md:17-30
+  ## R107 — re-stamp a filled handoff bundle (operator, 2026-10-14; option A)
+
+  **The operator's words:**
+  > "Odpowiadam, moje odpowiedzi jest tak, ratyfikuję co proponujesz"
+
+  The proposal ratified (TA-45, chat, 2026-10-14):
+  - **A — a manifest-only re-stamp verb for a bundle filled after its manifest was stamped.**
+    - Its RED test comes first.
+    - Every use writes a receipt.
+    - It rewrites only the manifest hashes of the filled files; nothing else in the bundle changes.
+    - It applies to the committed 2026-10-14 bundle (Phase 0 X2, 21 reds on main) and to every future cut (R103 item 4).
+  - **Rejected:** B, registering the 21 reds as known (it hides the cause); C, regenerating the bundle (it loses the filled supplement).
+  - **Carrier:** the green-main pilot (BATCH-GREEN-MAIN-PILOT v2, defect X2).
+  - **Measured:** after it lands, `ci_verdict` on main shows 0 regressions from `handoff_probes`.
+  ```
+
+- **R108 — prompts-guard re-armed before 2026-10-31** (operator, 2026-10-14; full text `RATIFICATION-2026-10-14-v4-superseded.md:32` (v4; v7 names v4)). In force as: the 40 `[#912]` known reds are resolved by re-arming prompts-guard (`[#863]`), never by a third re-date, after main is green and before 2026-10-31. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the mechanism is [#863] with [#912] (batch BU lane L3, `lane-bu-863-prompts-guard`) (owner: the batch BU integrator; reopen if any `[#912]` entry expires red on 2026-10-31)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v4-superseded.md:32-38
+  ## R108 — prompts-guard re-armed before 2026-10-31 (operator, 2026-10-14)
+
+  **The operator's words:** as R107.
+
+  - **The decision.** The 40 `[#912]` known reds are resolved by re-arming prompts-guard (`[#863]`), not by a third re-date (R98 allowed no third without a new ruling; this ruling forbids it).
+  - **When:** after main is green, as part of turning on what is built (R105 D5(d)), and before 2026-10-31.
+  - **Measured:** on 2026-10-31, no `[#912]` entry expires red; merges continue on 11-01.
+  ```
+
+- **R109 — the D-1 to D-5 recommendations** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v5-superseded.md:15` (v5; v7 names v5)). In force as: D-1 a rulings-landing row (this section's carrier, [#1538]); D-2 `[#669]` proceeds without waiting for `[#664]`, recorded as a note in `[#669]`; D-3 after a Claude fallback producer the Opus judge rules only on the non-Claude reviewers' objections (C-VENDOR exemption); D-4 the nine DECLARED-BROKEN hooks are disarmed with a fix-or-remove row each in BUILD-2; D-5's deletions were later found live by the BUILD-1 CHALLENGE (see R112). **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; D-1 is [#1538], D-2 is the `[#669]` note, D-3 is batch BU's common rule (j), D-4 is BUILD-2 work with no row yet, D-5 follows R112's list A (owner: the batch BU integrator, who files D-4's rows through intake at batch close; reopen if D-4 has no row by the BUILD-2 render)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v5-superseded.md:15-31
+  ## R109 — the D-1…D-5 recommendations (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "dobrze przeczytałeś wszystko sekret usunięty Codespace naprawa tak …"
+
+  The seat read "dobrze" as accepting its recommended defaults. **The operator strikes any item he did not mean.**
+
+  | Item | Decision |
+  |---|---|
+  | D-1 | File the rulings-landing row, a twin of the closed `[#1446]`, carried by BUILD-1 L5 |
+  | D-2 | `[#669]` T1–T4 proceed without waiting for `[#664]`; the waiver is recorded as a note in `[#669]` |
+  | D-3 | After a Claude fallback producer, the Opus judge rules only on the non-Claude reviewers' objections and never scores the diff (a named C-VENDOR exemption) |
+  | D-4 | The 9 DECLARED-BROKEN hooks are disarmed, each with a fix-or-remove row, in BUILD-2 |
+  | D-5 | Remove: the CI `terra` job (it cannot hold an API key under R87), the duplicate `ruff` pre-commit entry, the plugin copy of `validate_backlog.py`, and the census entries aider, llm and amp |
+  | D-5, kept | The cloud substrate (wanted; a gap to build, G12); `read_gate.py` (the design gives it a caller); `/spine` (the loop's entry); the ruleset (arming it is the operator's G4 decision) |
+
+  **The operator also deleted** the Codespaces user secret `CODEX_API_KEY`, which was against R87 (2026-10-15).
+  ```
+
+- **R110 — agy signs in by a link the harness surfaces** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v5-superseded.md:33` (v5; v7 names v5)). In force as: at Codespace creation the harness surfaces agy's subscription sign-in URL and code in the CC session, the operator authorises in his browser, no API key (R87), and a timeout continues without agy as a recorded GAP. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the mechanism is [#1537] (batch BU lane L4, `lane-bu-1537-codespace-finish`) (owner: the batch BU integrator; reopen if a live Codespace shows no sign-in line)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v5-superseded.md:33-42
+  ## R110 — agy signs in by a link the harness surfaces (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "niech cc web research zrobi … czy jak może się zalogować agy … jak Codespace się tworzy … podajesz mi link do przeglądarki ja się loguje autoryzuje i jest … Google Gmail działa"
+
+  - **The rule.** At Codespace creation, the harness surfaces agy's subscription sign-in URL and code to the operator in the CC session. He authorises in his browser.
+    - No API key (R87).
+    - A timeout continues without agy, recorded as a GAP.
+  - **Who builds it:** BUILD-1 L4 (AMEND-BATCH-BUILD1-PREP-2026-10-15), research-first with sources. L2 researches agy's headless file-read permission, so agy can be the bulk reader again.
+  - **Measured.** In a live Codespace, the sign-in line appears; after authorisation, agy answers a nonce probe in the box.
+  ```
+
+- **R111 — CI: Linux-first, repo OS-agnostic** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v7-superseded.md:21` (v7, amended)). In force as: the OS-agnostic half only: the repo stays OS-agnostic in paths, encodings and shells, which ADR-127's two required legs already enforce. The Linux-first half (Windows nightly, path-filtered) is not in force: see its carrier note. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the BUILD-1 CHALLENGE disposition (`to-browser/DIGEST-BUILD1-READY-2026-10-15.md`, `## CHALLENGE`): Linux-first is DISAGREE -> INPUT_REQUIRED (the repo is public and standard runners cost $0; ADR-127 D1/D3 make `pytest (windows-latest)` a required check), so no lane builds it and no row is filed; the OS-agnostic half is AGREE and already ADR-127; the operator then accepted the CHALLENGE (RATIFICATION-2026-10-14 v8, its R116) (owner: the operator, who may re-rule a ruleset migration; reopen only on a new ruling)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v7-superseded.md:21-38
+  ## R111 (amended) — CI: Linux-first, repo OS-agnostic (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "GitHub Actions na Linuxie jest trochę tańsze, więc raczej bym się sugerował Linuxem i … żeby na repo było Operating System Agnostic, dzięki czemu w przyszłości mógłbym też wklejać wszystko na Linuxie"
+
+  **Now (BUILD-1 L3):**
+  - `cancel-in-progress` per ref;
+  - the dead `terra` job removed.
+
+  **BUILD-2, its own lane:**
+  - **Linux** is the gate: every push and PR, impacted tests on a PR, the full suite on main.
+  - **Windows** runs one nightly full run, plus path-filtered runs for OS-sensitive files.
+  - `land` and `ci_verdict` treat a Windows leg skipped by the filter as not required, and a nightly Windows red as a known red with a carrier.
+  - **The repo must stay OS-agnostic:** paths, encodings (the cp1252 class, `[#1430]`) and shells, so the whole harness can move to Linux.
+
+  **Measured, one week after:**
+  - Actions minutes per week down ≥ 50 %;
+  - every Windows-only regression caught within 24 h.
+  ```
+
+- **R112 — cleanup: used, or wired, or removed** (the seat's proposal; the operator's ask, 2026-10-15; full text `RATIFICATION-2026-10-14-v6-superseded.md:39` (v6; v7 names v6)). In force as: every element the VERIFIED-MAP marks DEAD, DUPLICATE, BROKEN or UNEXPLAINED is wired (a trigger and a test) or removed, with no third state; lists B (wire or remove, one row each) and C (the transport and the prose) are BUILD-2 work. List A is not in force: the BUILD-1 CHALLENGE found all four items live (DISAGREE -> INPUT_REQUIRED). **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; list A is withdrawn by the CHALLENGE (`to-browser/DIGEST-BUILD1-READY-2026-10-15.md`: every item has a caller or a test), lists B and C are BUILD-2 rows not yet filed, and list C's HANDOFF-GAPS Q3 item is [#1450] (owner: the BUILD-2 render, which files one row per list-B item; reopen if BUILD-2 closes with a DEAD or UNEXPLAINED element that has no row)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v6-superseded.md:39-72
+  ## R112 — cleanup: used, or wired, or removed (the seat's proposal; the operator's ask, 2026-10-15)
+
+  **The operator's words:**
+  > "wiele procesów nie funkcjonuje, więc chyba trzeba też wyczyścić i usunąć rzeczy, które są niepotrzebne"
+
+  **The rule** (consistent with 2026-09-08 "an untriggered process is inventory"): every element the VERIFIED-MAP marks DEAD, DUPLICATE, BROKEN or UNEXPLAINED is either **wired** (it gets a trigger and a test) or **removed**. There is no third state.
+
+  **List A — delete now** (BUILD-1 L3; the operator's paste of AMEND v2 is his GO for exactly these):
+  - the duplicate `ruff` pre-commit entry;
+  - the plugin copy of `validate_backlog.py`;
+  - the `provider_bench` census entries aider, llm and amp;
+  - the CI `terra` job.
+
+  Each is grepped for callers first; a caller found means STOP for that item.
+
+  **List B — wire or remove, one row each, in BUILD-2.** Each row: wire it (a trigger plus a test) or remove it.
+  - the 18 manual hooks with no trigger (system map: audit-health, decision-coverage, graph-*, validate-backlog, lane-contract-check, toc-freshness-playbook, normalize-dated-headers, prepend-order, …);
+  - the 3 DISARMED scripts. `block-onedrive.ps1` is weighed against the operator's 2026-09-26 wish for a scope guard as a hook;
+  - the 9 DECLARED-BROKEN hooks (R109 D-4: disarmed first);
+  - the 11 UNEXPLAINED files: a file-purpose graph entry, or removal;
+  - the 2 empty worktree husks;
+  - the held branches `integrate-bw` and D1 `b1db35ff`: land, or archive as a tag (R89).
+
+  **List C — the prose and the transport (BUILD-2 and ADR-125):**
+  - **The transport:** `janitor --apply` (D5(a)); close or carry the about 148 OPEN decision files, superseded files included (`[#1332]`); INDEX back under 40 KB.
+  - **The prose:**
+    - the v5/v6 leftovers and contradictions in HANDOFF_PROCESS and README (HANDOFF-GAPS Q3), in L5;
+    - the 6.3 KB of seat-boot prose repeated in every bundle becomes a pointer (BUILD-2 generator rows);
+    - protocols prose that a mechanism now enforces is removed per ADR-125 (provisional), one file at a time, with its replacing mechanism named.
+
+  **Measured at the BUILD-2 close:**
+  - DEAD + DUPLICATE + UNEXPLAINED = 0, or each one has an open row with a date;
+  - INDEX ≤ 40 KB;
+  - the OPEN decision files are all carried.
+  ```
+
+- **R113 — agy runs headless with its permission bypass** (operator consent, 2026-10-15; full text `RATIFICATION-2026-10-14-v7-superseded.md:40` (v7)). In force as: agy runs headless in the bypass mode `agy --help` names, as the bulk reader, on read-only tasks, with no commit by agy and every read verified by CC (R59); a standing sanction. Its confinement clause (worktree or job tmp only) is not enforceable: see its carrier note. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the BUILD-1 CHALLENGE disposition (`to-browser/DIGEST-BUILD1-READY-2026-10-15.md`, `## CHALLENGE`): the confinement is INPUT_REQUIRED (agy writes its own `~/.gemini` scratch, 627 re-adjudication :280-300), and the route is AMEND: no new route, `read_gate.py` already passes the bypass and the workspace is declared with `--add-dir`; the operator then accepted the residual risk (RATIFICATION-2026-10-14 v9, its R116 (a)); the routing half is [#1536] (owner: the batch BU integrator; reopen if a read through `read_gate.py` runs without a declared workspace)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v7-superseded.md:40-52
+  ## R113 — agy runs headless with its permission bypass (operator consent, 2026-10-15)
+
+  **The operator's words:**
+  > "ja normalnie mogę włączyć sobie w tym terminalu AGI … ze wszystkimi permissions, że bypass all the permissions … co ja wydaję na to zgodę teraz w tym momencie"
+
+  - agy runs headless in its permission-bypass mode (the flag `agy --help` names), so it can read files again as the bulk reader.
+  - **Mitigations:**
+    - read-only tasks;
+    - lane worktree or job tmp only;
+    - no commit by agy;
+    - CC verifies every read (R59).
+  - **Measured:** `agy -p` reads a named file headless and quotes it (L2).
+  - This is a standing sanction, like the Codex one of 2026-07-17. Never re-ask.
+  ```
+
+- **R114 — the distiller and the point-task model** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v7-superseded.md:54` (v7)). In force as: the distiller is the loop's front stage (reviews the prompt, maps the system, lists reuse candidates, selects skills, commands, model, effort and vendor, refuses NEW where a candidate exists unless justified and confirmed by another vendor); Claude Code owns every process and vendors receive bounded point tasks under a contract, completion being the payload file, never the process exit. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the mechanism is [#1535] (batch BU lane L1: `run_phase` with the tree kill and the fresh payload, the distill receipt and its CHALLENGE), and the boot teaches it as pending until then ([#1450]) (owner: the batch BU integrator; reopen if [#1535] lands without the front-stage duplicate refusal)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v7-superseded.md:54-73
+  ## R114 — the distiller and the point-task model (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "destylator to jest to: ty dajesz CC prompt w przeglądarce, a destylator robi review i dopasowuje do tego modele, efforty, skillsy, commandsy, dopasowuje wszystko inteligentnie, zastanawia się, co jest mu potrzebne, zboostowuje ten prompt"
+
+  > "Copilot, Grok, Codex to są takie punktowe laser points rzeczy do wykonania, takie simple tasks … CC zawsze zleca, a inni dostawcy wykonują … to jest jak kontrakt"
+
+  > "szczególnie duble trzeba usunąć … destylator też to powinien robić: mapować, sprawdzać, jak działa system, mapping, dependency"
+
+  1. **The distiller is the loop's front stage.** It reviews the prompt; maps the existing system (organs, scripts, skills, commands, dependencies); lists reuse candidates; selects skills and commands, model, effort and vendor from the registry; and boosts the prompt.
+     - **Anti-duplication runs at the front:** a plan that builds NEW where a candidate exists is refused unless justified and confirmed by another vendor.
+     - C-DUP also stays at P4.
+  2. **Claude Code orchestrates and owns every process.** Copilot, Codex, Grok and agy receive bounded point tasks under a contract: input bundle, output payload schema, timeout.
+     - Completion = the payload file, never the process exit.
+     - CC integrates the outputs.
+  3. **Carrier:** BUILD-1 L1 (AMEND v3). L5 teaches it.
+
+  **Measured:**
+  - a seeded duplicate is refused at the front;
+  - a never-exiting vendor process is harvested on its payload and killed.
+  ```
+
+- **R115 — the sequence after BUILD-2** (the operator's standing order of 2026-09-24, restated 2026-10-15; full text `RATIFICATION-2026-10-14-v7-superseded.md:75` (v7)). In force as: BUILD-3 is the Architekt Jutra tool trials, each a row run through the loop with a measured goal (Caveman, RTK, Headroom, LiteLLM, import-linter against `tach`, mutmut, JetBrains repo-intelligence, Copilot cloud agent, catalogue sift, plus the M06 module); then CONSUMER-1, the first `corp-monorepo` row end to end. **Status:** landed as text by `lane-bu-1450-boot-v2`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a sequence, not a mechanism: its trial rows are OWED and are filed by the BUILD-3 render, none before BUILD-2 closes (owner: the architect seat, which orders the BUILD-3 render; reopen if BUILD-3 is rendered without one row per tool)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14-v7-superseded.md:75-94
+  ## R115 — the sequence after BUILD-2 (the operator's standing order of 2026-09-24, restated 2026-10-15)
+
+  **The operator's words:**
+  > "w przyszłości jeszcze … walidacja narzędzi architektury jutra, caveman i inne"
+
+  1. **BUILD-3 — the Architekt Jutra tool trials, each a row run through the loop with a measured goal:**
+
+     | Tool | Why we try it |
+     |---|---|
+     | **Caveman**, **RTK**, **Headroom** | context and token shrinking; the token cost |
+     | **LiteLLM** | a model-agnostic gateway for the router |
+     | **import-linter** (against `tach`, which ADR-124 chose) | layer contracts, C-DEP |
+     | **mutmut** | test quality; a pilot with 0 mutants must fail |
+     | **JetBrains repo-intelligence** | mapping and duplicate detection for the distiller |
+     | **Copilot cloud agent** | another vendor surface |
+     | **catalogue sift** | course catalogue extraction |
+
+     Plus the M06 module, lesson by lesson (`aj-scan`; read by agy, CC evaluates). The reference repos are Maister and copilot-collections.
+
+  2. **CONSUMER-1:** the first `corp-monorepo` row end to end through the loop, the operator's last milestone after the trials (2026-09-24).
+  ```
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
