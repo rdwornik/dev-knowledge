@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-15  
-**Generated:** 2026-10-15T14:04:38  
+**Generated:** 2026-10-15T17:48:20  
 **Repos audited:** 6  
-**Checks:** 877 total — 158 pass, 15 fail, 507 warn, 0 unavailable, 197 n/a
+**Checks:** 877 total — 156 pass, 16 fail, 508 warn, 0 unavailable, 197 n/a
 
 ---
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-mjo5jj7p\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-f7zqn6wo\wt`  
 **Last audit:** 2026-10-15
 
 | Check | Status | Evidence |
@@ -32,19 +32,19 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 40d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-10-15; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-15, newest input docs/audits committed 2026-10-15 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 8 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 7 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
 | `amendment_coherence` | WARN | handoff-major-version: surface CLAUDE.md present but no normative version mention matched (coupling marker missing/reworded?) |
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
-| `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
-| `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
+| `git_backlog_drift` | WARN | closed-but-present (ADR-65 done-items-leave): #863 (closes in 3b197aefc) still in BACKLOG |
+| `doc_claims` | WARN | 1 prose claim(s) drifted from repo state: pytest_collected@ecosystem/doc-counts.md (doc 10503 != actual 10526) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | PASS | 42 probe(s) bind to live state (2026-10-14-dev-knowledge-architect) |
+| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-14-dev-knowledge-architect: Seats: 30 seat(s) are wedged/starved now that the cut did not name: 168d7cff, 1df6be46, 2230f2d3, 37de9bcf, 3d807077, 4547fe1d, 4fe38c5e, 50044fe9, 508bdf91, 5e3ea01d, 6db88b06, 743d158e, 7b137172, 8e8cc53f, 9a1b1b19, 9d7b9506, a5ac4b90, a78c6c78, aa1e75b8, ae669e57, b850972e, b88b183c, bd8a9102, c1a8535b, c281ed0b, d0a54fa0, d3804514, e973a1e3, f5dc302f, fe8f6fe9 |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 18 reconciled_with edge(s) match live spec version(s) |
@@ -102,7 +102,7 @@
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (397 node(s), 30630 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17924 bytes, within its 18000-byte budget |
-| `fleet_audit_replication` | WARN | automation/fleet-audit is 1 commit(s) ahead of origin -- a recent push likely failed; ADR-80's durable record is behind |
+| `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
@@ -961,9 +961,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 158/877 checks passed
-- **15 failure(s)** — route findings to repo owners
-- 507 warning(s)
+- 156/877 checks passed
+- **16 failure(s)** — route findings to repo owners
+- 508 warning(s)
 - 197 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
