@@ -554,7 +554,8 @@ def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_sk
     assert row_files, f"task {entry.get('task')!r} resolves to no tasks/ row"
     assert "status: open" in row_files[0].read_text(encoding="utf-8")
     assert entry.get("owner")
-    assert datetime.date.fromisoformat(entry["expiry"]) <= datetime.date(2026, 10, 19)
+    # renewed 2026-10-16 (night close-out, [#1350]) from 2026-10-19; removed once 10 green windows runs show the fix
+    assert datetime.date.fromisoformat(entry["expiry"]) <= datetime.date(2026, 10, 26)
     reason = entry.get("reason", "")
     assert "PermissionError" in reason and "scripts/transport.py" in reason
     assert len(re.findall(r"\b\d+/\d+\b", reason)) >= 2, "no measured control-run rates"

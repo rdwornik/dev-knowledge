@@ -342,7 +342,10 @@ class _DestinationLock:
             try:
                 self._fd = os.open(str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 return self
-            except FileExistsError:
+            except (FileExistsError, PermissionError):
+                # PermissionError: on Windows O_EXCL against a lock file another thread is
+                # deleting (delete-pending) fails with it -- contention, not a denial ([#1350]).
+                # A PermissionError that never clears still ends at the deadline below.
                 if time.monotonic() >= deadline:
                     raise TransportWriteRefused(
                         f"could not acquire the append lock for {self._lock_path.name} within "
