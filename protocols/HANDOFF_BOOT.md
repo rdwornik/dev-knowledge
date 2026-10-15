@@ -193,7 +193,7 @@ session, or an existing one by name with the reason.
 
 - **local** — `dispatch LANE-<slug>.md` from the target repo root, i.e. `scripts/dispatch.py launch`: a background lane in its own worktree.
 - **interactive** — `claude` in a new terminal, then paste the seat's order (the integrator and the dispatcher).
-- **codespace** — `dispatch.py plan --substrate codespace` gives the argv, then `dispatch.py codespace-exec --repo --slug --argv-json <CONTRACT>`.
+- **codespace** — `dispatch.py plan --substrate codespace` gives the argv, then `dispatch.py codespace-exec --repo <owner/name> --slug <slug> --argv-json <argv> <CONTRACT>`.
 - **cloud** — `Dispatch-Cloud` (operator); `dispatch.py` has no start verb; read-only work only (no gate runs there).
 
 **The render is the competence probe.** GREEN = plan lint 0 BLOCKING, every local contract
