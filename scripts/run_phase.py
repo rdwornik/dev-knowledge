@@ -244,6 +244,125 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
         "substituted_from": substituted_from})
 
 
+# --- the phase tasks: `doit -f scripts/dodo.py round` ------------------------------------------
+# dodo.py stays a thin adapter (tests/test_dodo.py caps it under 400 lines to keep LOGIC out of it),
+# so the doit tasks for the `phases:` block are built HERE, beside the adapter they run, and
+# dodo.py's `task_phase` only hands over its own substitution helpers.
+
+def _phase_ctx(subs: dict) -> dict:
+    """The phase-only placeholders, from HARNESS_ROUND / HARNESS_ROW / HARNESS_BASE."""
+    round_no = int(os.environ.get("HARNESS_ROUND") or 1)
+    lane = subs.get("{lane}") or "unnamed"
+    round_dir = Path(subs["{receipts}"]) / f"LANE-{lane}" / f"r{round_no}"
+    return {"round": round_no, "lane": lane, "round_dir": round_dir, "row": os.environ.get("HARNESS_ROW", ""),
+            "subs": {"{round}": str(round_no), "{round_dir}": str(round_dir),
+                     "{row}": os.environ.get("HARNESS_ROW", ""),
+                     "{base}": os.environ.get("HARNESS_BASE") or "origin/main"}}
+
+
+def _fill(tokens, ctx: dict, argv_of) -> list[str]:
+    out = []
+    for token in argv_of(list(tokens)):
+        for key, value in ctx["subs"].items():
+            token = token.replace(key, value)
+        out.append(token)
+    return out
+
+
+def _read_json(path) -> Optional[dict]:
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _phase_hash(phase: dict, previous, ctx: dict, argv_of, file_digests) -> str:
+    """What a phase's receipt is valid FOR: its argv template, its declared input files, the upstream
+    phase's hash, lane, row and round. NOT the repo state -- P2 and P3 commit, and a resume after that
+    must not re-run P1 -- so a change reaches a later phase only through a declared input."""
+    body = {"argv": _fill(phase["command"], ctx, argv_of),
+            "files": file_digests(_fill(phase.get("inputs") or [], ctx, argv_of)),
+            "upstream": (_read_json(previous) or {}).get("input_hash") if previous else None,
+            "lane": ctx["lane"], "row": ctx["row"], "round": ctx["round"]}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def phase_succeeded(data: dict) -> bool:
+    """A phase task succeeds iff it ended ok/COMPLETE and its payload (if any) neither failed nor asks
+    for input. A judge's REFUSE is a SUCCESSFUL task: the round's verdict is the conductor's to read."""
+    payload = data.get("payload") or {}
+    return data.get("status") in SUCCESS and payload.get("outcome") not in ("FAIL", "INPUT_REQUIRED")
+
+
+def _phase_fresh(phase, receipt: Path, previous, ctx, argv_of, file_digests):
+    def fresh():
+        data = _read_json(receipt)
+        if data is None:
+            return False
+        try:
+            _pr.PhaseReceipt.model_validate(data)
+        except ValueError:
+            return False
+        return phase_succeeded(data) and data["input_hash"] == _phase_hash(
+            phase, previous, ctx, argv_of, file_digests)
+    return fresh
+
+
+def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, root):
+    def action():
+        round_dir = ctx["round_dir"]
+        round_dir.mkdir(parents=True, exist_ok=True)
+        input_hash = _phase_hash(phase, previous, ctx, argv_of, file_digests)
+        payload = round_dir / f"{phase['id']}.payload.json" if phase.get("gate") == "payload" else None
+        out = round_dir / f"{phase['id']}-OUTPUT.txt"
+
+        def spawn(command):
+            nonce = new_nonce()
+            argv = [t.replace("{payload}", str(payload or "")).replace("{nonce}", nonce)
+                    .replace("{input_hash}", input_hash) for t in _fill(command, ctx, argv_of)]
+            if payload is not None:
+                payload.unlink(missing_ok=True)  # a payload left by an earlier attempt never counts
+            run = run_phase(argv, phase["timeout_s"], cwd=str(root), payload_path=payload, nonce=nonce,
+                            input_hash=input_hash, stdout_path=out,
+                            heartbeat_path=round_dir / f"{phase['id']}.heartbeat.json")
+            return run, argv, nonce
+
+        run, argv, nonce = spawn(phase["command"])
+        substituted = None
+        if run.status not in SUCCESS and phase.get("fallback"):  # one relaunch on the fallback, recorded
+            substituted = _pr.vendor_for_argv(argv)
+            run, argv, nonce = spawn(phase["fallback"])
+        inputs = [{"path": p, "sha256": h}
+                  for p, h in file_digests(_fill(phase.get("inputs") or [], ctx, argv_of)).items()]
+        receipt_model = build_receipt(
+            run, organ=f"phase:{phase['id']}", row=ctx["row"], lane=ctx["lane"], phase=phase["id"],
+            round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
+            model_requested=phase.get("model"), cli_record=_read_json(out), substituted_from=substituted)
+        data = receipt_model.model_dump(by_alias=True)
+        receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        ok = phase_succeeded(data)
+        print(f"phase:{phase['id']}: {run.status} -- {run.reason}" + ("" if ok else " (task FAILED)"))
+        return ok
+    return action
+
+
+def phase_tasks(phases: list, subs: dict, argv_of, file_digests, root):
+    """doit task dicts: `phase:<id>` per row, chained by task_dep so the first failure halts the round
+    (doit's own stop), each targeting its PhaseReceipt; then `round` over them all."""
+    ctx = _phase_ctx(subs)
+    previous = prior = None
+    for phase in phases:
+        receipt = ctx["round_dir"] / f"{phase['id']}.json"
+        yield {"name": phase["id"], "doc": f"{phase['id']} {phase.get('name', '')}",
+               "actions": [_phase_action(phase, receipt, previous, ctx, argv_of, file_digests, root)],
+               "targets": [str(receipt)], "task_dep": [prior] if prior else [], "verbosity": 2,
+               "uptodate": [_phase_fresh(phase, receipt, previous, ctx, argv_of, file_digests)]}
+        previous, prior = receipt, f"phase:{phase['id']}"
+    yield {"basename": "round", "actions": None, "verbosity": 2,
+           "task_dep": [f"phase:{p['id']}" for p in phases], "doc": "one round of the lane's phases"}
+
+
 def _cmd_run(args) -> int:
     inputs = [{"path": p, "sha256": hashlib.sha256(Path(p).read_bytes()).hexdigest()}
               for p in args.input]
