@@ -2993,3 +2993,106 @@ def test_the_cli_verb_waits_600s_by_default_and_refuses_more(tmp_path, monkeypat
     too_long = CliRunner().invoke(d.cli, [*base, "--agy-signin-wait-s", "601"])
     assert too_long.exit_code != 0 and "600" in too_long.output, too_long.output
     assert len(seen) == count, "a refused wait launches nothing"
+
+
+# ----- judge round 2: F1-F5 RED witnesses ----------------------------------------------------------------
+
+def _unlink_fails_for(monkeypatch, victim: Path) -> None:
+    """Make `Path.unlink` raise OSError for `victim` only; every other path unlinks as usual."""
+    real = Path.unlink
+
+    def unlink(self, missing_ok=False):
+        if self == victim:
+            raise PermissionError(13, "the channel is held open by another process")
+        return real(self, missing_ok=missing_ok)
+    monkeypatch.setattr(Path, "unlink", unlink)
+
+
+def test_an_unremovable_stale_channel_refuses_the_signin_without_starting_agy(tmp_path, monkeypatch):
+    """F1a: a stale channel that cannot be removed is never read as the code -- channel-unusable, no agy start."""
+    channel = _channel(tmp_path)
+    channel.parent.mkdir(parents=True)
+    channel.write_text("STALE-CODE-FROM-A-PRIOR-RUN\n", encoding="utf-8")
+    _unlink_fails_for(monkeypatch, channel)
+    agy = FakeAgy()
+    fake, result, _clock = _agy_exec(tmp_path, agy)
+    assert result.ok, result.failure
+    assert agy.started == 0 and "agy-signin-start" not in agy.verbs, "agy is never started on a poisoned channel"
+    record = _agy_record(result)
+    assert record["signin"] == "channel-unusable"
+    assert agy.stopped == 1 and record["auth_tree_killed"] is True
+    assert record["action"] == "gap" and record["read_route"] == "copilot"
+    sent = b"".join(data or b"" for _argv, data in fake.stdin)
+    assert b"STALE-CODE" not in sent and agy.code_stdin == [], "the stale content reached no gh call's stdin"
+
+
+def test_the_channel_is_removed_on_every_exit_of_the_agy_leg(tmp_path, monkeypatch):
+    """F1b: a file the wait never consumed is removed at exit; a failed removal of a read code is recorded."""
+    # (i) timeout: an empty (half-created) file lands after the last poll of the window and is never a code
+    clock = FakeClock()
+    channel = _channel(tmp_path)
+    _operator_writes(clock, channel, 599, "")
+    _fake, result, _c = _agy_exec(tmp_path, FakeAgy(), clock=clock)
+    assert result.ok, result.failure
+    assert _agy_record(result)["signin"] == "timeout"
+    assert not channel.exists(), "the leg removes the channel on its way out, whatever the exit"
+    # (ii) a code that was read but could not be deleted: the record says so
+    stuck = _sub(tmp_path, "stuck")
+    stuck_channel = _channel(stuck)
+    stuck_clock = FakeClock()
+    _operator_writes(stuck_clock, stuck_channel, 20, FAKE_CODE + "\n")
+    with monkeypatch.context() as scope:
+        _unlink_fails_for(scope, stuck_channel)
+        _fake2, stuck_result, _c2 = _agy_exec(stuck, FakeAgy(), clock=stuck_clock)
+    assert _agy_record(stuck_result).get("channel_removed") is False
+
+
+def test_a_code_written_just_before_the_deadline_is_read_by_a_final_poll(tmp_path):
+    """F2: a code that lands in the last poll interval is read at the deadline, and the wait is not extended."""
+    clock = FakeClock()
+    _operator_writes(clock, _channel(tmp_path), 599, FAKE_CODE + "\n")
+    agy = FakeAgy()
+    _fake, result, _c = _agy_exec(tmp_path, agy, wait=600, clock=clock)
+    assert result.ok, result.failure
+    assert _agy_record(result)["signin"] == "signed-in"
+    assert [b.decode().strip() for b in agy.code_stdin] == [FAKE_CODE]
+    assert clock.t <= clock.start + 600 + d.AGY_POLL_S, "the final read never extends the wait"
+
+
+@pytest.mark.parametrize("flag, other", [("--json-schema", '{"type":"object","title":"Other"}'),
+                                         ("--model", "claude-opus-5")])
+def test_duplicate_json_schema_or_model_in_the_head_is_refused_before_any_call(tmp_path, flag, other):
+    """F3: two --json-schema (or two --model) tokens are a DispatchRefused before the smoke and any gh call."""
+    head = [*_CLAUDE_HEAD[:-1], flag, other, _CLAUDE_HEAD[-1]]
+    assert head.count(flag) == 2
+    seen: list[list[str]] = []
+    fake = _FinishGh()
+    with pytest.raises(d.DispatchRefused):
+        _seam_exec(tmp_path, fake, head=head, schema_smoke=_ok_smoke(seen))
+    assert seen == [] and fake.calls == [], "neither the smoke nor gh was reached"
+
+
+def test_branch_pin_check_turns_a_pin_error_into_could_not_look(monkeypatch):
+    """F4: an unreadable pin record is `(2, [reason])` -- could not look -- never an exception."""
+    def broken(_path=None):
+        raise d.cpar.PinError("provisioning.yaml declares no tools: block")
+
+    monkeypatch.setattr(d.cpar, "typed_pins", broken)
+    code, lines = d.branch_pin_check("worktree-lane-x", run=_GitRun(_PINS_TEXT))
+    assert code == 2
+    assert any("declares no tools" in ln for ln in lines), lines
+
+
+def test_a_signed_in_agy_has_its_signin_tree_stopped_after_the_probe(tmp_path):
+    """F5: after a good nonce probe the sign-in TUI is stopped (keyring holds the login); no copilot reroute."""
+    clock = FakeClock()
+    _operator_writes(clock, _channel(tmp_path), 30, FAKE_CODE + "\n")
+    agy = FakeAgy()
+    _fake, result, _c = _agy_exec(tmp_path, agy, clock=clock)
+    assert result.ok, result.failure
+    record = _agy_record(result)
+    assert record["signin"] == "signed-in" and record["probe_ok"] is True
+    assert "agy-signin-stop" in agy.verbs, "the sign-in TUI is stopped once signed in"
+    assert agy.verbs.index("agy-signin-stop") > agy.verbs.index("agy-probe"), "stopped AFTER the probe"
+    assert agy.stopped == 1 and record["auth_tree_killed"] is True
+    assert record.get("read_route") != "copilot", "a signed-in agy is not rerouted"
