@@ -74,6 +74,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import shlex
 import subprocess
 import sys
@@ -2439,19 +2440,60 @@ def _credential_tools_script(allowed: Sequence[str]) -> str:
         "    ;;",
         "  claude-version) claude --version 2>&1 ;;",
         "  agy-signin-start)",
-        # agy holds its sign-in only in an OS keyring (G1): start it in a pty that outlives this ssh
-        # call, its stdin a FIFO, and print ONLY the authorization URL line
+        # agy holds its sign-in only in an OS keyring (G1): start it in a sized pty that outlives this
+        # ssh call, BROWSER unset, its stdin a FIFO; the setsid leader's pid and the FIFO holder's pid
+        # are kept so `agy-signin-stop` can kill the whole tree; print ONLY the authorization URL line
         '    box="$HOME/.agy-signin"; umask 077',
         '    mkdir -p "$box" && chmod 700 "$box" || exit 65',
-        '    rm -f "$box/in" "$box/out"; mkfifo "$box/in" || exit 65',
-        '    ( sleep 900 > "$box/in" ) &',
-        '    nohup setsid script -qfec "timeout 900 agy" "$box/out" < "$box/in" > /dev/null 2>&1 &',
-        "    for _ in $(seq 1 60); do",
-        "      url=\"$(grep -aoE 'https://[^[:space:]]+' \"$box/out\" 2>/dev/null | head -n 1)\"",
+        '    rm -f "$box/in" "$box/out" "$box/pid" "$box/holder"; mkfifo "$box/in" || exit 65',
+        '    sleep 900 > "$box/in" &',
+        '    echo $! > "$box/holder"',
+        '    nohup setsid script -qfec "stty cols 500 rows 50; exec env -u BROWSER timeout 900 agy" '
+        '"$box/out" < "$box/in" > /dev/null 2>&1 &',
+        '    echo $! > "$box/pid"',
+        "    for _ in $(seq 1 90); do",
+        "      url=\"$(sed -e 's/\\x1b\\[[0-9;?]*[a-zA-Z]//g' \"$box/out\" 2>/dev/null | tr -d '\\r' "
+        "| grep -aoE 'https://[^[:space:]]+' | head -n 1)\"",
         '      if [ -n "$url" ]; then printf "%s\\n" "$url"; exit 0; fi',
         "      sleep 1",
         "    done",
         "    exit 70",
+        "    ;;",
+        "  agy-signin-stop)",
+        '    box="$HOME/.agy-signin"',
+        '    pg="$(cat "$box/pid" 2>/dev/null)"; holder="$(cat "$box/holder" 2>/dev/null)"',
+        '    [[ "$pg" =~ ^[0-9]+$ ]] && kill -TERM -- -"$pg" 2>/dev/null',
+        '    [[ "$holder" =~ ^[0-9]+$ ]] && kill -TERM "$holder" 2>/dev/null',
+        "    sleep 1",
+        '    [[ "$pg" =~ ^[0-9]+$ ]] && kill -KILL -- -"$pg" 2>/dev/null',
+        '    [[ "$holder" =~ ^[0-9]+$ ]] && kill -KILL "$holder" 2>/dev/null',
+        '    rm -rf "$box"',
+        "    exit 0",
+        "    ;;",
+        "  agy-signin-diag)",
+        # facts only: yes/no per variable, a byte count and sanitized output -- never a URL or a code
+        '    box="$HOME/.agy-signin"',
+        "    for v in SSH_CONNECTION SSH_TTY BROWSER DISPLAY DBUS_SESSION_BUS_ADDRESS; do",
+        '      if [ -n "${!v:-}" ]; then echo "$v=yes"; else echo "$v=no"; fi',
+        "    done",
+        '    pg="$(cat "$box/pid" 2>/dev/null)"',
+        '    if [[ "$pg" =~ ^[0-9]+$ ]] && kill -0 "$pg" 2>/dev/null; then echo "agy_alive=yes"; '
+        'else echo "agy_alive=no"; fi',
+        '    echo "out_bytes=$(wc -c < "$box/out" 2>/dev/null || echo 0)"',
+        "    sed -e 's/\\x1b\\[[0-9;?]*[a-zA-Z]//g' \"$box/out\" 2>/dev/null | tr -d '\\r' "
+        "| tail -n 30 | sed -E 's#https?://[^[:space:]]+#<url>#g'",
+        "    exit 0",
+        "    ;;",
+        "  agy-probe)",
+        # the nonce proves a sign-in works: refused unless alphanumeric, so it is safe in the prompt
+        '    nonce="${2:-}"',
+        '    [[ "$nonce" =~ ^[A-Za-z0-9]{8,64}$ ]] || { echo "refused: not a probe nonce" >&2; exit 64; }',
+        '    pg="$(cat "$HOME/.agy-signin/pid" 2>/dev/null)"',
+        '    if [[ "$pg" =~ ^[0-9]+$ ]]; then',
+        "      for _ in $(seq 1 60); do kill -0 \"$pg\" 2>/dev/null || break; sleep 1; done",
+        "    fi",
+        '    timeout 300 agy -p "Reply with exactly this token and nothing else: $nonce" < /dev/null 2>&1',
+        '    exit "${PIPESTATUS[0]}"',
         "    ;;",
         "  agy-signin-code)",
         # the code is a credential: read from STDIN only, never an argument
@@ -2522,7 +2564,8 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
                      workdir: str, call: Callable[..., GhResult], artefacts: list[str],
                      commands: Sequence[str], tmp: Path, surface_agy: bool = False,
                      agy_wait_s: float = 0, clock: Callable[[], float] = time.monotonic,
-                     sleep: Callable[[float], None] = time.sleep) -> Optional["ExecResult"]:
+                     sleep: Callable[[float], None] = time.sleep,
+                     agy_channel: Optional[Path] = None) -> Optional["ExecResult"]:
     """The box-side half of the mirror. Returns None when every step held, else the refusal (the box
     exists and is named for teardown). Order: ship the helper; copy each mirrorable cache over stdin;
     leak-check what came back; have the Codespace's own status calls confirm each sign-in; make the
@@ -2571,21 +2614,83 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
     if leaks:
         return leaked(leaks)
 
-    # agy (G1): surface its sign-in URL to the OPERATOR on stderr -- never into a result, a receipt or
-    # a log. A missing URL or a failing helper call is recorded and the launch continues.
+    # agy (G1): there is no non-interactive sign-in, so the OPERATOR is asked once -- the URL goes to
+    # stderr and the credentials row, the code comes back through a laptop file and goes to agy's STDIN
+    # only. No code in the window (or a failed relay/probe) is a recorded GAP: the box's auth process
+    # tree is killed and reads go through copilot. The launch always continues.
     if surface_agy:
         for item in items:
             if item.action != "gap" or item.cli != "agy":
                 continue
+            record = by_cli[item.cli]
+            channel = agy_channel if agy_channel is not None else tmp / "agy-code.txt"
+            try:
+                channel.unlink(missing_ok=True)     # a code left by an earlier run is never the answer
+            except OSError:
+                pass
             res = tool("agy-signin-start")
             found = re.search(r"https://\S+", res.stdout or "") if res.ok else None
-            by_cli[item.cli]["auth_url_surfaced"] = bool(found)
+            record["auth_url_surfaced"] = bool(found)
+            signin = "no-url"
+            code: Optional[str] = None
             if found:
-                helper_path = shlex.quote(tools_remote)
-                print(f"[codespace {name}] agy sign-in URL: {found.group(0)}\n"
-                      f"OPERATOR (optional, GAP): open this URL, then pipe the code to "
-                      f"`gh codespace ssh -c {name} -- bash -l {helper_path} agy-signin-code`",
+                line = f"OPERATOR-ACTION: agy sign-in: open {found.group(0)}, then put the browser's code in {channel}"
+                record["operator_action_line"] = line
+                print(f"[codespace {name}] agy sign-in: waiting for the operator (up to {agy_wait_s:g}s)",
                       file=sys.stderr)
+                print(line, file=sys.stderr)
+                start = clock()
+                beats = 0
+                next_beat = start + AGY_HEARTBEAT_S
+                while clock() < start + agy_wait_s:
+                    try:
+                        text = channel.read_text(encoding="utf-8").strip() if channel.is_file() else ""
+                    except OSError:
+                        text = ""
+                    if text:
+                        code = text
+                        try:
+                            channel.unlink(missing_ok=True)
+                        except OSError:
+                            pass
+                        break
+                    if clock() >= next_beat:
+                        beats += 1
+                        next_beat += AGY_HEARTBEAT_S
+                        print(f"[codespace {name}] agy sign-in: waiting for the code in {channel} "
+                              f"({int(clock() - start)}s of {agy_wait_s:g}s)", file=sys.stderr)
+                    sleep(AGY_POLL_S)
+                record["heartbeats"] = beats
+                signin = "timeout"
+            if code is not None:
+                credentials["agy"] = code.encode("utf-8")
+                relayed = tool("agy-signin-code", stdin=(code + "\n").encode("utf-8"))
+                echoed = leak_check({"agy": credentials["agy"]}, [relayed.stdout, relayed.stderr])
+                if echoed:
+                    return leaked(echoed)
+                if relayed.ok:
+                    nonce = secrets.token_hex(8)
+                    probed = tool("agy-probe", nonce)
+                    ok = nonce in (probed.stdout or "")
+                    record.update({"probe_nonce": nonce, "probe_ok": ok})
+                    signin = "signed-in" if ok else "probe-failed"
+                else:
+                    signin = "relay-failed"
+            record["signin"] = signin
+            if signin != "signed-in":
+                if signin == "no-url":
+                    diag = tool("agy-signin-diag")
+                    record["signin_diag"] = [ln for ln in (diag.stdout or "").splitlines() if ln.strip()]
+                stopped = tool("agy-signin-stop")
+                record.update({"auth_tree_killed": stopped.ok, "read_route": AGY_READ_FALLBACK})
+                print(f"GAP: agy sign-in {signin}: the auth process tree was killed; "
+                      f"reads go through {AGY_READ_FALLBACK}", file=sys.stderr)
+            if "agy" in credentials:
+                echoed = leak_check(
+                    {"agy": credentials["agy"]},
+                    [*artefacts, *commands, json.dumps(records, default=str)])
+                if echoed:
+                    return leaked(echoed)
     # the Codespace's own status call decides whether a sign-in is usable there (R59, R65)
     dead: list[str] = []
     for item in items:
@@ -2819,7 +2924,7 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
                                   invoker=invoker, sleep=sleep, run_timeout_s=run_timeout_s,
                                   mirror=mirror, batch=batch, rec=rec, ledger_path=ledger_path,
                                   schema_smoke=schema_smoke, pins=pins, agy_wait_s=agy_wait_s,
-                                  clock=clock)
+                                  clock=clock, agy_channel=steps_path.parent / "agy-code.txt")
     return replace(result, steps=tuple(rows))
 
 
@@ -2885,7 +2990,8 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
                     schema_smoke: Optional[Callable[[list[str]], "SmokeResult"]] = None,
                     pins: Optional[Callable[[str], tuple[int, list[str]]]] = None,
                     agy_wait_s: float = 0,
-                    clock: Callable[[], float] = time.monotonic) -> ExecResult:
+                    clock: Callable[[], float] = time.monotonic,
+                    agy_channel: Optional[Path] = None) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
     of `Start-DispatchCodespace` (create, read the NAME back, read the creation log and refuse a
     recovery container, ship the contract and a generated runner script in, run it, pull
@@ -3041,7 +3147,7 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
         if mirror is not None:
             stop = _mirror_into_box(mirror, items, records, name, workdir, call, artefacts, commands,
                                     Path(tmp), surface_agy=bool(batch), agy_wait_s=agy_wait_s,
-                                    clock=clock, sleep=sleep)
+                                    clock=clock, sleep=sleep, agy_channel=agy_channel)
             if stop is not None:
                 rec("credentials", False, name, creds_evidence(), stop.failure, stop.fate)
                 return stop
