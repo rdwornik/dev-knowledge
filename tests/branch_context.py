@@ -46,9 +46,24 @@ REPO = Path(__file__).resolve().parents[1]
 _DEFAULT_LANE_FILES = {"LANE-PROBE.txt": "a lane commit\n"}
 
 
+def git_env() -> dict[str, str]:
+    """The environment for a git call here: the host's, plus `safe.bareRepository=all`.
+
+    The fixture's `origin` is a bare repo; a host that sets `safe.bareRepository=explicit` would
+    refuse it. The entry is APPENDED after any GIT_CONFIG_COUNT entries already present, so the
+    host's own are kept and ours wins (the last value for a key is the one git uses).
+    """
+    env = dict(os.environ)
+    n = int(env.get("GIT_CONFIG_COUNT") or 0)
+    env[f"GIT_CONFIG_KEY_{n}"] = "safe.bareRepository"
+    env[f"GIT_CONFIG_VALUE_{n}"] = "all"
+    env["GIT_CONFIG_COUNT"] = str(n + 1)
+    return env
+
+
 def _git(cwd: Path, *args: str, check: bool = True) -> str:
     done = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=300)
+                          encoding="utf-8", errors="replace", timeout=300, env=git_env())
     if check and done.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed in {cwd}: {done.stderr.strip()}")
     return done.stdout.strip()
@@ -78,12 +93,12 @@ class BranchContexts:
         hooks = root / "no-hooks"
         hooks.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "clone", "-q", "--bare", str(self.source), str(self.origin)],
-                       check=True, capture_output=True, timeout=600)
+                       check=True, capture_output=True, timeout=600, env=git_env())
         _git(self.origin, "update-ref", "refs/heads/main", self.base)
         _git(self.origin, "symbolic-ref", "HEAD", "refs/heads/main")
         subprocess.run(["git", "clone", "-q", "-c", "core.autocrlf=false", "-c", "core.longpaths=true",
                         str(self.origin), str(self.work)],
-                       check=True, capture_output=True, timeout=900)
+                       check=True, capture_output=True, timeout=900, env=git_env())
         for key, value in (("user.name", "branch-context"), ("user.email", "bc@example.invalid"),
                            ("commit.gpgsign", "false"), ("core.hooksPath", str(hooks)),
                            ("core.autocrlf", "false"), ("core.longpaths", "true")):
@@ -217,7 +232,7 @@ def _git_out(repo: Path, *args: str) -> "str | None":
     """`git -C repo <args>` stdout, stripped; None when git fails, is absent or times out."""
     try:
         done = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
-                              encoding="utf-8", timeout=60)
+                              encoding="utf-8", timeout=60, env=git_env())
     except (OSError, subprocess.SubprocessError):
         return None
     out = done.stdout.strip()
@@ -227,7 +242,7 @@ def _git_out(repo: Path, *args: str) -> "str | None":
 def _is_ancestor(repo: Path, older: str, newer: str) -> bool:
     try:
         return subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", older, newer],
-                              capture_output=True, timeout=60).returncode == 0
+                              capture_output=True, timeout=60, env=git_env()).returncode == 0
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -272,7 +287,8 @@ def names_at_merge_base(repo: Path, subtree: str) -> "frozenset[str] | None":
     try:
         listing = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "-z", "--name-only",
                                   base, "--", subtree],
-                                 capture_output=True, text=True, encoding="utf-8", timeout=60)
+                                 capture_output=True, text=True, encoding="utf-8", timeout=60,
+                                 env=git_env())
     except (OSError, subprocess.SubprocessError):
         return None
     if listing.returncode != 0:

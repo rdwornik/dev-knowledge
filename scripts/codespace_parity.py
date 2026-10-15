@@ -2341,10 +2341,24 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
 
 def verify_cleanup(name: str, branch: str, created: str, deleted: str, machine: str,
                    run: Runner = default_run, *, root: Path = _REPO_ROOT,
-                   extra_branches: Optional[Sequence[str]] = None) -> dict:
+                   extra_branches: Optional[Sequence[str]] = None,
+                   delete_first: bool = False) -> dict:
     """Condition 5's record: read AFTER teardown that the Codespace is not listed and the run
     branch (and every `extra_branches` entry -- the test lane's own, C3's scratch integration) is
-    not on origin. A listing that cannot be read raises -- 'could not look' is not 'gone'."""
+    not on origin. A listing that cannot be read raises -- 'could not look' is not 'gone'.
+
+    `delete_first` pushes a delete of each named branch BEFORE any read; only `worktree-*` names are
+    accepted (a ValueError, with nothing run, otherwise). A delete that fails is recorded, not
+    raised: the read after it decides whether the ref is gone."""
+    deleted_first: dict[str, int] = {}
+    if delete_first:
+        named = [branch, *(extra_branches or [])]
+        for ref in named:
+            if ref in ("main", "master", "HEAD") or not ref.startswith("worktree-"):
+                raise ValueError(f"--delete-scratch refuses {ref!r}: only worktree-* scratch branches")
+        for ref in named:
+            gone = run(["git", "push", "origin", "--delete", ref], cwd=root, timeout=120)
+            deleted_first[ref] = gone.returncode
     listing = run(["gh", "codespace", "list", "--json", "name"], timeout=120)
     if listing.returncode != 0:
         raise RemoteUnavailable(f"gh codespace list exited {listing.returncode}: cannot say "
@@ -2371,6 +2385,8 @@ def verify_cleanup(name: str, branch: str, created: str, deleted: str, machine: 
             after[extra] = _exact_head(more.stdout, extra) is not None
         record["extra_branches"] = list(extra_branches)
         record["extra_branches_listed_after"] = after
+    if delete_first:
+        record["deleted_first"] = deleted_first
     return record
 
 
@@ -2656,13 +2672,18 @@ def stamp_lane_cmd(record_path: Path, branch: str) -> None:
 @click.option("--also-branch", "also_branches", multiple=True,
               help="Another branch that must be gone from origin (repeatable): the integration "
                    "scratch branch.")
+@click.option("--delete-scratch", "delete_scratch", is_flag=True,
+              help="Delete the named worktree-* branches from origin first, then read.")
 @click.option("--out", "out", required=True, type=click.Path(path_type=Path))
 def verify_cleanup_cmd(name: str, branch: str, created: str, deleted: str, machine: str,
-                       also_branches: tuple[str, ...], out: Path) -> None:
+                       also_branches: tuple[str, ...], delete_scratch: bool, out: Path) -> None:
     """After teardown: read that the Codespace and the run branch are gone; write the record."""
     try:
         record = verify_cleanup(name, branch, created, deleted, machine,
-                                extra_branches=list(also_branches) or None)
+                                extra_branches=list(also_branches) or None,
+                                delete_first=delete_scratch)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
     except RemoteUnavailable as exc:
         click.echo(f"FAILURE RemoteUnavailable: {exc}")
         sys.exit(3)

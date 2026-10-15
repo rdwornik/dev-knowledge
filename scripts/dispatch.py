@@ -539,11 +539,71 @@ class Plan:
 LANE_REPORT_SCHEMA = Path(__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
 
 
+#: The API refuses these at the TOP level of a `--json-schema` (nested ones are accepted) ([#1537]).
+_API_REFUSED_TOP_LEVEL = frozenset({"$schema", "allOf", "anyOf", "oneOf"})
+
+
+def api_safe_schema(schema: dict) -> dict:
+    """A new dict: `schema` minus the top-level keys the API refuses. The input is never mutated."""
+    return {k: v for k, v in schema.items() if k not in _API_REFUSED_TOP_LEVEL}
+
+
 def lane_report_schema_arg() -> str:
     """The LANE REPORT schema as ONE compact argv token, for `claude -p --json-schema`."""
-    schema = json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8"))
-    schema.pop("$schema", None)  # claude 2.1.299+ rejects the draft-2020-12 $schema URI
+    schema = api_safe_schema(json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8")))
     return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
+
+
+@dataclass(frozen=True)
+class SmokeResult:
+    ok: bool
+    exit_code: int
+    detail: str
+
+
+_SCHEMA_SMOKE_PROMPT = ('Reply with a minimal LANE REPORT: state FAILED, reason "schema smoke". '
+                        "Do not use any tool.")
+_SCHEMA_SMOKE_TIMEOUT_S = 300
+
+
+def schema_smoke_argv(head_argv: Sequence[str]) -> Optional[list[str]]:
+    """The argv of a one-shot live `claude` call carrying the head's own `--json-schema` token, or None
+    when the head is not a claude head with a schema."""
+    head = list(head_argv)
+    if not head or head[0] != "claude" or "--json-schema" not in head:
+        return None
+    token_at = head.index("--json-schema") + 1
+    if token_at >= len(head) or "--model" not in head or head.index("--model") + 1 >= len(head):
+        return None
+    model = head[head.index("--model") + 1]
+    return ["claude", "-p", "--output-format", "json", "--model", model, "--effort", "low",
+            "--json-schema", head[token_at], _SCHEMA_SMOKE_PROMPT]
+
+
+def run_schema_smoke(argv: Sequence[str]) -> SmokeResult:
+    """Run the smoke for real: ok iff exit 0 and the stdout JSON says `is_error` false."""
+    try:
+        proc = subprocess.run(list(argv), stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=_SCHEMA_SMOKE_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return SmokeResult(False, 124, f"timed out after {_SCHEMA_SMOKE_TIMEOUT_S}s")
+    except OSError as exc:
+        return SmokeResult(False, 127, str(exc)[:300])
+    stdout = proc.stdout or ""
+    payload = None
+    try:
+        payload = json.loads(stdout)
+    except ValueError:
+        pass
+    is_error = payload.get("is_error") if isinstance(payload, dict) else None
+    ok = proc.returncode == 0 and is_error is False
+    if ok:
+        return SmokeResult(True, 0, "")
+    text = ""
+    if isinstance(payload, dict) and isinstance(payload.get("result"), str):
+        text = payload["result"]
+    text = text or stdout.strip() or (proc.stderr or "").strip()
+    return SmokeResult(False, proc.returncode, text[:300])
 
 
 def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
@@ -2195,6 +2255,10 @@ def default_mirror_config(env: Optional[Mapping[str, str]] = None) -> MirrorConf
 
 
 AGY_GAP_ID = "agy-interactive-sign-in"
+AGY_SIGNIN_WAIT_S = 600
+AGY_HEARTBEAT_S = 60
+AGY_POLL_S = 2
+AGY_READ_FALLBACK = "copilot"
 
 
 def _refresh_codex_on_laptop() -> bool:
@@ -2456,7 +2520,9 @@ def _status_is_dead(cli: str, res: GhResult) -> bool:
 
 def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: list[dict], name: str,
                      workdir: str, call: Callable[..., GhResult], artefacts: list[str],
-                     commands: Sequence[str], tmp: Path, surface_agy: bool = False) -> Optional["ExecResult"]:
+                     commands: Sequence[str], tmp: Path, surface_agy: bool = False,
+                     agy_wait_s: float = 0, clock: Callable[[], float] = time.monotonic,
+                     sleep: Callable[[float], None] = time.sleep) -> Optional["ExecResult"]:
     """The box-side half of the mirror. Returns None when every step held, else the refusal (the box
     exists and is named for teardown). Order: ship the helper; copy each mirrorable cache over stdin;
     leak-check what came back; have the Codespace's own status calls confirm each sign-in; make the
@@ -2726,14 +2792,19 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
                     run_timeout_s: float = RUN_TIMEOUT_SECONDS,
                     mirror: Optional[MirrorConfig] = None, batch: str,
                     receipts_root: Optional[Path] = None,
-                    ledger_path: Optional[Path] = None) -> ExecResult:
+                    ledger_path: Optional[Path] = None,
+                    schema_smoke: Optional[Callable[[list[str]], "SmokeResult"]] = None,
+                    pins: Optional[Callable[[str], tuple[int, list[str]]]] = None,
+                    agy_wait_s: float = 0,
+                    clock: Callable[[], float] = time.monotonic) -> ExecResult:
     """`_codespace_exec_core` plus the FINISH witnesses. `batch` is a required keyword: every step of
     the line -- create, credentials, run, commit, handback -- writes one row of `<receipts_root>/
     <batch>/<slug>/steps.jsonl` (`ExecResult.steps` carries the same rows), the regime ledger gets its
     open row once the box exists, and a run whose lane committed and pushed nothing, or returned no
     valid handback, is FAILED at that step. An empty `batch` is refused before any `gh` call."""
     if not batch:
-        raise ValueError("codespace_exec needs a non-empty batch: the FINISH receipts and gates are not optional")
+        raise DispatchRefused("codespace_exec needs a non-empty batch: the FINISH receipts and gates "
+                              "are not optional")
     rows: list[dict] = []
     steps_path = _harvest_dir(batch, slug, root=receipts_root) / "steps.jsonl"
 
@@ -2744,8 +2815,29 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     result = _codespace_exec_core(repo, branch, slug, contract, head_argv, machine=machine,
                                   idle_timeout=idle_timeout, retention=retention, workdir=workdir,
                                   invoker=invoker, sleep=sleep, run_timeout_s=run_timeout_s,
-                                  mirror=mirror, batch=batch, rec=rec, ledger_path=ledger_path)
+                                  mirror=mirror, batch=batch, rec=rec, ledger_path=ledger_path,
+                                  schema_smoke=schema_smoke, pins=pins, agy_wait_s=agy_wait_s,
+                                  clock=clock)
     return replace(result, steps=tuple(rows))
+
+
+def branch_pin_check(branch: str, *, run: Callable[..., "cpar.CmdResult"] = cpar.default_run,
+                     laptop: Optional[Mapping[str, Optional[str]]] = None) -> tuple[int, list[str]]:
+    """`(exit code, finding lines)` for the pin record the BRANCH carries -- read at FETCH_HEAD, never
+    the checked-out copy: the box is created from the branch, so the branch's record is what binds.
+    A fetch or read that fails is `(2, [reason])`: could not look, never silently clean."""
+    fetched = run(["git", "fetch", "origin", branch], cwd=HUB_ROOT, timeout=120)
+    if fetched.returncode != 0:
+        return 2, [f"could not fetch origin {branch} (exit {fetched.returncode})"]
+    shown = run(["git", "show", "FETCH_HEAD:.devcontainer/provisioning.yaml"], cwd=HUB_ROOT, timeout=60)
+    if shown.returncode != 0:
+        return 2, [f"could not read .devcontainer/provisioning.yaml on {branch} (exit {shown.returncode})"]
+    with tempfile.TemporaryDirectory() as tmp:
+        record = Path(tmp) / "provisioning.yaml"
+        record.write_text(shown.stdout, encoding="utf-8", newline="\n")
+        if laptop is None:
+            laptop = cpar.read_laptop_versions(tuple(cpar.typed_pins(record)))
+        return cpar.pin_check(record, laptop)
 
 
 def write_step(path: Path, batch: str, lane: str, codespace: str, step: str, ok: bool,
@@ -2787,7 +2879,11 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
                     run_timeout_s: float = RUN_TIMEOUT_SECONDS,
                     mirror: Optional[MirrorConfig] = None, batch: str,
                     rec: Optional[Callable[..., None]] = None,
-                    ledger_path: Optional[Path] = None) -> ExecResult:
+                    ledger_path: Optional[Path] = None,
+                    schema_smoke: Optional[Callable[[list[str]], "SmokeResult"]] = None,
+                    pins: Optional[Callable[[str], tuple[int, list[str]]]] = None,
+                    agy_wait_s: float = 0,
+                    clock: Callable[[], float] = time.monotonic) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
     of `Start-DispatchCodespace` (create, read the NAME back, read the creation log and refuse a
     recovery container, ship the contract and a generated runner script in, run it, pull
@@ -2840,6 +2936,27 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
     commands: list[str] = []
 
     artefacts: list[str] = []   # every string a `gh` call returned, for the leak check
+
+    smoke_argv = schema_smoke_argv(head_argv) if schema_smoke is not None else None
+    if smoke_argv is not None:
+        smoked = schema_smoke(smoke_argv)
+        if not smoked.ok:
+            failure = f"schema smoke: claude refused the --json-schema token (exit {smoked.exit_code}): {smoked.detail}"
+            result = ExecResult(False, mirror=tuple(records), failure=failure,
+                                fate={"fate": "FAILED", "step": "schema-smoke", "reason": failure})
+            rec("schema-smoke", False, "", {"exit_code": smoked.exit_code}, failure, result.fate)
+            return result
+        rec("schema-smoke", True, "", {"exit_code": smoked.exit_code})
+    if pins is not None:
+        pin_code, pin_lines = pins(branch)
+        if pin_code != 0:
+            action = (f"OPERATOR-ACTION: run `uv run --locked python scripts/codespace_parity.py pin write`, "
+                      f"commit it to {branch} and push, then launch again")
+            failure = "\n".join([*pin_lines, action])
+            result = _refusal("pins", failure, records)
+            rec("pins", False, "", {"exit_code": pin_code, "findings": len(pin_lines)}, failure, result.fate)
+            return result
+        rec("pins", True, "", {"exit_code": pin_code})
 
     def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS,
              input_bytes: Optional[bytes] = None) -> GhResult:
@@ -2921,7 +3038,8 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
 
         if mirror is not None:
             stop = _mirror_into_box(mirror, items, records, name, workdir, call, artefacts, commands,
-                                    Path(tmp), surface_agy=bool(batch))
+                                    Path(tmp), surface_agy=bool(batch), agy_wait_s=agy_wait_s,
+                                    clock=clock, sleep=sleep)
             if stop is not None:
                 rec("credentials", False, name, creds_evidence(), stop.failure, stop.fate)
                 return stop
@@ -3388,8 +3506,11 @@ def codespace_delete(name: str, *, out_dir: Path,
 @click.option("--retention", default="24h", show_default=True)
 @click.option("--batch", required=True, help="The batch id: step rows and the regime receipt are keyed by it.")
 @click.option("--workdir", default="/workspaces/dispatch", show_default=True)
+@click.option("--agy-signin-wait-s", type=float, default=AGY_SIGNIN_WAIT_S, show_default=True,
+              help=f"How long to wait for the operator's agy sign-in code (0..{AGY_SIGNIN_WAIT_S}).")
 def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_json: str,
-                       machine: str, idle_timeout: str, retention: str, batch: str, workdir: str) -> None:
+                       machine: str, idle_timeout: str, retention: str, batch: str, workdir: str,
+                       agy_signin_wait_s: float) -> None:
     """Actually dispatch a Codespace lane end to end: create, ship, run, pull the receipt back.
 
     `--argv-json` is deliberately not re-derived from the contract here -- `dispatch.py plan
@@ -3404,10 +3525,14 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
         raise DispatchRefused("--argv-json must be a JSON list of strings")
     if not head_argv:
         raise DispatchRefused("--argv-json is empty -- nothing to run in the codespace")
+    if not 0 <= agy_signin_wait_s <= AGY_SIGNIN_WAIT_S:
+        raise DispatchRefused(f"--agy-signin-wait-s must be between 0 and {AGY_SIGNIN_WAIT_S} seconds")
     # the launcher always mirrors the laptop's own sign-ins (R87): this verb is the launcher
     result = codespace_exec(repo, branch, slug, Path(contract), head_argv, machine=machine,
                             idle_timeout=idle_timeout, retention=retention, workdir=workdir,
-                            mirror=default_mirror_config(), batch=batch)
+                            mirror=default_mirror_config(), batch=batch,
+                            schema_smoke=run_schema_smoke, pins=branch_pin_check,
+                            agy_wait_s=agy_signin_wait_s)
     click.echo(json.dumps(asdict(result)))
     if not result.ok:
         sys.exit(EXIT_NO_COMMIT if result.fate.get("step") == "commit" else EXIT_REFUSED)
