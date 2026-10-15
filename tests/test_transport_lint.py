@@ -922,3 +922,29 @@ def test_a_byte_order_mark_before_the_by_line_does_not_unsign_the_file(lint, reg
     assert lint.by_value(text) == "lane-demo (job abc12345)"
     assert lint.lint_text("DIGEST-bom-2026-10-10.md", "to-browser", text, registry, require_by=True,
                           file_class="new") == []
+
+
+# --- lane bu-1539-transport ([#1454] / [#1539] (4)): `by:` on a new file, and on the lane-end report -----
+
+def test_1454_lint_refuses_a_new_file_without_by(lint, registry):
+    """T9: a NEW file of a role-written kind with no `by:` in its head is refused (level `refuse`)."""
+    head_without_by = "date: 2026-10-16\nsummary: no writer named\n\n# D\ndev-knowledge\n"
+    found = lint.lint_text("DIGEST-nobody-2026-10-16.md", "to-browser", head_without_by, registry,
+                           require_by=True, file_class="new")
+    assert [(f.code, f.level) for f in found] == [("no-by", "refuse")]
+
+
+def test_1539_a_fresh_lane_end_report_carries_by_and_the_sweep_shows_no_no_by_finding(lint, world):
+    """T10: transport_report's LANE-END output names its writer, so no `no-by*` finding follows it."""
+    tr = _mod("transport_report")
+    repo = world["root"].parent / "repo"
+    (repo / "logs" / "receipts").mkdir(parents=True)
+    rc = tr.main(["--lane", "demo-lane", "--repo", str(repo), "--transport-root", str(world["root"]),
+                  "--receipts-dir", str(repo / "logs" / "receipts")])
+    assert rc == 0
+    report = world["browser"] / "LANE-END-demo-lane.md"
+    assert report.is_file()
+    found = lint.sweep(world["root"], require_by=True)
+    mine = [f for f in found if f.path.endswith("LANE-END-demo-lane.md")]
+    assert [f.code for f in mine if f.code.startswith("no-by")] == []
+    assert lint.by_value(report.read_text(encoding="utf-8")) is not None

@@ -1818,3 +1818,414 @@ def test_query_reads_an_explicit_index_and_refuses_cleanly_with_no_transport(t, 
     assert t.main(["query", "--index", str(copy), "--seat-ids", str(seat_file), "--kind", "PLAN"]) == 0
     assert _query_paths(capsys.readouterr().out) == ["to-cc/PLAN-x-v2.md"]
     assert t.main(["query", "--seat-ids", str(seat_file), "--kind", "PLAN"]) == 2
+
+
+# =====================================================================================================
+# lane bu-1539-transport ([#1539], [#1454]): RED tests T1-T8, T11, T13 (written before the build).
+# =====================================================================================================
+
+_BU_NOW = "2026-10-20T00:00:00Z"
+
+
+def _bu_args(world, tmp_path) -> list[str]:
+    return ["--transport-root", str(world["root"]), "--seat-ids", str(_seat_file(tmp_path))]
+
+
+def _bu_known(t, world, tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(t, "known_root", lambda: world["root"])
+    monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", _seat_file(tmp_path))
+    monkeypatch.setattr(t, "INDEX_LOCK_TIMEOUT_S", 0.2)
+
+
+def _bu_section(text: str, heading: str) -> str:
+    """The body of one `## <heading>` section of an INDEX view ('' when absent)."""
+    m = re.search(rf"^## {re.escape(heading)}\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+def _bu_request(root: Path, rel: str, date: str, extra: str = "") -> Path:
+    return _put(root, rel, f"by: {TA44}\ndate: {date}\nsummary: request {rel}\n{extra}\n# R\ndev-knowledge\n")
+
+
+def _bu_ts(day: str) -> float:
+    from datetime import datetime, timezone
+    return datetime.fromisoformat(day + "T12:00:00").replace(tzinfo=timezone.utc).timestamp()
+
+
+# --- T1: query --since is headers only -----------------------------------------------------------------
+
+def _bu_since_world(world) -> None:
+    root = world["root"]
+    for name, day, by in (("DIGEST-one-2026-10-12.md", "2026-10-12", TA44),
+                          ("DIGEST-two-2026-10-14.md", "2026-10-14", TA43),
+                          ("DIGEST-old-2026-10-01.md", "2026-10-01", TA44)):
+        p = _put(root, f"to-browser/{name}",
+                 _head(by=by, date=day, summary=f"Summary {name}", body=("dev-knowledge", "SECRET-BODY-LINE")))
+        os.utime(p, (_bu_ts(day), _bu_ts(day)))
+
+
+def test_1539_query_since_prints_headers_only_oldest_first(t, world, tmp_path, capsys):
+    _bu_since_world(world)
+    capsys.readouterr()
+    rc = t.main(["query", "--since", "2026-10-10", *_bu_args(world, tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    lines = [ln for ln in out.splitlines() if ln.strip()]
+    assert len(lines) == 2, out                                   # the 10-01 file is older than --since
+    assert "SECRET-BODY-LINE" not in out
+    assert lines[0].startswith("to-browser/DIGEST-one-2026-10-12.md")   # oldest first
+    assert lines[1].startswith("to-browser/DIGEST-two-2026-10-14.md")
+    for ln in lines:
+        assert " | kind: DIGEST" in ln and " | date: " in ln and " | by: " in ln
+        assert " | summary: " in ln
+        assert re.search(r" \| sha: [0-9a-f]{12}$", ln), ln
+
+
+def test_1539_query_since_json_carries_the_header_keys_and_no_body(t, world, tmp_path, capsys):
+    import json
+    _bu_since_world(world)
+    capsys.readouterr()
+    rc = t.main(["query", "--since", "2026-10-10T00:00:00Z", "--json", *_bu_args(world, tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    rows = json.loads(out)
+    assert len(rows) == 2 and "SECRET-BODY-LINE" not in out
+    for r in rows:
+        assert {"kind", "date", "by", "summary", "sha"} <= set(r)
+        assert re.fullmatch(r"[0-9a-f]{12}", r["sha"])
+    assert rows[0]["kind"] == "DIGEST" and rows[0]["date"] == "2026-10-12"
+
+
+# --- T2: --seat architect is the architect's inbox ------------------------------------------------------
+
+def test_1539_query_seat_architect_lists_to_browser_files_not_written_by_an_architect(t, world, tmp_path, capsys):
+    root = world["root"]
+    _put(root, "to-browser/DIGEST-arch-2026-10-16.md", _head(by=TA44, date="2026-10-16", summary="Architect"))
+    _put(root, "to-browser/EVAL-cc-2026-10-16.md",
+         _head(by="CC session ab339d52", date="2026-10-16", summary="From a CC seat"))
+    _put(root, "to-cc/PLAN-cc-v1.md", _head(by="CC session ab339d52", date="2026-10-16", summary="Not inbox"))
+    capsys.readouterr()
+    rc = t.main(["query", "--since", "2000-01-01", "--seat", "architect", *_bu_args(world, tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "to-browser/EVAL-cc-2026-10-16.md" in out
+    assert "DIGEST-arch-2026-10-16.md" not in out and "to-cc/PLAN-cc-v1.md" not in out
+
+
+# --- T3 / T4: derived request status ------------------------------------------------------------------
+
+def test_1539_an_answer_record_marks_the_request_answered_and_never_edits_it(t, world, tmp_path):
+    root = world["root"]
+    req = _bu_request(root, "to-cc/AMEND-ask-2026-10-16.md", "2026-10-16", "carried-by: OPEN\n")
+    before = req.read_bytes()
+    _put(root, "to-cc/ANSWER-ask-2026-10-17.md",
+         f"by: {TA44}\ndate: 2026-10-17\nsummary: answer\nanswers: AMEND-ask-2026-10-16.md\n\n# A\ndev-knowledge\n")
+    args = _bu_args(world, tmp_path)
+    assert t.main(["index", "--write", "--generated-at", _BU_NOW, *args]) == 0
+    view = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    line = [ln for ln in _bu_section(view, "Requests").splitlines() if "AMEND-ask-2026-10-16.md" in ln]
+    assert len(line) == 1 and "ANSWERED" in line[0], view[:1500]
+    assert req.read_bytes() == before
+
+
+def test_1539_an_unanswered_request_past_its_timeout_is_listed_overdue_first(t, world, tmp_path):
+    root = world["root"]
+    _bu_request(root, "to-cc/AMEND-late-2026-10-15.md", "2026-10-15")                        # +3d = 10-18 < 10-20
+    _bu_request(root, "to-cc/AMEND-fresh-2026-10-19.md", "2026-10-19")                       # until 10-22
+    _bu_request(root, "to-cc/AMEND-short-2026-10-17.md", "2026-10-17", "timeout: 2026-10-18\n")   # explicit, past
+    _bu_request(root, "to-cc/AMEND-long-2026-10-15.md", "2026-10-15", "timeout: 2026-10-30\n")    # explicit, future
+    _bu_request(root, "to-cc/AMEND-preera-2026-10-10.md", "2026-10-10")                      # before ANSWERS_ERA
+    args = _bu_args(world, tmp_path)
+    assert t.main(["index", "--write", "--generated-at", _BU_NOW, *args]) == 0
+    view = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    req = _bu_section(view, "Requests")
+    rows = {n: ln for ln in req.splitlines() for n in
+            ("late", "fresh", "short", "long", "preera") if f"AMEND-{n}-" in ln}
+    assert "OVERDUE" in rows["late"] and "OVERDUE" in rows["short"]
+    assert "OPEN" in rows["fresh"] and "OPEN" in rows["long"]
+    assert "preera" not in rows                                  # no derived status before the era
+    assert req.index("AMEND-late-") < req.index("AMEND-fresh-")  # OVERDUE listed before OPEN
+    assert req.index("AMEND-short-") < req.index("AMEND-long-")
+
+
+def test_1539_request_status_is_public_and_pure(t):
+    assert getattr(t, "ANSWERS_ERA", None) == "2026-10-15"
+    assert getattr(t, "REQUEST_TIMEOUT_DAYS", None) == 3
+
+    def ent(path, date, extra=None):
+        return {"path": path, "kind": "AMEND", "subject": "s", "date": date, "by": TA44,
+                "status": "current", **(extra or {})}
+
+    parsed = {"header": {"regenerated": _BU_NOW},
+              "entries": [ent("to-cc/AMEND-a-2026-10-16.md", "2026-10-16"),
+                          ent("to-cc/AMEND-b-2026-10-15.md", "2026-10-15"),
+                          ent("to-cc/AMEND-c-2026-10-19.md", "2026-10-19"),
+                          ent("to-cc/ANSWER-a-2026-10-17.md", "2026-10-17",
+                              {"kind": "ANSWER", "answers": "AMEND-a-2026-10-16.md"})],
+              "edges": []}
+    fn = getattr(t, "request_status", None)
+    assert fn is not None, "transport.request_status is not defined"
+    from datetime import datetime, timezone
+    try:
+        got = fn(parsed, datetime(2026, 10, 20, tzinfo=timezone.utc))
+    except (TypeError, AttributeError):
+        got = fn(parsed, _BU_NOW)
+    assert got["to-cc/AMEND-a-2026-10-16.md"][0] == "ANSWERED"
+    assert got["to-cc/AMEND-b-2026-10-15.md"][0] == "OVERDUE"
+    assert got["to-cc/AMEND-c-2026-10-19.md"][0] == "OPEN"
+    assert "to-cc/ANSWER-a-2026-10-17.md" not in got
+
+
+# --- T5 / T6: the INDEX stays fresh --------------------------------------------------------------------
+
+def test_1539_check_is_0_after_a_classified_write_through_transport_write(t, world, tmp_path, monkeypatch):
+    _snapshot_world(world)
+    _bu_known(t, world, tmp_path, monkeypatch)
+    args = _bu_args(world, tmp_path)
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    dest = world["browser"] / "DIGEST-viawrite-2026-10-11.md"
+    t.write("operator", dest, _head(by=TA44, date="2026-10-11", summary="Written through the gate"))
+    archive = world["browser"] / "INDEX-ARCHIVE.md"
+    assert archive.is_file(), "the write trigger did not produce INDEX-ARCHIVE.md"
+    assert "to-browser/DIGEST-viawrite-2026-10-11.md" in archive.read_text(encoding="utf-8")
+    assert t.main(["index", "--check", *args]) == 0
+
+
+def test_1539_query_repairs_a_stale_index_that_a_bypass_write_left(t, world, tmp_path, monkeypatch, capsys):
+    _snapshot_world(world)
+    _bu_known(t, world, tmp_path, monkeypatch)
+    args = _bu_args(world, tmp_path)
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    bypass = _put(world["root"], "to-browser/DIGEST-bypass-2026-10-11.md",
+                  _head(by=TA44, date="2026-10-11", summary="Dropped by Drive"))
+    later = _bu_ts("2026-10-12")
+    os.utime(bypass, (later, later))
+    assert t.main(["index", "--check", *args]) == 1               # stale: the file bypassed the trigger
+    capsys.readouterr()
+    assert t.main(["query", "--kind", "DIGEST", "--no-refresh", *args]) in (0, 1)   # a pure read
+    assert t.main(["index", "--check", *args]) == 1
+    assert "DIGEST-bypass-2026-10-11.md" not in (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    capsys.readouterr()
+    assert t.main(["query", "--kind", "DIGEST", *args]) == 0      # the inbox read refreshes first
+    assert "to-browser/DIGEST-bypass-2026-10-11.md" in capsys.readouterr().out
+    assert t.main(["index", "--check", *args]) == 0
+
+
+def test_1539_index_stale_is_public(t, world, tmp_path):
+    _snapshot_world(world)
+    fn = getattr(t, "index_stale", None)
+    assert fn is not None, "transport.index_stale is not defined"
+    assert fn(world["root"]) is True                              # no archive yet
+    assert t.main(["index", "--write", "--generated-at", STAMP, *_bu_args(world, tmp_path)]) == 0
+    _put(world["root"], "to-browser/DIGEST-extra-2026-10-11.md", _head(by=TA44, date="2026-10-11"))
+    assert fn(world["root"]) is True                              # a live file the archive lacks
+
+
+# --- T7: the current view stays under the cap, the archive lists everything --------------------------------
+
+def test_1539_index_is_current_only_under_the_cap_and_the_archive_lists_every_row(t, world, tmp_path):
+    assert getattr(t, "INDEX_BYTE_CAP", None) == 40_000
+    assert getattr(t, "CURRENT_DAYS", None) == 7
+    assert getattr(t, "ARCHIVE_INDEX_NAME", None) == "INDEX-ARCHIVE.md"
+    root = world["root"]
+    names = []
+    for i in range(420):
+        day = f"2026-10-{14 + i % 7:02d}"
+        name = f"DIGEST-bulk-{i:03d}-{day}.md"
+        names.append(name)
+        _put(root, f"to-browser/{name}",
+             _head(by=TA44 if i % 2 else TA43, date=day, summary=f"Bulk row {i} " + "x" * 70))
+    for i in range(40):
+        name = f"DIGEST-aged-{i:02d}-2026-09-{1 + i % 20:02d}.md"
+        names.append(name)
+        _put(root, f"to-browser/{name}", _head(by=TA44, date=f"2026-09-{1 + i % 20:02d}", summary="Aged"))
+    _put(root, "to-browser/DIGEST-gone-2026-10-18-superseded.md",
+         _head(by=TA44, date="2026-10-18", summary="Superseded"))
+    assert t.main(["index", "--write", "--generated-at", _BU_NOW, *_bu_args(world, tmp_path)]) == 0
+    view = world["browser"] / "INDEX.md"
+    archive = world["browser"] / "INDEX-ARCHIVE.md"
+    assert len(view.read_bytes()) <= 40_000
+    assert archive.is_file()
+    listed = {e["path"] for e in t.parse_index(archive.read_text(encoding="utf-8"))["entries"]}
+    assert {f"to-browser/{n}" for n in names} <= listed
+    assert "to-browser/DIGEST-gone-2026-10-18-superseded.md" in listed
+    text = view.read_text(encoding="utf-8")
+    assert "superseded.md" not in text.replace("INDEX-ARCHIVE.md", "")
+    assert "DIGEST-aged-" not in text                              # outside the window: archive only
+    assert "INDEX-ARCHIVE.md" in text                              # the view points at its archive
+
+
+# --- T8: grouped by seat and session --------------------------------------------------------------------------
+
+def test_1539_index_groups_current_rows_under_a_heading_per_seat_and_session(t, world, tmp_path):
+    root = world["root"]
+    _put(root, "to-browser/DIGEST-s43a-2026-10-19.md", _head(by=TA43, date="2026-10-19", summary="From 43 a"))
+    _put(root, "to-browser/DIGEST-s43b-2026-10-18.md", _head(by=TA43, date="2026-10-18", summary="From 43 b"))
+    _put(root, "to-browser/DIGEST-s44a-2026-10-19.md", _head(by=TA44, date="2026-10-19", summary="From 44 a"))
+    assert t.main(["index", "--write", "--generated-at", _BU_NOW, *_bu_args(world, tmp_path)]) == 0
+    text = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    cur = _bu_section(text, "Current")
+    groups = re.split(r"^### ", cur, flags=re.M)[1:]
+    assert len(groups) >= 2, cur
+    by_seat = {}
+    for g in groups:
+        head, _, rows = g.partition("\n")
+        for seat, sess in ((SEAT_43["seat"], SEAT_43["session"]), (SEAT_44["seat"], SEAT_44["session"])):
+            if seat in head:
+                assert sess in head, head                          # the session slug rides on the heading
+                by_seat[seat] = rows
+    assert set(by_seat) == {"Tech-Architect-43", "Tech-Architect-44"}
+    assert "DIGEST-s43a-" in by_seat["Tech-Architect-43"] and "DIGEST-s43b-" in by_seat["Tech-Architect-43"]
+    assert "DIGEST-s44a-" in by_seat["Tech-Architect-44"] and "DIGEST-s43a-" not in by_seat["Tech-Architect-44"]
+    assert by_seat["Tech-Architect-43"].index("s43a") < by_seat["Tech-Architect-43"].index("s43b")  # newest first
+
+
+# --- T11: an ANSWER may sit in either inbox -------------------------------------------------------------------
+
+def test_1539_answer_kind_is_registered_to_both_inboxes_and_scan_follows_it(t, world, registry):
+    kind = t.classify("ANSWER-x-2026-10-16.md", registry)
+    assert kind is not None and kind.name == "ANSWER"
+    folders = getattr(kind, "folders", None)
+    assert folders is not None and set(folders) == {"to-cc", "to-browser"}
+    assert kind.folder == folders[0]
+    _put(world["root"], "to-browser/ANSWER-x-2026-10-16.md", _head(by=TA44, date="2026-10-16"))
+    _put(world["root"], "to-browser/PLAN-wrong-v1.md", _head(by=TA44, date="2026-10-16"))
+    flagged = {f.path for f in t.scan(world["root"], registry)}
+    assert "to-browser/ANSWER-x-2026-10-16.md" not in flagged
+    assert "to-browser/PLAN-wrong-v1.md" in flagged
+
+
+# --- T13: the live unknown-kind families classify --------------------------------------------------------------
+
+_LIVE_UNKNOWN_KIND_FILES = (
+    "to-cc/REPAIR-1-LANE-HANDOFF-UNBLOCK-lane-handoff-unblock.md",
+    "to-cc/SEAT-DECIDE-BROWSER-SEAT-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-DECIDE-HANDOFF-V2-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-DECIDE-LANE-RUNTIME-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-DISPATCHER-WAVE5B-N4-HANDOVER-2026-09-27.md",
+    "to-cc/SEAT-DISPATCHER-WAVE5B-N5-2026-09-29.md",
+    "to-cc/SEAT-DISPATCHER-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-DISPATCHER-WAVE5B-N5-R-CYCLE-2-2026-09-29.md",
+    "to-cc/SEAT-INTEGRATOR-HANDOFF-REDESIGN-BUILD-2026-10-01.md",
+    "to-cc/SEAT-INTEGRATOR-HANDOFF-UNBLOCK-2026-09-30.md",
+    "to-cc/SEAT-INTEGRATOR-WAVE5B-N4-HANDOVER-2026-09-27.md",
+    "to-cc/SEAT-INTEGRATOR-WAVE5B-N5-2026-09-29.md",
+    "to-cc/SEAT-INTEGRATOR-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-INTEGRATOR-WAVE5B-N5-R-CYCLE-2-2026-09-29.md",
+    "to-cc/SEAT-N5-DRAFT-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-PHASE1-READER-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-PHASE2-MAPPER-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-RENDER-HANDOFF-REDESIGN-BUILD-2026-10-01.md",
+    "to-cc/SEAT-RENDER-HANDOFF-UNBLOCK-2026-09-30.md",
+    "to-cc/SEAT-RENDER-LANE17-2026-09-27.md",
+    "to-cc/SEAT-RENDER-WAVE5B-N5-2026-09-29.md",
+    "to-cc/SEAT-RENDER-WAVE5B-N5-R-2026-09-29.md",
+    "to-cc/SEAT-TRACKB-AJ-M06-WAVE5B-N5-R-2026-09-29.md",
+    "to-browser/ARCHITECT-OPERATING-GUIDE-2026-10-01.md",
+    "to-browser/BOOT-TEST-2026-10-03-PASTE.md",
+    "to-browser/BOOT-TEST-2026-10-03.md",
+    "to-browser/BOOT-TEST-RESULT-2026-10-04.md",
+    "to-browser/BOOT-TEST-RESULT-2026-10-05.md",
+    "to-browser/CARRY-LEDGER-WAVE5B-N5-2026-09-30.md",
+    "to-browser/CARRY-LEDGER-WAVE5B-N5-R-2026-09-29.md",
+    "to-browser/CARRY-LEDGER-WAVE5B-N5-R-CYCLE-2-2026-09-29.md",
+    "to-browser/CODESPACE-PARITY-DEFINITION-2026-10-03.md",
+    "to-browser/EVAL-aj-m06-codex-2026-09-29.md",
+    "to-browser/EVAL-aj-m06-copilot-2026-09-29.md",
+    "to-browser/EVAL-aj-m06-v2-codex-2026-09-29.md",
+    "to-browser/EVAL-aj-m06-v2-copilot-2026-09-29.md",
+    "to-browser/EVAL-ci-verification-codex-2026-09-26-seat-71020de7.md",
+    "to-browser/EVAL-ci-verification-codex-2026-09-26.md",
+    "to-browser/EVAL-ci-verification-copilot-2026-09-26-seat-71020de7.md",
+    "to-browser/EVAL-ci-verification-copilot-2026-09-26.md",
+    "to-browser/EVAL-false-positive-defense-codex-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-gemini-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-grok-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-v2-codex-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-v2-gemini-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-v2-grok-2026-10-03.md",
+    "to-browser/EVAL-false-positive-defense-v2r2-codex-2026-10-04.md",
+    "to-browser/EVAL-false-positive-defense-v2r2-gemini-2026-10-04.md",
+    "to-browser/EVAL-false-positive-defense-v2r2-grok-2026-10-04.md",
+    "to-browser/EVAL-false-positive-defense-v3-codex-2026-10-04.md",
+    "to-browser/EVAL-false-positive-defense-v3-gemini-2026-10-04.md",
+    "to-browser/EVAL-false-positive-defense-v3-grok-2026-10-04.md",
+    "to-browser/EVAL-handoff-system-codex-2026-09-26.md",
+    "to-browser/EVAL-handoff-system-copilot-2026-09-26.md",
+    "to-browser/EVAL-handoff-v2-codex-2026-09-29.md",
+    "to-browser/EVAL-handoff-v2-grok-2026-09-29.md",
+    "to-browser/EVAL-memory-resilience-codex-2026-09-27.md",
+    "to-browser/EVAL-memory-resilience-copilot-2026-09-27.md",
+    "to-browser/EVAL-merge-path-grok-2026-10-03.md",
+    "to-browser/EVAL-no-recurrence-grok-2026-10-02.md",
+    "to-browser/EVAL-no-recurrence-opus-2026-10-02.md",
+    "to-browser/EVAL-no-recurrence-sonnet-substitute-2026-10-02.md",
+    "to-browser/EVAL-otm-b2-w1-2026-10-04.md",
+    "to-browser/EVAL-own-tools-codex-2026-09-26.md",
+    "to-browser/EVAL-own-tools-copilot-2026-09-26.md",
+    "to-browser/EVAL-own-tools-v2-codex-2026-09-26.md",
+    "to-browser/EVAL-own-tools-v2-copilot-2026-09-26.md",
+    "to-browser/EVAL-remote-observability-codex-2026-09-26.md",
+    "to-browser/EVAL-remote-observability-copilot-2026-09-26.md",
+    "to-browser/EVIDENCE-NO-RECURRENCE-2026-10-02.md",
+    "to-browser/GROOMING-OPEN-ROWS-2026-10-01-part-A.md",
+    "to-browser/GROOMING-OPEN-ROWS-2026-10-01-part-B.md",
+    "to-browser/HARNESS-NORTH-STAR-2026-10-03.md",
+    "to-browser/HARNESS-SPINE-ARCHITECTURE-2026-10-03.md",
+    "to-browser/LESSONS-AND-OPEN-WORK-2026-10-02.md",
+    "to-browser/MECHANISMS-NO-RECURRENCE-2026-10-02.md",
+    "to-browser/ORPHANS-WIRE-RETIRE-2026-10-01.md",
+    "to-browser/PROBLEM-HANDOFF-CUT-2026-10-02.md",
+    "to-browser/PROPOSAL-ADR-AJ-M06-2026-09-29-v1-superseded.md",
+    "to-browser/PROPOSAL-ADR-AJ-M06-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-BROWSER-SEAT-EVIDENCE-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-CI-VERIFICATION-2026-09-26-seat-71020de7.md",
+    "to-browser/PROPOSAL-ADR-CI-VERIFICATION-2026-09-26.md",
+    "to-browser/PROPOSAL-ADR-COPILOT-DISTRIBUTION-2026-09-29-v1-superseded.md",
+    "to-browser/PROPOSAL-ADR-COPILOT-DISTRIBUTION-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-FALSE-POSITIVE-DEFENSE-2026-10-03.md",
+    "to-browser/PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30.md",
+    "to-browser/PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md",
+    "to-browser/PROPOSAL-ADR-HANDOFF-SYSTEM-v2-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-LANE-RUNTIME-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-MEMORY-RESILIENCE-2026-09-27.md",
+    "to-browser/PROPOSAL-ADR-MERGE-PATH-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-NO-RECURRENCE-2026-10-02.md",
+    "to-browser/PROPOSAL-ADR-OWN-TOOLS-2026-09-26-v2.md",
+    "to-browser/PROPOSAL-ADR-OWN-TOOLS-2026-09-26.md",
+    "to-browser/PROPOSAL-ADR-PROCESS-ENGINE-2026-09-29.md",
+    "to-browser/PROPOSAL-ADR-REMOTE-LANE-OBSERVABILITY-2026-09-26.md",
+    "to-browser/PROPOSAL-ADR-SEAT-CONTEXT-CYCLE-2026-10-10.md",
+    "to-browser/PROPOSAL-ADR-SELF-MAINTAINING-REPO-2026-09-29.md",
+    "to-browser/QUESTIONS-FOR-OUTGOING-2026-10-03-2.md",
+    "to-browser/QUESTIONS-FOR-OUTGOING-2026-10-03.md",
+    "to-browser/RESIDUAL.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-1.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-2.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-3.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-4.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-5.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02-table-6.md",
+    "to-browser/RETRO-HANDOFF-2026-10-02.md",
+    "to-browser/ROWS-OWED-DRAFTS-2026-10-01.md",
+    "to-browser/SEAT-EXAM-2026-10-04.md",
+    "to-browser/SEAT-EXAM-2026-10-09.md",
+    "to-browser/SEAT-EXAM-RESULT-2026-10-05.md",
+    "to-browser/SEAT-EXAM-RESULT-2026-10-09-2.md",
+    "to-browser/SEAT-EXAM-RESULT-2026-10-09.md",
+    "to-browser/SEAT-OPERATING-MANUAL-2026-10-02.md",
+    "to-browser/SUPPLEMENT.md",
+)
+
+
+def test_1539_every_live_unknown_kind_file_now_classifies_into_its_own_folder(t, registry):
+    missing, misfiled = [], []
+    for rel in _LIVE_UNKNOWN_KIND_FILES:
+        folder, name = rel.split("/", 1)
+        kind = t.classify(name, registry)
+        if kind is None:
+            missing.append(rel)
+        elif folder not in getattr(kind, "folders", ()):
+            misfiled.append(rel)
+    assert not missing, f"{len(missing)} unclassified, first: {missing[:5]}"
+    assert not misfiled, f"{len(misfiled)} in a folder the kind does not list, first: {misfiled[:5]}"
