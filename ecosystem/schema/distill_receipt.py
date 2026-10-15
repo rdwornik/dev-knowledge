@@ -83,7 +83,7 @@ class DistillReceipt(BaseModel):
         json_schema_extra={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "DISTILL receipt, schema " + SCHEMA_VERSION
-                           + " (ecosystem/schema/distill_receipt.py; generated, never hand-edited).",
+                           + " (ecosystem/schema/distill_receipt.py; generated, never hand-edited; [#1535]).",
         })
 
     schema_: str = Field(default="distill-receipt/1", alias="schema")

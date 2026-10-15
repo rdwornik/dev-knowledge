@@ -3,7 +3,7 @@
     "ChallengeReceipt": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,
-      "description": "CHALLENGE receipt, schema 1.0.0 (ecosystem/schema/challenge_receipt.py; generated, never hand-edited).",
+      "description": "CHALLENGE receipt, schema 1.0.0 (ecosystem/schema/challenge_receipt.py; generated, never hand-edited; [#1535]).",
       "properties": {
         "schema": {
           "default": "challenge-receipt/1",
@@ -210,7 +210,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "DISTILL receipt, schema 1.0.0 (ecosystem/schema/distill_receipt.py; generated, never hand-edited).",
+  "description": "DISTILL receipt, schema 1.0.0 (ecosystem/schema/distill_receipt.py; generated, never hand-edited; [#1535]).",
   "properties": {
     "schema": {
       "default": "distill-receipt/1",

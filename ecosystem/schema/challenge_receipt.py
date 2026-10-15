@@ -67,7 +67,7 @@ class ChallengeReceipt(BaseModel):
         json_schema_extra={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "CHALLENGE receipt, schema " + SCHEMA_VERSION
-                           + " (ecosystem/schema/challenge_receipt.py; generated, never hand-edited).",
+                           + " (ecosystem/schema/challenge_receipt.py; generated, never hand-edited; [#1535]).",
         })
 
     schema_: str = Field(default="challenge-receipt/1", alias="schema")

@@ -135,7 +135,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Outer-loop PHASE RECEIPT, schema 1.0.0 (ecosystem/schema/phase_receipt.py; generated, never hand-edited).",
+  "description": "Outer-loop PHASE RECEIPT, schema 1.0.0 (ecosystem/schema/phase_receipt.py; generated, never hand-edited; [#1535]).",
   "properties": {
     "schema": {
       "default": "phase-receipt/1",

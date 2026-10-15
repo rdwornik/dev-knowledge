@@ -167,7 +167,7 @@ class PhaseReceipt(BaseModel):
         json_schema_extra={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "Outer-loop PHASE RECEIPT, schema " + SCHEMA_VERSION
-                           + " (ecosystem/schema/phase_receipt.py; generated, never hand-edited).",
+                           + " (ecosystem/schema/phase_receipt.py; generated, never hand-edited; [#1535]).",
         })
 
     schema_: str = Field("phase-receipt/1", alias="schema")
