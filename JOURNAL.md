@@ -21,6 +21,16 @@
 
 ---
 
+### 2026-10-16 (a) - CC (Sonnet 5.5, night close-out): archive of the 10-14/15 digests, both rows branches merged
+
+**Anchors:** `c14dab1e`, `20c3fd8a`, `388f3752`, `609c3342` (36 digests archived under `docs/audits/` as `technical`, verbatim with a provenance line; indexes regenerated), `45751026` (merge of `worktree-define-outcomes-2026-10-15` @ 69ab3bc9), `061818ee` (merge of `worktree-test-strategy-rows-2026-10-15` @ 496b0951).
+
+**Did:** BATCH-NIGHT-CLOSEOUT-2026-10-15 PART 1 plus the final AMEND A. The second merge conflicted on BACKLOG.md and the three manifests; resolved with `gen_intake_index`, `gen_intake_tree` and `gen_task_tree --emit-source` after the nine task nodes 1560-1568 were carried into `tasks/manifest.json` from the branch (no id hand-edited).
+
+**Result:** `gen_task_tree --check` ok, `validate_backlog` OK (677 tasks). Nothing landed on main: the INTEGRATOR claim is live.
+
+**Next:** PART 8 defect rows, then 3, 4, 2, 5, 6, 7.
+
 ### 2026-10-15 (e) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1535-outer-loop merges after repair 1 -- the outer loop runs in code ([#1535], ADR-130 Proposed)
 
 **Anchors:** `c35b2089` (repair-1 tip, branch `worktree-lane-bu-1535-outer-loop`, introduced by this merge), `b431bf52` (the first handback's tip).
