@@ -47,7 +47,12 @@ _SHAPE = ('uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/' +
 #: The entries that must survive a shell other than Claude Code's POSIX one (Copilot CLI runs
 #: `.claude/settings.json` hooks through PowerShell on Windows, with no CLAUDE_PROJECT_DIR).
 _LAUNCHED = {
-    "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py"],
+    "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py",
+                   # [#863] (4): the ADR-77 guard, re-armed 2026-10-15. Copilot CLI 1.0.98 loads
+                   # this file's hooks in a trusted folder and fails CLOSED on a hook error, so
+                   # its pre-disable `python "$CLAUDE_PROJECT_DIR/..."` shape (an empty variable
+                   # under PowerShell) would refuse every Copilot edit in this repo.
+                   "scripts/hooks/block_immutable_edits.py"],
     "Stop": ["scripts/lane_end_guard.py", "scripts/lane_handback_gate.py"],
     "SessionStart": ["scripts/hooks/session_start.py"],
 }
@@ -177,12 +182,29 @@ def _env(**extra: str) -> dict:
     return env
 
 
-def _launch(shell: str, cwd: Path, env: dict, target: str = "scripts/probe.py"):
+def _launch(shell: str, cwd: Path, env: dict, target: str = "scripts/probe.py",
+            command: str | None = None):
     argv = _SHELLS[shell]()
     if argv is None:
         pytest.skip(f"{shell} is not runnable on this box -- NOT_RUN, not a pass")
-    return subprocess.run([*argv, launch_command(target)], cwd=cwd, env=env, input=_PAYLOAD,
-                          capture_output=True, text=True, timeout=180)
+    return subprocess.run([*argv, command or launch_command(target)], cwd=cwd, env=env,
+                          input=_PAYLOAD, capture_output=True, text=True, timeout=180)
+
+
+@pytest.mark.parametrize("shell", ["pwsh", "powershell"])
+def test_the_prompts_guard_command_parses_and_allows_under_powershell(shell):
+    """[#863] (4), measured 2026-10-15 (lane-bu-863 QA): Copilot CLI 1.0.98 runs this file's
+    PreToolUse hooks through PowerShell and fails CLOSED on a hook error, and the bash-only
+    prompts-guard program is a PowerShell ParserError -- every Copilot shell call in this repo
+    was refused. Claude Code runs hooks only through Git Bash, so PowerShell is reached only by a
+    non-Claude client, whose calls the Claude prompts-dir guard does not govern: it must parse,
+    print nothing on stderr and ALLOW."""
+    commands = [cmd for ev, cmd in _hook_commands() if ev == "PreToolUse" and "--prompts-guard" in cmd]
+    assert len(commands) == 1, commands
+    proc = _launch(shell, _REPO, _env(), command=commands[0])
+    assert proc.returncode == 0, (proc.returncode, proc.stdout, proc.stderr)
+    assert proc.stderr.strip() == "", proc.stderr
+    assert "PROMPTS-GUARD" not in proc.stdout and "[prompts]" not in proc.stdout, proc.stdout
 
 
 def _probe_report(proc: subprocess.CompletedProcess) -> dict:
