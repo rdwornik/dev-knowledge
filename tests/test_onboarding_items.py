@@ -686,3 +686,130 @@ def test_the_f4_pointers_carry_no_prose_copied_from_their_homes():
     boot = _BOOT.read_text(encoding="utf-8")
     copied = [w for w in _F4_HOME_ONLY if w in boot]
     assert not copied, f"text that belongs at the pointer's home is in the boot: {copied}"
+
+
+# =============================================================================================
+# BU lane L5 (lane-bu-1450-boot-v2, [#1450] [#1538]): boot v2 teaches the flow -- inbox first,
+# one start line per substrate, the seat cycle, what is PENDING and not working, the reading rule,
+# OS-agnostic verification, the R76 triad, the pointers, and no leftover v5/v6 or one-shot text
+# (HANDOFF-GAPS Q3). RED-first: at a4fde7bf the boot teaches none of these.
+# =============================================================================================
+
+_SUBSTRATE_REGISTRY = _REPO / "ecosystem" / "substrate-registry.yaml"
+
+
+def _boot_text() -> str:
+    return _BOOT.read_text(encoding="utf-8")
+
+
+def _boot_lines_with(*needles: str) -> "list[str]":
+    return [ln for ln in _boot_text().split("\n") if all(n in ln for n in needles)]
+
+
+def test_the_reading_path_starts_with_the_inbox_query_not_the_bare_index():
+    boot = _boot_text()
+    sec = re.search(r"(?ms)^## Reading path\b.*?(?=^## |\Z)", boot)
+    assert sec is not None, "the boot has no `## Reading path` section"
+    first = sec.group(0)
+    item1 = first[first.index("1. **"): first.index("2. **SEAT-LESSONS**")]
+    assert "to-browser/INDEX.md" in item1, item1
+    assert "transport.py query --seat architect --since" in item1, item1
+
+
+def test_each_substrate_has_exactly_one_non_wrapping_start_line():
+    names = re.findall(r"(?m)^  ([a-z][a-z_]*):\s*$",
+                       _SUBSTRATE_REGISTRY.read_text(encoding="utf-8"))
+    assert {"local", "interactive", "cloud", "codespace"} <= set(names), names
+    lines = _boot_text().split("\n")
+    wants = {"cloud": "no start verb; read-only work only", "codespace": "codespace-exec",
+             "local": "dispatch.py launch", "interactive": "claude"}
+    problems = []
+    for name in names:
+        idx = [i for i, ln in enumerate(lines) if ln.startswith(f"- **{name}**")]
+        if len(idx) != 1:
+            problems.append(f"{name}: {len(idx)} boot lines start with `- **{name}**`, want 1")
+            continue
+        i = idx[0]
+        if i + 1 < len(lines) and lines[i + 1].startswith(" "):
+            problems.append(f"{name}: its line wraps onto {lines[i + 1][:40]!r}")
+        if name in wants and wants[name] not in lines[i]:
+            problems.append(f"{name}: its line lacks {wants[name]!r}")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_seat_cycle_names_integrator_3h_and_dispatcher_2h_on_one_line():
+    assert _boot_lines_with("integrator", "3 h", "dispatcher", "2 h"), \
+        "no boot line gives the seat cycle (integrator 3 h, dispatcher 2 h)"
+
+
+def _row_status(row: str) -> str:
+    (path,) = sorted((_REPO / "tasks").glob(f"{row}-*.md"))
+    m = re.search(r"(?m)^status:\s*(\S+)", path.read_text(encoding="utf-8"))
+    assert m, path
+    return m.group(1).strip("\"'")
+
+
+_PENDING_TERMS = {"1535": ("Conductor E", "distiller", "point task"), "1536": ("routing table",)}
+
+
+def test_unbuilt_mechanisms_are_taught_as_pending_not_as_working():
+    boot = _boot_text()
+    lines = boot.split("\n")
+    problems = []
+    for row, terms in _PENDING_TERMS.items():
+        marker = f"pending `[#{row}]`"
+        is_open = _row_status(row) == "open"
+        for term in terms:
+            if term.lower() not in boot.lower():
+                problems.append(f"the boot never mentions {term!r}")
+            for ln in lines:
+                if term.lower() in ln.lower() and (marker in ln) != is_open:
+                    problems.append(
+                        f"row {row} is {'open' if is_open else 'closed'}: line with {term!r} "
+                        f"{'lacks' if is_open else 'still carries'} {marker}: {ln[:90]!r}")
+    for word in ("CHALLENGE", "duplicate"):
+        if word not in boot:
+            problems.append(f"the boot never teaches {word!r}")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_reading_rule_orders_copilot_before_agy_and_names_the_gate_and_flag():
+    hits = _boot_lines_with("Copilot", "agy", "read_gate", "--add-dir")
+    assert hits, "no boot line states the reading rule (Copilot, agy, read_gate, --add-dir)"
+    assert any(h.index("Copilot") < h.index("agy") for h in hits), hits
+
+
+def test_verification_is_taught_as_os_agnostic_with_a_linux_first_input_required_rule():
+    boot = _boot_text()
+    assert "ADR-127" in boot and "OS-agnostic" in boot
+    assert _boot_lines_with("Linux-first", "INPUT_REQUIRED"), \
+        "no boot line ties `Linux-first` to `INPUT_REQUIRED`"
+
+
+def test_the_r76_line_carries_the_triad():
+    hits = _boot_lines_with("- **R76**")
+    assert len(hits) == 1, hits
+    assert "the browser proposes, CC challenges, the operator decides" in hits[0], hits[0]
+
+
+def test_the_boot_points_at_the_plan_row_the_ledgers_and_the_dispatch_map():
+    boot = _boot_text()
+    for pointer in ("`Plan` row", "LEDGER-", "MAP-DISPATCH.md"):
+        assert pointer in boot, f"the boot lacks the pointer {pointer!r}"
+
+
+def test_the_boot_has_no_v5_v6_leftover_no_one_shot_and_names_which_file_the_architect_reads():
+    boot = _boot_text()
+    stale = re.findall(r"\bv[56]\b", boot)
+    assert not stale, f"leftover version tokens in the boot: {stale}"
+    assert "one-shot" not in boot, "`one-shot` leaks a queue command the dispatcher template owns"
+    assert _boot_lines_with("SEAT-BOOT", "this file"), \
+        "no boot line says which file the architect reads against the SEAT-BOOT files"
+
+
+def test_every_ruling_and_adr_the_boot_cites_resolves():
+    import handoff_state as hs
+    cites = hs.boot_citations(_REPO, None)
+    bad = [f"{c.kind} {c.ref}: {c.status} -- {c.detail}" for c in cites
+           if c.kind in ("ruling", "adr") and c.status != hs.CITATION_OK]
+    assert not bad, "\n".join(bad)

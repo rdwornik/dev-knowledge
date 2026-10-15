@@ -1531,3 +1531,51 @@ def test_the_live_boot_cites_nothing_unresolved_beyond_the_rulings_d3_lands():
            and not (c.ref in {"R96", "R97"} and c.status == "MISSING")
            and not (c.kind == "path" and c.status == "NO-TRANSPORT")]
     assert not bad, bad
+
+
+# =============================================================================================
+# BU lane L5 (lane-bu-1450-boot-v2, [#1450]): the carried branch's HIGH -- `_supersession` read
+# "replaces R96 D14" as superseding ALL of R96 (live: `boot_citations` reported `ruling R96
+# SUPERSEDED the register says 'replaces R96'`). A clause of a ruling being replaced is a partial
+# supersession, not the ruling: only a ruling named WHOLE is out of force. RED-first: at a4fde7bf
+# the clause cases below return a reason instead of None.
+# =============================================================================================
+
+_PARTIAL_PHRASES = [
+    "this replaces R96 D14. Everything else holds.",
+    "this replaces R97 item 1. Everything else holds.",
+    "this supersedes R96 clause 3. Everything else holds.",
+    "this replaces R96's D14. Everything else holds.",
+    "this replaces R96 (b). Everything else holds.",
+    "this replaces R96 §2. Everything else holds.",
+]
+
+
+@pytest.mark.parametrize("phrase", _PARTIAL_PHRASES)
+def test_replacing_a_clause_of_a_ruling_does_not_supersede_the_ruling(phrase):
+    rid = "R97" if "R97" in phrase else "R96"
+    bullet = f"- **{rid} — a ruling** (operator). In force."
+    assert hs._supersession(rid, bullet, f"- **{rid} — a ruling** (operator).\n\n{phrase}\n") is None
+
+
+@pytest.mark.parametrize("rid,phrase", [
+    ("R95", "this replaces R95."),
+    ("R98", "R98 is superseded"),
+    ("R94", "this supersedes R94 in full"),
+    ("R93", "this withdraws R93; the rest holds"),
+])
+def test_naming_a_ruling_whole_still_supersedes_it(rid, phrase):
+    bullet = f"- **{rid} — a ruling** (operator). In force."
+    assert hs._supersession(rid, bullet, f"{bullet}\n\n{phrase}\n") is not None, phrase
+
+
+def test_boot_citations_reports_a_ruling_ok_when_only_a_clause_of_it_is_replaced(tmp_path):
+    repo = _cite_repo(tmp_path)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "# Register\n\n"
+        "- **R96 — the package** (operator). In force.\n"
+        "- **R97 — the boot** (operator). In force.\n\n"
+        "A later ruling: this replaces R96 D14.\n", encoding="utf-8")
+    got = _cites(repo, "R96 and R97 are cited.\n")
+    assert got["R96"].status == hs.CITATION_OK, got["R96"]
+    assert got["R97"].status == hs.CITATION_OK, got["R97"]
