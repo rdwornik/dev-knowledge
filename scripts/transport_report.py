@@ -271,8 +271,9 @@ def build_report(lane: str, receipts_dir: Path, repo: Path) -> str:
     commits = commit_subjects(repo)
     changed = changed_files(repo)
     verdict = _lane_verdict(_receipt_rows(receipts))
-    return render_lane_end_report(lane, stamp, commits, changed, verdict,
+    body = render_lane_end_report(lane, stamp, commits, changed, verdict,
                                   session_summary(repo), receipts)
+    return f"by: transport_report.py (lane-end Stop hook, lane {lane})\n{body}"
 
 
 # --- delivery ------------------------------------------------------------------------------------
@@ -342,6 +343,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             args = _parser().parse_args(argv)
         except ValueError as exc:
             return finish(EXIT_REFUSED, f"bad arguments: {exc}")
+        except SystemExit as exc:  # --help
+            return exc.code if isinstance(exc.code, int) else 0
         repo = Path(args.repo) if args.repo else _ROOT
         lane = args.lane or repo.resolve().name
         result["lane"] = lane
