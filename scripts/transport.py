@@ -27,6 +27,14 @@ immediately followed by a placeholder (`{`, `<`, `*`) or the end of the literal 
 A concrete, already-resolved filename cited in a docstring (`DIGEST-AUDIT-CROSSCHECK-
 2026-09-23.md`, no placeholder after the prefix) does not match; only a live template does.
 
+WHY THE INDEX WENT STALE (lane bu-1539-transport, [#1539]). The refresh trigger lives in
+`write()` / `append()`, and the transport's main writers bypass it: the browser seat writes through
+Drive and CC seats through their own file tool. On 2026-10-15 52 files were newer than the INDEX and
+none had been written through `write()`. So the reader (`query`) and the generated-file writers
+refresh, and `index_stale(root)` says when. The INDEX is now two files: `INDEX-ARCHIVE.md` (the full
+text, the cache `refresh_index` reads) and `INDEX.md` (`build_view`, a small current view with the
+derived request status, capped at `INDEX_BYTE_CAP`).
+
 READ-ONLY BY DEFAULT. `write()`/`append()` are the only functions that write a TRANSPORT file for
 a caller; the report command (`report`) and every registry query below are pure reads. The one
 other writer is this module's own generated surface (LANE-1439-b2w2-transport-index): the
@@ -35,8 +43,10 @@ classified write), `inventory` and `seat-ids` rewrite their sections of `ecosyst
 and `janitor --apply --expect-manifest <hash>` MOVES -- never deletes or overwrites -- the
 `-superseded` files of registered, attributable kinds into `<folder>/archive/YYYY-MM/`. The
 `janitor` without `--apply` is a dry run that prints the move list and its hash. `query` (lane
-bw-1439-transport-index) is a pure read of that generated INDEX: the rows for a kind, a date (or its
+bw-1439-transport-index) reads that generated INDEX: the rows for a kind, a date (or its
 prefix) and a seat (or a session slug the seat map resolves), so a reader never opens INDEX.md by hand.
+It refreshes a stale INDEX first (read-repair; `--no-refresh` or `--index PATH` keeps it a pure read);
+`--since` lists the live files' headers instead and `--seat architect` is the architect's inbox.
 """
 from __future__ import annotations
 
@@ -71,6 +81,13 @@ ROLE_WRITERS = ("operator", "lane", "integrator")
 #: The generated index, the repository token the attribution rule reads, and the generated data
 #: file that holds the seat-ID map and the landing inventory (LANE-1439-b2w2-transport-index).
 INDEX_NAME = "INDEX.md"
+ARCHIVE_INDEX_NAME = "INDEX-ARCHIVE.md"
+_ARCHIVE_REL = f"to-browser/{ARCHIVE_INDEX_NAME}"
+INDEX_BYTE_CAP = 40_000
+CURRENT_DAYS = 7
+REQUEST_KINDS = ("QUESTION", "BATCH", "AMEND")
+REQUEST_TIMEOUT_DAYS = 3
+ANSWERS_ERA = "2026-10-15"
 REPO_TOKEN = "dev-knowledge"
 _log = logging.getLogger("transport")
 DEFAULT_SEAT_IDS = _ROOT / "ecosystem" / "seat-ids.yaml"
@@ -90,13 +107,18 @@ class Kind:
     name: str
     prefix: str                 # the literal prefix a code-derived template also reduces to
     regex: "re.Pattern[str]"
-    folder: str                 # "to-cc" | "to-browser" | "root"
+    folder: str                 # the primary folder: "to-cc" | "to-browser" | "root"
     writers: tuple[str, ...]
     readers: tuple[str, ...] = field(default_factory=tuple)
     repo_scope: str = "hub"     # "hub" (.dev-knowledge only) | "any" (every repo on the transport)
     versioned: bool = False
     notes: str = ""
     decision: bool = False      # class: decision -> the file carries an anchored `carried-by:`
+    folders: tuple[str, ...] = ()   # every home, primary first; defaults to (folder,)
+
+    def __post_init__(self) -> None:
+        if not self.folders:
+            object.__setattr__(self, "folders", (self.folder,))
 
     def matches(self, filename: str) -> bool:
         return bool(self.regex.match(filename))
@@ -122,9 +144,14 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> list[Kind]:
         if name in seen:
             raise TransportRegistryError(f"duplicate kind {name!r} in {path}")
         seen.add(name)
-        if row["folder"] not in FOLDERS:
-            raise TransportRegistryError(
-                f"kind {name!r}: folder {row['folder']!r} is not one of {FOLDERS}")
+        raw_folder = row["folder"]
+        folders = tuple(raw_folder) if isinstance(raw_folder, list) else (raw_folder,)
+        if not folders:
+            raise TransportRegistryError(f"kind {name!r}: folder list is empty")
+        for f in folders:
+            if f not in FOLDERS:
+                raise TransportRegistryError(
+                    f"kind {name!r}: folder {f!r} is not one of {FOLDERS}")
         writers = tuple(row["writers"])
         if not writers:
             raise TransportRegistryError(f"kind {name!r} has no registered writer")
@@ -137,7 +164,7 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> list[Kind]:
             raise TransportRegistryError(
                 f"kind {name!r}: class {cls!r} is not one of {KIND_CLASSES}")
         out.append(Kind(name=name, prefix=row.get("prefix", ""), regex=regex,
-                        folder=row["folder"], writers=writers,
+                        folder=folders[0], folders=folders, writers=writers,
                         readers=tuple(row.get("readers", ())),
                         repo_scope=row.get("repo_scope", "hub"),
                         versioned=bool(row.get("versioned", False)),
@@ -178,12 +205,12 @@ def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
             f"{dest.name!r} is kind {kind.name!r}, whose registered writer(s) are "
             f"{kind.writers!r}; {writer!r} is not among them")
     actual_folder = _folder_of(dest)
-    if actual_folder != kind.folder:
+    if actual_folder not in kind.folders:
         # Codex terra HIGH (this lane's own review): matching `dest.name` alone let a registered
         # writer recreate the exact "landed in the wrong folder" failure the registry exists to
         # end -- e.g. `handback` writing a correctly-named SESSION file into `to-cc/`.
         raise TransportWriteRefused(
-            f"{dest!r} is kind {kind.name!r}, registered to {kind.folder}/, but the "
+            f"{dest!r} is kind {kind.name!r}, registered to {' or '.join(kind.folders)}/, but the "
             f"destination's own folder is {actual_folder}/; refusing to write it there")
     return kind
 
@@ -532,7 +559,7 @@ _INDEX_REL = f"to-browser/{INDEX_NAME}"
 _TA_RE = re.compile(r"Tech-Architect-\d+")
 _SLUG_RE = re.compile(r"(?<![A-Za-z0-9-])\d{4}-\d{2}-\d{2}-[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-_HEAD_KEY_RE = re.compile(r"^(by|date|supersedes|summary):[ \t]*(.*?)[ \t]*$")
+_HEAD_KEY_RE = re.compile(r"^(by|date|supersedes|summary|answers|timeout):[ \t]*(.*?)[ \t]*$")
 _FROM_BY_RE = re.compile(r"^(?:from|by):[ \t]*(.*)$")
 _CITED_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.md")
 _SUPERSEDED_RE = re.compile(r"(?<![A-Za-z0-9])superseded(?![A-Za-z0-9])", re.I)
@@ -632,6 +659,8 @@ class _Row:
     attributed: bool
     supersedes: Optional[str] = None
     readable: bool = True         # False: the head could not be read (the row is a placeholder)
+    answers: Optional[str] = None
+    timeout: Optional[str] = None
 
 
 class _Attr:
@@ -682,8 +711,10 @@ def _scan_row(rel: str, path: Path, kind: Kind, attr: _Attr) -> _Row:
     date = m.group() if m else (named[-1] if named else UNDATED)
     by = _clean(keys["by"], 120) if keys.get("by") else UNKNOWN
     sup = _clean(keys["supersedes"], 200) if keys.get("supersedes") else None
+    answers = _clean(keys["answers"], 200) if keys.get("answers") else None
+    timeout = _clean(keys["timeout"], 200) if keys.get("timeout") else None
     return _Row(rel, kind.name, subject, date, by or UNKNOWN, attr.attributed(path.name, lines), sup,
-                readable)
+                readable, answers, timeout)
 
 
 def writer_key(by: str, slug_to_seat: dict[str, str]) -> str:
@@ -719,7 +750,12 @@ def _by_date_desc(rows: list[_Row]) -> list[_Row]:
 
 
 def _row_line(r: _Row) -> str:
-    return f"- {r.path} | {r.kind} | {r.subject} | {r.date} | by: {r.by}"
+    line = f"- {r.path} | {r.kind} | {r.subject} | {r.date} | by: {r.by}"
+    if r.answers:
+        line += f" | answers: {r.answers}"
+    if r.timeout:
+        line += f" | timeout: {r.timeout}"
+    return line
 
 
 def _inputs_line(veto: list[str], digest: str) -> str:
@@ -821,9 +857,14 @@ def parse_index(text: str) -> dict:
             continue
         if ln.startswith("- ") and " | " in ln:
             parts = ln[2:].split(" | ")
-            if len(parts) == 5 and parts[4].startswith("by: "):
-                entries.append({"path": parts[0], "kind": parts[1], "subject": parts[2],
-                                "date": parts[3], "by": parts[4][4:], "status": section})
+            if len(parts) >= 5 and parts[4].startswith("by: "):
+                entry = {"path": parts[0], "kind": parts[1], "subject": parts[2],
+                         "date": parts[3], "by": parts[4][4:], "status": section}
+                extras = [re.match(r"^(answers|timeout): (.*)$", p) for p in parts[5:]]
+                if all(extras):
+                    for m in extras:
+                        entry[m.group(1)] = m.group(2)
+                    entries.append(entry)
     return {"header": header, "entries": entries, "edges": edges}
 
 
@@ -872,7 +913,7 @@ def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = 
         raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
     reg = registry if registry is not None else load_registry()
     stamp = generated_at or _utc_now()      # taken before any file is read: no later edit can predate it
-    files = [(rel, p) for rel, p in live_files(Path(root)) if rel != _INDEX_REL]
+    files = _scan_files(root)
     attr = _Attr(files, seats, reg)
     rows: list[_Row] = []
     n_unclassified = 0
@@ -886,11 +927,179 @@ def build_index(root: Path, *, seats: list[dict], generated_at: Optional[str] = 
                      slug_to_seat=attr.slug_to_seat, stamp=stamp, trigger=trigger)
 
 
+_INDEX_RELS = (_INDEX_REL, _ARCHIVE_REL)
+
+
+def _scan_files(root: Path) -> list[tuple[str, Path]]:
+    return [(rel, p) for rel, p in live_files(Path(root)) if rel not in _INDEX_RELS]
+
+
 def _rows_from_index(parsed: dict) -> dict[str, _Row]:
     edge = dict(parsed["edges"])
     return {e["path"]: _Row(e["path"], e["kind"], e["subject"], e["date"], e["by"],
-                            e["status"] != "unattributed", edge.get(e["path"]))
-            for e in parsed["entries"] if e["path"] != _INDEX_REL}
+                            e["status"] != "unattributed", edge.get(e["path"]),
+                            answers=e.get("answers"), timeout=e.get("timeout"))
+            for e in parsed["entries"] if e["path"] not in _INDEX_RELS}
+
+
+# --- the request status and the current view ----------------------------------------------------------
+
+def _parse_when(value) -> Optional[object]:
+    """A UTC datetime from a datetime or an ISO stamp (`YYYY-MM-DD` reads as 00:00Z), else None."""
+    from datetime import datetime, timezone
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _answer_names(raw: Optional[str]) -> set[str]:
+    out: set[str] = set()
+    for tok in re.split(r"[,;\s]+", raw or ""):
+        tok = tok.strip("`'\"()[]<>")
+        if tok:
+            out.add(tok.replace("\\", "/").rsplit("/", 1)[-1])
+    return out
+
+
+def request_status(parsed: dict, now) -> dict[str, tuple[str, str]]:
+    """`{path: (status, detail)}` for each in-era current request (`REQUEST_KINDS`, dated on or after
+    `ANSWERS_ERA`). ANSWERED when any row's `answers:` names the request's basename; else OVERDUE when
+    `now` is past its `timeout:` (default: its date + `REQUEST_TIMEOUT_DAYS`, at 00:00Z); else OPEN.
+    `now` is a datetime or an ISO stamp. The request file is never read."""
+    from datetime import timedelta
+    now_dt = _parse_when(now)
+    if now_dt is None:
+        raise ValueError(f"cannot read {now!r} as a time")
+    answered: set[str] = set()
+    for e in parsed["entries"]:
+        answered |= _answer_names(e.get("answers"))
+    out: dict[str, tuple[str, str]] = {}
+    for e in parsed["entries"]:
+        if (e["kind"] not in REQUEST_KINDS or e["status"] != "current" or e["date"] == UNDATED
+                or e["date"] < ANSWERS_ERA):
+            continue
+        base = e["path"].rsplit("/", 1)[-1]
+        if base in answered:
+            by_path = sorted(x["path"] for x in parsed["entries"] if base in _answer_names(x.get("answers")))
+            out[e["path"]] = ("ANSWERED", f"answered by {by_path[0]}")
+            continue
+        due = _parse_when(e.get("timeout"))
+        if due is None:
+            start = _parse_when(e["date"])
+            if start is None:
+                continue
+            due = start + timedelta(days=REQUEST_TIMEOUT_DAYS)
+        shown = due.strftime("%Y-%m-%d") if (due.hour, due.minute, due.second) == (0, 0, 0) \
+            else due.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if now_dt > due:
+            out[e["path"]] = ("OVERDUE", f"timeout {shown}")
+        else:
+            out[e["path"]] = ("OPEN", f"due {shown}")
+    return out
+
+
+VIEW_SUMMARY = ("Generated inbox view: open requests and the current files of the last "
+                f"{CURRENT_DAYS} days, by seat and session; history is in {ARCHIVE_INDEX_NAME}.")
+_REQUEST_ORDER = {"OVERDUE": 0, "OPEN": 1, "ANSWERED": 2}
+
+
+def build_view(archive_text: str, *, slug_to_seat: Optional[dict] = None) -> str:
+    """`INDEX.md`: a pure function of the archive text. Its `now` is the archive's `regenerated:`
+    stamp. Requests first (OVERDUE, OPEN, ANSWERED), then the current dated rows of the last
+    `CURRENT_DAYS` days by seat and session. Over `INDEX_BYTE_CAP` the window shrinks a day at a
+    time, then the oldest rows are cut for a pointer line, so the size always holds."""
+    from datetime import timedelta
+    parsed = parse_index(archive_text)
+    header = parsed["header"]
+    now = _parse_when(header.get("regenerated")) or _parse_when(_utc_now())
+    stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    today = now.strftime("%Y-%m-%d")
+    seat_session = {}
+    for slug, seat in sorted((slug_to_seat or {}).items(), reverse=True):
+        seat_session[seat] = slug
+    live = [e for e in parsed["entries"] if e["path"] not in _INDEX_RELS]
+    status = request_status({**parsed, "entries": live}, now)
+    reqs = sorted((e for e in live if e["path"] in status),
+                  key=lambda e: (_REQUEST_ORDER[status[e["path"]][0]], e["date"], e["path"]))
+    cur_all = [e for e in live if e["status"] == "current" and e["date"] != UNDATED]
+    n_overdue = sum(1 for e in reqs if status[e["path"]][0] == "OVERDUE")
+
+    def render(days: int, n_cur: Optional[int], n_req: Optional[int]) -> str:
+        lo = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+        rows = [e for e in cur_all if lo <= e["date"] <= today]
+        rows.sort(key=lambda e: e["path"])
+        rows.sort(key=lambda e: e["date"], reverse=True)
+        cut = 0 if n_cur is None else len(rows) - n_cur
+        if cut > 0:
+            rows = rows[:n_cur]
+        rq = reqs if n_req is None else reqs[:n_req]
+        out = [f"by: {INDEX_BY}", f"date: {today}", f"summary: {VIEW_SUMMARY}", f"regenerated: {stamp}",
+               f"archive: {_ARCHIVE_REL}", f"window: {lo}..{today}", f"current: {len(rows)}",
+               f"requests: {len(reqs)}", f"overdue: {n_overdue}",
+               "", "# INDEX — the transport inbox", "", "## Requests", ""]
+        for e in rq:
+            st, detail = status[e["path"]]
+            out.append(f"- {e['path']} | {st} | {e['date']} | {_clean(e['subject'], 80)} | {detail}")
+        if not rq:
+            out.append("(none)")
+        if n_req is not None and len(reqs) > n_req:
+            out.append(f"- … {len(reqs) - n_req} more rows in {ARCHIVE_INDEX_NAME}")
+        out.extend(["", "## Current", ""])
+        groups: dict[tuple[str, str], list[dict]] = {}
+        for e in rows:
+            key = writer_key(e["by"], slug_to_seat or {})
+            groups.setdefault((key, seat_session.get(key, "")), []).append(e)
+        ordered = sorted(groups, key=lambda k: (k[0] == UNKNOWN, k[0]))
+        ordered.sort(key=lambda k: groups[k][0]["date"], reverse=True)
+        for k in ordered:
+            head = k[0] + (f" · {k[1]}" if k[1] else "")
+            out.extend([f"### {head} ({len(groups[k])})", ""])
+            out.extend(f"- {e['path']} | {e['kind']} | {e['date']} | {_clean(e['subject'], 80)}"
+                       for e in groups[k])
+            out.append("")
+        if not rows:
+            out.extend(["(none)", ""])
+        if cut > 0:
+            out.extend([f"- … {cut} more rows in {ARCHIVE_INDEX_NAME}", ""])
+        while out and out[-1] == "":
+            out.pop()
+        return "\n".join(out) + "\n"
+
+    def fits(text: str) -> bool:
+        return len(text.encode("utf-8")) <= INDEX_BYTE_CAP
+
+    for days in range(CURRENT_DAYS, 0, -1):
+        text = render(days, None, None)
+        if fits(text):
+            return text
+    n_rows = len([e for e in cur_all if (now - timedelta(days=1)).strftime("%Y-%m-%d") <= e["date"] <= today])
+    lo_n, hi_n = 0, n_rows
+    best: Optional[str] = None
+    while lo_n <= hi_n:
+        mid = (lo_n + hi_n) // 2
+        text = render(1, mid, None)
+        if fits(text):
+            best, lo_n = text, mid + 1
+        else:
+            hi_n = mid - 1
+    if best is not None:
+        return best
+    lo_n, hi_n = 0, len(reqs)
+    while lo_n <= hi_n:
+        mid = (lo_n + hi_n) // 2
+        text = render(1, 0, mid)
+        if fits(text):
+            best, lo_n = text, mid + 1
+        else:
+            hi_n = mid - 1
+    return best if best is not None else render(1, 0, 0)
 
 
 def _is_same_file(a: Path, b: Path) -> bool:
@@ -920,17 +1129,20 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
     full, so a new `LEDGER-<other>` re-evaluates every row. A cached row is reused only for a file not
     modified since the INDEX was made (its `regenerated:` stamp, less `STALE_MARGIN_S`): an edit an
     earlier, failed refresh never saw is scanned afresh here. The result equals a full rebuild at the
-    same stamp and trigger (a test holds it). False when there is no INDEX to refresh."""
-    index_path = Path(root) / "to-browser" / INDEX_NAME
-    if not index_path.is_file():
+    same stamp and trigger (a test holds it). The cache is `INDEX-ARCHIVE.md`, else a legacy full-format
+    `INDEX.md`; both files are written. False when neither exists."""
+    to_browser = Path(root) / "to-browser"
+    archive_path = to_browser / ARCHIVE_INDEX_NAME
+    cache_path = archive_path if archive_path.is_file() else to_browser / INDEX_NAME
+    if not cache_path.is_file():
         return False
     if not seats:
         raise EmptySeatMap("the seat-ID map is empty: attribution signal (b) has nothing to read")
     reg = registry if registry is not None else load_registry()
     stamp = stamp or _utc_now()
-    with _DestinationLock(index_path, INDEX_LOCK_TIMEOUT_S):
-        parsed = parse_index(index_path.read_text(encoding="utf-8"))
-        files = [(rel, p) for rel, p in live_files(Path(root)) if rel != _INDEX_REL]
+    with _DestinationLock(archive_path, INDEX_LOCK_TIMEOUT_S):
+        parsed = parse_index(cache_path.read_text(encoding="utf-8"))
+        files = _scan_files(root)
         attr = _Attr(files, seats, reg)
         digest = seatmap_digest(seats)
         if parsed["header"].get("inputs") != _inputs_line(attr.veto, digest):
@@ -956,8 +1168,48 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
                     rows.append(_scan_row(rel, path, kind, attr))
             new = _assemble(rows, n_unclassified=n_unclassified, veto=attr.veto, digest=digest,
                             slug_to_seat=attr.slug_to_seat, stamp=stamp, trigger=trigger)
-        _tr.deliver(index_path, new.encode("utf-8"))
+        _write_both(root, new, slug_to_seat=attr.slug_to_seat, registry=reg, locked=True)
     return True
+
+
+def _write_both(root: Path, archive_text: str, *, slug_to_seat: Optional[dict] = None,
+                registry: Optional[list[Kind]] = None, locked: bool = False) -> None:
+    """Write `INDEX-ARCHIVE.md` (the full text) and `INDEX.md` (its view). Through `write()` (which takes
+    each file's lock) unless the caller already holds the archive's lock (`locked`)."""
+    to_browser = Path(root) / "to-browser"
+    view = build_view(archive_text, slug_to_seat=slug_to_seat)
+    for name, text in ((ARCHIVE_INDEX_NAME, archive_text), (INDEX_NAME, view)):
+        if locked:
+            _tr.deliver(to_browser / name, text.encode("utf-8"))
+        else:
+            write("transport", to_browser / name, text, registry=registry)
+
+
+def index_stale(root: Path) -> bool:
+    """True when `INDEX-ARCHIVE.md` is missing, when the classified live files differ from its rows, or
+    when any live file is as new as the archive (its `regenerated:` stamp, less `STALE_MARGIN_S`).
+    A pure read."""
+    root = Path(root)
+    archive_path = root / "to-browser" / ARCHIVE_INDEX_NAME
+    try:
+        parsed = parse_index(archive_path.read_text(encoding="utf-8"))
+    except OSError:
+        return True
+    reg = load_registry()
+    live = {rel: p for rel, p in _scan_files(root) if classify(p.name, reg) is not None}
+    if set(live) != {e["path"] for e in parsed["entries"] if e["path"] not in _INDEX_RELS}:
+        return True
+    since = _stamp_epoch(parsed["header"].get("regenerated"))
+    if since is None:
+        return True
+    cutoff = since - STALE_MARGIN_S
+    for p in live.values():
+        try:
+            if p.stat().st_mtime >= cutoff:
+                return True
+        except OSError:
+            return True
+    return False
 
 
 def _after_write(dest: Path, verb: str, reg: list[Kind]) -> None:
@@ -969,11 +1221,11 @@ def _after_write(dest: Path, verb: str, reg: list[Kind]) -> None:
         if known is None or not is_transport_dest(dest, known):
             return
         folder = _folder_of(dest)
-        if folder == "to-browser" and dest.name == INDEX_NAME:
+        if folder == "to-browser" and dest.name in (INDEX_NAME, ARCHIVE_INDEX_NAME):
             return
         if classify(dest.name, reg) is None:
             return
-        if not (Path(known) / "to-browser" / INDEX_NAME).is_file():
+        if not any((Path(known) / "to-browser" / n).is_file() for n in (ARCHIVE_INDEX_NAME, INDEX_NAME)):
             return
         seats, _inv = load_seat_ids(DEFAULT_SEAT_IDS)
         refresh_index(dest, trigger=f"{verb}:{rel_key(folder, dest.name)}", root=Path(known),
@@ -1089,7 +1341,7 @@ def janitor_plan(root: Path, *, seats: list[dict], registry: Optional[list[Kind]
             skipped.append({"path": rel, "reason": "unregistered"})
         elif kind.name in ("CLAIM_MARKER", "INDEX"):
             continue                                   # not the janitor's: counted as untouched
-        elif kind.folder != folder:
+        elif folder not in kind.folders:
             skipped.append({"path": rel, "reason": "misfoldered"})
         else:
             lines = _read_window(path)
@@ -1220,12 +1472,12 @@ def janitor_apply(root: Path, expect_manifest: str, *, seats: list[dict],
     report = {"moved": moved, "skipped": plan["skipped"], "untouched": plan["untouched"],
               "manifest_sha256": plan["manifest_sha256"], "census_before": before,
               "census_after": after, "index": "absent"}
-    index_path = root / "to-browser" / INDEX_NAME
-    if index_path.is_file():
+    to_browser = root / "to-browser"
+    if any((to_browser / n).is_file() for n in (ARCHIVE_INDEX_NAME, INDEX_NAME)):
         try:
             text = build_index(root, seats=seats, generated_at=trigger_stamp, trigger="janitor",
                                registry=reg)
-            write("transport", index_path, text, registry=reg)      # takes the INDEX's lock itself
+            _write_both(root, text, slug_to_seat={s["session"]: s["seat"] for s in seats}, registry=reg)
             report["index"] = "regenerated"
         except Exception as exc:  # noqa: BLE001 -- the moves stand; `index --write` repairs the INDEX
             report["index"] = f"NOT regenerated ({type(exc).__name__}: {exc})"
@@ -1260,9 +1512,9 @@ def scan(transport_root: Path, registry: Optional[list[Kind]] = None) -> list[St
             rel = f"{folder_name}/{entry.name}" if folder_name != "root" else entry.name
             if kind is None:
                 findings.append(StrayFinding(rel, "unregistered kind"))
-            elif kind.folder != folder_name:
+            elif folder_name not in kind.folders:
                 findings.append(StrayFinding(
-                    rel, f"kind {kind.name} belongs in {kind.folder}/, found in {folder_name}/"))
+                    rel, f"kind {kind.name} belongs in {' or '.join(kind.folders)}/, found in {folder_name}/"))
     return findings
 
 
@@ -1524,34 +1776,161 @@ def _cmd_index(args: argparse.Namespace) -> int:
         return 2
     root, seats = got
     index_path = root / "to-browser" / INDEX_NAME
+    archive_path = root / "to-browser" / ARCHIVE_INDEX_NAME
+    slug_to_seat = {s["session"]: s["seat"] for s in seats}
     if args.check:
-        if not index_path.is_file():
-            print(f"index: {index_path} does not exist")
+        if not archive_path.is_file():
+            print(f"index: STALE ({archive_path} does not exist; run `index --write`)")
             return 1
-        current = index_path.read_text(encoding="utf-8")
+        current = archive_path.read_text(encoding="utf-8")
         header = parse_index(current)["header"]
         expected = build_index(root, seats=seats, generated_at=header.get("regenerated"),
                                trigger=header.get("trigger") or "index")
-        print("index: fresh" if expected == current else "index: STALE (run `index --write`)")
-        return 0 if expected == current else 1
+        view_ok = (index_path.is_file()
+                   and index_path.read_text(encoding="utf-8") == build_view(current, slug_to_seat=slug_to_seat))
+        if expected == current and view_ok:
+            print("index: fresh")
+            return 0
+        print(f"index: STALE ({'archive' if expected != current else 'view'} differs; run `index --write`)")
+        return 1
     text = build_index(root, seats=seats, generated_at=args.generated_at, trigger="index")
     if args.write:
-        write("transport", index_path, text)
+        _write_both(root, text, slug_to_seat=slug_to_seat)
         header = parse_index(text)["header"]
-        print(f"index: wrote {index_path} ({header['listed']} listed, {header['UNATTRIBUTED']} "
-              f"UNATTRIBUTED, {header['unclassified']} unclassified)")
+        print(f"index: wrote {index_path} and {archive_path} ({header['listed']} listed, "
+              f"{header['UNATTRIBUTED']} UNATTRIBUTED, {header['unclassified']} unclassified)")
     else:
-        print(text, end="")
+        print(build_view(text, slug_to_seat=slug_to_seat), end="")
     return 0
+
+
+_SINCE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?Z?)?$")
+
+
+def _since_epoch(value: str) -> float:
+    """Epoch seconds of a `--since` value (`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM[:SS][Z]`, read as UTC)."""
+    text = value.strip()
+    dt = _parse_when(text) if _SINCE_RE.match(text) else None
+    if dt is None:
+        raise ValueError(f"--since {value!r} is not YYYY-MM-DD or YYYY-MM-DDTHH:MM[:SS][Z]")
+    return dt.timestamp()
+
+
+def _is_architect_inbox(path: str, by: str, slug_to_seat: dict[str, str]) -> bool:
+    return path.startswith("to-browser/") and not _TA_RE.fullmatch(writer_key(by, slug_to_seat))
+
+
+def _want_architect(seat: Optional[str]) -> bool:
+    return seat is not None and seat.strip().lower() == "architect"
+
+
+def _since_rows(root: Path, since: float, args: argparse.Namespace,
+                slug_to_seat: dict[str, str]) -> list[dict]:
+    """Header-only rows of the live classified files whose mtime is >= `since`, oldest first."""
+    reg = load_registry()
+    want_kind = _norm_kind(args.kind) if args.kind is not None else None
+    want_seat = None
+    if args.seat is not None and not _want_architect(args.seat):
+        want_seat = slug_to_seat.get(args.seat.strip(), args.seat.strip()).lower()
+    found: list[tuple[float, str, dict]] = []
+    for rel, path in _scan_files(root):
+        kind = classify(path.name, reg)
+        if kind is None:
+            continue
+        try:
+            mtime = path.stat().st_mtime
+            if mtime < since:
+                continue
+            sha = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+        except OSError:
+            continue
+        keys, heading = _head_keys(_read_window(path))
+        if keys.get("summary"):
+            summary = _clean(keys["summary"], 100)
+        elif heading:
+            summary = _clean(heading, 100) or NO_SUBJECT
+        else:
+            summary = NO_SUBJECT
+        m = _DATE_RE.search(keys.get("date", ""))
+        named = _DATE_RE.findall(path.name)
+        date = m.group() if m else (named[-1] if named else UNDATED)
+        by = _clean(keys["by"], 120) if keys.get("by") else UNKNOWN
+        if want_kind is not None and _norm_kind(kind.name) != want_kind:
+            continue
+        if args.date is not None and not date.startswith(args.date.strip()):
+            continue
+        if _want_architect(args.seat):
+            if not _is_architect_inbox(rel, by, slug_to_seat):
+                continue
+        elif want_seat is not None and writer_key(by, slug_to_seat).lower() != want_seat:
+            continue
+        found.append((mtime, rel, {"path": rel, "kind": kind.name, "date": date, "by": by or UNKNOWN,
+                                   "summary": summary, "sha": sha}))
+    found.sort(key=lambda f: (f[0], f[1]))
+    return [f[2] for f in found]
+
+
+def _query_read_repair(root: Path, args: argparse.Namespace) -> None:
+    """Refresh a stale default INDEX before it is read. Fails open: one stderr line, the read goes on."""
+    try:
+        if not index_stale(root):
+            return
+        seats, _inv = load_seat_ids(_seat_ids_path(args))
+        if not seats:
+            return
+        # Refresh only: with no INDEX at all the read stays a refusal (exit 2, the CLI contract);
+        # creating one is `index --write`'s act.
+        refresh_index(root / "to-browser" / ARCHIVE_INDEX_NAME, trigger="query", root=root, seats=seats)
+    except Exception as exc:  # noqa: BLE001 -- fail open: the INDEX is derived, the read still works
+        print(f"query: INDEX refresh skipped ({type(exc).__name__}: {exc})", file=sys.stderr)
 
 
 def _cmd_query(args: argparse.Namespace) -> int:
     """Rows of the generated INDEX for a kind / date / seat: 0 with matches, 1 with none, 2 when the
     INDEX or the seat map cannot be read. Matches go to stdout (the INDEX row verbatim, or JSON);
-    diagnostics go through `logging` to stderr."""
+    diagnostics go through `logging` to stderr. Without `--index` / `--no-refresh` a stale INDEX is
+    refreshed first. `--since` reads the live files instead (headers only, oldest first).
+    `--seat architect` is the architect's inbox: `to-browser/` files no `Tech-Architect-NN` wrote."""
+    since = None
+    if args.since is not None:
+        try:
+            since = _since_epoch(args.since)
+        except ValueError as exc:
+            _log.error("query: %s", exc)
+            return 2
+    if since is not None:
+        try:
+            root = _resolve_root(args.transport_root)
+        except _tr.TransportRefused as exc:
+            _log.error("query: %s (pass --transport-root)", exc)
+            return 2
+        if not root.is_dir():
+            _log.error("query: transport root %s is not mounted or does not exist", root)
+            return 2
+        try:
+            seats, _inv = load_seat_ids(_seat_ids_path(args))
+        except SeatIdsError as exc:
+            _log.error("query: %s", exc)
+            return 2
+        rows = _since_rows(root, since, args, {s["session"]: s["seat"] for s in seats})
+        if args.json:
+            sys.stdout.write(json.dumps(rows, indent=2, ensure_ascii=False) + "\n")
+        else:
+            for r in rows:
+                sys.stdout.write(f"{r['path']} | kind: {r['kind']} | date: {r['date']} | by: {r['by']} "
+                                 f"| summary: {r['summary']} | sha: {r['sha']}\n")
+        if not rows:
+            _log.warning("query: no live file matches --since %s", args.since)
+        return 0 if rows else 1
     try:
-        index_path = (Path(args.index) if args.index
-                      else _resolve_root(args.transport_root) / "to-browser" / INDEX_NAME)
+        if args.index:
+            index_path = Path(args.index)
+        else:
+            root = _resolve_root(args.transport_root)
+            if not args.no_refresh:
+                _query_read_repair(root, args)
+            archive = root / "to-browser" / ARCHIVE_INDEX_NAME
+            index_path = archive if archive.is_file() else root / "to-browser" / INDEX_NAME
     except _tr.TransportRefused as exc:
         _log.error("query: %s (pass --index or --transport-root)", exc)
         return 2
@@ -1565,9 +1944,15 @@ def _cmd_query(args: argparse.Namespace) -> int:
     except SeatIdsError as exc:
         _log.error("query: %s", exc)
         return 2
+    slug_to_seat = {s["session"]: s["seat"] for s in seats}
     try:
-        rows = query_index(text, kind=args.kind, date=args.date, seat=args.seat, status=args.status,
-                           slug_to_seat={s["session"]: s["seat"] for s in seats})
+        if _want_architect(args.seat):
+            rows = [r for r in query_index(text, kind=args.kind, date=args.date, status=args.status,
+                                           slug_to_seat=slug_to_seat)
+                    if _is_architect_inbox(r["path"], r["by"], slug_to_seat)]
+        else:
+            rows = query_index(text, kind=args.kind, date=args.date, seat=args.seat, status=args.status,
+                               slug_to_seat=slug_to_seat)
     except ValueError as exc:
         _log.error("query: %s", exc)
         return 2
@@ -1724,14 +2109,21 @@ def _parser() -> argparse.ArgumentParser:
     sm.add_argument("--write", action="store_true", help="rewrite the seats section")
     sm.add_argument("--check", action="store_true", help="exit 1 when the file's seats are stale or empty")
     si.set_defaults(func=_cmd_seat_ids)
-    q = sub.add_parser("query", help="rows of the generated INDEX for a kind, a date and a seat "
-                                     "(a pure read of INDEX.md; exit 1 when nothing matches)")
+    q = sub.add_parser("query", help="rows of the generated INDEX for a kind, a date and a seat; refreshes a "
+                                     "stale INDEX first (--no-refresh keeps it a pure read); --since lists the "
+                                     "live files' headers; exit 1 when nothing matches")
     q.add_argument("--transport-root", default=None)
     q.add_argument("--seat-ids", default=None, help="the generated seat-IDs file (default: ecosystem/seat-ids.yaml)")
-    q.add_argument("--index", default=None, help="the INDEX file to read (default: <transport>/to-browser/INDEX.md)")
+    q.add_argument("--index", default=None, help="the INDEX file to read, purely (default: the transport's "
+                                                 "to-browser/INDEX-ARCHIVE.md, else INDEX.md)")
+    q.add_argument("--since", default=None, help="headers only of live files modified at or after "
+                                                 "YYYY-MM-DD or YYYY-MM-DDTHH:MM[:SS][Z] (UTC), oldest first")
+    q.add_argument("--no-refresh", action="store_true", help="do not refresh a stale INDEX before reading it")
     q.add_argument("--kind", default=None, help="a registered kind, e.g. LANE_END (case and -/_ ignored)")
     q.add_argument("--date", default=None, help="YYYY-MM-DD, or a prefix such as YYYY-MM")
-    q.add_argument("--seat", default=None, help="Tech-Architect-NN, a session slug of the seat map, or UNKNOWN")
+    q.add_argument("--seat", default=None, help="Tech-Architect-NN, a session slug of the seat map, UNKNOWN, or "
+                                                "`architect` (the architect's inbox: to-browser/ files no "
+                                                "architect wrote)")
     q.add_argument("--status", default="current", choices=QUERY_STATUSES, help="which INDEX section (default: current)")
     q.add_argument("--json", action="store_true", help="print the matches as a JSON list")
     q.set_defaults(func=_cmd_query)

@@ -843,15 +843,18 @@ def test_index_check_cli_exits_1_with_no_index_and_0_after_the_index_is_written(
     assert t.main(["index", "--check", *args]) == 1                      # no INDEX
     assert not (world["browser"] / "INDEX.md").exists()                  # --check writes nothing
     assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
-    written = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    written = (world["browser"] / "INDEX-ARCHIVE.md").read_text(encoding="utf-8")   # [#1539] (3): the full text
     assert written == _golden_snapshot()
+    view = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    assert view == t.build_view(written, slug_to_seat={s["session"]: s["seat"] for s in SEATS})
     assert t.main(["index", "--check", *args]) == 0
     _put(world["root"], "to-browser/DIGEST-late-2026-10-10.md", _head(by=TA44, date="2026-10-10"))
     assert t.main(["index", "--check", *args]) == 1                      # a new file makes it stale
     capsys.readouterr()
-    assert t.main(["index", *args]) == 0                                  # no flag: prints, writes nothing
+    assert t.main(["index", *args]) == 0                                  # no flag: prints the view, writes nothing
     out = capsys.readouterr().out
-    assert "UNATTRIBUTED" in out and (world["browser"] / "INDEX.md").read_text(encoding="utf-8") == written
+    assert "# INDEX" in out and (world["browser"] / "INDEX-ARCHIVE.md").read_text(encoding="utf-8") == written
+    assert (world["browser"] / "INDEX.md").read_text(encoding="utf-8") == view
 
 
 def test_an_empty_seat_map_fails_the_index_run(t, world, tmp_path):
@@ -1345,8 +1348,11 @@ def live(t, world, tmp_path, monkeypatch):
     monkeypatch.setattr(t, "DEFAULT_SEAT_IDS", seat_file)
     monkeypatch.setattr(t, "INDEX_LOCK_TIMEOUT_S", 0.2)
     _snapshot_world(world)
-    index = world["browser"] / "INDEX.md"
-    index.write_text(_index(t, world["root"]), encoding="utf-8", newline="\n")
+    # [#1539] (3): the full text lives in INDEX-ARCHIVE.md (the cache a refresh reads); INDEX.md is its view.
+    index = world["browser"] / "INDEX-ARCHIVE.md"
+    full = _index(t, world["root"])
+    index.write_text(full, encoding="utf-8", newline="\n")
+    (world["browser"] / "INDEX.md").write_text(t.build_view(full, slug_to_seat={s["session"]: s["seat"] for s in SEATS}), encoding="utf-8", newline="\n")
     return {"index": index, "seat_file": seat_file, "root": world["root"]}
 
 
@@ -1461,17 +1467,17 @@ def test_a_new_ledger_changes_the_veto_set_so_the_refresh_rebuilds_in_full(t, wo
 def test_a_held_lock_or_a_permission_error_skips_the_refresh_and_the_write_succeeds(
         t, world, live, capsys, monkeypatch):
     before = live["index"].read_bytes()
-    (world["browser"] / ".INDEX.md.append.lock").write_text("held", encoding="utf-8")
+    (world["browser"] / ".INDEX-ARCHIVE.md.append.lock").write_text("held", encoding="utf-8")
     dest = world["browser"] / "DIGEST-locked-2026-10-10.md"
     t.write("operator", dest, _head(by=TA44, date="2026-10-10"))
     assert dest.exists() and live["index"].read_bytes() == before
     assert "INDEX refresh skipped" in capsys.readouterr().err
-    (world["browser"] / ".INDEX.md.append.lock").unlink()
+    (world["browser"] / ".INDEX-ARCHIVE.md.append.lock").unlink()
 
     real_enter = t._DestinationLock.__enter__
 
     def deny(self):
-        if self._lock_path.name == ".INDEX.md.append.lock":      # only the INDEX's lock: write() locks its own file too
+        if self._lock_path.name == ".INDEX-ARCHIVE.md.append.lock":      # only the archive INDEX lock ([#1539] (3)): write() locks its own file too
             raise PermissionError("denied")
         return real_enter(self)
 
@@ -1737,14 +1743,14 @@ def _query_paths(out: str) -> list[str]:
 
 def test_query_returns_the_files_of_a_kind_date_and_seat_from_the_index_alone(t, world, tmp_path, capsys):
     args = _written_index(t, world, tmp_path)
-    (world["browser"] / "DIGEST-beta-2026-10-09.md").unlink()     # the query reads the INDEX, not the drive
+    (world["browser"] / "DIGEST-beta-2026-10-09.md").unlink()     # --no-refresh: the query reads the INDEX, not the drive
     capsys.readouterr()
-    rc = t.main(["query", "--kind", "DIGEST", "--date", "2026-10-09", "--seat", "Tech-Architect-44", *args])
+    rc = t.main(["query", "--kind", "DIGEST", "--date", "2026-10-09", "--seat", "Tech-Architect-44", "--no-refresh", *args])
     out = capsys.readouterr().out
     assert rc == 0
     assert _query_paths(out) == ["to-browser/DIGEST-beta-2026-10-09.md", "to-browser/DIGEST-delta-2026-10-09.md"]
     # every printed row is the INDEX's own row, verbatim
-    index_text = (world["browser"] / "INDEX.md").read_text(encoding="utf-8")
+    index_text = (world["browser"] / "INDEX-ARCHIVE.md").read_text(encoding="utf-8")
     for ln in out.splitlines():
         if ln.startswith("- "):
             assert ln in index_text.splitlines()
@@ -1808,7 +1814,7 @@ def test_query_index_function_filters_parsed_rows(t, world):
 def test_query_reads_an_explicit_index_and_refuses_cleanly_with_no_transport(t, world, tmp_path, capsys, monkeypatch):
     _written_index(t, world, tmp_path)
     copy = tmp_path / "INDEX-copy.md"
-    copy.write_bytes((world["browser"] / "INDEX.md").read_bytes())
+    copy.write_bytes((world["browser"] / "INDEX-ARCHIVE.md").read_bytes())
     seat_file = _seat_file(tmp_path)
 
     def no_transport(_explicit):
