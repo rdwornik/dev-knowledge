@@ -1745,3 +1745,17 @@ def test_only_the_base_side_read_mentions_the_structural_validator():
 
     assert mentions == {"known_reds.py": ["<definition>"],
                         "actions_verdict.py": ["_load_registry_at"]}, mentions
+
+
+# --- [#912]: the closing row owns no registry entry ---------------------------------------
+
+def test_no_registry_entry_is_owned_by_the_closing_912_row():
+    """Every entry [#912] owned is green or re-owned before the row closes -- an entry still
+    naming a closed row is an owner who cannot be asked."""
+    data = json.loads((_REPO / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
+    buckets = [("members", data["members"]), ("hooks", data.get("hooks", {}))]
+    buckets += [(f"members_by_os[{key}]", bucket)
+                for key, bucket in data.get("members_by_os", {}).items()]
+    owned = [f"{label}: {node_id}" for label, bucket in buckets
+             for node_id, entry in bucket.items() if entry.get("task") == "[#912]"]
+    assert owned == [], f"{len(owned)} entries still owned by [#912], e.g. {owned[:3]}"

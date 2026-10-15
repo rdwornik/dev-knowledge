@@ -24,6 +24,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -706,3 +707,101 @@ def test_a_closed_posture_refuses_past_the_bound_and_still_records(tmp_path, pos
     assert elapsed < 20
     assert "test-closed" in err
     assert [r["posture"] for r in _records(log)] == ["fail-closed"]
+
+
+# --- [#863] (3): the ran-then-blocked witness for the billing-leak sentinel ----------------
+
+def test_the_billing_leak_sentinel_ps1_that_ran_then_blocked_is_bypassed_at_its_bound_and_recorded(
+        tmp_path):
+    """WITNESS of [#808] for the ran-then-blocked mode, on the real sentinel's own text: its
+    final `exit 0` becomes a marker write plus a 600 s sleep, so the script RUNS a line and
+    then blocks. The bound must still free the seat, loudly, and leave no process behind."""
+    import psutil  # noqa: PLC0415
+
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    assert shell, "neither pwsh nor powershell is on PATH -- this witness cannot run"
+    source = (_REPO_ROOT / "scripts" / "billing_leak_sentinel.ps1").read_text(encoding="utf-8")
+    head, tail_marker, rest = source.rpartition("exit 0")
+    assert tail_marker, "the sentinel no longer ends in `exit 0`"
+    ran = tmp_path / "ran.txt"
+    sentinel = tmp_path / "sentinel.ps1"
+    sentinel.write_text(
+        head + f"Set-Content -LiteralPath '{ran.as_posix()}' -Value ran; "
+        "Start-Sleep -Seconds 600; exit 0" + rest, encoding="utf-8-sig")
+    log = tmp_path / "bypass.jsonl"
+
+    started = time.monotonic()
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(_WRAPPER), "run", "--id", "billing-leak-sentinel", "--bound", "4",
+             "--posture", "open", "--", shell, "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", str(sentinel)],
+            input=b"", capture_output=True, env=_env(log), cwd=str(_REPO_ROOT), timeout=90)
+    finally:
+        for live in psutil.process_iter(["cmdline"]):
+            if str(sentinel) in " ".join(live.info["cmdline"] or []):
+                live.kill()
+    elapsed = time.monotonic() - started
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert elapsed < 4 + 40, f"the wrapper outlived its bound: {elapsed:.1f}s"
+    assert ran.exists(), "the sentinel never ran a line, so this is not the ran-then-blocked mode"
+    rows = [r for r in _records(log) if r.get("hook_id") == "billing-leak-sentinel"]
+    assert [r["reason"] for r in rows] == ["timeout"], _records(log)
+    survivors = [p.pid for p in psutil.process_iter(["cmdline"])
+                 if str(sentinel) in " ".join(p.info["cmdline"] or [])]
+    assert survivors == [], f"the bypassed sentinel's tree was left running: {survivors}"
+
+
+# --- [#863] (2): the AUTOMATIC watchdog trigger --------------------------------------------
+
+def test_maybe_trigger_watchdog_spawns_one_sweep_per_interval(tmp_path, monkeypatch):
+    module = _load_wrapper()
+    monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))
+    calls: list[tuple] = []
+
+    def spawn(argv, cwd):
+        calls.append((argv, cwd))
+
+    assert module.maybe_trigger_watchdog(now=1000.0, spawn=spawn) is True
+    assert len(calls) == 1
+    assert module.maybe_trigger_watchdog(now=1010.0, spawn=spawn) is False
+    assert len(calls) == 1, "a second claim inside the interval must not spawn"
+
+    os.utime(module.trigger_path(), (1000.0, 1000.0))
+    later = 1000.0 + module.TRIGGER_INTERVAL_S + 1
+    assert module.maybe_trigger_watchdog(now=later, spawn=spawn) is True
+    assert len(calls) == 2, "a stale lock must be reaped and the claim retried"
+
+
+def test_maybe_trigger_watchdog_spawns_the_watchdog_sweep(tmp_path, monkeypatch):
+    module = _load_wrapper()
+    monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))
+    calls: list[tuple] = []
+
+    assert module.maybe_trigger_watchdog(now=1000.0, spawn=lambda a, c: calls.append((a, c)))
+    argv, cwd = calls[0]
+    assert list(argv[:4]) == ["uv", "run", "--locked", "python"]
+    assert argv[-1] == "sweep" and Path(argv[-2]).name == "hook_watchdog.py"
+    assert Path(argv[-2]).exists()
+    assert Path(cwd).is_dir()
+
+
+def test_maybe_trigger_watchdog_never_raises_when_spawn_fails(tmp_path, monkeypatch, capsys):
+    module = _load_wrapper()
+    monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))
+
+    def spawn(argv, cwd):
+        raise OSError("no such program")
+
+    assert module.maybe_trigger_watchdog(now=1000.0, spawn=spawn) is False
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == ""
+
+
+def test_the_default_trigger_lock_is_git_ignored():
+    module = _load_wrapper()
+    assert module.TRIGGER_RELPATH == Path("logs") / "HOOK-BYPASSES-WATCHDOG-TRIGGER.lock"
+    res = subprocess.run(["git", "check-ignore", "-q", module.TRIGGER_RELPATH.as_posix()],
+                         cwd=str(_REPO_ROOT), capture_output=True)
+    assert res.returncode == 0, "the default trigger lock would dirty the tree"

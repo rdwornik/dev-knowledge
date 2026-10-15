@@ -306,6 +306,65 @@ def test_a_selector_that_declines_to_narrow_is_red_not_a_silent_full_suite(tmp_p
     assert ran == [], "the gate must not fall back to running the full suite"
 
 
+def _known_reds_repo(tmp_path: Path, *, shared_expiry: str = "2099-01-01") -> dict[str, tuple]:
+    """A tmp repo whose logs/KNOWN-REDS-REGISTRY.json holds one shared member, one under the
+    CURRENT os key and one under the other. Returns {kind: (node id, task, expiry)}."""
+    import known_reds
+
+    here = known_reds.default_os_key()
+    other = "ubuntu-latest" if here == "windows-latest" else "windows-latest"
+    ids = {"shared": ("tests/test_x.py::t_shared", "[#9001]", shared_expiry),
+           "here": ("tests/test_x.py::t_here", "[#9002]", "2099-01-02"),
+           "other": ("tests/test_x.py::t_other", "[#9003]", "2099-01-03")}
+
+    def entry(kind: str) -> dict:
+        _, task, expiry = ids[kind]
+        return {"attribution": "pre-freeze", "task": task, "owner": "rob", "expiry": expiry}
+
+    registry = {"schema": "known-reds-registry/2", "baseline_id": "2026-10-15-fixture",
+                "measured_at_sha": "s", "measured_via": "local", "workers": 4,
+                "members": {ids["shared"][0]: entry("shared")}, "hooks": {},
+                "members_by_os": {here: {ids["here"][0]: entry("here")},
+                                  other: {ids["other"][0]: entry("other")}}}
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "KNOWN-REDS-REGISTRY.json").write_text(
+        json.dumps(registry), encoding="utf-8")
+    return ids
+
+
+def _capture_impacted_run(gates, monkeypatch, tmp_path) -> tuple[list[list[str]], int, str]:
+    monkeypatch.setattr(gates, "_select_impacted", lambda cwd, base: (0, "tests/test_x.py\n"))
+    ran: list[list[str]] = []
+    monkeypatch.setattr(gates, "_run_pytest", lambda cwd, args: ran.append(args) or (0, ""))
+    code, text = gates.impacted_tests_gate(tmp_path, base="HEAD^1")
+    return ran, code, text
+
+
+def test_impacted_tests_gate_deselects_only_owned_in_date_known_reds(tmp_path, monkeypatch):
+    import gates
+
+    ids = _known_reds_repo(tmp_path)
+    ran, code, text = _capture_impacted_run(gates, monkeypatch, tmp_path)
+    assert code == 0 and len(ran) == 1
+    args = ran[0]
+    deselected = [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--deselect"]
+    assert sorted(deselected) == sorted([ids["shared"][0], ids["here"][0]]), args
+    for kind in ("shared", "here"):
+        node_id, task, expiry = ids[kind]
+        assert f"known-red deselected: {node_id} (owned by {task}, expires {expiry})" in text
+    assert ids["other"][0] not in text, "the other OS leg's red must not be deselected here"
+    assert "tests/test_x.py" in args
+
+
+def test_impacted_tests_gate_deselects_nothing_when_the_registry_refuses(tmp_path, monkeypatch):
+    import gates
+
+    _known_reds_repo(tmp_path, shared_expiry="2020-01-01")
+    ran, code, text = _capture_impacted_run(gates, monkeypatch, tmp_path)
+    assert len(ran) == 1 and "--deselect" not in ran[0], ran
+    assert "known-reds registry refused" in text, text
+
+
 def test_impacted_tests_runs_only_the_selected_files(tmp_path, monkeypatch):
     import gates
 

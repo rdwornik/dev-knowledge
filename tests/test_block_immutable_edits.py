@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -205,3 +206,18 @@ def test_wire_allow_new_transcript_create_exits_0():
     proc = _run(_payload("Write", new_path))
     assert proc.returncode == 0
     assert proc.stdout.strip() == ""
+
+
+def test_the_live_settings_wire_the_adr77_guard_on_every_edit_tool_with_an_explicit_bound():
+    """[#863] (4): the guard is re-armed in `hooks.PreToolUse`, matching all four mutating
+    tools (regex fullmatch, as the harness matches) and carrying a numeric timeout."""
+    settings = json.loads((_SCRIPT.parents[2] / ".claude" / "settings.json")
+                          .read_text(encoding="utf-8"))
+    wired = [(block["matcher"], hook)
+             for block in settings["hooks"].get("PreToolUse", [])
+             for hook in block["hooks"] if "block_immutable_edits.py" in hook["command"]]
+    assert wired, "no PreToolUse entry runs block_immutable_edits.py"
+    matcher, hook = wired[0]
+    for tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        assert re.fullmatch(matcher, tool), f"matcher {matcher!r} does not cover {tool}"
+    assert isinstance(hook.get("timeout"), (int, float)) and hook["timeout"] > 0

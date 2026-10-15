@@ -576,3 +576,41 @@ def test_main_sweep_with_no_match_reports_nothing_found(tmp_path, monkeypatch, c
     rc = hw.main(["sweep", "--threshold", "0", "--settings", str(settings)])
     assert rc == 0
     assert "no suspended-at-creation candidate found" in capsys.readouterr().out
+
+
+# --- [#863] (1)/(4): the cited spawn path, and the re-arm that supersedes the emergency key --
+
+_LIVE_SETTINGS = _REPO_ROOT / ".claude" / "settings.json"
+_EMERGENCY_KEY = "//hooks-EMERGENCY-DISABLED-2026-09-17"
+_DISABLED_KEY = "//hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17"
+
+
+def _live_settings() -> dict:
+    return json.loads(_LIVE_SETTINGS.read_text(encoding="utf-8"))
+
+
+def test_the_emergency_disable_key_is_superseded_by_the_watchdog_rearm():
+    note = _live_settings()[_EMERGENCY_KEY]
+    assert isinstance(note, dict), "the emergency key still reads as a live disable order"
+    assert note["superseded"].startswith("SUPERSEDED 2026-10-15")
+    assert "scripts/hooks/hook_watchdog.py" in note["watchdog"]
+    assert "maybe_trigger_watchdog" in note["watchdog"]
+    rearmed = note["rearmed"]
+    assert set(rearmed) >= {"prompts-guard", "immutable-edits-guard", "billing-leak-sentinel"}
+    for name, entry in rearmed.items():
+        assert entry["posture"] in ("fail-closed", "fail-open"), (name, entry)
+        assert entry["why"].strip(), f"{name}: no stated reason for its posture"
+
+
+def test_no_stale_disabled_entry_remains_for_the_two_rearmed_guards():
+    entries = _live_settings()[_DISABLED_KEY]["disabled_individually"]
+    stale = [e["hook"] for e in entries
+             if "--prompts-guard" in e["hook"] or "block_immutable_edits.py" in e["hook"]]
+    assert stale == [], f"re-armed but still listed as disabled: {stale}"
+
+
+def test_the_docstring_cites_the_client_spawn_path_and_the_msys_resume_step():
+    doc = hw.__doc__ or ""
+    missing = [term for term in ("taskkill", "/T", "detached", "spawn.cc", "CREATE_SUSPENDED",
+                                 "ResumeThread", "msys") if term not in doc]
+    assert missing == [], f"hook_watchdog's docstring does not cite: {missing}"

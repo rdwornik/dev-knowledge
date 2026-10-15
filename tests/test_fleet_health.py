@@ -2,6 +2,7 @@
 
 import contextlib
 import importlib.util
+import inspect
 import json
 import os
 import re
@@ -2062,6 +2063,55 @@ def test_main_dispatches_the_guard_flag():
     with mock.patch.object(fh, "prompts_guard", return_value=2) as guard:
         assert fh.main(["--prompts-guard"]) == 2
     assert guard.call_count == 1
+
+
+# --- [#863] (2): the guard and the session start fire the hook watchdog automatically ----
+
+class _CountingBoundedHook:
+    """Stands in for `bounded_hook`: counts `maybe_trigger_watchdog` calls, optionally raising."""
+
+    def __init__(self, exc: Exception | None = None):
+        self.calls = 0
+        self._exc = exc
+
+    def maybe_trigger_watchdog(self, *args, **kwargs):
+        self.calls += 1
+        if self._exc is not None:
+            raise self._exc
+        return True
+
+
+def test_the_prompts_guard_triggers_the_watchdog_once_on_every_verdict(monkeypatch, capsys):
+    hook = _CountingBoundedHook()
+    monkeypatch.setattr(fh, "_import_bounded_hook", lambda: hook)
+    verdicts = [
+        mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)),
+        mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)),
+        mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")),
+    ]
+    for expected, patcher in enumerate(verdicts, start=1):
+        with patcher:
+            fh.prompts_guard()
+        assert hook.calls == expected, f"verdict #{expected}: trigger fired {hook.calls} times"
+    capsys.readouterr()
+
+
+def test_the_prompts_guard_output_is_unchanged_when_the_watchdog_trigger_raises(
+        monkeypatch, capsys):
+    hook = _CountingBoundedHook(RuntimeError("trigger blew up"))
+    monkeypatch.setattr(fh, "_import_bounded_hook", lambda: hook)
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
+        assert fh.prompts_guard() == 0
+    captured = capsys.readouterr()
+    assert captured.out == fh.GUARD_EVALUATED_MARKER + "\n" and captured.err == ""
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    assert capsys.readouterr().out == fh.GUARD_REFUSED_MARKER + "\n"
+    assert hook.calls == 2, "the guard never reached the trigger it must survive"
+
+
+def test_the_session_start_leg_triggers_the_watchdog():
+    assert "_trigger_hook_watchdog()" in inspect.getsource(fh.main)
 
 
 # --- the SessionStart PREFLIGHT: verify once what the per-call guard needs ---------------
