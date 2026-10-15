@@ -1140,3 +1140,44 @@ def test_an_architect_cut_still_needs_probes_md_in_the_bundle(tmp_path: Path) ->
     result = _run(script, bundle)
     assert result.returncode == 1 and "Required source missing" in result.stderr
     assert not (bundle / "PASTE_THIS.md").exists()
+
+
+# ------------------------------------------------------------------ #
+# lane bu-1539-transport ([#1332]): a superseded decision file is not an OPEN file
+# ------------------------------------------------------------------ #
+
+def _bu_superseded_transport(tmp_path: Path) -> Path:
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-browser").mkdir(parents=True)
+    (transport / "to-cc" / "AMEND-X-2026-10-15-v1-superseded.md").write_text(
+        "carried-by: OPEN\n\n# old\n", encoding="utf-8")
+    (transport / "to-cc" / "AMEND-X-2026-10-15.md").write_text(
+        "carried-by: OPEN\n\n# new\n", encoding="utf-8")
+    return transport
+
+
+def test_1332_open_list_omits_a_superseded_file_and_keeps_its_successor(tmp_path: Path, monkeypatch) -> None:
+    scripts = str(SCRIPT.parent)
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    import assemble_paste
+    import gen_handoff
+    transport = _bu_superseded_transport(tmp_path)
+    bundle = tmp_path / "docs" / "handoffs" / "2026-10-15-superseded"
+    bundle.mkdir(parents=True)
+    monkeypatch.setattr(gen_handoff, "transport_root", lambda *a, **k: transport)
+    got = assemble_paste.open_list(bundle, tmp_path, "# Residual\n")
+    assert "to-cc/AMEND-X-2026-10-15.md" in got
+    assert not [p for p in got if "superseded" in p], got
+
+
+def test_1332_a_superseded_open_file_does_not_block_assembly_when_the_successor_is_named(tmp_path: Path) -> None:
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-10-15-sup",
+        residual="# Residual\n\nCarried OPEN: `to-cc/AMEND-X-2026-10-15.md` -- owned by [#1332].\n")
+    result = _run(script, bundle, transport=_bu_superseded_transport(tmp_path))
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "to-cc/AMEND-X-2026-10-15.md" in paste
+    assert "v1-superseded" not in paste

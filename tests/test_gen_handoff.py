@@ -2525,3 +2525,55 @@ def test_preflight_notes_land_in_the_receipt_when_given(tmp_path):
 def test_refusal_count_is_none_without_a_readable_log(tmp_path):
     assert gh._refusal_count_since_previous_cut(None) is None
     assert gh._refusal_count_since_previous_cut(tmp_path / "no-transport-here") is None
+
+
+# --- lane bu-1539-transport ([#1332]): a superseded decision file is discharged by its successor ---------
+
+def _bu_carriage_transport(tmp_path, superseded_head="carried-by: OPEN\n"):
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    (t / "to-browser").mkdir()
+    (t / "to-cc" / "AMEND-X-2026-10-15-v1-superseded.md").write_text(
+        superseded_head + "\n# old\n", encoding="utf-8")
+    (t / "to-cc" / "AMEND-X-2026-10-15.md").write_text("carried-by: OPEN\n\n# new\n", encoding="utf-8")
+    return t
+
+
+def test_1332_superseded_name_and_successor_helpers(tmp_path):
+    assert getattr(gh, "CARRIAGE_SUPERSEDED", None) == "superseded"
+    is_sup = getattr(gh, "is_superseded_name", None)
+    succ = getattr(gh, "successor_of", None)
+    assert is_sup is not None and succ is not None, "gen_handoff.is_superseded_name/successor_of missing"
+    assert is_sup("AMEND-X-2026-10-15-v1-superseded.md") and is_sup("AMEND-X-2026-10-15-superseded.md")
+    assert not is_sup("AMEND-X-2026-10-15.md") and not is_sup("AMEND-X-2026-10-15-v2.md")
+    t = _bu_carriage_transport(tmp_path)
+    got = succ(t / "to-cc" / "AMEND-X-2026-10-15-v1-superseded.md")
+    assert got is not None and got.name == "AMEND-X-2026-10-15.md"
+    (t / "to-cc" / "AMEND-Y-2026-10-15-superseded.md").write_text("x\n", encoding="utf-8")
+    assert succ(t / "to-cc" / "AMEND-Y-2026-10-15-superseded.md") is None
+
+
+def test_1332_a_superseded_decision_file_is_discharged_by_its_successor(tmp_path):
+    t = _bu_carriage_transport(tmp_path)
+    verdicts = {v.path.name: v for v in gh.carriage_verdicts(t, tmp_path)}
+    old = verdicts["AMEND-X-2026-10-15-v1-superseded.md"]
+    new = verdicts["AMEND-X-2026-10-15.md"]
+    assert old.kind == getattr(gh, "CARRIAGE_SUPERSEDED", "superseded"), old
+    assert "AMEND-X-2026-10-15.md" in old.detail and "discharged" in old.detail
+    assert new.kind == gh.CARRIAGE_OPEN
+
+
+def test_1332_a_superseded_file_with_no_carried_by_never_joins_the_shortfall(tmp_path):
+    t = _bu_carriage_transport(tmp_path, superseded_head="no key here\n")
+    short = gh.carriage_shortfall(t, tmp_path)
+    assert [v.path.name for v in short] == [], [v.render() for v in short]
+    verdict = {v.path.name: v for v in gh.carriage_verdicts(t, tmp_path)}["AMEND-X-2026-10-15-v1-superseded.md"]
+    assert verdict.kind == getattr(gh, "CARRIAGE_SUPERSEDED", "superseded")
+
+
+def test_1332_only_the_version_suffix_marks_a_file_superseded_not_a_title_word():
+    """Codex terra HIGH (judge round 1): a title word is not a version mark."""
+    assert not gh.is_superseded_name("AMEND-SUPERSEDED-POLICY-2026-10-15.md")
+    assert not gh.is_superseded_name("BATCH-superseded-files-cleanup-2026-10-15.md")
+    assert gh.is_superseded_name("AMEND-BATCH-BUILD1-PREP-2026-10-15-v3-superseded.md")
+    assert gh.is_superseded_name("LEDGER-dev-knowledge-v202-superseded-2026-10-15.md")

@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (d) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1539-transport merges -- the architect's inbox, derived request status, a capped INDEX ([#1539] PARTIAL, [#1454], [#1332])
+
+**Anchors:** `8e668eb0` (lane tip, branch `worktree-lane-bu-1539-transport`, introduced by this merge). The build1-prep merge receipt line (`5a208874` on `chore/bu-merge-receipts`) rides in this merge's tree, byte-identical, because `merge_path.py land` takes exactly one merge on origin/main per landing.
+
+**Did:** the batch's second handback, first to merge. Purity: 5 lane commits on `b6161972`, no merges; 11 files, all inside the footprint. Phase chain: RED `f9420967` before the fixes; Codex `gpt-5.6-terra` (nonces BU1539-7Q4K, BU1539-R2X9) and Grok `grok-4.20-0309-non-reasoning` records; judge round 1 REFUSE (two HIGHs fixed in `8e668eb0`), round 2 ACCEPT. Regenerated `ecosystem/doc-counts.md` on the merged tree (the lane's own CI QA named it: `test_check_derived_copies` red until the integrator regenerates). Lane 1535's first merge was refused by CI (REGRESSED, 7 new reds, its own) and is in repair 1 of 2.
+
+**Result:** pending CI on the integration branch (`merge_path.py land`); verdict and row closes in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL by contract clause 4: `janitor --apply` on the live Drive waits on the operator's review of the dry-run manifest; the 10 live `no-by` files are seat-authored (PREMISE-FAILED).
+
+**Changes:** `scripts/transport.py` (query --since, derived status, INDEX view + INDEX-ARCHIVE), `scripts/transport_lint.py`, `scripts/transport_report.py`, `ecosystem/transport-registry.yaml` (14 rows, folder lists), `scripts/gen_handoff.py` + `scripts/assemble_paste.py` ([#1332]), their tests; generated `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** queue pass -- `lane-bu-1450-boot-v2` becomes eligible once this lands. OPERATOR-ACTION: review the janitor dry run and the 6 misfoldered Drive files (digest MORNING).
+
+---
+
 ### 2026-10-15 (c) - CC (Opus 5.5, build1-prep): batch BU (BUILD-1) frozen -- rows [#1535]-[#1540], manifest open, six contracts rendered; nothing launched
 
 **Anchors:** `0c8b495d` ([#1535]-[#1540] + intake 110, the [#669] waiver note), `8b2b2fed` (batch BU manifest, `status: open`), `4432daaa` (audits index). Branch `worktree-build1-prep-2026-10-15`.
