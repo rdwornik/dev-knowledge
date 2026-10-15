@@ -1692,6 +1692,36 @@ CARRIAGE_RESOLVES = "resolves"
 CARRIAGE_OPEN = "open"
 CARRIAGE_NO_KEY = "no-key"
 CARRIAGE_UNRESOLVED = "unresolved"
+CARRIAGE_SUPERSEDED = "superseded"
+
+_SUPERSEDED_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])superseded(?![A-Za-z0-9])", re.IGNORECASE)
+_SUPERSEDED_SUFFIX_RE = re.compile(r"-(?:v\d+-)?superseded(?![A-Za-z0-9]).*$", re.IGNORECASE)
+
+
+def is_superseded_name(name: str) -> bool:
+    """True when the filename carries `superseded` as a whole hyphen-delimited token."""
+    stem = name[:-3] if name.lower().endswith(".md") else name
+    return _SUPERSEDED_TOKEN_RE.search(stem) is not None
+
+
+def successor_of(path) -> "Path | None":
+    """The live file that supersedes `path`, in the same folder, or None."""
+    path = Path(path)
+    stem = _SUPERSEDED_SUFFIX_RE.sub("", path.stem)
+    if not stem:
+        return None
+    exact = path.parent / f"{stem}.md"
+    if exact.is_file() and not is_superseded_name(exact.name):
+        return exact
+    best: "tuple[int, Path] | None" = None
+    for cand in path.parent.glob(f"{stem}-v*.md"):
+        m = re.fullmatch(re.escape(stem) + r"-v(\d+)", cand.stem)
+        if m is None or not cand.is_file() or is_superseded_name(cand.name):
+            continue
+        if best is None or int(m.group(1)) > best[0]:
+            best = (int(m.group(1)), cand)
+    return best[1] if best else None
+
 
 _CARRIED_BY_RE = re.compile(r"^carried-by:[ \t]*(\S.*)$", re.MULTILINE)
 
@@ -1794,6 +1824,13 @@ def carriage_verdicts(transport, repo_root) -> list[CarriageVerdict]:
     """P11's per-file verdict for every decision file on `transport`. Read-only (Layer-2)."""
     verdicts: list[CarriageVerdict] = []
     for path in decision_files(transport):
+        if is_superseded_name(path.name):
+            succ = successor_of(path)
+            detail = (f"discharged by its successor {succ.name}" if succ is not None
+                      else "superseded; its successor is not on the live transport")
+            verdicts.append(CarriageVerdict(path, CARRIAGE_SUPERSEDED,
+                                            carried_by_value(path), detail))
+            continue
         value = carried_by_value(path)
         if value is None:
             verdicts.append(CarriageVerdict(
