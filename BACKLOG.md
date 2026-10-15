@@ -822,6 +822,12 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1532] [P3][S] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned · tasks/1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
 - [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
+- [#1535] [P1][L] The outer loop runs in code: the [#689] loop step (round loop, phase adapter, receipts, constraints, distiller with CHALLENGE, point tasks) and ADR-130 · tasks/1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md
+- [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
+- [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
+- [#1538] [P1][S] Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file (twin of [#1446]) · tasks/1538-rulings-r100-r115-land-in-standing-rulings-by-id.md
+- [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
+- [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
 
 ---
 
