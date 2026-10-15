@@ -354,3 +354,23 @@ def test_a_payload_asking_for_input_is_input_required_exit_four(tmp_path):
     (markers / "outcome-P7").write_text("INPUT_REQUIRED")
     result, _dir = _round(tmp_path, markers)
     assert (result.verdict, result.exit_code) == ("INPUT_REQUIRED", 4)
+
+
+# --- P4 finding: the declared checker argv runs conductor.py as a SCRIPT ---------------------------
+
+@pytest.mark.parametrize("cid", ["C-SCOPE", "C-RED", "C-VENDOR"])
+def test_a_receipt_reading_checker_runs_as_declared_without_an_import_error(tmp_path, cid):
+    """harness.yaml runs `python scripts/conductor.py lane --constraint <id>`: only scripts/ is on
+    sys.path then, so the PhaseReceipt import must not depend on the caller's path."""
+    import os  # noqa: PLC0415
+    repo = _new_repo(tmp_path, "asscript")
+    rdir = tmp_path / "round"
+    rdir.mkdir()
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    out = subprocess.run([sys.executable, str(_CONDUCTOR), "lane", "--constraint", cid,
+                          "--repo-root", str(repo), "--base", "HEAD", "--round-dir", str(rdir),
+                          "--row", "1535"],
+                         capture_output=True, text=True, encoding="utf-8", cwd=str(tmp_path), env=env,
+                         timeout=120)
+    assert "Traceback" not in out.stderr and "ModuleNotFoundError" not in out.stderr, out.stderr
+    assert out.returncode == 1 and cid in out.stdout, (out.returncode, out.stdout, out.stderr)
