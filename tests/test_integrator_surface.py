@@ -356,6 +356,34 @@ def test_impacted_tests_gate_deselects_only_owned_in_date_known_reds(tmp_path, m
     assert "tests/test_x.py" in args
 
 
+def test_a_known_red_whose_deselect_prefix_also_drops_an_unowned_test_runs_plain(tmp_path, monkeypatch):
+    """Review finding (Grok grok-4.7, 2026-10-15): pytest's `--deselect` is a node-id PREFIX
+    match, so a registered `...::test_red` also drops an unowned `...::test_red_sibling`, and a
+    file-level id drops the whole file. Such an id is not deselected; it runs and is named."""
+    import gates
+
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_y.py").write_text(
+        "def test_red():\n    pass\n\n\ndef test_red_sibling():\n    pass\n\n\n"
+        "def test_alone():\n    pass\n", encoding="utf-8")
+    entry = {"attribution": "pre-freeze", "task": "[#9001]", "owner": "rob", "expiry": "2099-01-01"}
+    members = {"tests/test_y.py::test_red": entry, "tests/test_y.py": entry,
+               "tests/test_y.py::test_alone": entry}
+    registry = {"schema": "known-reds-registry/2", "baseline_id": "2026-10-15-fixture",
+                "measured_at_sha": "s", "measured_via": "local", "workers": 4,
+                "members": members, "hooks": {}, "members_by_os": {}}
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "KNOWN-REDS-REGISTRY.json").write_text(json.dumps(registry), encoding="utf-8")
+
+    ran, code, text = _capture_impacted_run(gates, monkeypatch, tmp_path)
+
+    args = ran[0]
+    deselected = [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--deselect"]
+    assert deselected == ["tests/test_y.py::test_alone"], (args, text)
+    assert "known-red NOT deselected: tests/test_y.py::test_red" in text, text
+    assert "known-red NOT deselected: tests/test_y.py " in text, text
+
+
 def test_impacted_tests_gate_deselects_nothing_when_the_registry_refuses(tmp_path, monkeypatch):
     import gates
 

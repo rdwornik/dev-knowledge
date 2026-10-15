@@ -155,6 +155,32 @@ def _run_pytest(cwd: Path, args: list[str]) -> tuple[int, str]:
     return _run_argv_gated((*_UV, "pytest", "-x", "--tb=short", *args), cwd, workers_flag="-n")
 
 
+_TEST_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)", re.MULTILINE)
+
+
+def _deselect_overreach(cwd: Path, node_id: str, owned: set[str]) -> str:
+    """Why `--deselect node_id` would also drop a test the registry does not own, or "".
+
+    pytest's `--deselect` is a node-id PREFIX match: a file-level id drops the whole file, and
+    `f.py::test_a` also drops an unowned `f.py::test_a_b`. Read statically from the file's
+    `def test*` names; a missing or unreadable file collects nothing, so nothing is over-dropped."""
+    if "::" not in node_id:
+        return "a file-level id would deselect every test in the file"
+    if "[" in node_id:
+        return ""
+    file_part, _, rest = node_id.partition("::")
+    name = rest.rsplit("::", 1)[-1]
+    try:
+        text = (cwd / file_part).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+    prefix = node_id[: len(node_id) - len(name)]
+    for other in sorted(set(_TEST_DEF.findall(text))):
+        if other != name and other.startswith(name) and f"{prefix}{other}" not in owned:
+            return f"--deselect is a prefix match and would also drop unowned {other}"
+    return ""
+
+
 def _known_red_deselections(cwd: Path) -> tuple[list[str], list[str]]:
     path = cwd / known_reds.REGISTRY_PATH
     if not path.is_file():
@@ -173,6 +199,10 @@ def _known_red_deselections(cwd: Path) -> tuple[list[str], list[str]]:
     args: list[str] = []
     report: list[str] = []
     for node_id, entry in sorted(merged.items()):
+        overbroad = _deselect_overreach(cwd, node_id, set(merged))
+        if overbroad:
+            report.append(f"known-red NOT deselected: {node_id} ({overbroad}); it runs plain")
+            continue
         args += ["--deselect", node_id]
         report.append(f"known-red deselected: {node_id} (owned by {entry.get('task')}, "
                       f"expires {entry.get('expiry')})")

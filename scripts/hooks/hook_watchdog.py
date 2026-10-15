@@ -50,8 +50,8 @@ branch. Reading the installed client shows that branch is never taken for a hook
 
    THE SKIPPED STEP is that `ResumeThread (pi.hThread)`: it runs in the bash (or bash subshell)
    process that called `CreateProcessW`. If that process is terminated between the two calls --
-   which is exactly what the client's `taskkill /T /F` at the hook's `timeout` does to a bash
-   still spawning its interpreter on a loaded box (interpreter start measured at 18-22 s,
+   which, by these two sources (INFERRED, not observed: see 4), the client's `taskkill /T /F` at
+   the hook's `timeout` can do to a bash still spawning its interpreter on a loaded box (interpreter start measured at 18-22 s,
    `bounded_hook.HARNESS_HEADROOM_S`, against a 10 s prompts-guard `timeout`) -- the child keeps
    its one thread in `Wait/Suspended` forever. It already holds the inherited stdout/stderr
    handles (`bInheritHandles = TRUE` in the same call), so the client, which waits for the pipe

@@ -774,6 +774,37 @@ def test_maybe_trigger_watchdog_spawns_one_sweep_per_interval(tmp_path, monkeypa
     assert len(calls) == 2, "a stale lock must be reaped and the claim retried"
 
 
+def test_a_stale_lock_reclaimed_by_a_peer_first_is_not_deleted_out_from_under_it(tmp_path, monkeypatch):
+    """Review finding (Codex terra, 2026-10-15): two callers see the same stale lock; the peer
+    reaps it and claims a FRESH lock between this caller's stale reading and its reap. A bare
+    unlink would delete the peer's fresh claim and both would spawn a sweep."""
+    module = _load_wrapper()
+    lock = tmp_path / "trigger.lock"
+    monkeypatch.setenv(module.TRIGGER_ENV, str(lock))
+    lock.write_text("old", encoding="ascii")
+    os.utime(lock, (1000.0, 1000.0))
+    later = 1000.0 + module.TRIGGER_INTERVAL_S + 1
+    real_stat = Path.stat
+    raced = []
+
+    def stat_then_peer_claims(self, *args, **kwargs):
+        result = real_stat(self, *args, **kwargs)
+        if self == lock and not raced:
+            raced.append(True)
+            lock.unlink()
+            lock.write_text("peer", encoding="ascii")
+            os.utime(lock, (later, later))
+        return result
+
+    monkeypatch.setattr(Path, "stat", stat_then_peer_claims)
+    calls: list[tuple] = []
+
+    assert module.maybe_trigger_watchdog(now=later, spawn=lambda a, c: calls.append((a, c))) is False
+    assert raced and calls == [], "the peer's fresh claim was reaped and a second sweep spawned"
+    assert lock.read_text(encoding="ascii") == "peer"
+    assert [p.name for p in tmp_path.iterdir()] == ["trigger.lock"], "an aside file was left behind"
+
+
 def test_maybe_trigger_watchdog_spawns_the_watchdog_sweep(tmp_path, monkeypatch):
     module = _load_wrapper()
     monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))

@@ -23,6 +23,7 @@ never depend on any real hook's verdict.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -69,20 +70,36 @@ _DASH_C = re.compile(r"(?<!\S)-c(?!\S)")
 
 #: The ONE named exception: the AX15-1 prompts guard, re-armed 2026-10-15 by [#863]. Its
 #: permit must be PROVEN by a stdout marker checked outside the interpreter the PATH chooses,
-#: so its program lives in the command by ruling (tests/test_prompts_guard_hook_wiring.py pins
-#: it byte for byte), and it cannot ride this launcher, which drops every argument after the
-#: target (`sys.argv = [target]`) and so could never pass `--prompts-guard`. Any OTHER command
-#: carrying a program is still refused.
-_AX15_1_PROMPTS_GUARD = "--prompts-guard"
+#: so its program lives in the command by ruling, and it cannot ride this launcher, which drops
+#: every argument after the target (`sys.argv = [target]`) and so could never pass
+#: `--prompts-guard`. The exception is pinned to the command's exact bytes -- the sha256 of the
+#: pre-disable command at 645ec4db, re-armed verbatim -- so an edit to that program, or any
+#: OTHER command carrying a program, is still refused.
+_AX15_1_PROMPTS_GUARD_SHA256 = "3548dda45b4db9c1cf2f9923d411ca50e0cd8433f897d5b57a0b7886a5c4f7ec"
+
+
+def _is_ax15_1_prompts_guard(event: str, cmd: str) -> bool:
+    return (event == "PreToolUse"
+            and hashlib.sha256(cmd.encode("utf-8")).hexdigest() == _AX15_1_PROMPTS_GUARD_SHA256)
 
 
 def test_no_hook_command_holds_inline_code():
     """Done-contract 2: a `command` names programs and files; it never carries a program."""
     offenders = [(event, cmd) for event, cmd in _hook_commands()
-                 if (_DASH_C.search(cmd) or ";" in cmd) and _AX15_1_PROMPTS_GUARD not in cmd]
+                 if (_DASH_C.search(cmd) or ";" in cmd) and not _is_ax15_1_prompts_guard(event, cmd)]
     assert not offenders, offenders
-    exempt = [cmd for _, cmd in _hook_commands() if _AX15_1_PROMPTS_GUARD in cmd]
+    exempt = [cmd for event, cmd in _hook_commands() if _is_ax15_1_prompts_guard(event, cmd)]
     assert len(exempt) <= 1, "the AX15-1 exception covers exactly one prompts-guard entry"
+
+
+def test_the_ax15_1_exception_admits_only_the_pinned_bytes():
+    """Review finding (Codex terra, 2026-10-15): a substring match on `--prompts-guard` let any
+    statement prepended to that command ride the exception. Only the exact command is exempt."""
+    pinned = [cmd for event, cmd in _hook_commands() if _is_ax15_1_prompts_guard(event, cmd)]
+    assert len(pinned) == 1, "the re-armed prompts guard is not the pinned command"
+    assert not _is_ax15_1_prompts_guard("PreToolUse", "echo pwned; " + pinned[0])
+    assert not _is_ax15_1_prompts_guard("PreToolUse", "bash -c 'echo --prompts-guard'")
+    assert not _is_ax15_1_prompts_guard("SessionStart", pinned[0])
 
 
 @pytest.mark.parametrize("event,target",

@@ -330,6 +330,30 @@ def _claim_trigger(path: Path) -> bool:
     return True
 
 
+def _reclaim_stale(path: Path, now: float, interval_s: float) -> bool:
+    """Remove the trigger lock only if the file removed is the STALE one.
+
+    Why: two callers can both see a stale lock; a bare unlink by the second would delete the
+    first's fresh claim and let both spawn. Renaming the lock aside first means each caller
+    removes exactly the file it judged, re-checked after the move: a fresh one is put back.
+    Honest limit: a third claimer landing between that move and its restore can still yield
+    two sweeps; `hook_watchdog.py kill_tree` treats an already-dead pid as done, so a twin costs
+    at most a duplicate kill record."""
+    aside = path.with_name(f"{path.name}.{os.getpid()}.{time.monotonic_ns()}.stale")
+    try:
+        os.rename(path, aside)
+    except FileNotFoundError:
+        return True
+    if now - aside.stat().st_mtime < interval_s:
+        try:
+            os.rename(aside, path)
+        except OSError:
+            aside.unlink(missing_ok=True)
+        return False
+    aside.unlink(missing_ok=True)
+    return True
+
+
 def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIGGER_INTERVAL_S,
                            spawn=None) -> bool:
     """Start a detached `hook_watchdog.py sweep` at most once per `interval_s`, machine-wide.
@@ -355,11 +379,7 @@ def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIG
         if not _claim_trigger(path):
             if now - path.stat().st_mtime < interval_s:
                 return False
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                pass
-            if not _claim_trigger(path):
+            if not _reclaim_stale(path, now, interval_s) or not _claim_trigger(path):
                 return False
         os.utime(path, (now, now))
         spawn(watchdog_sweep_argv(), _REPO_ROOT)
