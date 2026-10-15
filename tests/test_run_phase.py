@@ -437,3 +437,43 @@ def test_generated_schema_file_matches_render_and_check_passes():
     on_disk = _SCHEMA_FILE.read_text(encoding="utf-8").replace("\r\n", "\n")
     assert on_disk == pr.render_json_schema().replace("\r\n", "\n")
     assert pr.main(["--check"]) == 0
+
+
+# --------------------------------------------------------------------------- round-2 RED (reviewer terra)
+
+def test_fresh_payload_refuses_mtime_equal_to_spawned_at(tmp_path):
+    """The contract is mtime strictly AFTER the spawn: mtime == spawned_at is not fresh."""
+    rp = _rp()
+    path = tmp_path / "p.json"
+    nonce = "abcdef0123456789"
+    path.write_text(json.dumps({"nonce": nonce, "input_hash": _HASH, "outcome": "PASS"}),
+                    encoding="utf-8")
+    mtime = path.stat().st_mtime
+    assert rp.fresh_payload(path, spawned_at=mtime, nonce=nonce, input_hash=_HASH) is None
+    got = rp.fresh_payload(path, spawned_at=mtime - 1, nonce=nonce, input_hash=_HASH)
+    assert got is not None and got.outcome == "PASS"
+
+
+def test_receipt_refuses_a_payload_whose_nonce_differs_from_the_receipt_nonce():
+    """The carried payload is bound to the receipt: a swapped-in payload nonce is refused even
+    when payload_sha256 is recomputed for the swapped payload."""
+    from pydantic import ValidationError
+    pr = _pr()
+    swapped = pr.PhasePayload.model_validate(_payload_dict(nonce="zzzzzzzzzzzzzzzz"))
+    with pytest.raises(ValidationError):
+        pr.PhaseReceipt.model_validate(_receipt_dict(
+            status="COMPLETE", nonce="abcdef0123456789", payload=swapped.model_dump(),
+            payload_sha256=pr.payload_sha256(swapped)))
+
+
+def test_receipt_refuses_a_payload_whose_input_hash_differs_from_the_receipt_input_hash():
+    """Same binding for input_hash: a payload carrying another input's hash is refused even
+    when payload_sha256 is recomputed for the swapped payload."""
+    from pydantic import ValidationError
+    pr = _pr()
+    other = hashlib.sha256(b"other-input").hexdigest()
+    swapped = pr.PhasePayload.model_validate(_payload_dict(input_hash=other))
+    with pytest.raises(ValidationError):
+        pr.PhaseReceipt.model_validate(_receipt_dict(
+            status="COMPLETE", input_hash=_HASH, payload=swapped.model_dump(),
+            payload_sha256=pr.payload_sha256(swapped)))

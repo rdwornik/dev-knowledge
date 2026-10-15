@@ -247,3 +247,30 @@ def test_distill_schema_file_is_current():
     from ecosystem.schema import distill_receipt
     assert distill_receipt.main(["--check"]) == 0
     assert (_REPO_ROOT / "ecosystem" / "schema" / "distill-receipt.schema.json").is_file()
+
+
+# --- round-2 RED (reviewer terra): a challenge justifies only the path it proposes --------------
+
+SECOND_PATH = "scripts/other_gate_v2.py"
+
+
+def test_receipt_refuses_an_agreeing_challenge_that_proposes_a_different_path():
+    from pydantic import ValidationError
+    challenge = _challenge_dict()
+    challenge["proposes"] = "scripts/something_else.py"
+    data = _receipt_dict(new_justified="the old gate cannot be widened", challenge=challenge)
+    with pytest.raises(ValidationError):
+        _receipt_cls().model_validate(data)
+
+
+def test_receipt_refuses_two_conflicting_new_paths_when_the_challenge_proposes_only_one():
+    from pydantic import ValidationError
+    cands = [
+        {"path": "scripts/read_gate.py", "source": "why", "score": 0.67, "matched": NEW_PATH},
+        {"path": "scripts/other_gate.py", "source": "why", "score": 0.7, "matched": SECOND_PATH},
+    ]
+    data = _receipt_dict(reuse_candidates=cands, plan_new_paths=[NEW_PATH, SECOND_PATH],
+                         new_justified="neither old gate can be widened",
+                         challenge=_challenge_dict())  # proposes == NEW_PATH only
+    with pytest.raises(ValidationError):
+        _receipt_cls().model_validate(data)
