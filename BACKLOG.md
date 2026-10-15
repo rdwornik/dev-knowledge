@@ -828,6 +828,15 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1538] [P1][S] Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file (twin of [#1446]) · tasks/1538-rulings-r100-r115-land-in-standing-rulings-by-id.md
 - [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
+- [#1560] [P1][M] A lane push runs Tier 1 (ruff + impacted tests on Linux) and one always-run gate job judges the run (R119 day, BUILD-2a slot 1) · tasks/1560-a-lane-push-runs-tier-1-impacted-tests-and-one-always-run-gate-job-judges-the-run.md
+- [#1561] [P1][S] impacted_tests.py selects the tests a changed workflow or ecosystem data file feeds, and the tests a removed module leaves behind (Tier-1 holes, BUILD-2a slot 1) · tasks/1561-impacted-tests-selects-for-workflow-and-ecosystem-data-and-for-a-removed-module.md
+- [#1562] [P1][M] The night suite runs in four pytest-split shards per OS, and a fail-closed aggregator keeps the two pytest leg names and the known-reds compare unchanged (R119 night, BUILD-2a slot 1) · tasks/1562-the-night-suite-runs-in-four-pytest-split-shards-per-os-under-the-existing-leg-names.md
+- [#1563] [P1][S] The always-red CI ship-gate job is removed with its never-matching handoff reader (R112, BUILD-2a slot 1, after the operator's GO) · tasks/1563-the-always-red-ci-ship-gate-job-is-removed-r112.md
+- [#1564] [P1][S] The night batch opens only on a live known-reds registry, and ship_gate_diff runs once on the final tip and records what it catches (R119 night, BUILD-2a slot 1) · tasks/1564-the-night-opens-on-a-live-known-reds-registry-and-ship-gate-diff-records-what-it-catches.md
+- [#1565] [P1][M] Tests become graph nodes: static exercises edges in FPG, and a nightly per-sha coverage-context edge artifact (R120.1, first night) · tasks/1565-tests-become-graph-nodes-with-static-and-coverage-exercises-edges.md
+- [#1566] [P1][M] The test census classifies every test ORPHAN, DUPLICATE, ZERO-KILL or NO-OUTCOME from the night's edges, without a model, into a KEEP/STRENGTHEN/REMOVE list (R120.3, first night) · tasks/1566-the-test-census-classifies-every-test-orphan-duplicate-zero-kill-no-outcome.md
+- [#1567] [P1][M] mutmut runs nightly on the night's changed functions with a per-lane score, a 70 % threshold and a loud 0-mutant failure (R120 goal, first night) · tasks/1567-mutmut-runs-nightly-on-the-changed-functions-with-a-per-lane-score.md
+- [#1568] [P2][S] Pre-commit refuses a removal that leaves orphan tests: the removed module's tests are deleted or rewritten in the same change (R120.2, BUILD-2b) · tasks/1568-pre-commit-refuses-a-removal-that-leaves-orphan-tests.md
 
 ---
 
