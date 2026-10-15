@@ -477,3 +477,30 @@ def test_receipt_refuses_a_payload_whose_input_hash_differs_from_the_receipt_inp
         pr.PhaseReceipt.model_validate(_receipt_dict(
             status="COMPLETE", input_hash=_HASH, payload=swapped.model_dump(),
             payload_sha256=pr.payload_sha256(swapped)))
+
+
+# --- applied premise from lane L4 (codespace-finish), witnessed live 2026-10-15 -----------------
+# The Claude API answers HTTP 400 to a `claude -p --json-schema` whose TOP LEVEL carries
+# allOf / anyOf / oneOf (the lane-report schema failed that way). Such rules stay in pydantic
+# validation; no schema this lane can hand a CLI may carry one at its top level.
+
+_COMBINATORS = ("allOf", "anyOf", "oneOf")
+
+
+def test_no_schema_the_adapter_can_emit_has_a_top_level_combinator(capsys):
+    """Every model schema, every committed *.schema.json of the lane, and the `--payload-schema`
+    output (what `claude -p --json-schema` would receive) is combinator-free at its top level."""
+    from ecosystem.schema import challenge_receipt, distill_receipt
+    pr = _pr()
+    schemas = {name: model.model_json_schema(by_alias=True) for name, model in (
+        ("PhasePayload", pr.PhasePayload), ("PhaseReceipt", pr.PhaseReceipt),
+        ("DistillReceipt", distill_receipt.DistillReceipt),
+        ("ChallengeReceipt", challenge_receipt.ChallengeReceipt),
+        ("ChallengePayload", challenge_receipt.ChallengePayload))}
+    for stem in ("phase-receipt", "distill-receipt", "challenge-receipt"):
+        path = _REPO / "ecosystem" / "schema" / f"{stem}.schema.json"
+        schemas[path.name] = json.loads(path.read_text(encoding="utf-8"))
+    assert pr.main(["--payload-schema"]) == 0
+    schemas["--payload-schema"] = json.loads(capsys.readouterr().out)
+    offenders = {name: [k for k in _COMBINATORS if k in s] for name, s in schemas.items()}
+    assert not {n: ks for n, ks in offenders.items() if ks}, offenders
