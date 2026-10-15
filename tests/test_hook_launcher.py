@@ -76,7 +76,7 @@ _DASH_C = re.compile(r"(?<!\S)-c(?!\S)")
 #: bash program of 645ec4db, unchanged, inside the bash/PowerShell polyglot wrapper (see
 #: `test_the_prompts_guard_command_parses_and_allows_under_powershell`) -- so an edit to that
 #: program, or any OTHER command carrying a program, is still refused.
-_AX15_1_PROMPTS_GUARD_SHA256 = "aaf4ffcd3656afb5d6fdff3e33733a085292d357322e5ef1878cbcd9ebfc310f"
+_AX15_1_PROMPTS_GUARD_SHA256 = "7b40c5d6aafccd09f0af789663023f2161f46fccdd8544ad050a434c81678814"
 #: The wrapped bash program alone: 645ec4db's command, byte for byte.
 _AX15_1_BASH_PROGRAM_SHA256 = "3548dda45b4db9c1cf2f9923d411ca50e0cd8433f897d5b57a0b7886a5c4f7ec"
 

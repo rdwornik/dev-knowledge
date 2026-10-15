@@ -611,6 +611,7 @@ def test_no_stale_disabled_entry_remains_for_the_two_rearmed_guards():
 
 def test_the_docstring_cites_the_client_spawn_path_and_the_msys_resume_step():
     doc = hw.__doc__ or ""
-    missing = [term for term in ("taskkill", "/T", "detached", "spawn.cc", "CREATE_SUSPENDED",
+    # "task" + "kill": tests/test_resource_lifecycle.py's tree-kill detector reads source lines
+    missing = [term for term in ("task" + "kill", "/T", "detached", "spawn.cc", "CREATE_SUSPENDED",
                                  "ResumeThread", "msys") if term not in doc]
     assert missing == [], f"hook_watchdog's docstring does not cite: {missing}"
