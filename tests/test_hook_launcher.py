@@ -77,10 +77,13 @@ _DASH_C = re.compile(r"(?<!\S)-c(?!\S)")
 #: permit must be PROVEN by a stdout marker checked outside the interpreter the PATH chooses,
 #: so its program lives in the command by ruling, and it cannot ride this launcher, which drops
 #: every argument after the target (`sys.argv = [target]`) and so could never pass
-#: `--prompts-guard`. The exception is pinned to the command's exact bytes -- the sha256 of the
-#: pre-disable command at 645ec4db, re-armed verbatim -- so an edit to that program, or any
-#: OTHER command carrying a program, is still refused.
-_AX15_1_PROMPTS_GUARD_SHA256 = "3548dda45b4db9c1cf2f9923d411ca50e0cd8433f897d5b57a0b7886a5c4f7ec"
+#: `--prompts-guard`. The exception is pinned to the command's exact bytes -- the pre-disable
+#: bash program of 645ec4db, unchanged, inside the bash/PowerShell polyglot wrapper (see
+#: `test_the_prompts_guard_command_parses_and_allows_under_powershell`) -- so an edit to that
+#: program, or any OTHER command carrying a program, is still refused.
+_AX15_1_PROMPTS_GUARD_SHA256 = "55098b2224c50fe9f08e975cd6088f5ee7c6f69406bddfef388d685ba9dc1810"
+#: The wrapped bash program alone: 645ec4db's command, byte for byte.
+_AX15_1_BASH_PROGRAM_SHA256 = "3548dda45b4db9c1cf2f9923d411ca50e0cd8433f897d5b57a0b7886a5c4f7ec"
 
 
 def _is_ax15_1_prompts_guard(event: str, cmd: str) -> bool:
@@ -105,6 +108,9 @@ def test_the_ax15_1_exception_admits_only_the_pinned_bytes():
     assert not _is_ax15_1_prompts_guard("PreToolUse", "echo pwned; " + pinned[0])
     assert not _is_ax15_1_prompts_guard("PreToolUse", "bash -c 'echo --prompts-guard'")
     assert not _is_ax15_1_prompts_guard("SessionStart", pinned[0])
+    head, program, *tail = pinned[0].split("\n")
+    assert head == "echo `# <#` >/dev/null" and tail[0] == "#>" and tail[-1] == "exit 0"
+    assert hashlib.sha256(program.encode("utf-8")).hexdigest() == _AX15_1_BASH_PROGRAM_SHA256
 
 
 @pytest.mark.parametrize("event,target",

@@ -372,6 +372,11 @@ def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIG
 
     Never raises, never prints; returns whether this call spawned the sweep."""
     try:
+        if spawn is None and os.environ.get("PYTEST_CURRENT_TEST"):
+            # A test that runs the real guard or SessionStart leg -- in process, or as a
+            # subprocess that inherits this variable -- must not start a real sweep that kills
+            # processes on the box and outlives the run; only an injected spawner runs there.
+            return False
         now = time.time() if now is None else now
         spawn = _spawn_detached if spawn is None else spawn
         path = trigger_path()
@@ -381,7 +386,10 @@ def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIG
                 return False
             if not _reclaim_stale(path, now, interval_s) or not _claim_trigger(path):
                 return False
-        os.utime(path, (now, now))
+        try:
+            os.utime(path, (now, now))
+        except FileNotFoundError:
+            pass  # a peer's `_reclaim_stale` has this claim aside; it restores it -- still ours
         spawn(watchdog_sweep_argv(), _REPO_ROOT)
         return True
     except Exception:

@@ -170,6 +170,8 @@ def _deselect_overreach(cwd: Path, node_id: str, owned: set[str]) -> str:
         return ""
     file_part, _, rest = node_id.partition("::")
     name = rest.rsplit("::", 1)[-1]
+    if name.startswith("Test"):  # pytest's default `python_classes`
+        return "a class-level id would deselect every test in the class"
     try:
         text = (cwd / file_part).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
