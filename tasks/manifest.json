@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e93c2106c6dd837adf650644d3d05a78086262fcb2167a52b4d7c3bc0a5e89bc",
+  "generated_sha256": "039d45117d906a2dc2f9ab960b52f64619abdf87a40791136416f474c21832ff",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3174,6 +3174,42 @@
     {
       "task": 1555,
       "file": "1555-adr-123-step-1-carve-the-harness-package.md"
+    },
+    {
+      "task": 1560,
+      "file": "1560-a-lane-push-runs-tier-1-impacted-tests-and-one-always-run-gate-job-judges-the-run.md"
+    },
+    {
+      "task": 1561,
+      "file": "1561-impacted-tests-selects-for-workflow-and-ecosystem-data-and-for-a-removed-module.md"
+    },
+    {
+      "task": 1562,
+      "file": "1562-the-night-suite-runs-in-four-pytest-split-shards-per-os-under-the-existing-leg-names.md"
+    },
+    {
+      "task": 1563,
+      "file": "1563-the-always-red-ci-ship-gate-job-is-removed-r112.md"
+    },
+    {
+      "task": 1564,
+      "file": "1564-the-night-opens-on-a-live-known-reds-registry-and-ship-gate-diff-records-what-it-catches.md"
+    },
+    {
+      "task": 1565,
+      "file": "1565-tests-become-graph-nodes-with-static-and-coverage-exercises-edges.md"
+    },
+    {
+      "task": 1566,
+      "file": "1566-the-test-census-classifies-every-test-orphan-duplicate-zero-kill-no-outcome.md"
+    },
+    {
+      "task": 1567,
+      "file": "1567-mutmut-runs-nightly-on-the-changed-functions-with-a-per-lane-score.md"
+    },
+    {
+      "task": 1568,
+      "file": "1568-pre-commit-refuses-a-removal-that-leaves-orphan-tests.md"
     },
     {
       "prose": ""
