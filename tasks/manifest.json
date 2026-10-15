@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "039d45117d906a2dc2f9ab960b52f64619abdf87a40791136416f474c21832ff",
+  "generated_sha256": "4c476c9f283217fc8d49d63825ff63ff52eec055ea2172141021a76f415f7d95",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3210,6 +3210,114 @@
     {
       "task": 1568,
       "file": "1568-pre-commit-refuses-a-removal-that-leaves-orphan-tests.md"
+    },
+    {
+      "task": 1569,
+      "file": "1569-moment-merge-runs-without-a-hand-set-harness-contract-takes-its-worktree-from-the-integrat.md"
+    },
+    {
+      "task": 1570,
+      "file": "1570-the-hook-writer-emits-lf-hooks-with-one-shebang-so-a-sessionstart-re-arm-never-undoes-a-re.md"
+    },
+    {
+      "task": 1571,
+      "file": "1571-a-reaper-killed-merge-path-py-land-resumes-from-its-recorded-ci-run-without-a-second-integ.md"
+    },
+    {
+      "task": 1572,
+      "file": "1572-dispatch-py-queue-skips-an-already-launched-lane-and-fires-the-eligible-ones-instead-of-ha.md"
+    },
+    {
+      "task": 1573,
+      "file": "1573-a-seat-hand-over-launches-its-successor-and-records-the-launch-only-a-launch-error-becomes.md"
+    },
+    {
+      "task": 1574,
+      "file": "1574-a-copilot-child-run-is-not-recorded-as-a-wedged-seat-and-its-stop-hook-resolves-a-real-pat.md"
+    },
+    {
+      "task": 1575,
+      "file": "1575-claude-md-section-9-the-hook-watchdog-fate-date-and-canonical-freshness-tell-the-truth-abo.md"
+    },
+    {
+      "task": 1576,
+      "file": "1576-the-transport-janitor-treats-withdrawn-like-superseded-and-never-moves-a-file-that-tracked.md"
+    },
+    {
+      "task": 1577,
+      "file": "1577-seat-authored-transport-files-carry-by-live-in-the-right-folder-and-a-dispatcher-never-wri.md"
+    },
+    {
+      "task": 1578,
+      "file": "1578-every-harness-script-prints-help-and-exits-0-and-none-crashes-on-a-cp1252-console.md"
+    },
+    {
+      "task": 1579,
+      "file": "1579-the-handoff-generator-s-dry-cut-and-preflight-do-not-refuse-on-whole-repo-rows-and-its-man.md"
+    },
+    {
+      "task": 1580,
+      "file": "1580-explicit-model-ids-claude-opus-5-5-claude-sonnet-5-5-resolve-in-every-reader-family-enum-p.md"
+    },
+    {
+      "task": 1581,
+      "file": "1581-ci-jobs-report-what-they-ran-a-not-run-job-is-not-success-and-the-heartbeat-handoff-manife.md"
+    },
+    {
+      "task": 1582,
+      "file": "1582-test-every-committed-record-still-proves-out-proves-all-86-archived-row-bodies.md"
+    },
+    {
+      "task": 1583,
+      "file": "1583-the-fourteen-912-known-reds-entries-have-an-owner-before-they-expire-red-on-2026-10-31.md"
+    },
+    {
+      "task": 1584,
+      "file": "1584-the-863-lane-s-owed-items-are-rows-ci-environment-owner-audit-health-funnel-and-proof-laye.md"
+    },
+    {
+      "task": 1585,
+      "file": "1585-provider-census-probes-only-providers-that-exist-and-each-probe-answers-or-says-why.md"
+    },
+    {
+      "task": 1586,
+      "file": "1586-the-provider-checker-is-re-run-from-a-writable-seat-and-its-disagrees-are-resolved.md"
+    },
+    {
+      "task": 1587,
+      "file": "1587-the-handoff-digest-checker-is-re-run-from-a-seat-with-a-writable-uv-cache-covering-all-fiv.md"
+    },
+    {
+      "task": 1588,
+      "file": "1588-a-hook-declared-broken-is-disarmed-by-bounded-hook-py-not-only-reported-r109.md"
+    },
+    {
+      "task": 1589,
+      "file": "1589-hook-and-gate-roster-claims-match-the-config-ruff-seal-identity-lane-contract-check-decisi.md"
+    },
+    {
+      "task": 1590,
+      "file": "1590-each-of-the-21-dead-organs-and-11-unexplained-files-is-used-wired-or-removed-r112.md"
+    },
+    {
+      "task": 1591,
+      "file": "1591-the-generated-handoff-carries-a-branch-fate-table-the-defect-register-and-the-live-seat-se.md"
+    },
+    {
+      "task": 1592,
+      "file": "1592-session-start-py-starts-no-detached-fleet-health-producer-outside-the-worktree-and-the-pro.md"
+    },
+    {
+      "task": 1593,
+      "file": "1593-handoff-docs-stop-contradicting-each-other-v5-v6-prose-the-r30-conflict-four-seats-three-q.md"
+    },
+    {
+      "task": 1594,
+      "file": "1594-phase-0-residuals-r48-last-ran-print-lane-report-py-stale-adr-121-adr-125-actions-minutes.md"
+    },
+    {
+      "task": 1595,
+      "file": "1595-the-cloud-and-interactive-substrates-have-a-launcher-or-are-removed-r112.md"
     },
     {
       "prose": ""
