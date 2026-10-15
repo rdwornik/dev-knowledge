@@ -2451,7 +2451,14 @@ def _credential_tools_script(allowed: Sequence[str]) -> str:
         '    nohup setsid script -qfec "stty cols 500 rows 50; exec env -u BROWSER timeout 900 agy" '
         '"$box/out" < "$box/in" > /dev/null 2>&1 &',
         '    echo $! > "$box/pid"',
+        # live finding (agy 1.3.5): agy draws a login menu before any URL and waits for a key; option 1
+        # (Google OAuth) is the highlighted default, so ONE Enter answers it -- never anything else
+        "    sent=0",
         "    for _ in $(seq 1 90); do",
+        '      if [ "$sent" = 0 ] && sed -e \'s/\\x1b\\[[0-9;?]*[a-zA-Z]//g\' "$box/out" 2>/dev/null '
+        "| grep -aq 'Select login method'; then",
+        "        printf '\\r' > \"$box/in\"; sent=1",
+        "      fi",
         "      url=\"$(sed -e 's/\\x1b\\[[0-9;?]*[a-zA-Z]//g' \"$box/out\" 2>/dev/null | tr -d '\\r' "
         "| grep -aoE 'https://[^[:space:]]+' | head -n 1)\"",
         '      if [ -n "$url" ]; then printf "%s\\n" "$url"; exit 0; fi',
