@@ -67,11 +67,22 @@ def _hook_commands() -> list[tuple[str, str]]:
 _DASH_C = re.compile(r"(?<!\S)-c(?!\S)")
 
 
+#: The ONE named exception: the AX15-1 prompts guard, re-armed 2026-10-15 by [#863]. Its
+#: permit must be PROVEN by a stdout marker checked outside the interpreter the PATH chooses,
+#: so its program lives in the command by ruling (tests/test_prompts_guard_hook_wiring.py pins
+#: it byte for byte), and it cannot ride this launcher, which drops every argument after the
+#: target (`sys.argv = [target]`) and so could never pass `--prompts-guard`. Any OTHER command
+#: carrying a program is still refused.
+_AX15_1_PROMPTS_GUARD = "--prompts-guard"
+
+
 def test_no_hook_command_holds_inline_code():
     """Done-contract 2: a `command` names programs and files; it never carries a program."""
     offenders = [(event, cmd) for event, cmd in _hook_commands()
-                 if _DASH_C.search(cmd) or ";" in cmd]
+                 if (_DASH_C.search(cmd) or ";" in cmd) and _AX15_1_PROMPTS_GUARD not in cmd]
     assert not offenders, offenders
+    exempt = [cmd for _, cmd in _hook_commands() if _AX15_1_PROMPTS_GUARD in cmd]
+    assert len(exempt) <= 1, "the AX15-1 exception covers exactly one prompts-guard entry"
 
 
 @pytest.mark.parametrize("event,target",
