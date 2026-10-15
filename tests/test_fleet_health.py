@@ -2064,6 +2064,79 @@ def test_main_dispatches_the_guard_flag():
     assert guard.call_count == 1
 
 
+# --- [#863] (2): the guard and the session start fire the hook watchdog automatically ----
+
+class _CountingBoundedHook:
+    """Stands in for `bounded_hook`: counts `maybe_trigger_watchdog` calls, optionally raising."""
+
+    def __init__(self, exc: Exception | None = None):
+        self.calls = 0
+        self._exc = exc
+
+    def maybe_trigger_watchdog(self, *args, **kwargs):
+        self.calls += 1
+        if self._exc is not None:
+            raise self._exc
+        return True
+
+
+_REAL_TRIGGER = fh._trigger_hook_watchdog
+
+
+@pytest.fixture(autouse=True)
+def _watchdog_trigger_calls(monkeypatch):
+    """No test in this file may fire the REAL trigger: it spawns a detached `hook_watchdog.py
+    sweep` that kills processes on the box and can outlive the run. Every `main()` / guard call
+    here records instead; the two tests of the trigger itself restore `_REAL_TRIGGER` over a
+    stand-in `bounded_hook`."""
+    calls: list[int] = []
+    monkeypatch.setattr(fh, "_trigger_hook_watchdog", lambda: calls.append(1))
+    return calls
+
+
+def test_the_prompts_guard_triggers_the_watchdog_once_on_every_verdict(monkeypatch, capsys):
+    hook = _CountingBoundedHook()
+    monkeypatch.setattr(fh, "_trigger_hook_watchdog", _REAL_TRIGGER)
+    monkeypatch.setattr(fh, "_import_bounded_hook", lambda: hook)
+    verdicts = [
+        mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)),
+        mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)),
+        mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")),
+    ]
+    for expected, patcher in enumerate(verdicts, start=1):
+        with patcher:
+            fh.prompts_guard()
+        assert hook.calls == expected, f"verdict #{expected}: trigger fired {hook.calls} times"
+    capsys.readouterr()
+
+
+def test_the_prompts_guard_output_is_unchanged_when_the_watchdog_trigger_raises(
+        monkeypatch, capsys):
+    hook = _CountingBoundedHook(RuntimeError("trigger blew up"))
+    monkeypatch.setattr(fh, "_trigger_hook_watchdog", _REAL_TRIGGER)
+    monkeypatch.setattr(fh, "_import_bounded_hook", lambda: hook)
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
+        assert fh.prompts_guard() == 0
+    captured = capsys.readouterr()
+    assert captured.out == fh.GUARD_EVALUATED_MARKER + "\n" and captured.err == ""
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    assert capsys.readouterr().out == fh.GUARD_REFUSED_MARKER + "\n"
+    assert hook.calls == 2, "the guard never reached the trigger it must survive"
+
+
+def test_the_session_start_leg_triggers_the_watchdog(tmp_path, capsys, _watchdog_trigger_calls):
+    """Executes the SessionStart leg (review finding, Grok grok-4.7 2026-10-15: a source-text
+    probe passed for a comment or an unreachable call)."""
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00"),
+                      encoding="utf-8")
+    with mock.patch.object(fh, "_HEALTH_FILE", health), _prompts_dir_matching():
+        assert fh.main() == 0
+    capsys.readouterr()
+    assert _watchdog_trigger_calls == [1], "the SessionStart leg did not fire the trigger once"
+
+
 # --- the SessionStart PREFLIGHT: verify once what the per-call guard needs ---------------
 #
 # AX15-1's second sentence: *"A SessionStart check verifies interpreter + guard script once

@@ -19,39 +19,45 @@
     },
     "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
       "attribution": "pre-freeze",
-      "task": "[#912]",
+      "task": "[#457]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
     },
     "tests/test_audit.py::test_health_ok_with_registered_repo": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
     },
     "tests/test_audit.py::test_health_stays_ok_with_na_status": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
     },
     "tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
     },
     "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": {
       "attribution": "pre-freeze",
-      "task": "[#912]",
+      "task": "[#673]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
     },
     "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
       "attribution": {
@@ -60,7 +66,8 @@
       },
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set": {
       "attribution": "pre-freeze",
@@ -78,19 +85,22 @@
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
     },
     "tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
     },
     "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
       "attribution": "flaky",
@@ -103,7 +113,8 @@
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
       "attribution": "pre-freeze",
@@ -171,7 +182,8 @@
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect": {
       "attribution": "pre-freeze",
@@ -185,151 +197,12 @@
       "owner": "rob",
       "expiry": "2026-10-31"
     },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
-    "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
-      "attribution": "pre-freeze",
-      "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-      "task": "[#912]",
-      "owner": "[#863]",
-      "expiry": "2026-10-31"
-    },
     "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
     },
     "tests/test_release_lint.py::test_cli_green_exit_0": {
       "attribution": "pre-freeze",
@@ -369,39 +242,45 @@
     },
     "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
       "attribution": "pre-freeze",
-      "task": "[#912]",
+      "task": "[#829]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
     },
     "tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
       "attribution": "pre-freeze",
-      "task": "[#912]",
+      "task": "[#673]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
     },
     "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
       "attribution": "pre-freeze",
-      "task": "[#912]",
+      "task": "[#1022]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-10-31",
+      "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
     }
   },
   "hooks": {
@@ -439,45 +318,51 @@
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#457]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: live fleet not green: [<LIST>]"
+        "signature": "AssertionError: live fleet not green: [<LIST>]",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
       },
       "tests/test_audit.py::test_health_ok_with_registered_repo": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "assert 1 == 0"
+        "signature": "assert 1 == 0",
+        "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
       "tests/test_audit.py::test_health_stays_ok_with_na_status": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
       "tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'"
+        "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'",
+        "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
       },
       "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#673]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed"
+        "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
       },
       "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
         "attribution": {
@@ -487,7 +372,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')"
+        "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set": {
         "attribution": "pre-freeze",
@@ -508,21 +394,24 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'"
+        "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]"
+        "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]",
+        "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
       },
       "tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 6 == 5"
+        "signature": "AssertionError: assert 6 == 5",
+        "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
       },
       "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
         "attribution": "flaky",
@@ -536,7 +425,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'"
+        "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
         "attribution": "pre-freeze",
@@ -609,7 +499,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})"
+        "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect": {
         "attribution": "pre-freeze",
@@ -630,7 +521,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()"
+        "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()",
+        "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
       },
       "tests/test_release_lint.py::test_cli_green_exit_0": {
         "attribution": "pre-freeze",
@@ -676,45 +568,51 @@
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#829]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert ['codex'] == ['sol']"
+        "signature": "AssertionError: assert ['codex'] == ['sol']",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
       },
       "tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "assert 1 == 0"
+        "signature": "assert 1 == 0",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#673]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)"
+        "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)",
+        "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
       },
       "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#1022]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: citation regex false-stripped: [<LIST>]"
+        "signature": "AssertionError: citation regex false-stripped: [<LIST>]",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
       }
     },
     "windows-latest": {
@@ -734,45 +632,51 @@
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#457]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: live fleet not green: [<LIST>]"
+        "signature": "AssertionError: live fleet not green: [<LIST>]",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
       },
       "tests/test_audit.py::test_health_ok_with_registered_repo": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "assert 1 == 0"
+        "signature": "assert 1 == 0",
+        "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
       "tests/test_audit.py::test_health_stays_ok_with_na_status": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
       "tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'"
+        "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'",
+        "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
       },
       "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#673]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed"
+        "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
       },
       "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
         "attribution": {
@@ -782,7 +686,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')"
+        "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set": {
         "attribution": "pre-freeze",
@@ -803,21 +708,24 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'"
+        "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]"
+        "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]",
+        "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
       },
       "tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 6 == 5"
+        "signature": "AssertionError: assert 6 == 5",
+        "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
       },
       "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
         "attribution": "flaky",
@@ -831,7 +739,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'"
+        "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
         "attribution": "pre-freeze",
@@ -904,7 +813,8 @@
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})"
+        "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect": {
         "attribution": "pre-freeze",
@@ -920,172 +830,13 @@
         "expiry": "2026-10-31",
         "signature": "AssertionError: assert ['[#577]', '[...'[#592]', ...] == ['[#587]']"
       },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
-      "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
-        "attribution": "pre-freeze",
-        "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-16 -> 2026-10-31; [#912] prompts-guard is disabled since 2026-09-17; re-arming it is [#863], in the next batch. Prior reason: seat ruling S-1 (RATIFICATION-2026-10-09): re-dated 2026-10-08 -> 2026-10-16 by recorded ruling, not deleted; the prompts guard stays un-re-armed (DM4, the operator's, due 2026-10-14) and [#912] stays open; the registry refuses again from 2026-10-17 unless the guard's return is decided and built (R38)",
-        "task": "[#912]",
-        "owner": "[#863]",
-        "expiry": "2026-10-31",
-        "signature": "AssertionError: expected exactly one prompts-guard hook, found 0"
-      },
       "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()"
+        "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()",
+        "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
       },
       "tests/test_release_lint.py::test_cli_green_exit_0": {
         "attribution": "pre-freeze",
@@ -1131,31 +882,35 @@
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#829]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert ['codex'] == ['sol']"
+        "signature": "AssertionError: assert ['codex'] == ['sol']",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
       },
       "tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: operational:"
+        "signature": "AssertionError: operational:",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "assert 1 == 0"
+        "signature": "assert 1 == 0",
+        "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
       "tests/test_transport.py::test_concurrent_appends_to_the_same_destination_serialize_without_interleaving": {
         "attribution": "flaky",
@@ -1166,17 +921,19 @@
       },
       "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#673]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)"
+        "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)",
+        "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
       },
       "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
         "attribution": "pre-freeze",
-        "task": "[#912]",
+        "task": "[#1022]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: citation regex false-stripped: [<LIST>]"
+        "signature": "AssertionError: citation regex false-stripped: [<LIST>]",
+        "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
       }
     }
   },
@@ -1186,6 +943,7 @@
     "AM2-3 growing items D5 (boot base bytes), D6 (unpinned text writes), D7 (floor components) carry ceiling+growth, enforced by compare; D8's changed first-orphan is stated in its growth and held by exact signature.",
     "entries with no per-leg signature (the reason text varied over the evidence runs): test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock on win (3 distinct normalized signatures over 6 runs)",
     "2026-10-04 foundation-8-test-isolation: the three Windows flake members (the two graph-spine lock tests, [#1344]; the transport concurrent-append test, [#1350]) carry their shown cause, the script it lives in and their measured control rates; the transport member is new on windows-latest. No signature re-signed, no entry grew. The deny_and_point fail-closed pair was never registered (lane 5 merged on one CI read with the pair absent), so there is no entry of theirs to remove.",
-    "2026-10-05 B2-W1 integrator cycle 11 (session ae3fca90), by operator emergency order 2026-10-05 (the decision AM2-2 waited for): 21 per-OS signatures re-signed to the live ones read on main 3e97b2fd's push run 37310685233 (ubuntu job 111765035834, windows job 111765035880; compare there: ubuntu 1, windows 21 REGRESSION, all SIG-CHANGED). Same cause, classified with evidence in to-browser/SESSION-integrator-b2-w1-2026-10-04.md (CLASSIFY-1/-2): (1) tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword on both legs 'assert 4 == 1' -> 'assert 5 == 1': the oracle resolves one more `class Finding` (scripts/transport_lint.py:66, added by 477353aa, lane b2-transport-lint) -- the [#1348] homonym count, a volatile fact (N5); (2) the 20 test_prompts_guard_hook_wiring.py entries on windows-latest \"KeyError: 'PreToolUse'\" -> 'expected exactly one prompts-guard hook, found 0': the guard is still OFF by operator order ([#863], expiry 2026-10-08); .claude/settings.json gained a PreToolUse block for scope_guard (193e9007, 2026-09-27), so the lookup no longer raises KeyError and finds no prompts-guard hook. Task, owner and expiry unchanged; no entry added, removed or widened."
+    "2026-10-05 B2-W1 integrator cycle 11 (session ae3fca90), by operator emergency order 2026-10-05 (the decision AM2-2 waited for): 21 per-OS signatures re-signed to the live ones read on main 3e97b2fd's push run 37310685233 (ubuntu job 111765035834, windows job 111765035880; compare there: ubuntu 1, windows 21 REGRESSION, all SIG-CHANGED). Same cause, classified with evidence in to-browser/SESSION-integrator-b2-w1-2026-10-04.md (CLASSIFY-1/-2): (1) tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword on both legs 'assert 4 == 1' -> 'assert 5 == 1': the oracle resolves one more `class Finding` (scripts/transport_lint.py:66, added by 477353aa, lane b2-transport-lint) -- the [#1348] homonym count, a volatile fact (N5); (2) the 20 test_prompts_guard_hook_wiring.py entries on windows-latest \"KeyError: 'PreToolUse'\" -> 'expected exactly one prompts-guard hook, found 0': the guard is still OFF by operator order ([#863], expiry 2026-10-08); .claude/settings.json gained a PreToolUse block for scope_guard (193e9007, 2026-09-27), so the lookup no longer raises KeyError and finds no prompts-guard hook. Task, owner and expiry unchanged; no entry added, removed or widened.",
+    "2026-10-15 lane-bu-863-prompts-guard ([#863]/[#912]): removed the test_prompts_guard_hook_wiring entries (green once the prompts guard was re-armed), re-owned five entries to their exact open rows ([#673] x2, [#1022], [#829], [#457]), and gave every entry left on [#912] a disposition naming the row it is owed; shrink-only otherwise."
   ]
 }

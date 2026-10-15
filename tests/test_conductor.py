@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -862,3 +863,34 @@ def test_the_two_conductor_surfaces_are_floor_components_in_the_manifest(cond):
     # corp-monorepo until batch X's waves are done, so a write-through carrier today would
     # execute a deployment the operator deferred.
     assert carrier["implemented"] is False
+
+
+# --- [#1540]: a schedule run must not cancel a push run's verdict -------------------------
+
+def _render_group(template: str, context: dict[str, str]) -> str:
+    """Substitute every `${{ expr }}` from `context`; an expression outside it FAILS rather
+    than rendering blank -- a blank would make two different groups look alike."""
+    def _sub(match):
+        expr = match.group(1).strip()
+        assert expr in context, f"concurrency group uses {expr!r}, outside the modelled context"
+        return context[expr]
+    return re.sub(r"\$\{\{(.*?)\}\}", _sub, template)
+
+
+def _ctx(event: str, ref: str) -> dict[str, str]:
+    return {"github.event_name": event, "github.ref": ref, "github.workflow": "conductor",
+            "github.head_ref": "", "github.run_id": "1"}
+
+
+def test_a_schedule_run_and_a_push_run_of_one_ref_fall_in_different_concurrency_groups(workflow):
+    concurrency = workflow["concurrency"]
+    template = concurrency["group"]
+    main = "refs/heads/main"
+    scheduled = _render_group(template, _ctx("schedule", main))
+    pushed = _render_group(template, _ctx("push", main))
+    assert scheduled != pushed, "a schedule run cancels the push run of the same ref"
+    # two pushes of one ref still share a group, so a superseded push is still cancelled
+    assert _render_group(template, _ctx("push", main)) == pushed
+    assert (_render_group(template, _ctx("push", "refs/heads/a"))
+            != _render_group(template, _ctx("push", "refs/heads/b")))
+    assert concurrency["cancel-in-progress"] is True

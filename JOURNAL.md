@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (f) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-863-prompts-guard merges -- the polyglot prompts guard re-armed, the [#912] merge check, the hook watchdog ([#863] [#912] [#1540], PARTIAL)
+
+**Anchors:** `7f0512b4` (lane tip, branch `worktree-lane-bu-863-prompts-guard`, introduced by this merge).
+
+**Did:** purity: 10 lane commits on `b6161972`, no merges, no file overlap with main since; 16 files, `scripts/gates.py` + `.claude/commands/lane-integrate.md` being the `[#912]` merge-check site the contract lets it name. Phase chain: RED `848fdd23`/`3b197aef`/`418ed275`/`02419126` before each fix; Codex `gpt-5.6-terra` (nonces + diff sha256) and Grok (`grok-4.20-0309-non-reasoning`, then `grok-4.7`) records; judge ACCEPT rounds 1 and 2. Merged `--no-ff` on `97bcd374`; regenerated `ecosystem/organ-index.md` (73 -> 75 organs: two PreToolUse hooks armed in `.claude/settings.json`) and `ecosystem/doc-counts.md`. Carries the `[#1535]` row close and its merge-receipt line (`9567ff88` on `chore/bu-1535-row-close`) byte-identical. Lane 1537 was refused before its land (repair 1 of 2: five carried audits with no governance consumer), so this merge goes first.
+
+**Result:** pending CI on the integration branch; verdict, the `[#1540]` post-merge schedule-run receipt and the row closes in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: the `[#912]` R108 measure and the `[#1540]` receipt are owed after the merge.
+
+**Changes:** `scripts/gates.py`, `scripts/fleet_health.py`, `scripts/hooks/bounded_hook.py`, `scripts/hooks/hook_watchdog.py`, `.claude/settings.json`, `.claude/commands/lane-integrate.md`, `.github/workflows/conductor.yml`, `logs/KNOWN-REDS-REGISTRY.json`, eight test files; generated `ecosystem/organ-index.md`, `ecosystem/doc-counts.md`; carried `BACKLOG.md`, `tasks/1535-*`, `tasks/manifest.json`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** 1537 repair 1 (job `7faf1f29`) re-merges when handed back, then 1536 becomes eligible; 1450 (@ `895d62b4`) merges after. MORNING: KNOWN-REDS-REGISTRY member `[#1350]` expires 2026-10-19.
+
+---
+
 ### 2026-10-15 (e) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1535-outer-loop merges after repair 1 -- the outer loop runs in code ([#1535], ADR-130 Proposed)
 
 **Anchors:** `c35b2089` (repair-1 tip, branch `worktree-lane-bu-1535-outer-loop`, introduced by this merge), `b431bf52` (the first handback's tip).

@@ -132,7 +132,12 @@ regardless (Codex terra review, CRITICAL, `docs/audits/2026-09-20-codex-l4-integ
 2. **VERIFY** — `moment:merge`, called after the merge. It runs the ordered-vs-actual model
    comparator FIRST (a disagreement exits non-zero and stops the moment before anything else is
    spent), then the review packet, then the gate list (`scripts/gates.py`: audit, ship-gate, ruff,
-   impacted tests — one verdict artifact), then test pairing. `HARNESS_CHANGED` is a placeholder the
+   impacted tests — one verdict artifact), then test pairing. **The merge check is plain "impacted
+   set green" (`[#912]`):** `gates.py`'s impacted-tests gate deselects only the owned, in-date
+   entries of `logs/KNOWN-REDS-REGISTRY.json`, one named line each, and runs no second tree; an
+   expired or unowned entry makes the registry refuse and the gate runs everything it selected.
+   Test pairing still runs as a declared organ, but its base-run subtraction can no longer make a
+   red gate pass. `HARNESS_CHANGED` is a placeholder the
    declared row requires: after a merge the packet reads the file list off the merge commit itself,
    so no list is typed here and none can be abbreviated. Then suite and review run CONCURRENTLY, not
    review queued behind the suite (`[#675]` target 3.3); the reviewer is handed
