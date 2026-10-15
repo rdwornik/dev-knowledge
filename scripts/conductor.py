@@ -24,6 +24,11 @@ would launder an estimate into a measurement"*. Every metric below follows that 
 does every phase whose entry condition no committed artefact distinguishes. This is the reason
 no new metric framework was written: the pattern already existed and is reused.
 
+THE `lane` SUBCOMMAND ([#1535]) RUNS a lane's phases -- one `doit` run per round over the
+harness `phases:` table -- and checks the harness `constraints:` registry. It still fires NO
+`[#669]` transition: it reads a round's receipts and reports a verdict, and files, merges and
+closes nothing.
+
 Layer-2 / read-only (ADR-28/36): reads the working tree, git, and — only when explicitly asked
 — `gh`. Writes nothing, drives no state in any child repo. `--out` is the single disk write and
 exists so a run can be committed as evidence.
@@ -40,6 +45,7 @@ not, and matching the siblings costs nothing.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -47,7 +53,9 @@ import shutil
 import subprocess
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional, Sequence
 
 # Dual-import shim: this module is imported as `scripts.conductor` by tests that put the repo
 # root on the path, and run as a bare script by the workflow with `scripts/` on it. A single
@@ -691,6 +699,281 @@ def render_suite_gate(result: dict) -> str:
     return "\n".join(lines)
 
 
+# --- the lane subcommand ([#1535]) -----------------------------------------------------
+# The constraint registry is SELECTED from the harness, never assumed: an absent or baseline-
+# less registry is a refusal, because a gate that quietly selects nothing passes everything.
+BASELINE = ("C-TASK", "C-SCOPE", "C-RED", "C-VENDOR", "C-CLEAN")
+_DEFAULT_MAX_ROUNDS = 2
+_EXIT_REFUSED, _EXIT_REFUSE, _EXIT_INPUT = 2, 3, 4
+
+
+class ConstraintSelectionError(ValueError):
+    """The harness constraint registry cannot yield a trustworthy selection."""
+
+
+def select_constraints(doc: dict, change_kind: str = "", paths: Sequence[str] = ()) -> list[dict]:
+    """The constraint rows that apply: the baseline always, any other row by change kind or path."""
+    rows = [r for r in (doc or {}).get("constraints") or [] if isinstance(r, dict) and r.get("id")]
+    if not rows:
+        raise ConstraintSelectionError("the harness declares no `constraints:` rows")
+    missing = [cid for cid in BASELINE if cid not in {r["id"] for r in rows}]
+    if missing:
+        raise ConstraintSelectionError(f"the registry lacks baseline constraint(s): {', '.join(missing)}")
+    chosen = []
+    for row in rows:
+        when = row.get("applies_when") or {}
+        if (row["id"] in BASELINE or when.get("always")
+                or (change_kind and change_kind in (when.get("change_kind") or []))
+                or any(fnmatch.fnmatch(p, g) for p in paths for g in (when.get("paths") or []))):
+            chosen.append(row)
+    if not chosen:
+        raise ConstraintSelectionError("the selection is empty")
+    return chosen
+
+
+@dataclass
+class LaneContext:
+    repo_root: Path
+    base: str
+    round_dir: Path
+    row: str = ""
+
+
+def _git_out(ctx: LaneContext, *args: str) -> tuple[int, str]:
+    out = subprocess.run(["git", "-C", str(ctx.repo_root), *args], capture_output=True, text=True,
+                         encoding="utf-8", errors="replace", timeout=120)
+    return out.returncode, out.stdout
+
+
+def _changed_paths(ctx: LaneContext) -> list[str] | None:
+    rc, text = _git_out(ctx, "diff", "--name-only", f"{ctx.base}...HEAD")
+    return text.split() if rc == 0 else None
+
+
+def _receipt(ctx: LaneContext, phase: str):
+    """The validated PhaseReceipt for a phase, or None when it is absent or invalid."""
+    from ecosystem.schema.phase_receipt import PhaseReceipt  # noqa: PLC0415
+
+    path = ctx.round_dir / f"{phase}.json"
+    try:
+        return PhaseReceipt.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return None
+
+
+def _row_touches(ctx: LaneContext) -> list[str]:
+    rf = _row_file(ctx.row.lstrip("#"), ctx.repo_root) if ctx.row else None
+    if rf is None:
+        return []
+    m = re.search(r"touches:([^\n]*?)(?: · |\n|$)", rf.read_text(encoding="utf-8"))
+    # comma-separated, backticked or bare (rows write `scripts/x.py`, ..., tests)
+    return [s.strip().strip("`") for s in m.group(1).split(",") if s.strip().strip("`")] if m else []
+
+
+def _in_scope(path: str, allowed: Sequence[str]) -> bool:
+    return any(fnmatch.fnmatch(path, a) or (a.endswith("/") and path.startswith(a))
+               or (a == "tests" and path.startswith("tests/")) for a in allowed)
+
+
+def _c_task(ctx: LaneContext) -> tuple[bool, str]:
+    text = _bs.canonical_text(ctx.repo_root)
+    if text is None:
+        return False, f"no backlog source at {ctx.repo_root}"
+    themes, stories, tasks = _vb.parse(text)
+    hard, _warn = _vb.validate(themes, stories, tasks)
+    return (False, "; ".join(hard[:3])) if hard else (True, "backlog validates")
+
+
+def _c_scope(ctx: LaneContext) -> tuple[bool, str]:
+    p1 = _receipt(ctx, "P1")
+    if p1 is None or p1.payload is None:
+        return False, "no valid P1 receipt with a payload"
+    allowed = list(p1.payload.files_in_scope) + _row_touches(ctx)
+    if not allowed:
+        return False, "the allowed scope is empty (fails closed)"
+    changed = _changed_paths(ctx)
+    if changed is None:
+        return False, f"git diff {ctx.base}...HEAD failed"
+    outside = [p for p in changed if not _in_scope(p, allowed)]
+    return (False, "outside the P1 scope: " + ", ".join(outside)) if outside else (True, "all changes in scope")
+
+
+def _c_red(ctx: LaneContext) -> tuple[bool, str]:
+    p2 = _receipt(ctx, "P2")
+    if p2 is None or p2.status not in _run_phase().SUCCESS:
+        return False, "no successful P2 receipt"
+    rc, text = _git_out(ctx, "log", "--reverse", "--name-only", "--format=@@%H", f"{ctx.base}..HEAD")
+    if rc != 0:
+        return False, f"git log {ctx.base}..HEAD failed"
+    first_test = first_code = None
+    for i, block in enumerate(b for b in text.split("@@") if b.strip()):
+        files = block.split()[1:]
+        if not files:
+            continue
+        if first_test is None and all(f.startswith("tests/") for f in files):
+            first_test = i
+        if first_code is None and any(not f.startswith("tests/") for f in files):
+            first_code = i
+    if first_test is None:
+        return False, "no tests-only commit in the range"
+    if first_code is not None and first_code < first_test:
+        return False, "non-test code was committed before the first tests-only commit"
+    return True, "tests precede code"
+
+
+def _c_vendor(ctx: LaneContext) -> tuple[bool, str]:
+    got = {ph: _receipt(ctx, ph) for ph in ("P3", "P6a", "P6b", "P7")}
+    absent = [ph for ph, rc in got.items() if rc is None]
+    if absent:
+        return False, "missing receipt(s): " + ", ".join(absent)
+    producer = got["P3"].vendor
+    for ph in ("P6a", "P6b"):
+        if got[ph].vendor == producer:
+            return False, f"{ph} reviewer vendor {producer} is the producer's"
+    if got["P7"].vendor == producer and not (got["P3"].substituted_from and producer == "anthropic"):
+        return False, f"P7 judge vendor {producer} is the producer's"
+    return True, "reviewers and judge are independent of the producer"
+
+
+def _c_clean(ctx: LaneContext) -> tuple[bool, str]:
+    changed = _changed_paths(ctx)
+    if changed is None:
+        return False, f"git diff {ctx.base}...HEAD failed"
+    py = [p for p in changed if p.endswith(".py") and (ctx.repo_root / p).is_file()]
+    if not py:
+        return True, "no .py file changed"
+    out = subprocess.run([sys.executable, "-m", "ruff", "check", *py], cwd=ctx.repo_root,
+                         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+    if out.returncode:
+        return False, ((out.stdout + out.stderr).strip() or "ruff failed")[:400]
+    return True, "ruff clean"
+
+
+_CHECKERS = {"C-TASK": _c_task, "C-SCOPE": _c_scope, "C-RED": _c_red, "C-VENDOR": _c_vendor,
+             "C-CLEAN": _c_clean}
+
+
+def check_constraint(cid: str, ctx: LaneContext) -> tuple[bool, str]:
+    checker = _CHECKERS.get(cid)
+    if checker is None:
+        return False, f"unknown constraint id {cid!r}"
+    return checker(ctx)
+
+
+@dataclass
+class RoundResult:
+    verdict: str
+    phases: list[tuple[str, str]] = field(default_factory=list)
+    halted_at: Optional[str] = None
+    exit_code: int = 1
+
+
+def _run_phase():
+    try:
+        from scripts import run_phase  # noqa: PLC0415
+    except ImportError:  # pragma: no cover -- the bare-script path
+        import run_phase  # noqa: PLC0415
+    return run_phase
+
+
+def _harness_doc(path: Path) -> dict:
+    import yaml  # noqa: PLC0415
+
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def run_round(lane: str, round_no: int, *, repo_root: Path, harness: Optional[Path] = None,
+              receipts: Optional[Path] = None, row: str = "", env: Optional[dict] = None) -> RoundResult:
+    """One round: a single `doit ... round` run, then a verdict read from the receipts it left."""
+    repo_root = Path(repo_root)
+    phases = _harness_doc(harness or repo_root / "ecosystem" / "harness.yaml").get("phases") or []
+    max_rounds = max([int(p.get("max_rounds") or _DEFAULT_MAX_ROUNDS) for p in phases] or [_DEFAULT_MAX_ROUNDS])
+    if round_no < 1 or round_no > max_rounds:
+        return RoundResult("REFUSED", exit_code=_EXIT_REFUSED)
+    child = {**os.environ, **(env or {}), "HARNESS_LANE": lane, "HARNESS_ROUND": str(round_no),
+             "HARNESS_ROW": row}
+    if harness:
+        child["HARNESS_YAML"] = str(harness)
+    if receipts:
+        child["HARNESS_RECEIPTS_DIR"] = str(receipts)
+    ran = subprocess.run([sys.executable, "-m", "doit", "-f", str(repo_root / "scripts" / "dodo.py"), "round"],
+                         cwd=repo_root, env=child, capture_output=True, text=True, encoding="utf-8",
+                         errors="replace")
+    base = Path(receipts or os.environ.get("HARNESS_RECEIPTS_DIR") or repo_root / "logs" / "receipts")
+    round_dir = base / f"LANE-{lane}" / f"r{round_no}"
+    rp = _run_phase()
+    seen: list[tuple[str, str, dict]] = []
+    for p in phases:
+        try:
+            data = json.loads((round_dir / f"{p['id']}.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        seen.append((p["id"], data.get("status") or "absent", data))
+    result = RoundResult("HALTED", phases=[(pid, st) for pid, st, _ in seen])
+    outcomes = [(d.get("payload") or {}).get("outcome") for _, _, d in seen]
+    if "INPUT_REQUIRED" in outcomes:
+        result.verdict, result.exit_code = "INPUT_REQUIRED", _EXIT_INPUT
+        return result
+    halted = next((pid for pid, _, d in seen if not (d and rp.phase_succeeded(d))), None)
+    if ran.returncode != 0 or halted:
+        result.halted_at = halted or (seen[-1][0] if seen else None)
+        return result
+    last = outcomes[-1] if outcomes else None
+    if last == "ACCEPT":
+        result.verdict, result.exit_code = "ACCEPT", 0
+    elif last == "REFUSE":
+        if round_no < max_rounds:
+            result.verdict, result.exit_code = "REFUSE", _EXIT_REFUSE
+        else:
+            result.verdict = "FAILED"
+    else:
+        result.halted_at = seen[-1][0] if seen else None
+    return result
+
+
+def _lane_main(args, root: Path) -> int:
+    harness = Path(args.harness) if args.harness else root / "ecosystem" / "harness.yaml"
+    if args.select or args.constraints:
+        try:
+            rows = select_constraints(_harness_doc(harness), args.change_kind or "", args.path or [])
+        except (ConstraintSelectionError, OSError) as exc:
+            print(f"conductor lane: REFUSED -- {exc}")
+            return 1
+        if args.select:
+            print("\n".join(r["id"] for r in rows))
+            return 0
+    ctx = LaneContext(root, args.base, Path(args.round_dir) if args.round_dir
+                      else root / "logs" / "receipts", args.row or "")
+    if args.constraints:
+        failed = 0
+        for r in rows:
+            if r["id"] in _CHECKERS:
+                ok, why = check_constraint(r["id"], ctx)
+            elif r.get("kind") == "deterministic" and r.get("checker"):
+                ok = subprocess.run([str(a) for a in r["checker"]], cwd=root).returncode == 0
+                why = "checker exit"
+            else:
+                print(f"{r['id']}: SKIPPED -- a judgement constraint is not run here")
+                continue
+            print(f"{r['id']}: {'PASS' if ok else 'FAIL'} -- {why}")
+            failed += not ok
+        return 1 if failed else 0
+    if args.constraint:
+        ok, why = check_constraint(args.constraint, ctx)
+        print(f"{args.constraint}: {'PASS' if ok else 'FAIL'} -- {why}")
+        return 0 if ok else 1
+    if args.lane and args.round is not None:
+        res = run_round(args.lane, args.round, repo_root=root, harness=Path(args.harness) if args.harness else None,
+                        receipts=Path(args.receipts) if args.receipts else None, row=args.row or "")
+        print(f"conductor lane {args.lane} r{args.round}: {res.verdict}"
+              + (f" at {res.halted_at}" if res.halted_at else ""))
+        for pid, status in res.phases:
+            print(f"  {pid}: {status}")
+        return res.exit_code
+    print("conductor lane: give --lane L --round R, --constraint ID, --constraints or --select")
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Conductor E: the phase gate and the §6 evaluation numbers. Read-only.")
@@ -723,6 +1006,20 @@ def main(argv: list[str] | None = None) -> int:
                             "broken run rather than diffed")
     for p in (gate, nums, boot, suite):
         p.add_argument("--out", default=None, help="write the report here (the only disk write)")
+    lane = sub.add_parser("lane", help="[#1535] run a lane round, one constraint, or select the registry")
+    lane.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
+    lane.add_argument("--lane", default=None, help="the lane name (with --round)")
+    lane.add_argument("--round", default=None, type=int, help="run this round of the lane's phases")
+    lane.add_argument("--constraint", default=None, help="run one constraint checker by id")
+    lane.add_argument("--constraints", action="store_true", help="run every selected constraint checker")
+    lane.add_argument("--select", action="store_true", help="print the selected constraint ids")
+    lane.add_argument("--change-kind", default=None, help="change kind for conditional constraints")
+    lane.add_argument("--path", action="append", default=None, help="a changed path (repeatable)")
+    lane.add_argument("--base", default="origin/main", help="the base ref the lane diverged from")
+    lane.add_argument("--round-dir", default=None, help="the round's receipts directory")
+    lane.add_argument("--row", default=None, help="the backlog row id")
+    lane.add_argument("--harness", default=None, help="harness yaml (default: <repo-root>/ecosystem/harness.yaml)")
+    lane.add_argument("--receipts", default=None, help="the receipts root (default: HARNESS_RECEIPTS_DIR)")
     args = ap.parse_args(argv)
 
     for stream in (sys.stdout, sys.stderr):
@@ -732,6 +1029,8 @@ def main(argv: list[str] | None = None) -> int:
             pass
 
     root = Path(args.repo_root).resolve() if args.repo_root else _REPO_ROOT
+    if args.command == "lane":
+        return _lane_main(args, root)
     if args.command == "phase-gate":
         verdicts, census, schema_hard = phase_gate(root)
         report = render_phase_gate(verdicts, census, schema_hard)
