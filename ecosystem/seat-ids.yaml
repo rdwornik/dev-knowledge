@@ -15,7 +15,11 @@ seats:
 - provenance: to-cc/AMEND-BATCH-B2-W2-2026-10-09.md
   seat: Tech-Architect-44
   session: 2026-10-08-dev-knowledge-architect
-  stated_in: 83
+  stated_in: 63
+- provenance: to-cc/AMEND-2-BATCH-NIGHT-CLOSEOUT-2026-10-15.md
+  seat: Tech-Architect-45
+  session: 2026-10-14-dev-knowledge-architect
+  stated_in: 39
 
 landing_inventory:
   2026-09-19-technical-wave3-answerable-lane-contract.md: 6c750d5aab590acd1bdffa8679e69a641a4f6f1aaeaddd8331e01004a8128c55
