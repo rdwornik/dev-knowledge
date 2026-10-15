@@ -382,6 +382,9 @@ def test_a_known_red_whose_deselect_prefix_also_drops_an_unowned_test_runs_plain
     assert deselected == ["tests/test_y.py::test_alone"], (args, text)
     assert "known-red NOT deselected: tests/test_y.py::test_red" in text, text
     assert "known-red NOT deselected: tests/test_y.py " in text, text
+    # Judge finding N2: a class-level id drops the whole class (and any `TestKY...`).
+    assert gates._deselect_overreach(tmp_path, "tests/test_y.py::TestK", set())
+    assert gates._deselect_overreach(tmp_path, "tests/test_y.py::TestK::test_alone", set()) == ""
 
 
 def test_impacted_tests_gate_deselects_nothing_when_the_registry_refuses(tmp_path, monkeypatch):

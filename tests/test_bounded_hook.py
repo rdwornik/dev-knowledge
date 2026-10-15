@@ -805,6 +805,21 @@ def test_a_stale_lock_reclaimed_by_a_peer_first_is_not_deleted_out_from_under_it
     assert [p.name for p in tmp_path.iterdir()] == ["trigger.lock"], "an aside file was left behind"
 
 
+def test_the_real_spawner_never_fires_from_inside_a_pytest_run(tmp_path, monkeypatch):
+    """Judge finding N1 (2026-10-15): tests that run the real guard or SessionStart leg -- in
+    process or as a subprocess, which inherits PYTEST_CURRENT_TEST -- would start a real detached
+    sweep that kills processes on the box and outlives the run. Only an INJECTED spawner runs
+    under pytest."""
+    module = _load_wrapper()
+    monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))
+    assert os.environ.get("PYTEST_CURRENT_TEST")
+    real: list[tuple] = []
+    monkeypatch.setattr(module, "_spawn_detached", lambda a, c: real.append((a, c)))
+
+    assert module.maybe_trigger_watchdog(now=1000.0) is False
+    assert real == [] and not (tmp_path / "trigger.lock").exists()
+
+
 def test_maybe_trigger_watchdog_spawns_the_watchdog_sweep(tmp_path, monkeypatch):
     module = _load_wrapper()
     monkeypatch.setenv(module.TRIGGER_ENV, str(tmp_path / "trigger.lock"))
