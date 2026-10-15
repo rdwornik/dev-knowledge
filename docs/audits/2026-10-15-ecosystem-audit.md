@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-15  
-**Generated:** 2026-10-15T19:39:50  
+**Generated:** 2026-10-15T19:57:15  
 **Repos audited:** 6  
-**Checks:** 877 total — 156 pass, 16 fail, 508 warn, 0 unavailable, 197 n/a
+**Checks:** 877 total — 158 pass, 16 fail, 506 warn, 0 unavailable, 197 n/a
 
 ---
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-r2j_2su7\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-qf96qqi_\wt`  
 **Last audit:** 2026-10-15
 
 | Check | Status | Evidence |
@@ -39,12 +39,12 @@
 | `amendment_coherence` | WARN | handoff-major-version: surface CLAUDE.md present but no normative version mention matched (coupling marker missing/reworded?) |
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
-| `git_backlog_drift` | WARN | closed-but-present (ADR-65 done-items-leave): #863 (closes in 3b197aefc) still in BACKLOG |
-| `doc_claims` | WARN | 1 prose claim(s) drifted from repo state: pytest_collected@ecosystem/doc-counts.md (doc 10503 != actual 10529) |
+| `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
+| `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-14-dev-knowledge-architect: Seats: 27 seat(s) are wedged/starved now that the cut did not name: 14bfec7b, 168d7cff, 1df6be46, 2230f2d3, 24d10ae3, 37de9bcf, 3bb71d51, 3d807077, 416cefa8, 4547fe1d, 50044fe9, 508bdf91, 5a3d1c50, 5e3ea01d, 6db88b06, 9a1b1b19, 9d7b9506, aa1e75b8, b850972e, c1a8535b, c281ed0b, d0a54fa0, dface3fe, e973a1e3, f5dc302f, f621d7a0, fe8f6fe9 |
+| `handoff_probes` | FAIL | BD-seats toothless in 2026-10-14-dev-knowledge-architect: Seats: 21 seat(s) are wedged/starved now that the cut did not name: 14bfec7b, 168d7cff, 1df6be46, 2230f2d3, 24d10ae3, 37de9bcf, 3bb71d51, 416cefa8, 4547fe1d, 50044fe9, 5a3d1c50, 6db88b06, 9d7b9506, aa1e75b8, c1a8535b, c281ed0b, d0a54fa0, e973a1e3, f5dc302f, f621d7a0, fe8f6fe9 |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 18 reconciled_with edge(s) match live spec version(s) |
@@ -106,10 +106,10 @@
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 40e53d5 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: b6d19b6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 2709d9a appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 2d81452 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 271d7f3 appears outside an explicit 'Anchors:' record line (+1136 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: f942096 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: b616197 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 40e53d5 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: b6d19b6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 2709d9a appears outside an explicit 'Anchors:' record line (+1138 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 228 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 64704a83 worktree-green-main-2026-10-14, d8619ab0 worktree-integrate-bw, 26bd4d93 worktree-integrate-bw, 3db32c1a chore/bw-f0, c1b65e6d worktree-preflight-dead-id (+223 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 229 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 4ccb89c5 worktree-lane-bu-1539-transport, 64704a83 worktree-green-main-2026-10-14, d8619ab0 worktree-integrate-bw, 26bd4d93 worktree-integrate-bw, 3db32c1a chore/bw-f0 (+224 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -961,9 +961,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 156/877 checks passed
+- 158/877 checks passed
 - **16 failure(s)** — route findings to repo owners
-- 508 warning(s)
+- 506 warning(s)
 - 197 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
