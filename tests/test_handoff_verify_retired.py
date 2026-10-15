@@ -58,7 +58,7 @@ _TEMPLATES = ("integrator-order-template.md", "dispatcher-order-template.md")
 
 def _cycle_section(name: str) -> str:
     text = (_REPO / "templates" / name).read_text(encoding="utf-8")
-    return text.split("## Cycle", 1)[1]
+    return " ".join(text.split("## Cycle", 1)[1].split())  # prose is hard-wrapped
 
 
 def test_the_cycle_handover_launches_the_successor_itself_and_falls_back_only_on_error():
