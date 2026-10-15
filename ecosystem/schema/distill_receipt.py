@@ -40,16 +40,16 @@ BASELINE: tuple[str, ...] = ("C-TASK", "C-SCOPE", "C-RED", "C-VENDOR", "C-CLEAN"
 
 
 def _norm(text: str) -> str:
-    return text.replace("`", "").strip()
+    p = text.replace("`", "").strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p.lstrip("/")
 
 
 def _names(proposed: str, path: str) -> bool:
-    """True when the normalised `proposes` is this path, or shares its file stem."""
+    """True when the normalised `proposes` IS this path -- a shared file stem is not enough."""
     want = _norm(path)
-    if not proposed or not want:
-        return False
-    stem = lambda s: s.replace("\\", "/").rsplit("/", 1)[-1].rsplit(".", 1)[0]  # noqa: E731
-    return proposed == want or stem(proposed) == stem(want)
+    return bool(proposed) and bool(want) and proposed == want
 
 
 class ReuseCandidate(BaseModel):
