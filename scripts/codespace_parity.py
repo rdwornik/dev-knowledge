@@ -73,7 +73,7 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
@@ -99,14 +99,85 @@ DEFAULT_REMOTE_FILE = "/tmp/parity-remote.json"
 
 # ============================================================ what is declared, in code
 
-#: The tools a lane's close-out needs on EITHER substrate (`claude` runs the lane, `gh` lands it,
-#: `codex` and `grok` are the review routes, `agy` the other read route). Declared here
-#: rather than argued in prose: a tool absent on one side, absent on both, or at two versions is
-#: a FAIL naming it.
-LANE_TOOLS: tuple[str, ...] = ("claude", "gh", "codex", "grok", "agy")
+#: Where the non-model tools a lane needs (`gh` lands it, `rclone` reads the transport) are DECLARED:
+#: the Codespace's own provisioning file. Read at call time so a test can point it elsewhere.
+PROVISIONING_PATH = _REPO_ROOT / ".devcontainer" / "provisioning.yaml"
 
-#: The model CLIs among them: each answers one call and reports the id it SERVED (R61, R63).
-MODEL_CLIS: tuple[str, ...] = ("claude", "codex", "grok", "agy")
+#: The provider registry's own location (the served-id comparison reads it too -- see below).
+#: Declared first because the tool sets below are READ from it, never typed (R70, W1-13 item 1).
+REGISTRY_PATH = _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+
+
+def load_registry(path: Optional[Path] = None) -> dict:
+    """The provider registry as a plain mapping; `{}` when it cannot be read (every expected id is
+    then absent, which the comparison reports by name rather than skipping)."""
+    target = Path(path) if path is not None else REGISTRY_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def registry_for(root: Optional[Path] = None) -> dict:
+    """The registry under `root` when it has one, else the module's own (`REGISTRY_PATH`)."""
+    if root is not None:
+        candidate = Path(root) / "ecosystem" / "provider-registry.yaml"
+        if candidate.is_file():
+            return load_registry(candidate)
+    return load_registry()
+
+
+def model_clis(registry: Optional[Mapping] = None) -> tuple[str, ...]:
+    """The CLIs of the registry's providers, in registry order -- the set C1 probes for a served
+    model id (R61, R63). READ from `providers:` and never typed: a provider added to the registry
+    is probed with no edit here (W1-13 item 1, R70)."""
+    registry = load_registry() if registry is None else registry
+    out: list[str] = []
+    for row in (registry.get("providers") or {}).values():
+        cli = row.get("cli") if isinstance(row, Mapping) else None
+        if cli and cli not in out:
+            out.append(str(cli))
+    return tuple(out)
+
+
+def providers_without_cli(registry: Optional[Mapping] = None) -> tuple[str, ...]:
+    """Registry providers that name no CLI (`deepseek` today): nothing to mirror or probe, and said
+    so by name instead of being dropped without a word."""
+    registry = load_registry() if registry is None else registry
+    return tuple(name for name, row in (registry.get("providers") or {}).items()
+                 if not (isinstance(row, Mapping) and row.get("cli")))
+
+
+def declared_tools(path: Optional[Path] = None) -> tuple[str, ...]:
+    """The tool names `provisioning.yaml` `tools:` declares -- where `gh` and `rclone` come from,
+    since they serve no model and so are not registry providers."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return ()
+    tools = (data or {}).get("tools") if isinstance(data, dict) else None
+    return tuple(str(k) for k in tools) if isinstance(tools, Mapping) else ()
+
+
+def lane_tools(registry: Optional[Mapping] = None, provisioning: Optional[Path] = None
+               ) -> tuple[str, ...]:
+    """The tools a lane's close-out needs on EITHER substrate: every registry CLI, then every other
+    tool the Codespace declares (`gh` lands the lane, `rclone` reads the transport). A tool absent
+    on one side, absent on both, or at two versions is a FAIL naming it."""
+    models = model_clis(registry)
+    return models + tuple(t for t in declared_tools(provisioning) if t not in models)
+
+
+def __getattr__(name: str):  # noqa: N807 -- module attribute, resolved at access time
+    """`MODEL_CLIS` and `LANE_TOOLS` stay importable names, but they are the registry's answer NOW,
+    not tuples frozen when this file was written (b2-codespace-subscription-auth, R70)."""
+    if name == "MODEL_CLIS":
+        return model_clis()
+    if name == "LANE_TOOLS":
+        return lane_tools()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 #: Condition-1 manifest entries that legitimately differ by OS, each with its reason. Everything
 #: else in the manifest must be equal. `platform` is the OS and CPU by definition.
@@ -158,19 +229,119 @@ AUTH_PROBES: dict[str, Optional[tuple[str, ...]]] = {
     "codex": None,
     "grok": None,
     "agy": None,
+    # a CLI the registry names that has no status command is `unprobed` until its served-id call
+    # answers; `copilot` is such (W1-13). `rclone` answers its own listing.
+    "copilot": None,
+    "rclone": ("rclone", "lsd", "gdrive:", "--max-depth", "0"),
 }
 
 AUTH_NEEDS: dict[str, str] = {
     "claude": "the CLAUDE_CODE_OAUTH_TOKEN Codespaces secret (from `claude setup-token`)",
     "gh": "GITHUB_TOKEN or GH_TOKEN in the environment, or `gh auth login`",
-    "codex": "`codex login --device-auth` run once in the Codespace (ChatGPT device sign-in; "
-             "no Codespaces secret holds it)",
-    "grok": "`grok login --device-auth` run once in the Codespace (xAI device sign-in for a headless "
-            "host; no Codespaces secret holds it)",
+    "codex": "the laptop's ChatGPT sign-in cache `~/.codex/auth.json`, mirrored at launch (R87); "
+             "`codex login --device-auth` is manual recovery only",
+    "grok": "the XAI_API_KEY Codespaces secret (the laptop signs grok in with that key)",
     "agy": "an `agy` sign-in: run `agy` once in the Codespace (`gh codespace ssh`), open the Google "
            "URL it prints in a browser and complete the sign-in (no login subcommand, no Codespaces "
            "secret; its model call is what shows the login)",
+    "copilot": "the COPILOT_GITHUB_TOKEN Codespaces secret (a fine-grained token with the "
+               "'Copilot Requests' account permission; R88a)",
+    "rclone": "the RCLONE_CONFIG_GDRIVE_TOKEN Codespaces secret (the Drive token, `[#1379]`)",
 }
+
+
+# ---- the laptop's own sign-in, per CLI (W1-13, R87): what is mirrored, what is not, and why ----
+
+@dataclass(frozen=True)
+class SignIn:
+    """What one CLI signs in with. `files` are paths relative to HOME (the first is the PRIMARY
+    cache); `env_keys` are the API-key variables the CLI honours; `route` is how a Codespace gets
+    the same sign-in: `mirror` (copy the file at launch), `secret-token` (a long-lived token held
+    as a Codespaces secret -- a separate credential the laptop never refreshes), `env-key` (the
+    laptop itself uses the key) or `waiting` (no file to copy). `refresh` is the vendor's refresh
+    behaviour (`safe`: refresh tokens do not rotate; `guarded`: they rotate, so the copy is made only
+    while the Codespace can never need a refresh; `rotates`: never mirror; `unknown`; `none`)."""
+
+    files: tuple[str, ...] = ()
+    env_keys: tuple[str, ...] = ()
+    route: str = "waiting"
+    refresh: str = "unknown"
+    renew: str = ""
+    why: str = ""
+    fallback: str = ""
+
+
+#: DECIDED-BY-LANE (b2-codespace-subscription-auth): measured on the laptop 2026-10-06 (booleans and
+#: paths only), vendor docs retrieved the same day and quoted in the run record. A CLI absent from
+#: this table is NAMED by C1 as having no declared sign-in, never skipped.
+SIGN_IN: dict[str, SignIn] = {
+    "claude": SignIn(
+        (".claude/.credentials.json",), ("CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"),
+        route="secret-token", refresh="rotates",
+        renew="run `claude setup-token` on the laptop, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN "
+              "--user` with its output",
+        why="the laptop signs in by its OAuth file, whose refresh token rotates (the access token "
+            "lasts 8 h); the Codespace uses the long-lived setup token of the same subscription, a "
+            "credential the laptop never refreshes"),
+    "codex": SignIn(
+        (".codex/auth.json",), ("CODEX_API_KEY", "OPENAI_API_KEY"),
+        route="mirror", refresh="guarded",
+        renew="run `codex login` on the laptop (browser ChatGPT sign-in) and relaunch",
+        why="OpenAI documents copying ~/.codex/auth.json to a headless machine; it also says not to "
+            "share the file across concurrent machines, so the copy is made only while it is "
+            "fresh enough that the Codespace never has to refresh it (`credential_expiry`)",
+        fallback="seed a SEPARATE ChatGPT login for Codespaces: `codex login --device-auth` with "
+                 "CODEX_HOME pointing at an empty scratch folder, then `gh secret set CODEX_AUTH_JSON "
+                 "--user < <scratch>/auth.json` (the launch writes it to ~/.codex/auth.json)"),
+    "grok": SignIn(
+        (), ("XAI_API_KEY",), route="env-key", refresh="none",
+        renew="issue a new XAI_API_KEY at console.x.ai and run `gh secret set XAI_API_KEY --user`",
+        why="the laptop has no grok sign-in file and no keyring entry: it uses XAI_API_KEY itself"),
+    "agy": SignIn(
+        (), (), route="waiting", refresh="unknown",
+        renew="BLOCKED-AUTH: sign in to agy in the Codespace once (`gh codespace ssh`, open the URL it prints)",
+        why="the laptop's sign-in is the Windows Credential Manager entry `gemini:antigravity`; the "
+            "vendor docs name only the OS keyring, or GEMINI_API_KEY with modelProvider=gemini, "
+            "which the laptop does not use -- there is no file to mirror"),
+    "copilot": SignIn(
+        (), ("COPILOT_GITHUB_TOKEN",), route="secret-token", refresh="none",
+        renew="create a fine-grained personal access token owned by your personal account with the "
+              "'Copilot Requests' account permission, then `gh secret set COPILOT_GITHUB_TOKEN --user` "
+              "with it",
+        why="the laptop's sign-in is the Windows Credential Manager entry `copilot-cli`, which the "
+            "Codespace cannot hold; GitHub's docs name an environment token as the form for "
+            "containers and non-interactive environments, and check COPILOT_GITHUB_TOKEN first "
+            "(R88a). The token is the same account's Copilot seat, not a metered key"),
+    "gh": SignIn(
+        (), ("GH_TOKEN", "GITHUB_TOKEN"), route="env-key", refresh="none",
+        renew="`gh auth refresh` on the laptop; the Codespace's GITHUB_TOKEN is issued by Codespaces",
+        why="the laptop's token is in the OS keyring; gh's documented headless path is the "
+            "GITHUB_TOKEN the Codespace is issued, which answers `gh auth status` by itself"),
+    "rclone": SignIn(
+        (), ("RCLONE_CONFIG_GDRIVE_TOKEN",), route="secret-token", refresh="none",
+        renew="`rclone config reconnect gdrive:` on the laptop, then `gh secret set "
+              "RCLONE_CONFIG_GDRIVE_TOKEN --user` (`[#1379]` owns the expiry)",
+        why="the laptop's rclone.conf also holds other remotes (an employer drive), which must not be "
+            "copied; the Codespace reads the Drive by its own token secret"),
+}
+
+#: Pairs of mechanism classes that are the SAME sign-in for EVERY CLI. None: what is equivalent is a
+#: fact about one CLI's vendor, so it lives in `AUTH_EQUIVALENT_FOR` below. Anything that differs
+#: between the laptop and the Codespace and is in neither is the R87 failure -- a provider answering
+#: through a credential the laptop does not use.
+AUTH_EQUIVALENT: frozenset[tuple[str, str]] = frozenset()
+
+#: (laptop class, codespace class) pairs that are the same sign-in for ONE named CLI. Copilot only
+#: (R88a): the laptop holds its login in the OS keyring, the Codespace the token of that same
+#: account's Copilot seat in COPILOT_GITHUB_TOKEN. An `api-key` there stays the R87 failure.
+AUTH_EQUIVALENT_FOR: dict[str, frozenset[tuple[str, str]]] = {
+    "copilot": frozenset({("keyring", "subscription")}),
+}
+
+#: The refresh interval after which Codex refreshes `~/.codex/auth.json` on its next call (OpenAI's
+#: CI/CD auth docs: "approximately 8 days"). The age a copy may be mirrored at is DERIVED from it and
+#: the run bound (`dispatch.codex_mirror_max_age_days`), never typed.
+CODEX_REFRESH_DAYS = 8.0
 
 #: The folders a probe may write into besides the transport root: exactly one, `to-browser/`, where
 #: the lanes' own handbacks go. A probe addresses ONE file there -- never a deeper path, never a
@@ -287,21 +458,45 @@ class CmdResult:
 Runner = Callable[..., CmdResult]
 
 
+#: The two prerequisites OUTSIDE the lane that a NOT-RUN may wait on (Done 5, P-L5-3): the integrator's
+#: merge, and a probe path a contract names. Anything the lane can do itself is not a gate.
+GATE_MERGE = "the merge gate (the integrator's local --no-ff merge and the CI push verdict)"
+GATE_PROBE_PATH = "a contract-named probe path (`collect --probe-write NAME`)"
+
+
 @dataclass(frozen=True)
 class Verdict:
+    """One condition's RAW outcome (`status`: PASS | FAIL | NOT-RUN), never rewritten. `gate` names the
+    outside prerequisite a NOT-RUN waits on; `disposition` is DERIVED from the two and is `WAITING
+    <gate>` only for a raw NOT-RUN that names one -- a raw FAIL is never relabelled, whatever `gate` says."""
+
     condition: int
     name: str
     status: str  # PASS | FAIL | NOT-RUN
     reason: str
     evidence: tuple[str, ...] = ()
+    gate: str = ""
+
+    @property
+    def disposition(self) -> str:
+        return f"WAITING {self.gate}" if self.status == "NOT-RUN" and self.gate else self.status
 
     def render(self) -> str:
         head = f"{self.status} cond={self.condition} {self.name}"
         return f"{head} {self.reason}".rstrip() if self.reason else head
 
 
-def _verdict(n: int, status: str, reason: str = "", evidence: Sequence[str] = ()) -> Verdict:
-    return Verdict(n, CONDITION_NAMES[n], status, reason, tuple(evidence))
+def _verdict(n: int, status: str, reason: str = "", evidence: Sequence[str] = (),
+             gate: str = "") -> Verdict:
+    return Verdict(n, CONDITION_NAMES[n], status, reason, tuple(evidence), gate)
+
+
+def verdict_records(verdicts: Sequence[Verdict], command: str, code: int) -> list[dict]:
+    """One record per condition for the run record: the RAW outcome, the derived disposition, the gate,
+    the reason, and the command and exit code of the `check` that produced them (P-L5-3)."""
+    return [{"condition": v.condition, "name": v.name, "raw": v.status, "disposition": v.disposition,
+             "gate": v.gate if v.status == "NOT-RUN" else "", "reason": v.reason,
+             "command": command, "exit_code": code} for v in verdicts]
 
 
 class Leg(enum.Enum):
@@ -364,12 +559,16 @@ def _semver(text: str) -> Optional[str]:
 
 # =============================================================================== collectors
 
-def _tool_probe(name: str) -> list[str]:
+def _tool_probe(name: str, posix: Optional[bool] = None) -> list[str]:
     """A lane runs under a LOGIN shell on a Codespace (`codespace_admission.py`: PATH is only
-    complete there), so on POSIX a tool is probed through `bash -lc`."""
-    if os.name == "nt":
+    complete there), so on POSIX a tool is probed through `bash -lc`. A CLI with never-keys
+    (`NEVER_KEYS`: codex) is run as `env -u KEY ... <cli> --version` INSIDE that shell, so a login
+    chain that re-exports the Codespaces secrets cannot hand it a key (R87.3, every invocation)."""
+    posix = (os.name != "nt") if posix is None else posix
+    if not posix:
         return [name, "--version"]
-    return ["bash", "-lc", f"command -v {name} >/dev/null 2>&1 && {name} --version"]
+    version = shlex.join(keyless_command(name, [name, "--version"], posix=True))
+    return ["bash", "-lc", f"command -v {name} >/dev/null 2>&1 && {version}"]
 
 
 def _status_probe(argv: Sequence[str]) -> list[str]:
@@ -379,11 +578,12 @@ def _status_probe(argv: Sequence[str]) -> list[str]:
     return ["bash", "-lc", shlex.join(argv)]
 
 
-def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REPO_ROOT) -> dict:
+def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REPO_ROOT,
+                 names: Optional[Sequence[str]] = None) -> dict:
     """Each lane tool's login state, from its own status command. The command's output is read
     for one boolean and discarded; the record carries only the state and the command's name."""
     auth: dict[str, dict] = {}
-    for name in LANE_TOOLS:
+    for name in (names if names is not None else lane_tools(registry_for(root))):
         cmd = AUTH_PROBES.get(name)
         label = " ".join(cmd) if cmd else "(no non-interactive status command)"
         if not (tools.get(name) or {}).get("present"):
@@ -408,19 +608,37 @@ def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REP
 
 # ====================================================== C1 served model ids (b2-codespace-1to1)
 
-#: The registry file the served ids are compared with -- the declared home of every provider, CLI
-#: and model string on the live surface. Read at call time so a test can point it elsewhere.
-REGISTRY_PATH = _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+#: The registry file the served ids are compared with is `REGISTRY_PATH` (declared above, beside the
+#: tool sets read from it).
 
-#: Where the registry says each model CLI's id lives: (provider id, role). `claude` is the lane's
-#: runner (`implement`); `codex` and `grok` are the review routes; `agy` has no role-level model
-#: (its `read` entry pins none), so its id is the one `antigravity` row under `models:`.
-_MODEL_SEAMS: dict[str, tuple[str, Optional[str]]] = {
-    "claude": ("anthropic", "implement"),
-    "codex": ("openai", "review"),
-    "grok": ("xai", "review"),
-    "agy": ("antigravity", None),
+#: Where the registry says a model CLI's id lives when the CLI's role is NOT simply the first one
+#: that pins a model for its provider: (role, or None for the provider's single `models:` row).
+#: `claude` is the lane's runner (`implement`); `codex` and `grok` are the review routes; `agy` has no
+#: role-level model, so its id is the one `antigravity` row under `models:`. A CLI absent here takes
+#: the default rule in `_seam_for` -- so a provider added to the registry needs no edit.
+_SEAM_ROLE_OVERRIDES: dict[str, Optional[str]] = {
+    "claude": "implement",
+    "codex": "review",
+    "grok": "review",
+    "agy": None,
 }
+
+
+def _seam_for(registry: Mapping, cli: str) -> tuple[Optional[str], Optional[str]]:
+    """`(provider id, role)` for `cli`: the provider the registry gives that CLI, and the role whose
+    order pins its model (an override, else the first role in registry order that pins one for it,
+    else None: the provider's single `models:` row)."""
+    provider = next((name for name, row in (registry.get("providers") or {}).items()
+                     if isinstance(row, Mapping) and row.get("cli") == cli), None)
+    if provider is None:
+        return None, None
+    if cli in _SEAM_ROLE_OVERRIDES:
+        return provider, _SEAM_ROLE_OVERRIDES[cli]
+    for role, row in (registry.get("roles") or {}).items():
+        for entry in (row or {}).get("order") or []:
+            if isinstance(entry, Mapping) and entry.get("provider") == provider and entry.get("model"):
+                return provider, role
+    return provider, None
 
 #: agy lists each family in tiers (`agy models`: gemini-3.8-flash-{high,medium,low}); the registry
 #: row is the family, so a served tier of that family is the registered model.
@@ -439,6 +657,12 @@ _LOGIN_MISSING = re.compile(
 _NO_CREDITS = re.compile(r"no credits remaining|insufficient[_ ]quota|exceeded your current quota"
                          r"|add credits to continue", re.IGNORECASE)
 
+#: What a refused call says when the ACCOUNT's subscription window is spent (WITNESSED 2026-10-09, the
+#: Codex CLI: "You've hit your usage limit ... try again at <time>"). Not a missing login and not an API
+#: credit, and it names when it clears -- so it is its own state, checked before both.
+_USAGE_LIMIT = re.compile(r"hit your usage limit|usage limit (?:has been )?(?:reached|exceeded)", re.IGNORECASE)
+_RESET_AT = re.compile(r"(?:try again|resets?) (?:at|on|after) ([^\r\n]+)", re.IGNORECASE)
+
 PROBE_TIMEOUT = 240
 
 
@@ -448,21 +672,12 @@ class ExpectedModel:
     where: str
 
 
-def load_registry(path: Optional[Path] = None) -> dict:
-    """The provider registry as a plain mapping; `{}` when it cannot be read (every expected id is
-    then absent, which the comparison reports by name rather than skipping)."""
-    target = Path(path) if path is not None else REGISTRY_PATH
-    try:
-        data = yaml.safe_load(target.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError):
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
 def expected_models(registry: Mapping) -> dict[str, ExpectedModel]:
-    """cli -> the id the registry routes that CLI to, and where the registry says so."""
+    """cli -> the id the registry routes that CLI to, and where the registry says so. The CLI set is
+    the registry's own (`model_clis`), so a provider added there is compared with no edit here."""
     out: dict[str, ExpectedModel] = {}
-    for cli, (provider, role) in _MODEL_SEAMS.items():
+    for cli in model_clis(registry):
+        provider, role = _seam_for(registry, cli)
         if role is not None:
             order = ((registry.get("roles") or {}).get(role) or {}).get("order") or []
             entry = next((e for e in order if isinstance(e, Mapping)
@@ -511,7 +726,25 @@ def model_probe_argv(cli: str, nonce: str, model: str, log_file: str) -> list[st
         return ["grok", "-m", model, "-p", prompt, "--output-format", "json", "--max-turns", "1"]
     if cli == "agy":
         return ["agy", "-p", prompt, "--output-format", "json", "--log-file", log_file]
+    if cli == "copilot":
+        return ["copilot", "-p", prompt, "--model", model, "--output-format", "json"]
     raise ValueError(f"no served-id probe is declared for {cli!r}")
+
+
+def read_copilot(stdout: str, nonce: str) -> tuple[Optional[str], bool]:
+    """(served id, answered). `copilot --output-format json` is JSONL; the id is the `model` of the
+    `assistant.message` event -- the tool's own record of the reply -- and the answer is the nonce in
+    that event's `content` (measured 2026-10-06 on `--model auto`: `gpt-6-luna`)."""
+    served: Optional[str] = None
+    texts: list[str] = []
+    for obj in _json_lines(stdout):
+        if obj.get("type") != "assistant.message":
+            continue
+        data = obj.get("data") or {}
+        if data.get("model") and served is None:
+            served = str(data["model"])
+        texts.append(str(data.get("content") or ""))
+    return served, nonce in "\n".join(texts)
 
 
 def _json_lines(text: str) -> list[dict]:
@@ -611,19 +844,88 @@ def read_agy(stdout: str, log_text: str, nonce: str) -> tuple[Optional[str], boo
     return (_label_slug(labels[-1]) if labels else None), answered
 
 
+#: The CLIs `model_probe_argv` and the readers know. A registry CLI outside this set is probed by
+#: name and FAILS by name (`no-probe-declared`) -- present in the record, never dropped.
+_PROBE_DECLARED = ("claude", "codex", "grok", "agy", "copilot")
+
+
+#: The API-key variables no invocation of a CLI may see, whatever else is on this side (R87.3,
+#: b2w2-codespace-finish). Codex only: OpenAI documents `forced_login_method` (`chatgpt` | `api`) and
+#: a non-interactive API-key route, but not which wins when both are present, so the call is made
+#: without the keys and says "not logged in" instead of being answered by one.
+NEVER_KEYS: dict[str, tuple[str, ...]] = {"codex": ("CODEX_API_KEY", "OPENAI_API_KEY")}
+
+
+def keyless_command(cli: str, argv: Sequence[str], *, posix: Optional[bool] = None) -> list[str]:
+    """`argv` run so that no `NEVER_KEYS` name of `cli` can reach it from ANY source: on POSIX
+    `env -u NAME ...` is applied UNCONDITIONALLY -- whether or not the parent holds the name, because
+    the login shell a Codespace command runs in re-exports the user secrets after the parent was
+    cleaned (close-out review, 2026-10-10). Windows has no login chain: the environment is stripped
+    (`probe_env`) instead. A CLI with no never-keys is returned unchanged."""
+    posix = (os.name != "nt") if posix is None else posix
+    names = NEVER_KEYS.get(cli, ())
+    if not names or not posix:
+        return list(argv)
+    return ["env", *[part for key in names for part in ("-u", key)], *argv]
+
+
+def probe_env(cli: str, env: Optional[Mapping[str, str]] = None) -> Optional[dict[str, str]]:
+    """The environment `cli`'s call is given: this process's without its `NEVER_KEYS` names; None for
+    a CLI with none (it keeps the ambient environment, so nothing else changes)."""
+    names = NEVER_KEYS.get(cli, ())
+    if not names:
+        return None
+    return {k: v for k, v in (os.environ if env is None else env).items() if k not in names}
+
+
+def unused_keys(cli: str, home: Path, env: Mapping[str, str]) -> tuple[str, ...]:
+    """The API-key variables of `cli` that must not reach its call: every `NEVER_KEYS` name,
+    UNCONDITIONALLY (R87.3) -- not only the ones set in `env`, because a login shell can export them
+    after the parent was clean -- and any key the CLI has a sign-in CACHE on this side to make
+    unnecessary -- a key the laptop does not use for it (R87), when set. A CLI with no cache (grok)
+    keeps its key: the laptop itself signs in with it."""
+    forced = tuple(NEVER_KEYS.get(cli, ()))
+    spec = SIGN_IN.get(cli)
+    if spec is None or not spec.files:
+        return forced
+    if not (Path(home) / spec.files[0]).is_file():
+        return forced
+    return forced + tuple(k for k in spec.env_keys if env.get(k) and k not in forced)
+
+
+def _witness(argv: Sequence[str], nonce: str, exit_code: int) -> dict:
+    """The command that was run and its RAW exit code (P-L5-1, P-L5-2). The probe prompt carries the
+    nonce, so it is shown as a placeholder; no output and no credential value is ever part of it."""
+    shown = ["<probe-prompt>" if nonce in a else a for a in argv]
+    return {"command": " ".join(shlex.quote(a) for a in shown), "exit_code": exit_code}
+
+
 def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[ExpectedModel],
-               nonce: str, home: Path, timeout: int) -> dict:
+               nonce: str, home: Path, timeout: int,
+               env: Optional[Mapping[str, str]] = None) -> dict:
     log_file = workdir / "agy.log"
+    if cli not in _PROBE_DECLARED:
+        return {"state": "no-probe-declared", "served_id": None,
+                "detail": f"no served-id probe is declared for {cli}: add its argv and reader here"}
     if expected is None or not expected.id:
         why = expected.where if expected else "no registry entry"
         return {"state": "no-expected", "served_id": None,
                 "detail": f"the registry names no model for {cli} ({why}); the call was not made"}
-    res = run(_status_probe(model_probe_argv(cli, nonce, expected.id, str(log_file))),
-              cwd=workdir, timeout=timeout)
+    argv = model_probe_argv(cli, nonce, expected.id, str(log_file))
+    base_env = dict(os.environ if env is None else env)
+    strip = unused_keys(cli, home, base_env)
+    for key in strip:
+        base_env.pop(key, None)
+    if strip and os.name != "nt":
+        # a login shell re-reads the profile that exports the Codespaces secrets, so the unset has
+        # to happen INSIDE it (`env -u` runs the CLI with those names removed)
+        argv = ["env", *[x for k in strip for x in ("-u", k)], *argv]
+    res = run(_status_probe(argv), cwd=workdir, timeout=timeout, env=base_env)
+    witness = _witness(argv, nonce, res.returncode)
     if res.returncode in (124, 127):
         how = "timed out" if res.returncode == 124 else "could not start"
         return {"state": "probe-error", "served_id": None,
-                "detail": f"the call did not run (exit {res.returncode}: {how})"}
+                "detail": f"the call did not run (exit {res.returncode}: {how})", **witness}
     out = res.stdout or ""
     if cli == "claude":
         served, answered = read_claude(out, nonce)
@@ -631,6 +933,8 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         served, answered = read_codex(res.stderr or "", out, nonce)
     elif cli == "grok":
         served, answered = read_grok(out, nonce, home)
+    elif cli == "copilot":
+        served, answered = read_copilot(out, nonce)
     else:
         try:
             log_text = log_file.read_text(encoding="utf-8", errors="replace")
@@ -639,45 +943,148 @@ def _probe_one(cli: str, run: Runner, workdir: Path, expected: Optional[Expected
         served, answered = read_agy(out, log_text, nonce)
     if served and answered:
         return {"state": "served", "served_id": served,
-                "detail": "served id read from the tool's own record; the nonce came back"}
+                "detail": "served id read from the tool's own record; the nonce came back", **witness}
     said = out + "\n" + (res.stderr or "")
+    if not answered and _USAGE_LIMIT.search(said):
+        when = _RESET_AT.search(said)
+        return {"state": "usage-limit", "served_id": None,
+                "detail": (f"the {cli} plan's usage window is spent"
+                           + (f"; the CLI says it clears {when.group(1).strip().rstrip('.')}" if when else "")
+                           + " -- a subscription limit, not a login and not an API credit; the call is"
+                             " repeated after that time"), **witness}
     if not answered and _NO_CREDITS.search(said):
         return {"state": "no-credits", "served_id": None,
                 "detail": (f"OPERATOR-ACTION: add credits to the account that issued the {cli} key "
-                           "(the call said none remain); not a login item")}
+                           "(the call said none remain); not a login item"), **witness}
     if not answered and _LOGIN_MISSING.search(said):
         return {"state": "unauthenticated", "served_id": None,
-                "detail": "the call said the login is missing"}
+                "detail": "the call said the login is missing", **witness}
     return {"state": "no-answer", "served_id": served,
             "detail": (f"exit {res.returncode}; "
-                       + ("the nonce did not come back" if served else "no served id in the tool's record"))}
+                       + ("the nonce did not come back" if served else "no served id in the tool's record")),
+            **witness}
 
 
 def collect_models(run: Runner, tools: Mapping[str, Mapping], auth: Mapping[str, Mapping],
                    expected: Mapping[str, ExpectedModel], *, home: Optional[Path] = None,
-                   nonce: Optional[str] = None, timeout: int = PROBE_TIMEOUT) -> dict:
+                   nonce: Optional[str] = None, timeout: int = PROBE_TIMEOUT,
+                   clis: Optional[Sequence[str]] = None,
+                   env: Optional[Mapping[str, str]] = None) -> dict:
     """Each model CLI's served id, from ONE call each, run in an empty directory so no project
     context shapes the answer. The record keeps state, id and a one-line detail only -- never the
-    model's output, the nonce or any credential."""
+    model's output, the nonce or any credential. `clis` defaults to the registry's own set."""
     home = Path(home) if home is not None else Path.home()
     nonce = nonce or "CHK-" + secrets.token_hex(4).upper()
     out: dict[str, dict] = {}
     with tempfile.TemporaryDirectory(prefix="parity-probe-") as tmp:
-        for cli in MODEL_CLIS:
+        for cli in (clis if clis is not None else model_clis()):
             if not (tools.get(cli) or {}).get("present"):
                 out[cli] = {"state": "tool-absent", "served_id": None, "detail": f"{cli} is not installed"}
             elif ((auth.get(cli) or {}).get("state")) == "unauthenticated":
                 out[cli] = {"state": "not-probed-auth", "served_id": None,
                             "detail": "login missing -- a named auth item; the call was not made"}
             else:
-                out[cli] = _probe_one(cli, run, Path(tmp), expected.get(cli), nonce, home, timeout)
+                out[cli] = _probe_one(cli, run, Path(tmp), expected.get(cli), nonce, home, timeout,
+                                      env)
     return out
 
 
-def _fold_model_proof_into_auth(auth: dict, models: Mapping[str, Mapping]) -> None:
+def measure_mechanism(cli: str, home: Path, env: Mapping[str, str]) -> dict:
+    """How `cli` is signed in on THIS side, measured -- the class (`subscription` for a sign-in cache
+    or claude's long-lived setup token, `api-key` for an API-key variable alone, `none`), the way
+    (a path or variable NAME) and whether an API-key variable is set. Booleans, paths and names
+    only: no value is ever read into the record (R13)."""
+    spec = SIGN_IN.get(cli)
+    if spec is None:
+        return {"class": "none", "via": "no sign-in declared", "api_key_env_present": False}
+    keys_set = [k for k in spec.env_keys if env.get(k)]
+    if cli == "claude" and env.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        return {"class": "subscription", "via": "env CLAUDE_CODE_OAUTH_TOKEN",
+                "api_key_env_present": bool(env.get("ANTHROPIC_API_KEY"))}
+    if cli == "copilot" and env.get("COPILOT_GITHUB_TOKEN"):
+        # the account's Copilot seat through a token (R88a), not a metered API key
+        return {"class": "subscription", "via": "env COPILOT_GITHUB_TOKEN", "api_key_env_present": False}
+    if spec.files and (Path(home) / spec.files[0]).is_file():
+        return {"class": "subscription", "via": f"file {spec.files[0]}",
+                "api_key_env_present": bool(keys_set)}
+    if keys_set:
+        return {"class": "api-key", "via": "env " + ", ".join(keys_set), "api_key_env_present": True}
+    return {"class": "none", "via": "no cache file and no key variable", "api_key_env_present": False}
+
+
+def collect_auth_mechanism(names: Sequence[str], home: Path, env: Mapping[str, str],
+                           models: Mapping[str, Mapping]) -> dict:
+    """The measured mechanism per CLI. A CLI whose served-id call ANSWERED with no file and no key
+    on this side signs in through something this code cannot see -- the OS keyring -- and is recorded
+    as `keyring`, never as `none`."""
+    out: dict[str, dict] = {}
+    for cli in names:
+        mech = measure_mechanism(cli, home, env)
+        if mech["class"] == "none" and (models.get(cli) or {}).get("state") == "served":
+            mech = {"class": "keyring", "via": "answered with no cache file and no key variable",
+                    "api_key_env_present": False}
+        out[cli] = mech
+    return out
+
+
+def _iso(text: object) -> Optional[datetime]:
+    try:
+        parsed = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _ms(value: object) -> Optional[datetime]:
+    try:
+        return datetime.fromtimestamp(float(value) / 1000.0, tz=timezone.utc)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def credential_expiry(cli: str, home: Path, *, now: Optional[datetime] = None) -> dict:
+    """Is the sign-in cache of `cli` on this side usable? `{"state", "renew", "detail"}` from the
+    file's own timestamps -- no value is read out of it. `ok`: it can serve or renew itself;
+    `due`: its next call refreshes it (Codex, past `CODEX_REFRESH_DAYS`); `expired`: neither the
+    access nor the refresh token can serve any more; `not-a-file`: the CLI has no cache to read here.
+    `renew` is the ONE step that fixes it (R59, R65)."""
+    now = now or datetime.now(timezone.utc)
+    spec = SIGN_IN.get(cli)
+    if spec is None or not spec.files:
+        return {"state": "not-a-file", "renew": spec.renew if spec else "", "detail": "no cache file"}
+    path = Path(home) / spec.files[0]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"state": "expired", "renew": spec.renew, "detail": f"{spec.files[0]} is missing or unreadable"}
+    if cli == "claude":
+        oauth = data.get("claudeAiOauth") or {}
+        access, refresh = _ms(oauth.get("expiresAt")), _ms(oauth.get("refreshTokenExpiresAt"))
+        if refresh is not None and refresh <= now:
+            return {"state": "expired", "renew": spec.renew, "detail": "the refresh token has expired"}
+        if access is not None and access <= now and refresh is None:
+            return {"state": "expired", "renew": spec.renew, "detail": "the access token has expired"}
+        return {"state": "ok", "renew": spec.renew, "detail": "the refresh token is live"}
+    if cli == "codex":
+        if str(data.get("auth_mode")) != "chatgpt":
+            return {"state": "expired", "renew": spec.renew, "detail": "the cache is not a ChatGPT sign-in"}
+        refreshed = _iso(data.get("last_refresh"))
+        if refreshed is None:
+            return {"state": "due", "renew": spec.renew, "detail": "no last_refresh recorded"}
+        age = (now - refreshed).total_seconds() / 86400.0
+        if age >= CODEX_REFRESH_DAYS:
+            return {"state": "due", "renew": spec.renew, "age_days": round(age, 2),
+                    "detail": f"last refreshed {age:.1f} days ago; the next call refreshes it"}
+        return {"state": "ok", "renew": spec.renew, "age_days": round(age, 2),
+                "detail": f"last refreshed {age:.1f} days ago"}
+    return {"state": "ok", "renew": spec.renew, "detail": "cache present"}
+
+
+def _fold_model_proof_into_auth(auth: dict, models: Mapping[str, Mapping],
+                                clis: Optional[Sequence[str]] = None) -> None:
     """A model call is the only login probe `grok` and `agy` have: an answered call proves the login,
     and one that said the login is missing names it. Status-command verdicts are left alone."""
-    for cli in MODEL_CLIS:
+    for cli in (clis if clis is not None else model_clis()):
         entry, model = auth.get(cli), models.get(cli) or {}
         if entry is None:
             continue
@@ -710,24 +1117,34 @@ def installed_hooks(run: Runner, root: Path) -> list[str]:
 def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
                         hooks: Optional[Sequence[str]] = None, home: Optional[Path] = None,
                         nonce: Optional[str] = None) -> dict:
-    """Condition 1's manifest, built in the environment this runs in."""
+    """Condition 1's manifest, built in the environment this runs in. The tools probed are the
+    registry's CLIs plus the non-model tools the Codespace declares (`lane_tools`), read here and
+    never typed (R70)."""
     uv = run(["uv", "--version"], cwd=root)
     sync = run(["uv", "sync", "--locked"], cwd=root)
     py = run(["uv", "run", "--locked", "python", "-c",
               "import platform;print(platform.python_version())"], cwd=root)
     lock = root / "uv.lock"
+    registry = registry_for(root)
+    names = lane_tools(registry)
+    clis = model_clis(registry)
     tools = {}
-    for name in LANE_TOOLS:
-        res = run(_tool_probe(name), cwd=root, timeout=60)
+    for name in names:
+        keyless = probe_env(name)
+        res = (run(_tool_probe(name), cwd=root, timeout=60, env=keyless) if keyless is not None
+               else run(_tool_probe(name), cwd=root, timeout=60))
         present = res.returncode == 0
         first = (res.stdout.strip().splitlines() or [""])[0]
         tools[name] = {"present": present,
                        "version": (_semver(first) or first or None) if present else None}
-    auth = collect_auth(run, tools, root=root)
-    models = collect_models(run, tools, auth,
-                            expected_models(load_registry(root / "ecosystem" / "provider-registry.yaml")),
-                            home=home, nonce=nonce)
-    _fold_model_proof_into_auth(auth, models)
+    auth = collect_auth(run, tools, root=root, names=names)
+    side_home = Path(home) if home is not None else Path.home()
+    models = collect_models(run, tools, auth, expected_models(registry), home=side_home,
+                            nonce=nonce, clis=clis)
+    _fold_model_proof_into_auth(auth, models, clis)
+    mechanism = collect_auth_mechanism(names, side_home, os.environ, models)
+    expiry = {cli: credential_expiry(cli, side_home) for cli in names
+              if (tools.get(cli) or {}).get("present") and SIGN_IN.get(cli) and SIGN_IN[cli].files}
     return {
         "python": py.stdout.strip() or None if py.returncode == 0 else None,
         "uv": _semver(uv.stdout) if uv.returncode == 0 else None,
@@ -736,6 +1153,8 @@ def collect_environment(run: Runner, *, root: Path = _REPO_ROOT,
         "tools": tools,
         "auth": auth,
         "models": models,
+        "auth_mech": mechanism,
+        "credential_expiry": expiry,
         "hooks": sorted(hooks) if hooks is not None else installed_hooks(run, root),
         "platform": {"system": platform.system(), "machine": platform.machine()},
     }
@@ -1252,6 +1671,8 @@ def compare_environment(local: Mapping, remote: Mapping,
                         registry: Optional[Mapping] = None) -> Verdict:
     le, re_ = local["environment"], remote["environment"]
     registry = load_registry() if registry is None else registry
+    names = lane_tools(registry)
+    clis = model_clis(registry)
     problems: list[str] = []
     evidence: list[str] = []
     for key in sorted(set(le) | set(re_)):
@@ -1259,7 +1680,8 @@ def compare_environment(local: Mapping, remote: Mapping,
             evidence.append(f"{key}: declared OS-specific ({OS_SPECIFIC_ENTRIES[key]}) -- "
                             f"local={le.get(key)} codespace={re_.get(key)}")
             continue
-        if key in ("tools", "uv_sync_exit", "hooks", "auth", "models"):
+        if key in ("tools", "uv_sync_exit", "hooks", "auth", "models", "auth_mech",
+                   "credential_expiry"):
             continue    # compared below, each with its own verdict wording
         lv, rv = le.get(key), re_.get(key)
         evidence.append(f"{key}: local={lv} codespace={rv}")
@@ -1269,7 +1691,7 @@ def compare_environment(local: Mapping, remote: Mapping,
         evidence.append(f"uv sync --locked exit ({side})={env.get('uv_sync_exit')}")
         if env.get("uv_sync_exit") != 0:
             problems.append(f"uv sync --locked exit {env.get('uv_sync_exit')} on {side}")
-    for name in LANE_TOOLS:
+    for name in names:
         lt = le.get("tools", {}).get(name, {"present": False, "version": None})
         rt = re_.get("tools", {}).get(name, {"present": False, "version": None})
         evidence.append(f"{name} version local={lt.get('version')} codespace={rt.get('version')}")
@@ -1286,8 +1708,10 @@ def compare_environment(local: Mapping, remote: Mapping,
     if sorted(lh) != sorted(rh) or not lh:
         problems.append(f"hook set differs (local={lh} codespace={rh})")
     model_named = _compare_models(le, re_, registry, problems, evidence)
-    auth_items = _auth_items(le, re_, evidence, model_named)
-    for name in LANE_TOOLS:     # an auth probe that never ran is a FAIL, not a named exception
+    _compare_auth_mechanism(le, re_, clis, problems, evidence)
+    _compare_credential_expiry(le, re_, problems, evidence)
+    auth_items = _auth_items(le, re_, evidence, model_named, names)
+    for name in names:     # an auth probe that never ran is a FAIL, not a named exception
         if ((re_.get("auth") or {}).get(name) or {}).get("state") == "probe-error":
             problems.append(f"the auth probe for {name} could not run on the codespace -- its "
                             "login state is unknown")
@@ -1304,8 +1728,12 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
     CODESPACE could not probe for want of a login: they are named as auth items, never failed, never
     passed silently. The workstation is the reference, so a local CLI with no served id fails."""
     expected = expected_models(registry)
+    clis = model_clis(registry)
     named: set[str] = set()
-    for cli in MODEL_CLIS:
+    if not clis:
+        problems.append("the registry names no provider with a CLI: C1 would probe nothing, and a "
+                        "check that probes nothing proves nothing")
+    for cli in clis:
         if not expected[cli].id:
             problems.append(f"the registry names no model for {cli} ({expected[cli].where}): "
                             "its served id cannot be checked")
@@ -1313,9 +1741,9 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
         models = env.get("models")
         if not isinstance(models, Mapping):
             problems.append(f"no served model id on the {side}: the record has no model probe "
-                            f"({', '.join(MODEL_CLIS)})")
+                            f"({', '.join(clis)})")
             continue
-        for cli in MODEL_CLIS:
+        for cli in clis:
             rec = models.get(cli) or {}
             state, served, exp = rec.get("state"), rec.get("served_id"), expected[cli]
             if state == "tool-absent":
@@ -1338,8 +1766,71 @@ def _compare_models(le: Mapping, re_: Mapping, registry: Mapping, problems: list
     return named
 
 
+def _compare_auth_mechanism(le: Mapping, re_: Mapping, clis: Sequence[str], problems: list[str],
+                            evidence: list[str]) -> None:
+    """R87: a model CLI must sign in on the Codespace the way it signs in on the laptop. A CLI that
+    answers there through an API key the laptop does not use -- or through any mechanism class the
+    laptop does not -- is a FAIL naming both, even when its served id matches the registry. A record
+    that carries no mechanism section on EITHER side is an older record and is not judged; a laptop
+    that recorded one against a Codespace that did not is a FAIL (no vacuous pass)."""
+    lm, rm = le.get("auth_mech"), re_.get("auth_mech")
+    if not isinstance(lm, Mapping) and not isinstance(rm, Mapping):
+        return
+    if not isinstance(lm, Mapping) or not isinstance(rm, Mapping):
+        where = "codespace" if isinstance(lm, Mapping) else "local"
+        problems.append(f"no auth mechanism recorded on the {where}: the sign-in each CLI uses "
+                        "cannot be compared with the other side's")
+        return
+    for cli in clis:
+        ours, theirs = lm.get(cli) or {}, rm.get(cli) or {}
+        lc, rc = ours.get("class"), theirs.get("class")
+        evidence.append(f"auth mechanism {cli}: local={lc} ({ours.get('via')}) "
+                        f"codespace={rc} ({theirs.get('via')})")
+        if lc is None or rc is None:
+            problems.append(f"no auth mechanism recorded for {cli} on the "
+                            f"{'local' if lc is None else 'codespace'} side")
+        elif rc == "none" and ((re_.get("models") or {}).get(cli) or {}).get("state") in (
+                "not-probed-auth", "unauthenticated"):
+            # an unsigned CLI answers through no mechanism: it is the missing login `_auth_items`
+            # names, not a different mechanism (R87 targets one that ANSWERS)
+            evidence.append(f"auth mechanism {cli}: no sign-in on the codespace -- named by the auth items")
+        elif lc != rc and (lc, rc) not in AUTH_EQUIVALENT | AUTH_EQUIVALENT_FOR.get(cli, frozenset()):
+            problems.append(f"{cli} signs in by {rc} on the codespace but by {lc} on the laptop: not "
+                            "the laptop's own sign-in (R87)")
+
+
+def _compare_credential_expiry(le: Mapping, re_: Mapping, problems: list[str],
+                               evidence: list[str]) -> None:
+    """A recorded `expired` credential on either side is a FAIL that names the ONE renew step
+    (R59, R65): the failure is reported before a lane runs on it."""
+    for side, env in (("local", le), ("codespace", re_)):
+        for cli, rec in sorted((env.get("credential_expiry") or {}).items()):
+            state = (rec or {}).get("state")
+            detail = (rec or {}).get("detail", "")
+            spec = SIGN_IN.get(cli)
+            if side == "codespace" and not (spec and spec.route == "mirror"
+                                            and spec.refresh in ("safe", "guarded")):
+                # a cache the launch never copies is absent there by design (claude signs in by the
+                # setup-token variable): its mechanism is compared by `_compare_auth_mechanism`, and
+                # an absent file is written as that, never as `expired` (J-S41: run 1 read as a dead
+                # sign-in beside a PASS and a served model)
+                if state == "expired" and spec is not None:
+                    key = spec.env_keys[0] if spec.env_keys else spec.route
+                    evidence.append(
+                        f"credential {cli} {side}: not mirrored by design -- signs in by {key} "
+                        f"({spec.route}); its sign-in is judged by the served-model probe; "
+                        f"cache reading: {detail}")
+                else:
+                    evidence.append(f"credential {cli} {side}: {state} ({detail})")
+                continue
+            evidence.append(f"credential {cli} {side}: {state} ({detail})")
+            if state == "expired":
+                problems.append(f"the {cli} credential on the {side} side has expired -- "
+                                f"OPERATOR-ACTION: {(rec or {}).get('renew') or 'renew its sign-in'}")
+
+
 def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
-                model_named: Sequence[str] = ()) -> list[str]:
+                model_named: Sequence[str] = (), names: Optional[Sequence[str]] = None) -> list[str]:
     """The tools the Codespace has installed but not logged in, each named with what it needs.
 
     An exception is only ever NAMED here -- it neither fails condition 1 (installation is what
@@ -1348,16 +1839,16 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str],
     model call found the login missing (`model_named`) is named even where its auth state was
     `unprobed`, which is the only state `grok` and `agy` can have before they answer."""
     named: list[str] = []
-    for name in LANE_TOOLS:
+    for name in (names if names is not None else lane_tools()):
         theirs = (re_.get("auth") or {}).get(name)
-        if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits"):
+        if ((re_.get("models") or {}).get(name) or {}).get("state") in ("no-answer", "no-credits", "usage-limit"):
             continue    # a call that ran and gave nothing is its own FAIL, never a login item
         if name not in model_named and (
                 not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error")):
             continue    # tool-absent and probe-error are each their own FAIL, not an exception
         ours = ((le.get("auth") or {}).get(name) or {}).get("state")
         evidence.append(f"AUTH-ITEM {name}: codespace={(theirs or {}).get('state', 'unprobed')} "
-                        f"local={ours} -- needs {AUTH_NEEDS[name]}")
+                        f"local={ours} -- needs {AUTH_NEEDS.get(name, 'a sign-in for ' + name)}")
         named.append(name)
     return named
 
@@ -1606,7 +2097,11 @@ def compare_landing(local: Mapping, remote: Mapping,
                 LegResult(Leg.NOT_RUN, f"push leg not exercised (the Codespace pushed no branch; "
                           f"push exit {landing.get('push_exit')})"))
     status, reason = fold_legs([push_leg, *integration_legs(local, integration, evidence, remote)])
-    return _verdict(3, status, reason, evidence)
+    # WAITING only for the leg no lane can run: with the lane's own push done and NO integration record
+    # at all, what is missing is the integrator's merge. A leg a lane could still run is not a gate.
+    gate = (GATE_MERGE if status == "NOT-RUN" and push_leg.leg is Leg.PASS
+            and not isinstance(integration, Mapping) else "")
+    return _verdict(3, status, reason, evidence, gate)
 
 
 def compare_transport(local: Mapping, remote: Mapping) -> Verdict:
@@ -1629,7 +2124,7 @@ def compare_transport(local: Mapping, remote: Mapping) -> Verdict:
         evidence.append(f"write: NOT-RUN -- {TRANSPORT_WRITE_NOT_RUN_REASON}")
         if problems:
             return _verdict(4, "FAIL", "; ".join(problems), evidence)
-        return _verdict(4, "NOT-RUN", TRANSPORT_WRITE_NOT_RUN_REASON, evidence)
+        return _verdict(4, "NOT-RUN", TRANSPORT_WRITE_NOT_RUN_REASON, evidence, GATE_PROBE_PATH)
     # The write leg ran (`collect --probe-write`): it is judged on its own steps, and a good write
     # never rescues a failed read.
     name = write.get("name")
@@ -1775,6 +2270,8 @@ def render_report(verdicts: Sequence[Verdict]) -> str:
     lines = []
     for v in verdicts:
         lines.append(v.render())
+        if v.disposition != v.status:
+            lines.append(f"    disposition: {v.disposition}")
         lines.extend(f"    {e}" for e in v.evidence)
     return "\n".join(lines)
 
@@ -1783,8 +2280,11 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
               codespace: Optional[str] = None, remote_file: str = DEFAULT_REMOTE_FILE,
               cleanup_path: Optional[Path] = None, run: Optional[Runner] = None,
               save_remote: Optional[Path] = None,
-              integration_path: Optional[Path] = None) -> tuple[int, str]:
+              integration_path: Optional[Path] = None,
+              json_out: Optional[Path] = None, command: str = "") -> tuple[int, str]:
     """Compare the two records. Returns (exit code, report text); never raises.
+
+    `json_out` also writes `verdict_records` (raw outcome, disposition, reason, `command`, exit code).
 
     `integration_path` is the record `integrate` wrote: condition 3's merge, outcome-test and CI
     legs. Without it those legs are NOT-RUN and the check cannot exit 0.
@@ -1832,6 +2332,8 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
     if integration_problem:
         verdicts[2] = _verdict(3, "FAIL", integration_problem)
     code = exit_code(verdicts)
+    if json_out is not None:
+        write_record(json_out, verdict_records(verdicts, command, code))
     return code, render_report(verdicts) + f"\nexit={code}"
 
 
@@ -1870,6 +2372,166 @@ def verify_cleanup(name: str, branch: str, created: str, deleted: str, machine: 
         record["extra_branches"] = list(extra_branches)
         record["extra_branches_listed_after"] = after
     return record
+
+
+# =========================================================== generated pins (b2w2-codespace-finish, R70)
+#
+# The Codespace's tool versions are declared in `provisioning.yaml` `tools:`. They used to be typed
+# ("what the workstation printed when this block was written"), so a laptop that moved on left the
+# container opening every build with a SKEW line. R70 (a volatile fact is generated from ONE source)
+# makes the laptop that source: `pin write` reads each declared tool's own `--version` and rewrites
+# ONLY the `version:` lines that differ, then states what it read in a generated `pins_record:` block
+# (source, time, one version per tool, a sha-256 over the sorted `name=version` lines). The record is a
+# top-level key beside `tools:`, never inside it: `declared_tools` and `provision_legs` read every key
+# under `tools:` as a tool name. `pin check` has two halves: the FILE half (typed pins == record,
+# digest right) runs anywhere, including the heartbeat's declaration job (D6); the LAPTOP half
+# (record == what the tools print now) can only run where the tools are.
+
+PINS_RECORD_KEY = "pins_record"
+_PINS_BEGIN = "# ---- BEGIN generated: pins_record (scripts/codespace_parity.py pin write) -- do not hand-edit ----"
+_PINS_END = "# ---- END generated: pins_record ----"
+_TOOL_HEADER = re.compile(r"^  ([A-Za-z0-9_][A-Za-z0-9_-]*):\s*$")
+_VERSION_LINE = re.compile(r"^    version:\s*(?P<v>.*?)\s*$")
+
+
+class PinError(RuntimeError):
+    """A pin set that cannot be written or read; nothing is written when it is raised."""
+
+
+def pins_digest(versions: Mapping[str, str]) -> str:
+    """The sha-256 of the sorted `name=version` lines -- what the record's `sha256` states."""
+    body = "".join(f"{name}={versions[name]}\n" for name in sorted(versions))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def typed_pins(path: Optional[Path] = None) -> dict[str, Optional[str]]:
+    """`{tool: the version typed under tools.<tool>.version}` (None for a null or missing one)."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    try:
+        data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise PinError(f"{target} is unreadable: {exc}") from exc
+    tools = (data or {}).get("tools") if isinstance(data, dict) else None
+    if not isinstance(tools, Mapping):
+        raise PinError(f"{target} declares no tools: block")
+    out: dict[str, Optional[str]] = {}
+    for name, row in tools.items():
+        version = row.get("version") if isinstance(row, Mapping) else None
+        out[str(name)] = str(version) if version is not None else None
+    return out
+
+
+def read_laptop_versions(names: Sequence[str], run: Optional[Runner] = None) -> dict[str, Optional[str]]:
+    """Each tool's own `--version` on THIS machine, parsed from its first stdout line (a stderr banner
+    is ignored: the laptop's `claude.cmd` shim prints noise there). None when the tool did not answer."""
+    run = run or default_run
+    out: dict[str, Optional[str]] = {}
+    for name in names:
+        keyless = probe_env(name)      # codex is never given an API key, even to print its version
+        res = (run([name, "--version"], timeout=60, env=keyless) if keyless is not None
+               else run([name, "--version"], timeout=60))
+        text = (res.stdout or "").strip()
+        out[name] = _semver(text.splitlines()[0]) if res.returncode == 0 and text else None
+    return out
+
+
+def pin_record_findings(path: Optional[Path] = None) -> list[str]:
+    """The FILE half of `pin check`: the record exists, its digest is right, and every typed pin equals
+    the record. Empty means the declaration is internally consistent. Raises `PinError` when the file
+    cannot be read."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    typed = typed_pins(target)
+    data = yaml.safe_load(target.read_text(encoding="utf-8"))
+    record = data.get(PINS_RECORD_KEY) if isinstance(data, dict) else None
+    if not isinstance(record, Mapping) or not isinstance(record.get("versions"), Mapping):
+        return [f"{target.name} has no pins_record: the pins are typed, not generated "
+                "(run `pin write` on the laptop)"]
+    versions = {str(k): str(v) for k, v in record["versions"].items()}
+    findings: list[str] = []
+    if record.get("sha256") != pins_digest(versions):
+        findings.append("the pins_record digest does not match its own versions (the record was edited)")
+    for name in sorted(set(typed) | set(versions)):
+        if typed.get(name) != versions.get(name):
+            findings.append(f"hand edit: tools.{name}.version is {typed.get(name)!r} but the record "
+                            f"says {versions.get(name)!r} (run `pin write` on the laptop)")
+    return findings
+
+
+def pin_check(path: Optional[Path], laptop: Optional[Mapping[str, Optional[str]]]) -> tuple[int, list[str]]:
+    """`(exit code, finding lines)`: 0 clean, 1 drift, 2 could not look. `laptop=None` checks the file
+    half only. A tool the laptop could not print is `could not be read` (2), never silently clean."""
+    findings = pin_record_findings(path)
+    unreadable: list[str] = []
+    if laptop is not None:
+        record = yaml.safe_load(Path(path or PROVISIONING_PATH).read_text(encoding="utf-8")).get(
+            PINS_RECORD_KEY) or {}
+        recorded = {str(k): str(v) for k, v in (record.get("versions") or {}).items()}
+        for name in sorted(laptop):
+            have = laptop[name]
+            if have is None:
+                unreadable.append(f"{name} could not be read on the laptop (`{name} --version` gave no version)")
+            elif recorded.get(name) != have:
+                findings.append(f"the laptop prints {name} {have} but the record says "
+                                f"{recorded.get(name)!r} (run `pin write`)")
+    if findings:
+        return 1, findings + unreadable
+    return (2, unreadable) if unreadable else (0, [])
+
+
+def pin_write(path: Optional[Path], laptop: Mapping[str, Optional[str]], *,
+              now: Optional[datetime] = None) -> list[str]:
+    """Make the typed pins and the record equal `laptop`. Rewrites only the `version:` line of a tool
+    whose pin differs, keeps every comment and every other line, and returns one `name old -> new`
+    line per change (empty, and the file untouched, when nothing differs). Raises `PinError`, writing
+    nothing, when any declared tool has no reading."""
+    target = Path(path) if path is not None else PROVISIONING_PATH
+    typed = typed_pins(target)
+    missing = sorted(n for n in typed if laptop.get(n) is None)
+    if missing:
+        raise PinError("no version could be read for " + ", ".join(missing)
+                       + ": no partial pin set is written")
+    versions = {n: str(laptop[n]) for n in typed}
+    lines = target.read_text(encoding="utf-8").split("\n")
+    changes: list[str] = []
+    in_tools, tool = False, None
+    for i, line in enumerate(lines):
+        if line.startswith("tools:"):
+            in_tools, tool = True, None
+            continue
+        if in_tools and line and not line.startswith((" ", "#")):
+            in_tools = False
+        if not in_tools:
+            continue
+        header = _TOOL_HEADER.match(line)
+        if header:
+            tool = header.group(1)
+            continue
+        if tool and _VERSION_LINE.match(line) and tool in versions:
+            old = typed.get(tool)
+            if old != versions[tool]:
+                lines[i] = f'    version: "{versions[tool]}"'
+                changes.append(f"{tool} {old} -> {versions[tool]}")
+            tool = None            # only the tool's FIRST version line is the pin
+    text = "\n".join(lines)
+    record = (yaml.safe_load(text) or {}).get(PINS_RECORD_KEY) or {}
+    current = {str(k): str(v) for k, v in (record.get("versions") or {}).items()}
+    if current != versions or record.get("sha256") != pins_digest(versions):
+        stamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        block = "\n".join([
+            _PINS_BEGIN, f"{PINS_RECORD_KEY}:", "  source: laptop", f'  measured_at: "{stamp}"', "  versions:",
+            *[f'    {n}: "{versions[n]}"' for n in sorted(versions)],
+            f'  sha256: "{pins_digest(versions)}"', _PINS_END])
+        if _PINS_BEGIN in text:
+            head, _, rest = text.partition(_PINS_BEGIN)
+            _, _, tail = rest.partition(_PINS_END)
+            text = head + block + tail
+        else:
+            text = text.rstrip("\n") + "\n\n" + block + "\n"
+        changes = changes or ["pins_record written"]
+    if text == target.read_text(encoding="utf-8"):
+        return []
+    target.write_text(text, encoding="utf-8", newline="\n")
+    return changes
 
 
 # ============================================================================================ CLI
@@ -1911,13 +2573,16 @@ def collect_cmd(out: Path, side: str, push_branch: Optional[str], via_gate: bool
               help="Keep the record read over gh, so the evidence outlives the Codespace.")
 @click.option("--integration", "integration_path", default=None, type=click.Path(path_type=Path),
               help="The record `integrate` wrote: condition 3's merge / outcome-test / CI legs.")
+@click.option("--json-out", "json_out", default=None, type=click.Path(path_type=Path),
+              help="Also write one record per condition: raw outcome, disposition, command, exit code.")
 def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional[str],
               remote_file: str, cleanup_path: Optional[Path], save_remote: Optional[Path],
-              integration_path: Optional[Path]) -> None:
+              integration_path: Optional[Path], json_out: Optional[Path]) -> None:
     """One verdict per condition; exit 0 all PASS | 1 FAIL | 2 NOT-RUN | 3 remote unavailable."""
     code, text = run_check(local_path, remote_path=remote_path, codespace=codespace,
                            remote_file=remote_file, cleanup_path=cleanup_path,
-                           save_remote=save_remote, integration_path=integration_path)
+                           save_remote=save_remote, integration_path=integration_path,
+                           json_out=json_out, command=" ".join(["codespace_parity.py", *sys.argv[1:]]))
     click.echo(text)
     sys.exit(code)
 
@@ -2003,6 +2668,62 @@ def verify_cleanup_cmd(name: str, branch: str, created: str, deleted: str, machi
         sys.exit(3)
     write_record(out, record)
     click.echo(json.dumps(record, sort_keys=True))
+
+
+@cli.group("pin")
+def pin_group() -> None:
+    """The Codespace's tool pins, generated from this laptop (R70): show | check | write."""
+
+
+_PIN_FILE = click.option("--file", "file", default=None, type=click.Path(path_type=Path),
+                         help="provisioning.yaml; default: .devcontainer/provisioning.yaml.")
+
+
+@pin_group.command("show")
+@_PIN_FILE
+def pin_show_cmd(file: Optional[Path]) -> None:
+    """Typed pin, recorded pin and what this laptop prints, per tool (flat lines)."""
+    try:
+        typed = typed_pins(file)
+        data = yaml.safe_load(Path(file or PROVISIONING_PATH).read_text(encoding="utf-8"))
+    except PinError as exc:
+        click.echo(f"could not look: {exc}")
+        sys.exit(2)
+    recorded = ((data.get(PINS_RECORD_KEY) or {}).get("versions") or {})
+    laptop = read_laptop_versions(tuple(typed))
+    for name in typed:
+        click.echo(f"{name}: typed={typed[name]} record={recorded.get(name)} laptop={laptop.get(name)}")
+
+
+@pin_group.command("check")
+@_PIN_FILE
+@click.option("--record-only", is_flag=True, help="The file half only (no tool is run).")
+def pin_check_cmd(file: Optional[Path], record_only: bool) -> None:
+    """Exit 0 clean · 1 drift (a hand edit, a wrong digest, or a laptop that moved on) · 2 could not look."""
+    try:
+        laptop = None if record_only else read_laptop_versions(tuple(typed_pins(file)))
+        code, lines = pin_check(file, laptop)
+    except PinError as exc:
+        click.echo(f"could not look: {exc}")
+        sys.exit(2)
+    for line in lines:
+        click.echo(line)
+    click.echo("pins: clean" if code == 0 else f"pins: {'DRIFT' if code == 1 else 'COULD NOT LOOK'}")
+    sys.exit(code)
+
+
+@pin_group.command("write")
+@_PIN_FILE
+def pin_write_cmd(file: Optional[Path]) -> None:
+    """Rewrite the differing pins and the generated pins_record from this laptop's own tool versions."""
+    try:
+        changes = pin_write(file, read_laptop_versions(tuple(typed_pins(file))))
+    except PinError as exc:
+        click.echo(f"could not write: {exc}")
+        sys.exit(2)
+    for line in changes:
+        click.echo(line)
+    click.echo("pins: written" if changes else "pins: already equal to the laptop (no change)")
 
 
 if __name__ == "__main__":

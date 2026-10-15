@@ -204,10 +204,16 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
     assert steps == [
         "leg1_uv", "leg2_unshallow", "refresh_source_tree", "sync_environment",
         "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_pc_login_path", "leg_f1_claude",
+        # b2w2-codespace-finish (R87.3): codex's subscription policy and the login-shell key unset
+        # land BEFORE the first leg that starts a codex process (`scrub_model_keys` is the prologue)
+        "leg_f6_codex_subscription",
         # foundation-13: the lane's toolset, pinned and asserted, after the agent feature's own assert
         "leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone", "leg_f5_agy",
         # b2-codespace-1to1 (R63): the fourth model CLI, after the other three
         "leg_f5_grok",
+        # b2-codespace-subscription-auth: the model CLI the registry names that had no leg
+        # (b2w2-codespace-finish, R88b: its sibling `leg_f5_gemini` was removed with the gemini CLI)
+        "leg_f5_copilot",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
         # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
         # is LIVE, so every tool it names must already be installed when it is written. Anywhere
@@ -405,6 +411,436 @@ def test_self_digest_actually_distinguishes_a_replaced_script(tmp_path: Path):
     assert digest() != before
 
 
+# --- b2w2-codespace-finish (R87.3, plan M4): codex is signed in by subscription, never a key -------
+#
+# Launch paths 4 and 5 of the five the plan enumerates (1-3 are in test_dispatch_codespace.py and
+# test_codespace_parity.py). Each runs the extracted function bodies in a genuine bash against a
+# stub `codex` that records BOOLEANS ONLY -- whether each key variable reached it.
+
+_NEVER_A, _NEVER_B = "SENTINEL-SECRET-CODEX-0001", "SENTINEL-SECRET-OPENAI-0002"
+_CODEX_STUB = (
+    "#!/usr/bin/env bash\n"
+    'rec="${CODEX_STUB_RECORD:?}"\n'
+    '{ for n in CODEX_API_KEY OPENAI_API_KEY; do\n'
+    '    if [ -n "${!n:-}" ]; then echo "$n=yes"; else echo "$n=no"; fi\n'
+    '  done; echo "argv=$*"; } >> "$rec"\n'
+    'echo "codex-cli 0.0.0"\n'
+)
+
+
+def _stub_dir(bash_exe: str, tmp_path: Path) -> tuple[str, Path, str]:
+    """(the stub's directory spelled as bash sees it, the record file, the record spelled for bash)."""
+    stub_dir = tmp_path / "stubbin"
+    stub_dir.mkdir()
+    stub = stub_dir / "codex"
+    stub.write_text(_CODEX_STUB, encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    record = tmp_path / "record.txt"
+    return _canon_path(bash_exe, stub_dir), record, _canon_path(bash_exe, tmp_path) + "/record.txt"
+
+
+def _canon_path(bash_exe: str, p: Path) -> str:
+    r = subprocess.run([bash_exe, "-c", f'cd "{p.as_posix()}" && pwd'], capture_output=True, text=True,
+                       timeout=_BASH_SPAWN_TIMEOUT_S)
+    assert r.returncode == 0, f"could not resolve {p} through bash: {r.stderr!r}"
+    return r.stdout.strip()
+
+
+def _saw(record: Path) -> dict:
+    out = {}
+    for line in record.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition("=")
+        out[key] = value
+    return out
+
+
+def test_main_scrubs_the_model_keys_first_and_writes_the_codex_policy_before_any_codex_call():
+    code = _uncommented(_bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "main"))
+    calls = [ln.strip() for ln in code.splitlines() if ln.strip() and not ln.strip().startswith(("say", "case"))]
+    assert "scrub_model_keys" in calls and "leg1_uv" in calls
+    assert calls.index("scrub_model_keys") < calls.index("leg1_uv"), "the scrub is the prologue"
+    assert calls.index("leg_f6_codex_subscription") < calls.index("leg_f5_codex"), (
+        "the login shells that probe codex's version must already unset the keys")
+
+
+def test_provision_scrubs_the_keys_before_any_child_it_starts(tmp_path: Path):
+    """Launch path 5: the processes provision.sh itself starts (`provision_legs.py tools check` runs
+    `codex --version`, `uv run`, the hooks) inherit its environment. Seeded with both keys, a child
+    started after `scrub_model_keys` sees neither, and sees both without it -- the control that shows
+    the harness isolates what it claims to.
+
+    WHAT THIS DOES NOT CLAIM, and why: a LOGIN shell child (`bash -lc`) re-reads the login chain, and in
+    a real Codespace that chain re-exports the user secrets from
+    /workspaces/.codespaces/shared/user-secrets-envs.json no matter what the parent unset. The first
+    version of this test asserted that too; the live parity run's gates leg (2026-10-09, Codespace
+    `b2w2-codespace-finish-parity-...`) failed it there and passed it on the laptop, and a login shell
+    under a bare HOME printed `CODEX_API_KEY=yes` while the real HOME, carrying leg_f6's block, printed
+    `no`. So the login-shell guarantee belongs to `leg_f6_codex_subscription`, tested by launch path 4,
+    and this test states only what the scrub itself guarantees.
+    """
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "scrub_model_keys")
+    home = tmp_path / "home"
+    home.mkdir()
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    probe = "bash -c 'command -v codex >/dev/null 2>&1 && codex --version'"
+
+    def run(with_scrub: bool) -> dict:
+        record.unlink(missing_ok=True)
+        harness = tmp_path / "harness.sh"
+        harness.write_text(
+            "set -euo pipefail\n"
+            f'HOME="{home_c}"\n'
+            f'export PATH="{stub_c}:$PATH"\n'
+            'say() { printf "[t] %s\\n" "$*"; }\n'
+            f"scrub_model_keys() {{{body}\n}}\n"
+            + ("scrub_model_keys\n" if with_scrub else "")
+            + f"{probe}\n", encoding="utf-8", newline="\n")
+        env = {**os.environ, "HOME": home_c, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+               "CODEX_STUB_RECORD": record_c}
+        res = subprocess.run([bash_exe, str(harness)], env=env, capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        assert _NEVER_A not in res.stdout + res.stderr and _NEVER_B not in res.stdout + res.stderr
+        if with_scrub:
+            assert "CODEX_API_KEY was set" in res.stdout, "the scrub says which NAME it removed"
+        return _saw(record)
+
+    assert run(with_scrub=False)["CODEX_API_KEY"] == "yes", "control: without the scrub the key arrives"
+    seen = run(with_scrub=True)
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
+
+
+def test_leg_f6_makes_every_login_shell_unset_the_keys_and_forces_the_chatgpt_sign_in(tmp_path: Path):
+    """Launch path 4. The Codespaces secrets are exported by the login chain before `~/.profile`
+    (simulated here by exporting them FIRST in `~/.profile`); the leg's marked block comes after and
+    removes them, so a login shell -- the shell every lane head runs in -- hands `codex` neither.
+    The same leg forces the ChatGPT sign-in in `~/.codex/config.toml`, merging into an existing
+    file and idempotent on a second run."""
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    (home / ".profile").write_text(
+        f'export PATH="{stub_c}:$PATH"\n'
+        f"export CODEX_API_KEY={_NEVER_A}\nexport OPENAI_API_KEY={_NEVER_B}\n",
+        encoding="utf-8", newline="\n")
+    existing = '[projects."/workspaces/x"]\ntrust_level = "trusted"\n'
+    (home / ".codex" / "config.toml").write_text(existing, encoding="utf-8", newline="\n")
+
+    def login_probe() -> dict:
+        record.unlink(missing_ok=True)
+        env = {**os.environ, "HOME": home_c, "PATH": "/usr/bin:/bin", "CODEX_STUB_RECORD": record_c}
+        res = subprocess.run([bash_exe, "-lc", "codex login status"], env=env, capture_output=True,
+                             text=True, timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        return _saw(record)
+
+    assert login_probe()["CODEX_API_KEY"] == "yes", "control: the login chain exports the secrets"
+
+    def run_leg() -> str:
+        harness = tmp_path / "harness.sh"
+        harness.write_text(
+            "set -euo pipefail\n"
+            f'HOME="{home_c}"\nPATH="{_python3_dir(bash_exe, tmp_path)}:$PATH"\nCHANGED=0\n'
+            'say() { printf "[t] %s\\n" "$*"; }\n'
+            'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+            'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+            f"leg_f6_codex_subscription() {{{body}\n}}\n"
+            "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+        res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert res.returncode == 0, (res.stdout, res.stderr)
+        return res.stdout
+
+    run_leg()
+    seen = login_probe()
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
+    config = (home / ".codex" / "config.toml").read_text(encoding="utf-8")
+    assert config.splitlines()[0] == 'forced_login_method = "chatgpt"', "a top-level key precedes every table"
+    assert config.endswith(existing), "the existing config is merged into, never replaced"
+    profile_once = (home / ".profile").read_text(encoding="utf-8")
+    again = run_leg()
+    assert "(no-op)" in again
+    assert (home / ".codex" / "config.toml").read_text(encoding="utf-8") == config
+    assert (home / ".profile").read_text(encoding="utf-8") == profile_once, "the marked block is added once"
+
+
+def test_leg_f6_rewrites_a_forced_api_login_and_keeps_the_rest_of_the_file(tmp_path: Path):
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    home_c = _canon_path(bash_exe, home)
+    cfg = home / ".codex" / "config.toml"
+    cfg.write_text('model = "x"\nforced_login_method = "api"\n[tui]\nnotifications = true\n',
+                   encoding="utf-8", newline="\n")
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "set -euo pipefail\n"
+        f'HOME="{home_c}"\nPATH="{_python3_dir(bash_exe, tmp_path)}:$PATH"\nCHANGED=0\n'
+        'say() { printf "[t] %s\\n" "$*"; }\n'
+        'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+        'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+        f"leg_f6_codex_subscription() {{{body}\n}}\n"
+        "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+    res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                         timeout=_BASH_SPAWN_TIMEOUT_S)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert cfg.read_text(encoding="utf-8") == (
+        'model = "x"\nforced_login_method = "chatgpt"\n[tui]\nnotifications = true\n')
+
+
+# --- b2w3 close-out review (Codex gpt-6-astra, 2026-10-10), HIGH: L-F6 ignored TOML scope --------
+#
+# RED on 2fee6fce: the leg proved `forced_login_method = "chatgpt"` with a whole-file `grep -Fx` and
+# rewrote with a whole-file `sed`, so the same text inside a `[table]` or a multiline string passed
+# as the TOP-LEVEL policy (provisioning reported success with the policy absent) and a sed hit
+# inside a string or table corrupted unrelated settings. The leg now parses the file (tomllib),
+# edits only the top-level key, re-parses, and refuses rather than claim a result it cannot show.
+
+_F6_KEY = "forced_login_method"
+
+
+def _python3_dir(bash_exe: str, tmp_path: Path) -> str:
+    """A directory holding a `python3` that is THIS interpreter (tomllib, 3.11+), spelled for bash.
+
+    The leg runs `python3` as the Codespace image provides it; a workstation's PATH may carry none,
+    an older one, or a Store alias, and a verdict that depends on that is the host's, not the code's.
+    """
+    import sys
+
+    exe = Path(sys.executable)
+    bin_dir = tmp_path / "pybin"
+    bin_dir.mkdir(exist_ok=True)
+    shim = bin_dir / "python3"
+    shim.write_text(f'#!/usr/bin/env bash\nexec "{_canon_path(bash_exe, exe.parent)}/{exe.name}" "$@"\n',
+                    encoding="utf-8", newline="\n")
+    shim.chmod(0o755)
+    return _canon_path(bash_exe, bin_dir)
+
+
+def _run_f6(tmp_path: Path, config: str | None, *, again: bool = False):
+    """Run the leg in a genuine bash over `tmp_path/home`; `again=True` re-runs over what is there."""
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f6_codex_subscription")
+    home = tmp_path / "home"
+    cfg = home / ".codex" / "config.toml"
+    if not again:
+        (home / ".codex").mkdir(parents=True)
+        if config is not None:
+            cfg.write_bytes(config.encode("utf-8"))
+    home_c = _canon_path(bash_exe, home)
+    py_c = _python3_dir(bash_exe, tmp_path)
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "set -euo pipefail\n"
+        f'HOME="{home_c}"\nPATH="{py_c}:$PATH"\nCHANGED=0\n'
+        'say() { printf "[t] %s\\n" "$*"; }\n'
+        'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+        'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+        f"leg_f6_codex_subscription() {{{body}\n}}\n"
+        "leg_f6_codex_subscription\n", encoding="utf-8", newline="\n")
+    res = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True,
+                         timeout=_BASH_SPAWN_TIMEOUT_S)
+    return res, cfg
+
+
+def _toml(text: str) -> dict:
+    import tomllib
+
+    return tomllib.loads(text)
+
+
+def test_leg_f6_does_not_mistake_a_nested_table_for_the_top_level_policy(tmp_path: Path):
+    """The same key under a `[table]` is a different setting: the top-level one must still be added."""
+    existing = f'[profiles.work]\n{_F6_KEY} = "chatgpt"\nmodel = "x"\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    new = cfg.read_text(encoding="utf-8")
+    assert _toml(new)[_F6_KEY] == "chatgpt", "the TOP-LEVEL key is now present"
+    assert new.endswith(existing), "the nested table is untouched"
+    assert "(no-op)" not in res.stdout.split("L-F6 OK")[0], "adding the key is a change, not a no-op"
+
+
+def test_leg_f6_does_not_mistake_a_multiline_string_for_the_top_level_policy(tmp_path: Path):
+    existing = f'notes = """\n{_F6_KEY} = "chatgpt"\n"""\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    new = cfg.read_text(encoding="utf-8")
+    parsed = _toml(new)
+    assert parsed[_F6_KEY] == "chatgpt" and parsed["notes"] == f'{_F6_KEY} = "chatgpt"\n'
+    assert new.endswith(existing)
+
+
+def test_leg_f6_rewrites_only_the_top_level_key_not_a_nested_or_quoted_copy(tmp_path: Path):
+    existing = (f'notes = """\n{_F6_KEY} = "api"\n"""\n{_F6_KEY} = "api"  \n'
+                f'[profiles.work]\n{_F6_KEY} = "api"\nmodel = "x"\n')
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    parsed = _toml(cfg.read_text(encoding="utf-8"))
+    assert parsed[_F6_KEY] == "chatgpt"
+    assert parsed["notes"] == f'{_F6_KEY} = "api"\n', "a copy inside a string is data, not the setting"
+    assert parsed["profiles"]["work"][_F6_KEY] == "api", "a nested table's own setting is left alone"
+    assert parsed["profiles"]["work"]["model"] == "x"
+
+
+def test_leg_f6_keeps_crlf_and_is_idempotent(tmp_path: Path):
+    existing = f'{_F6_KEY} = "api"\r\nmodel = "x"\r\n'
+    res, cfg = _run_f6(tmp_path, existing)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert cfg.read_bytes() == f'{_F6_KEY} = "chatgpt"\r\nmodel = "x"\r\n'.encode()
+    once = cfg.read_bytes()
+    again, _ = _run_f6(tmp_path, None, again=True)
+    assert again.returncode == 0, (again.stdout, again.stderr)
+    assert cfg.read_bytes() == once and "already forces the ChatGPT sign-in" in again.stdout
+
+
+def test_leg_f6_refuses_an_invalid_config_and_leaves_it_untouched(tmp_path: Path):
+    """A file the leg cannot parse is not one it can safely edit: refuse, say why, change nothing."""
+    broken = f'{_F6_KEY} = "api\n[unclosed\n'
+    res, cfg = _run_f6(tmp_path, broken)
+    assert res.returncode != 0
+    assert "REFUSED" in res.stderr and "L-F6" in res.stderr
+    assert cfg.read_text(encoding="utf-8") == broken
+
+
+def test_leg_f6_creates_the_config_when_there_is_none(tmp_path: Path):
+    res, cfg = _run_f6(tmp_path, None)
+    assert res.returncode == 0, (res.stdout, res.stderr)
+    assert _toml(cfg.read_text(encoding="utf-8")) == {_F6_KEY: "chatgpt"}
+
+
+# --- Codex re-review (gpt-6-astra, 2026-10-10 19:46Z), CRITICAL: the atomic replace widened a config's mode
+#
+# RED on b6f26d04: `f6_config` wrote its temp file with the default mode (0644 under umask 022) and
+# `os.replace`d it over the original, so an existing 0600 `~/.codex/config.toml` -- which may hold
+# secret-valued MCP env/header settings -- became world-readable (the old `sed -i` kept the mode).
+# The temp file is now created 0600 and takes the ORIGINAL's mode only just before it replaces it
+# (0600 for a file that is new), so the new content is never more readable than the original was.
+# A Windows interpreter cannot represent 0600, so the first test records the calls the helper makes
+# (an order and a value, which is the same on every host) and a POSIX host also reads the real bits.
+
+
+def _f6_config_source() -> str:
+    """The python the leg pipes to `python3 -` (heredoc body of the nested `f6_config`)."""
+    text = _PROVISION_SH.read_text(encoding="utf-8")
+    opener = "python3 - \"$@\" <<'PY'\n"
+    start = text.index(opener, text.index("f6_config() {")) + len(opener)
+    return text[start:text.index("\nPY\n", start) + 1]
+
+
+def _run_f6_config_recording(cfg: Path, monkeypatch) -> list[tuple]:
+    """Run `f6_config ensure <cfg>` in-process, recording its os.open / os.chmod / os.replace calls."""
+    import io
+    import sys
+
+    events: list[tuple] = []
+    real_open, real_chmod, real_replace = os.open, os.chmod, os.replace
+
+    def rec_open(path, flags, mode=0o777, **kw):
+        events.append(("open", str(path), mode))
+        return real_open(path, flags, mode, **kw)
+
+    def rec_chmod(path, mode, **kw):
+        events.append(("chmod", str(path), mode))
+        return real_chmod(path, mode, **kw)
+
+    def rec_replace(src, dst, **kw):
+        events.append(("replace", str(src), str(dst)))
+        return real_replace(src, dst, **kw)
+
+    out = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    with monkeypatch.context() as m:
+        m.setattr(os, "open", rec_open)
+        m.setattr(os, "chmod", rec_chmod)
+        m.setattr(os, "replace", rec_replace)
+        m.setattr(sys, "argv", ["-", "ensure", str(cfg)])
+        m.setattr(sys, "stdout", out)
+        with pytest.raises(SystemExit) as stop:
+            exec(compile(_f6_config_source(), "f6_config.py", "exec"), {"__name__": "__main__"})
+    assert stop.value.code in (0, None), stop.value.code
+    return events
+
+
+def test_f6_config_writes_a_private_temp_file_and_restores_the_originals_mode_before_replacing(
+        tmp_path: Path, monkeypatch):
+    import stat
+
+    cfg = tmp_path / "config.toml"
+    cfg.write_bytes(f'{_F6_KEY} = "api"\nmodel = "x"\n'.encode())
+    os.chmod(cfg, 0o640)
+    original_mode = stat.S_IMODE(os.stat(cfg).st_mode)   # what THIS host can represent of 0o640
+
+    events = _run_f6_config_recording(cfg, monkeypatch)
+
+    kinds = [e[0] for e in events]
+    assert kinds == ["open", "chmod", "replace"], events
+    (_, tmp_name, open_mode), (_, chmod_target, chmod_mode), (_, replaced, destination) = events
+    assert open_mode == 0o600, "the temp file is created private: never more readable than the original"
+    assert tmp_name == chmod_target == replaced and tmp_name.startswith(str(cfg) + ".tmp.")
+    assert destination == str(cfg)
+    assert chmod_mode == original_mode, "it takes the original's mode just before it replaces it"
+    assert _toml(cfg.read_text(encoding="utf-8"))[_F6_KEY] == "chatgpt"
+    if os.name != "nt":   # a POSIX host can read the real bits back (CI Linux, the Codespace)
+        assert stat.S_IMODE(os.stat(cfg).st_mode) == 0o640
+
+
+def test_f6_config_makes_a_new_file_private(tmp_path: Path, monkeypatch):
+    import stat
+
+    cfg = tmp_path / "config.toml"
+    events = _run_f6_config_recording(cfg, monkeypatch)
+    assert [e[0] for e in events] == ["open", "chmod", "replace"], events
+    assert events[0][2] == 0o600 and events[1][2] == 0o600
+    assert _toml(cfg.read_text(encoding="utf-8")) == {_F6_KEY: "chatgpt"}
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(cfg).st_mode) == 0o600
+
+
+def test_a_parity_version_probe_is_keyless_even_when_a_login_shell_exports_the_keys(tmp_path: Path):
+    """Done 2 on the parity side (Codex Critical, 2026-10-10). The probe is `bash -lc`, so a profile
+    that exports the secrets AFTER the parent's env was scrubbed re-injects them -- the old probe
+    printed codex's version with both keys set. The stub records BOOLEANS only; the sentinels
+    must also never appear in anything the probe printed."""
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT))
+    from scripts import codespace_parity as cp
+
+    bash_exe = _working_bash()
+    home = tmp_path / "home"
+    home.mkdir()
+    stub_c, record, record_c = _stub_dir(bash_exe, tmp_path)
+    home_c = _canon_path(bash_exe, home)
+    (home / ".profile").write_text(
+        f'export PATH="{stub_c}:$PATH"\n'
+        f"export CODEX_API_KEY={_NEVER_A}\nexport OPENAI_API_KEY={_NEVER_B}\n",
+        encoding="utf-8", newline="\n")
+    env = {**os.environ, "HOME": home_c, "PATH": "/usr/bin:/bin", "CODEX_STUB_RECORD": record_c}
+
+    def probe(argv: list[str]) -> "subprocess.CompletedProcess[str]":
+        record.unlink(missing_ok=True)
+        res = subprocess.run([bash_exe, *argv[1:]], env=env, capture_output=True, text=True,
+                             timeout=_BASH_SPAWN_TIMEOUT_S)
+        assert _NEVER_A not in res.stdout + res.stderr and _NEVER_B not in res.stdout + res.stderr
+        return res
+
+    control = probe(["bash", "-lc", "command -v codex >/dev/null 2>&1 && codex --version"])
+    assert control.returncode == 0 and _saw(record)["CODEX_API_KEY"] == "yes", \
+        "control: the login chain re-exports the keys, so an un-guarded probe does reach codex with them"
+
+    argv = cp._tool_probe("codex", posix=True)
+    assert argv[0] == "bash" and argv[1] == "-lc"
+    res = probe(argv)
+    assert res.returncode == 0 and "codex-cli" in res.stdout, (res.stdout, res.stderr)
+    seen = _saw(record)
+    assert seen["CODEX_API_KEY"] == "no" and seen["OPENAI_API_KEY"] == "no"
+
+
 # --- foundation-13-codespace-toolset (R63 step 1): the five tool legs ------------------------
 #
 # RED on origin/main 864b0b9f: provision.sh has no leg for `gh`, `codex`, `rclone`, `agy`, and
@@ -421,6 +857,9 @@ _TOOLSET_LEGS = {
     # b2-codespace-1to1 (R63, operator 2026-10-04: "1:1, all models in sync -- Grok, Codex, Gemini"):
     # xAI's first-party installer, which takes a version (`bash -s <X.Y.Z>`, read 2026-10-04).
     "leg_f5_grok": ("grok", "x.ai/cli/install.sh"),
+    # b2-codespace-subscription-auth: the vendor's documented npm install, pinned to the laptop's
+    # version (docs.github.com "Install Copilot CLI", read 2026-10-06).
+    "leg_f5_copilot": ("copilot", "@github/copilot@${want}"),
 }
 _VERSION_LITERAL = re.compile(r"(?<![\w.$-])\d+\.\d+\.\d+(?![\w.])")
 
@@ -446,7 +885,7 @@ def test_no_tool_leg_types_a_version(leg: str):
 
 
 @pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone",
-                                 "leg_f5_agy", "leg_f5_grok"])
+                                 "leg_f5_agy", "leg_f5_grok", "leg_f5_copilot"])
 def test_a_pinned_leg_reads_its_pin_from_the_declaration(leg: str):
     body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
     tool = _TOOLSET_LEGS[leg][0]
@@ -512,6 +951,102 @@ def test_a_vendor_installer_is_fetched_checked_to_be_a_script_and_never_piped_in
         assert "| bash" not in body, f"{leg} pipes a download into bash unchecked"
 
 
+def test_no_gemini_leg_tool_row_or_feature_survives_the_registry_dropping_the_cli():
+    """R88b, RED-first (b2w2-codespace-finish): the gemini CLI is gone from the registry, so
+    `provisioning.yaml` declares no `tools.gemini` / `features.leg_f5_gemini` and `provision.sh`
+    installs, calls and asserts nothing for it. A leg left behind would install a CLI nothing
+    signs in and would fail the container build on a tool no check expects."""
+    import yaml
+    code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
+    assert "leg_f5_gemini" not in code and "gemini-cli" not in code
+    cfg = yaml.safe_load(
+        (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))
+    assert "gemini" not in cfg["tools"]
+    assert "leg_f5_gemini" not in (cfg.get("features") or {})
+
+
+# --- b2w2-codespace-finish (M3, R88c, Done 1): agy -----------------------------------------------
+#
+# The vendor installer takes no version, so it serves its LATEST. A pin that a vendor release has
+# passed cannot be met by this leg; it used to `die`, which turned a container that has agy (and a
+# perfectly good toolchain) into a recovery container (heartbeat run 37968009244: "agy is 1.3.2,
+# pinned 1.2.17"). The leg still dies when agy does not resolve in a login shell; a version skew is a
+# RECORDED state -- present, BLOCKED-AUTH, one OPERATOR-ACTION line -- and parity C1 still names it.
+
+_AGY_HARNESS = (
+    "set -uo pipefail\n"
+    'say() { printf "[t] %s\\n" "$*"; }\n'
+    'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+    'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+    "CHANGED=0\n"
+    "UV_BIN_DIR=/nonexistent\n"
+    # the pin reader and the version check, answered from the harness's own variables
+    "uv() {\n"
+    '  case "$*" in\n'
+    '    *"tools get agy"*) echo "$PIN" ;;\n'
+    '    *"tools check"*) [ "$INSTALLED" = "$PIN" ] ;;\n'
+    "  esac\n"
+    "}\n"
+    "fetch_installer() { echo /dev/null; }\n"
+    "ensure_login_resolvable() { :; }\n"
+    'login_resolves() { echo "agy is /stub/agy"; }\n'
+)
+
+
+def _run_agy_leg(tmp_path: Path, *, pin: str, installed: str | None) -> subprocess.CompletedProcess:
+    bash_exe = _working_bash()
+    body = _bash_function(_PROVISION_SH.read_text(encoding="utf-8"), "leg_f5_agy")
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    stub_dir = tmp_path / "stubbin"
+    stub_dir.mkdir(exist_ok=True)
+    if installed is not None:
+        stub = stub_dir / "agy"
+        stub.write_text(f'#!/usr/bin/env bash\necho "{installed}"\n', encoding="utf-8", newline="\n")
+        stub.chmod(0o755)
+    stub_c = _canon_path(bash_exe, stub_dir)
+    (home / ".profile").write_text(f'export PATH="{stub_c}:$PATH"\n', encoding="utf-8", newline="\n")
+    harness = tmp_path / "agy-harness.sh"
+    harness.write_text(_AGY_HARNESS + f"leg_f5_agy() {{{body}\n}}\nleg_f5_agy\n", encoding="utf-8",
+                       newline="\n")
+    env = {**os.environ, "HOME": _canon_path(bash_exe, home), "PIN": pin,
+           "INSTALLED": installed or "", "PATH": stub_c + ":/usr/bin:/bin"}
+    return subprocess.run([bash_exe, str(harness)], env=env, capture_output=True, text=True,
+                          timeout=_BASH_SPAWN_TIMEOUT_S)
+
+
+def test_an_agy_skew_is_a_recorded_blocked_auth_state_with_one_operator_action(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.2.17", installed="1.3.2")
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert "agy 1.3.2 (pin 1.2.17" in run.stdout and "present, BLOCKED-AUTH" in run.stdout
+    actions = [ln for ln in run.stdout.splitlines() if "OPERATOR-ACTION:" in ln]
+    assert len(actions) == 1 and "sign in to agy in the Codespace once" in actions[0], run.stdout
+
+
+def test_an_agy_at_its_pin_is_the_ordinary_ok_with_no_operator_action(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.3.2", installed="1.3.2")
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert "OK" in run.stdout and "OPERATOR-ACTION" not in run.stdout
+
+
+def test_an_agy_that_does_not_resolve_in_a_login_shell_still_refuses(tmp_path: Path):
+    run = _run_agy_leg(tmp_path, pin="1.2.17", installed=None)
+    assert run.returncode == 1 and "REFUSED" in run.stderr and "agy" in run.stderr, (run.stdout, run.stderr)
+
+
+@pytest.mark.parametrize("leg", ["leg_f5_claude_pin", "leg_f5_gh", "leg_f5_codex", "leg_f5_rclone",
+                                 "leg_f5_agy", "leg_f5_grok", "leg_f5_copilot"])
+def test_a_pre_install_probe_leaves_no_skew_or_absent_line_in_the_container_log(leg: str):
+    """Done 1 reads `SKEW`/`ABSENT` lines in the heartbeat log as END states. The probe that decides
+    whether to install is not one: its stderr is discarded, so only the final assertion can print them."""
+    body = _bash_function(_uncommented(_PROVISION_SH.read_text(encoding="utf-8")), leg)
+    tool = _TOOLSET_LEGS[leg][0]
+    probes = [ln for ln in body.splitlines() if "--quiet tools check" in ln]
+    assert probes, leg
+    assert all("2>/dev/null" in ln for ln in probes), (leg, probes)
+    assert tool in probes[0]
+
+
 def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version():
     """Item 2 of the b2-codespace-1to1 contract: claude, codex, grok, agy, gh and rclone are each an
     exact `x.y.z` string in `provisioning.yaml` `tools:`. RED on `e67f27ac`: no `grok` row, and
@@ -519,7 +1054,7 @@ def test_every_model_cli_and_tool_the_lane_needs_is_pinned_to_an_exact_version()
     import yaml
     tools = yaml.safe_load(
         (_REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8"))["tools"]
-    for name in ("claude", "codex", "grok", "agy", "gh", "rclone"):
+    for name in ("claude", "codex", "grok", "agy", "gh", "rclone", "copilot"):
         assert name in tools, f"{name}: no row in provisioning.yaml tools:"
         version = tools[name].get("version")
         assert isinstance(version, str) and re.fullmatch(r"\d+\.\d+\.\d+", version), (name, version)

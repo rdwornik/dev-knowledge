@@ -17,18 +17,36 @@ differs, and allowed when it verifies -- and in the refusal case, `gh` is never 
 """
 from __future__ import annotations
 
+import copy
 import json
+import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+from dataclasses import asdict as _asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+import codespace_regime as _regime
 import dispatch as d
 cs = d.cs
+
+
+@pytest.fixture(autouse=True)
+def _private_receipt_homes(tmp_path_factory, monkeypatch):
+    """Every exec/delete now writes step rows and regime rows: a test that names no seam must never
+    reach the operator's `~/.claude/remote-runs` or the tracked `logs/CODESPACE-RECEIPTS.jsonl`."""
+    root = tmp_path_factory.mktemp("receipt-homes")
+    monkeypatch.setattr(d, "DEFAULT_HARVEST_ROOT", root / "remote-runs")
+    # `dispatch` and this file may hold two module objects of the regime (`scripts.codespace_regime` and
+    # `codespace_regime`): the default ledger is read from whichever one the code calls, so patch all
+    for mod in {id(m): m for m in (_regime, d.regime, sys.modules.get("scripts.codespace_regime"),
+                                   sys.modules.get("codespace_regime")) if m is not None}.values():
+        monkeypatch.setattr(mod, "_REPO_ROOT", root / "repo")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -172,6 +190,8 @@ def _ssh_reply(argv, *, log: str = _HEALTHY_LOG):
     """What a `codespace ssh` answers: the creation log when it is asked for, else nothing."""
     if "creation.log" in " ".join(argv):
         return d.GhResult(ok=True, exit_code=0, stdout=log)
+    if argv[-1].endswith("handback.json"):      # the lane's LANE REPORT, pulled back by `cat`
+        return d.GhResult(ok=True, exit_code=0, stdout=json.dumps(_LANE_REPORT))
     return d.GhResult(ok=True, exit_code=0, stdout="")
 
 
@@ -219,11 +239,11 @@ class _FakeGh:
 def test_codespace_exec_happy_path_returns_the_receipt(tmp_path):
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# contract\n", encoding="utf-8")
-    receipt = {"exit_code": 0, "is_error": False, "status": "success"}
+    receipt = copy.deepcopy(_GOOD_RECEIPT)
     fake = _FakeGh(receipt_written=receipt)
 
     result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert result.name == "fluffy-space-1"
@@ -233,8 +253,9 @@ def test_codespace_exec_happy_path_returns_the_receipt(tmp_path):
     # run, cp receipt back -- no `list` call: the name is never reconstructed (codex terra P1,
     # 2026-09-27)
     verbs = [" ".join(c[:2]) for c in fake.calls]
+    # ... then the handback is pulled back by `ssh cat` (the lane's LANE REPORT)
     assert verbs == ["codespace create", "codespace ssh", "codespace ssh", "codespace cp",
-                     "codespace cp", "codespace ssh", "codespace cp"]
+                     "codespace cp", "codespace ssh", "codespace cp", "codespace ssh"]
 
 
 def test_codespace_exec_refuses_on_create_failure_without_further_calls(tmp_path):
@@ -242,7 +263,7 @@ def test_codespace_exec_refuses_on_create_failure_without_further_calls(tmp_path
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(fail_at="codespace create")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "create exited" in result.failure
@@ -257,7 +278,7 @@ def test_codespace_exec_refuses_when_create_returns_no_name(tmp_path):
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(created_name="")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
     assert not result.ok
     assert "no name" in result.failure
     assert len(fake.calls) == 1  # nothing else was attempted without a name in hand
@@ -269,7 +290,7 @@ def test_codespace_exec_refuses_with_no_receipt_gate(tmp_path):
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(receipt_written=None)  # the cp-back call succeeds but writes nothing
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
     assert not result.ok
     assert "no receipt" in result.failure
 
@@ -282,7 +303,7 @@ def test_codespace_exec_creates_the_workdir_before_shipping_anything_into_it(tmp
     contract.write_text("# contract\n", encoding="utf-8")
     fake = _FakeGh(fail_at="codespace ssh mkdir")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "creating" in result.failure
@@ -298,7 +319,7 @@ def test_codespace_exec_still_pulls_the_receipt_after_a_failed_runner(tmp_path):
     receipt = {"exit_code": 1, "is_error": True, "status": "error"}
     fake = _FakeGh(receipt_written=receipt, fail_at="codespace ssh run")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert "runner exited" in result.failure
@@ -313,7 +334,7 @@ def test_codespace_exec_rejects_a_receipt_that_reports_is_error(tmp_path):
     receipt = {"exit_code": 1, "is_error": True, "status": "error_during_execution"}
     fake = _FakeGh(receipt_written=receipt)  # ssh itself reports ok=True
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="B1")
 
     assert not result.ok
     assert result.receipt == receipt
@@ -337,7 +358,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
@@ -345,7 +366,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
 
     prompt = f"Read and execute the frozen contract at {contract}"
     result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", prompt],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert str(contract) not in captured["runner_body"], "the local path leaked into the runner"
@@ -375,7 +396,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
@@ -386,7 +407,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
     prompt = f"Read and execute the frozen contract at {absolute_contract}"
     relative_contract = Path("LANE-x.md")
     result = d.codespace_exec("me/repo", "main", "lane-x", relative_contract,
-                              ["claude", "-p", prompt], invoker=fake)
+                              ["claude", "-p", prompt], invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     assert str(absolute_contract) not in captured["runner_body"], \
@@ -411,14 +432,14 @@ def test_codespace_exec_runs_the_agent_in_the_checkout_derived_from_repo(tmp_pat
             if argv[-1].startswith("remote:") and argv[-1].endswith(".sh"):
                 captured["runner_body"] = Path(argv[-2]).read_text(encoding="utf-8")
             elif argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if verb == "codespace ssh":
             return _ssh_reply(argv)
         raise AssertionError(f"unexpected gh call: {argv}")
 
     result = d.codespace_exec("me/dev-knowledge", "main", "lane-x", contract, ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
 
     assert result.ok, result.failure
     cd_line = next(ln for ln in captured["runner_body"].splitlines() if ln.startswith("cd "))
@@ -433,7 +454,7 @@ def test_codespace_exec_refuses_an_empty_argv_without_calling_gh(tmp_path):
     def fake(argv):  # pragma: no cover -- must not be reached
         raise AssertionError("gh must not be called with an empty argv")
 
-    result = d.codespace_exec("me/repo", "main", "lane-x", contract, [], invoker=fake)
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, [], invoker=fake, batch="B1")
     assert not result.ok
     assert "empty" in result.failure
 
@@ -762,9 +783,9 @@ def test_the_planned_run_step_is_a_login_shell(tmp_path):
 
 
 def test_the_executed_run_step_is_a_login_shell(tmp_path):
-    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    fake = _FakeGh(receipt_written=copy.deepcopy(_GOOD_RECEIPT))
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert result.ok, result.failure
     run_calls = [c for c in fake.calls if c[:2] == ["codespace", "ssh"] and "bash" in c]
     assert len(run_calls) == 1
@@ -790,6 +811,15 @@ def test_the_runner_records_the_five_secrets_as_booleans_and_never_a_value():
     for name in _FIVE_SECRETS:
         assert f"${name}" not in body and f"${{{name}}}" not in body, \
             f"a line could expand {name}'s value"
+
+
+def test_the_runner_records_the_copilot_token_as_a_boolean_and_never_a_value():
+    """R88a, RED-first: Copilot signs in through COPILOT_GITHUB_TOKEN, so the runner names it in its
+    presence probe (yes/no) like the other secrets, and no line can expand its value."""
+    assert "COPILOT_GITHUB_TOKEN" in d.RUNNER_SECRETS
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert "COPILOT_GITHUB_TOKEN" in body
+    assert "$COPILOT_GITHUB_TOKEN" not in body and "${COPILOT_GITHUB_TOKEN}" not in body
 
 
 # ---- item 5: heartbeat, stall watchdog, and a hangup that does not kill the lane ----------------
@@ -841,7 +871,7 @@ def test_a_recovery_container_is_refused_before_anything_ships_or_runs(tmp_path)
     (Alpine, no uv/claude/gh) was handed the lane."""
     fake = _FakeGh(log=_RECOVERY_LOG)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.name == "fluffy-space-1", "the box was created, so it is named for teardown"
     assert "recovery" in result.failure
@@ -854,7 +884,7 @@ def test_an_unreadable_creation_log_is_refused_after_a_bounded_number_of_reads(t
     fake = _FakeGh(log="")
     slept: list[float] = []
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=slept.append)
+                              invoker=fake, sleep=slept.append, batch="B1")
     assert not result.ok and "indeterminate" in result.failure
     reads = [c for c in fake.calls if "creation.log" in " ".join(c)]
     assert len(reads) == d.CREATION_LOG_ATTEMPTS == 3
@@ -872,21 +902,23 @@ def test_a_log_that_is_not_finished_on_the_first_read_is_read_again(tmp_path):
             return d.GhResult(True, 0, "fluffy-1\n")
         if verb == "codespace cp":
             if argv[-2].startswith("remote:"):
-                Path(argv[-1]).write_text('{"exit_code": 0}', encoding="utf-8")
+                Path(argv[-1]).write_text(json.dumps(_GOOD_RECEIPT), encoding="utf-8")
             return d.GhResult(True, 0, "")
         if "creation.log" in " ".join(argv):
             return d.GhResult(True, 0, next(answers))
+        if argv[-1].endswith("handback.json"):
+            return d.GhResult(True, 0, json.dumps(_LANE_REPORT))
         return d.GhResult(True, 0, "")
 
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=lambda s: None)
+                              invoker=fake, sleep=lambda s: None, batch="B1")
     assert result.ok, result.failure
 
 
 def test_a_creation_failure_without_a_recovery_line_is_refused_too(tmp_path):
     fake = _FakeGh(log="[x] postCreateCommand failed with exit code 1.\nContainer creation failed.\n")
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake, sleep=lambda s: None)
+                              invoker=fake, sleep=lambda s: None, batch="B1")
     assert not result.ok and "creation-failed" in result.failure
 
 
@@ -933,7 +965,7 @@ def test_a_run_whose_transport_died_fails_with_a_fate_naming_the_step(tmp_path, 
     """D4/D5, RED on cd3ab8a6: the failure was a bare string; the lane had no fate."""
     fake = _FakeGh(receipt_written=None, fail_at="codespace ssh run", fail_code=code)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate["fate"] == "FAILED" and result.fate["step"] == "run"
     assert word in result.fate["reason"]
@@ -942,7 +974,7 @@ def test_a_run_whose_transport_died_fails_with_a_fate_naming_the_step(tmp_path, 
 def test_a_missing_receipt_after_a_clean_run_fails_with_a_receipt_step_fate(tmp_path):
     fake = _FakeGh(receipt_written=None)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate["fate"] == "FAILED" and result.fate["step"] == "receipt"
 
@@ -952,15 +984,15 @@ def test_a_stalled_receipt_is_a_failed_run_with_the_runners_own_fate(tmp_path):
                "fate": {"fate": "FAILED", "step": "run", "reason": "no progress for 901s"}}
     fake = _FakeGh(receipt_written=receipt)
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert not result.ok
     assert result.fate == receipt["fate"]
 
 
 def test_a_successful_exec_has_no_fate_failure(tmp_path):
-    fake = _FakeGh(receipt_written={"exit_code": 0, "is_error": False, "status": "success"})
+    fake = _FakeGh(receipt_written=copy.deepcopy(_GOOD_RECEIPT))
     result = d.codespace_exec("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"],
-                              invoker=fake)
+                              invoker=fake, batch="B1")
     assert result.ok and result.fate == {}
 
 
@@ -1244,3 +1276,1152 @@ def test_an_unreadable_listing_is_never_read_as_a_confirmed_teardown_even_when_o
     assert blind["unreachable_since"] == _T0.isoformat(timespec="seconds")
     sure = _observe(_ObserveGh(listing=[]), ledger, 60, expected_gone=True)
     assert (sure["state"], sure["fate"], sure["unreachable_since"]) == ("absent", "TORN-DOWN", None)
+
+
+# =====================================================================================================
+# b2-codespace-subscription-auth (W1-13, R87): the launcher MIRRORS each CLI's own sign-in cache
+# =====================================================================================================
+#
+# RED on 84ee7e90 (origin/main when the lane started): `codespace_exec` has no `mirror`, no
+# `MirrorConfig`, no `leak_check` -- it creates the box, ships the contract and runs the lane with
+# whatever the Codespaces secrets hold, and nothing reads the laptop's sign-ins, checks them for
+# expiry, compares the claude versions or proves that no credential reached an artefact.
+#
+# Every credential below is a SENTINEL: the tests assert that the sentinel's bytes never reach an
+# argv, a result, a runner script or a record -- by comparing, never by printing.
+
+_SENTINEL_CODEX = "SENTINEL-CODEX-REFRESH-0123456789abcdef"
+_SENTINEL_GEMINI = "SENTINEL-GEMINI-REFRESH-0123456789abcdef"
+_NOW = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
+
+_MIRROR_REGISTRY = {"providers": {"openai": {"cli": "codex"}, "anthropic": {"cli": "claude"},
+                                  "antigravity": {"cli": "agy"}, "deepseek": {"cli": None}},
+                    "roles": {}, "models": {}}
+
+
+def _codex_auth(age_days: float, token: str = _SENTINEL_CODEX) -> str:
+    return json.dumps({"auth_mode": "chatgpt", "OPENAI_API_KEY": None,
+                       "tokens": {"id_token": "i", "access_token": "a", "refresh_token": token,
+                                  "account_id": "acc"},
+                       "last_refresh": (_NOW - timedelta(days=age_days)).isoformat()})
+
+
+def _home(tmp_path, *, codex_age: float | None = 2.0) -> Path:
+    home = tmp_path / "home"
+    (home / ".codex").mkdir(parents=True)
+    if codex_age is not None:
+        (home / ".codex" / "auth.json").write_text(_codex_auth(codex_age), encoding="utf-8")
+    return home
+
+
+def _cfg(tmp_path, *, home=None, env=None, verdicts=None, local_versions=None, registry=None):
+    return d.MirrorConfig(home=home or _home(tmp_path), env=dict(env or {}),
+                          registry=registry or _MIRROR_REGISTRY, now=_NOW,
+                          local_versions=dict(local_versions or {"claude": "2.1.290"}),
+                          verdicts=dict(verdicts or {}))
+
+
+class _MirrorGh(_FakeGh):
+    """`_FakeGh` that understands the credential tools script: it records the bytes each `install`
+    receives on stdin, answers the mode, the status calls and the claude version, and keeps the
+    runner script the launcher shipped."""
+
+    def __init__(self, *, remote_claude="2.1.290", reinstall_fixes=True, status=None,
+                 echo_stdin=False, **kw):
+        super().__init__(**kw)
+        self.stdin: list[tuple[list[str], bytes]] = []
+        self.remote_claude = remote_claude
+        self.reinstall_fixes = reinstall_fixes
+        self.status = status or {}
+        self.echo_stdin = echo_stdin
+        self.runner_body = ""
+
+    def __call__(self, argv, input_bytes=None):
+        argv = list(argv)
+        tool = next((a for a in argv if a.endswith("credential-tools.sh")), None)
+        if argv[:2] == ["codespace", "ssh"] and tool is not None:
+            self.calls.append(argv)
+            if input_bytes is not None:
+                self.stdin.append((argv, input_bytes))
+            return self._tools(argv[argv.index(tool) + 1:], input_bytes)
+        if argv[:2] == ["codespace", "cp"] and argv[-1].startswith("remote:") and "/run-" in argv[-1]:
+            self.runner_body = Path(argv[-2]).read_text(encoding="utf-8")
+        return super().__call__(argv)
+
+    def _tools(self, tail, input_bytes):
+        verb = tail[0]
+        if verb == "install":
+            echoed = input_bytes.decode("utf-8", "replace") if self.echo_stdin and input_bytes else ""
+            return d.GhResult(True, 0, echoed + "mode 600\n")
+        if verb == "status":
+            text, rc = self.status.get(tail[1], ("Logged in", 0))
+            return d.GhResult(rc == 0, rc, text)
+        if verb in ("agy-signin-start", "agy-signin-code"):
+            return d.GhResult(False, 70, "")     # no URL: the gap is recorded, the launch goes on
+        if verb == "claude-version":
+            return d.GhResult(True, 0, f"{self.remote_claude} (Claude Code)\n")
+        if verb == "claude-install":
+            if self.reinstall_fixes:
+                self.remote_claude = tail[1]
+            return d.GhResult(True, 0, "installed\n")
+        raise AssertionError(f"unexpected credential tool call: {tail}")
+
+
+def _run_mirrored(tmp_path, fake, cfg):
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    fake.receipt_written = copy.deepcopy(_GOOD_RECEIPT)
+    return d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
+                            invoker=fake, mirror=cfg, batch="B1")
+
+
+def _ran(fake) -> bool:
+    """Did the lane's runner start (`bash -l <workdir>/run-<slug>.sh`)?"""
+    return any(c[:2] == ["codespace", "ssh"] and "-l" in c and c[-1].endswith("/run-lane-x.sh")
+               for c in fake.calls)
+
+
+def _as_dict(result) -> dict:
+    from dataclasses import asdict
+
+    return asdict(result)
+
+
+def test_the_launcher_copies_the_laptops_codex_cache_through_stdin_owner_only_and_never_in_argv(tmp_path):
+    cfg = _cfg(tmp_path)
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, cfg)
+    assert result.ok, result.failure
+    installs = [(a, b) for a, b in fake.stdin if "install" in a]
+    assert len(installs) == 1, "exactly the primary cache file is mirrored"
+    argv, body = installs[0]
+    assert argv[argv.index("install") + 1] == ".codex/auth.json"
+    assert body == (cfg.home / ".codex" / "auth.json").read_bytes(), "the bytes travel on stdin"
+    assert not any(_SENTINEL_CODEX in " ".join(c) for c in fake.calls), "never in an argv"
+    assert _ran(fake), "the runner started after the mirror"
+    codex = next(i for i in result.mirror if i["cli"] == "codex")
+    assert codex["action"] == "mirrored" and codex["mode"] == "600" and codex["present"] is True
+    assert _SENTINEL_CODEX not in json.dumps(_as_dict(result))
+
+
+def test_a_key_the_laptop_does_not_use_is_unset_for_the_lane_when_codex_is_mirrored(tmp_path):
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, env={"CODEX_API_KEY": "k"}))
+    assert result.ok, result.failure
+    assert "unset CODEX_API_KEY" in fake.runner_body and "OPENAI_API_KEY" in fake.runner_body
+
+
+def test_an_expired_credential_refuses_before_any_box_exists_with_one_operator_action(tmp_path):
+    """Item 3, RED-first: on 84ee7e90 this launches (creates a box, runs the lane); on the tip it
+    refuses with the WAITING fate and ONE exact renew line, and `gh` is never called."""
+    home = _home(tmp_path, codex_age=None)
+    (home / ".codex" / "auth.json").write_text(json.dumps({"auth_mode": "apikey"}), encoding="utf-8")
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, home=home))
+    assert not result.ok and fake.calls == [], "no box was created for a credential known dead"
+    assert result.fate["fate"] == "WAITING" and result.fate["step"] == "credentials"
+    lines = [x for x in result.failure.split("\n") if x.startswith("OPERATOR-ACTION:")]
+    assert len(lines) == 1 and "codex login" in lines[0]
+
+
+def test_a_codex_cache_past_the_refresh_window_refuses_rather_than_let_two_machines_refresh_it(tmp_path):
+    fake = _MirrorGh()
+    # 7.9 d, not 7.5: the window is derived from the run bound (~7.83 d, codespace-finish-2026-10-14
+    # stage 2), so 7.5 d now MIRRORS; 7.9 d is still inside the band that is refused
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, home=_home(tmp_path, codex_age=7.9)))
+    assert not result.ok and fake.calls == []
+    assert result.fate["fate"] == "WAITING"
+    assert "OPERATOR-ACTION:" in result.failure and "refresh" in result.failure
+
+
+def test_a_credential_the_codespace_reports_expired_after_the_mirror_refuses_before_the_runner(tmp_path):
+    fake = _MirrorGh(status={"codex": ("Your access token could not be refreshed: refresh token was "
+                                       "already used", 1)})
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and not _ran(fake)
+    assert result.fate["fate"] == "WAITING"
+    assert result.failure.count("OPERATOR-ACTION:") == 1 and "codex login" in result.failure
+
+
+def test_the_leak_check_fails_a_runner_that_echoes_a_credential_and_names_only_the_credential(tmp_path):
+    """Item 2, RED-first: the fixture echoes the sentinel on stdout; the check compares hashes and
+    strings in memory and reports a NAME -- the sentinel appears nowhere in the result."""
+    fake = _MirrorGh(echo_stdin=True)
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and "leak" in result.failure.lower()
+    assert "codex" in result.failure
+    blob = json.dumps(_as_dict(result)) + "\n".join(" ".join(c) for c in fake.calls)
+    assert _SENTINEL_CODEX not in blob and "refresh_token" not in blob
+    assert not _ran(fake), "a leaking mirror never reaches the runner"
+
+
+def test_leak_check_unit_matches_values_and_the_whole_file_hash_without_returning_either():
+    import hashlib
+
+    cred = _codex_auth(1.0).encode()
+    assert d.leak_check({"codex": cred}, ["nothing here", "still nothing"]) == []
+    assert d.leak_check({"codex": cred}, [f"x {_SENTINEL_CODEX} y"]) == ["codex"]
+    assert d.leak_check({"codex": cred}, ["sha " + hashlib.sha256(cred).hexdigest()]) == ["codex"]
+    other = json.dumps({"a": _SENTINEL_GEMINI}).encode()
+    assert d.leak_check({"codex": cred, "gemini": other}, [_SENTINEL_GEMINI]) == ["gemini"]
+
+
+def test_a_codespace_claude_older_than_the_laptops_is_re_derived_before_the_runner(tmp_path):
+    """Item 4, RED-first: on 84ee7e90 the box launches at whatever the pin said (2.1.289 against a
+    laptop at 2.1.290); on the tip the launcher installs the laptop's version and re-reads it."""
+    fake = _MirrorGh(remote_claude="2.1.289")
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, local_versions={"claude": "2.1.290"}))
+    assert result.ok, result.failure
+    installs = [c for c in fake.calls if "claude-install" in c]
+    assert installs and installs[0][-1] == "2.1.290", "the version comes from the laptop, not a pin"
+    assert fake.remote_claude == "2.1.290"
+    claude = next(i for i in result.mirror if i["cli"] == "claude")
+    assert claude["local_version"] == "2.1.290" and claude["codespace_version"] == "2.1.290"
+
+
+def test_a_claude_skew_that_the_install_does_not_fix_refuses_before_the_runner(tmp_path):
+    fake = _MirrorGh(remote_claude="2.1.289", reinstall_fixes=False)
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path))
+    assert not result.ok and not _ran(fake)
+    assert "claude version skew" in result.failure and "2.1.289" in result.failure
+    assert "2.1.290" in result.failure
+
+
+def test_equal_claude_versions_install_nothing(tmp_path):
+    fake = _MirrorGh(remote_claude="2.1.290")
+    assert _run_mirrored(tmp_path, fake, _cfg(tmp_path)).ok
+    assert not any("claude-install" in c for c in fake.calls)
+
+
+def test_a_refresh_token_that_rotates_makes_the_launch_choose_the_fallback_not_the_mirror(tmp_path):
+    """Item 5, RED-first: the second refresher's old token is refused (the recorded verdict is
+    `rotates`), so the cache is NOT copied; the item names the fallback and the one step that
+    creates it, and the launch goes on (the lane's head does not need codex)."""
+    fake = _MirrorGh()
+    result = _run_mirrored(tmp_path, fake, _cfg(tmp_path, verdicts={"codex": "rotates"}))
+    assert result.ok, result.failure
+    assert not any("install" in a for a, _ in fake.stdin), "nothing was copied"
+    codex = next(i for i in result.mirror if i["cli"] == "codex")
+    assert codex["action"] == "fallback" and codex["route"] == "secret-fallback"
+    assert "OPERATOR-ACTION:" in codex["operator_action"]
+
+
+def test_decisions_name_every_registry_cli_and_a_provider_without_one(tmp_path):
+    items = d.credential_decisions(_cfg(tmp_path))
+    by = {i.cli: i for i in items}
+    assert {"codex", "claude", "agy"} <= set(by)
+    assert by["agy"].action == "gap" and "keyring" in by["agy"].detail  # spec G1: a recorded GAP, not a wait
+    assert by["claude"].route == "secret-token" and by["claude"].action == "not-mirrored"
+    assert [i.cli for i in items if i.action == "no-cli"] == ["deepseek"]
+
+
+def test_copilot_is_decided_by_its_token_route_and_is_not_left_waiting(tmp_path):
+    """R88a, RED-first: Copilot signs in through the COPILOT_GITHUB_TOKEN secret, so the launch has
+    nothing to mirror and nothing to wait on -- it is not an OPERATOR-ACTION line of its own."""
+    registry = {"providers": {**_MIRROR_REGISTRY["providers"], "github": {"cli": "copilot"}},
+                "roles": {}, "models": {}}
+    by = {i.cli: i for i in d.credential_decisions(_cfg(tmp_path, registry=registry))}
+    assert by["copilot"].route == "secret-token" and by["copilot"].action == "not-mirrored"
+    assert by["copilot"].operator_action == ""
+
+
+def test_a_cli_the_laptop_has_no_cache_for_is_recorded_absent_not_mirrored(tmp_path):
+    cfg = _cfg(tmp_path, home=_home(tmp_path, codex_age=None))
+    by = {i.cli: i for i in d.credential_decisions(cfg)}
+    assert by["codex"].action == "absent" and by["codex"].files == ()
+
+
+def test_the_codespace_exec_verb_builds_a_real_mirror_by_default(tmp_path, monkeypatch):
+    """The CLI is the launcher: it hands `codespace_exec` a mirror, so no launch skips it."""
+    from click.testing import CliRunner
+
+    seen = {}
+
+    def fake_exec(*a, **kw):
+        seen.update(kw)
+        return d.ExecResult(True, name="n")
+
+    monkeypatch.setattr(d, "codespace_exec", fake_exec)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
+                                     "--argv-json", '["claude"]', "--batch", "B1"])
+    assert res.exit_code == 0, res.output
+    assert isinstance(seen.get("mirror"), d.MirrorConfig)
+
+
+# ============================== b2w2-codespace-finish (R87.3, plan M4) -- codex never sees an API key
+#
+# DERIVED FROM OpenAI's documentation (read 2026-10-09, Codex "Authentication"): `forced_login_method`
+# takes `chatgpt | api`, `CODEX_API_KEY` is the non-interactive API route, and a key's precedence over a
+# ChatGPT sign-in is NOT documented -- so the lane does not leave it to precedence: neither variable
+# is in the environment of any codex invocation. Each test below launches a stub `codex` that records
+# BOOLEANS ONLY (whether each variable reached it); a value is never written anywhere.
+
+_NEVER_A, _NEVER_B = "SENTINEL-CODEX-KEY-0001", "SENTINEL-OPENAI-KEY-0002"
+
+_CODEX_STUB = (
+    "#!/usr/bin/env bash\n"
+    'rec="${CODEX_STUB_RECORD:?}"\n'
+    '{ for n in CODEX_API_KEY OPENAI_API_KEY; do\n'
+    '    if [ -n "${!n:-}" ]; then echo "$n=yes"; else echo "$n=no"; fi\n'
+    '  done; echo "argv=$*"; } >> "$rec"\n'
+    'echo "codex-cli 0.0.0"\n'
+)
+
+
+def _bash_exe() -> str:
+    """The first `bash` that runs a command (a Windows PATH can lead with the WSL launcher)."""
+    import os
+    import shutil
+
+    candidates = [shutil.which("bash", path=p) for p in os.environ.get("PATH", "").split(os.pathsep) if p]
+    git = shutil.which("git")
+    if git:
+        root = Path(git).resolve().parent.parent
+        candidates += [str(root / "bin" / "bash.exe"), str(root / "usr" / "bin" / "bash.exe")]
+    for candidate in candidates:
+        if candidate is None or not Path(candidate).is_file():
+            continue
+        try:
+            probe = subprocess.run([candidate, "-c", "echo bash-ok"], capture_output=True, text=True,
+                                   timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0 and probe.stdout.strip() == "bash-ok":
+            return candidate
+    raise AssertionError("no bash on PATH can run a command")
+
+
+def _codex_stub(tmp_path):
+    bin_dir = tmp_path / "stubbin"
+    bin_dir.mkdir()
+    stub = bin_dir / "codex"
+    stub.write_text(_CODEX_STUB, encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    return bin_dir, stub, tmp_path / "codex-record.txt"
+
+
+def _what_the_stub_saw(record) -> dict:
+    seen = {}
+    for line in record.read_text(encoding="utf-8").splitlines():
+        key, _, value = line.partition("=")
+        seen[key] = value
+    return seen
+
+
+def test_codex_api_key_is_no_runner_secret_and_the_never_set_names_are_the_two_keys():
+    assert "CODEX_API_KEY" not in d.RUNNER_SECRETS, "it is probed as a boolean, not carried as a lane secret"
+    assert d.RUNNER_NEVER_SET == ("CODEX_API_KEY", "OPENAI_API_KEY")
+
+
+@pytest.mark.parametrize("unset", [(), ("CODEX_API_KEY", "OPENAI_API_KEY")],
+                         ids=["no-mirror", "mirror-configured"])
+def test_the_runner_hands_a_codex_head_neither_api_key_with_or_without_a_mirror(tmp_path, unset):
+    """Launch path 1. Seeded with both keys in the environment, the runner reports the PRESENCE of
+    each as a boolean in the run log, removes it, and the head -- a stub `codex` -- sees neither."""
+    import os
+
+    bin_dir, stub, record = _codex_stub(tmp_path)
+    workdir, checkout = tmp_path / "work", tmp_path / "checkout"
+    workdir.mkdir()
+    checkout.mkdir()
+    runner = workdir / "run-lane.sh"
+    runner.write_text(
+        d._codespace_runner_script(workdir.as_posix(), checkout.as_posix(),
+                                   [stub.as_posix(), "exec", "hello"], unset=unset),
+        encoding="utf-8", newline="\n")
+    env = {**os.environ, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+           "CODEX_STUB_RECORD": record.as_posix()}
+    console = tmp_path / "console.txt"
+    with open(console, "wb") as sink:       # a file, not a pipe: the runner's watchdog outlives it
+        subprocess.run([_bash_exe(), runner.as_posix()], env=env, stdout=sink,
+                       stderr=subprocess.STDOUT, timeout=180)
+    assert _what_the_stub_saw(record) == {"CODEX_API_KEY": "no", "OPENAI_API_KEY": "no",
+                                          "argv": "exec hello"}
+    log = (workdir / "run.log").read_text(encoding="utf-8", errors="replace")
+    for name in ("CODEX_API_KEY", "OPENAI_API_KEY"):
+        assert f"[runner] api-key {name} present-before-unset=yes" in log, log
+    for text in (log, console.read_text(encoding="utf-8", errors="replace"),
+                 record.read_text(encoding="utf-8")):
+        assert _NEVER_A not in text and _NEVER_B not in text, "a value reached an artefact"
+
+
+def test_the_runner_script_unsets_the_two_keys_on_every_launch_and_never_expands_them():
+    body = d._codespace_runner_script("/workspaces/dispatch", "/workspaces/repo", ["claude"])
+    assert re.search(r"^unset CODEX_API_KEY OPENAI_API_KEY$", body, re.MULTILINE), body
+    assert "present-before-unset" in body
+    for name in ("CODEX_API_KEY", "OPENAI_API_KEY"):
+        assert f"${name}" not in body and f"${{{name}}}" not in body
+
+
+def test_the_credential_tools_status_call_runs_codex_without_either_key(tmp_path):
+    """Launch path 2: `credential-tools.sh status codex` is the Codespace's own sign-in check; it
+    must not be answered by a key. Run for real against a stub `codex`, with both keys seeded."""
+    import os
+
+    bin_dir, _stub, record = _codex_stub(tmp_path)
+    script = tmp_path / d.CREDENTIAL_TOOLS_NAME
+    script.write_text(d._credential_tools_script([]), encoding="utf-8", newline="\n")
+    env = {**os.environ, "CODEX_API_KEY": _NEVER_A, "OPENAI_API_KEY": _NEVER_B,
+           "CODEX_STUB_RECORD": record.as_posix(),
+           "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", "")}
+    run = subprocess.run([_bash_exe(), script.as_posix(), "status", "codex"], env=env,
+                         capture_output=True, text=True, timeout=120)
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    assert _what_the_stub_saw(record) == {"CODEX_API_KEY": "no", "OPENAI_API_KEY": "no",
+                                          "argv": "login status"}
+    assert _NEVER_A not in run.stdout + run.stderr and _NEVER_B not in run.stdout + run.stderr
+
+
+# =====================================================================================================
+# codespace-finish-2026-10-14 (stage 2, RED-first): the credential seeding and the per-step receipts
+# =====================================================================================================
+#
+# RED on 0d97edde: `codespace_exec` has no `batch`, `receipts_root` or `ledger_path`; `MirrorConfig`
+# has no `refresh_codex`; there is no `MIRROR_LEAD_S`, `COPY_LIFETIME_S` or `codex_mirror_max_age_days`;
+# the runner writes no commit witness, no handback and no EXIT trap; the helper has no agy sign-in
+# subcommands; harvest and delete write no step row and the regime ledger's container row is never
+# opened or closed by the verbs. The spec is `SPEC.md` section 3 / section 5 of the stage chain.
+#
+# Everything is offline: the `invoker` seam, `tmp_path` receipt and ledger seams, FAKE credential bytes
+# (`_SENTINEL_CODEX`). The runner script itself is executed with a real bash and a real git against a
+# local bare "origin" (ADR-127: skipped with its reason where no bash can run a command).
+
+_cpar = d.cpar
+
+_FIN_BATCH = "B1"
+_AGY_URL = "https://agy.invalid/signin?state=fake-not-real"
+_A40, _B40 = "a" * 40, "b" * 40
+
+_GOOD_COMMIT = {"base_sha": _A40, "head_sha": _B40, "branch": "worktree-x", "pushed_sha": _B40,
+                "committed": True, "pushed": True, "push_exit": 0}
+_NO_COMMIT = {"base_sha": _A40, "head_sha": _A40, "branch": "worktree-x", "pushed_sha": None,
+              "committed": False, "pushed": False, "push_exit": None}
+_NOT_ON_ORIGIN = {"base_sha": _A40, "head_sha": _B40, "branch": "worktree-x", "pushed_sha": _A40,
+                  "committed": True, "pushed": False, "push_exit": 1}
+
+_LANE_REPORT = {
+    "lane": "lane-x", "batch": "B1", "task": "a sample task", "kind": "doc", "state": "COMPLETED",
+    "done": {"met": 1, "total": 1},
+    "checks": [{"name": "pre-commit", "how": "deterministic", "result": "PASS", "evidence": "all hooks passed"}],
+    "intent_met": None, "unresolved": [], "operator_action": None, "merged_sha": None,
+    "producer": {"vendor": "anthropic", "model": "claude-sonnet-5", "session": "sess-1"},
+    "cost_usd": None,
+    "evidence": {"branch": "worktree-x", "check_run": None, "audit": None},
+}
+
+_GOOD_RECEIPT = {"exit_code": 0, "is_error": False, "status": "success", "turns": 3,
+                 "transcript": {"session_id": "sess-1", "path": ""},
+                 "commit": _GOOD_COMMIT, "handback": {"present": True}}
+
+
+class _FinishGh(_MirrorGh):
+    """`_MirrorGh` plus what the finish adds: the agy sign-in helper subcommand (answers a URL line, or
+    nothing) and the `ssh cat <workdir>/handback.json` read. `receipt_written` defaults to a lane that
+    committed, pushed and handed back."""
+
+    def __init__(self, *, agy_url: str | None = _AGY_URL, handback: str | None = None, **kw):
+        kw.setdefault("receipt_written", copy.deepcopy(_GOOD_RECEIPT))
+        super().__init__(**kw)
+        self.agy_url = agy_url
+        self.handback = json.dumps(_LANE_REPORT) if handback is None else handback
+        self.agy_calls = 0
+
+    def __call__(self, argv, input_bytes=None):
+        argv = list(argv)
+        if argv[:2] == ["codespace", "ssh"] and argv[-1].endswith("handback.json"):
+            self.calls.append(argv)
+            if self.handback == "":
+                return d.GhResult(False, 1, "")
+            return d.GhResult(True, 0, self.handback)
+        return super().__call__(argv, input_bytes)
+
+    def _tools(self, tail, input_bytes):
+        if tail[0] == "agy-signin-start":
+            self.agy_calls += 1
+            if self.agy_url:
+                return d.GhResult(True, 0, self.agy_url + "\n")
+            return d.GhResult(False, 70, "")
+        return super()._tools(tail, input_bytes)
+
+
+def _fin_exec(base: Path, fake, cfg=None, **kw):
+    """One `codespace_exec` with the three new seams under `base`. `base` is used ONCE per test
+    (`_cfg` builds the laptop HOME under it)."""
+    contract = base / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    return d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude", "-p", "hi"],
+                            invoker=fake, mirror=cfg if cfg is not None else _cfg(base),
+                            batch=_FIN_BATCH, receipts_root=base / "rr",
+                            ledger_path=base / "ledger.jsonl", **kw)
+
+
+def _steps_path(base: Path, batch: str = _FIN_BATCH, lane: str = "lane-x") -> Path:
+    return base / "rr" / batch / lane / "steps.jsonl"
+
+
+def _rows(base: Path, batch: str = _FIN_BATCH, lane: str = "lane-x") -> list[dict]:
+    path = _steps_path(base, batch, lane)
+    if not path.is_file():
+        return []
+    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+
+def _row(base: Path, step: str, **kw) -> dict:
+    found = [r for r in _rows(base, **kw) if r.get("step") == step]
+    assert found, f"no {step!r} step row in {_steps_path(base)}"
+    return found[-1]
+
+
+def _ledger_rows(base: Path) -> list[dict]:
+    path = base / "ledger.jsonl"
+    if not path.is_file():
+        return []
+    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+
+def _sub(tmp_path: Path, name: str) -> Path:
+    path = tmp_path / name
+    path.mkdir()
+    return path
+
+
+_REGISTRY_ALL_FIVE = {"providers": {**_MIRROR_REGISTRY["providers"], "github": {"cli": "copilot"}},
+                      "roles": {}, "models": {}}
+
+
+# ----- 1-4: create ---------------------------------------------------------------------------------
+
+def test_codespace_exec_writes_a_create_step_receipt_naming_the_codespace(tmp_path):
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    row = _row(tmp_path, "create")
+    assert row["schema"] == 1 and row["kind"] == "codespace-step"
+    assert row["batch"] == _FIN_BATCH and row["lane"] == "lane-x"
+    assert row["codespace"] == "fluffy-space-1" and row["ok"] is True and row["failure"] == ""
+    assert row["fate"] == {} and row["recorded"]
+    assert set(row["evidence"]) == {"repo", "branch", "machine", "exit_code"}
+    assert row["evidence"]["repo"] == "me/repo" and row["evidence"]["exit_code"] == 0
+    assert len(result.steps) == len(_rows(tmp_path)), "ExecResult.steps carries the rows written"
+
+
+def test_codespace_exec_opens_a_regime_ledger_row_on_create(tmp_path):
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    rows = [r for r in _ledger_rows(tmp_path) if r.get("kind") == "codespace"]
+    assert len(rows) == 1, rows
+    row = rows[0]
+    assert row["open"] is True and row["deleted"] is None and row["created"]
+    assert row["codespace"] == "fluffy-space-1" and row["slug"] == "lane-x"
+    assert row["batch"] == _FIN_BATCH and row["machine"] == "standardLinux32gb"
+    assert row["prebuild"] is False and row["tokens"] == {}
+    assert [r["codespace"] for r in _regime.open_receipts(tmp_path / "ledger.jsonl")] == ["fluffy-space-1"]
+
+
+def test_a_failed_create_writes_a_failed_create_step_and_no_ledger_row(tmp_path):
+    result = _fin_exec(tmp_path, _FinishGh(fail_at="codespace create"))
+    assert not result.ok
+    row = _row(tmp_path, "create")
+    assert row["ok"] is False and row["codespace"] == "" and row["failure"]
+    assert result.fate["fate"] == "FAILED" and result.fate["step"] == "create"
+    assert _ledger_rows(tmp_path) == [], "a box that never existed has no container row"
+
+
+def test_the_codespace_exec_cli_requires_batch(tmp_path, monkeypatch):
+    """The click usage error when `--batch` is missing; with it, the value reaches `codespace_exec`.
+    `codespace_exec` is stubbed so a RED run can never reach a real `gh`."""
+    from click.testing import CliRunner
+
+    seen = {}
+
+    def fake_exec(*a, **kw):
+        seen.update(kw)
+        return d.ExecResult(True, name="n")
+
+    monkeypatch.setattr(d, "codespace_exec", fake_exec)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    base = ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x", "--argv-json", '["claude"]']
+    missing = CliRunner().invoke(d.cli, base)
+    assert missing.exit_code == 2 and "--batch" in missing.output, missing.output
+    assert not seen, "a usage error launches nothing"
+    given = CliRunner().invoke(d.cli, [*base, "--batch", "B9"])
+    assert given.exit_code == 0, given.output
+    assert seen.get("batch") == "B9"
+
+
+# ----- 5-6, 12-14: the credentials step ------------------------------------------------------------
+
+def test_the_credentials_step_names_claude_codex_copilot_gh_and_agy_with_route_and_action(tmp_path):
+    cfg = _cfg(tmp_path, registry=_REGISTRY_ALL_FIVE)
+    result = _fin_exec(tmp_path, _FinishGh(), cfg)
+    assert result.ok, result.failure
+    row = _row(tmp_path, "credentials")
+    assert row["ok"] is True and row["codespace"] == "fluffy-space-1"
+    by = {c["cli"]: c for c in row["evidence"]["clis"]}
+    assert {k: by[k]["action"] for k in ("claude", "codex", "copilot", "gh", "agy")} == {
+        "claude": "not-mirrored", "codex": "mirrored", "copilot": "not-mirrored",
+        "gh": "not-mirrored", "agy": "gap"}
+    assert all(by[k]["route"] for k in ("claude", "codex", "copilot", "gh", "agy"))
+    assert row["evidence"]["gaps"] == ["agy"]
+
+
+def test_a_refused_credential_before_create_writes_a_failed_credentials_step_with_no_codespace_name(tmp_path):
+    home = _home(tmp_path, codex_age=None)
+    (home / ".codex" / "auth.json").write_text(json.dumps({"auth_mode": "apikey"}), encoding="utf-8")
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, _cfg(tmp_path, home=home))
+    assert not result.ok and fake.calls == []
+    row = _row(tmp_path, "credentials")
+    assert row["ok"] is False and row["codespace"] == "" and "codex login" in row["failure"]
+    assert row["fate"]["fate"] == "WAITING" and row["fate"]["step"] == "credentials"
+
+
+def test_only_the_codex_cache_crosses_stdin_and_the_claude_oauth_file_never_does(tmp_path):
+    """GUARD on existing behaviour (the stdin copy is today's): it is RED only through the new kwargs.
+    The claude OAuth file's refresh token ROTATES, so a copy would sign the laptop out."""
+    cfg = _cfg(tmp_path)
+    claude_file = cfg.home / ".claude" / ".credentials.json"
+    claude_file.parent.mkdir(parents=True)
+    claude_file.write_text(json.dumps({"claudeAiOauth": {"refreshToken": _SENTINEL_GEMINI}}), encoding="utf-8")
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, cfg)
+    assert result.ok, result.failure
+    assert [(a[a.index("install") + 1]) for a, _b in fake.stdin if "install" in a] == [".codex/auth.json"]
+    assert all(_SENTINEL_GEMINI.encode() not in b for _a, b in fake.stdin)
+    assert not any(".credentials.json" in " ".join(c) for c in fake.calls)
+    assert _row(tmp_path, "credentials")["evidence"]["clis"], "the step row names what was decided"
+    assert ".credentials.json" not in _steps_path(tmp_path).read_text(encoding="utf-8")
+
+
+def test_agy_is_a_recorded_gap_and_the_launch_continues(tmp_path):
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    agy = next(i for i in result.mirror if i["cli"] == "agy")
+    assert agy["action"] == "gap" and agy["gap"] == "agy-interactive-sign-in"
+    assert agy["operator_action"], "the renew line is named"
+    by = {i.cli: i for i in d.credential_decisions(_cfg(_sub(tmp_path, "dec")))}
+    assert by["agy"].action == "gap" and by["agy"].operator_action
+
+
+def test_the_agy_url_reaches_stderr_only_never_a_receipt_or_the_result(tmp_path, capsys):
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    err = capsys.readouterr().err
+    assert _AGY_URL in err and "fluffy-space-1" in err, "the operator sees the URL and the box"
+    blob = json.dumps(_asdict(result)) + "\n".join(result.commands)
+    assert _AGY_URL not in blob and "fake-not-real" not in blob
+    for text in (_steps_path(tmp_path).read_text(encoding="utf-8"),
+                 (tmp_path / "ledger.jsonl").read_text(encoding="utf-8")):
+        assert "fake-not-real" not in text and "agy.invalid" not in text
+    assert next(i for i in result.mirror if i["cli"] == "agy")["auth_url_surfaced"] is True
+
+
+def test_an_agy_signin_that_prints_no_url_records_false_and_does_not_block(tmp_path, capsys):
+    result = _fin_exec(tmp_path, _FinishGh(agy_url=None))
+    assert result.ok, result.failure
+    agy = next(i for i in result.mirror if i["cli"] == "agy")
+    assert agy["auth_url_surfaced"] is False and agy["action"] == "gap"
+    assert "https://" not in capsys.readouterr().err
+
+
+def test_the_helper_has_agy_signin_subcommands_and_takes_the_code_on_stdin_only():
+    script = d._credential_tools_script([])
+    assert "agy-signin-start" in script and "agy-signin-code" in script
+    assert "mkfifo" in script, "stdin of the pty'd agy comes from a FIFO"
+    assert "timeout 900" in script, "its life is bounded"
+    assert "chmod 700" in script
+    start = script.index("agy-signin-code)")
+    branch = script[start:script.index(";;", start)]
+    assert "read" in branch, "the code is read from stdin"
+    assert "$2" not in branch and "${2" not in branch and "$@" not in branch, "never a positional code"
+
+
+# ----- 7-10: the codex age guard -------------------------------------------------------------------
+
+def test_the_codex_mirror_window_is_derived_from_the_run_bound(tmp_path):
+    assert d.MIRROR_LEAD_S == 3600
+    assert d.COPY_LIFETIME_S == d.RUN_TIMEOUT_SECONDS + d.MIRROR_LEAD_S
+    expected = _cpar.CODEX_REFRESH_DAYS - d.COPY_LIFETIME_S / 86400
+    assert d.codex_mirror_max_age_days() == pytest.approx(expected)
+    assert getattr(_cpar, "CODEX_MIRROR_MAX_AGE_DAYS", None) != 7.0, "the typed 7.0 is gone"
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, _cfg(tmp_path, home=_home(tmp_path, codex_age=7.5)))
+    assert result.ok, result.failure
+    assert next(i for i in result.mirror if i["cli"] == "codex")["action"] == "mirrored"
+    assert any("install" in a for a, _b in fake.stdin)
+
+
+def test_codex_in_the_band_is_refused_with_the_instant_it_reopens_and_no_codex_exec_remedy(tmp_path):
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, _cfg(tmp_path, home=_home(tmp_path, codex_age=7.9)))
+    assert not result.ok and fake.calls == []
+    assert result.fate["fate"] == "WAITING" and result.fate["step"] == "credentials"
+    reopen = _NOW - timedelta(days=7.9) + timedelta(days=_cpar.CODEX_REFRESH_DAYS)
+    assert reopen.strftime("%Y-%m-%d") in result.failure and reopen.strftime("%H:%M") in result.failure
+    assert "run any `codex exec`" not in result.failure, "that remedy is false in this band"
+    assert result.failure.count("OPERATOR-ACTION:") == 1
+
+
+def _refresh_cfg(tmp_path, home, refresh):
+    return d.MirrorConfig(home=home, env={}, registry=_MIRROR_REGISTRY, now=_NOW,
+                          local_versions={"claude": "2.1.290"}, verdicts={}, refresh_codex=refresh)
+
+
+def test_a_due_codex_cache_is_refreshed_by_one_keyless_laptop_call_then_mirrored(tmp_path, monkeypatch):
+    home = _home(tmp_path, codex_age=8.5)
+    calls: list[int] = []
+
+    def refresh() -> bool:
+        calls.append(1)
+        (home / ".codex" / "auth.json").write_text(_codex_auth(0.0), encoding="utf-8")
+        return True
+
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, _refresh_cfg(tmp_path, home, refresh))
+    assert result.ok, result.failure
+    assert calls == [1], "exactly one laptop-side call"
+    codex = next(i for i in result.mirror if i["cli"] == "codex")
+    assert codex["action"] == "mirrored" and "refreshed" in codex["detail"]
+    shipped = [b for a, b in fake.stdin if "install" in a]
+    assert shipped == [(home / ".codex" / "auth.json").read_bytes()], "the REFRESHED cache is what ships"
+
+    # the DEFAULT refresher: neither API key reaches the laptop-side codex call
+    seen = []
+
+    def fake_run(argv, *a, **kw):
+        seen.append((list(argv), kw.get("env")))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setenv("CODEX_API_KEY", "fake-token-not-real")
+    monkeypatch.setenv("OPENAI_API_KEY", "fake-token-not-real")
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(shutil, "which", lambda name, *a, **k: name)
+    due_home = _home(_sub(tmp_path, "due"), codex_age=8.5)
+    cfg = d.MirrorConfig(home=due_home, env={"CODEX_API_KEY": "fake-token-not-real",
+                                             "OPENAI_API_KEY": "fake-token-not-real"},
+                         registry=_MIRROR_REGISTRY, now=_NOW, local_versions={"claude": "2.1.290"})
+    d.credential_decisions(cfg)
+    codex_calls = [(a, e) for a, e in seen if "codex" in " ".join(a) and "exec" in a]
+    assert len(codex_calls) == 1, seen
+    argv, env = codex_calls[0]
+    assert "--skip-git-repo-check" in argv and "read-only" in argv
+    keyless = (env is not None and not {"CODEX_API_KEY", "OPENAI_API_KEY"} & set(env)) or (
+        "-u" in argv and "CODEX_API_KEY" in argv and "OPENAI_API_KEY" in argv)
+    assert keyless, "the refresh call is run with neither API key"
+
+
+def test_a_due_codex_cache_the_laptop_call_did_not_refresh_is_refused(tmp_path):
+    home = _home(tmp_path, codex_age=8.5)
+    calls: list[int] = []
+
+    def refresh() -> bool:
+        calls.append(1)
+        return True            # the call "ran" but the cache's last_refresh did not move
+
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, _refresh_cfg(tmp_path, home, refresh))
+    assert calls == [1]
+    assert not result.ok and fake.calls == []
+    assert result.fate["fate"] == "WAITING" and "codex login" in result.failure
+
+
+# ----- 11: the EXIT trap ---------------------------------------------------------------------------
+
+def _bash_or_skip() -> str:
+    try:
+        return _bash_exe()
+    except AssertionError:
+        pytest.skip("no bash on PATH can run a command here (ADR-127: skipped with its reason, not passed)")
+
+
+#: git under some harnesses runs with `safe.bareRepository=explicit`; the local bare "origin" must be usable.
+_GIT_BARE_OK = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "safe.bareRepository",
+                "GIT_CONFIG_VALUE_0": "all"}
+
+
+def _git(cwd, *args):
+    return subprocess.run(["git", *args], cwd=str(cwd), check=True, capture_output=True, text=True,
+                          env={**os.environ, **_GIT_BARE_OK}).stdout.strip()
+
+
+def _git_lane(base: Path, branch: str = "worktree-x"):
+    """A checkout on `branch` with a local bare `origin` that already holds `main`."""
+    if shutil.which("git") is None:
+        pytest.skip("no git on PATH")
+    origin, checkout = base / "origin.git", base / "checkout"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True,
+                   env={**os.environ, **_GIT_BARE_OK})
+    checkout.mkdir()
+    _git(checkout, "init", "-q", "-b", "main")
+    for key, value in (("user.name", "t"), ("user.email", "t@example.invalid"), ("commit.gpgsign", "false")):
+        _git(checkout, "config", key, value)
+    _git(checkout, "remote", "add", "origin", origin.as_posix())
+    _git(checkout, "commit", "-q", "--allow-empty", "-m", "base")
+    _git(checkout, "push", "-q", "origin", "main")
+    if branch != "main":
+        _git(checkout, "checkout", "-q", "-b", branch)
+    return origin, checkout
+
+
+def _lane_env(base: Path) -> dict:
+    stubbin = base / "stubbin"
+    stubbin.mkdir(exist_ok=True)
+    shim = stubbin / "python3"
+    shim.write_text(f'#!/usr/bin/env bash\nexec "{Path(sys.executable).as_posix()}" "$@"\n',
+                    encoding="utf-8", newline="\n")
+    shim.chmod(0o755)
+    home = base / "home"
+    home.mkdir(exist_ok=True)
+    return {**os.environ, "HOME": home.as_posix(), "PATH": str(stubbin) + os.pathsep + os.environ.get("PATH", ""),
+            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid", **_GIT_BARE_OK}
+
+
+def _run_runner(base: Path, body: str, workdir: Path, env: dict) -> None:
+    runner = workdir / "run-lane.sh"
+    runner.write_text(body, encoding="utf-8", newline="\n")
+    with open(base / "console.txt", "wb") as sink:     # a file, not a pipe: the watchdog outlives it
+        subprocess.run([_bash_or_skip(), runner.as_posix()], env=env, stdout=sink,
+                       stderr=subprocess.STDOUT, timeout=180)
+
+
+def _head_stub(base: Path, lines: str) -> list[str]:
+    stub = base / "head.sh"
+    stub.write_text("#!/usr/bin/env bash\n" + lines, encoding="utf-8", newline="\n")
+    return [_bash_or_skip(), stub.as_posix()]
+
+
+@pytest.mark.parametrize("head_exit", [0, 3], ids=["clean-exit", "non-zero-exit"])
+def test_the_runner_removes_every_mirrored_cache_on_exit(tmp_path, head_exit):
+    """The mirrored `$HOME/.codex/auth.json` cannot outlive the run: an EXIT trap removes it, also on a
+    non-zero head exit (this is what makes the age window a real bound)."""
+    _bash_or_skip()
+    _origin, checkout = _git_lane(tmp_path)
+    work = _sub(tmp_path, "work")
+    fake = _FinishGh()
+    cfg = _cfg(tmp_path)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    head = _head_stub(tmp_path, f"exit {head_exit}\n")
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, head, invoker=fake, mirror=cfg,
+                              batch=_FIN_BATCH, receipts_root=tmp_path / "rr",
+                              ledger_path=tmp_path / "ledger.jsonl")
+    assert result.ok, result.failure
+    body = fake.runner_body.replace("/workspaces/dispatch", work.as_posix()) \
+                           .replace("/workspaces/repo", checkout.as_posix())
+    cache = cfg.home / ".codex" / "auth.json"
+    assert cache.is_file()
+    _run_runner(tmp_path, body, work, {**_lane_env(tmp_path), "HOME": cfg.home.as_posix()})
+    assert (work / "receipt.json").is_file(), "the runner ran to its receipt"
+    assert not cache.exists(), "the mirrored codex cache must be removed by the runner's EXIT trap"
+
+
+# ----- 16-17, 20: the commit witness and the handback, from the REAL runner -----------------------
+
+def _lane_run(base: Path, *, branch: str = "worktree-x", head_lines: str):
+    origin, checkout = _git_lane(base, branch)
+    work = _sub(base, "work")
+    head = _head_stub(base, head_lines)
+    body = d._codespace_runner_script(work.as_posix(), checkout.as_posix(), head)
+    _run_runner(base, body, work, _lane_env(base))
+    receipt = json.loads((work / "receipt.json").read_text(encoding="utf-8"))
+    return origin, checkout, work, receipt
+
+
+def test_the_runner_writes_a_commit_witness_into_the_receipt(tmp_path):
+    origin, checkout, _work, receipt = _lane_run(tmp_path, head_lines='git commit -q --allow-empty -m "lane work"\n')
+    commit = receipt["commit"]
+    assert set(commit) == {"base_sha", "head_sha", "branch", "pushed_sha", "committed", "pushed", "push_exit"}
+    head = _git(checkout, "rev-parse", "HEAD")
+    assert commit["head_sha"] == head and commit["base_sha"] != head
+    assert commit["branch"] == "worktree-x" and commit["committed"] is True
+    assert commit["pushed"] is True and commit["pushed_sha"] == head and commit["push_exit"] == 0
+    assert _git(checkout, "ls-remote", "origin", "refs/heads/worktree-x").split()[0] == head
+
+
+def test_a_lane_that_commits_nothing_has_an_unpushed_witness(tmp_path):
+    _origin, checkout, _work, receipt = _lane_run(tmp_path, head_lines="true\n")
+    commit = receipt["commit"]
+    assert commit["committed"] is False and commit["pushed"] is False
+    assert commit["head_sha"] == commit["base_sha"] == _git(checkout, "rev-parse", "HEAD")
+
+
+def test_the_runner_pushes_only_its_own_branch_and_never_main(tmp_path):
+    body = d._codespace_runner_script("/w", "/c", ["true"])
+    assert "HEAD:refs/heads/" in body, "the refspec is HEAD:refs/heads/<branch>"
+    assert "--force" not in body and "--no-verify" not in body
+    origin, checkout, _work, receipt = _lane_run(tmp_path, branch="main",
+                                                 head_lines='git commit -q --allow-empty -m "oops on main"\n')
+    base_main = _git(origin, "rev-parse", "refs/heads/main")
+    assert base_main != _git(checkout, "rev-parse", "HEAD"), "the lane did commit on main"
+    assert receipt["commit"]["committed"] is True and receipt["commit"]["pushed"] is False
+    assert _git(origin, "rev-parse", "refs/heads/main") == base_main, "main on origin never moves"
+
+
+_STREAM_FIRST = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 1,
+                 "session_id": "s-0", "structured_output": {"state": "FAILED", "marker": "first"}}
+
+
+def _stream_head(base: Path, last: dict) -> str:
+    data = base / "stream.jsonl"
+    data.write_text("\n".join([json.dumps(_STREAM_FIRST), json.dumps({"type": "assistant", "message": "x"}),
+                               json.dumps(last)]) + "\n", encoding="utf-8", newline="\n")
+    return f'cat "{data.as_posix()}"\n'
+
+
+def test_the_runner_writes_the_lane_report_as_handback_json(tmp_path):
+    last = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 2,
+            "session_id": "s-1", "structured_output": _LANE_REPORT}
+    _origin, _checkout, work, receipt = _lane_run(tmp_path, head_lines=_stream_head(tmp_path, last))
+    assert json.loads((work / "handback.json").read_text(encoding="utf-8")) == _LANE_REPORT, \
+        "the LAST result object's structured_output, not the first"
+    assert receipt["handback"] == {"present": True}
+
+
+def test_the_runner_records_no_handback_when_the_last_result_has_no_structured_output(tmp_path):
+    last = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 2, "session_id": "s-1"}
+    _origin, _checkout, work, receipt = _lane_run(tmp_path, head_lines=_stream_head(tmp_path, last))
+    assert receipt["handback"] == {"present": False}
+    assert not (work / "handback.json").exists()
+
+
+# ----- 18-19: the commit step ----------------------------------------------------------------------
+
+def test_a_lane_that_committed_nothing_fails_at_the_commit_step(tmp_path):
+    fake = _FinishGh(receipt_written={**copy.deepcopy(_GOOD_RECEIPT), "commit": _NO_COMMIT})
+    result = _fin_exec(tmp_path, fake)
+    assert not result.ok
+    assert result.fate["fate"] == "FAILED" and result.fate["step"] == "commit"
+    row = _row(tmp_path, "commit")
+    assert row["ok"] is False and row["evidence"]["committed"] is False
+    assert set(row["evidence"]) == {"branch", "base_sha", "head_sha", "pushed_sha", "committed",
+                                    "pushed", "push_exit"}
+    assert _row(tmp_path, "run")["ok"] is True
+
+
+def test_the_codespace_exec_cli_exits_no_commit_when_the_fate_is_the_commit_step(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    monkeypatch.setattr(d, "codespace_exec", lambda *a, **kw: d.ExecResult(
+        False, name="n", failure="the lane committed nothing",
+        fate={"fate": "FAILED", "step": "commit", "reason": "committed nothing"}))
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
+                                     "--argv-json", '["claude"]', "--batch", "B1"])
+    assert res.exit_code == d.EXIT_NO_COMMIT == 6, res.output
+
+
+def test_a_commit_not_on_origin_fails_at_the_commit_step(tmp_path):
+    fake = _FinishGh(receipt_written={**copy.deepcopy(_GOOD_RECEIPT), "commit": _NOT_ON_ORIGIN})
+    result = _fin_exec(tmp_path, fake)
+    assert not result.ok
+    assert result.fate["step"] == "commit"
+    row = _row(tmp_path, "commit")
+    assert row["ok"] is False and row["evidence"]["committed"] is True and row["evidence"]["pushed"] is False
+
+
+# ----- 21: the handback step -----------------------------------------------------------------------
+
+def test_a_missing_or_invalid_handback_fails_at_the_handback_step(tmp_path):
+    from ecosystem.schema.lane_report import LaneReport
+
+    LaneReport.model_validate(_LANE_REPORT)       # the fixture is itself a valid LANE REPORT
+
+    good = _fin_exec(_sub(tmp_path, "good"), _FinishGh())
+    assert good.ok, good.failure
+    row = _row(tmp_path / "good", "handback")
+    assert row["ok"] is True and row["evidence"] == {"present": True, "valid": True, "errors": []}
+
+    missing = _fin_exec(_sub(tmp_path, "missing"), _FinishGh(handback=""))
+    assert not missing.ok and missing.fate["step"] == "handback"
+    row = _row(tmp_path / "missing", "handback")
+    assert row["ok"] is False and row["evidence"]["present"] is False and row["evidence"]["valid"] is False
+
+    invalid = _fin_exec(_sub(tmp_path, "invalid"), _FinishGh(handback=json.dumps({"state": "BOGUS"})))
+    assert not invalid.ok and invalid.fate["step"] == "handback"
+    row = _row(tmp_path / "invalid", "handback")
+    assert row["evidence"]["present"] is True and row["evidence"]["valid"] is False
+    assert row["evidence"]["errors"] and all(isinstance(e, str) for e in row["evidence"]["errors"])
+
+    both = _fin_exec(_sub(tmp_path, "both"), _FinishGh(
+        handback=json.dumps({"state": "BOGUS"}), receipt_written={**copy.deepcopy(_GOOD_RECEIPT), "commit": _NO_COMMIT}))
+    assert both.fate["step"] == "commit", "the first failure in run, commit, handback order is the fate"
+    assert {r["step"] for r in _rows(tmp_path / "both")} >= {"run", "commit", "handback"}, \
+        "every row is still written whenever its evidence exists"
+
+
+def test_the_run_step_row_carries_exit_code_status_turns_and_session(tmp_path):
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    row = _row(tmp_path, "run")
+    assert row["ok"] is True
+    assert row["evidence"] == {"exit_code": 0, "status": "success", "is_error": False, "turns": 3,
+                               "session_id": "sess-1"}
+    assert [r["step"] for r in _rows(tmp_path)] == ["create", "credentials", "run", "commit", "handback"]
+    assert all(r["ok"] is True for r in _rows(tmp_path))
+
+
+# ----- 22: harvest ---------------------------------------------------------------------------------
+
+def test_harvest_collects_handback_json_and_writes_a_harvest_step(tmp_path):
+    assert d.HARVEST_FILES == ("run.log", "receipt.json", "handback.json")
+    fake = _ssh_cat_fake({"run.log": "x\n", "receipt.json": '{"exit_code": 0}\n',
+                          "handback.json": json.dumps(_LANE_REPORT) + "\n"})
+    result = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-h", out_root=tmp_path, invoker=fake)
+    assert result.ok, result.failure
+    assert "handback.json" in result.files
+    rows = [json.loads(ln) for ln in (tmp_path / "B1" / "lane-h" / "steps.jsonl").read_text("utf-8").splitlines()]
+    assert [r["step"] for r in rows] == ["harvest"]
+    row = rows[0]
+    assert row["ok"] is True and row["codespace"] == "fluffy-1" and row["kind"] == "codespace-step"
+    assert row["evidence"]["files"] == result.files
+    assert row["evidence"]["manifest_path"] == str(result.manifest_path)
+    again = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-h", out_root=tmp_path, invoker=fake)
+    assert not again.ok
+    rows = [json.loads(ln) for ln in (tmp_path / "B1" / "lane-h" / "steps.jsonl").read_text("utf-8").splitlines()]
+    assert [r["ok"] for r in rows] == [True, False], "a refusal writes ok: false"
+    d.codespace_harvest("fluffy-1", batch="B1", lane="lane-dry", out_root=tmp_path, dry_run=True, invoker=fake)
+    assert not (tmp_path / "B1" / "lane-dry" / "steps.jsonl").exists(), "a dry run writes no row"
+
+
+# ----- 23-24: delete -------------------------------------------------------------------------------
+
+def _open_row(ledger: Path, name: str = "fluffy-1", minutes: float = 30.0):
+    now = datetime.now(timezone.utc)
+    _regime.write_receipt("lane-x", "B1", name, created=now - timedelta(minutes=minutes), deleted=None,
+                          machine="standardLinux32gb", prebuild=False, tokens={}, ledger_path=ledger)
+
+
+def test_delete_writes_a_delete_step_and_closes_the_regime_row(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    _open_row(ledger)
+    assert [r["codespace"] for r in _regime.open_receipts(ledger)] == ["fluffy-1"]
+    harvested = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-x", out_root=tmp_path / "rr",
+                                    invoker=_ssh_cat_fake({"run.log": "clean\n"}))
+    calls = []
+
+    def fake_delete(argv):
+        calls.append(list(argv))
+        return d.GhResult(ok=True, exit_code=0, stdout="")
+
+    result = d.codespace_delete("fluffy-1", out_dir=harvested.out_dir, invoker=fake_delete,
+                                batch="B1", lane="lane-x", receipts_root=tmp_path / "rr", ledger_path=ledger)
+    assert result.ok and calls == [["codespace", "delete", "-c", "fluffy-1", "--force"]]
+    row = _row(tmp_path, "delete")
+    assert row["ok"] is True and row["codespace"] == "fluffy-1"
+    assert row["evidence"]["refused"] is False and row["evidence"]["exit_code"] == 0
+    assert row["evidence"]["uptime_minutes"] > 0
+    assert _regime.open_receipts(ledger) == [], "the container row is closed"
+    closed = [r for r in map(json.loads, ledger.read_text("utf-8").splitlines()) if r.get("codespace") == "fluffy-1"][-1]
+    assert closed["open"] is False and closed["deleted"] and closed["uptime_minutes"] > 0
+
+
+def test_a_refused_delete_writes_a_refused_step_and_leaves_the_regime_row_open(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    _open_row(ledger)
+
+    def fake_delete(argv):  # pragma: no cover -- must not be reached
+        raise AssertionError("gh must not be called when the harvest is unverified")
+
+    result = d.codespace_delete("fluffy-1", out_dir=tmp_path / "rr" / "B1" / "lane-x", invoker=fake_delete,
+                                batch="B1", lane="lane-x", receipts_root=tmp_path / "rr", ledger_path=ledger)
+    assert result.refused
+    row = _row(tmp_path, "delete")
+    assert row["ok"] is False and row["evidence"]["refused"] is True and row["evidence"]["reason"]
+    assert [r["codespace"] for r in _regime.open_receipts(ledger)] == ["fluffy-1"], "no regime row written"
+
+
+def test_a_failed_gh_delete_writes_a_failed_step_and_no_closed_regime_row(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    _open_row(ledger)
+    harvested = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-x", out_root=tmp_path / "rr",
+                                    invoker=_ssh_cat_fake({"run.log": "clean\n"}))
+    result = d.codespace_delete("fluffy-1", out_dir=harvested.out_dir,
+                                invoker=lambda argv: d.GhResult(ok=False, exit_code=1, stdout="boom"),
+                                batch="B1", lane="lane-x", receipts_root=tmp_path / "rr", ledger_path=ledger)
+    assert not result.ok and not result.refused
+    row = _row(tmp_path, "delete")
+    assert row["ok"] is False and row["evidence"]["exit_code"] == 1
+    assert [r["codespace"] for r in _regime.open_receipts(ledger)] == ["fluffy-1"]
+
+
+# ----- 25: no credential byte in any row -----------------------------------------------------------
+
+def test_no_credential_byte_reaches_any_step_row_or_ledger_row(tmp_path):
+    cfg = _cfg(tmp_path)
+    codex_bytes = (cfg.home / ".codex" / "auth.json").read_bytes()
+    fake = _FinishGh()
+    result = _fin_exec(tmp_path, fake, cfg)
+    assert result.ok, result.failure
+    harvested = d.codespace_harvest(result.name, batch=_FIN_BATCH, lane="lane-x", out_root=tmp_path / "rr",
+                                    invoker=_ssh_cat_fake({"run.log": "clean\n", "receipt.json": "{}\n"}))
+    assert harvested.ok, harvested.failure
+    deleted = d.codespace_delete(result.name, out_dir=harvested.out_dir, invoker=lambda argv: d.GhResult(True, 0, ""),
+                                 batch=_FIN_BATCH, lane="lane-x", receipts_root=tmp_path / "rr",
+                                 ledger_path=tmp_path / "ledger.jsonl")
+    assert deleted.ok
+    steps = _steps_path(tmp_path).read_text(encoding="utf-8")
+    ledger = (tmp_path / "ledger.jsonl").read_text(encoding="utf-8")
+    assert len(_rows(tmp_path)) >= 7 and ledger.strip(), "the flow really wrote its rows (no vacuous pass)"
+    assert d.leak_check({"codex": codex_bytes}, [steps, ledger]) == []
+
+
+# ----- round 2 (judge R1): batch is required; a credential byte in a harvested file is flagged -------
+
+def test_codespace_exec_without_a_batch_is_refused_not_a_silent_bare_launch(tmp_path):
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    calls = []
+
+    def fake(argv, *a):  # pragma: no cover -- must not be reached
+        calls.append(list(argv))
+        raise AssertionError("no gh call may be made without a batch")
+
+    with pytest.raises(TypeError):
+        d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
+    with pytest.raises(ValueError):
+        d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="")
+    assert calls == []
+
+
+def test_the_leak_check_flags_a_credential_byte_in_a_harvested_file(tmp_path):
+    """NEGATIVE CONTROL, may already be GREEN on arrival: the leak check must flag a harvested
+    `run.log` that holds the (fake) codex cache bytes -- proof the clean-flow test is not vacuous."""
+    cfg = _cfg(tmp_path)
+    codex_bytes = (cfg.home / ".codex" / "auth.json").read_bytes()
+    result = _fin_exec(tmp_path, _FinishGh(), cfg)
+    assert result.ok, result.failure
+    remote = {"run.log": codex_bytes.decode("utf-8") + "\n", "receipt.json": "{}\n"}
+    harvested = d.codespace_harvest(result.name, batch=_FIN_BATCH, lane="lane-x", out_root=tmp_path / "rr",
+                                    invoker=_ssh_cat_fake(remote))
+    assert harvested.ok, harvested.failure
+    texts = {rel: (harvested.out_dir / rel).read_text(encoding="utf-8") for rel in harvested.files}
+    flagged = {rel for rel, text in texts.items() if d.leak_check({"codex": codex_bytes}, [text])}
+    assert flagged == {"run.log"}, "the finding names the harvested file that carries the bytes"
+    assert d.leak_check({"codex": codex_bytes}, list(texts.values())) == ["codex"]
+
+
+_TRACKED_LEDGER = Path(d.__file__).resolve().parents[1] / "logs" / "CODESPACE-RECEIPTS.jsonl"
+
+
+def test_the_codespace_suites_never_write_the_tracked_ledger_or_the_home_receipts(tmp_path):
+    """A representative exec that names NO receipt seam (the shape of the old callers) must leave the
+    tracked regime ledger and `~/.claude/remote-runs/B1` exactly as they were."""
+    home_b1 = Path.home() / ".claude" / "remote-runs" / "B1"
+
+    def state():
+        ledger = _TRACKED_LEDGER.read_bytes() if _TRACKED_LEDGER.is_file() else None
+        home = sorted((str(p), p.stat().st_mtime_ns) for p in home_b1.rglob("*")) if home_b1.exists() else []
+        return ledger, home
+
+    before = state()
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    result = d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=_FakeGh(
+        receipt_written=copy.deepcopy(_GOOD_RECEIPT)), batch="B1")
+    assert result.ok, result.failure
+    assert result.steps, "the exec did write its step rows -- to the private test home"
+    assert state() == before

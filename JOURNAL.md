@@ -76,6 +76,21 @@
 **Next:** land through `merge_path.py land`; Part C lands `worktree-system-map-2026-10-14`. Judge's low note J2.N1: a `restamped` receipt line is appended before the atomic replace, so a failed replace logs restamped on an unchanged bundle.
 
 ---
+### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema
+
+**Anchors:** `0d97edde` (eea31c5d rebased onto b46836c8), `075254c5` + `bb13f0a2` (RED tests), `7e505b19` (implementation, Copilot), `41ba3dbe` (pin write), `d75bb2a9` (round-1 ledger rows), `e212ceea` + `54350e02` (round-2 tests, ledger isolation), `c61dc0b6` + `f544a906` (round-2 fixes), `c49fed74` (round-2 ledger rows). Branch `worktree-codespace-finish-2026-10-14`, NOT landed.
+
+**Did:** the held branch was rebased onto a new lane branch instead of the held one, which avoided a force-push. The order's 8 stages ran in isolation, with receipts under `logs/receipts/codespace-finish-2026-10-14/`. Two live rounds ran in real Codespaces: 4 boxes, all deleted by `codespace-delete`, and the ledger holds open and closed rows for each.
+
+**Result:** the judge REFUSED in round 2, the last round. Steps 1, 2 and 7 PASS live, as do C2, C4 and the leak check. Step 3 FAILs on main's `ecosystem/schema/lane_report.py`. In round 1, the 2020-12 `$schema` was rejected by the claude CLI. In round 2, with that key dropped, the top-level `allOf` (`:140`) is rejected by the API with a 400. So no Codespace claude lane can run on main. C1 failed on a copilot pin skew, C3 was REGRESSED (partly branch-owned: a stale doc-counts) and C5 failed on a scratch branch.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_parity.py`, `.devcontainer/provisioning.yaml`, `tests/test_dispatch_codespace.py`, `tests/test_dispatch_py.py`, `tests/test_codespace_parity.py`, `ecosystem/doc-counts.md`, `logs/CODESPACE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** the judge's carry-forward is in `to-browser/LANE-END-codespace-finish-2026-10-14.md`:
+- strip the top-level combinators from the argv token, with a live claude smoke test;
+- re-render doc-counts;
+- write the pins and delete the scratch branches inside the procedure.
+The land waits on green main either way.
 
 ### 2026-10-14 (a) - CC (Opus 5.5, handoff seat): architect handoff `2026-10-14-dev-knowledge-architect` cut, supplement filled, residual carries its debt (Tech-Architect-44 -> successor)
 
