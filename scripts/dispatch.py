@@ -2723,7 +2723,9 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "set -uo pipefail",
         # a dropped ssh connection sends SIGHUP: the lane outlives it and the receipt is still written
         "trap '' HUP",
-        *([f"trap 'rm -f {rm_list}' EXIT"] if rm_list else []),
+        # the one EXIT trap, present even when nothing was mirrored: it also removes the fallback's auth.json
+        "cs_codex_fallback=0",
+        f"""trap 'rm -f {rm_list}; [ "$cs_codex_fallback" = 1 ] && rm -f "$HOME/.codex/auth.json"' EXIT""",
         f"cd {shlex.quote(checkout_dir)} || exit 90",
         "base_sha=$(git rev-parse HEAD 2>/dev/null || true)",
         f"rm -f {stalled}",
@@ -2741,7 +2743,7 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         # mirror put nothing -- written owner-only, its value never echoed
         'if [ -n "${CODEX_AUTH_JSON:-}" ] && [ ! -f "$HOME/.codex/auth.json" ]; then '
         'umask 077; mkdir -p "$HOME/.codex"; printf "%s" "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"; '
-        'chmod 600 "$HOME/.codex/auth.json"; fi',
+        'chmod 600 "$HOME/.codex/auth.json"; cs_codex_fallback=1; fi',
         # no codex invocation sees an API key, and a key the laptop does not use for a mirrored CLI is
         # not in the lane's environment either (R87, R87.3)
         f"unset {removed}",
