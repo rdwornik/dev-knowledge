@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (c) - CC (Opus 5.5, build1-prep): batch BU (BUILD-1) frozen -- rows [#1535]-[#1540], manifest open, six contracts rendered; nothing launched
+
+**Anchors:** `0c8b495d` ([#1535]-[#1540] + intake 110, the [#669] waiver note), `8b2b2fed` (batch BU manifest, `status: open`), `4432daaa` (audits index). Branch `worktree-build1-prep-2026-10-15`.
+
+**Did:** AMEND v5 step 0 challenged every browser idea (R111-R115, the runner, the lane split, L1-L6) with two non-producer evaluators (Codex gpt-5.6-sol, Grok grok-4.20) and four weighted matrices; 77 findings answered one by one, `decide_checks` 0 defects on all eight runs. Step 1's Codex sol re-check of the design returned REJECT; O2-O7 changed the rows and contracts, O1 is handled by id in [#1538]. Six lane contracts, the common rules and the integrator and dispatcher orders rendered to the transport.
+
+**Result:** render green -- plan lint no findings, six `dispatch plan` exit 0, `queue --dry-run` exit 0, file-collision PASS (46 paths), carried-by PASS, transport lint ok; lane-ceiling PASS without the worktree leg (with it, it counts this prep worktree and refuses; the dispatcher reruns it after the freeze lands). R111 (Linux-first CI), R112 List A and R113's confinement are INPUT_REQUIRED and built by no lane.
+
+**Changes:** `tasks/1535-*`..`tasks/1540-*`, `tasks/669-*` (note), `tasks/manifest.json`, `docs/intake/2026-10-15-tech-build1-owed-rows.md`, generated `BACKLOG.md` + intake index, `docs/audits/2026-10-15-technical-batch-bu-manifest.md`, `docs/audits/README.md`.
+
+**Next:** the operator pastes `to-cc/INTEGRATOR-BU-2026-10-15.md`, waits for `FREEZE-LANDED`, then pastes `to-cc/DISPATCHER-BU-2026-10-15.md`; ratify or refuse the [#669] waiver (intake 110). Digest: `to-browser/DIGEST-BUILD1-READY-2026-10-15.md`.
+
+---
+
 ### 2026-10-15 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot closes -- B landed 64704a83, C landed 40e53d58; the residual X3 defect filed
 
 **Anchors:** `42efebd3` (system-map-2026-10-14 merge receipt closed), `c5c3d459` ([#1534] + intake 109). Branch `chore/green-main-tail-2026-10-15`.

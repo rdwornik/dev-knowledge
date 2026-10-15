@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6efd4a636fc347d74beae611c4c327f37d4fa6c96d02b8aa14c262c37deaa723",
+  "generated_sha256": "656814a02ba5d5b099d49a1896ced7a37d2f842d3cde5818287b898c24d87fd4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3130,6 +3130,30 @@
     {
       "task": 1534,
       "file": "1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md"
+    },
+    {
+      "task": 1535,
+      "file": "1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md"
+    },
+    {
+      "task": 1536,
+      "file": "1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md"
+    },
+    {
+      "task": 1537,
+      "file": "1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md"
+    },
+    {
+      "task": 1538,
+      "file": "1538-rulings-r100-r115-land-in-standing-rulings-by-id.md"
+    },
+    {
+      "task": 1539,
+      "file": "1539-the-architect-reads-an-inbox-and-request-status-is-derived.md"
+    },
+    {
+      "task": 1540,
+      "file": "1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md"
     },
     {
       "prose": ""
