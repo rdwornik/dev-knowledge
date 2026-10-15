@@ -218,6 +218,11 @@ class PhaseReceipt(BaseModel):
                 raise ValueError("status COMPLETE requires a payload")
         elif self.payload_sha256 != payload_sha256(self.payload):
             raise ValueError("payload_sha256 does not match the carried payload")
+        else:
+            if self.payload.nonce != self.nonce:
+                raise ValueError("payload nonce does not match the receipt nonce")
+            if self.payload.input_hash != self.input_hash:
+                raise ValueError("payload input_hash does not match the receipt input_hash")
         return self
 
 

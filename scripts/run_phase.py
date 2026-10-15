@@ -87,7 +87,7 @@ def fresh_payload(path, *, spawned_at: float, nonce: str, input_hash: str, model
     model = model or _pr.PhasePayload
     try:
         path = Path(path)
-        if path.stat().st_mtime < spawned_at:
+        if path.stat().st_mtime <= spawned_at:
             return None
         parsed = model.model_validate(json.loads(path.read_text(encoding="utf-8")))
     except Exception:  # noqa: BLE001 -- any unreadable/invalid payload is simply not harvested

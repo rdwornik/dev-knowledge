@@ -39,6 +39,19 @@ SCHEMA_VERSION = "1.0.0"
 BASELINE: tuple[str, ...] = ("C-TASK", "C-SCOPE", "C-RED", "C-VENDOR", "C-CLEAN")
 
 
+def _norm(text: str) -> str:
+    return text.replace("`", "").strip()
+
+
+def _names(proposed: str, path: str) -> bool:
+    """True when the normalised `proposes` is this path, or shares its file stem."""
+    want = _norm(path)
+    if not proposed or not want:
+        return False
+    stem = lambda s: s.replace("\\", "/").rsplit("/", 1)[-1].rsplit(".", 1)[0]  # noqa: E731
+    return proposed == want or stem(proposed) == stem(want)
+
+
 class ReuseCandidate(BaseModel):
     """An existing path that resembles a NEW path the plan proposes."""
 
@@ -95,6 +108,7 @@ class DistillReceipt(BaseModel):
         missing = [c for c in BASELINE if c not in self.constraints]
         if missing:
             raise ValueError(f"constraints lack the baseline id(s) {missing}")
+        proposed = _norm(self.challenge.proposes) if self.challenge is not None else ""
         for path in self.plan_new_paths:
             hits = [c for c in self.reuse_candidates
                     if c.matched == path and c.score >= self.reuse_threshold]
@@ -109,6 +123,9 @@ class DistillReceipt(BaseModel):
                     or ch.verdict not in ("AGREE", "AMEND")):
                 raise ValueError(f"NEW path {path} has reuse candidate {hits[0].path} and needs "
                                  "an AGREE/AMEND challenge from a vendor other than the producer")
+            if not _names(proposed, path):
+                raise ValueError(f"NEW path {path} is not the path the challenge proposes "
+                                 f"({ch.proposes!r}); every conflicting NEW path needs its own")
         if self.challenge is not None and self.challenge.row_state == "INPUT_REQUIRED":
             if self.row_state != "INPUT_REQUIRED":
                 raise ValueError("the challenge is INPUT_REQUIRED, so row_state must be too")
