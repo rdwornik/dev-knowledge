@@ -1174,15 +1174,24 @@ def refresh_index(dest: Path, *, trigger: str, root: Path, seats: list[dict],
 
 def _write_both(root: Path, archive_text: str, *, slug_to_seat: Optional[dict] = None,
                 registry: Optional[list[Kind]] = None, locked: bool = False) -> None:
-    """Write `INDEX-ARCHIVE.md` (the full text) and `INDEX.md` (its view). Through `write()` (which takes
-    each file's lock) unless the caller already holds the archive's lock (`locked`)."""
+    """Write `INDEX-ARCHIVE.md` (the full text) and `INDEX.md` (its view) as ONE act under the archive's
+    lock -- the lock `refresh_index` holds -- so a concurrent refresh never interleaves between the two
+    and leaves a view of another archive (Codex terra HIGH, this lane's review). The caller that already
+    holds that lock passes `locked`."""
     to_browser = Path(root) / "to-browser"
     view = build_view(archive_text, slug_to_seat=slug_to_seat)
-    for name, text in ((ARCHIVE_INDEX_NAME, archive_text), (INDEX_NAME, view)):
-        if locked:
-            _tr.deliver(to_browser / name, text.encode("utf-8"))
-        else:
-            write("transport", to_browser / name, text, registry=registry)
+    pair = ((to_browser / ARCHIVE_INDEX_NAME, archive_text), (to_browser / INDEX_NAME, view))
+    if locked:
+        for path, text in pair:
+            _tr.deliver(path, text.encode("utf-8"))
+        return
+    reg = registry if registry is not None else load_registry()
+    for path, _text in pair:
+        _check("transport", path, reg)               # registered kind, registered writer, its own folder
+    to_browser.mkdir(parents=True, exist_ok=True)
+    with _DestinationLock(pair[0][0], INDEX_LOCK_TIMEOUT_S):
+        for path, text in pair:
+            _tr.deliver(path, text.encode("utf-8"))
 
 
 def index_stale(root: Path) -> bool:

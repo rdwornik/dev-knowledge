@@ -1694,14 +1694,16 @@ CARRIAGE_NO_KEY = "no-key"
 CARRIAGE_UNRESOLVED = "unresolved"
 CARRIAGE_SUPERSEDED = "superseded"
 
-_SUPERSEDED_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])superseded(?![A-Za-z0-9])", re.IGNORECASE)
-_SUPERSEDED_SUFFIX_RE = re.compile(r"-(?:v\d+-)?superseded(?![A-Za-z0-9]).*$", re.IGNORECASE)
+#: The transport's version-suffix convention only: `-superseded` or `-v<n>-superseded`, optionally
+#: followed by one `-YYYY-MM-DD`, at the END of the stem. A title word (`AMEND-SUPERSEDED-POLICY-…`)
+#: is not a version mark (Codex terra HIGH, this lane's review).
+_SUPERSEDED_SUFFIX_RE = re.compile(r"-(?:v\d+-)?superseded(?:-\d{4}-\d{2}-\d{2})?$", re.IGNORECASE)
 
 
 def is_superseded_name(name: str) -> bool:
-    """True when the filename carries `superseded` as a whole hyphen-delimited token."""
+    """True when the filename ends in the superseded-version suffix (`_SUPERSEDED_SUFFIX_RE`)."""
     stem = name[:-3] if name.lower().endswith(".md") else name
-    return _SUPERSEDED_TOKEN_RE.search(stem) is not None
+    return _SUPERSEDED_SUFFIX_RE.search(stem) is not None
 
 
 def successor_of(path) -> "Path | None":

@@ -2569,3 +2569,11 @@ def test_1332_a_superseded_file_with_no_carried_by_never_joins_the_shortfall(tmp
     assert [v.path.name for v in short] == [], [v.render() for v in short]
     verdict = {v.path.name: v for v in gh.carriage_verdicts(t, tmp_path)}["AMEND-X-2026-10-15-v1-superseded.md"]
     assert verdict.kind == getattr(gh, "CARRIAGE_SUPERSEDED", "superseded")
+
+
+def test_1332_only_the_version_suffix_marks_a_file_superseded_not_a_title_word():
+    """Codex terra HIGH (judge round 1): a title word is not a version mark."""
+    assert not gh.is_superseded_name("AMEND-SUPERSEDED-POLICY-2026-10-15.md")
+    assert not gh.is_superseded_name("BATCH-superseded-files-cleanup-2026-10-15.md")
+    assert gh.is_superseded_name("AMEND-BATCH-BUILD1-PREP-2026-10-15-v3-superseded.md")
+    assert gh.is_superseded_name("LEDGER-dev-knowledge-v202-superseded-2026-10-15.md")

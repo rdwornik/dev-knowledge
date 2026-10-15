@@ -2235,3 +2235,26 @@ def test_1539_every_live_unknown_kind_file_now_classifies_into_its_own_folder(t,
             misfiled.append(rel)
     assert not missing, f"{len(missing)} unclassified, first: {missing[:5]}"
     assert not misfiled, f"{len(misfiled)} in a folder the kind does not list, first: {misfiled[:5]}"
+
+
+def test_1539_the_index_pair_is_written_under_the_archive_lock_as_one_act(t, world, tmp_path):
+    """Codex terra HIGH (judge round 1): `index --write` takes the archive's lock -- the one a refresh holds --
+    for BOTH files, so a held lock leaves both untouched instead of writing one of the pair."""
+    _snapshot_world(world)
+    args = _bu_args(world, tmp_path)
+    assert t.main(["index", "--write", "--generated-at", STAMP, *args]) == 0
+    archive, view = world["browser"] / "INDEX-ARCHIVE.md", world["browser"] / "INDEX.md"
+    before = (archive.read_bytes(), view.read_bytes())
+    _put(world["root"], "to-browser/DIGEST-pair-2026-10-11.md", _head(by=TA44, date="2026-10-11"))
+    lock = world["browser"] / ".INDEX-ARCHIVE.md.append.lock"
+    lock.write_text("held", encoding="utf-8")
+    import pytest as _pt
+    old = t.INDEX_LOCK_TIMEOUT_S
+    t.INDEX_LOCK_TIMEOUT_S = 0.2
+    try:
+        with _pt.raises(t.TransportWriteRefused):
+            t.main(["index", "--write", "--generated-at", "2026-10-12T00:00:00Z", *args])
+    finally:
+        t.INDEX_LOCK_TIMEOUT_S = old
+        lock.unlink()
+    assert (archive.read_bytes(), view.read_bytes()) == before
