@@ -2026,7 +2026,7 @@ def load_task_row(repo_root: Path, row_id: str) -> TaskRow:
 
 def require_phased(row: TaskRow) -> None:
     if row.phase is None:
-        raise DistillRefused(f"unphased row [#{row.id}]: no `· phase:` clause, so no stage to distill for")
+        raise DistillRefused(f"unphased row [#{row.id}]: no `phase:` clause, so no stage to distill for")
     if row.phase not in DISTILL_ROW_PHASES:
         raise DistillRefused(f"row [#{row.id}] is at phase {row.phase!r}; distill takes "
                              f"{' | '.join(sorted(DISTILL_ROW_PHASES))}")
