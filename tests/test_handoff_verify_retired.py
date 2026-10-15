@@ -50,3 +50,27 @@ def test_the_process_doc_states_the_boot_is_the_role_pin_alone():
     text = (_REPO / "protocols" / "HANDOFF_PROCESS.md").read_text(encoding="utf-8")
     assert "ROLE PIN alone" in text and "R30" in text
     assert "CC runs the probe gate at the cut" in text
+
+
+# --- the Cycle hand-over launches its successor itself (LEDGER v212; witnessed 2026-10-15 16:14) ----
+_TEMPLATES = ("integrator-order-template.md", "dispatcher-order-template.md")
+
+
+def _cycle_section(name: str) -> str:
+    text = (_REPO / "templates" / name).read_text(encoding="utf-8")
+    return text.split("## Cycle", 1)[1]
+
+
+def test_the_cycle_handover_launches_the_successor_itself_and_falls_back_only_on_error():
+    for name in _TEMPLATES:
+        sec = _cycle_section(name)
+        assert "claude --bg" in sec, name
+        assert "launches the successor itself" in sec, name
+        assert "only if that launch errors" in sec and "OPERATOR-ACTION" in sec, name
+
+
+def test_the_cycle_handover_states_the_foreground_wait_rule():
+    for name in _TEMPLATES:
+        sec = _cycle_section(name)
+        assert "foreground of an active turn" in sec, name
+        assert "memory_admission_gate.py wait" in sec, name

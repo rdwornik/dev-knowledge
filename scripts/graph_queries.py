@@ -524,9 +524,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     ".claude/commands/handoff.md": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = seat release",
         owner="operator -- one of the census's seven acts"),
-    ".claude/commands/handoff-verify.md": Disposition(
-        reason="ON-DEMAND-BY-OPERATOR, act = seat release",
-        owner="operator -- one of the census's seven acts"),
     ".claude/commands/lane-boot.md": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = GO",
         owner="operator -- one of the census's seven acts"),

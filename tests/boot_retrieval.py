@@ -86,16 +86,6 @@ ITEMS: tuple[Item, ...] = (
         (".pre-commit-config.yaml",),
     ),
     Item(
-        "repo-commands",
-        "I need to run one command that checks the whole probe gate of a handoff bundle in a "
-        "single pass. Which repo command is it and what does it emit?",
-        (".claude/generated/commands-repo.md", ".claude/commands/handoff-verify.md"),
-        "evidence block",
-        "`/handoff-verify` — Run the whole live probe gate",
-        (".claude/generated/commands-repo.md", ".claude/commands/"),
-        "command-description",
-    ),
-    Item(
         "recent-adrs",
         "Which ADR most recently decided where lanes run and how far they run in parallel, and "
         "what is its status?",

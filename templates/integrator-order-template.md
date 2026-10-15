@@ -192,5 +192,17 @@ long session. One session ran 15.7 h in FOUNDATION; the ceiling is what prevents
    name (`INTEGRATOR-<BATCH>` or your `-cycle-<m>`) and run `seat_registry.py unbind` once. Nothing of
    yours outlives your last message.
 
+**The outgoing seat launches the successor itself.** After step 1 and at the no-merge point, run the
+`claude --bg ...` line your receipt carries for the successor (the one an `OPERATOR-ACTION: start
+successor` would otherwise quote) and record the launched job id in a `STATE` line. Write an
+`OPERATOR-ACTION` only if that launch errors: quote the error verbatim and keep your seat until the
+operator answers. Witnessed working 2026-10-15 16:14 (LEDGER v212).
+
+**Waits are foreground.** Run every long wait and every full test run in the foreground of an active
+turn, never as a background shell while the session is idle (the memory-pressure reaper takes idle
+sessions' shells), and put every heavy step behind
+`uv run --locked python scripts/memory_admission_gate.py wait`. A step the reaper killed is
+re-queued once and the verdict stays INCOMPLETE until it ran.
+
 The incoming seat picks up the merge queue where the state file says it stood; a state file older
 than its own staleness bound is a signal the outgoing seat died mid-cycle, not a file to trust.

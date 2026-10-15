@@ -903,17 +903,6 @@ kinds:
     notes: >-
       (lane-transport-strays)
 
-  - kind: HANDOFF_VERIFY
-    prefix: "HANDOFF-VERIFY-"
-    pattern: '^HANDOFF-VERIFY-[A-Za-z0-9._-]+\.md$'
-    folder: to-browser
-    class: non-decision
-    writers: [lane]
-    repo_scope: hub
-    versioned: false
-    notes: >-
-      (lane-transport-strays)
-
   - kind: HANDOFF_BOOT_TRANSPORT
     prefix: "HANDOFF_BOOT-"
     pattern: '^HANDOFF_BOOT-[A-Za-z0-9._-]+\.md$'

@@ -294,7 +294,7 @@ enforced at the **CC ↔ primary-source** boundary. CC ships the probe manifest 
 
 What v6 changes is the **transport**. Through v5.7 the browser answered `run <command>` for each
 probe and the operator ferried each command and its output back — one round trip per probe. In
-v6, **one CC-side command** (`/handoff-verify`, R1) runs every verification against live state at
+v6, **one CC-side command** (the retired `/handoff-verify`, R1; since R30 CC runs the probe gate at the cut) runs every verification against live state at
 check-time, performs the orientation reads, verifies inherited claims, runs the P0a/P0b/P0c
 standing-topic legs and the P3 destination comparison, and emits **exactly one evidence block**.
 The operator pastes it **once**; the browser consumes the table instead of dictating commands one
@@ -309,14 +309,20 @@ is operator ferrying, not proof.
 is *execution*, which Layer 2 does not do (Critical Rule #4; ADR-28/36) — the reason
 `scripts/verify_handoff_probes.py` is resolve-only. The gate therefore has two organs and they are
 not interchangeable: `verify_handoff_probes.py` proves each row **binds** to live state
-(structural, read-only, gates `/ship`), and `/handoff-verify` **runs** them (CC-side, at
+(structural, read-only, gates `/ship`), and the retired `/handoff-verify` **ran** them (CC-side, at
 check-time). Neither substitutes for the other.
 
 **Why a separate command and not a `/handoff --verify` flag (R1).** `/handoff` generates and is
-answer-**free** by construction; `/handoff-verify` checks and is answer-**producing**. Those are
+answer-**free** by construction; the retired `/handoff-verify` checked and was answer-**producing**. Those are
 opposite contracts; one surface holding both recouples the ferry and the proof, which is the
 boundary this section exists to protect. `/handoff` does not grow a verify flag, and `/boot` stays
 archived.
+
+**Retired (R30; night close-out 2026-10-15).** `/handoff-verify` no longer exists as a command. The
+boot is the ROLE PIN alone (R30) and CC runs the probe gate at the cut, through
+`scripts/gen_handoff.py` and `scripts/verify_handoff_probes.py` (the latter is the gate's engine and
+stays). The paragraphs below describe the retired v6 flow and are kept as the record of why the
+gate is shaped as it is.
 
 **Evidence-block contract.** One block, one table. Every row reports its **source locator**, the
 **check performed**, **PASS/FAIL**, and the **live evidence** the browser needs. The required rows
@@ -689,7 +695,7 @@ operator-context beat:
 
   > **ONE execution order (ruled 2026-07-31).** The **table order is the execution order**: the
   > gate runs `P0 → P1 → the remaining rows`, exactly as `PROBES.md` emits them, and
-  > `/handoff-verify` runs them in that order in a single pass. The
+  > the retired `/handoff-verify` ran them in that order in a single pass. The
   > role → vision → standing topics → backlog sequence above is **subordinate to it** — it
   > governs how the architect *reads and weighs the results* in the produced evidence block, not
   > when anything runs. Where the two could be read as competing instructions, the table order
@@ -1324,7 +1330,7 @@ the judgment the operator actually wants stays with whoever reads the blocker te
 
 **(a) `.claude/commands/boot-session.md`** — repo-level, deploy-carried like any organ.
 Assembles §17's six generated sections + the hand-written RESIDUAL and emits one browser-paste
-block (the §5 fenced-block convention this file already uses for `/handoff-verify`'s evidence
+block (the §5 fenced-block convention this file already used for the retired `/handoff-verify`'s evidence
 block). It **narrates**: every number in the paste comes from a command it names, not from
 memory.
 
@@ -1423,14 +1429,14 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   amendment A1) and built under [#446] against a RED-first frozen contract
   (`tests/test_v6_frozen_contract.py`, 9 items, frozen at `1e93c746` before any build code).
   **Major moves 5 → 6** because §5's transport contract is reshaped, not extended.
-  **§5 "Who runs it" replaced (R1 / U1).** One CC-side command (`/handoff-verify`) runs the
+  **§5 "Who runs it" replaced (R1 / U1).** One CC-side command (the retired `/handoff-verify`) runs the
     whole live gate at check-time and emits **exactly one evidence block**; the operator pastes
     once and the browser consumes the table, instead of answering `run <command>` per probe. The
     proof boundary, the four teeth conditions, the probe manifest, the empirical promotion gate
     and the structural anti-bluff contract all carry forward **unchanged** — the reshape changes
     the **transport count, not the proof threshold**. Recorded with it: the checker is a
     COMMAND and not a `scripts/` validator by necessity (Critical Rule #4), so the gate has
-    two non-interchangeable organs — `verify_handoff_probes.py` proves rows BIND, `/handoff-verify`
+    two non-interchangeable organs — `verify_handoff_probes.py` proves rows BIND, the retired `/handoff-verify`
     RUNS them.
   **§13 (c′) standing-topic legs (R2 / A7).** P0a/P0b/P0c emit above P1: live `[E#]` theme
     preambles **plus** a `gen_task_tree --check` currency assertion (BACKLOG.md is generated
@@ -1583,7 +1589,7 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   2026-09-01): the bump is reassigned to the integrator as one coupled release act, matching
   the v6.2.0→v6.3.0 precedent's own atomicity above rather than shortcutting it. The four
   stale `VISION.md` orientation-probe citations §5/§13/§16 carried (this lane, HANDOFF_BOOT.md,
-  `.claude/commands/handoff.md`, `.claude/commands/handoff-verify.md`) are re-pointed to
+  `.claude/commands/handoff.md`, the retired `.claude/commands/handoff-verify.md`) are re-pointed to
   `README.md` `## Vision` in this same commit, matching the live `templates/handoff/v5/PROBES.md.tmpl`
   P1a precedent (ADR-114/[#614]) — independent of the version-bump question and not held for
   it. Refs `[#611]`, intake #66 (L-S7), `docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`.
@@ -1603,7 +1609,7 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   `CLAUDE.md` §1, whose `first-read` hub region names the bundle generations a boot may
   encounter — both widened to admit v7, and the CLAUDE.md region moved **byte-identically in
   lockstep** with `templates/claude-regions/first-read.md` so deploy parity holds. `CLAUDE.md`
-  §7's two v6 literals for `/handoff` and `/handoff-verify` were re-pointed in the same act.
+  §7's two v6 literals for `/handoff` and the retired `/handoff-verify` were re-pointed in the same act.
   The remaining four dependents carry no version-bearing prose and took the stamp only, which
   is what "the rest get the pointer only after the read" means. ROLE PIN emits at 7.0.0 from
   this version via `scripts/assemble_paste.py`. Refs `[#611]`, batch-F manifest §3.
@@ -1668,3 +1674,12 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   dependents include `protocols/PLAYBOOK.md` and `CLAUDE.md`, which this lane may not edit; the
   bump and its re-stamps are owed at the next cut. **ROLE PIN moves** — `protocols/HANDOFF_BOOT.md`
   changed, so the operator re-uploads it to the browser project's instructions.
+- **2026-10-16 — `/handoff-verify` retired (R30; no version bump; stamp stays 7.1.0).** The command file
+  and its wiring (`.methodology.yaml`, `ecosystem/parity-surfaces.yaml`, `transport-registry.yaml`,
+  `seat-ids.yaml`, the seat-release organs' command-doc argument, the graph disposition) are removed;
+  the nine mentions in this file now say "retired", and §5 states that the boot is the ROLE PIN alone
+  while CC runs the probe gate at the cut. `scripts/verify_handoff_probes.py` stays: `gen_handoff`,
+  the `handoff-manifest` CI job and the ship gate call it. **Why no bump:** the `reconciled_with`
+  dependents include `CLAUDE.md` and `protocols/PLAYBOOK.md`, and a re-stamp moves the computed ROLE
+  PIN while lane `bu-1450-boot-v2` owns `HANDOFF_BOOT.md`; the bump and its re-stamps are owed at
+  the next cut (same posture as the 2026-09-24 entry above).

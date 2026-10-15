@@ -20,11 +20,11 @@ Generation (this command) is backed by `moment:seat-release` in `ecosystem/harne
 refuses to publish and names whichever is missing — outgoing notes (`SUPPLEMENT.md`, an
 architect-mode bundle), the generated bundle (`HANDOFF_BOOT.md`), the cut manifest, or the
 transport copy — never a silent partial release. The `notes` and `bundle` organs are this
-command's own leg; `manifest` and `copy` are `/handoff-verify`'s (below). This is the
+command's own leg; `manifest` and `copy` were the retired `/handoff-verify`'s (R30; CC runs the probe gate at the cut). This is the
 mechanism PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2 rule 1 names; the trigger stays an
 operator act (no machine can observe a claude.ai chat ending) — only the four checks are
 mechanised. `tests/test_seat_release_moment.py` is the RED-first witness and the acceptance
-suite; the two fates rows this command and `/handoff-verify` used to carry in `harness.yaml`
+suite; the two fates rows this command and the retired `/handoff-verify` used to carry in `harness.yaml`
 are retired accordingly (the moment's organs now declare both command docs).
 
 ## Modes & exact invocation (operator copy-paste)
@@ -164,7 +164,7 @@ the defect two consecutive bundles already shipped.
 HANDOFF_PROCESS **v7** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
 thin browser boot, teeth-y forced read — model C) since the #149 flip (2026-06-11; v4.4
 archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). The v5 lineage is the **default** flow;
-**v6** (2026-07-31, [#446]) reshapes only the *transport*: one CC-side `/handoff-verify` run emits
+**v6** (2026-07-31, [#446]) reshapes only the *transport*: one CC-side run of the retired `/handoff-verify` emitted
 ONE evidence block the operator pastes once. Generation is unchanged and stays answer-free.
 
 > **v4 two-phase mechanics removed (#164 leg g).** The v5 generator (`scripts/gen_handoff.py`)
@@ -257,7 +257,7 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   the one-round-trip reshape, and it stays **outside** the evidence block: the supplement is the
   operator's *forward* brief, filled **before** the next session boots, whereas the block is CC's
   *check-time* output. What the reshape changes is how a folded answer is treated **on arrival**,
-  and the split is **narrow on purpose**: `/handoff-verify`'s `Inherited claims` row verifies only
+  and the split is **narrow on purpose**: the retired `/handoff-verify`'s `Inherited claims` row verified only
   a supplement answer that **asserts a repo-verifiable fact** (a count, a sha, a file's state, "X
   landed") — those are checked CC-side against the live repo, and a contradicted one is a FAIL.
   The supplement's *actual* payload — intent, tensions weighed, options rejected, off-repo context

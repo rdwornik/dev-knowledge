@@ -129,9 +129,8 @@ off-repo context live via its one operator-context question. Full mechanism:
 
 The browser has **no access to the repo**, so it cannot read a file for any probe. Since **R30**
 the browser does not run the gate at boot either: it boots on the three-line **ROLE PIN** alone and
-asks CC for no `/handoff-verify` and no evidence block. The gate itself is unchanged and stays CC's:
-**`/handoff-verify`** runs the *whole* gate against live state in one pass and emits **one evidence
-block** (the v6 one-round-trip form) — at a cut or an audit, for CC and the operator.
+asks CC for no `/handoff-verify` and no evidence block. `/handoff-verify` is retired: the boot is the ROLE PIN alone and
+CC runs the probe gate at the cut (`scripts/gen_handoff.py`, `scripts/verify_handoff_probes.py`).
 
 Each row carries its source locator, the check performed, PASS/FAIL, and the live evidence. **Any
 FAIL blocks onboarding**; a missing required row is not a pass; degraded coverage (a tool absent, a
@@ -169,7 +168,7 @@ flowchart TD
     E --> F["6 · RESIDUAL drift-flags first · in the paste"]
     F --> G["7 · Finish the SAME probes · the rest"]
     G --> H(["Onboarded — start work"])
-    D -. "run loop: v6 = one /handoff-verify evidence block · pre-v6 = per-probe run/paste" .-> D
+    D -. "run loop: v6 = one evidence block of the retired /handoff-verify · pre-v6 = per-probe run/paste" .-> D
     G -. "run loop (same as step 4)" .-> G
     classDef probe fill:#e8e8ff,stroke:#4444aa,stroke-width:2px;
     class D,G probe;
@@ -236,7 +235,7 @@ archived, not deleted.
   NEXT BATCH from live state; exactly one hand-written RESIDUAL survives (`HANDOFF_PROCESS.md`
   §17).
 - **v6 (prior era, 2026-07-31 → 2026-09-01)** — the v5 four-file shape plus the `Destination` boot-header
-  row and the P0 standing-topic legs; consumed via ONE `/handoff-verify` evidence block.
+  row and the P0 standing-topic legs; consumed via ONE evidence block of the retired `/handoff-verify`.
 - **v5 (prior era, 2026-06-11 → 2026-07-31)** — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`
   (no per-bundle README; this runbook serves them all). The operator pastes the single assembled
   `PASTE_THIS.md`. Spec: `protocols/HANDOFF_PROCESS.md` (§13 bundle shape).
@@ -256,7 +255,7 @@ git log --diff-filter=A --format="%ad %f" --date=short --name-only -- docs/hando
 A name sort is **not** the rule and has twice picked the wrong bundle: `…-architect-arc5` sorts
 after `…-architect` yet was added a day earlier ([#372]), and `<slug>` sorts before `<slug>-2`
 while the suffixed sibling is the newer one ([#473]). You rarely need this command at all —
-`/handoff-verify` resolves the active bundle for you.
+`gen_handoff.py` resolves the active bundle for you.
 
 ### References
 - `protocols/HANDOFF_PROCESS.md` — the operational spec (§5 teeth, §13 modes + bundle shape,

@@ -127,7 +127,7 @@ alone. `<seat>` is a session name (`filings`, `integrator`), `<date>` is `YYYY-M
 
 Every browser artifact — retrospectives, plans, contracts — travels on this transport rather than
 through Downloads, and `retention` above moves the consumed ones to `archive/<window-date>/` at
-wrap. `/handoff-verify` P8 checks a bundle's transport section against this table.
+wrap. The retired `/handoff-verify` P8 checked a bundle's transport section against this table.
 
 ## 2. Inline chat paste of large content arrives empty — so uploads are `.md` files
 
