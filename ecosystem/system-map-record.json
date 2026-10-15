@@ -1,38 +1,25 @@
 {
- "built_at": "b46836c81589bb1fd0f726279d8d17d9ddb7d5e6",
+ "built_at": "f46c9cc4d5f7791429306e8344e0d11e5b8c330b",
  "diff": {
   "added": [
-   "file:ecosystem/seat-ids.yaml",
-   "file:scripts/harness_probes.py",
-   "file:scripts/hooks/reuse_gate.py",
-   "file:scripts/hooks/session_start.py",
-   "organ:session-hook:PreToolUse: reuse_gate.py",
-   "organ:session-hook:SessionStart: session_start.py"
+   "file:scripts/run_phase.py"
   ],
-  "added_count": 6,
+  "added_count": 1,
   "baseline": false,
   "removed": [
-   "organ:session-hook:SessionStart: arm_hooks.py",
-   "organ:session-hook:SessionStart: billing_leak_sentinel.py",
-   "organ:session-hook:SessionStart: changelog_sentinel.py",
-   "organ:session-hook:SessionStart: codespace_regime.py",
-   "organ:session-hook:SessionStart: conductor.py",
-   "organ:session-hook:SessionStart: fleet_health.py",
-   "organ:session-hook:SessionStart: quota_daily.py",
-   "organ:session-hook:SessionStart: resource_lifecycle.py",
-   "organ:session-hook:SessionStart: surface_triage.py"
+   "file:.claude/commands/handoff-verify.md",
+   "organ:command:/handoff-verify"
   ],
-  "removed_count": 9
+  "removed_count": 2
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "88f1bc5271dcbc05abd6ed0e34ab34a0183888b13316f20605df8166c113570c",
- "node_count": 377,
+ "map_sha": "08610699ea3dd366d92894834cc19578dad0a9ba057eed4bd9298f0a94db374f",
+ "node_count": 376,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
   "file:.claude/commands/boot-session.md",
   "file:.claude/commands/changelog-review.md",
   "file:.claude/commands/decide.md",
-  "file:.claude/commands/handoff-verify.md",
   "file:.claude/commands/handoff.md",
   "file:.claude/commands/lane-boot.md",
   "file:.claude/commands/lane-integrate.md",
@@ -259,6 +246,7 @@
   "file:scripts/review_packet.py",
   "file:scripts/routing_agreement.py",
   "file:scripts/row_close.py",
+  "file:scripts/run_phase.py",
   "file:scripts/safe_remove.py",
   "file:scripts/scan_undeclared_edges.py",
   "file:scripts/seat_ch8.py",
@@ -323,7 +311,6 @@
   "organ:command:/codex-review",
   "organ:command:/decide",
   "organ:command:/handoff",
-  "organ:command:/handoff-verify",
   "organ:command:/lane-boot",
   "organ:command:/lane-integrate",
   "organ:command:/map",
@@ -406,6 +393,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": "47a6388cda3cec80b4fe0976f979d93ba1c2eb9704243cff85dbdd6b2da5518c",
+ "previous_sha": "88f1bc5271dcbc05abd6ed0e34ab34a0183888b13316f20605df8166c113570c",
  "schema": "system-map-record/1"
 }

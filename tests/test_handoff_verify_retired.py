@@ -69,6 +69,32 @@ def test_the_cycle_handover_launches_the_successor_itself_and_falls_back_only_on
         assert "only if that launch errors" in sec and "OPERATOR-ACTION" in sec, name
 
 
+def test_no_recorded_evidence_or_system_map_node_names_the_retired_command():
+    """Codex terra review (night close-out PART 3): the two recorded/generated surfaces."""
+    import json
+
+    evidence = (_REPO / "ecosystem" / "boot-retrieval-evidence.json").read_text(encoding="utf-8")
+    assert not _MENTION.search(evidence)
+    # the record's `diff` legitimately names what the last rebuild removed; its node list may not
+    record = json.loads((_REPO / "ecosystem" / "system-map-record.json").read_text(encoding="utf-8"))
+    record.pop("diff", None)
+    assert not _MENTION.search(json.dumps(record))
+
+
+def test_recorded_retrieval_evidence_has_no_row_for_an_item_the_probe_no_longer_has():
+    import json
+    import sys
+
+    sys.path.insert(0, str(_REPO / "tests"))
+    import boot_retrieval as br
+
+    ids = {i.id for i in br.ITEMS}
+    doc = json.loads((_REPO / "ecosystem" / "boot-retrieval-evidence.json").read_text(encoding="utf-8"))
+    stale = {r["item"] for r in doc["rows"] if r["item"] not in ids | {"control"}}
+    stale |= set(doc["pointer_text_sha256"]) - ids
+    assert not stale, stale
+
+
 def test_the_cycle_handover_states_the_foreground_wait_rule():
     for name in _TEMPLATES:
         sec = _cycle_section(name)
