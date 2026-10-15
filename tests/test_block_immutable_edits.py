@@ -208,11 +208,11 @@ def test_wire_allow_new_transcript_create_exits_0():
     assert proc.stdout.strip() == ""
 
 
-def test_the_live_adr77_command_still_blocks_an_in_zone_edit_through_the_launcher():
-    """[#863] (4) round 2: the re-armed entry runs through `hook_launcher.py` (Copilot CLI runs
-    this file's hooks under PowerShell). Run the LIVE command the way Claude Code does -- Git
-    Bash, CLAUDE_PROJECT_DIR set -- and the guard's exit 2 and JSON verdict must survive the
-    launcher; an out-of-zone edit still allows."""
+def test_the_live_adr77_command_still_blocks_an_in_zone_edit_as_claude_code_runs_it():
+    """[#863] (4) round 2: the re-armed entry locates the guard with two shell-neutral locators
+    (Copilot CLI runs this file's hooks under PowerShell) on the system interpreter. Run the LIVE
+    command the way Claude Code does -- Git Bash, CLAUDE_PROJECT_DIR set -- and the guard's exit 2
+    and JSON verdict must survive the extra argv; an out-of-zone edit still allows."""
     import os
     import shutil
 
