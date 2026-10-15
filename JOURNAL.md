@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-16 (b) - CC (Sonnet 5.5, night close-out): defect rows, process matrix, `/handoff-verify` retired, `[#1350]` renewed
+
+**Anchors:** `72ae7f78` (rows [#1569]-[#1595] and intake 116), `85096e84` (rows [#1596]-[#1618], intake 117, the process-matrix audit), `abb1ef70`; on branch `worktree-night-retire-handoff-verify-2026-10-15`: `7bc3526e` (command and wiring removed), `cd55715d` (Codex terra findings fixed), `a9ae5280` (transport lock fix and `[#1350]` renewed to 2026-10-26), `95e49a5d` (seat-ids regenerated).
+
+**Did:** PARTS 8, 9, 10, 3, 4 and 2 of BATCH-NIGHT-CLOSEOUT-2026-10-15 and its three amends. Transport janitor applied (manifest `af5876e8d6962fb075763a830865f804d20616737a2cb9c73f65eb1d5e43564b`, 321 moves); stale copies and `-withdrawn` files moved by hand; six stale claims released. Nothing landed: the INTEGRATOR claim was live.
+
+**Result:** all pushed, none landed. Morning report: `to-browser/DIGEST-NIGHT-CLOSEOUT-2026-10-15.md`.
+
 ### 2026-10-16 (a) - CC (Sonnet 5.5, night close-out): archive of the 10-14/15 digests, both rows branches merged
 
 **Anchors:** `c14dab1e`, `20c3fd8a`, `388f3752`, `609c3342` (36 digests archived under `docs/audits/` as `technical`, verbatim with a provenance line; indexes regenerated), `45751026` (merge of `worktree-define-outcomes-2026-10-15` @ 69ab3bc9), `061818ee` (merge of `worktree-test-strategy-rows-2026-10-15` @ 496b0951).
