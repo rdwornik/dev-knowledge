@@ -752,6 +752,9 @@ def _changed_paths(ctx: LaneContext) -> list[str] | None:
 
 def _receipt(ctx: LaneContext, phase: str):
     """The validated PhaseReceipt for a phase, or None when it is absent or invalid."""
+    hub = str(Path(__file__).resolve().parents[1])  # run as a bare script, only scripts/ is on the path
+    if hub not in sys.path:
+        sys.path.insert(0, hub)
     from ecosystem.schema.phase_receipt import PhaseReceipt  # noqa: PLC0415
 
     path = ctx.round_dir / f"{phase}.json"
