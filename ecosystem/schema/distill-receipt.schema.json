@@ -1,0 +1,335 @@
+{
+  "$defs": {
+    "ChallengeReceipt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "CHALLENGE receipt, schema 1.0.0 (ecosystem/schema/challenge_receipt.py; generated, never hand-edited).",
+      "properties": {
+        "schema": {
+          "default": "challenge-receipt/1",
+          "title": "Schema",
+          "type": "string"
+        },
+        "idea_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Idea Sha256",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "proposes": {
+          "default": "",
+          "title": "Proposes",
+          "type": "string"
+        },
+        "decision_class": {
+          "default": true,
+          "title": "Decision Class",
+          "type": "boolean"
+        },
+        "verdict": {
+          "enum": [
+            "AGREE",
+            "AMEND",
+            "DISAGREE",
+            "INPUT_REQUIRED"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "row_state": {
+          "enum": [
+            "proceed",
+            "INPUT_REQUIRED"
+          ],
+          "title": "Row State",
+          "type": "string"
+        },
+        "producer_vendor": {
+          "title": "Producer Vendor",
+          "type": "string"
+        },
+        "reviewer_vendor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reviewer Vendor"
+        },
+        "served_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Served Model"
+        },
+        "nonce": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Nonce"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "duplicates": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Duplicates",
+          "type": "array"
+        },
+        "matrix_defects": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Matrix Defects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "idea_sha256",
+        "title",
+        "verdict",
+        "row_state",
+        "producer_vendor",
+        "reviewer_vendor",
+        "served_model",
+        "nonce"
+      ],
+      "title": "ChallengeReceipt",
+      "type": "object"
+    },
+    "PhasePlan": {
+      "additionalProperties": false,
+      "description": "One phase of the row's plan: which vendor, model and effort run it.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "effort": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effort"
+        },
+        "vendor": {
+          "title": "Vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "model",
+        "effort",
+        "vendor"
+      ],
+      "title": "PhasePlan",
+      "type": "object"
+    },
+    "ReuseCandidate": {
+      "additionalProperties": false,
+      "description": "An existing path that resembles a NEW path the plan proposes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "organ-index",
+            "why"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "matched": {
+          "title": "Matched",
+          "type": "string"
+        },
+        "purpose": {
+          "default": "",
+          "title": "Purpose",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "source",
+        "score",
+        "matched"
+      ],
+      "title": "ReuseCandidate",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "DISTILL receipt, schema 1.0.0 (ecosystem/schema/distill_receipt.py; generated, never hand-edited).",
+  "properties": {
+    "schema": {
+      "default": "distill-receipt/1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "row": {
+      "title": "Row",
+      "type": "string"
+    },
+    "row_phase": {
+      "title": "Row Phase",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "reuse_candidates": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ReuseCandidate"
+      },
+      "title": "Reuse Candidates",
+      "type": "array"
+    },
+    "reuse_threshold": {
+      "default": 0.5,
+      "title": "Reuse Threshold",
+      "type": "number"
+    },
+    "dependencies": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "skills_commands": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Skills Commands",
+      "type": "array"
+    },
+    "phases": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PhasePlan"
+      },
+      "title": "Phases",
+      "type": "array"
+    },
+    "constraints": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "array"
+    },
+    "boosted_prompt": {
+      "title": "Boosted Prompt",
+      "type": "string"
+    },
+    "plan_new_paths": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Plan New Paths",
+      "type": "array"
+    },
+    "new_justified": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "New Justified"
+    },
+    "producer_vendor": {
+      "title": "Producer Vendor",
+      "type": "string"
+    },
+    "challenge": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChallengeReceipt"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "row_state": {
+      "default": "ready",
+      "enum": [
+        "ready",
+        "INPUT_REQUIRED"
+      ],
+      "title": "Row State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "row",
+    "row_phase",
+    "title",
+    "constraints",
+    "boosted_prompt",
+    "producer_vendor"
+  ],
+  "title": "DistillReceipt",
+  "type": "object"
+}
