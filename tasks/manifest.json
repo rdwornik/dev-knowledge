@@ -2980,6 +2980,10 @@
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
     },
     {
+      "task": 1443,
+      "file": "1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md"
+    },
+    {
       "task": 1444,
       "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
     },
