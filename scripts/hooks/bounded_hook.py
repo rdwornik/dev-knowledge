@@ -370,6 +370,10 @@ def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIG
     next hook call of ANY other session or by the next SessionStart; on a box with a single
     wedged session nothing fires until a new session starts.
 
+    Under pytest (`PYTEST_CURRENT_TEST` set, which pytest exports only while a test runs and its
+    subprocesses inherit) only an injected `spawn` runs. Honest limit: a Claude session started
+    from inside a running test would not sweep either; nothing outside pytest sets the variable.
+
     Never raises, never prints; returns whether this call spawned the sweep."""
     try:
         if spawn is None and os.environ.get("PYTEST_CURRENT_TEST"):
