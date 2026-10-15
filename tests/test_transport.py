@@ -488,6 +488,51 @@ def test_cmd_strays_unclassified_count_excludes_a_misfoldered_but_known_kind(t, 
     assert payload["misfoldered_count"] == 1
 
 
+def test_the_append_lock_reads_a_windows_delete_pending_permission_error_as_contention(
+        t, tmp_path, monkeypatch):
+    """[#1350] RED-first: on Windows `os.open(O_CREAT|O_EXCL)` on a lock file another thread is
+    deleting raises PermissionError. That is contention, retried inside the same deadline; a
+    PermissionError that never clears still ends at the deadline with a refusal (no hang)."""
+    import time
+
+    real_open = os.open
+    calls = {"n": 0}
+
+    def flaky_open(path, flags, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError(13, "delete pending")
+        return real_open(path, flags, *a, **kw)
+
+    monkeypatch.setattr(t.os, "open", flaky_open)
+    monkeypatch.setattr(t._DestinationLock, "_POLL_S", 0.001)
+    with t._DestinationLock(tmp_path / "SESSION-x.md"):
+        pass
+    assert calls["n"] == 3
+
+    def always_denied(*a, **kw):
+        raise PermissionError(13, "denied")
+
+    monkeypatch.setattr(t.os, "open", always_denied)
+    start = time.monotonic()
+    with pytest.raises(t.TransportWriteRefused):
+        with t._DestinationLock(tmp_path / "SESSION-y.md", timeout_s=0.2):
+            pass
+    assert time.monotonic() - start < 5
+
+
+def test_the_known_reds_registry_loads_on_2026_10_20():
+    """[#1350]: from 2026-10-19 `load_registry` refused the WHOLE registry (the windows member
+    expired). The renewed entry keeps it loadable past that day."""
+    import datetime
+
+    import known_reds as kr
+
+    reg = kr.load_registry(_REPO / "logs" / "KNOWN-REDS-REGISTRY.json",
+                           today=datetime.date(2026, 10, 20))
+    assert reg is not None
+
+
 def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_skipped():
     """foundation-8 item 2. The cause lives in `scripts/transport.py`
     (`_DestinationLock.__enter__` catches only FileExistsError; Windows answers a lock file that
