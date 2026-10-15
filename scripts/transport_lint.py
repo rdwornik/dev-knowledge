@@ -228,9 +228,9 @@ def lint_entry(name: str, folder: str, read_text: Callable[[], str],
         else:
             findings.append(Finding(name, "unknown-kind",
                 "matches no registered kind in ecosystem/transport-registry.yaml"))
-    elif kind.folder != folder:
+    elif folder not in kind.folders:
         findings.append(Finding(name, "wrong-folder",
-            f"kind {kind.name} belongs in {kind.folder}/, found in {folder}/"))
+            f"kind {kind.name} belongs in {' or '.join(kind.folders)}/, found in {folder}/"))
 
     if is_decision(name, reg):
         findings.extend(_carriage_findings(name, body()))

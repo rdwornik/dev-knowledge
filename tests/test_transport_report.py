@@ -417,3 +417,31 @@ def test_an_unexpected_error_is_a_recorded_failure_not_a_traceback_or_a_block(wo
     assert code not in (0, 2)
     res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert res["delivered"] is False and "synthetic" in res["reason"]
+
+
+# --- lane bu-1539-transport ([#1539] (4), (5)) ----------------------------------------------------------
+
+def test_1539_build_report_opens_with_a_by_line_and_still_parses(world, monkeypatch):
+    """T10b: line 1 names the writer; the heading is still found (MULTILINE) by parse_report."""
+    tr = _mod("transport_report")
+    monkeypatch.setattr(tr, "commit_subjects", lambda _repo: ["feat: one"])
+    monkeypatch.setattr(tr, "changed_files", lambda _repo: ["a.py"])
+    text = tr.build_report(LANE, world["receipts"], world["tmp"])
+    assert text.splitlines()[0].startswith("by: "), text.splitlines()[0]
+    assert "transport_report.py" in text.splitlines()[0]
+    facts = tr.parse_report(text)
+    assert facts.lane == LANE and facts.commits == ["feat: one"]
+    lint = _mod("transport_lint")
+    found = lint.lint_text(f"LANE-END-{LANE}.md", "to-browser", text, require_by=True)
+    assert [f.code for f in found if f.code.startswith("no-by")] == []
+
+
+def test_1539_help_exits_0(capsys):
+    """T12: `--help` is argparse's SystemExit(0), not a failure the Stop hook records as exit 4."""
+    tr = _mod("transport_report")
+    try:
+        rc = tr.main(["--help"])
+    except SystemExit as exc:           # the unfixed code may re-raise; the assertion below names it
+        rc = ("SystemExit", exc.code)
+    capsys.readouterr()
+    assert rc == 0

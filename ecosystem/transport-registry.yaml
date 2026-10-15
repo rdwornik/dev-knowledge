@@ -23,7 +23,8 @@
 #               prior file (not machine-checked here; the stray-file report only classifies the
 #               name, and this comment records the convention so a future check has it in one
 #               place).
-#   folder      to-cc | to-browser | root -- where this kind lives.
+#   folder      to-cc | to-browser | root -- where this kind lives. A list is allowed
+#               (`[to-cc, to-browser]`): the first entry is the primary folder.
 #   class       decision | non-decision, on every kind. A decision kind rules something, so its
 #               file carries a flush-left `carried-by:` in its first 6 lines (`scripts/
 #               transport_lint.py` checks it at write time). The decision kinds are exactly
@@ -266,13 +267,13 @@ kinds:
   - kind: ANSWER
     prefix: "ANSWER-"
     pattern: '^ANSWER-[A-Za-z0-9._-]+\.md$'
-    folder: to-cc
+    folder: [to-cc, to-browser]
     class: non-decision
     writers: [operator]
     readers: [gen_handoff]
     repo_scope: any
     versioned: false
-    notes: "The reply to one QUESTION file."
+    notes: "The reply to one QUESTION file. An answer lands in the asker's inbox, so either folder is home."
 
   - kind: CLOSURE_LIST
     prefix: "CLOSURE-LIST-"
@@ -1361,3 +1362,177 @@ kinds:
       grouped by kind and writer, newest first (`transport.py index --write`; `transport.py` also
       refreshes it from `write()` / `append()` once it exists). Generated, so it is rewritten
       whole by the `transport` writer and not edited by hand. It lists itself.
+
+  - kind: INDEX_ARCHIVE
+    prefix: "INDEX-ARCHIVE.md"
+    pattern: '^INDEX-ARCHIVE\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [transport]
+    readers: [transport]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `to-browser/INDEX-ARCHIVE.md`, the full generated index (every classified file, its status,
+      the supersedes edges and the `answers:` records) that `INDEX.md`, the small current view, is
+      derived from ([#1539] (3)). `transport.py index --write` and the write trigger rewrite both.
+
+  # --- [#1539] (4)/(6): the families the 2026-10-15 live sweep read as unknown-kind ----------------
+  # Measured by `transport_lint.py sweep` on the live transport (117 unknown-kind files). Each row
+  # classifies a family that is already on the transport; none is a new convention.
+
+  - kind: SEAT_ORDER
+    prefix: "SEAT-"
+    pattern: '^SEAT-(DECIDE|DISPATCHER|INTEGRATOR|N5-DRAFT|PHASE[0-9]-[A-Z]+|RENDER|TRACKB)-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    class: non-decision
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A seat's own paste (`SEAT-DISPATCHER-…`, `SEAT-INTEGRATOR-…`, `SEAT-RENDER-…`, …): the order a
+      seat boots from, written by the operator's browser seat. Wave 5b and handoff-redesign era.
+
+  - kind: SEAT_EXAM
+    prefix: "SEAT-EXAM-"
+    pattern: '^SEAT-EXAM-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane, operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A seat exam and its result (`SEAT-EXAM-<date>`, `SEAT-EXAM-RESULT-<date>[-n]`).
+
+  - kind: SEAT_OPERATING_MANUAL
+    prefix: "SEAT-OPERATING-MANUAL-"
+    pattern: '^SEAT-OPERATING-MANUAL-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The seat operating manual a CC session wrote for the browser seat.
+
+  - kind: REPAIR
+    prefix: "REPAIR-"
+    pattern: '^REPAIR-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    class: non-decision
+    writers: [integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      An integrator's numbered repair order for one lane (`REPAIR-<n>-<LANE>-<slug>.md`).
+
+  - kind: EVAL
+    prefix: "EVAL-"
+    pattern: '^EVAL-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      One evaluator's record in a /decide run (`EVAL-<topic>[-vN]-<tool>-<date>[-seat-<id>]`).
+
+  - kind: PROPOSAL_ADR
+    prefix: "PROPOSAL-ADR-"
+    pattern: '^PROPOSAL-ADR-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      An ADR proposal a /decide run hands the architect (`PROPOSAL-ADR-<TOPIC>[-vN]-<date>`).
+
+  - kind: RETRO_HANDOFF
+    prefix: "RETRO-HANDOFF-"
+    pattern: '^RETRO-HANDOFF-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A handoff retrospective and its numbered tables (`RETRO-HANDOFF-<date>[-table-n]`).
+
+  - kind: CARRY_LEDGER
+    prefix: "CARRY-LEDGER-"
+    pattern: '^CARRY-LEDGER-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A wave's carry ledger (`CARRY-LEDGER-<WAVE>[-R][-CYCLE-n]-<date>`).
+
+  - kind: BOOT_TEST
+    prefix: "BOOT-TEST-"
+    pattern: '^BOOT-TEST-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane, operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A browser-seat boot test, its paste and its result (`BOOT-TEST[-RESULT]-<date>[-PASTE]`).
+
+  - kind: QUESTIONS_FOR_OUTGOING
+    prefix: "QUESTIONS-FOR-OUTGOING-"
+    pattern: '^QUESTIONS-FOR-OUTGOING-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane, operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Questions put to an outgoing architect seat; its answers are `ANSWER-questions-for-outgoing-…`.
+
+  - kind: GROOMING_OPEN_ROWS
+    prefix: "GROOMING-OPEN-ROWS-"
+    pattern: '^GROOMING-OPEN-ROWS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A grooming pass over the open rows, in parts (`GROOMING-OPEN-ROWS-<date>-part-X`).
+
+  - kind: ROWS_OWED_DRAFTS
+    prefix: "ROWS-OWED-DRAFTS-"
+    pattern: '^ROWS-OWED-DRAFTS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Draft rows owed to the backlog, for the architect to rule on.
+
+  - kind: TOPIC_DIGEST
+    prefix: ""
+    pattern: '^(ARCHITECT-OPERATING-GUIDE|CODESPACE-PARITY-DEFINITION|EVIDENCE-NO-RECURRENCE|HARNESS-NORTH-STAR|HARNESS-SPINE-ARCHITECTURE|LESSONS-AND-OPEN-WORK|MECHANISMS-NO-RECURRENCE|ORPHANS-WIRE-RETIRE|PROBLEM-HANDOFF-CUT)-\d{4}-\d{2}-\d{2}\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      One-off dated topic write-ups a CC session left for the browser seat (2026-10-01 to
+      2026-10-03). The names are listed, not patterned, so a new topic still reads unknown-kind.
+
+  - kind: BARE_HANDOFF_PART
+    prefix: ""
+    pattern: '^(RESIDUAL|SUPPLEMENT)\.md$'
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      An undated `RESIDUAL.md` / `SUPPLEMENT.md` a handoff cut left on the transport by hand.

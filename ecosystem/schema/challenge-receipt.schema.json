@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "CHALLENGE receipt, schema 1.0.0 (ecosystem/schema/challenge_receipt.py; generated, never hand-edited; [#1535]).",
+  "properties": {
+    "schema": {
+      "default": "challenge-receipt/1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "idea_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Idea Sha256",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "proposes": {
+      "default": "",
+      "title": "Proposes",
+      "type": "string"
+    },
+    "decision_class": {
+      "default": true,
+      "title": "Decision Class",
+      "type": "boolean"
+    },
+    "verdict": {
+      "enum": [
+        "AGREE",
+        "AMEND",
+        "DISAGREE",
+        "INPUT_REQUIRED"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "row_state": {
+      "enum": [
+        "proceed",
+        "INPUT_REQUIRED"
+      ],
+      "title": "Row State",
+      "type": "string"
+    },
+    "producer_vendor": {
+      "title": "Producer Vendor",
+      "type": "string"
+    },
+    "reviewer_vendor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reviewer Vendor"
+    },
+    "served_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Served Model"
+    },
+    "nonce": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Nonce"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "duplicates": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Duplicates",
+      "type": "array"
+    },
+    "matrix_defects": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Matrix Defects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "idea_sha256",
+    "title",
+    "verdict",
+    "row_state",
+    "producer_vendor",
+    "reviewer_vendor",
+    "served_model",
+    "nonce"
+  ],
+  "title": "ChallengeReceipt",
+  "type": "object"
+}

@@ -210,12 +210,14 @@ def open_list(bundle_dir: Path, repo_root: Path, residual: str) -> list[str]:
             _OPEN_VALUE_RE,
             carried_by_value,
             decision_files,
+            is_superseded_name,
             transport_root,
         )
         transport = transport_root()
         if transport is not None:
             return [f"{p.parent.name}/{p.name}" for p in decision_files(transport)
-                    if _OPEN_VALUE_RE.match(carried_by_value(p) or "")]
+                    if not is_superseded_name(p.name)
+                    and _OPEN_VALUE_RE.match(carried_by_value(p) or "")]
     return list(dict.fromkeys(m.replace("\\", "/") for m in _QUALIFIED_RE.findall(residual)))
 
 

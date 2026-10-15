@@ -21,6 +21,34 @@
 
 ---
 
+### 2026-10-15 (e) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1535-outer-loop merges after repair 1 -- the outer loop runs in code ([#1535], ADR-130 Proposed)
+
+**Anchors:** `c35b2089` (repair-1 tip, branch `worktree-lane-bu-1535-outer-loop`, introduced by this merge), `b431bf52` (the first handback's tip).
+
+**Did:** first merge `eb17ef8b` refused by CI (REGRESSED, 7 new reds: four unpinned `write_text()` newlines, the ADR corpus baseline ADR-130 moves, one Windows-only pairing red not reproduced) -- `REFUSED-lane-bu-1535-outer-loop.md`, repair 1 of 2. Repair `c35b2089` pins the newlines and re-measures the corpus (102 -> 103, G1 55 -> 56) without loosening it. Merged `--no-ff` on `4ccb89c5`; regenerated `recent-adrs.md`, `doc-counts.md`, added the ADR-130 row to the ADR index; the 1539 merge receipt line rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** pending CI on the integration branch; verdict and the `[#1535]` row close in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** as entry (d) of 1535's first handback: `scripts/run_phase.py` (new), `scripts/conductor.py` (`lane`), `scripts/dodo.py`, `scripts/gen_lane_contract.py` (`distill`), `ecosystem/harness.yaml`, `ecosystem/schema/{phase,distill,challenge}_receipt.py` + schemas, ADR-130, `tasks/689-*` note, five new test files, `tests/test_validate_adr_status.py` baseline; generated `.claude/generated/recent-adrs.md`, `ecosystem/doc-counts.md`; `docs/decisions/README.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** lane-bu-1537-codespace-finish (handed back @ d22cd9f7) merges next; then 1536 is eligible. BUILD-2 slot 1 `[#1430]` may start once this lands.
+
+---
+
+### 2026-10-15 (d) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1539-transport merges -- the architect's inbox, derived request status, a capped INDEX ([#1539] PARTIAL, [#1454], [#1332])
+
+**Anchors:** `8e668eb0` (lane tip, branch `worktree-lane-bu-1539-transport`, introduced by this merge). The build1-prep merge receipt line (`5a208874` on `chore/bu-merge-receipts`) rides in this merge's tree, byte-identical, because `merge_path.py land` takes exactly one merge on origin/main per landing.
+
+**Did:** the batch's second handback, first to merge. Purity: 5 lane commits on `b6161972`, no merges; 11 files, all inside the footprint. Phase chain: RED `f9420967` before the fixes; Codex `gpt-5.6-terra` (nonces BU1539-7Q4K, BU1539-R2X9) and Grok `grok-4.20-0309-non-reasoning` records; judge round 1 REFUSE (two HIGHs fixed in `8e668eb0`), round 2 ACCEPT. Regenerated `ecosystem/doc-counts.md` on the merged tree (the lane's own CI QA named it: `test_check_derived_copies` red until the integrator regenerates). Lane 1535's first merge was refused by CI (REGRESSED, 7 new reds, its own) and is in repair 1 of 2.
+
+**Result:** pending CI on the integration branch (`merge_path.py land`); verdict and row closes in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL by contract clause 4: `janitor --apply` on the live Drive waits on the operator's review of the dry-run manifest; the 10 live `no-by` files are seat-authored (PREMISE-FAILED).
+
+**Changes:** `scripts/transport.py` (query --since, derived status, INDEX view + INDEX-ARCHIVE), `scripts/transport_lint.py`, `scripts/transport_report.py`, `ecosystem/transport-registry.yaml` (14 rows, folder lists), `scripts/gen_handoff.py` + `scripts/assemble_paste.py` ([#1332]), their tests; generated `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** queue pass -- `lane-bu-1450-boot-v2` becomes eligible once this lands. OPERATOR-ACTION: review the janitor dry run and the 6 misfoldered Drive files (digest MORNING).
+
+---
+
 ### 2026-10-15 (c) - CC (Opus 5.5, build1-prep): batch BU (BUILD-1) frozen -- rows [#1535]-[#1540], manifest open, six contracts rendered; nothing launched
 
 **Anchors:** `0c8b495d` ([#1535]-[#1540] + intake 110, the [#669] waiver note), `8b2b2fed` (batch BU manifest, `status: open`), `4432daaa` (audits index). Branch `worktree-build1-prep-2026-10-15`.
