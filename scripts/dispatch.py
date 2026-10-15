@@ -2631,44 +2631,55 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
                 continue
             record = by_cli[item.cli]
             channel = agy_channel if agy_channel is not None else tmp / "agy-code.txt"
+            usable = True
             try:
-                channel.unlink(missing_ok=True)     # a code left by an earlier run is never the answer
+                if channel.exists():     # a code left by an earlier run is never the answer
+                    channel.unlink()
             except OSError:
-                pass
-            res = tool("agy-signin-start")
-            found = re.search(r"https://\S+", res.stdout or "") if res.ok else None
-            record["auth_url_surfaced"] = bool(found)
+                usable = False                      # ...and one that cannot be removed cannot be told apart
             signin = "no-url"
             code: Optional[str] = None
-            if found:
-                line = f"OPERATOR-ACTION: agy sign-in: open {found.group(0)}, then put the browser's code in {channel}"
-                record["operator_action_line"] = line
-                print(f"[codespace {name}] agy sign-in: waiting for the operator (up to {agy_wait_s:g}s)",
-                      file=sys.stderr)
-                print(line, file=sys.stderr)
-                start = clock()
-                beats = 0
-                next_beat = start + AGY_HEARTBEAT_S
-                while clock() < start + agy_wait_s:
+            if not usable:
+                signin = "channel-unusable"
+                record["auth_url_surfaced"] = False
+            else:
+                try:
+                    res = tool("agy-signin-start")
+                    found = re.search(r"https://\S+", res.stdout or "") if res.ok else None
+                    record["auth_url_surfaced"] = bool(found)
+                    if found:
+                        line = (f"OPERATOR-ACTION: agy sign-in: open {found.group(0)}, "
+                                f"then put the browser's code in {channel}")
+                        record["operator_action_line"] = line
+                        print(f"[codespace {name}] agy sign-in: waiting for the operator "
+                              f"(up to {agy_wait_s:g}s)", file=sys.stderr)
+                        print(line, file=sys.stderr)
+                        start = clock()
+                        beats = 0
+                        next_beat = start + AGY_HEARTBEAT_S
+                        while True:     # the last read happens at the deadline, never past it
+                            try:
+                                text = channel.read_text(encoding="utf-8").strip() if channel.is_file() else ""
+                            except OSError:
+                                text = ""
+                            if text:
+                                code = text
+                                break
+                            if clock() >= start + agy_wait_s:
+                                break
+                            if clock() >= next_beat:
+                                beats += 1
+                                next_beat += AGY_HEARTBEAT_S
+                                print(f"[codespace {name}] agy sign-in: waiting for the code in {channel} "
+                                      f"({int(clock() - start)}s of {agy_wait_s:g}s)", file=sys.stderr)
+                            sleep(AGY_POLL_S)
+                        record["heartbeats"] = beats
+                        signin = "timeout"
+                finally:
                     try:
-                        text = channel.read_text(encoding="utf-8").strip() if channel.is_file() else ""
+                        channel.unlink(missing_ok=True)
                     except OSError:
-                        text = ""
-                    if text:
-                        code = text
-                        try:
-                            channel.unlink(missing_ok=True)
-                        except OSError:
-                            pass
-                        break
-                    if clock() >= next_beat:
-                        beats += 1
-                        next_beat += AGY_HEARTBEAT_S
-                        print(f"[codespace {name}] agy sign-in: waiting for the code in {channel} "
-                              f"({int(clock() - start)}s of {agy_wait_s:g}s)", file=sys.stderr)
-                    sleep(AGY_POLL_S)
-                record["heartbeats"] = beats
-                signin = "timeout"
+                        record["channel_removed"] = False
             if code is not None:
                 credentials["agy"] = code.encode("utf-8")
                 relayed = tool("agy-signin-code", stdin=(code + "\n").encode("utf-8"))
@@ -2692,6 +2703,9 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
                 record.update({"auth_tree_killed": stopped.ok, "read_route": AGY_READ_FALLBACK})
                 print(f"GAP: agy sign-in {signin}: the auth process tree was killed; "
                       f"reads go through {AGY_READ_FALLBACK}", file=sys.stderr)
+            else:
+                # the login lives in the keyring; the sign-in TUI would otherwise run to its own timeout
+                record["auth_tree_killed"] = tool("agy-signin-stop").ok
             if "agy" in credentials:
                 echoed = leak_check(
                     {"agy": credentials["agy"]},
@@ -2919,6 +2933,10 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     if not batch:
         raise DispatchRefused("codespace_exec needs a non-empty batch: the FINISH receipts and gates "
                               "are not optional")
+    for flag in ("--json-schema", "--model"):
+        if list(head_argv).count(flag) > 1:
+            raise DispatchRefused(f"head_argv carries {flag} more than once: the schema smoke and the "
+                                  "run would not judge the same token")
     rows: list[dict] = []
     steps_path = _harvest_dir(batch, slug, root=receipts_root) / "steps.jsonl"
 
@@ -2949,9 +2967,12 @@ def branch_pin_check(branch: str, *, run: Callable[..., "cpar.CmdResult"] = cpar
     with tempfile.TemporaryDirectory() as tmp:
         record = Path(tmp) / "provisioning.yaml"
         record.write_text(shown.stdout, encoding="utf-8", newline="\n")
-        if laptop is None:
-            laptop = cpar.read_laptop_versions(tuple(cpar.typed_pins(record)))
-        return cpar.pin_check(record, laptop)
+        try:
+            if laptop is None:
+                laptop = cpar.read_laptop_versions(tuple(cpar.typed_pins(record)))
+            return cpar.pin_check(record, laptop)
+        except cpar.PinError as exc:
+            return 2, [str(exc)]
 
 
 def write_step(path: Path, batch: str, lane: str, codespace: str, step: str, ok: bool,
