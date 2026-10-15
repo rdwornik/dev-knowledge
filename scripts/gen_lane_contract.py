@@ -1960,6 +1960,305 @@ def _write_contract(target: Path, text: str) -> None:
         raise click.ClickException(str(exc)) from exc
 
 
+# --- `distill --row`: the [#1535] front stage over a phased `tasks/` row ------------------------
+# Pure helpers first (testable without a subprocess); the CLI below only wires them. The receipts
+# live in `ecosystem/schema/`; the phase adapter, the constraint registry and the matrix rule are
+# REUSED from `run_phase`, `conductor` and `decide_checks`, never re-implemented here.
+
+#: Phases of a `tasks/` row the distiller will take; anything else (or none) is refused.
+DISTILL_ROW_PHASES = frozenset({"task", "build"})
+REUSE_THRESHOLD = 0.5
+_STOPWORDS = frozenset({"py", "md", "scripts", "tests", "test", "claude", "commands", "command",
+                        "skills", "skill", "hooks", "hook", "the", "a", "an", "of", "and", "to",
+                        "for"})
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+_PHASE_CLAUSE_RE = re.compile(r"·\s*phase\s*:\s*([A-Za-z-]+)")
+_TOUCHES_CLAUSE_RE = re.compile(r"·\s*touches\s*:\s*([^·\n]*)")
+_DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·\n]*)")
+_ORGAN_SOURCE_ROW_RE = re.compile(
+    r"^\|\s*`(?P<name>[^`]+)`\s*\|[^|]*\|[^|]*\|\s*`(?P<source>[^`]+)`\s*\|", re.MULTILINE)
+_IDEA_LINE_RE = re.compile(r"^(title|proposes|class)\s*:\s*(.*?)\s*$", re.IGNORECASE | re.MULTILINE)
+_DEFAULT_REVIEW_ARGV = {
+    "openai": lambda prompt: ["codex", "exec", "-s", "read-only", prompt],
+    "xai": lambda prompt: ["grok", "-p", "--max-turns", "2", prompt],
+    "copilot-enterprise": lambda prompt: ["copilot", "-p", prompt],
+    "anthropic": lambda prompt: ["claude", "-p", prompt],
+}
+
+
+class DistillRefused(Exception):
+    """A refusal the distiller states and exits 1 on -- never a silent pass."""
+
+
+class DistillInputRequired(Exception):
+    """The row halts for the operator (a DISAGREE / unreachable CHALLENGE); exit 4."""
+
+
+@dataclass(frozen=True)
+class TaskRow:
+    id: str
+    path: Path
+    text: str
+    title: str
+    phase: Optional[str]
+    touches: tuple[str, ...]
+    depends_on: tuple[str, ...]
+
+
+def load_task_row(repo_root: Path, row_id: str) -> TaskRow:
+    """`tasks/<id>-*.md`, parsed. A missing row is a refusal, not a guess at a neighbour."""
+    bare = re.sub(r"\D", "", row_id)
+    matches = sorted((repo_root / "tasks").glob(f"{bare}-*.md")) if bare else []
+    if not matches:
+        raise DistillRefused(f"no tasks/{bare or row_id}-*.md row")
+    path = matches[0]
+    text = path.read_text(encoding="utf-8")
+    title_m = _TASK_TITLE_RE.search(text)
+    phase_m = _PHASE_CLAUSE_RE.search(text)
+    touches_m = _TOUCHES_CLAUSE_RE.search(text)
+    depends_m = _DEPENDS_CLAUSE_RE.search(text)
+    touches = tuple(t.strip().strip("`").strip() for t in (touches_m.group(1).split(",") if touches_m else ())
+                    if t.strip().strip("`").strip())
+    depends = tuple(re.findall(r"\d+", depends_m.group(1))) if depends_m else ()
+    return TaskRow(id=bare, path=path, text=text, title=title_m.group("title").strip() if title_m else "",
+                   phase=phase_m.group(1) if phase_m else None, touches=touches, depends_on=depends)
+
+
+def require_phased(row: TaskRow) -> None:
+    if row.phase is None:
+        raise DistillRefused(f"unphased row [#{row.id}]: no `· phase:` clause, so no stage to distill for")
+    if row.phase not in DISTILL_ROW_PHASES:
+        raise DistillRefused(f"row [#{row.id}] is at phase {row.phase!r}; distill takes "
+                             f"{' | '.join(sorted(DISTILL_ROW_PHASES))}")
+
+
+def organ_index_entries(text: str) -> list[tuple[str, str]]:
+    """(name, source) of every organ-index table row."""
+    return [(m.group("name"), m.group("source")) for m in _ORGAN_SOURCE_ROW_RE.finditer(text)]
+
+
+def tokens(s: str) -> frozenset[str]:
+    return frozenset(_TOKEN_RE.findall(s.lower())) - _STOPWORDS
+
+
+def similarity(a: str, b: str) -> float:
+    ta, tb = tokens(a), tokens(b)
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / len(ta | tb)
+
+
+def _purpose_via_graph(repo_root: Path, path: str) -> Optional[str]:
+    import subprocess
+    try:
+        out = subprocess.run([sys.executable, str(_SCRIPTS / "file_purpose_graph.py"), "why", path,
+                              "--limit", "1"], cwd=repo_root, capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=180).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"^purpose\s*:\s*(.+?)\s*$", out, re.MULTILINE)
+    return m.group(1) if m else None
+
+
+def _import_receipts():
+    root = str(_SCRIPTS.parent)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    from ecosystem.schema import challenge_receipt, distill_receipt
+    return challenge_receipt, distill_receipt
+
+
+def reuse_candidates(repo_root: Path, new_paths, *, title: str = "",
+                     organ_index_text: Optional[str] = None, why=None, limit: int = 5) -> list:
+    """Existing things a NEW path (or the row title) might reuse, scored by token overlap.
+    Organ-index entries come from the index; same-directory siblings come from `why`, which also
+    supplies their purpose -- a sibling `why` has no purpose for is skipped."""
+    _, distill_receipt = _import_receipts()
+    if organ_index_text is None:
+        index_path = repo_root / "ecosystem" / "organ-index.md"
+        organ_index_text = index_path.read_text(encoding="utf-8") if index_path.is_file() else ""
+    if why is None:
+        def why(p: str) -> Optional[str]:
+            return _purpose_via_graph(repo_root, p)
+    entries = organ_index_entries(organ_index_text)
+    out = []
+    subjects = [(p, Path(p).stem, p) for p in new_paths] + ([(title, title, "row")] if title else [])
+    for subject, stem, matched in subjects:
+        best: dict[str, distill_receipt.ReuseCandidate] = {}
+        for name, source in entries:
+            score = max(similarity(stem, name), similarity(stem, Path(source).stem))
+            if score > 0 and (source not in best or score > best[source].score):
+                best[source] = distill_receipt.ReuseCandidate(
+                    path=source, source="organ-index", score=round(score, 4), matched=matched)
+        if matched != "row":
+            directory = repo_root / Path(subject).parent
+            siblings = sorted(directory.glob(f"*{Path(subject).suffix}")) if directory.is_dir() else []
+            scored = []
+            for sibling in siblings:
+                rel = sibling.relative_to(repo_root).as_posix()
+                score = similarity(stem, sibling.stem)
+                if rel != subject and score > 0:
+                    scored.append((score, rel))
+            for score, rel in sorted(scored, key=lambda t: -t[0])[:limit]:
+                purpose = why(rel)
+                if purpose is None:
+                    continue
+                if rel not in best or score >= best[rel].score:
+                    best[rel] = distill_receipt.ReuseCandidate(
+                        path=rel, source="why", score=round(score, 4), matched=matched, purpose=purpose)
+        out.extend(sorted(best.values(), key=lambda c: -c.score)[:limit])
+    return sorted(out, key=lambda c: -c.score)
+
+
+def _normalise_proposal(proposes: str) -> str:
+    p = proposes.strip().strip("`").lstrip("/")
+    return Path(p).stem if "." in p else p
+
+
+def _default_reviewers(payload_for, nonce: str, input_hash: str) -> list:
+    import yaml
+    registry = yaml.safe_load((_SCRIPTS.parent / "ecosystem" / "provider-registry.yaml")
+                              .read_text(encoding="utf-8"))
+    chain = []
+    for entry in registry["roles"]["review"]["order"]:
+        vendor = entry["provider"]
+        build = _DEFAULT_REVIEW_ARGV.get(vendor)
+        if build is None:
+            continue
+        prompt = ("Challenge the idea in the text below: is it a duplicate of an existing organ, or "
+                  "unneeded? Do not edit the repository. Write ONE JSON object (nonce, input_hash, "
+                  f"verdict AGREE|AMEND|DISAGREE, reasons, amendments) to {payload_for(vendor)}, "
+                  f"with nonce set to {nonce} and input_hash set to {input_hash} exactly.")
+        chain.append((vendor, build(prompt)))
+    return chain
+
+
+def challenge(idea_text: str, *, producer_vendor: str, organ_index_text: str, reviewers=None,
+              matrix_path: Optional[Path] = None, timeout_s: float = 900.0,
+              work_dir: Optional[Path] = None):
+    """The CHALLENGE sub-stage: a deterministic duplicate check first, then a reviewer of another
+    vendor. No reachable reviewer is INPUT_REQUIRED -- never a pass."""
+    import hashlib
+    import shutil
+    import tempfile
+    challenge_receipt, _ = _import_receipts()
+    import decide_checks
+    import run_phase
+
+    fields = {k.lower(): v for k, v in _IDEA_LINE_RE.findall(idea_text)}
+    first_line = next((ln.strip() for ln in idea_text.splitlines() if ln.strip()), "")
+    title = fields.get("title") or first_line
+    proposes = fields.get("proposes", "")
+    decision_class = fields.get("class", "decision").lower() == "decision"
+    idea_sha = hashlib.sha256(idea_text.encode("utf-8")).hexdigest()
+    base = dict(idea_sha256=idea_sha, title=title, proposes=proposes, decision_class=decision_class,
+                producer_vendor=producer_vendor)
+
+    if matrix_path is not None:
+        defects = decide_checks.check_matrix(matrix_path)
+        if defects:
+            raise DistillRefused("matrix refused:\n" + "\n".join(d.render() for d in defects))
+
+    wanted = _normalise_proposal(proposes)
+    duplicates, evidence = [], []
+    if wanted:
+        for name, source in organ_index_entries(organ_index_text):
+            stem = Path(source).stem
+            if (wanted in (_normalise_proposal(name), stem)
+                    or max(similarity(wanted, name), similarity(wanted, stem)) >= REUSE_THRESHOLD):
+                duplicates.append(f"{name} ({source})")
+                evidence.append(f"organ-index row: `{name}` -> `{source}`")
+    if duplicates:
+        return challenge_receipt.ChallengeReceipt(
+            **base, verdict="DISAGREE", row_state="INPUT_REQUIRED", reviewer_vendor="harness",
+            served_model=None, nonce=None, evidence=evidence, duplicates=duplicates)
+
+    work_dir = Path(work_dir) if work_dir else Path(tempfile.mkdtemp(prefix="challenge-"))
+    work_dir.mkdir(parents=True, exist_ok=True)
+    nonce = run_phase.new_nonce()
+    input_hash = idea_sha
+
+    def payload_for(vendor: str) -> Path:
+        return work_dir / f"challenge-{vendor}.json"
+
+    if reviewers is None:
+        reviewers = _default_reviewers(payload_for, nonce, input_hash)
+    for vendor, argv in reviewers:
+        if vendor == producer_vendor or not argv or shutil.which(argv[0]) is None:
+            continue
+        payload = payload_for(vendor)
+        payload.unlink(missing_ok=True)
+        run = run_phase.run_phase(argv, timeout_s, payload_path=payload, nonce=nonce,
+                                  input_hash=input_hash, payload_model=challenge_receipt.ChallengePayload)
+        if run.status != run_phase.COMPLETE or not run.payload:
+            continue
+        verdict = run.payload["verdict"]
+        return challenge_receipt.ChallengeReceipt(
+            **base, verdict=verdict,
+            row_state="proceed" if verdict in ("AGREE", "AMEND") else "INPUT_REQUIRED",
+            reviewer_vendor=vendor, served_model=None, nonce=nonce,
+            evidence=list(run.payload.get("reasons", [])) + [f"amend: {a}" for a in run.payload.get("amendments", [])])
+    return challenge_receipt.ChallengeReceipt(
+        **base, verdict="INPUT_REQUIRED", row_state="INPUT_REQUIRED", reviewer_vendor=None,
+        served_model=None, nonce=None, evidence=["no reviewer of another vendor completed"])
+
+
+def _distill_row(repo_root: Path, row_id: str, *, plan: Optional[Path], idea: Optional[Path],
+                 matrix: Optional[Path], producer_vendor: str, challenge_file: Optional[Path]):
+    """Assemble the DistillReceipt for a phased row. Raises DistillRefused / ValidationError."""
+    import json
+    import yaml
+    challenge_receipt, distill_receipt = _import_receipts()
+    import conductor
+    from ecosystem.schema import phase_receipt
+
+    row = load_task_row(repo_root, row_id)
+    require_phased(row)
+    plan_doc = json.loads(plan.read_text(encoding="utf-8")) if plan else {}
+    new_paths = list(plan_doc.get("new_paths") or [])
+    index_path = repo_root / "ecosystem" / "organ-index.md"
+    organ_text = index_path.read_text(encoding="utf-8") if index_path.is_file() else ""
+
+    cands = reuse_candidates(repo_root, new_paths, title=row.title, organ_index_text=organ_text)
+    chal = None
+    if challenge_file is not None:
+        chal = challenge_receipt.ChallengeReceipt.model_validate_json(challenge_file.read_text(encoding="utf-8"))
+    elif idea is not None or matrix is not None:
+        idea_text = idea.read_text(encoding="utf-8") if idea else row.text
+        chal = challenge(idea_text, producer_vendor=producer_vendor, organ_index_text=organ_text,
+                         matrix_path=matrix)
+
+    harness = repo_root / "ecosystem" / "harness.yaml"
+    if not harness.is_file():
+        raise DistillRefused(f"{harness} is absent -- no constraint registry to select from")
+    doc = yaml.safe_load(harness.read_text(encoding="utf-8"))
+    try:
+        constraints = [c["id"] for c in conductor.select_constraints(doc, "", row.touches)]
+    except conductor.ConstraintSelectionError as exc:
+        raise DistillRefused(str(exc)) from exc
+    phases = [distill_receipt.PhasePlan(id=p["id"], model=p.get("model"), effort=p.get("effort"),
+                                        vendor=phase_receipt.vendor_for_argv(p["command"]))
+              for p in doc.get("phases", [])]
+
+    hints = "\n".join(f"- {c.path} ({c.source}, {c.score:.2f}) for {c.matched}" for c in cands)
+    prompt = "\n".join([f"Row [#{row.id}]: {row.title}", f"Phase: {row.phase}",
+                        f"Touches: {', '.join(row.touches) or '(none declared)'}",
+                        f"Constraints: {', '.join(constraints)}",
+                        "Reuse before building new:" + (("\n" + hints) if hints else " (no candidates)")])
+    try:
+        return distill_receipt.DistillReceipt(
+            row=row.id, row_phase=row.phase, title=row.title, reuse_candidates=cands,
+            dependencies=list(row.depends_on), phases=phases, constraints=constraints,
+            boosted_prompt=prompt, plan_new_paths=new_paths, new_justified=plan_doc.get("new_justified"),
+            producer_vendor=producer_vendor, challenge=chal)
+    except Exception:
+        # a challenge that halts the row is INPUT_REQUIRED (exit 4), not a refusal of the plan
+        if chal is not None and chal.row_state == "INPUT_REQUIRED":
+            raise DistillInputRequired(
+                f"challenge {chal.verdict} halts row [#{row.id}]: {'; '.join(chal.evidence) or 'no reviewer'}")
+        raise
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:
     """Emit and check batch-lane frozen contracts ([#539])."""
@@ -2224,13 +2523,54 @@ def cmd_enums() -> None:
     click.echo(f"generated: {_dt.date.today().isoformat()}")
 
 
+def _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, challenge_file) -> None:
+    """The `distill --row` body: exit 0 ready, 1 refused, 4 INPUT_REQUIRED."""
+    from pydantic import ValidationError
+    repo_root = _SCRIPTS.parent
+    try:
+        receipt = _distill_row(repo_root, row_id, plan=plan, idea=idea, matrix=matrix,
+                               producer_vendor=producer_vendor, challenge_file=challenge_file)
+    except DistillRefused as exc:
+        raise click.ClickException(str(exc)) from exc
+    except DistillInputRequired as exc:
+        click.echo(f"INPUT_REQUIRED: {exc}", err=True)
+        sys.exit(4)
+    except ValidationError as exc:
+        raise click.ClickException(f"DistillReceipt refused: {exc}") from exc
+    text = receipt.model_dump_json(by_alias=True, indent=2)
+    if receipt_out is not None:
+        receipt_out.write_text(text + "\n", encoding="utf-8")
+    else:
+        click.echo(text)
+    if receipt.row_state == "INPUT_REQUIRED":
+        click.echo(f"INPUT_REQUIRED: row [#{receipt.row}] halts for the operator", err=True)
+        sys.exit(4)
+
+
 @cli.command("distill")
-@click.option("--kind", "delta_kind", required=True,
+@click.option("--kind", "delta_kind", required=False,
               type=click.Choice(BUILD_LIST_DELTA_ENUM, case_sensitive=False),
               help="this lane's declared BUILD-LIST delta verb (BUILD-MODE.md rule 6's closed "
-                   "list)")
-@click.option("--subject", required=True,
-              help="the protocols/BUILD-LIST.md row subject this contract targets")
+                   "list); required unless --row")
+@click.option("--subject", required=False,
+              help="the protocols/BUILD-LIST.md row subject this contract targets; required "
+                   "unless --row")
+@click.option("--row", "row_id", default=None,
+              help="distill a phased tasks/ row to a DistillReceipt instead (exit 0 ready, 1 "
+                   "refused, 4 INPUT_REQUIRED)")
+@click.option("--plan", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
+              help="--row: PLAN.json {new_paths: [...], new_justified: str|null}")
+@click.option("--idea", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
+              help="--row: IDEA.md (title:/proposes:/class: lines) to CHALLENGE")
+@click.option("--matrix", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
+              help="--row: decision matrix checked by decide_checks.check_matrix")
+@click.option("--producer-vendor", default="anthropic", show_default=True,
+              help="--row: the vendor producing this distillation")
+@click.option("--receipt", "receipt_out", type=click.Path(dir_okay=False, path_type=Path), default=None,
+              help="--row: write the DistillReceipt here (default: stdout)")
+@click.option("--challenge-receipt", "challenge_file",
+              type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
+              help="--row: attach an existing ChallengeReceipt instead of running one")
 @click.option("--shape", type=click.Choice(SHAPE_ENUM), default=DEFAULT_SHAPE, show_default=True)
 @click.option("--repo", default=".dev-knowledge", show_default=True)
 @click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
@@ -2239,7 +2579,10 @@ def cmd_enums() -> None:
 @click.option("--reclassify", is_flag=True, default=False,
               help="required when --kind disagrees with the row's recorded delta — an explicit "
                    "opt-in, never a silent override (codex b2-lane3-distiller, HIGH)")
-def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: Optional[Path],
+def cmd_distill(delta_kind: Optional[str], subject: Optional[str], row_id: Optional[str],
+                plan: Optional[Path], idea: Optional[Path], matrix: Optional[Path],
+                producer_vendor: str, receipt_out: Optional[Path], challenge_file: Optional[Path],
+                shape: str, repo: str, out_dir: Optional[Path],
                 to_stdout: bool, force: bool, reclassify: bool) -> None:
     """Compose a lane contract from (kind, subject) — BUILD-MODE.md exit condition 1.
 
@@ -2249,7 +2592,14 @@ def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: O
     `render_contract` — this command adds no second contract format, only the inputs. The two
     JUDGEMENT fields (scope, risk) are emitted as marked slots for one bounded model call; no
     model API is called here.
+
+    With `--row ID` it instead distills a phased `tasks/` row to a DistillReceipt ([#1535]).
     """
+    if row_id is not None:
+        _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, challenge_file)
+        return
+    if not delta_kind or not subject:
+        raise click.UsageError("--kind and --subject are required unless --row is given")
     delta_kind = delta_kind.upper()
     repo_root = _SCRIPTS.parent
     try:
