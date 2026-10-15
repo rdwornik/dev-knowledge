@@ -869,6 +869,29 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1593] [P2][M] Handoff docs stop contradicting each other: v5/v6 prose, the R30 conflict, four seats, three queue verbs, dispatcher routing · tasks/1593-handoff-docs-stop-contradicting-each-other-v5-v6-prose-the-r30-conflict-four-seats-three-q.md
 - [#1594] [P3][S] Phase-0 residuals: R48 last-ran print, `lane_report.py`, stale ADR-121/ADR-125, Actions-minutes gauge and heartbeat timezone label · tasks/1594-phase-0-residuals-r48-last-ran-print-lane-report-py-stale-adr-121-adr-125-actions-minutes.md
 - [#1595] [P3][M] The cloud and interactive substrates have a launcher or are removed (R112) · tasks/1595-the-cloud-and-interactive-substrates-have-a-launcher-or-are-removed-r112.md
+- [#1596] [P1][M] The `merge` moment fires on a real merge and leaves a receipt per organ, or is removed · tasks/1596-the-merge-moment-fires-on-a-real-merge-and-leaves-a-receipt-per-organ-or-is-removed.md
+- [#1597] [P2][S] The `lane-start` moment has a caller and fires on a real lane start, or is removed · tasks/1597-the-lane-start-moment-has-a-caller-and-fires-on-a-real-lane-start-or-is-removed.md
+- [#1598] [P2][S] The `batch-close` moment reads a receipt and fires at a real batch close, or is removed · tasks/1598-the-batch-close-moment-reads-a-receipt-and-fires-at-a-real-batch-close-or-is-removed.md
+- [#1599] [P2][S] The `seat-release` moment is run by a command or hook, not by hand, or is removed · tasks/1599-the-seat-release-moment-is-run-by-a-command-or-hook-not-by-hand-or-is-removed.md
+- [#1600] [P1][M] Phases P1-P7 and the C-* constraints run in one real round · tasks/1600-phases-p1-p7-and-the-c-constraints-run-in-one-real-round.md
+- [#1601] [P2][S] The three guards that expired 2026-10-08 are each used or removed: `block_immutable_edits.py`, the prompts-guard sweep, `logs_retention.py` · tasks/1601-the-three-guards-that-expired-2026-10-08-are-each-used-or-removed-block-immutable-edits-py.md
+- [#1602] [P3][S] `deny_and_point.py` is wired and fires on a real denied call, or is removed · tasks/1602-deny-and-point-py-is-wired-and-fires-on-a-real-denied-call-or-is-removed.md
+- [#1603] [P3][S] `hook_watchdog.py` kills a real hung hook and logs it, or is removed · tasks/1603-hook-watchdog-py-kills-a-real-hung-hook-and-logs-it-or-is-removed.md
+- [#1604] [P2][S] The CI job `terra` runs with a credential or is removed · tasks/1604-the-ci-job-terra-runs-with-a-credential-or-is-removed.md
+- [#1605] [P2][M] Each of the 70 `fates:` scripts is wired, dated or removed; the 11 with expired dates first · tasks/1605-each-of-the-70-fates-scripts-is-wired-dated-or-removed-the-11-with-expired-dates-first.md
+- [#1606] [P1][M] The CRUD sandbox QA suite (LEDGER v32 lane 22) is built and run once against the process matrix · tasks/1606-the-crud-sandbox-qa-suite-ledger-v32-lane-22-is-built-and-run-once-against-the-process-mat.md
+- [#1607] [P2][M] A `uv.lock` change (create, update, delete a dependency) is gated by a process · tasks/1607-a-uv-lock-change-create-update-delete-a-dependency-is-gated-by-a-process.md
+- [#1608] [P2][M] A CI workflow change (create, update, delete) is gated before it lands · tasks/1608-a-ci-workflow-change-create-update-delete-is-gated-before-it-lands.md
+- [#1609] [P3][M] A release or tag (create, update, delete) has a process · tasks/1609-a-release-or-tag-create-update-delete-has-a-process.md
+- [#1610] [P2][M] 'Superseded means code removed' (ADR-125) is enforced when an ADR is superseded or a feature deleted · tasks/1610-superseded-means-code-removed-adr-125-is-enforced-when-an-adr-is-superseded-or-a-feature-d.md
+- [#1611] [P3][S] Create and delete under `protocols/` are gated like any other doc · tasks/1611-create-and-delete-under-protocols-are-gated-like-any-other-doc.md
+- [#1612] [P1][M] A job in state done or blocked with a handback on the transport is stopped automatically · tasks/1612-a-job-in-state-done-or-blocked-with-a-handback-on-the-transport-is-stopped-automatically.md
+- [#1613] [P1][S] The daemon does not resume a lane that was stopped · tasks/1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md
+- [#1614] [P3][S] The resource organ's 'free' memory figure is named 'available' and read from the OS available counter · tasks/1614-the-resource-organ-s-free-memory-figure-is-named-available-and-read-from-the-os-available.md
+- [#1615] [P1][S] A step the memory reaper killed is re-queued once, and the lane verdict stays INCOMPLETE until it ran · tasks/1615-a-step-the-memory-reaper-killed-is-re-queued-once-and-the-lane-verdict-stays-incomplete-un.md
+- [#1616] [P1][M] Start-up context cut 1: `CLAUDE.md` carries only what a session needs before it can act (hooks roster and conventions detail move on demand) · tasks/1616-start-up-context-cut-1-claude-md-carries-only-what-a-session-needs-before-it-can-act-hooks.md
+- [#1617] [P1][S] Start-up context cut 2: the SessionStart hook output is capped at 2 KB · tasks/1617-start-up-context-cut-2-the-sessionstart-hook-output-is-capped-at-2-kb.md
+- [#1618] [P2][S] Start-up context cut 3: the auto-memory index `MEMORY.md` is held to 8 KB and the repo rule `git-discipline.md` to 2 KB · tasks/1618-start-up-context-cut-3-the-auto-memory-index-memory-md-is-held-to-8-kb-and-the-repo-rule-g.md
 
 ---
 
