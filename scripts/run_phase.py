@@ -102,7 +102,7 @@ def _write_heartbeat(path, pid: int, started: float, payload_path) -> None:
             "payload_present": bool(payload_path and Path(payload_path).exists()),
             "at": _iso(time.time())}
     try:
-        Path(path).write_text(json.dumps(beat), encoding="utf-8")
+        Path(path).write_text(json.dumps(beat), encoding="utf-8", newline="\n")
     except OSError:
         pass
 
@@ -340,7 +340,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
             round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
             model_requested=phase.get("model"), cli_record=_read_json(out), substituted_from=substituted)
         data = receipt_model.model_dump(by_alias=True)
-        receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         ok = phase_succeeded(data)
         print(f"phase:{phase['id']}: {run.status} -- {run.reason}" + ("" if ok else " (task FAILED)"))
         return ok
@@ -377,7 +377,8 @@ def _cmd_run(args) -> int:
                             round_no=args.round, argv=argv, input_hash=digest, nonce=nonce,
                             inputs=inputs)
     Path(args.receipt).write_text(
-        json.dumps(receipt.model_dump(by_alias=True), indent=2) + "\n", encoding="utf-8")
+        json.dumps(receipt.model_dump(by_alias=True), indent=2) + "\n", encoding="utf-8",
+        newline="\n")
     if run.status in SUCCESS:
         return 0
     return _EXIT_KILLED if run.status == KILLED else 1

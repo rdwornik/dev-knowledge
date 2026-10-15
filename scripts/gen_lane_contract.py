@@ -2539,7 +2539,7 @@ def _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, c
         raise click.ClickException(f"DistillReceipt refused: {exc}") from exc
     text = receipt.model_dump_json(by_alias=True, indent=2)
     if receipt_out is not None:
-        receipt_out.write_text(text + "\n", encoding="utf-8")
+        receipt_out.write_text(text + "\n", encoding="utf-8", newline="\n")
     else:
         click.echo(text)
     if receipt.row_state == "INPUT_REQUIRED":
