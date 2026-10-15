@@ -25,6 +25,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import asdict as _asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -2890,6 +2891,69 @@ def test_the_helper_starts_agy_without_browser_in_a_sized_pty_and_can_stop_and_d
     assert "out_bytes=" in diag and "<url>" in diag and re.search(r"tail\s+(-n\s*)?-?30", diag)
     probe = _helper_branch(script, "agy-probe")
     assert "{8,64}" in probe and "64" in probe and "timeout 300 agy -p" in probe and "/dev/null" in probe
+
+
+def test_the_helper_selects_google_oauth_once_when_agy_shows_the_login_menu():
+    """RG1: text-level -- start sees `Select login method` and writes ONE carriage return to the FIFO, flag-guarded."""
+    start = _helper_branch(d._credential_tools_script([]), "agy-signin-start")
+    assert "Select login method" in start, "the helper must recognise agy's login menu"
+    writes = list(re.finditer(r"[^\n]*\b(?:printf|echo)\b[^\n]*>\s*\"\$box/in\"", start))  # `sleep 900 >` is the holder
+    assert len(writes) == 1, "exactly one write into the FIFO: nothing else is ever typed"
+    line = writes[0].group(0)
+    assert re.search(r"\\r|\\015|\\x0d", line), f"the write is a carriage return: {line!r}"
+    assert not re.search(r"\b2\b|\\n", line), "never option 2, never a newline-terminated line"
+    assert start.index("Select login method") < writes[0].end(), "the write is conditioned on the menu check"
+    flags = set(re.findall(r"\b([A-Za-z_]\w*)=\"?(?:1|yes|y|true)\"?(?=\s|;|$)", start))
+    before = start[:writes[0].end()]
+    tested = {f for f in flags if re.search(rf"\$\{{?{f}\b", before)}
+    assert tested, f"a once-only flag variable is tested before the write (flags seen: {sorted(flags)})"
+    after = start[start.index("Select login method"):]
+    assert any(re.search(rf"\b{f}=\"?(?:1|yes|y|true)\"?", after) for f in tested), \
+        "the flag is set once the menu is answered, so it cannot fire twice"
+
+
+def test_agy_signin_start_against_a_fake_agy_with_a_login_menu_prints_the_url(tmp_path):
+    """RG2: the real helper on Linux, a fake agy that waits at the menu, prints the URL after one Enter; stop kills it."""
+    missing = [tool for tool in ("bash", "script", "setsid", "mkfifo") if shutil.which(tool) is None]
+    if missing:
+        pytest.skip(f"needs {', '.join(missing)} on PATH (ADR-127: skipped with its reason, not passed)")
+    helper = tmp_path / "credential-tools.sh"
+    helper.write_text(d._credential_tools_script([]), encoding="utf-8", newline="\n")
+    pidfile = tmp_path / "fake-agy.pid"
+    fake = Path(__file__).resolve().parent / "fake_agy.py"
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    wrapper = bindir / "agy"
+    wrapper.write_text(f"#!/usr/bin/env bash\nexec {shlex.quote(sys.executable)} {shlex.quote(fake.as_posix())} "
+                       f"menu {shlex.quote(pidfile.as_posix())}\n", encoding="utf-8", newline="\n")
+    wrapper.chmod(0o755)
+    env = {**os.environ, "HOME": str(tmp_path), "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}"}
+    env.pop("BROWSER", None)
+    pid = 0
+    started = subprocess.run(["bash", helper.as_posix(), "agy-signin-start"], env=env, capture_output=True,
+                             text=True, timeout=120, stdin=subprocess.DEVNULL)
+    try:
+        assert started.returncode == 0, (started.returncode, started.stdout, started.stderr)
+        assert started.stdout.strip() == "https://agy.invalid/oauth?state=fake-not-real", started.stdout
+        pid = int(pidfile.read_text(encoding="utf-8").strip())
+        os.kill(pid, 0)                                   # alive until stop
+    finally:
+        stopped = subprocess.run(["bash", helper.as_posix(), "agy-signin-stop"], env=env, capture_output=True,
+                                 text=True, timeout=60, stdin=subprocess.DEVNULL)
+    assert stopped.returncode == 0, stopped.stderr
+    gone = False
+    for _ in range(50):
+        try:
+            os.kill(pid, 0)
+            stat = Path(f"/proc/{pid}/stat")
+            if stat.exists() and stat.read_text(encoding="utf-8").rsplit(")", 1)[-1].split()[0] == "Z":
+                gone = True                               # killed, only awaiting a reaper
+                break
+        except ProcessLookupError:
+            gone = True
+            break
+        time.sleep(0.1)
+    assert gone, "the fake agy outlived agy-signin-stop"
 
 
 @pytest.mark.parametrize("nonce", ["short", "has space in it!", "x" * 65, "abcdefgh;touch-x"])

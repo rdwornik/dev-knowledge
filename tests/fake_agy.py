@@ -6,15 +6,26 @@ would -- `agy-signin-start`, `agy-signin-code` (the code on STDIN), `agy-probe <
 network, no `gh`, no `agy` and no real credential. Every value is fake: the URL ends in `.invalid`
 and the code is a sentinel the tests compare against, never print.
 
+Run as a script, `python tests/fake_agy.py menu [pidfile]` is a fake `agy` PROCESS for the helper's
+login-menu test: it draws agy 1.3.5's "Select login method" menu, waits for a carriage return or a
+newline on stdin, and only then prints the (fake) authorization URL -- the live behaviour of 2026-10-15.
+
 `FakeClock` stands in for the `sleep` and `clock` seams: `sleep(s)` advances time instead of waiting,
 and `at(offset, action)` schedules the "operator" -- an action (typically writing the channel file)
 that fires the first time the clock has passed `start + offset`.
 """
 from __future__ import annotations
 
+import os
+import select
+import sys
+import time
 from typing import Callable, Optional, Sequence
 
-import dispatch as d
+try:  # absent when this file runs as a script (`python tests/fake_agy.py menu`): then only `_menu_main` is used
+    import dispatch as d
+except ImportError:  # pragma: no cover - script mode
+    d = None  # type: ignore[assignment]
 
 FAKE_URL = "https://agy.invalid/signin?state=fake-not-real"
 FAKE_CODE = "SENTINEL-AGY-CODE-4f9a2c7e1b"
@@ -103,3 +114,47 @@ class FakeClock:
     def at(self, offset_s: float, action: Callable[[], None]) -> None:
         """Run `action` the first time the clock has passed `start + offset_s` -- the operator."""
         self._events.append((offset_s, action))
+
+
+MENU_TEXT = (
+    " Welcome to the Antigravity CLI. You are currently not signed in.\n"
+    " Select login method:\n"
+    " > 1. Google OAuth\n"
+    "   2. Use a Google Cloud project\n"
+    "   ↑/↓ Navigate · enter Select\n"
+)
+MENU_URL = "https://agy.invalid/oauth?state=fake-not-real"
+
+
+def _menu_main(argv: Sequence[str]) -> int:
+    """A fake agy that shows the login menu and prints the URL only after Enter (CR or LF) arrives."""
+    if len(argv) > 1:
+        with open(argv[1], "w", encoding="utf-8") as fh:
+            fh.write(str(os.getpid()))
+    sys.stdout.buffer.write(MENU_TEXT.encode("utf-8"))   # bytes: the box is UTF-8 whatever the locale
+    sys.stdout.buffer.flush()
+    fd = sys.stdin.fileno()
+    seen = b""
+    while b"\r" not in seen and b"\n" not in seen:
+        chunk = os.read(fd, 64)
+        if not chunk:
+            return 1                      # stdin closed before anyone chose a method
+        seen += chunk
+    sys.stdout.write(f"Open this URL to sign in: {MENU_URL}\n")
+    sys.stdout.flush()
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:    # wait for the pasted code, as the real agy would
+        try:
+            ready, _, _ = select.select([fd], [], [], 1.0)
+        except OSError:                   # select() on a pipe is POSIX-only; the helper test runs on Linux
+            time.sleep(1.0)
+            continue
+        if ready and not os.read(fd, 64):
+            break
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "menu":
+        sys.exit(_menu_main(sys.argv[1:]))
+    sys.exit("usage: fake_agy.py menu [pidfile]")
