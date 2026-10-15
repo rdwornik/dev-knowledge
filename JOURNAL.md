@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (e) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1535-outer-loop merges after repair 1 -- the outer loop runs in code ([#1535], ADR-130 Proposed)
+
+**Anchors:** `c35b2089` (repair-1 tip, branch `worktree-lane-bu-1535-outer-loop`, introduced by this merge), `b431bf52` (the first handback's tip).
+
+**Did:** first merge `eb17ef8b` refused by CI (REGRESSED, 7 new reds: four unpinned `write_text()` newlines, the ADR corpus baseline ADR-130 moves, one Windows-only pairing red not reproduced) -- `REFUSED-lane-bu-1535-outer-loop.md`, repair 1 of 2. Repair `c35b2089` pins the newlines and re-measures the corpus (102 -> 103, G1 55 -> 56) without loosening it. Merged `--no-ff` on `4ccb89c5`; regenerated `recent-adrs.md`, `doc-counts.md`, added the ADR-130 row to the ADR index; the 1539 merge receipt line rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** pending CI on the integration branch; verdict and the `[#1535]` row close in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** as entry (d) of 1535's first handback: `scripts/run_phase.py` (new), `scripts/conductor.py` (`lane`), `scripts/dodo.py`, `scripts/gen_lane_contract.py` (`distill`), `ecosystem/harness.yaml`, `ecosystem/schema/{phase,distill,challenge}_receipt.py` + schemas, ADR-130, `tasks/689-*` note, five new test files, `tests/test_validate_adr_status.py` baseline; generated `.claude/generated/recent-adrs.md`, `ecosystem/doc-counts.md`; `docs/decisions/README.md`; `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** lane-bu-1537-codespace-finish (handed back @ d22cd9f7) merges next; then 1536 is eligible. BUILD-2 slot 1 `[#1430]` may start once this lands.
+
+---
+
 ### 2026-10-15 (d) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1539-transport merges -- the architect's inbox, derived request status, a capped INDEX ([#1539] PARTIAL, [#1454], [#1332])
 
 **Anchors:** `8e668eb0` (lane tip, branch `worktree-lane-bu-1539-transport`, introduced by this merge). The build1-prep merge receipt line (`5a208874` on `chore/bu-merge-receipts`) rides in this merge's tree, byte-identical, because `merge_path.py land` takes exactly one merge on origin/main per landing.
