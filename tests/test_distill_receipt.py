@@ -274,3 +274,22 @@ def test_receipt_refuses_two_conflicting_new_paths_when_the_challenge_proposes_o
                          challenge=_challenge_dict())  # proposes == NEW_PATH only
     with pytest.raises(ValidationError):
         _receipt_cls().model_validate(data)
+
+
+# --- judge round 2 (reviewer terra, re-review): a shared file stem is not the same path -----------
+
+
+def test_receipt_refuses_a_challenge_proposing_another_path_with_the_same_stem():
+    from pydantic import ValidationError
+    challenge = _challenge_dict()
+    challenge["proposes"] = "tests/read_gate_v2.py"  # same stem as NEW_PATH, different path
+    data = _receipt_dict(new_justified="the old gate cannot be widened", challenge=challenge)
+    with pytest.raises(ValidationError):
+        _receipt_cls().model_validate(data)
+
+
+def test_receipt_accepts_the_same_path_spelled_with_backslashes_and_backticks():
+    challenge = _challenge_dict()
+    challenge["proposes"] = "`scripts\\read_gate_v2.py`"
+    data = _receipt_dict(new_justified="the old gate cannot be widened", challenge=challenge)
+    _receipt_cls().model_validate(data)
