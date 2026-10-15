@@ -2956,6 +2956,20 @@ def test_agy_signin_start_against_a_fake_agy_with_a_login_menu_prints_the_url(tm
     assert gone, "the fake agy outlived agy-signin-stop"
 
 
+def test_every_background_process_of_agy_signin_start_is_detached_from_the_callers_pipes():
+    """RG3: text-level -- each `... &` line of start redirects stdin, stdout AND stderr, so a caller that captures
+    output (subprocess, `gh codespace ssh`) sees EOF at once; RG2 hung 120 s on Linux CI on the FIFO holder."""
+    start = _helper_branch(d._credential_tools_script([]), "agy-signin-start")
+    background = [ln.strip() for ln in start.splitlines() if re.search(r"(?<!&)&\s*$", ln)]
+    assert len(background) >= 2, f"the FIFO holder and the script/agy leader are both backgrounded: {background}"
+    for line in background:
+        out = re.search(r"(?:^|\s)1?>>?\s*[^\s&]|&>", line)
+        assert out, f"stdout is inherited from the caller: {line!r}"
+        err = re.search(r"2>>?\s*[^\s&]|&>", line) or (re.search(r"2>&1", line) and out.start() < line.index("2>&1"))
+        assert err, f"stderr is inherited from the caller: {line!r}"
+        assert re.search(r"(?:^|\s)0?<\s*[^\s<(]", line), f"stdin is inherited from the caller: {line!r}"
+
+
 @pytest.mark.parametrize("nonce", ["short", "has space in it!", "x" * 65, "abcdefgh;touch-x"])
 def test_the_probe_helper_refuses_a_nonce_that_is_not_8_to_64_alphanumerics(tmp_path, nonce):
     """R7h: the real helper, run on bash, exits 64 for a bad nonce (and not as an unknown subcommand)."""
