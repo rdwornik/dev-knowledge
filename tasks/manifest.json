@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "656814a02ba5d5b099d49a1896ced7a37d2f842d3cde5818287b898c24d87fd4",
+  "generated_sha256": "e93c2106c6dd837adf650644d3d05a78086262fcb2167a52b4d7c3bc0a5e89bc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3154,6 +3154,26 @@
     {
       "task": 1540,
       "file": "1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md"
+    },
+    {
+      "task": 1551,
+      "file": "1551-codespace-heartbeat-and-six-injected-failures.md"
+    },
+    {
+      "task": 1552,
+      "file": "1552-codespace-credential-lifetime-register.md"
+    },
+    {
+      "task": 1553,
+      "file": "1553-codespace-concurrency-two-then-six.md"
+    },
+    {
+      "task": 1554,
+      "file": "1554-a-duplicate-ask-is-refused-at-distill.md"
+    },
+    {
+      "task": 1555,
+      "file": "1555-adr-123-step-1-carve-the-harness-package.md"
     },
     {
       "prose": ""

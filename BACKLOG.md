@@ -828,6 +828,11 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1538] [P1][S] Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file (twin of [#1446]) · tasks/1538-rulings-r100-r115-land-in-standing-rulings-by-id.md
 - [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
+- [#1551] [P1][L] A Codespace lane carries a per-phase heartbeat, and six injected failures are detected and recovered without the operator · tasks/1551-codespace-heartbeat-and-six-injected-failures.md
+- [#1552] [P2][M] Every Codespace credential has a recorded class, issuer, expiry policy and renewal act, checked at creation · tasks/1552-codespace-credential-lifetime-register.md
+- [#1553] [P2][M] Codespace lanes run two, then six at once, each monitored, inside a declared core-hour cap · tasks/1553-codespace-concurrency-two-then-six.md
+- [#1554] [P2][M] A new ask that duplicates an open row is refused at distill, naming the row, before an id is allocated · tasks/1554-a-duplicate-ask-is-refused-at-distill.md
+- [#1555] [P2][L] ADR-123 step 1: carve the harness into one versioned package, Codespace verbs included · tasks/1555-adr-123-step-1-carve-the-harness-package.md
 
 ---
 
