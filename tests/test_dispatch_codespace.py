@@ -33,6 +33,7 @@ import pytest
 
 import codespace_regime as _regime
 import dispatch as d
+from fake_agy import FAKE_CODE, FAKE_URL, FakeAgy, FakeClock
 cs = d.cs
 
 
@@ -1356,8 +1357,12 @@ class _MirrorGh(_FakeGh):
         if verb == "status":
             text, rc = self.status.get(tail[1], ("Logged in", 0))
             return d.GhResult(rc == 0, rc, text)
-        if verb in ("agy-signin-start", "agy-signin-code"):
+        if verb in ("agy-signin-start", "agy-signin-code", "agy-probe"):
             return d.GhResult(False, 70, "")     # no URL: the gap is recorded, the launch goes on
+        if verb == "agy-signin-stop":
+            return d.GhResult(True, 0, "")       # the auth process tree is killed
+        if verb == "agy-signin-diag":
+            return d.GhResult(True, 0, "out_bytes=0\n")
         if verb == "claude-version":
             return d.GhResult(True, 0, f"{self.remote_claude} (Claude Code)\n")
         if verb == "claude-install":
@@ -1691,7 +1696,7 @@ def test_the_credential_tools_status_call_runs_codex_without_either_key(tmp_path
 _cpar = d.cpar
 
 _FIN_BATCH = "B1"
-_AGY_URL = "https://agy.invalid/signin?state=fake-not-real"
+_AGY_URL = FAKE_URL
 _A40, _B40 = "a" * 40, "b" * 40
 
 _GOOD_COMMIT = {"base_sha": _A40, "head_sha": _B40, "branch": "worktree-x", "pushed_sha": _B40,
@@ -1716,17 +1721,24 @@ _GOOD_RECEIPT = {"exit_code": 0, "is_error": False, "status": "success", "turns"
                  "commit": _GOOD_COMMIT, "handback": {"present": True}}
 
 
+_FAKE_AGY_VERBS = ("agy-signin-start", "agy-signin-code", "agy-probe", "agy-signin-stop", "agy-signin-diag")
+
+
 class _FinishGh(_MirrorGh):
     """`_MirrorGh` plus what the finish adds: the agy sign-in helper subcommand (answers a URL line, or
     nothing) and the `ssh cat <workdir>/handback.json` read. `receipt_written` defaults to a lane that
     committed, pushed and handed back."""
 
-    def __init__(self, *, agy_url: str | None = _AGY_URL, handback: str | None = None, **kw):
+    def __init__(self, *, agy_url: str | None = _AGY_URL, handback: str | None = None,
+                 agy: FakeAgy | None = None, **kw):
         kw.setdefault("receipt_written", copy.deepcopy(_GOOD_RECEIPT))
         super().__init__(**kw)
-        self.agy_url = agy_url
+        self.agy = agy if agy is not None else FakeAgy(url=agy_url)
         self.handback = json.dumps(_LANE_REPORT) if handback is None else handback
-        self.agy_calls = 0
+
+    @property
+    def agy_calls(self) -> int:
+        return self.agy.started
 
     def __call__(self, argv, input_bytes=None):
         argv = list(argv)
@@ -1738,11 +1750,8 @@ class _FinishGh(_MirrorGh):
         return super().__call__(argv, input_bytes)
 
     def _tools(self, tail, input_bytes):
-        if tail[0] == "agy-signin-start":
-            self.agy_calls += 1
-            if self.agy_url:
-                return d.GhResult(True, 0, self.agy_url + "\n")
-            return d.GhResult(False, 70, "")
+        if tail[0] in _FAKE_AGY_VERBS:
+            return self.agy.handle(tail, input_bytes)
         return super()._tools(tail, input_bytes)
 
 
@@ -1905,16 +1914,18 @@ def test_agy_is_a_recorded_gap_and_the_launch_continues(tmp_path):
     assert by["agy"].action == "gap" and by["agy"].operator_action
 
 
-def test_the_agy_url_reaches_stderr_only_never_a_receipt_or_the_result(tmp_path, capsys):
+def test_the_agy_url_reaches_stderr_and_the_credentials_row_but_never_the_ledger_or_the_commands(tmp_path, capsys):
+    """AMENDED (R7): the URL is in stderr AND the credentials step row (the receipt); never in the regime
+    ledger and never in `result.commands`."""
     result = _fin_exec(tmp_path, _FinishGh())
     assert result.ok, result.failure
     err = capsys.readouterr().err
     assert _AGY_URL in err and "fluffy-space-1" in err, "the operator sees the URL and the box"
-    blob = json.dumps(_asdict(result)) + "\n".join(result.commands)
-    assert _AGY_URL not in blob and "fake-not-real" not in blob
-    for text in (_steps_path(tmp_path).read_text(encoding="utf-8"),
-                 (tmp_path / "ledger.jsonl").read_text(encoding="utf-8")):
-        assert "fake-not-real" not in text and "agy.invalid" not in text
+    commands = "\n".join(result.commands)
+    assert _AGY_URL not in commands and "fake-not-real" not in commands
+    assert _AGY_URL in json.dumps(_row(tmp_path, "credentials")), "the receipt carries the operator-action line"
+    ledger = (tmp_path / "ledger.jsonl").read_text(encoding="utf-8")
+    assert "fake-not-real" not in ledger and "agy.invalid" not in ledger
     assert next(i for i in result.mirror if i["cli"] == "agy")["auth_url_surfaced"] is True
 
 
@@ -2382,7 +2393,7 @@ def test_codespace_exec_without_a_batch_is_refused_not_a_silent_bare_launch(tmp_
 
     with pytest.raises(TypeError):
         d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake)
-    with pytest.raises(ValueError):
+    with pytest.raises(d.DispatchRefused):
         d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="")
     assert calls == []
 
@@ -2425,3 +2436,496 @@ def test_the_codespace_suites_never_write_the_tracked_ledger_or_the_home_receipt
     assert result.ok, result.failure
     assert result.steps, "the exec did write its step rows -- to the private test home"
     assert state() == before
+
+
+# =====================================================================================================
+# [#1537] codespace-finish -- RED-first witnesses (phase 2). None of it exists on the base: every test
+# below fails on `dccc2c03` for the named missing seam, constant or behaviour. The spec ids (R2a ...
+# R7i) are in each docstring. Every credential here is a fake sentinel; nothing calls a real gh/claude/agy.
+# =====================================================================================================
+
+_CLAUDE_HEAD = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "claude-sonnet-5",
+                "--effort", "low", "--permission-mode", "bypassPermissions", "--json-schema",
+                '{"type":"object","title":"LaneReport"}', "do the lane"]
+
+
+def _seam_exec(base: Path, fake, *, head=None, branch: str = "worktree-lane-x", **kw):
+    """One direct `codespace_exec` with a claude head that carries a `--json-schema` token; `kw` carries
+    the new seams (`schema_smoke`, `pins`, `agy_wait_s`, `clock`, `sleep`)."""
+    contract = base / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    return d.codespace_exec("me/repo", branch, "lane-x", contract, list(head or _CLAUDE_HEAD),
+                            invoker=fake, mirror=_cfg(base), batch=_FIN_BATCH,
+                            receipts_root=base / "rr", ledger_path=base / "ledger.jsonl", **kw)
+
+
+def _ok_smoke(seen: list | None = None):
+    def smoke(argv):
+        if seen is not None:
+            seen.append(list(argv))
+        return d.SmokeResult(ok=True, exit_code=0, detail="")
+    return smoke
+
+
+# ----- (2) the live schema smoke ---------------------------------------------------------------------
+
+def test_a_failing_schema_smoke_refuses_before_any_gh_call(tmp_path):
+    """R2a: a smoke that fails refuses with a schema-smoke fate and a failed step row, and no gh call is made."""
+    seen: list[list[str]] = []
+
+    def smoke(argv):
+        seen.append(list(argv))
+        return d.SmokeResult(ok=False, exit_code=1, detail="API Error: allOf is not permitted at the top level")
+
+    fake = _FinishGh()
+    result = _seam_exec(tmp_path, fake, schema_smoke=smoke)
+    assert len(seen) == 1, "the smoke ran once"
+    assert not result.ok and fake.calls == [], "no gh call: no box exists"
+    assert result.fate["fate"] == "FAILED" and result.fate["step"] == "schema-smoke"
+    assert "schema smoke" in result.failure and "allOf is not permitted" in result.failure
+    row = _row(tmp_path, "schema-smoke")
+    assert row["ok"] is False and row["codespace"] == ""
+    assert [r["step"] for r in _rows(tmp_path)] == ["schema-smoke"], "nothing else was attempted"
+
+
+def test_a_passing_schema_smoke_runs_once_with_the_exact_token_then_creates(tmp_path):
+    """R2b: the smoke gets the very --json-schema token of the head, runs before `create`, and records an ok row."""
+    seen: list[list[str]] = []
+    calls_at_smoke: list[int] = []
+    fake = _FinishGh()
+
+    def smoke(argv):
+        calls_at_smoke.append(len(fake.calls))
+        return _ok_smoke(seen)(argv)
+
+    result = _seam_exec(tmp_path, fake, schema_smoke=smoke)
+    assert result.ok, result.failure
+    assert len(seen) == 1 and calls_at_smoke == [0], "once, and before the first gh call"
+    token = _CLAUDE_HEAD[_CLAUDE_HEAD.index("--json-schema") + 1]
+    assert seen[0][seen[0].index("--json-schema") + 1] == token, "the exact token the lane will get"
+    assert seen[0] == d.schema_smoke_argv(_CLAUDE_HEAD)
+    assert fake.calls[0][:2] == ["codespace", "create"]
+    row = _row(tmp_path, "schema-smoke")
+    assert row["ok"] is True and row["evidence"]["exit_code"] == 0
+    steps = [r["step"] for r in _rows(tmp_path)]
+    assert steps.index("schema-smoke") < steps.index("create")
+
+
+def test_schema_smoke_argv_is_none_for_a_non_claude_or_schemaless_head():
+    """R2c: only a claude head that carries --json-schema is smoked; the argv is the fixed low-effort shape."""
+    assert d.schema_smoke_argv(["codex", "exec", "--json", "--json-schema", "{}", "p"]) is None
+    assert d.schema_smoke_argv(["claude", "-p", "--model", "opus", "prompt"]) is None
+    assert d.schema_smoke_argv(["copilot", "-p", "prompt"]) is None
+    argv = d.schema_smoke_argv(_CLAUDE_HEAD)
+    assert argv[:9] == ["claude", "-p", "--output-format", "json", "--model", "claude-sonnet-5",
+                        "--effort", "low", "--json-schema"]
+    assert argv[9] == _CLAUDE_HEAD[_CLAUDE_HEAD.index("--json-schema") + 1] and len(argv) == 11
+    assert "FAILED" in argv[10] and "schema smoke" in argv[10], "a fixed prompt asking for a minimal FAILED report"
+    assert argv == d.schema_smoke_argv(_CLAUDE_HEAD), "deterministic"
+    real = d.build_plan("anthropic", "opus", "lane-x", "high", "p", streamed=True).argv
+    assert d.schema_smoke_argv(real)[5] == "opus", "a real planned head is smoked with its own model"
+
+
+def test_the_cli_verb_wires_the_real_smoke_and_pin_gate(tmp_path, monkeypatch):
+    """R2d: `codespace-exec` hands codespace_exec the real schema smoke and a pin gate."""
+    from click.testing import CliRunner
+
+    seen: dict = {}
+
+    def fake_exec(*a, **kw):
+        seen.update(kw)
+        return d.ExecResult(True, name="n")
+
+    monkeypatch.setattr(d, "codespace_exec", fake_exec)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
+                                     "--argv-json", '["claude"]', "--batch", "B1"])
+    assert res.exit_code == 0, res.output
+    assert seen.get("schema_smoke") is d.run_schema_smoke
+    assert seen.get("pins") is not None and callable(seen["pins"])
+
+
+# ----- (4) the pin is written immediately before creation ----------------------------------------------
+
+_STALE_FINDING = "the laptop prints claude 2.1.295 but the record says '2.1.290' (run `pin write`)"
+
+
+def test_stale_pins_on_the_branch_refuse_before_create(tmp_path):
+    """R4a: a pin check that finds drift refuses WAITING at the pins step with one OPERATOR-ACTION and no gh call."""
+    asked: list[str] = []
+
+    def pins(branch):
+        asked.append(branch)
+        return 1, [_STALE_FINDING]
+
+    fake = _FinishGh()
+    result = _seam_exec(tmp_path, fake, pins=pins, branch="worktree-lane-x")
+    assert asked == ["worktree-lane-x"], "the pin check is handed the BRANCH name"
+    assert not result.ok and fake.calls == []
+    assert result.fate["fate"] == "WAITING" and result.fate["step"] == "pins"
+    assert _STALE_FINDING in result.failure
+    action = ("OPERATOR-ACTION: run `uv run --locked python scripts/codespace_parity.py pin write`, "
+              "commit it to worktree-lane-x and push, then launch again")
+    assert result.failure.splitlines().count(action) == 1 and result.failure.count("OPERATOR-ACTION:") == 1
+    row = _row(tmp_path, "pins")
+    assert row["ok"] is False and row["codespace"] == ""
+
+
+def test_clean_pins_let_create_run_and_record_a_pins_row(tmp_path):
+    """R4b: a clean pin check lets the launch go on and leaves an ok `pins` row before the `create` row."""
+    fake = _FinishGh()
+    result = _seam_exec(tmp_path, fake, pins=lambda branch: (0, []))
+    assert result.ok, result.failure
+    assert _row(tmp_path, "pins")["ok"] is True
+    steps = [r["step"] for r in _rows(tmp_path)]
+    assert steps.index("pins") < steps.index("create")
+    assert fake.calls[0][:2] == ["codespace", "create"]
+
+
+def test_the_pin_check_runs_after_the_smoke_and_not_at_all_when_the_smoke_fails(tmp_path):
+    """R2b/R4a: the order is smoke, then pins, then create -- a failed smoke never reaches the pin check."""
+    asked: list[str] = []
+    bad = d.SmokeResult(ok=False, exit_code=1, detail="rejected")
+    result = _seam_exec(_sub(tmp_path, "bad"), _FinishGh(), schema_smoke=lambda argv: bad,
+                        pins=lambda branch: asked.append(branch) or (0, []))
+    assert not result.ok and asked == []
+    order: list[str] = []
+    fake = _FinishGh()
+    good = _seam_exec(_sub(tmp_path, "good"), fake,
+                      schema_smoke=lambda argv: order.append("smoke") or d.SmokeResult(True, 0, ""),
+                      pins=lambda branch: order.append("pins") or (0, []))
+    assert good.ok, good.failure
+    assert order == ["smoke", "pins"]
+
+
+_PINS_TEXT = ('schema: 1\ntools:\n  claude:\n    version: "2.1.290"\n    method: native\n'
+              '  gh:\n    version: "2.93.0"\n    method: prebuilt\n')
+
+
+def _recorded_pins(base: Path, name: str, laptop: dict) -> Path:
+    path = base / name
+    path.write_text(_PINS_TEXT, encoding="utf-8", newline="\n")
+    d.cpar.pin_write(path, laptop)
+    return path
+
+
+class _GitRun:
+    """The `run` seam of `branch_pin_check`: records every argv, answers `git show` with a fixed file."""
+
+    def __init__(self, shown: str):
+        self.shown = shown
+        self.calls: list[str] = []
+
+    def __call__(self, argv, **_kw):
+        joined = " ".join(argv)
+        self.calls.append(joined)
+        return d.cpar.CmdResult(0, self.shown if " show " in f" {joined} " else "", "")
+
+
+def test_branch_pin_check_reads_the_branchs_file_not_the_worktrees(tmp_path, monkeypatch):
+    """R4c: it fetches the branch and reads provisioning.yaml at FETCH_HEAD -- never the checked-out copy."""
+    old = {"claude": "2.1.290", "gh": "2.93.0"}
+    new = {"claude": "2.1.295", "gh": "2.93.0"}
+    branch_text = _recorded_pins(tmp_path, "branch.yaml", old).read_text(encoding="utf-8")
+    worktree_file = _recorded_pins(tmp_path, "worktree.yaml", new)
+    monkeypatch.setattr(d.cpar, "PROVISIONING_PATH", worktree_file, raising=False)
+
+    run = _GitRun(branch_text)
+    code, lines = d.branch_pin_check("worktree-lane-x", run=run, laptop=new)
+    assert code == 1 and any("claude" in ln for ln in lines), "the branch's record is behind the laptop"
+    joined = "\n".join(run.calls)
+    assert "fetch origin worktree-lane-x" in joined
+    assert "show FETCH_HEAD:.devcontainer/provisioning.yaml" in joined
+    fetch = next(i for i, c in enumerate(run.calls) if "fetch origin worktree-lane-x" in c)
+    show = next(i for i, c in enumerate(run.calls) if "show FETCH_HEAD:" in c)
+    assert fetch < show, "fetched before it is read"
+    assert d.branch_pin_check("worktree-lane-x", run=_GitRun(branch_text), laptop=old) == (0, [])
+
+
+# ----- (6) hardening ------------------------------------------------------------------------------------
+
+def test_an_empty_batch_is_a_clean_dispatch_refusal(tmp_path):
+    """R6a: an empty batch is a click refusal naming the batch, not a bare ValueError, and no gh call is made."""
+    import click
+
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# contract\n", encoding="utf-8")
+    fake = _FakeGh()
+    with pytest.raises(d.DispatchRefused) as info:
+        d.codespace_exec("me/repo", "main", "lane-x", contract, ["claude"], invoker=fake, batch="")
+    assert isinstance(info.value, click.ClickException) and "batch" in info.value.message
+    assert fake.calls == []
+
+
+def test_the_codex_auth_json_fallback_is_removed_by_the_exit_trap(tmp_path):
+    """R6b: the runner's one EXIT trap also removes the CODEX_AUTH_JSON fallback file (text-level, then real bash)."""
+    body = d._codespace_runner_script("/w", "/c", ["true"])
+    traps = [ln for ln in body.splitlines() if re.match(r"\s*trap\b.*\bEXIT\b", ln)]
+    assert len(traps) == 1, "one EXIT trap, present even when nothing was mirrored"
+    assert ".codex/auth.json" in traps[0] and "fallback" in traps[0], "removed only when the fallback wrote it"
+    # the behaviour, on a real bash: the fallback writes the file, the run ends, the file is gone
+    _bash_or_skip()
+    _origin, checkout = _git_lane(tmp_path)
+    work = _sub(tmp_path, "work")
+    marker = tmp_path / "fallback-seen.txt"
+    head = _head_stub(tmp_path, f'if [ -f "$HOME/.codex/auth.json" ]; then echo present > "{marker.as_posix()}"; fi\n')
+    env = {**_lane_env(tmp_path), "CODEX_AUTH_JSON": "FAKE-CODEX-AUTH-JSON-NOT-A-CREDENTIAL"}
+    _run_runner(tmp_path, d._codespace_runner_script(work.as_posix(), checkout.as_posix(), head), work, env)
+    assert marker.is_file(), "the fallback really wrote $HOME/.codex/auth.json during the run"
+    assert not (Path(env["HOME"]) / ".codex" / "auth.json").exists(), "and the EXIT trap removed it"
+
+
+def test_branch_context_git_env_allows_bare_repos_even_when_the_host_forbids_them(tmp_path, monkeypatch):
+    """R6c: `branch_context.git_env()` appends safe.bareRepository=all after any inherited GIT_CONFIG entry."""
+    import branch_context
+
+    if shutil.which("git") is None:
+        pytest.skip("no git on PATH")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "safe.bareRepository")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "explicit")
+    hardened = branch_context.git_env()
+    assert hardened["GIT_CONFIG_COUNT"] == "2"
+    assert hardened["GIT_CONFIG_KEY_0"] == "safe.bareRepository" and hardened["GIT_CONFIG_VALUE_0"] == "explicit"
+    assert hardened["GIT_CONFIG_KEY_1"] == "safe.bareRepository" and hardened["GIT_CONFIG_VALUE_1"] == "all"
+    bare = tmp_path / "bare.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True, env={**os.environ, **_GIT_BARE_OK})
+    probe = ["git", "-C", str(bare), "rev-parse", "--is-bare-repository"]
+    control = subprocess.run(probe, capture_output=True, text=True, env=dict(os.environ))
+    if control.returncode == 0:
+        pytest.skip("this git does not enforce safe.bareRepository=explicit: the control did not bite")
+    done = subprocess.run(probe, capture_output=True, text=True, env={**os.environ, **hardened})
+    assert done.returncode == 0 and done.stdout.strip() == "true", done.stderr
+    # the module's own git helpers carry it too
+    assert branch_context._git(bare, "rev-parse", "--is-bare-repository") == "true"
+    assert branch_context._git_out(bare, "rev-parse", "--is-bare-repository") == "true"
+    monkeypatch.delenv("GIT_CONFIG_COUNT")
+    assert branch_context.git_env()["GIT_CONFIG_COUNT"] == "1"
+
+
+# ----- (7) agy sign-in by an operator link --------------------------------------------------------------
+
+def _channel(base: Path) -> Path:
+    """The laptop file the operator puts the browser's code in: next to the lane's steps.jsonl."""
+    return _steps_path(base).parent / "agy-code.txt"
+
+
+def _operator_writes(clock: FakeClock, channel: Path, at_s: float, text: str) -> None:
+    def write():
+        channel.parent.mkdir(parents=True, exist_ok=True)
+        channel.write_text(text, encoding="utf-8")
+    clock.at(at_s, write)
+
+
+def _agy_exec(base: Path, agy: FakeAgy, *, wait: float = 600, clock: FakeClock | None = None):
+    """A launch with the agy wait on the fake clock; returns (gh fake, result, clock)."""
+    clock = clock or FakeClock()
+    fake = _FinishGh(agy=agy)
+    result = _fin_exec(base, fake, agy_wait_s=wait, clock=clock.now, sleep=clock.sleep)
+    return fake, result, clock
+
+
+def _agy_record(result) -> dict:
+    return next(i for i in result.mirror if i["cli"] == "agy")
+
+
+def _gap_line(signin: str) -> str:
+    return f"GAP: agy sign-in {signin}: the auth process tree was killed; reads go through copilot"
+
+
+def test_the_operator_action_line_names_the_url_and_the_channel_in_stderr_and_the_receipt(tmp_path, capsys):
+    """R7a: one OPERATOR-ACTION line (URL, then the channel file) goes to stderr and into the credentials row."""
+    result = _fin_exec(tmp_path, _FinishGh())
+    assert result.ok, result.failure
+    prefix = f"OPERATOR-ACTION: agy sign-in: open {_AGY_URL}, then put the browser's code in "
+    lines = [ln for ln in capsys.readouterr().err.splitlines() if ln.startswith("OPERATOR-ACTION: agy sign-in:")]
+    assert len(lines) == 1 and lines[0].startswith(prefix), lines
+    assert Path(lines[0][len(prefix):]).parts[-3:] == (_FIN_BATCH, "lane-x", "agy-code.txt")
+    row = _row(tmp_path, "credentials")
+    recorded = next(c for c in row["evidence"]["clis"] if c["cli"] == "agy")
+    assert recorded["operator_action_line"] == lines[0], "the receipt holds the same line"
+    assert _agy_record(result)["operator_action_line"] == lines[0]
+
+
+def test_the_code_written_to_the_channel_is_relayed_on_stdin_only_and_the_channel_is_removed(tmp_path):
+    """R7b: a stale channel file is cleared, an empty one is waited out, the code goes on stdin, the file is deleted."""
+    channel = _channel(tmp_path)
+    channel.parent.mkdir(parents=True)
+    channel.write_text("STALE-CODE-FROM-A-PRIOR-RUN\n", encoding="utf-8")
+    clock = FakeClock()
+    _operator_writes(clock, channel, 10, "")                 # a half-created file is not a code
+    _operator_writes(clock, channel, 20, FAKE_CODE + "\n")
+    agy = FakeAgy()
+    fake, result, _clock = _agy_exec(tmp_path, agy, clock=clock)
+    assert result.ok, result.failure
+    assert [b.decode().strip() for b in agy.code_stdin] == [FAKE_CODE], "only the operator's code, once"
+    relay = [(a, b) for a, b in fake.stdin if "agy-signin-code" in a]
+    assert len(relay) == 1 and relay[0][1].decode().strip() == FAKE_CODE
+    assert relay[0][0][-1] == "agy-signin-code", "no positional carries the code"
+    assert FAKE_CODE not in " ".join(" ".join(c) for c in fake.calls)
+    assert not channel.exists(), "the code file is deleted once read"
+
+
+def test_a_signed_in_agy_answers_the_nonce_probe_and_the_record_says_signed_in(tmp_path):
+    """R7c: after the relay a fresh nonce is probed; the nonce echoed back means signed-in; a wrong code is probe-failed."""
+    clock = FakeClock()
+    _operator_writes(clock, _channel(tmp_path), 30, FAKE_CODE + "\n")
+    agy = FakeAgy()
+    fake, result, _clock = _agy_exec(tmp_path, agy, clock=clock)
+    assert result.ok, result.failure
+    record = _agy_record(result)
+    assert record["signin"] == "signed-in" and record["probe_ok"] is True
+    assert re.fullmatch(r"[0-9a-f]{16}", record["probe_nonce"]), "secrets.token_hex(8)"
+    assert agy.probes == [record["probe_nonce"]]
+    assert agy.verbs[:3] == ["agy-signin-start", "agy-signin-code", "agy-probe"]
+    probe_calls = [c for c in fake.calls if "agy-probe" in c]
+    assert probe_calls[0][-2:] == ["agy-probe", record["probe_nonce"]]
+    # the twin: a code agy does not accept gives no nonce back -> probe-failed, the tree is killed, reads go to copilot
+    twin = _sub(tmp_path, "twin")
+    wrong_clock = FakeClock()
+    _operator_writes(wrong_clock, _channel(twin), 30, "NOT-THE-CODE-0000\n")
+    wrong = FakeAgy()
+    _fake2, wrong_result, _c2 = _agy_exec(twin, wrong, clock=wrong_clock)
+    assert wrong_result.ok, wrong_result.failure
+    bad = _agy_record(wrong_result)
+    assert bad["signin"] == "probe-failed" and bad["probe_ok"] is False
+    assert wrong.stopped == 1 and bad["auth_tree_killed"] is True and bad["read_route"] == "copilot"
+    assert bad["action"] == "gap"
+
+
+def test_the_wait_prints_a_heartbeat_every_60s_of_clock_time(tmp_path, capsys):
+    """R7d: while it waits the launcher prints one heartbeat per 60 s of clock time and counts them in the record."""
+    clock = FakeClock()
+    _operator_writes(clock, _channel(tmp_path), 130, FAKE_CODE + "\n")
+    _fake, result, _clock = _agy_exec(tmp_path, FakeAgy(), clock=clock)
+    assert result.ok, result.failure
+    err = capsys.readouterr().err
+    beats = re.findall(r"\[codespace fluffy-space-1\] agy sign-in: waiting for the code in \S.*? "
+                       r"\((\d+)(?:\.0)?s of 600(?:\.0)?s\)", err)
+    assert len(beats) == 2, err
+    assert 60 <= int(beats[0]) <= 64 and 120 <= int(beats[1]) <= 124
+    assert _agy_record(result)["heartbeats"] == 2
+    assert all(s <= 2 for s in clock.sleeps), "it polls every AGY_POLL_S, never one long sleep"
+
+
+def test_no_code_within_600s_is_a_gap_the_tree_is_killed_and_reads_go_through_copilot(tmp_path, capsys):
+    """R7e: no code in the window -> GAP, the auth tree is stopped, reads route via copilot, the launch goes on."""
+    agy = FakeAgy()
+    _fake, result, clock = _agy_exec(tmp_path, agy)
+    assert result.ok, result.failure
+    assert clock.start + 600 <= clock.t <= clock.start + 600 + d.AGY_POLL_S, "waited the window, not a poll more"
+    record = _agy_record(result)
+    assert record["signin"] == "timeout" and record["read_route"] == "copilot"
+    assert record["auth_tree_killed"] is True and agy.stopped == 1
+    assert record["action"] == "gap" and record["gap"] == "agy-interactive-sign-in"
+    assert 9 <= record["heartbeats"] <= 10
+    assert agy.code_stdin == [] and agy.probes == []
+    assert _gap_line("timeout") in capsys.readouterr().err.splitlines()
+
+
+def test_the_code_never_reaches_an_argv_a_row_the_result_or_stderr(tmp_path, capsys):
+    """R7f: the code is on agy's stdin and nowhere else -- and a box that echoes it back is a credential leak."""
+    clock = FakeClock()
+    _operator_writes(clock, _channel(tmp_path), 20, FAKE_CODE + "\n")
+    agy = FakeAgy()
+    fake, result, _clock = _agy_exec(tmp_path, agy, clock=clock)
+    assert result.ok, result.failure
+    assert [b.decode().strip() for b in agy.code_stdin] == [FAKE_CODE], "no vacuous pass: it was relayed"
+    seen = capsys.readouterr()
+    everything = "\n".join([*(" ".join(c) for c in fake.calls), *result.commands, json.dumps(_asdict(result)),
+                            _steps_path(tmp_path).read_text(encoding="utf-8"),
+                            (tmp_path / "ledger.jsonl").read_text(encoding="utf-8"), seen.out, seen.err])
+    assert FAKE_CODE not in everything
+    # the leak check covers it: a box that answers with the code it was handed is refused
+    leaky = _sub(tmp_path, "leaky")
+    leak_clock = FakeClock()
+    _operator_writes(leak_clock, _channel(leaky), 20, FAKE_CODE + "\n")
+    _fake2, refused, _c2 = _agy_exec(leaky, FakeAgy(echo_code=True), clock=leak_clock)
+    assert not refused.ok and "credential leak" in refused.failure and "agy" in refused.failure
+    assert FAKE_CODE not in refused.failure + _steps_path(leaky).read_text(encoding="utf-8")
+
+
+def test_no_url_runs_the_diag_and_records_it_then_stops_the_tree(tmp_path, capsys):
+    """R7g: an agy that prints no URL: its sanitized diag is recorded, the tree is stopped, no wait is spent."""
+    agy = FakeAgy(url=None)
+    _fake, result, clock = _agy_exec(tmp_path, agy)
+    assert result.ok, result.failure
+    record = _agy_record(result)
+    assert record["signin"] == "no-url" and record["auth_url_surfaced"] is False
+    assert record["signin_diag"] == list(agy.diag_lines) and all(isinstance(x, str) for x in record["signin_diag"])
+    assert agy.diag_calls == 1 and agy.stopped == 1
+    assert agy.verbs.index("agy-signin-diag") < agy.verbs.index("agy-signin-stop"), "read the evidence, then kill"
+    assert record["read_route"] == "copilot" and record["auth_tree_killed"] is True
+    assert clock.sleeps == [] and clock.t == clock.start, "there is nothing to wait for"
+    err = capsys.readouterr().err
+    assert _gap_line("no-url") in err.splitlines() and "OPERATOR-ACTION: agy sign-in:" not in err
+    assert _agy_record(result)["signin_diag"] == next(
+        c for c in _row(tmp_path, "credentials")["evidence"]["clis"] if c["cli"] == "agy")["signin_diag"]
+
+
+def _helper_branch(script: str, verb: str) -> str:
+    """The text of one top-level `case` arm of the credential helper (up to the next arm)."""
+    start = script.index(f"  {verb})")
+    nxt = re.search(r"\n  [a-z][a-z-]*\)", script[start + 1:])
+    return script[start:start + 1 + nxt.start()] if nxt else script[start:]
+
+
+def test_the_helper_starts_agy_without_browser_in_a_sized_pty_and_can_stop_and_diag_it():
+    """R7h: text-level -- start unsets BROWSER, sizes the pty and keeps two pids; stop, diag and probe exist."""
+    script = d._credential_tools_script([])
+    start = _helper_branch(script, "agy-signin-start")
+    assert "env -u BROWSER" in start
+    pty = start[re.search(r"script -\w+", start).start():]
+    assert "stty cols 500 rows 50" in pty and pty.index("stty cols 500 rows 50") < pty.index("agy"), "sized before agy"
+    assert "$box/pid" in start and "$box/holder" in start, "the setsid leader and the FIFO holder are kept"
+    assert re.search(r"\\x1b|\\033|\\e\[|\\x1B", start), "the URL is read from ANSI-stripped output"
+    assert re.search(r"\b90\b", start), "it waits up to 90 s for the URL"
+    stop = _helper_branch(script, "agy-signin-stop")
+    assert "TERM" in stop and "KILL" in stop and "holder" in stop and "rm -rf" in stop
+    assert re.search(r'kill[^\n]*\s-"?\$', stop), "the whole process GROUP (-<pid>) is signalled"
+    diag = _helper_branch(script, "agy-signin-diag")
+    for name in ("SSH_CONNECTION", "SSH_TTY", "BROWSER", "DISPLAY", "DBUS_SESSION_BUS_ADDRESS"):
+        assert name in diag
+    assert "out_bytes=" in diag and "<url>" in diag and re.search(r"tail\s+(-n\s*)?-?30", diag)
+    probe = _helper_branch(script, "agy-probe")
+    assert "{8,64}" in probe and "64" in probe and "timeout 300 agy -p" in probe and "/dev/null" in probe
+
+
+@pytest.mark.parametrize("nonce", ["short", "has space in it!", "x" * 65, "abcdefgh;touch-x"])
+def test_the_probe_helper_refuses_a_nonce_that_is_not_8_to_64_alphanumerics(tmp_path, nonce):
+    """R7h: the real helper, run on bash, exits 64 for a bad nonce (and not as an unknown subcommand)."""
+    bash = _bash_or_skip()
+    helper = tmp_path / "credential-tools.sh"
+    helper.write_text(d._credential_tools_script([]), encoding="utf-8", newline="\n")
+    done = subprocess.run([bash, helper.as_posix(), "agy-probe", nonce], capture_output=True, text=True,
+                          timeout=60, stdin=subprocess.DEVNULL)
+    assert done.returncode == 64 and "unknown subcommand" not in done.stderr, done.stderr
+
+
+def test_the_cli_verb_waits_600s_by_default_and_refuses_more(tmp_path, monkeypatch):
+    """R7i: `codespace-exec` passes AGY_SIGNIN_WAIT_S (600) by default, honours --agy-signin-wait-s, refuses > 600."""
+    from click.testing import CliRunner
+
+    assert (d.AGY_SIGNIN_WAIT_S, d.AGY_HEARTBEAT_S, d.AGY_POLL_S, d.AGY_READ_FALLBACK) == (600, 60, 2, "copilot")
+    seen: list[dict] = []
+
+    def fake_exec(*a, **kw):
+        seen.append(dict(kw))
+        return d.ExecResult(True, name="n")
+
+    monkeypatch.setattr(d, "codespace_exec", fake_exec)
+    contract = tmp_path / "LANE-x.md"
+    contract.write_text("# c\n", encoding="utf-8")
+    base = ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x", "--argv-json", '["claude"]',
+            "--batch", "B1"]
+    default = CliRunner().invoke(d.cli, base)
+    assert default.exit_code == 0, default.output
+    assert seen[-1]["agy_wait_s"] == 600
+    shorter = CliRunner().invoke(d.cli, [*base, "--agy-signin-wait-s", "120"])
+    assert shorter.exit_code == 0, shorter.output
+    assert seen[-1]["agy_wait_s"] == 120
+    count = len(seen)
+    too_long = CliRunner().invoke(d.cli, [*base, "--agy-signin-wait-s", "601"])
+    assert too_long.exit_code != 0 and "600" in too_long.output, too_long.output
+    assert len(seen) == count, "a refused wait launches nothing"

@@ -112,8 +112,9 @@ def test_a_headless_claude_lane_returns_its_report_under_the_lane_report_schema(
     assert argv[:2] == ["claude", "-p"]
     value = argv[argv.index("--json-schema") + 1]
     on_file = json.loads(schema_file.read_text(encoding="utf-8"))
-    # claude 2.1.300 rejects a draft 2020-12 `$schema` in `--json-schema`: the value is the file minus it
-    assert json.loads(value) == {k: v for k, v in on_file.items() if k != "$schema"}
+    # the API rejects a top-level `$schema` / allOf / anyOf / oneOf in `--json-schema` ([#1537]): the value
+    # is the file minus those four, everything else byte-for-byte
+    assert _without_top_level_combinators(json.loads(value)) == _without_top_level_combinators(on_file)
     assert "\n" not in value   # one argv token, compact
     assert argv[-1] == "prompt text"
     # the transcript-metered --bg launch is interactive-shaped, not print mode: no schema there
@@ -126,7 +127,64 @@ def test_the_headless_claude_json_schema_arg_carries_no_dollar_schema():
     on_file = json.loads(schema_file.read_text(encoding="utf-8"))
     value = d.lane_report_schema_arg()
     assert "$schema" not in json.loads(value)
-    assert json.loads(value) == {k: v for k, v in on_file.items() if k != "$schema"}
+    assert _without_top_level_combinators(json.loads(value)) == _without_top_level_combinators(on_file)
+
+
+_TOP_LEVEL_FORBIDDEN = ("$schema", "allOf", "anyOf", "oneOf")
+
+
+def _without_top_level_combinators(schema: dict) -> dict:
+    return {k: v for k, v in schema.items() if k not in _TOP_LEVEL_FORBIDDEN}
+
+
+def _combinators_below(node, path="") -> list[str]:
+    """Every allOf/anyOf/oneOf key found anywhere under `node`, as a JSON-pointer-ish path."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("allOf", "anyOf", "oneOf"):
+                found.append(f"{path}/{key}")
+            found.extend(_combinators_below(value, f"{path}/{key}"))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            found.extend(_combinators_below(value, f"{path}/{index}"))
+    return found
+
+
+def test_the_schema_token_has_no_top_level_combinator():
+    """R1a: the `--json-schema` token has no top-level allOf/anyOf/oneOf/$schema; the rest equals the file's."""
+    from pathlib import Path
+    schema_file = Path(d.__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
+    on_file = json.loads(schema_file.read_text(encoding="utf-8"))
+    token = json.loads(d.lane_report_schema_arg())
+    for key in _TOP_LEVEL_FORBIDDEN:
+        assert key not in token, f"the API refuses a top-level {key}"
+    for key in ("properties", "required", "$defs", "type", "additionalProperties", "title", "description"):
+        assert token[key] == on_file[key], key
+    assert set(token) == set(on_file) - set(_TOP_LEVEL_FORBIDDEN)
+    argv = d.build_plan("anthropic", "opus", "lane-x", "high", "p", streamed=True).argv
+    assert json.loads(argv[argv.index("--json-schema") + 1]) == token
+
+
+def test_the_schema_token_keeps_nested_combinators():
+    """R1b: only the top level is stripped -- nested combinators stay; `api_safe_schema` is pure and returns a new dict."""
+    from pathlib import Path
+    schema_file = Path(d.__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
+    on_file = json.loads(schema_file.read_text(encoding="utf-8"))
+    nested_in_file = _combinators_below({k: v for k, v in on_file.items() if k not in _TOP_LEVEL_FORBIDDEN})
+    assert nested_in_file, "the LaneReport schema has nested anyOf (Optional fields)"
+    assert _combinators_below(json.loads(d.lane_report_schema_arg())) == nested_in_file
+    # the pure helper, on a synthetic schema
+    synthetic = {"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object",
+                 "allOf": [{"if": {}, "then": {}}], "anyOf": [{"type": "object"}], "oneOf": [{"type": "object"}],
+                 "properties": {"a": {"anyOf": [{"type": "string"}, {"type": "null"}]}},
+                 "$defs": {"X": {"oneOf": [{"type": "integer"}]}}, "required": ["a"]}
+    before = json.loads(json.dumps(synthetic))
+    safe = d.api_safe_schema(synthetic)
+    assert synthetic == before, "the input is never mutated"
+    assert safe is not synthetic
+    assert set(safe) == {"type", "properties", "$defs", "required"}
+    assert safe["properties"] == before["properties"] and safe["$defs"] == before["$defs"]
 
 
 def test_an_unknown_provider_is_refused_naming_the_known_ones(tmp_path):

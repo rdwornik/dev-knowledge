@@ -2266,6 +2266,108 @@ def test_verify_cleanup_reads_each_extra_branch_by_its_exact_ref():
     assert rec["extra_branches"] == ["a", "b"]
 
 
+# ---- [#1537] verify-cleanup --delete-scratch: the scratch branches go BEFORE the read -------------------
+
+class _DeleteRun:
+    """The `run` seam: records every argv with its cwd; `gone` names refs whose delete fails as already gone;
+    `still_there` names refs that `ls-remote` keeps listing."""
+
+    def __init__(self, gone=(), still_there=()):
+        self.calls: list[tuple[list[str], object]] = []
+        self.gone, self.still_there = set(gone), set(still_there)
+
+    def __call__(self, argv, **kw):
+        argv = list(argv)
+        self.calls.append((argv, kw.get("cwd")))
+        if argv[:3] == ["gh", "codespace", "list"]:
+            return cp.CmdResult(0, "[]", "")
+        if argv[:2] == ["git", "push"]:
+            name = argv[-1]
+            return cp.CmdResult(1, "", "error: unable to delete: remote ref does not exist") if name in self.gone \
+                else cp.CmdResult(0, "", "")
+        name = argv[-1]
+        return cp.CmdResult(0, f"{_SHA}\trefs/heads/{name}\n" if name in self.still_there else "", "")
+
+    def joined(self) -> list[str]:
+        return [" ".join(a) for a, _cwd in self.calls]
+
+
+def _cleanup_call(run, root, **kw):
+    return cp.verify_cleanup("cs", kw.pop("branch", "worktree-lane"), "2026-10-05T10:00:00+00:00",
+                             "2026-10-05T10:30:00+00:00", "standardLinux32gb", run, root=root, **kw)
+
+
+def test_delete_scratch_deletes_every_named_branch_before_reading(tmp_path):
+    """R5a: with delete_first every named branch is `git push origin --delete`d, from the root, before any read."""
+    run = _DeleteRun()
+    rec = _cleanup_call(run, tmp_path, extra_branches=["worktree-integrate-run1"], delete_first=True)
+    lines = run.joined()
+    deletes = [i for i, ln in enumerate(lines) if ln.startswith("git push origin --delete ")]
+    reads = [i for i, ln in enumerate(lines) if not ln.startswith("git push")]
+    assert sorted(lines[i] for i in deletes) == ["git push origin --delete worktree-integrate-run1",
+                                                  "git push origin --delete worktree-lane"]
+    assert max(deletes) < min(reads), "every delete precedes the first read"
+    for i in deletes:
+        assert run.calls[i][1] == tmp_path, "run from the repo root"
+    assert rec["deleted_first"] == {"worktree-lane": 0, "worktree-integrate-run1": 0}
+    assert rec["branch_listed_after"] is False and cp.compare_cleanup(rec).status == "PASS"
+
+
+def test_delete_scratch_treats_an_already_gone_ref_as_fine_and_lets_the_read_decide(tmp_path):
+    """R5a: a delete that fails (ref already gone) is not an error; a ref the read still sees is still a FAIL."""
+    run = _DeleteRun(gone={"worktree-lane"})
+    rec = _cleanup_call(run, tmp_path, delete_first=True)
+    assert rec["deleted_first"] == {"worktree-lane": 1} and rec["branch_listed_after"] is False
+    stuck = _DeleteRun(still_there={"worktree-lane"})
+    rec2 = _cleanup_call(stuck, tmp_path, delete_first=True)
+    assert rec2["branch_listed_after"] is True and cp.compare_cleanup(rec2).status == "FAIL"
+
+
+@pytest.mark.parametrize("branch,extra", [("main", []), ("master", []), ("HEAD", []), ("feat/x", []),
+                                          ("docs/y", []), ("worktree-ok", ["worktree-fine", "main"]),
+                                          ("worktree-ok", ["claude/x"])])
+def test_delete_scratch_refuses_main_and_non_worktree_names_and_deletes_nothing(tmp_path, branch, extra):
+    """R5b: main/master/HEAD or any name not starting `worktree-` raises ValueError before anything is run."""
+    run = _DeleteRun()
+    with pytest.raises(ValueError):
+        _cleanup_call(run, tmp_path, branch=branch, extra_branches=extra or None, delete_first=True)
+    assert run.calls == [], "nothing was deleted -- not even the valid names"
+
+
+def test_verify_cleanup_without_the_flag_deletes_nothing(tmp_path):
+    """R5c: no flag, no `git push`, no deleted_first in the record -- the existing behaviour."""
+    import inspect
+
+    for kwargs in ({}, {"delete_first": False}):          # the flag exists, and off is the default
+        run = _DeleteRun()
+        rec = _cleanup_call(run, tmp_path, extra_branches=["worktree-x"], **kwargs)
+        assert not any(ln.startswith("git push") for ln in run.joined())
+        assert "deleted_first" not in rec
+    assert inspect.signature(cp.verify_cleanup).parameters["delete_first"].default is False
+
+
+def test_the_verify_cleanup_cli_offers_delete_scratch_and_passes_it_through(tmp_path, monkeypatch):
+    """R5d: `verify-cleanup --help` lists --delete-scratch; the flag reaches verify_cleanup, absent it stays off."""
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    helped = runner.invoke(cp.cli, ["verify-cleanup", "--help"])
+    assert helped.exit_code == 0 and "--delete-scratch" in helped.output
+    seen: list[dict] = []
+
+    def fake_verify(*a, **kw):
+        seen.append(dict(kw))
+        return {"schema": cp.SCHEMA, "codespace": "cs", "listing_exit": 0, "ls_remote_exit": 0}
+
+    monkeypatch.setattr(cp, "verify_cleanup", fake_verify)
+    base = ["verify-cleanup", "--codespace", "cs", "--branch", "worktree-x", "--created", "2026-10-05T10:00:00+00:00",
+            "--deleted", "2026-10-05T10:30:00+00:00", "--machine", "basicLinux32gb", "--out", str(tmp_path / "o.json")]
+    assert runner.invoke(cp.cli, [*base, "--delete-scratch"]).exit_code == 0
+    assert seen[-1].get("delete_first") is True
+    assert runner.invoke(cp.cli, base).exit_code == 0
+    assert not seen[-1].get("delete_first"), "backward compatible: off unless asked"
+
+
 # ---- the whole check ------------------------------------------------------------------------------------
 
 def test_a_record_where_every_leg_was_exercised_reads_all_five_pass_and_exits_zero():
