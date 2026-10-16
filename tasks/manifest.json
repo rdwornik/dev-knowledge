@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6c3d3a0ba5e8853a7019e0bb4d720fd5492427be9222aa24653b976aabb717ed",
+  "generated_sha256": "1a3ec99a15099f3b874ec3ea0b44a0c0f2dab7cf7d0ff6e8b9397a337e318cad",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2732,10 +2732,6 @@
       "file": "1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md"
     },
     {
-      "task": 1332,
-      "file": "1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md"
-    },
-    {
       "task": 1333,
       "file": "1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md"
     },
@@ -3008,10 +3004,6 @@
       "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
     },
     {
-      "task": 1454,
-      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
-    },
-    {
       "task": 1455,
       "file": "1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md"
     },
@@ -3138,10 +3130,6 @@
     {
       "task": 1537,
       "file": "1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md"
-    },
-    {
-      "task": 1539,
-      "file": "1539-the-architect-reads-an-inbox-and-request-status-is-derived.md"
     },
     {
       "task": 1540,

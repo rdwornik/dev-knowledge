@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-16 (c) - CC (Opus 5.5, integrator BU cycle-4): [#1539] [#1454] [#1332] close after the transport janitor --apply; the night-archive land is refused
+
+**Anchors:** `c81b326e` (the row close, branch `chore/bu-1539-row-close`, introduced by this arc's merge).
+
+**Did:** under the operator's GO of 2026-10-16, closed the three rows of `LANE-bu-1539-transport.md`'s closes clause with `row_close.py` (merge `4ccb89c5`, CI run 38775124621, five named tests): `[#1539]` and `[#1454]` were held for the janitor `--apply` that ran 2026-10-16 (manifest `af5876e8`); `[#1332]` was fully met at the merge and closes with them (all-or-none). The bu-close-packet arc merge-receipt line rides here. The GO's first land, `worktree-night-archive-2026-10-15` @ `2401b65e` (merge `f99effc9`), was REFUSED REGRESSED on CI run 38879132625: 38 archived digests with no consumer (`test_consumer_at_landing` x2, both OS) and a cp1252 decode of their prose in `test_dodo`'s spine run (windows); `to-browser/REFUSED-night-archive-2026-10-15.md`.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `tasks/1539-*`, `tasks/1454-*`, `tasks/1332-*`, `tasks/manifest.json`, `BACKLOG.md` (658 tasks), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** the night-archive branch owner repairs per the REFUSED file; night-retire lands after it (its anchor is in night-archive's tip).
+
+---
 ### 2026-10-15 (j) - CC (Opus 5.5, integrator BU cycle-4): batch BU closes -- six of six lanes landed on main, three rows closed, the rest held with their evidence
 
 **Anchors:** `2c105bed` (the close packet `docs/audits/2026-10-15-technical-batch-bu-close-packet.md`, branch `docs/bu-close-packet`, introduced by this arc's merge).
