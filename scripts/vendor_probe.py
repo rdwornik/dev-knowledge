@@ -8,6 +8,7 @@ file, which is the path the matrix showed `-p` mode denies outside the cwd.
 """
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import secrets
@@ -45,7 +46,7 @@ def served_matches(requested: Optional[str], served: Optional[str]) -> bool:
 
 
 def registry_model(vendor: str, role: str = "review") -> Optional[str]:
-    import provider_router
+    provider_router = importlib.import_module("provider_router")
     for entry in provider_router.declared_order(role):
         if entry.get("provider") == vendor:
             return entry.get("model")
@@ -61,7 +62,7 @@ def _cache_dir(cache_dir: Optional[Path]) -> Path:
 
 def default_probe(vendor: str) -> ProbeResult:
     """One real call: the CLI serves the registry's id, and Copilot reads a file staged in its cwd."""
-    import codespace_parity as cp
+    cp = importlib.import_module("codespace_parity")
     import run_phase
     cli = VENDOR_CLI.get(vendor)
     model = registry_model(vendor)
