@@ -788,7 +788,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1444] [P1][M] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) · tasks/1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md
 - [#1445] [P1][S] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date · tasks/1445-a-dated-item-warns-three-days-before-its-date.md
 - [#1447] [P2][S] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape · tasks/1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md
-- [#1450] [P1][S] HANDOFF_BOOT teaches the browser's triage-then-sequence order (R80) and names the generated transport INDEX as the first read (R84) · tasks/1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md
 - [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
 - [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
 - [#1453] [P1][M] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) · tasks/1453-the-codespace-reaches-production-on-three-green-runs-r83.md
@@ -825,7 +824,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
 - [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
 - [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
-- [#1538] [P1][S] Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file (twin of [#1446]) · tasks/1538-rulings-r100-r115-land-in-standing-rulings-by-id.md
 - [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
 

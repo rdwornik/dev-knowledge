@@ -15,6 +15,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
+
 import audit as aud  # noqa: E402
 import dispatch_surface as ds  # noqa: E402
 
@@ -479,3 +481,27 @@ def test_playbook_does_not_restate_the_verb_as_a_win_tooling_path_command():
                   "`dispatch` / `Invoke-Dispatch.ps1` carries a **local** contract",
                   "Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`"):
         assert stale not in playbook, stale
+
+
+# --- [#1536] (4): full registered anthropic ids are launchable ----------------------------------
+
+
+@pytest.mark.parametrize("model", ["claude-opus-5-5", "claude-sonnet-5-5"])
+def test_r1536_resolve_launch_accepts_registered_full_ids(model):
+    launch = ds.resolve_launch(model=model, mode="execute", effort="medium",
+                               shape="local", slug="x")
+    assert not launch.refusals, launch.refusals
+    flags = list(launch.flags)
+    assert flags[flags.index("--model") + 1] == model
+
+
+def test_r1536_resolve_launch_still_refuses_an_unregistered_id():
+    launch = ds.resolve_launch(model="claude-bogus-9", mode="execute", effort="medium",
+                               shape="local", slug="x")
+    assert launch.refusals and not launch.flags
+
+
+def test_r1536_resolve_launch_still_refuses_opusplan_as_background_inert():
+    launch = ds.resolve_launch(model="opusplan", mode="execute", effort="medium",
+                               shape="local", slug="x")
+    assert any("INERT" in r for r in launch.refusals), launch.refusals

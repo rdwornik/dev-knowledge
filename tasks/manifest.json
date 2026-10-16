@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2cbb63e308766012c7dc0b78c0b1ca4ea72cc1a09bcfe86155e7248559d75a3d",
+  "generated_sha256": "6c3d3a0ba5e8853a7019e0bb4d720fd5492427be9222aa24653b976aabb717ed",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2996,10 +2996,6 @@
       "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
     },
     {
-      "task": 1450,
-      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
-    },
-    {
       "task": 1451,
       "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
     },
@@ -3142,10 +3138,6 @@
     {
       "task": 1537,
       "file": "1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md"
-    },
-    {
-      "task": 1538,
-      "file": "1538-rulings-r100-r115-land-in-standing-rulings-by-id.md"
     },
     {
       "task": 1539,

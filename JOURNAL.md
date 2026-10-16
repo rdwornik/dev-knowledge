@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (i) - CC (Opus 5.5, integrator BU cycle-4): lane-bu-1536-routing merges -- provider routing follows R104: Copilot implements first, Codex terra heads review, red/qa/judge roles, claude-sonnet-5-5 priced, model-id literals ratcheted ([#1536]; [#1452] PARTIAL)
+
+**Anchors:** `a2f7d27e` (handback tip, branch `worktree-lane-bu-1536-routing`, introduced by this merge; its sync of origin/main `d73c56c5`), `da3ffd7d` (judge round 2 note fix), `e2528652` (judge round 1 fix), `bcb8f277` (judge round 1 RED), `40e914d7` (fix), `f89b937a` (RED).
+
+**Did:** merged `--no-ff` on `d73c56c5`. The lane makes routing data that matches R104: `route implement` is copilot-enterprise -> claude-sonnet-5-5 -> grok (not admitted); `route review` is gpt-5.6-terra -> grok-4.7 (`--max-turns >= 2`) -> copilot gpt-6-luna -> gemini-3.8-flash (not admitted). It adds the `red`, `qa` and `judge` roles, prices claude-sonnet-5-5 above zero in `lane_cost.py`, lets `dispatch_surface.resolve_launch` accept every registered anthropic id, adds `tests/test_model_id_single_source.py` (two shrink-only AST scans over `scripts/` string constants), and makes `read_gate` declare an absolute `--add-dir` for agy reads. Phase chain: RED `f89b937a` before `40e914d7`, RED `bcb8f277` before `e2528652`; Codex `gpt-5.6-terra` (nonces `R1536-9d41e7`, `R1536-2c80f5`) and Grok `grok-4.20-0309-non-reasoning` (nonce `R1536-9d41e7`) records; judge round 2 ACCEPT. Codex's round-2 HIGH (every absolute prompt path covered by a declared `--add-dir`) was judged beyond the frozen criterion and is owed as a row. Also carried in this merge: the `[#1450]`/`[#1538]` row close of the 1450 merge (rows, `tasks/manifest.json`, `BACKLOG.md`) and its merge-receipt line in `logs/MERGE-RECEIPTS.jsonl`; two runtime lines the hook watchdog wrote into the primary's tracked `logs/HOOK-WATCHDOG-KILLS.jsonl`, LF-normalised. Regenerated `tasks/manifest.json` (pin), `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md` on the merged tree.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: the lane found `[#1452]` Done-when (1)-(2) reach `scripts/dispatch.py`, `scripts/plan_lint.py`, the S9/S10/S17 pins and a new `check_model_currency.py` finding, outside its footprint; `row_close.py` closes all of a contract's rows or none, so `[#1536]` stays open with its evidence until `[#1452]` is resolved.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/provider_router.py`, `scripts/dispatch_surface.py`, `scripts/read_gate.py`, `scripts/cost_usage_telemetry.py`, ten test files (one new); `tasks/1450-*`, `tasks/1538-*`, `logs/MERGE-RECEIPTS.jsonl`, `logs/HOOK-WATCHDOG-KILLS.jsonl`; generated `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** batch BU closes: all six lanes are merged. `gpt-5.6-terra` (`last_verified 2026-10-03`) now heads review; `check_model_currency` flags it stale after 2026-10-17 -- this lane's two served terra runs are fresh evidence for a restamp.
+
+---
+
 ### 2026-10-15 (h) - CC (Opus 5.5, integrator BU cycle-3): lane-bu-1450-boot-v2 merges after repair 2 -- boot v2 teaches the flow, the seats and the four substrates; STANDING_RULINGS section AU lands R100-R115 by id ([#1450] [#1538], PARTIAL)
 
 **Anchors:** `35a89c96` (repair-2 tip, branch `worktree-lane-bu-1450-boot-v2`, introduced by this merge), `82007802` (its sync of origin/main `c949ffd6`), `bb644d35` (repair-1 tip), `74442ec9` (repair 1's sync of origin/main), `895d62b4` (the first handback's tip), `a4fde7bf` (the lane's merge of the carried `worktree-lane-bw-1450-boot-teaching` @ `f0d49169`).

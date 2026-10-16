@@ -2478,8 +2478,11 @@ def test_the_live_registry_routes_the_review_role_to_the_newest_codex_model():
     ('Older balanced model'); OpenAI's model guide calls GPT-6 Astra 'our most intelligent model
     yet'. A Codespace that serves astra against a registry that says terra is the mismatch C1
     now reads, so the registry follows the provider."""
+    # SUPERSEDED 2026-10-14 by R104 ([#1536], the row's Done-when (1)): the reviewer chain is
+    # "Codex (terra; astra opt-in for structural work)", so the review head is terra again and
+    # astra stays registered as the opt-in.
     expected = cp.expected_models(cp.load_registry(_REPO_REGISTRY))
-    assert expected["codex"].id == "gpt-6-astra", expected["codex"]
+    assert expected["codex"].id == "gpt-5.6-terra", expected["codex"]
 
 
 def test_the_parity_ci_landable_states_are_the_merge_paths():
