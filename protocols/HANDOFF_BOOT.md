@@ -173,8 +173,8 @@ contract below still apply.
 The browser proposes, CC challenges, the operator decides; then an OPEN row (R106), a frozen
 lane contract (`templates/lane-contract-template.md`), a lane, two reviews, a merge.
 
-- **Conductor E** (R105 D1) — code decides what runs next, each phase a process with an exit-code gate and a receipt; it and its ADR are pending `[#1535]`, so a lane runs its phase chain by hand per its batch's common rules.
-- **Distiller and point tasks** (R114) — the front stage maps the system and refuses a NEW build where a duplicate exists (its CHALLENGE); vendors get bounded point tasks, done on a payload file, never on exit: pending `[#1535]`.
+- **Conductor E** (R105 D1, ADR-130) — code decides what runs next: `conductor.py lane --round <r>` runs the phase chain, each phase a process via `run_phase.py` with a timeout, an exit-code gate and a receipt.
+- **Distiller and point tasks** (R114) — `gen_lane_contract.py distill --row <id>` maps the system and refuses a NEW build where a duplicate exists (its CHALLENGE); vendors get bounded point tasks, done on a payload file, never on exit.
 - **Models** (R104) — Opus plans and judges, Copilot produces code, Sonnet writes the RED tests; the routing table that enforces it is pending `[#1536]`.
 - **Reading** — bulk reading goes to the Copilot CLI first; agy only through `scripts/read_gate.py` with an absolute path and `--add-dir <dir>`; CC proves each read with a quoted line (R59).
 - **OS** — code stays OS-agnostic and CI on Windows and Linux is the verdict (ADR-127); Linux-first CI was challenged INPUT_REQUIRED and is not built.
