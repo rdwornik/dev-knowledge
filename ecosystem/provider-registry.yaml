@@ -680,7 +680,9 @@ roles:
           producer verb -- that moves in-repo in wave 5b. This is an OPERATOR admission on
           demonstrated fact, not an AX22-1 >= 8-of-10 measurement: AX22-1's bar is still
           Half B's to clear, and clearing it is what would move this entry ahead of Sonnet per
-          AX21-2's re-rank (not a hand edit -- position is UNCHANGED by this lane).
+          AX21-2's re-rank (not a hand edit -- position was UNCHANGED by that lane). SUPERSEDED
+          2026-10-14: R104 (operator ruling) moved this entry FIRST by hand, which is a ruling,
+          not the AX22-1 measurement; [#1536] carries it.
         admission:
           verdict: admitted
           decided_by: operator
