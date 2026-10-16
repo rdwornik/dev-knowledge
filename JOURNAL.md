@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-16 (k) - CC (Opus 5.5, integrator BU cycle-4): worktree-night-archive-2026-10-15 merges on repair 1 -- the 2026-10-14/15 digests are archived with an intake consumer, and rows [#1551]-[#1618] are filed (operator GO 2026-10-16)
+
+**Anchors:** `515a62f6` (repair 1, branch `worktree-night-archive-2026-10-15`, introduced by this merge), `2401b65e` (the branch's own JOURNAL anchor), `85096e84` and `72ae7f78` (rows), `061818ee` and `45751026` (the test-strategy and define-outcomes merges it carries), `c14dab1e` and `388f3752` (the archive).
+
+**Did:** merged `--no-ff` on `eda714a4` under the operator's GO and the Tech-Architect-45 queue, after the refusal of `2401b65e` (`to-browser/REFUSED-night-archive-2026-10-15.md`). Repair 1 lists the 38 archived digests by filename in intake 116's evidence set (no baseline change), and `tests/test_dodo.py` `_run_real_spine` decodes UTF-8 (assertion unchanged). The conflicts in `tasks/manifest.json` and `BACKLOG.md` were resolved as the union: main's `[#1619]`-`[#1623]` first, then the branch's rows. `gen_task_tree --emit-source` reports 727 tasks and re-pins the hash; `--check` is ok. The resume-night-contract arc receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `docs/audits/` (38 archived digests and the index), `docs/intake/` (intakes 114-117, index, manifest), `tasks/` (rows `[#1551]`-`[#1618]`, manifest), `BACKLOG.md`, `tests/test_dodo.py`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-night-retire-handoff-verify-2026-10-15` @ `95e49a5d`, then resume-vendor-fix repair 2 @ `f387e8f1`.
+
+---
+
 ### 2026-10-16 (j) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-night-contract-2026-10-16 merges -- rows [#1619]-[#1623] filed for night-contract rules N1-N5
 
 **Anchors:** `a6cc4a29` (rows filed, branch `worktree-resume-night-contract-2026-10-16`, introduced by this merge), `ba74a507` (its origin/main sync).
@@ -158,6 +172,23 @@
 **Next:** 1537 repair 1 (job `7faf1f29`) re-merges when handed back, then 1536 becomes eligible; 1450 (@ `895d62b4`) merges after. MORNING: KNOWN-REDS-REGISTRY member `[#1350]` expires 2026-10-19.
 
 ---
+### 2026-10-16 (b) - CC (Sonnet 5.5, night close-out): defect rows, process matrix, `/handoff-verify` retired, `[#1350]` renewed
+
+**Anchors:** `72ae7f78` (rows [#1569]-[#1595] and intake 116), `85096e84` (rows [#1596]-[#1618], intake 117, the process-matrix audit), `abb1ef70`; on branch `worktree-night-retire-handoff-verify-2026-10-15`: `7bc3526e` (command and wiring removed), `cd55715d` (Codex terra findings fixed), `a9ae5280` (transport lock fix and `[#1350]` renewed to 2026-10-26), `95e49a5d` (seat-ids regenerated).
+
+**Did:** PARTS 8, 9, 10, 3, 4 and 2 of BATCH-NIGHT-CLOSEOUT-2026-10-15 and its three amends. Transport janitor applied (manifest `af5876e8d6962fb075763a830865f804d20616737a2cb9c73f65eb1d5e43564b`, 321 moves); stale copies and `-withdrawn` files moved by hand; six stale claims released. Nothing landed: the INTEGRATOR claim was live.
+
+**Result:** all pushed, none landed. Morning report: `to-browser/DIGEST-NIGHT-CLOSEOUT-2026-10-15.md`.
+
+### 2026-10-16 (a) - CC (Sonnet 5.5, night close-out): archive of the 10-14/15 digests, both rows branches merged
+
+**Anchors:** `c14dab1e`, `20c3fd8a`, `388f3752`, `609c3342` (36 digests archived under `docs/audits/` as `technical`, verbatim with a provenance line; indexes regenerated), `45751026` (merge of `worktree-define-outcomes-2026-10-15` @ 69ab3bc9), `061818ee` (merge of `worktree-test-strategy-rows-2026-10-15` @ 496b0951).
+
+**Did:** BATCH-NIGHT-CLOSEOUT-2026-10-15 PART 1 plus the final AMEND A. The second merge conflicted on BACKLOG.md and the three manifests; resolved with `gen_intake_index`, `gen_intake_tree` and `gen_task_tree --emit-source` after the nine task nodes 1560-1568 were carried into `tasks/manifest.json` from the branch (no id hand-edited).
+
+**Result:** `gen_task_tree --check` ok, `validate_backlog` OK (677 tasks). Nothing landed on main: the INTEGRATOR claim is live.
+
+**Next:** PART 8 defect rows, then 3, 4, 2, 5, 6, 7.
 
 ### 2026-10-15 (e) - CC (Opus 5.5, integrator BU cycle-1): lane-bu-1535-outer-loop merges after repair 1 -- the outer loop runs in code ([#1535], ADR-130 Proposed)
 

@@ -119,7 +119,8 @@ def _run_real_spine(db_file: Path) -> subprocess.CompletedProcess:
            "HARNESS_RECEIPTS_DIR": str(db_file.parent / "receipts")}
     env.pop("HARNESS_YAML", None)
     return subprocess.run([sys.executable, "-m", "doit", "-f", str(_DODO), "--db-file", str(db_file), "spine"],
-                          capture_output=True, text=True, env=env, cwd=_REPO, timeout=900)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          env=env, cwd=_REPO, timeout=900)
 
 
 def test_real_spine_gets_past_stage_6_on_the_dispatch_subject(tmp_path):
