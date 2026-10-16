@@ -180,11 +180,11 @@ _LIVE_COLLECTOR_PACKAGES: dict[str, str] = {
 #: `provider_router.route()`, and the re-rank's GROUP BY. An open vocabulary makes a typo
 #: (`implment`) emit a span every one of those three silently drops, which is the
 #: present-but-unread failure mode `ecosystem/schema/provider_registry.py` already refuses with
-#: `extra="forbid"`. Deliberately NOT shared with `routing-table.yaml`'s coarse
+#: `extra="forbid"`. red/qa/judge added by [#1536] (R104); must equal ROLE_NAMES. Deliberately NOT shared with `routing-table.yaml`'s coarse
 #: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
 #: keys a measured pass rate, and collapsing them would make one of the two lie.
 ROLES: frozenset[str] = frozenset(
-    {"orchestrate", "plan", "implement", "review", "read", "verify"}
+    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge"}
 )
 
 #: The WORK-PRODUCT outcome, closed -- AX21-2's parenthetical ("tests green? review

@@ -120,10 +120,9 @@ def test_refusal_2_a_non_admitted_producer_is_refused_on_implement(router):
     2026-09-23 by operator ruling O-3 — see `test_copilot_enterprise_is_now_admitted_on_implement`
     below — so it is no longer this test's example.)"""
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert got == ["anthropic", "copilot-enterprise"], (
-        "Sonnet stays first (AX22-1's >= 8-of-10 bar is unmet), and copilot-enterprise now "
-        "follows it: admitted and licensed, still declared second because admission-by-ruling "
-        "is not the measurement that would move its position (AX21-2's re-rank is)"
+    assert got == ["copilot-enterprise", "anthropic"], (
+        "R104 (operator, 2026-10-14; [#1536]) puts Copilot first and Sonnet 5.5 second; the "
+        "unadmitted xai entry is still refused on this one admission-gated role"
     )
 
 
@@ -156,9 +155,9 @@ def test_copilot_enterprise_is_now_admitted_on_implement(router):
     )
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
     assert "copilot-enterprise" in got
-    assert got.index("copilot-enterprise") == 1, (
-        "admission did not move its declared position — Sonnet stays first until AX22-1's "
-        "measurement, per AX21-2, moves it"
+    assert got.index("copilot-enterprise") == 0, (
+        "R104 (operator ruling 2026-10-14, [#1536]) moved Copilot to the head of implement -- "
+        "a ruling, not the AX22-1 measurement, and recorded as such in the registry note"
     )
 
 
@@ -212,6 +211,15 @@ def test_refusal_2_does_NOT_apply_to_read_or_verify(router):
 # --- REFUSAL 3: the licence (`[#691]` leg c) -------------------------------------------------
 
 
+def _unadmit_xai_on_review(data):
+    """R104 (2026-10-14, [#1536]) admitted xai on `review`; the schema refuses an admitted entry
+    under a non-permitting licence, so a licence fixture on xai first returns that one entry
+    to `unevaluated` -- the refusal under test is the router's, on `implement`."""
+    for entry in data["roles"]["review"]["order"]:
+        if entry["provider"] == "xai":
+            entry["admission"] = {"verdict": "unevaluated", "floors": ["AX22-1"]}
+
+
 def test_refusal_3_a_provider_without_a_permitting_licence_is_refused(router, live_registry,
                                                                        tmp_path):
     """A RULED, non-`permitted` licence refuses just as an unruled one does — `restricted` is
@@ -229,6 +237,7 @@ def test_refusal_3_a_provider_without_a_permitting_licence_is_refused(router, li
     below, but for the RULED half of the vocabulary.
     """
     data = copy.deepcopy(live_registry)
+    _unadmit_xai_on_review(data)
     data["providers"]["xai"]["licence"] = {
         "status": "restricted",
         "reason": "fixture: a ruled, non-permitting licence.",
@@ -254,6 +263,7 @@ def test_refusal_3_an_unruled_licence_is_refused_not_assumed(router, live_regist
     invariant doing its job one level down.
     """
     data = copy.deepcopy(live_registry)
+    _unadmit_xai_on_review(data)
     del data["providers"]["xai"]["licence"]
     path = tmp_path / "reg.yaml"
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
@@ -275,7 +285,8 @@ def test_refusal_4_the_producing_provider_is_excluded_from_reviewing_its_own_wor
     excluded = [c.provider for c in
                 router.route("review", repo=".dev-knowledge", produced_by="openai")]
     assert "openai" not in excluded
-    assert excluded[0] == "anthropic", "AX22-2's chain lands on Sonnet while Grok is unadmitted"
+    # R104 (2026-10-14, [#1536]) admitted Grok on review, so the chain now lands there.
+    assert excluded[0] == "xai", "R104's chain: Codex terra -> Grok when Codex produced"
 
 
 def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):
@@ -286,7 +297,7 @@ def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):
     with_producer = [c.provider for c in
                      router.route("implement", repo=".dev-knowledge", produced_by="anthropic")]
     without_producer = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert with_producer == without_producer == ["anthropic", "copilot-enterprise"]
+    assert with_producer == without_producer == ["copilot-enterprise", "anthropic"]
 
 
 def test_refusal_4_reports_its_clause(router):
