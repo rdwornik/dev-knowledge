@@ -179,3 +179,58 @@ cost 10, modifiability 10, observability 15; area scores on a 5-point scale):
   unless both pytest legs are green on a rehearsal sha first (G1).
 - **D6 — unchanged.** The integrator's local suite stays in the walk: removing it needs a
   ratification that records Q7(a), and none did at the time of this amendment.
+
+## AMENDMENT 2 — 2026-10-16, Linux-first CI: the Windows-required clause of D1 and D3 is amended (batch `BATCH-LINUX-FIRST-CI-2026-10-16`)
+
+> In-file amendment marker, per `CLAUDE.md` §5 rule 3 ("ADRs … are immutable — supersede with a new
+> file or an in-file amendment marker; never edit in place") and the form AMENDMENT 1 above
+> already takes. The Decision section and AMENDMENT 1 are unchanged; **where either says the
+> verdict is "on both OSes", "both legs" or lists `pytest (windows-latest)` among the required
+> contexts, this section is the current state.** The operator ratifies it by the paste that
+> ordered the batch (2026-10-16 ~19:00: *"why one on Windows and one on Linux — the same tests
+> twice; run Linux only"*). It **reinstates R111** (Linux-first, Windows nightly), withdrawn
+> 2026-10-14 (R116) on a cost premise alone; the speed cost — a merge waited 35–60 min on the
+> slower leg — was not weighed then. D7 (OS-agnostic is a requirement) is **not** amended: the
+> requirement stands and its enforcement moves from per-merge to nightly-plus-sensitive-diff.
+
+- **D1 — as amended.** A merge to `main` is judged on the **Linux leg only**: `ubuntu-latest`, the
+  full suite plus the known-reds compare. The Windows leg runs (a) **nightly on `main`**, full
+  suite (`schedule`; `workflow_dispatch` also runs both), and (b) on a merge whose **diff touches
+  a Windows-sensitive path**. `conductor.yml` gains a `plan` job whose output is the matrix `os`
+  list; `pytest` is `needs: plan`.
+- **D3 — as amended.** The required contexts are `pytest (ubuntu-latest)`, `windows-gate`, `ruff`,
+  `seal`, `spine`, `anchor` (six; the ruleset file lists exactly these).
+  `pytest (windows-latest)` leaves `deploy/conductor-required-checks.ruleset.json` because a
+  server-side ruleset cannot require a check conditionally. Its place is taken by `windows-gate`,
+  an always-running job that passes when the plan left Windows out and, when the plan put Windows
+  in, passes only if the whole `pytest` matrix succeeded and fails closed on an unreadable plan —
+  so an **armed** ruleset enforces the sensitive-diff rule without `merge_path.py` (Codex terra
+  review of this change, round 1, CRITICAL, `docs/audits/2026-10-16-codex-linux-first-ci.md`;
+  round 2 confirming the fixes, 0/0/0/0, `docs/audits/2026-10-16-codex-linux-first-ci-r2.md`).
+  The gate judges the Windows leg as the merge verdict does (`scripts/windows_gate.py`, reusing
+  `known_reds.compare_to_base`): a green leg passes; a red leg passes only where the base is red
+  too, with no new red and no non-test failure; a skipped, cancelled, absent or unreadable leg,
+  log or registry fails closed (repair 1 of the integrator's refusal of the first build, which
+  read the raw matrix conclusion and was red on every Windows-sensitive merge while any known
+  red existed). For a
+  Windows-sensitive diff `merge_path.py land` / `verdict` additionally add the leg itself to the
+  set the verdict must see `success` (`actions_verdict.required_contexts_for`), and an unreadable
+  diff, scan or known-reds registry reads as sensitive.
+- **The sensitive list is derived from the repo, not invented** (`scripts/ci_os_plan.py`, quoted
+  there): the order's own categories as paths (`.gitattributes`, `*.ps1`, `scripts/hooks/`,
+  `.claude/settings.json`, `.pre-commit-config.yaml`, `.github/workflows/`); the files named by the
+  known-reds registry's **Windows-only** members (`logs/KNOWN-REDS-REGISTRY.json`
+  `members_by_os`, today `tests/test_transport.py` and `scripts/transport.py`); and every Python
+  file under `scripts/`, `deploy/`, `plugins/` that branches on the platform (`git grep` for
+  `os.name`, `sys.platform`, `platform.system`, `msvcrt`, `win32`, `PermissionError`,
+  `powershell`, `pwsh`), read at both ends of the diff.
+- **A Windows red found at night becomes a row the next morning and does not block the day.** The
+  nightly job `windows-nightly-triage` opens a `nightly-triage` Issue — the existing kind
+  `scripts/surface_triage.py` already surfaces at SessionStart as "[triage] N nightly finding(s)
+  await" — and the session that sees it files the repair row for the integrator's queue.
+- **Flip-condition.** If more than one Windows-only regression a fortnight lands on `main` because
+  its diff was not Windows-sensitive (the nightly catches it a day late), widen the sensitive list
+  from what the nightly found, or return Windows to every merge. The list is a derived heuristic
+  and its honest limit is that a Windows-only break in a file none of its three sources names is
+  found by the nightly leg, not by the merge.
+- **The landing that carries this amendment still ran both legs.** It is the last that must.

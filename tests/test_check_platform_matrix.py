@@ -164,3 +164,27 @@ def test_registered_in_all_checks() -> None:
                           # depend on `scripts/audit.py`'s own (much heavier) import graph
     names = {c.__name__ for c in aud.ALL_CHECKS}
     assert cpm.check_platform_matrix.__name__ in names
+
+
+# --- ADR-127 AMENDMENT 2: the hub's own matrix is a computed expression -------------------
+
+def test_a_matrix_os_computed_by_an_expression_counts_as_declared(tmp_path: Path) -> None:
+    wf_dir = tmp_path / ".github" / "workflows"
+    wf_dir.mkdir(parents=True)
+    (wf_dir / "ci.yml").write_text(
+        "on: [push]\njobs:\n  build:\n    strategy:\n      matrix:\n"
+        "        os: ${{ fromJSON(needs.plan.outputs.os) }}\n    runs-on: ${{ matrix.os }}\n",
+        encoding="utf-8",
+    )
+    assert _statuses(cpm.check_platform_matrix(tmp_path)) == {"pass"}
+
+
+def test_a_non_expression_string_os_still_declares_nothing(tmp_path: Path) -> None:
+    wf_dir = tmp_path / ".github" / "workflows"
+    wf_dir.mkdir(parents=True)
+    (wf_dir / "ci.yml").write_text(
+        "on: [push]\njobs:\n  build:\n    strategy:\n      matrix:\n        os: ubuntu-latest\n"
+        "    runs-on: ubuntu-latest\n",
+        encoding="utf-8",
+    )
+    assert _statuses(cpm.check_platform_matrix(tmp_path)) == {"fail"}
