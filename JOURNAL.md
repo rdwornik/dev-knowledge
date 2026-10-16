@@ -21,6 +21,45 @@
 
 ---
 
+### 2026-10-16 (d) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges -- the devcontainer pins claude 2.1.301 (batch-resume-night PART B, queued post-close)
+
+**Anchors:** `dbe4f3d7` (the pin write, branch `worktree-resume-pin-2026-10-16`, introduced by this merge).
+
+**Did:** merged `--no-ff` on `c13a166d` at the request of the batch-resume-night seat (AMEND-1, operator-authorized; it lands through the live integrator claim). One file: `.devcontainer/provisioning.yaml` moves claude 2.1.300 -> 2.1.301 with its re-measured sha256, because `dispatch.py codespace-exec`'s pin gate refused the first Codespace launch (the laptop prints 2.1.301). The bu-1539-row-close arc merge-receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `.devcontainer/provisioning.yaml`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-resume-vendor-fix-2026-10-16` @ `e3620066` lands next.
+
+---
+### 2026-10-16 (c) - CC (Opus 5.5, integrator BU cycle-4): [#1539] [#1454] [#1332] close after the transport janitor --apply; the night-archive land is refused
+
+**Anchors:** `c81b326e` (the row close, branch `chore/bu-1539-row-close`, introduced by this arc's merge).
+
+**Did:** under the operator's GO of 2026-10-16, closed the three rows of `LANE-bu-1539-transport.md`'s closes clause with `row_close.py` (merge `4ccb89c5`, CI run 38775124621, five named tests): `[#1539]` and `[#1454]` were held for the janitor `--apply` that ran 2026-10-16 (manifest `af5876e8`); `[#1332]` was fully met at the merge and closes with them (all-or-none). The bu-close-packet arc merge-receipt line rides here. The GO's first land, `worktree-night-archive-2026-10-15` @ `2401b65e` (merge `f99effc9`), was REFUSED REGRESSED on CI run 38879132625: 38 archived digests with no consumer (`test_consumer_at_landing` x2, both OS) and a cp1252 decode of their prose in `test_dodo`'s spine run (windows); `to-browser/REFUSED-night-archive-2026-10-15.md`.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `tasks/1539-*`, `tasks/1454-*`, `tasks/1332-*`, `tasks/manifest.json`, `BACKLOG.md` (658 tasks), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** the night-archive branch owner repairs per the REFUSED file; night-retire lands after it (its anchor is in night-archive's tip).
+
+---
+### 2026-10-15 (j) - CC (Opus 5.5, integrator BU cycle-4): batch BU closes -- six of six lanes landed on main, three rows closed, the rest held with their evidence
+
+**Anchors:** `2c105bed` (the close packet `docs/audits/2026-10-15-technical-batch-bu-close-packet.md`, branch `docs/bu-close-packet`, introduced by this arc's merge).
+
+**Did:** wrote the `closed_by` packet the BU manifest names: 1539 `4ccb89c5`, 1535 `97bcd374`, 863 `a3d0ae31`, 1537 `c949ffd6`, 1450 `d73c56c5`, 1536 `52b9a90b`, each LANDED PRE-EXISTING; five refusals, all repaired; no FAILED lane, no STOP-THE-LINE. Rows closed: `[#1535]`, `[#1450]`, `[#1538]`. Held open with evidence: `[#1539]`, `[#1454]`, `[#1332]` (janitor `--apply`), `[#863]`, `[#912]`, `[#1540]` (next conductor schedule run), `[#1537]` (clause 8 GAP), `[#1536]` (its contract also names `[#1452]`, PREMISE-FAILED). Lane cost USD 162.27 over six lanes (`lane_cost.py`). The 1536 merge-receipt line rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** batch BU CLOSED when this packet lands. The batch-close trial cut passed every row but `worktree_owners` (the integration worktree carrying this packet), removed after the land.
+
+**Changes:** `docs/audits/2026-10-15-technical-batch-bu-close-packet.md` (new), `docs/audits/README.md` (generated), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** BUILD-2 slot 1 is `[#1430]`, the steel thread. Digest: `to-browser/DIGEST-BU-2026-10-15.md`.
+
+---
 ### 2026-10-15 (i) - CC (Opus 5.5, integrator BU cycle-4): lane-bu-1536-routing merges -- provider routing follows R104: Copilot implements first, Codex terra heads review, red/qa/judge roles, claude-sonnet-5-5 priced, model-id literals ratcheted ([#1536]; [#1452] PARTIAL)
 
 **Anchors:** `a2f7d27e` (handback tip, branch `worktree-lane-bu-1536-routing`, introduced by this merge; its sync of origin/main `d73c56c5`), `da3ffd7d` (judge round 2 note fix), `e2528652` (judge round 1 fix), `bcb8f277` (judge round 1 RED), `40e914d7` (fix), `f89b937a` (RED).
