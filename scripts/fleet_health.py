@@ -1187,8 +1187,8 @@ def hook_bypass_lines() -> list[str]:
 
 def hook_watchdog_lines() -> list[str]:
     """`[#863]`'s surface: any hook process `hook_watchdog.py` found suspended-at-creation
-    (zero CPU, parent already gone) and killed, since it is run by hand -- its own
-    `ecosystem/harness.yaml` `fates:` entry is `manual_until`, not a settings.json entry -- a
+    (zero CPU, parent already gone) and killed, since it is triggered automatically by
+    `_trigger_hook_watchdog()` rather than run by hand -- a
     kill made on one boot must still be visible on the next, never silent.
 
     Beside `hook_bypass_lines()`, on the same terms: the two surfaces answer sibling questions
@@ -1205,6 +1205,23 @@ def hook_watchdog_lines() -> list[str]:
         print(f"fleet_health: WARNING -- hook watchdog surface unavailable: {exc!r}",
               file=sys.stderr)
         return []
+
+
+def _trigger_hook_watchdog() -> None:
+    """`[#863]` (2): fire the hook watchdog's throttled, detached sweep -- `bounded_hook.
+    maybe_trigger_watchdog` owns the claim, the interval and the spawn; nothing is re-derived here.
+
+    Called from BOTH legs of this file: every `--prompts-guard` call (the PreToolUse guard every
+    session runs on every file-touching tool call, so a suspended orphan from any session is found
+    within one interval of the next call anywhere) and the SessionStart leg (a fresh session sweeps
+    whatever an earlier, now-dead session left behind). It must never change a verdict: it prints
+    nothing, and every exception is swallowed, because the guard's stdout must stay exactly its
+    marker and its exit code exactly its verdict.
+    """
+    try:
+        _import_bounded_hook().maybe_trigger_watchdog()
+    except Exception:  # noqa: BLE001 -- a trigger must never change the guard's verdict
+        pass
 
 
 def cost_health_line(repo_root: Path) -> str | None:
@@ -1984,24 +2001,28 @@ def prompts_guard() -> int:
 
     The exception repr rides in the message on purpose: "unavailable" tells the reader
     nothing they can act on, and this text is the only thing a refused session receives.
+    Every call also fires `_trigger_hook_watchdog()` after its verdict ([#863] (2)); the trigger is throttled, detached and silent, so it costs one `stat` on almost every call.
     """
     try:
-        verdict, line = prompts_dir_status(*read_prompts_dir_scopes())
-    except Exception as exc:  # noqa: BLE001 -- see fail-closed note above
-        print(GUARD_REFUSED_MARKER)
-        print(
-            "[prompts] REFUSED -- the prompts guard could not be EVALUATED, so it refuses "
-            f"what it cannot check. Cause: it raised {exc!r} before reaching a verdict. "
-            "Fix: run 'python scripts/fleet_health.py --prompts-guard' from the repo root "
-            "to reproduce the error with a traceback.",
-            file=sys.stderr)
-        return 2
-    if verdict == PROMPTS_REFUSED:
-        print(GUARD_REFUSED_MARKER)
-        print(line, file=sys.stderr)
-        return 2
-    print(GUARD_EVALUATED_MARKER)
-    return 0
+        try:
+            verdict, line = prompts_dir_status(*read_prompts_dir_scopes())
+        except Exception as exc:  # noqa: BLE001 -- see fail-closed note above
+            print(GUARD_REFUSED_MARKER)
+            print(
+                "[prompts] REFUSED -- the prompts guard could not be EVALUATED, so it refuses "
+                f"what it cannot check. Cause: it raised {exc!r} before reaching a verdict. "
+                "Fix: run 'python scripts/fleet_health.py --prompts-guard' from the repo root "
+                "to reproduce the error with a traceback.",
+                file=sys.stderr)
+            return 2
+        if verdict == PROMPTS_REFUSED:
+            print(GUARD_REFUSED_MARKER)
+            print(line, file=sys.stderr)
+            return 2
+        print(GUARD_EVALUATED_MARKER)
+        return 0
+    finally:
+        _trigger_hook_watchdog()
 
 
 # --- the SessionStart PREFLIGHT: verify ONCE what the per-call guard needs ---------------
@@ -2172,11 +2193,13 @@ def main(argv=None) -> int:
         for line in hook_bypass_lines():
             print(line)
         # `[#863]`'s surface, immediately beside `[#808]`'s above and on the same terms: a hook
-        # process the watchdog found suspended-at-creation and killed, since that watchdog is
-        # run by hand (`manual_until` fate) rather than wired to a moment -- a kill it already
-        # made must still be visible here, never silent. Fail-soft.
+        # process the watchdog found suspended-at-creation and killed; the watchdog is now
+        # triggered automatically from this hook and every `--prompts-guard` call -- a kill it
+        # already made must still be visible here, never silent. Fail-soft.
         for line in hook_watchdog_lines():
             print(line)
+        # [#863] (2): and fire the throttled, detached sweep -- this is what makes the watchdog automatic.
+        _trigger_hook_watchdog()
         # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
         # everything -- including the fleet table below. Unthrottled, fail-soft.
         if _HANDOFF_PROCESS_PATH.exists():

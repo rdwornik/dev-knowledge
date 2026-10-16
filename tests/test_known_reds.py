@@ -1745,3 +1745,39 @@ def test_only_the_base_side_read_mentions_the_structural_validator():
 
     assert mentions == {"known_reds.py": ["<definition>"],
                         "actions_verdict.py": ["_load_registry_at"]}, mentions
+
+
+# --- [#912]: the closing row owns no registry entry ---------------------------------------
+
+#: [#912]'s causes that an exact open row owns (lane-bu-863-prompts-guard, 2026-10-15).
+_REOWNED_FROM_912 = {
+    "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": "[#673]",
+    "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": "[#673]",
+    "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": "[#1022]",
+    "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": "[#829]",
+    "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": "[#457]",
+}
+
+
+def test_every_912_entry_is_green_re_owned_or_names_the_row_it_is_owed():
+    """[#912]'s Done-when: each red is green, or has a named owner row and a disposition. The
+    prompts-guard wiring entries are gone (green once the guard was re-armed); the five with an
+    exact open owner name it; every entry still on [#912] carries a ROWS-OWED disposition, so the
+    row that must own it is written down rather than implied. DECIDED-BY-LANE: no open row owns
+    the residual causes and this lane may not file one, so [#912] closes PARTIAL."""
+    data = json.loads((_REPO / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
+    buckets = [("members", data["members"]), ("hooks", data.get("hooks", {}))]
+    buckets += [(f"members_by_os[{key}]", bucket)
+                for key, bucket in data.get("members_by_os", {}).items()]
+    entries = [(label, node_id, entry) for label, bucket in buckets
+               for node_id, entry in bucket.items()]
+    wiring = [n for _, n, _ in entries if n.startswith("tests/test_prompts_guard_hook_wiring.py::")]
+    assert wiring == [], f"green once re-armed, still registered: {wiring[:3]}"
+    for label, node_id, entry in entries:
+        if node_id in _REOWNED_FROM_912:
+            assert entry.get("task") == _REOWNED_FROM_912[node_id], f"{label}: {node_id}"
+            assert entry.get("disposition"), f"{label}: {node_id} re-owned with no disposition"
+    undispositioned = [f"{label}: {node_id}" for label, node_id, entry in entries
+                       if entry.get("task") == "[#912]"
+                       and "ROWS-OWED" not in entry.get("disposition", "")]
+    assert undispositioned == [], f"on [#912] with no owed row named: {undispositioned[:3]}"

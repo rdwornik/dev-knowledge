@@ -33,10 +33,9 @@ the merge commit (review_packet refuses a commit that is not a two-parent merge,
 refusal, never a quiet wrong review). `{session_file}` is HARNESS_SESSION_FILE, else
 `<transport>/SESSION-<lane>.md` through `transport_report.resolve_transport` (unset/unmounted -> none).
 
-Scope: this PREPARES A CONTRACT. It does not move rows through phases (intake -> filed ->
-dispatched -> merged -> archived); that is [#669] / [#689] ground, and a `perform`-style verb here
-would close [#669] by accident and without its RED-first witnesses. It is not ADR-73's per-repo
-orchestration copy either: it is the hub-side canonical template, run in one repo at a time.
+Scope: this PREPARES A CONTRACT, and `round` runs ONE round of a lane's `phases:` ([#1535]; built in
+scripts/run_phase.py). It moves no ROW through intake -> ... -> archive: that is [#669]'s, and a `perform`-style
+verb here would close [#669] by accident. Not ADR-73's per-repo copy: the hub-side template, one repo at a time.
 
 Run:  HARNESS_KIND=WIRE HARNESS_SUBJECT=intake uv run --locked doit -f scripts/dodo.py spine
       uv run --locked doit -f scripts/dodo.py moment:lane-start
@@ -62,16 +61,16 @@ _WRAP = str(_ROOT / "scripts" / "telemetry_emit.py")
 _INPUTS = ("lane", "batch", "contract", "handback", "changed")  # an organ that names one needs its value
 
 
-def _state_file(root):
-    """doit's db lives OUTSIDE the checkout, keyed by the checkout path: the spine never dirties the
-    tree, and the primary and each worktree keep separate state (no shared lock between runs)."""
-    key = hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
+def _state_file(root, *scope):
+    """doit's db lives OUTSIDE the checkout, keyed by checkout path (+ lane, round): one per worktree and round."""
+    key = hashlib.sha256("|".join([str(root), *scope]).encode("utf-8")).hexdigest()[:16]
     state_dir = Path(tempfile.gettempdir()) / "dev-knowledge-doit"
     state_dir.mkdir(parents=True, exist_ok=True)
     return state_dir / f"{key}.db"
 
 
-DOIT_CONFIG = {"default_tasks": ["spine"], "verbosity": 2, "dep_file": str(_state_file(_ROOT))}
+_SCOPE = (os.environ.get("HARNESS_LANE", ""), "r" + os.environ["HARNESS_ROUND"]) if os.environ.get("HARNESS_ROUND") else ()
+DOIT_CONFIG = {"default_tasks": ["spine"], "verbosity": 2, "dep_file": str(_state_file(_ROOT, *_SCOPE))}
 
 
 def _doc():
@@ -392,3 +391,9 @@ def task_moment():
         yield {"name": moment["name"], "verbosity": 2, "doc": moment["trigger"],
                "actions": [PythonAction(_moment_verdict(moment))] if keeps_going else None,
                "task_dep": [f"organ:{moment['name']}--{o['id']}" for o in moment["organs"]]}
+
+
+def task_phase():
+    """`phase:<id>` per `phases:` row, then `round` ([#1535]); built beside their adapter, scripts/run_phase.py."""
+    import run_phase  # noqa: PLC0415 -- pydantic + psutil, paid only when doit loads the task list
+    yield from run_phase.phase_tasks(_doc().get("phases") or [], _subs(), _argv, _file_digests, _ROOT)

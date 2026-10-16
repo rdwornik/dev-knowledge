@@ -1,0 +1,346 @@
+{
+  "$defs": {
+    "Finding": {
+      "additionalProperties": false,
+      "description": "One finding an agent reports.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "CRITICAL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "INFO"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "evidence": {
+          "default": "",
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "severity",
+        "claim"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "InputDigest": {
+      "additionalProperties": false,
+      "description": "One input file the phase was handed, and the digest it was handed at.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "InputDigest",
+      "type": "object"
+    },
+    "PhasePayload": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "The ONLY thing an agent writes. Unknown keys are refused, never inert data.",
+      "properties": {
+        "nonce": {
+          "minLength": 8,
+          "title": "Nonce",
+          "type": "string"
+        },
+        "input_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Hash",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ACCEPT",
+            "REFUSE",
+            "INPUT_REQUIRED"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "files_in_scope": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Files In Scope",
+          "type": "array"
+        },
+        "red_test_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Red Test Ids",
+          "type": "array"
+        },
+        "constraints_add": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Constraints Add",
+          "type": "array"
+        }
+      },
+      "required": [
+        "nonce",
+        "input_hash",
+        "outcome"
+      ],
+      "title": "PhasePayload",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Outer-loop PHASE RECEIPT, schema 1.0.0 (ecosystem/schema/phase_receipt.py; generated, never hand-edited; [#1535]).",
+  "properties": {
+    "schema": {
+      "default": "phase-receipt/1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "organ": {
+      "title": "Organ",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "COMPLETE",
+        "FAILED",
+        "KILLED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "exit_code": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Exit Code"
+    },
+    "duration_ms": {
+      "minimum": 0,
+      "title": "Duration Ms",
+      "type": "integer"
+    },
+    "input_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Hash",
+      "type": "string"
+    },
+    "model_requested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Model Requested"
+    },
+    "model_reported": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Model Reported"
+    },
+    "command": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Command",
+      "type": "array"
+    },
+    "finished_at": {
+      "title": "Finished At",
+      "type": "string"
+    },
+    "row": {
+      "title": "Row",
+      "type": "string"
+    },
+    "lane": {
+      "title": "Lane",
+      "type": "string"
+    },
+    "phase": {
+      "title": "Phase",
+      "type": "string"
+    },
+    "round": {
+      "maximum": 2,
+      "minimum": 1,
+      "title": "Round",
+      "type": "integer"
+    },
+    "vendor": {
+      "title": "Vendor",
+      "type": "string"
+    },
+    "cli_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cli Version"
+    },
+    "served_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Served Model"
+    },
+    "started_at": {
+      "title": "Started At",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/InputDigest"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "nonce": {
+      "title": "Nonce",
+      "type": "string"
+    },
+    "usage": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Usage"
+    },
+    "payload_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Payload Sha256"
+    },
+    "payload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PhasePayload"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "substituted_from": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Substituted From"
+    }
+  },
+  "required": [
+    "organ",
+    "status",
+    "exit_code",
+    "duration_ms",
+    "input_hash",
+    "model_requested",
+    "model_reported",
+    "command",
+    "finished_at",
+    "row",
+    "lane",
+    "phase",
+    "round",
+    "vendor",
+    "cli_version",
+    "served_model",
+    "started_at",
+    "inputs",
+    "nonce",
+    "usage",
+    "payload_sha256",
+    "payload"
+  ],
+  "title": "PhaseReceipt",
+  "type": "object"
+}
