@@ -14,7 +14,6 @@ ROOT CAUSE: `--allow-all-tools` grants TOOLS; a path outside the cwd needs a PAT
 """
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -134,7 +133,6 @@ def test_probe_result_is_cached_per_day(tmp_path: Path) -> None:
 
 
 def test_challenge_skips_a_vendor_whose_probe_failed_today_and_says_so(tmp_path: Path) -> None:
-    ran: list[str] = []
 
     def gate_fn(vendor: str) -> vp.ProbeResult:
         return vp.ProbeResult(vendor, vendor != "openai", None, "" if vendor != "openai" else "denied")
@@ -148,3 +146,23 @@ def test_challenge_skips_a_vendor_whose_probe_failed_today_and_says_so(tmp_path:
                             timeout_s=30, vendor_gate=gate_fn)
     assert receipt.reviewer_vendor == "xai"
     assert "VENDOR-FAIL openai challenge probe-failed-today: denied" in receipt.evidence
+
+
+# --- live: a real `copilot -p` read of a staged file (skipped without the CLI or its sign-in) ---
+
+
+@pytest.mark.skipif(__import__("shutil").which("copilot") is None, reason="copilot CLI absent")
+def test_live_copilot_reads_a_staged_file(tmp_path: Path) -> None:
+    if not (Path.home() / ".copilot").exists():
+        pytest.skip("no copilot sign-in on this box")
+    src = tmp_path / "outside" / "probe.txt"
+    src.parent.mkdir()
+    src.write_text("LIVE-STAGED-READ-OK\n", encoding="utf-8")
+    work = tmp_path / "work"
+    run_phase.stage_input(src, work)
+    done = subprocess.run(
+        [__import__("shutil").which("copilot"), "-p", "Read probe.txt in the current directory and "
+         "reply with exactly its contents.", "--model", "claude-sonnet-5", "--allow-all-tools",
+         "--no-ask-user", "--no-color"], cwd=work, capture_output=True, text=True, timeout=300,
+        encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
+    assert "LIVE-STAGED-READ-OK" in done.stdout, done.stdout[:300] + done.stderr[:300]
