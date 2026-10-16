@@ -398,12 +398,14 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
     return out_text, err_text
 
 
-def _save_full(lines: Sequence[str]) -> None:
+def _save_full(lines: Sequence[str]) -> Optional[str]:
+    """Write the uncapped text; None on success, else a short reason (never raises)."""
     try:
         FULL_TEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
         FULL_TEXT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    except OSError:  # a read-only tree never fails boot
-        pass
+    except OSError as exc:  # a read-only tree never fails boot
+        return f"{type(exc).__name__}"
+    return None
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -411,9 +413,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     payload = read_payload(sys.stdin)
     real_out, real_err = sys.stdout, sys.stderr
     full: list[str] = []
-    out, err = run(payload=payload, bounded=_FULL_FLAG not in args, silence_stragglers=True,
-                   full_sink=full)
-    _save_full(full)
+    out, err = run(READERS, payload=payload, bounded=_FULL_FLAG not in args,
+                   silence_stragglers=True, full_sink=full)
+    failure = _save_full(full)
+    if failure:
+        out = out.replace(f"full text: logs/{FULL_TEXT_FILE.name}", "full text not saved")
+        out += f"[session-start] full text not saved ({failure})\n"
     for stream, text in ((real_out, out), (real_err, err)):
         try:
             stream.reconfigure(errors="replace")  # a reader's non-ASCII never costs the digest
