@@ -784,3 +784,46 @@ def test_cli_route_with_an_unknown_role_refuses_without_a_traceback():
     for role in ("implement", "review", "read", "verify"):
         assert role in out, f"valid role {role!r} not listed:\n{out}"
     assert len(proc.stderr.strip().splitlines()) == 1, f"refusal is not one line:\n{proc.stderr}"
+
+# --- [#1536] (1): the router prints position, provider AND model ------------------------------
+
+
+def _r1536_route_lines(role: str) -> list[dict]:
+    import re
+
+    proc = subprocess.run(
+        [sys.executable, str(_ROOT / "scripts" / "provider_router.py"), "route", role],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=_ROOT,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    rows = []
+    for line in proc.stdout.splitlines():
+        m = re.match(r"\s*\[(\d+)\]\s+(\S+)\s+(\S+)\s?(.*)$", line)
+        if m:
+            rows.append({"pos": int(m.group(1)), "provider": m.group(2),
+                         "model": m.group(3), "rest": m.group(4), "line": line})
+    return rows
+
+
+def test_r1536_route_implement_order_and_models():
+    rows = _r1536_route_lines("implement")
+    got = [(r["provider"], r["model"]) for r in rows[:3]]
+    assert [p for p, _ in got] == ["copilot-enterprise", "anthropic", "xai"], rows
+    assert got[1][1] == "claude-sonnet-5-5", rows
+    assert got[2][1] == "grok-4.7", rows
+
+
+def test_r1536_registry_implement_order_is_copilot_sonnet55_grok47(live_registry):
+    order = live_registry["roles"]["implement"]["order"]
+    assert [e["provider"] for e in order[:3]] == ["copilot-enterprise", "anthropic", "xai"]
+    assert order[1]["model"] == "claude-sonnet-5-5"
+    assert order[2]["model"] == "grok-4.7"
+
+
+def test_r1536_route_review_order_grok_max_turns_and_copilot_non_anthropic():
+    rows = _r1536_route_lines("review")
+    assert rows[0]["provider"] == "openai" and rows[0]["model"] == "gpt-5.6-terra", rows
+    assert rows[1]["provider"] == "xai" and rows[1]["model"] == "grok-4.7", rows
+    assert "--max-turns >= 2" in rows[1]["line"], rows[1]["line"]
+    assert rows[2]["provider"] == "copilot-enterprise", rows
+    assert rows[2]["model"] != "-" and not rows[2]["model"].startswith("claude-"), rows[2]["line"]

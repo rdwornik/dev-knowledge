@@ -488,3 +488,32 @@ def test_a_work_repository_excludes_the_paid_third_party_route(manifest):
     allowed = set(manifest["providers"]["allowed"]["corp-monorepo"])
     assert "xai" not in allowed
     assert "copilot-enterprise" not in allowed
+
+
+# --- [#1536] (2): red / qa / judge roles --------------------------------------------------------
+
+
+def test_r1536_red_qa_judge_are_registered_and_in_the_vocabulary(live):
+    for role in ("red", "qa", "judge"):
+        assert role in live["roles"], role
+        assert role in ROLE_NAMES, role
+
+
+def test_r1536_role_pins(live):
+    roles = live["roles"]
+    assert roles["red"]["order"][0]["provider"] == "anthropic"
+    assert roles["red"]["order"][0]["model"] == "claude-sonnet-5-5"
+    assert roles["judge"]["order"][0]["model"] == "claude-opus-5-5"
+    assert roles["judge"].get("rerankable") is False
+    assert roles["qa"]["order"][0]["provider"] == "copilot-enterprise"
+
+
+def test_r1536_the_new_roles_validate_through_the_schema(live):
+    reg = ProviderRegistry.model_validate(live)
+    assert {"red", "qa", "judge"} <= set(reg.roles)
+    assert reg.roles["judge"].rerankable is False
+
+
+def test_r1536_grok_review_entry_carries_a_max_turns_floor(live):
+    grok = [e for e in live["roles"]["review"]["order"] if e["provider"] == "xai"]
+    assert grok and grok[0].get("max_turns_floor") == 2
