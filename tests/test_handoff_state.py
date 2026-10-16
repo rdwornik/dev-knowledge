@@ -1228,3 +1228,354 @@ def test_as_of_excludes_an_undated_plan_whose_mtime_is_after_the_cut(tmp_path):
     os.utime(late, (after, after))
     assert "PLAN-LATE.md" in hs.row_plan(t).value                         # live: it is the newest
     assert "`to-cc/PLAN-WAVE5-2026-09-23.md`" in hs.row_plan(t, as_of="2026-09-30").value
+
+
+# =============================================================================================
+# B2-W3 lane b2w2-boot-teaching ([#1443]): the reading-path resolver. RED-first: every test below
+# failed at 03d21ff8 (no `READING_PATH`, no `resolve_reading_path`) at RUN time. The N4 witness
+# (Done 7) is the three exam tests: the raw prefix resolver PICKS an answer-bearing RESULT file on
+# the fixture (so the fixture is a real trap), and the new resolver never does.
+# =============================================================================================
+
+from test_gen_handoff import _reading_transport  # noqa: E402 -- the shared reading-path fixture
+
+
+def _by_key(results):
+    return {r.key: r for r in results}
+
+
+def test_the_reading_path_is_the_five_items_in_the_order_the_boot_names_them():
+    assert [i.key for i in hs.READING_PATH] == ["index", "lessons", "exam", "dispatch-exam", "map"]
+    assert [i.boot_anchor for i in hs.READING_PATH] == [
+        "to-browser/INDEX.md", "SEAT-LESSONS-*.md", "SEAT-EXAM-*.md",
+        "DIGEST-DISPATCH-ONBOARDING-*.md", "to-browser/MAP-DISPATCH.md"]
+
+
+def test_resolve_reading_path_resolves_items_1_to_5_on_a_fixture_transport(tmp_path):
+    t = _reading_transport(tmp_path)
+    (t / "to-browser" / "MAP-DISPATCH.md").write_text("map\n", encoding="utf-8")
+    results = hs.resolve_reading_path(t)
+    assert [r.key for r in results] == [i.key for i in hs.READING_PATH]
+    assert all(r.status == "OK" for r in results), results
+    got = {r.key: r.path.name for r in results}
+    assert got == {"index": "INDEX.md", "lessons": "SEAT-LESSONS-2026-10-10.md",
+                   "exam": "SEAT-EXAM-2026-10-09.md",
+                   "dispatch-exam": "DIGEST-DISPATCH-ONBOARDING-2026-10-09.md",
+                   "map": "MAP-DISPATCH.md"}
+
+
+def test_an_unresolved_transport_or_an_absent_file_is_missing_never_a_pass(tmp_path):
+    assert all(r.status == "MISSING" and r.path is None for r in hs.resolve_reading_path(None))
+    t = _reading_transport(tmp_path, index=False)
+    r = _by_key(hs.resolve_reading_path(t))
+    assert r["index"].status == "MISSING" and r["map"].status == "MISSING"
+    assert r["lessons"].status == "OK"
+
+
+def test_seat_lessons_resolve_to_the_newest_non_superseded(tmp_path):
+    t = _reading_transport(tmp_path)
+    r = _by_key(hs.resolve_reading_path(t))["lessons"]
+    # newer files exist (`-v3-superseded`, and a `-superseded` with no version): neither is live
+    assert r.path.name == "SEAT-LESSONS-2026-10-10.md"
+    (t / "to-browser" / "SEAT-LESSONS-2026-10-11.md").write_text("# next\n", encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["lessons"].path.name == "SEAT-LESSONS-2026-10-11.md"
+
+
+def test_the_dispatch_exam_resolves_to_its_section_not_the_whole_digest(tmp_path):
+    t = _reading_transport(tmp_path)
+    r = _by_key(hs.resolve_reading_path(t))["dispatch-exam"]
+    assert r.status == "OK" and r.section == "Dispatch exam"
+    t2 = _reading_transport(tmp_path / "other", dispatch_heading=False)
+    r2 = _by_key(hs.resolve_reading_path(t2))["dispatch-exam"]
+    assert r2.status == "NO-SECTION" and r2.path is not None and r2.section is None
+
+
+def test_the_exam_slot_is_questions_only(tmp_path):
+    t = _reading_transport(tmp_path)
+    r = _by_key(hs.resolve_reading_path(t))
+    exam = r["exam"].path.read_text(encoding="utf-8")
+    assert re.search(r"(?m)^kind: SEAT-EXAM$", exam)
+    assert any(ln.startswith("# ") and "questions only" in ln for ln in exam.splitlines()[:8])
+    digest = r["dispatch-exam"].path.read_text(encoding="utf-8")
+    for text in (exam, digest[digest.index("## 4. Dispatch exam"):]):
+        assert not re.search(r"(?mi)^(answers?|key|expected)\b", text)
+    # a newer edition that carries a key line is never put on the path
+    (t / "to-browser" / "SEAT-EXAM-2026-10-11.md").write_text(
+        _EXAM_WITH_KEY, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+    # ...and a digest whose Dispatch exam section carries one is flagged, not passed
+    bad = _reading_transport(tmp_path / "keyed")
+    p = bad / "to-browser" / "DIGEST-DISPATCH-ONBOARDING-2026-10-09.md"
+    p.write_text(p.read_text(encoding="utf-8") + "\nKey: 1=a, 2=b\n", encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(bad))["dispatch-exam"].status == "HAS-KEY"
+
+
+_EXAM_WITH_KEY = ("carried-by: OPEN\nkind: SEAT-EXAM\ndate: 2026-10-11\n\n"
+                  "# SEAT-EXAM — questions only (paste these; never paste the key)\n\n"
+                  "1. A question?\nExpected: the answer\n")
+
+
+def test_the_resolver_returns_names_and_sections_never_bodies(tmp_path):
+    import dataclasses
+    from pathlib import Path
+    t = _reading_transport(tmp_path)
+    results = hs.resolve_reading_path(t)
+    assert {f.name for f in dataclasses.fields(hs.ReadingResult)} == {
+        "key", "boot_anchor", "path", "section", "status"}
+    for r in results:
+        assert r.path is None or isinstance(r.path, Path)
+        assert r.section is None or (isinstance(r.section, str) and "\n" not in r.section)
+
+
+def test_the_raw_prefix_resolver_would_pick_a_result_file(tmp_path):
+    """The N4 trap, proved on the fixture: the generic newest-by-prefix reader returns a RESULT
+    file, so the reading path must not use it for the exam slot."""
+    t = _reading_transport(tmp_path)
+    raw = hs._newest_transport_doc(t, "SEAT-EXAM")
+    assert raw is not None and "RESULT" in raw.name
+
+
+def test_a_seat_exam_result_file_never_wins_the_exam_slot(tmp_path):
+    t = _reading_transport(tmp_path)
+    exam = _by_key(hs.resolve_reading_path(t))["exam"]
+    assert exam.status == "OK"
+    assert exam.path.name == "SEAT-EXAM-2026-10-09.md" and "RESULT" not in exam.path.name
+
+
+def test_a_file_named_as_an_exam_whose_kind_is_a_result_is_skipped(tmp_path):
+    t = _reading_transport(tmp_path)
+    (t / "to-browser" / "SEAT-EXAM-2026-10-12.md").write_text(_RESULT_AS_EXAM, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+
+
+_RESULT_AS_EXAM = "carried-by: OPEN\nkind: SEAT-EXAM-RESULT\n\n# SEAT-EXAM — questions only\n\nGraded.\n"
+
+
+# ---- Copilot close-out review (gpt-6.1-sol, 2026-10-10), High 1 and High 3: the key test was a
+# plain-line test, and the accept test looked at the directory-entry NAME only. -------------------
+
+_EXAM_HEAD_ONLY = ("carried-by: OPEN\nkind: SEAT-EXAM\ndate: 2026-10-11\n\n"
+                   "# SEAT-EXAM — questions only (paste these; never paste the key)\n\n"
+                   "1. A question?\n\n")
+
+
+@pytest.mark.parametrize("key_form", [
+    "## Answer key\n\n1. launch\n",          # a heading: the words that follow are bare list items
+    "### Answers\n- 1: launch\n",
+    "- **Answer:** launch\n",                 # a list item
+    "1. Answer: launch\n",
+    "> Key: 1=a\n",                           # a blockquote
+    "**Expected:** the answer\n",             # the bold plain-line form the first predicate caught
+])
+def test_a_markdown_key_in_any_line_form_never_passes_either_exam_slot(tmp_path, key_form):
+    t = _reading_transport(tmp_path)
+    (t / "to-browser" / "SEAT-EXAM-2026-10-11.md").write_text(
+        _EXAM_HEAD_ONLY + key_form, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+    bad = _reading_transport(tmp_path / "keyed")
+    p = bad / "to-browser" / "DIGEST-DISPATCH-ONBOARDING-2026-10-09.md"
+    # the Dispatch exam is the digest's last, level-2 section: a key INSIDE it sits under a deeper
+    # heading (a level-2 heading would start a sibling section the reading path does not point at)
+    inside = re.sub(r"(?m)^##(?!#)", "###", key_form)
+    p.write_text(p.read_text(encoding="utf-8") + "\n" + inside, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(bad))["dispatch-exam"].status == "HAS-KEY"
+
+
+def test_the_live_shaped_exam_text_is_not_flagged_as_a_key(tmp_path):
+    """The widened predicate must not turn an honest question into a key: a numbered question,
+    a bullet and a heading whose first word is not a key label all stay clean."""
+    t = _reading_transport(tmp_path)
+    ok = _EXAM_HEAD_ONLY + ("## Q2. Which verb starts a lane?\n- Keep it short; name the verb.\n"
+                            "3. What does the map mark a substrate with only a live flag?\n")
+    (t / "to-browser" / "SEAT-EXAM-2026-10-11.md").write_text(ok, encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-11.md"
+
+
+@pytest.mark.parametrize("leg", ["is_symlink", "resolve"])
+def test_an_exam_named_alias_of_another_file_never_wins_the_exam_slot(tmp_path, monkeypatch, leg):
+    """A directory entry named like an exam that is really something else -- a symlink, or a name
+    that resolves elsewhere (here: to a RESULT file) -- is not read as an exam. The two legs are
+    simulated so the proof runs on a box without symlink privilege."""
+    t = _reading_transport(tmp_path)
+    alias = t / "to-browser" / "SEAT-EXAM-2099-01-01.md"
+    alias.write_text(_EXAM_HEAD_ONLY.replace("2026-10-11", "2099-01-01"), encoding="utf-8")
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == alias.name, (
+        "premise: with no alias test the crafted entry wins on its date")
+    if leg == "is_symlink":
+        real = Path.is_symlink
+        monkeypatch.setattr(Path, "is_symlink", lambda self: self.name == alias.name or real(self))
+    else:
+        real_resolve = Path.resolve
+        monkeypatch.setattr(
+            Path, "resolve", lambda self, strict=False: (
+                self.with_name("SEAT-EXAM-RESULT-2099-01-01.md") if self.name == alias.name
+                else real_resolve(self, strict=strict)))
+    assert _by_key(hs.resolve_reading_path(t))["exam"].path.name == "SEAT-EXAM-2026-10-09.md"
+
+
+# =============================================================================================
+# BW lane D5 (lane-bw-1450-boot-teaching, [#1450]), R95 D1: every R-number, ADR and path the
+# boot cites resolves -- the R is landed and not superseded, the ADR's status matches the README
+# index, the path exists. RED-first: `boot_citations` did not exist, so every test below failed
+# at `e31d9b64` (the carried branch taken in) with an AttributeError at RUN time.
+# =============================================================================================
+
+_CITE_REGISTER = (
+    "# Register\n\n"
+    "- **R41 — CC challenges the browser** (operator). In force as written.\n"
+    "- **R10** — withdrawn. At no point in force.\n"
+    "- **R2** — secrets, amended by R13. Superseded in substance by R13 below.\n"
+    "- **R39 — cycle 2 closes** (operator). **R39.3 is superseded by R40** (second block).\n"
+    "- **R40 — the process engine** (operator; full text `RATIFICATION-2026-09-29-v11-superseded.md`).\n"
+)
+
+
+def _cite_repo(tmp_path: Path, *, adr_header: str = "Accepted", index_title: str = "x") -> Path:
+    repo = tmp_path / "repo"
+    (repo / "protocols").mkdir(parents=True)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(_CITE_REGISTER, encoding="utf-8")
+    dec = repo / "docs" / "decisions"
+    dec.mkdir(parents=True)
+    (dec / "ADR-7-x.md").write_text(f"# ADR-7: x\n\n- **Status:** {adr_header}\n", encoding="utf-8")
+    (dec / "README.md").write_text(
+        "| ADR | Date | Title |\n|---|---|---|\n"
+        f"| ADR-7 | 2026-01-01 | {index_title} |\n", encoding="utf-8")
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "real.py").write_text("x\n", encoding="utf-8")
+    (repo / "docs" / "handoffs" / "b1").mkdir(parents=True)
+    (repo / "docs" / "handoffs" / "b1" / "PROBES.md").write_text("x\n", encoding="utf-8")
+    return repo
+
+
+def _cites(repo: Path, boot: str, transport: "Path | None" = None) -> "dict[str, hs.Citation]":
+    return {c.ref: c for c in hs.boot_citations(repo, transport, boot_text=boot)}
+
+
+def test_a_cited_ruling_missing_from_the_register_is_reported_not_passed(tmp_path):
+    """The R95 D1 fixture: a boot citing a ruling the register never landed (R999) is caught."""
+    repo = _cite_repo(tmp_path)
+    got = _cites(repo, "- **R41** -- challenge. Also R999 here.\n")
+    assert got["R41"].status == hs.CITATION_OK, got["R41"]
+    assert got["R999"].status == "MISSING", got["R999"]
+    assert got["R999"].kind == "ruling"
+
+
+def test_a_withdrawn_or_superseded_ruling_is_not_a_pass(tmp_path):
+    repo = _cite_repo(tmp_path)
+    got = _cites(repo, "R10, R2, R39.3, R39, R40 and R41.\n")
+    assert got["R10"].status == "SUPERSEDED", got["R10"]           # its bullet: withdrawn
+    assert got["R2"].status == "SUPERSEDED", got["R2"]             # superseded in substance by R13
+    assert got["R39.3"].status == "SUPERSEDED", got["R39.3"]       # "R39.3 is superseded by R40"
+    assert got["R39"].status == hs.CITATION_OK, got["R39"]         # a sub-item does not take R39
+    assert got["R40"].status == hs.CITATION_OK, got["R40"]         # a `-superseded.md` file name is not
+    assert got["R41"].status == hs.CITATION_OK, got["R41"]
+
+
+def test_a_ruling_ratified_on_the_transport_but_not_landed_is_unlanded_and_names_its_file(tmp_path):
+    """The D3 dependency, stated rather than passed: R96 is ratified on the transport and only
+    lands in the register through a rulings-landing lane."""
+    repo = _cite_repo(tmp_path)
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "RATIFICATION-2026-10-11.md").write_text(
+        "# RATIFICATION\n\n## R96 — the package, ratified\n", encoding="utf-8")
+    got = _cites(repo, "R96 and R97.\n", t)
+    assert got["R96"].status == "UNLANDED", got["R96"]
+    assert "RATIFICATION-2026-10-11.md" in got["R96"].detail
+    assert got["R97"].status == "MISSING", got["R97"]
+
+
+@pytest.mark.parametrize("header,title,status", [
+    ("Accepted", "x", hs.CITATION_OK),
+    ("Proposed", "x", "MISMATCH"),                 # the index reads Accepted (no marker)
+    ("Proposed", "**Proposed** x", hs.CITATION_OK),
+])
+def test_a_cited_adr_status_must_match_the_readme_index(tmp_path, header, title, status):
+    repo = _cite_repo(tmp_path, adr_header=header, index_title=title)
+    got = _cites(repo, "**ADR-7** and ADR-9.\n")
+    assert got["ADR-7"].status == status, got["ADR-7"]
+    assert got["ADR-9"].status == "MISSING", got["ADR-9"]
+    assert got["ADR-9"].kind == "adr"
+
+
+def test_a_cited_path_must_exist_in_the_repo_or_on_the_transport(tmp_path):
+    repo = _cite_repo(tmp_path)
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "INDEX.md").write_text("x\n", encoding="utf-8")
+    boot = ("`scripts/real.py`, `scripts/gone.py`, `PROBES.md`, `to-browser/INDEX.md`, "
+            "`to-cc/GONE.md`, `LEDGER-<repo>.md`, `SEAT-LESSONS-*.md`\n")
+    got = _cites(repo, boot, t)
+    assert got["scripts/real.py"].status == hs.CITATION_OK
+    assert got["scripts/gone.py"].status == "MISSING"
+    assert got["PROBES.md"].status == hs.CITATION_OK               # a bundle file, by its name
+    assert got["to-browser/INDEX.md"].status == hs.CITATION_OK
+    assert got["to-cc/GONE.md"].status == "MISSING"
+    assert not any("<" in r or "*" in r for r in got), "a placeholder or glob is not a path"
+    no_t = _cites(repo, "`to-browser/INDEX.md`\n", None)
+    assert no_t["to-browser/INDEX.md"].status == "NO-TRANSPORT"
+
+
+def test_the_live_boot_cites_nothing_unresolved_beyond_the_rulings_d3_lands():
+    """The live boot against the live register, ADR index and tree. R96 and R97 are ratified
+    (RATIFICATION-2026-10-11 / -12) and land in `protocols/STANDING_RULINGS.md` only with BW lane
+    D3 (`lane-bw-1378-rulings-landing`); until that merge they are the one permitted non-OK, and
+    the moment D3 lands they are OK like every other citation. Transport paths are out of scope
+    here (no transport in a test run)."""
+    repo = Path(hs.__file__).resolve().parent.parent
+    cites = hs.boot_citations(repo, None)
+    refs = {c.ref for c in cites}
+    assert {"R96", "R97"} <= refs, "the boot carries the R96 and R97 pointers (F4)"
+    bad = [c for c in cites
+           if c.status != hs.CITATION_OK
+           and not (c.ref in {"R96", "R97"} and c.status == "MISSING")
+           and not (c.kind == "path" and c.status == "NO-TRANSPORT")]
+    assert not bad, bad
+
+
+# =============================================================================================
+# BU lane L5 (lane-bu-1450-boot-v2, [#1450]): the carried branch's HIGH -- `_supersession` read
+# "replaces R96 D14" as superseding ALL of R96 (live: `boot_citations` reported `ruling R96
+# SUPERSEDED the register says 'replaces R96'`). A clause of a ruling being replaced is a partial
+# supersession, not the ruling: only a ruling named WHOLE is out of force. RED-first: at a4fde7bf
+# the clause cases below return a reason instead of None.
+# =============================================================================================
+
+_PARTIAL_PHRASES = [
+    "this replaces R96 D14. Everything else holds.",
+    "this replaces R97 item 1. Everything else holds.",
+    "this supersedes R96 clause 3. Everything else holds.",
+    "this replaces R96's D14. Everything else holds.",
+    "this replaces R96 (b). Everything else holds.",
+    "this replaces R96 §2. Everything else holds.",
+]
+
+
+@pytest.mark.parametrize("phrase", _PARTIAL_PHRASES)
+def test_replacing_a_clause_of_a_ruling_does_not_supersede_the_ruling(phrase):
+    rid = "R97" if "R97" in phrase else "R96"
+    bullet = f"- **{rid} — a ruling** (operator). In force."
+    assert hs._supersession(rid, bullet, f"- **{rid} — a ruling** (operator).\n\n{phrase}\n") is None
+
+
+@pytest.mark.parametrize("rid,phrase", [
+    ("R95", "this replaces R95."),
+    ("R98", "R98 is superseded"),
+    ("R94", "this supersedes R94 in full"),
+    ("R93", "this withdraws R93; the rest holds"),
+])
+def test_naming_a_ruling_whole_still_supersedes_it(rid, phrase):
+    bullet = f"- **{rid} — a ruling** (operator). In force."
+    assert hs._supersession(rid, bullet, f"{bullet}\n\n{phrase}\n") is not None, phrase
+
+
+def test_boot_citations_reports_a_ruling_ok_when_only_a_clause_of_it_is_replaced(tmp_path):
+    repo = _cite_repo(tmp_path)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "# Register\n\n"
+        "- **R96 — the package** (operator). In force.\n"
+        "- **R97 — the boot** (operator). In force.\n\n"
+        "A later ruling: this replaces R96 D14.\n", encoding="utf-8")
+    got = _cites(repo, "R96 and R97 are cited.\n")
+    assert got["R96"].status == hs.CITATION_OK, got["R96"]
+    assert got["R97"].status == hs.CITATION_OK, got["R97"]

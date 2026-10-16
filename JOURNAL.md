@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-15 (h) - CC (Opus 5.5, integrator BU cycle-3): lane-bu-1450-boot-v2 merges after repair 2 -- boot v2 teaches the flow, the seats and the four substrates; STANDING_RULINGS section AU lands R100-R115 by id ([#1450] [#1538], PARTIAL)
+
+**Anchors:** `35a89c96` (repair-2 tip, branch `worktree-lane-bu-1450-boot-v2`, introduced by this merge), `82007802` (its sync of origin/main `c949ffd6`), `bb644d35` (repair-1 tip), `74442ec9` (repair 1's sync of origin/main), `895d62b4` (the first handback's tip), `a4fde7bf` (the lane's merge of the carried `worktree-lane-bw-1450-boot-teaching` @ `f0d49169`).
+
+**Did:** this lane was refused twice before this merge (`REFUSED-lane-bu-1450-boot-v2.md`). Repair 1 (`bb644d35`) rewrote the boot's Conductor E and distiller bullets as built (ADR-130 cited), cited the carried review audit from `tasks/1443-*`, and re-measured the boot body pin. The discarded merge `fb3088ff` of repair 1 regressed CI run 38834837205 with 24 reds in `tests/test_seat_release_moment.py`: the `dry_bundle` fixture's temp transport lacked the two transport files boot v2 cites. Repair 2 (`35a89c96`) seeds `to-browser/INDEX.md` and `to-browser/MAP-DISPATCH.md` in that fixture. `boot_citations` and the preflight are unchanged. Phase chain: RED `8f116357` before `44e20d89`; Codex `gpt-5.6-terra` and Grok `grok-4.20-0309-non-reasoning` records with nonces; judge round 2 ACCEPT. Both repairs are text, citation and fixture changes, recorded in their commit bodies. Merged `--no-ff` on `c949ffd6`; regenerated `tasks/manifest.json` (pin), `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`. The lane-bu-1537 merge-receipt line rides in `logs/MERGE-RECEIPTS.jsonl`; one runtime line the 863 hook watchdog wrote into the primary's tracked `logs/HOOK-WATCHDOG-KILLS.jsonl` rides here, LF-normalised.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: `verify_handoff_probes` and the ship-gate stay red on live seat and transport state (`BD-seats`, `BD-plan`), red on main alike.
+
+**Changes:** `protocols/HANDOFF_BOOT.md` (boot v2), `protocols/STANDING_RULINGS.md` (section AU), `scripts/gen_handoff.py`, `scripts/assemble_paste.py`, `scripts/handoff_state.py`, `.claude/commands/handoff.md`, `tasks/1438-*`, `tasks/1443-*`, one carried audit, nine test files; `logs/MERGE-RECEIPTS.jsonl`, `logs/HOOK-WATCHDOG-KILLS.jsonl`; generated `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** OPERATOR-ACTION: re-upload `protocols/HANDOFF_BOOT.md` as the Project knowledge file (the ROLE PIN sha moves). OPERATOR-ACTION: the live transport has no current `status: MASTER PLAN` (`BD-plan`). `lane-bu-1536-routing` runs (job `99486af8`); the batch closes after it.
+
+---
+
 ### 2026-10-15 (g) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-1537-codespace-finish merges after repair 2 -- the Codespace finish, carried from 2026-10-14 and completed ([#1537] PARTIAL on clause 8)
 
 **Anchors:** `2ab6e523` (repair-2 tip, branch `worktree-lane-bu-1537-codespace-finish`, introduced by this merge), `5a47e97b` (repair-1 tip), `d22cd9f7` (the first handback's tip), `dccc2c03` (the lane's carry merge of `worktree-codespace-finish-2026-10-14` @ `f7cc1ef6`, sanctioned by its Done-contract 2).

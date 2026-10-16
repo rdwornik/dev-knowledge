@@ -1,0 +1,1 @@
+{"ts": "2026-10-16T01:11:06Z", "hook_id": "cmd:hook_launcher.py", "pid": 28844, "age_s": 131.565, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}

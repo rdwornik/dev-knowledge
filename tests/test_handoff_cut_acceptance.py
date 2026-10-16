@@ -55,7 +55,12 @@ def _fixture_transport(tmp_path: Path, today: str) -> Path:
     (transport / "to-browser" / "LEDGER-dev-knowledge.md").write_text(
         f"refreshed {today}\n", encoding="utf-8")
     (transport / "to-browser" / f"RATIFICATION-{today}.md").write_text(
-        "# Ratification -- test fixture\n", encoding="utf-8")
+        "# Ratification -- test fixture\n\n## R96 — fixture\n\n## R97 — fixture\n", encoding="utf-8")
+    # The boot's own citations resolve at the cut (R95 D1, row `boot_citations`): the two
+    # transport files its reading path names; R96 / R97 above are ratified, and the row names
+    # them as owed until the rulings-landing lane (BW D3) bullets them in the register.
+    (transport / "to-browser" / "INDEX.md").write_text("# INDEX -- fixture\n", encoding="utf-8")
+    (transport / "to-browser" / "MAP-DISPATCH.md").write_text("# MAP -- fixture\n", encoding="utf-8")
     return transport
 
 
