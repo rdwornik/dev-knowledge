@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-16 (i) - CC (Opus 5.5, integrator BU cycle-4): worktree-lane-rn-1015-plan-lint-owns merges -- plan_lint reads ownership from **Owns:** when **Files you own:** is absent [#1015]
+
+**Anchors:** `9290c0e4` (fix, branch `worktree-lane-rn-1015-plan-lint-owns`, introduced by this merge), `529f40b7` (its RED).
+
+**Did:** merged `--no-ff` on `4aee7a50`, next in the queue under the Tech-Architect-45 ruling (2026-10-16). `scripts/plan_lint.py` now reads `**Owns:**` as the owned-paths source when a contract has no `**Files you own:**` line. RED `529f40b7` comes before fix `9290c0e4`. It was built and tested in Codespace rn-1015-plan-lint-owns-54r7jgp54qr24wjv, harvested, and the branch pushed from the box. `[#1015]` closes after the land, with the merge sha and its CI run as evidence. Before this, the token-cuts land was REFUSED (`to-browser/REFUSED-token-cuts-2026-10-16.md`); its arc receipt line rides here with the pin-runner and vendor-fix-r1 lines.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `scripts/plan_lint.py`, `tests/test_plan_lint.py`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-resume-night-contract-2026-10-16` @ `ba74a507`, then night-archive repair 1 @ `515a62f6` and night-retire.
+
+---
+
 ### 2026-10-16 (f) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges its runner fix -- the Codespace runner witnesses and pushes a lane's own worktree-lane branch (batch-resume-night PART B)
 
 **Anchors:** `0b40de81` (fix, branch `worktree-resume-pin-2026-10-16`, introduced by this merge), `7bad21bb` (its RED).
