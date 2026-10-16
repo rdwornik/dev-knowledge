@@ -459,19 +459,21 @@ def test_r58_is_landed_from_its_proposal_and_its_ratifying_line(entries_ar):
     assert "R58 is ratified" in blocks[1].body
 
 
-def test_the_bundles_landed_row_reads_through_r99_with_every_id_present():
+def test_the_bundles_landed_row_reads_through_r115_with_every_id_present():
     """Item 1: `handoff_state.row_landed` (W1-9's row) is read, not changed. On this tree it says
-    `through R99` (section AT, batch BW lane `bw-1378-rulings-landing`, extends section AS's R92),
-    and every id from R1 to R99 is bulleted."""
+    `through R115` (section AU, batch BU lane `lane-bu-1450-boot-v2`, extends section AT's R99),
+    and every id from R1 to R115 is bulleted except R103, which was never ruled (section AU)."""
     import sys as _sys
     scripts = str(_REPO / "scripts")
     if scripts not in _sys.path:
         _sys.path.insert(0, scripts)
     import handoff_state as hs
     row = hs.row_landed(_REPO)
-    assert row.value.startswith("through R99 "), row.value
+    assert row.value.startswith("through R115 "), row.value
     ids = {int(n) for n in hs._LANDED_RE.findall(_REGISTER.read_text(encoding="utf-8"))}
-    assert set(range(1, 100)) <= ids, sorted(set(range(1, 100)) - ids)
+    want = set(range(1, 116)) - {103}
+    assert want <= ids, sorted(want - ids)
+    assert 103 not in ids
 
 
 # ======================================================================================
@@ -843,3 +845,289 @@ def test_r96_accepts_adr_123_and_124_on_the_status_line_and_the_index_agrees(num
     dc = _decision_coverage()
     disp = dc.DECISION_DISPOSITIONS.get(f"adr:{number}")
     assert disp is None or disp.reason != dc._AWAITING_RATIFICATION
+
+
+# ======================================================================================
+# SECTION AU -- R100..R102, R104..R115 (batch BU, lane `lane-bu-1450-boot-v2`, row [#1538])
+# ======================================================================================
+#
+# Same legs as AT. RED-first on main a4fde7bf: that tree's register stops at R99, so every test
+# below that reads section AU fails there, and the simulation shows the gate refusing all fifteen
+# once two batches have closed. R103 is not a ruling (no entry may carry it).
+
+REQUIRED_IDS_AU = ["R100", "R101", "R102"] + [f"R{n}" for n in range(104, 116)]
+
+_U13 = "to-browser/RATIFICATION-2026-10-13.md"
+_U14V3 = "to-browser/RATIFICATION-2026-10-14-v3-superseded.md"
+_U14V4 = "to-browser/RATIFICATION-2026-10-14-v4-superseded.md"
+_U14V5 = "to-browser/RATIFICATION-2026-10-14-v5-superseded.md"
+_U14V6 = "to-browser/RATIFICATION-2026-10-14-v6-superseded.md"
+_U14V7 = "to-browser/RATIFICATION-2026-10-14-v7-superseded.md"
+#: v7 names v3-v6 as the source of record for what it calls "unchanged"; v7 is itself superseded
+#: by v8/v9 since, which carry R113-R115 "unchanged (v7)". R102-R115 live only in superseded
+#: files, so `decision_coverage.ratification_files` -- which skips `-superseded` -- never sees
+#: them: that is why the simulation below presents them as live files.
+EXPECTED_SOURCES_AU: dict[str, list[str]] = {
+    "R100": [_U13], "R101": [_U13],
+    **{r: [_U14V3] for r in ("R102", "R104", "R105", "R106")},
+    "R107": [_U14V4], "R108": [_U14V4],
+    "R109": [_U14V5], "R110": [_U14V5],
+    "R112": [_U14V6],
+    **{r: [_U14V7] for r in ("R111", "R113", "R114", "R115")},
+}
+FIRST_LINE_TOKEN_AU = {r: (f"## {r} (amended) " if r == "R111" else f"## {r} ")
+                       for r in REQUIRED_IDS_AU}
+
+#: sha256 of section AT as it stands at a4fde7bf (LF-normalised). Section AT is append-only and is
+#: never edited.
+_SECTION_AT_SHA256 = "13c385641911bf5ee08d776b1a1d0320dc3c3eabf10aad22a6e9d38e29f4ab63"
+
+
+@pytest.fixture(scope="module")
+def entries_au():
+    return parse_entries(_REGISTER.read_text(encoding="utf-8"), "AU")
+
+
+def _prose_outside_fences(section: "str | None") -> str:
+    out, fenced = [], False
+    for ln in (section or "").split("\n"):
+        if ln.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if not fenced:
+            out.append(ln)
+    return "\n".join(out)
+
+
+def _register_text() -> str:
+    return _REGISTER.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+
+def test_section_au_lands_every_id_of_r100_to_r115_exactly_once_and_no_r103(entries_au):
+    missing = [i for i in REQUIRED_IDS_AU if i not in entries_au]
+    dup = [i for i, v in entries_au.items() if len(v) > 1]
+    extra = [i for i in entries_au if i not in REQUIRED_IDS_AU]
+    assert not missing, f"section AU of protocols/STANDING_RULINGS.md lacks: {missing}"
+    assert not dup, f"entries landed more than once: {dup}"
+    assert not extra, f"section AU carries entries outside its ids (R103 is no ruling): {extra}"
+
+
+def test_every_au_entry_carries_the_verbatim_blocks_its_sources_require(entries_au):
+    problems = []
+    for rid in REQUIRED_IDS_AU:
+        if rid not in entries_au:
+            continue
+        blocks = entries_au[rid][0][1]
+        got = [b.path for b in blocks]
+        if sorted(set(got)) != sorted(set(EXPECTED_SOURCES_AU[rid])):
+            problems.append(f"{rid}: block sources {sorted(set(got))} != {EXPECTED_SOURCES_AU[rid]}")
+        for b in blocks:
+            if not b.body.strip():
+                problems.append(f"{rid}: an empty verbatim block for {b.path}:{b.first}-{b.last}")
+    assert entries_au, "section AU is absent -- R100-R115 are not landed"
+    assert not problems, "\n".join(problems)
+
+
+def test_each_au_primary_block_starts_at_its_own_ruling(entries_au):
+    problems = []
+    for rid in REQUIRED_IDS_AU:
+        if rid not in entries_au or not entries_au[rid][0][1]:
+            continue
+        first = entries_au[rid][0][1][0].body.split("\n")[0]
+        if FIRST_LINE_TOKEN_AU[rid] not in first:
+            problems.append(f"{rid}: first line {first[:80]!r} lacks {FIRST_LINE_TOKEN_AU[rid]!r}")
+    assert entries_au and not problems, "\n".join(problems) or "section AU is absent"
+
+
+def test_au_blocks_match_their_sources_where_the_transport_is_reachable(entries_au):
+    transport = _transport_root()
+    mismatched, unreachable = [], []
+    for rid in REQUIRED_IDS_AU:
+        for b in (entries_au.get(rid) or [("", [])])[0][1]:
+            verdict, detail = diff_block(b, transport)
+            if verdict == "mismatch":
+                mismatched.append(f"{rid}: {detail}")
+            elif verdict == "unreachable":
+                unreachable.append(f"{rid}: {b.path} ({detail})")
+    assert entries_au, "section AU is absent -- nothing to diff"
+    assert not mismatched, "landed text differs from its source:\n" + "\n".join(mismatched)
+    if transport is not None:
+        assert not unreachable, "a declared transport lacks sources:\n" + "\n".join(unreachable)
+    elif unreachable:
+        warnings.warn(
+            f"UNVERIFIED: {len(unreachable)} transport-sourced block(s) of section AU not diffed "
+            f"-- no transport declared. Unreachable: " + "; ".join(unreachable), UserWarning,
+            stacklevel=1)
+
+
+def test_every_au_entry_is_carried_by_a_row_or_a_written_disposition():
+    """The carriage leg, read through the gate's own parser: each AU id is in the parsed register
+    and has a `Carried by:` line the gate accepts."""
+    dc = _decision_coverage()
+    entries = {e.number for e in dc.parse_register(_REGISTER.read_text(encoding="utf-8"))}
+    missing = [r for r in REQUIRED_IDS_AU if int(r[1:]) not in entries]
+    assert not missing, f"not landed: {missing}"
+    refused = {f.subject: f.evidence for f in dc.uncarried_rulings(_REPO)
+               if f.subject in set(REQUIRED_IDS_AU)}
+    assert refused == {}, refused
+
+
+def _carried_line(rid: str) -> str:
+    """The first `**Carried by:**` line after the entry's bullet, outside fences ('' if none)."""
+    bullet = re.compile(r"- \*\*" + rid + r"\b")
+    end = re.compile(r"- \*\*R\d+\b|#{2,3} ")
+    fenced, inside = False, False
+    for ln in _register_text().split("\n"):
+        if ln.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if bullet.match(ln):
+            inside = True
+            continue
+        if inside and end.match(ln):
+            return ""
+        if inside and ln.strip().startswith("**Carried by:**"):
+            return ln
+    return ""
+
+
+@pytest.mark.parametrize("rid", ["R111", "R113"])
+def test_r111_and_r113_carry_the_build_1_challenge_disposition(rid):
+    line = _carried_line(rid)
+    assert line, f"{rid} has no `**Carried by:**` line"
+    for token in ("CHALLENGE", "INPUT_REQUIRED", "DIGEST-BUILD1-READY"):
+        assert token in line, f"{rid}'s Carried-by line lacks {token!r}: {line[:160]!r}"
+
+
+def test_r103_is_recorded_as_no_ruling_and_has_no_entry():
+    text = _register_text()
+    prose = _prose_outside_fences(_section(text, "AU"))
+    m = re.search(r"R103", prose)
+    assert m, "section AU does not mention R103 (it must record that there is no such ruling)"
+    assert "no such ruling" in prose[m.end(): m.end() + 200], prose[m.start(): m.start() + 240]
+    assert not [ln for ln in text.split("\n") if ln.startswith("- **R103")]
+
+
+def test_section_au_states_that_section_ats_no_r100_sentence_is_superseded():
+    prose = _prose_outside_fences(_section(_register_text(), "AU"))
+    m = re.search(r"There is no R100", prose)
+    assert m, "section AU does not quote section AT's `There is no R100` sentence"
+    assert "superseded" in prose[m.end(): m.end() + 300]
+
+
+def test_section_at_is_byte_identical_to_its_landed_text():
+    """A GUARD, not a RED test: it passes on the base by construction. Section AT is append-only
+    and is never edited; section AU supersedes its sentence by a note of its own."""
+    import hashlib
+    at = _section(_register_text(), "AT")
+    assert at is not None
+    assert hashlib.sha256(at.encode("utf-8")).hexdigest() == _SECTION_AT_SHA256
+
+
+# --- the gate section AU exists for ----------------------------------------------------------
+
+_AU_LIVE_FILES = {
+    "RATIFICATION-2026-10-13.md": ("2026-10-13", ["R100", "R101"]),
+    "RATIFICATION-2026-10-14.md": ("2026-10-14", ["R102"] + [f"R{n}" for n in range(104, 111)]
+                                   + ["R112"]),
+    "RATIFICATION-2026-10-15.md": ("2026-10-15", ["R111", "R113", "R114", "R115"]),
+}
+
+
+def _au_transport(tmp_path: Path, *, closed: bool) -> Path:
+    """A transport presenting R100..R115 as three LIVE RATIFICATION files (the real v3-v7 files
+    are `-superseded`, which the gate skips) and a batch clock: BU CLOSED 2026-10-16 and, when
+    asked, BV CLOSED 2026-10-17 -- two closed batches after every file's day, past the grace."""
+    folder = tmp_path / "t" / "to-browser"
+    folder.mkdir(parents=True)
+    for name, (day, ids) in _AU_LIVE_FILES.items():
+        head = f"carried-by: OPEN\nkind: RATIFICATION\ndate: {day}\n\n# RATIFICATION - {day}\n\n"
+        body = "\n\n".join(f"## {r} — a ruling" for r in ids)
+        (folder / name).write_text(head + body + "\n", encoding="utf-8", newline="\n")
+    (folder / "STATE-BATCH-BU.md").write_text("CLOSED 2026-10-16T12:00Z\n", encoding="utf-8")
+    if closed:
+        (folder / "STATE-BATCH-BV.md").write_text("CLOSED 2026-10-17T12:00Z\n", encoding="utf-8")
+    return tmp_path / "t"
+
+
+def _repo_without_section_au(tmp_path: Path) -> Path:
+    """A copy of the register without section AU -- the tree at a4fde7bf -- and the task rows."""
+    import shutil
+    root = tmp_path / "repo"
+    (root / "protocols").mkdir(parents=True)
+    text = _REGISTER.read_text(encoding="utf-8")
+    if "## AU. " in text:
+        start = text.index("## AU. ")
+        nxt = re.search(r"(?m)^## ", text[start + 6:])
+        text = text[:start] + text[start + 6 + nxt.start():]
+    (root / "protocols" / "STANDING_RULINGS.md").write_text(text, encoding="utf-8", newline="\n")
+    shutil.copytree(_REPO / "tasks", root / "tasks")
+    return root
+
+
+def _by_number(ids):
+    return sorted(ids, key=lambda r: int(r[1:]))
+
+
+def test_without_section_au_the_gate_refuses_all_fifteen_once_two_batches_have_closed(tmp_path):
+    """RED witness, kept as a test: the register at a4fde7bf names all fifteen pending inside the
+    grace period (one closed batch) and refuses all fifteen after a second -- the clock arms it."""
+    dc = _decision_coverage()
+    bare = _repo_without_section_au(tmp_path)
+    closed = dc.rulings_report(bare, transport=_au_transport(tmp_path / "a", closed=True))
+    assert closed.unlanded is not dc.UNMEASURED, closed.unmeasured_reason
+    assert _by_number(f.subject for f in closed.unlanded) == _by_number(REQUIRED_IDS_AU)
+    assert not closed.passed
+    open_ = dc.rulings_report(bare, transport=_au_transport(tmp_path / "b", closed=False))
+    assert open_.unlanded == []
+    assert _by_number(open_.pending) == _by_number(REQUIRED_IDS_AU)
+
+
+def test_with_section_au_the_gate_reads_fifteen_rulings_landed_and_carried(tmp_path):
+    dc = _decision_coverage()
+    report = dc.rulings_report(_REPO, transport=_au_transport(tmp_path, closed=True))
+    assert report.unlanded is not dc.UNMEASURED, report.unmeasured_reason
+    assert report.rulings_read == len(REQUIRED_IDS_AU)
+    assert report.unlanded == [], [f.subject for f in report.unlanded]
+    assert list(report.pending) == []
+    assert not [f.subject for f in report.uncarried if f.subject in set(REQUIRED_IDS_AU)]
+
+
+def test_the_live_ratification_files_leave_nothing_of_r100_to_r115_open(tmp_path):
+    """Read against a tmp copy of the operator's real RATIFICATION and STATE-BATCH files. A
+    STATE-BATCH file that makes the clock unreadable is left out of the copy (and named in a
+    warning). With no transport declared the leg is named UNVERIFIED, never passed in silence."""
+    import shutil
+    transport = _transport_root()
+    if transport is None or not (transport / "to-browser").is_dir():
+        warnings.warn("UNVERIFIED: R100-R115 were not read against the live RATIFICATION files "
+                      "-- no transport declared.", UserWarning, stacklevel=1)
+        return
+    dc = _decision_coverage()
+    sim = tmp_path / "t" / "to-browser"
+    sim.mkdir(parents=True)
+    for src in (transport / "to-browser").glob("RATIFICATION-*.md"):
+        shutil.copy2(src, sim / src.name)
+    skipped = []
+    for src in sorted((transport / "to-browser").glob("STATE-BATCH-*.md")):
+        probe = tmp_path / "probe" / "to-browser"
+        shutil.rmtree(tmp_path / "probe", ignore_errors=True)
+        probe.mkdir(parents=True)
+        shutil.copy2(src, probe / src.name)
+        try:
+            dc.closed_batch_dates(tmp_path / "probe")
+        except Exception:
+            skipped.append(src.name)
+            continue
+        shutil.copy2(src, sim / src.name)
+    if skipped:
+        warnings.warn(f"skipped unreadable STATE-BATCH file(s): {skipped}", UserWarning,
+                      stacklevel=1)
+    report = dc.rulings_report(_REPO, transport=tmp_path / "t")
+    assert report.unlanded is not dc.UNMEASURED, report.unmeasured_reason
+    ours = set(REQUIRED_IDS_AU)
+    assert not [f.subject for f in report.unlanded if f.subject in ours]
+    assert not [r for r in report.pending if r in ours], report.pending
+    assert not [f.subject for f in report.uncarried if f.subject in ours]

@@ -124,7 +124,13 @@ def _fixture_transport(tmp_path: Path, today: str) -> Path:
     (t / "to-cc").mkdir(parents=True)
     (t / "to-browser" / "LEDGER-dev-knowledge.md").write_text(f"refreshed {today}\n", encoding="utf-8")
     (t / "to-browser" / f"RATIFICATION-{today}.md").write_text(
-        "# Ratification -- test fixture\n\n## R70 — a fixture ruling\n\n## R71 — another\n", encoding="utf-8")
+        "# Ratification -- test fixture\n\n## R70 — a fixture ruling\n\n## R71 — another\n"
+        "\n## R96 — fixture\n\n## R97 — fixture\n", encoding="utf-8")
+    # The boot's own citations resolve at the cut (R95 D1, `boot_citations`): the two transport
+    # files its reading path names; R96 / R97 (ratified above) are named as owed by the row until
+    # the rulings-landing lane (BW D3) bullets them in the register.
+    (t / "to-browser" / "INDEX.md").write_text("# INDEX -- test fixture\n", encoding="utf-8")
+    (t / "to-browser" / "MAP-DISPATCH.md").write_text("# MAP -- test fixture\n", encoding="utf-8")
     (t / "to-cc" / "BATCH-FIXTURE-OPEN.md").write_text(
         "carried-by: OPEN\nlands-via: a fixture\n\n# an open decision\n", encoding="utf-8")
     return t
@@ -352,7 +358,10 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 #: version -> sha256 of the boot BODY (everything after the front matter, LF-normalised). The pair
 #: lives HERE, outside the file, because a file cannot carry its own hash: bump `boot_version` in
 #: the front matter AND add the new pair when the body changes. Old pairs stay (the history).
-_BOOT_BODY_SHA256 = {1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb"}
+_BOOT_BODY_SHA256 = {
+    1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
+    2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
+}
 
 
 def _split_boot(text: str) -> "tuple[str, str]":
@@ -475,3 +484,332 @@ def test_the_boot_and_the_templates_state_who_fills_the_fill_ins_and_quote_their
         assert "FILL-IN AUTHORS" in tmpl, name
         assert all(q in tmpl for q in _HOME_QUOTES), name
     assert "NO HOME NAMES THE AUTHOR" in _plain((_TMPL_DIR / "HANDOFF_BOOT.md.tmpl").read_text(encoding="utf-8"))
+
+
+# =============================================================================================
+# B2-W3 lane b2w2-boot-teaching ([#1443], [#1438]; carried from B2-W2): a fresh browser seat learns
+# from the boot alone what two seats failed on -- the INDEX, the current lessons, the two exams
+# (questions only) and the generated dispatch map -- and R73, R76 and R80 sit in the boot as one
+# line each. RED-first: every test below failed at 03d21ff8 (no `## Reading path`, no ruling
+# lines, `boot_version: 1`, no `tasks/1443-*.md`, no review record) at RUN time.
+# =============================================================================================
+
+import handoff_state as hs  # noqa: E402
+
+
+def _reading_path_section(boot: str) -> str:
+    m = re.search(r"(?ms)^## Reading path\b.*?(?=^## |\Z)", boot)
+    assert m is not None, "the boot has no '## Reading path' section"
+    return m.group(0)
+
+
+def test_the_reading_path_names_every_item_in_order_with_no_dated_path_or_key():
+    boot = _BOOT.read_text(encoding="utf-8")
+    sec = _reading_path_section(boot)
+    offsets = [sec.find(item.boot_anchor) for item in hs.READING_PATH]
+    missing = [i.boot_anchor for i, o in zip(hs.READING_PATH, offsets) if o < 0]
+    assert not missing, f"reading-path items absent from the section: {missing}"
+    assert offsets == sorted(offsets) and len(set(offsets)) == len(offsets), offsets   # in order
+    assert not re.search(r"\d{4}-\d{2}-\d{2}", sec), "a typed date goes stale (R70)"
+    assert not re.search(r"SEAT-LESSONS-\d", sec), "a dated lessons path goes stale (R70)"
+    plain = _plain(sec)
+    assert "Dispatch exam" in plain and "questions only" in plain.lower()
+    for m in re.finditer(r"SEAT-EXAM-RESULT", plain):
+        assert re.search(r"\b(not|never)\b", plain[max(0, m.start() - 90):m.start()], re.I), (
+            "SEAT-EXAM-RESULT may appear only in a negation (it carries the key)")
+    assert "gen_handoff.py --reading-path" in sec and "gen_handoff.py --dispatch-map --write" in sec
+    assert not re.search(r"(?mi)^\s*(answers?|key|expected)\b", sec)
+
+
+def test_the_reading_path_comes_after_core_and_before_the_floor():
+    boot = _BOOT.read_text(encoding="utf-8")
+    heads = re.findall(r"(?m)^## (.+)$", boot)
+    core = next(i for i, h in enumerate(heads) if h.startswith("Core"))
+    floor = next(i for i, h in enumerate(heads) if h.startswith("The floor"))
+    assert heads[core + 1].startswith("Reading path"), heads[: core + 3]   # first thing after Core
+    assert core + 1 < floor, heads[: floor + 1]                            # and ahead of the floor
+
+
+_RULING_ANCHORS = {"R73": ("exam",), "R76": ("do not decide alone", "CC"), "R80": ("one topic per turn",)}
+
+
+def test_the_three_rulings_are_each_one_line_with_their_id():
+    boot = _BOOT.read_text(encoding="utf-8")
+    lines = boot.splitlines()
+    for rid, words in _RULING_ANCHORS.items():
+        at = [i for i, ln in enumerate(lines) if re.match(rf"- \*\*{rid}\*\*", ln)]
+        assert len(at) == 1, f"{rid} must start exactly one bullet line, found {len(at)}"
+        line = lines[at[0]]
+        for w in words:
+            assert w in line, f"{rid}'s line lacks {w!r}: {line}"
+        nxt = lines[at[0] + 1] if at[0] + 1 < len(lines) else ""
+        assert not nxt.startswith(" "), f"{rid} wraps onto a second line"
+        assert len(line.encode("utf-8")) <= 330, f"{rid}'s line is not one line: {len(line)} chars"
+    rulings = re.search(r"(?ms)^## Rulings every window carries\b.*?(?=^## |\Z)", boot)
+    assert rulings is not None
+    assert all(rid in rulings.group(0) for rid in _RULING_ANCHORS)
+
+
+def test_the_boot_is_version_2_with_a_recorded_body_hash_and_reconciled_with_the_live_spec():
+    text = _BOOT.read_text(encoding="utf-8")
+    front, _body = _split_boot(text)
+    assert re.search(r"(?m)^boot_version:\s*2\s*$", front), front
+    assert {1, 2} <= set(_BOOT_BODY_SHA256), "version 1's pair stays (the history); 2's is recorded"
+    live = re.search(r"(?m)^Version:\s+v?(\d+\.\d+\.\d+)", _HP.read_text(encoding="utf-8")).group(1)
+    assert re.search(rf"(?m)^reconciled_with:\s*handoff-process@{re.escape(live)}\s*$", front), (
+        f"reconciled_with must equal the live spec version {live}")
+    assert re.search(r"(?m)^last_reviewed:\s*(\d{4}-\d{2}-\d{2})$", front).group(1) >= "2026-10-09"
+    assert _boot_version_problem(text) is None
+
+
+#: pointer left in the boot -> (its home file, a regex the home must hold). The text a boot edit
+#: moves behind a pointer is findable at the home, so the pointer is not a dead end.
+_DISPLACED = (
+    ("scripts/dispatch.py launch --help", "scripts/dispatch.py", r"MODEL_ALIASES"),
+    ("templates/dispatcher-order-template.md", "templates/dispatcher-order-template.md", r"authorized-by"),
+    ("claim.py", "scripts/claim.py", r"release"),
+    ("templates/lane-contract-template.md", "templates/lane-contract-template.md", r"Done-contract"),
+    ("protocols/STANDING_RULINGS.md", "protocols/STANDING_RULINGS.md", r"\*\*R47\b"),
+    ("HANDOFF_PROCESS.md", "protocols/HANDOFF_PROCESS.md", r"(?m)^## 13\. Modes"),
+)
+
+
+def test_displaced_boot_text_has_a_pointer_in_the_boot_and_a_home_that_holds_it():
+    boot = _BOOT.read_text(encoding="utf-8")
+    for pointer, home, term in _DISPLACED:
+        assert pointer in boot, f"the boot no longer carries the pointer {pointer!r}"
+        home_path = _REPO / home
+        assert home_path.is_file(), f"{pointer!r}: its home {home} does not resolve"
+        assert re.search(term, home_path.read_text(encoding="utf-8")), (
+            f"{home} does not hold {term!r}")
+
+
+def test_1438_names_its_carrier_1443_and_the_carrier_exists():
+    """[#1438] is folded into [#1443]: a link a script checks (AMEND P-L4-2), not a prose claim."""
+    t1438 = list((_REPO / "tasks").glob("1438-*.md"))
+    t1443 = list((_REPO / "tasks").glob("1443-*.md"))
+    assert len(t1438) == 1 and len(t1443) == 1, (t1438, t1443)
+    body_1438 = t1438[0].read_text(encoding="utf-8")
+    assert "carrier: [#1443]" in body_1438, "[#1438] does not name its carrier"
+    assert "[#1438]" in t1443[0].read_text(encoding="utf-8"), "the carrier does not name [#1438]"
+    assert re.search(r'(?m)^status:\s*open\s*$', body_1438), "the integrator closes it, not this lane"
+
+
+def test_the_review_record_names_the_contract_and_the_served_model():
+    """Done 8: the close-out review record exists, cites this contract inside it, carries the
+    served model id from the tool's log and the nonce or hash the reviewer returned (R59)."""
+    audits = _REPO / "docs" / "audits"
+    records = (sorted(audits.glob("*-codex-b2w2-boot-teaching.md"))
+               + sorted(audits.glob("*-verification-b2w2-boot-teaching-review.md")))
+    assert records, "no review record docs/audits/<date>-codex-b2w2-boot-teaching.md"
+    text = records[-1].read_text(encoding="utf-8")
+    assert "LANE-1443-b2w2-boot-teaching" in text
+    assert re.search(r"gpt-6-astra|gpt-6\.1-sol", text), "no served model id"
+    assert re.search(r"NONCE-[0-9a-f]{12}|\b[0-9a-f]{64}\b", text), "no nonce or content hash"
+
+
+# =============================================================================================
+# BW lane D5 (lane-bw-1450-boot-teaching, [#1450]; order F4 of BATCH-B2-W4-CC-FINISH): boot v2
+# carries five POINTERS, never prose copies -- R96 and R97; the section-3 lane report and the
+# rollup; the equilibrium (the browser opens and closes the loop and is not an arbiter, the harness
+# holds the truth, the operator decides); the architect's reading contract (the rollup and the map
+# sha); the lane tools of the order's rule 3. RED-first: every test below failed at `e31d9b64`.
+# =============================================================================================
+
+#: pointer -> (the literal the boot carries, the repo file it points at, or None for a ruling).
+_F4_TARGETS = (
+    ("`ecosystem/schema/lane-report.schema.json`", "ecosystem/schema/lane-report.schema.json"),
+    ("`scripts/lane_digest.py`", "scripts/lane_digest.py"),
+    ("`ecosystem/system-map-record.json`", "ecosystem/system-map-record.json"),
+    ("`/map`", ".claude/commands/map.md"),
+    ("`/lane-boot`", ".claude/commands/lane-boot.md"),
+    ("`/lane-integrate`", ".claude/commands/lane-integrate.md"),
+    ("`scripts/merge_path.py land`", "scripts/merge_path.py"),
+    ("`scripts/file_purpose_graph.py why`", "scripts/file_purpose_graph.py"),
+)
+
+#: Words that live at the pointers' homes and would only appear in the boot as a prose COPY.
+_F4_HOME_ONLY = ("CI economy", "Browser economy", "grimp", "intent_met", "D14", "known-reds")
+
+
+def _bullet_lines(boot: str, starts: str) -> "list[str]":
+    """The bullet that starts with `starts`, joined with its indented continuation lines."""
+    lines = boot.splitlines()
+    out = []
+    for i, ln in enumerate(lines):
+        if ln.startswith(starts):
+            block = [ln]
+            for nxt in lines[i + 1:]:
+                if not nxt.startswith("  ") or nxt.lstrip().startswith(("- ", "1.", "2.")):
+                    break
+                block.append(nxt)
+            out.append(" ".join(s.strip() for s in block))
+    return out
+
+
+def test_r96_and_r97_are_one_pointer_line_in_the_rulings_section():
+    boot = _BOOT.read_text(encoding="utf-8")
+    rulings = re.search(r"(?ms)^## Rulings every window carries\b.*?(?=^## |\Z)", boot).group(0)
+    lines = [ln for ln in rulings.splitlines() if ln.startswith("- **R96**")]
+    assert len(lines) == 1, "R96 starts exactly one bullet in the Rulings section"
+    assert "**R97**" in lines[0]
+    assert len(lines[0].encode("utf-8")) <= 160, f"a pointer, not a copy: {len(lines[0])} B"
+
+
+def test_the_equilibrium_is_a_pointer_on_the_floor_item_that_names_adr_87():
+    boot = _BOOT.read_text(encoding="utf-8")
+    (item,) = _bullet_lines(boot, "3. **The equilibrium contract**")
+    low = item.lower()
+    for words in ("adr-87", "open and close the loop", "not an arbiter",
+                  "the harness holds the truth", "the operator decides", "r96"):
+        assert words in low, f"the equilibrium item lacks {words!r}: {item}"
+    assert len(item.encode("utf-8")) <= 260, f"a pointer, not a copy: {len(item)} B"
+
+
+def test_the_lane_report_rollup_reading_contract_and_lane_tools_point_at_live_homes():
+    boot = _BOOT.read_text(encoding="utf-8")
+    mech = re.search(r"(?ms)^## Mechanisms to lean on\b.*?(?=^## |\Z)", boot)
+    assert mech is not None
+    sec = mech.group(0)
+    for literal, home in _F4_TARGETS:
+        assert literal in sec, f"the Mechanisms section lacks the pointer {literal}"
+        assert (_REPO / home).is_file(), f"{literal}: its home {home} does not resolve"
+    low = _plain(sec).lower()
+    assert "section 3" in low and "rollup" in low and "reading contract" in low and "map" in low
+    (report,) = _bullet_lines(sec, "- **Lane report and rollup**")
+    (tools,) = _bullet_lines(sec, "- **Lane tools**")
+    for pointer in (report, tools):
+        assert len(pointer.encode("utf-8")) <= 330, f"a pointer, not a copy: {pointer}"
+
+
+def test_the_f4_pointers_carry_no_prose_copied_from_their_homes():
+    boot = _BOOT.read_text(encoding="utf-8")
+    copied = [w for w in _F4_HOME_ONLY if w in boot]
+    assert not copied, f"text that belongs at the pointer's home is in the boot: {copied}"
+
+
+# =============================================================================================
+# BU lane L5 (lane-bu-1450-boot-v2, [#1450] [#1538]): boot v2 teaches the flow -- inbox first,
+# one start line per substrate, the seat cycle, what is PENDING and not working, the reading rule,
+# OS-agnostic verification, the R76 triad, the pointers, and no leftover v5/v6 or one-shot text
+# (HANDOFF-GAPS Q3). RED-first: at a4fde7bf the boot teaches none of these.
+# =============================================================================================
+
+_SUBSTRATE_REGISTRY = _REPO / "ecosystem" / "substrate-registry.yaml"
+
+
+def _boot_text() -> str:
+    return _BOOT.read_text(encoding="utf-8")
+
+
+def _boot_lines_with(*needles: str) -> "list[str]":
+    return [ln for ln in _boot_text().split("\n") if all(n in ln for n in needles)]
+
+
+def test_the_reading_path_starts_with_the_inbox_query_not_the_bare_index():
+    boot = _boot_text()
+    sec = re.search(r"(?ms)^## Reading path\b.*?(?=^## |\Z)", boot)
+    assert sec is not None, "the boot has no `## Reading path` section"
+    first = sec.group(0)
+    item1 = first[first.index("1. **"): first.index("2. **SEAT-LESSONS**")]
+    assert "to-browser/INDEX.md" in item1, item1
+    assert "transport.py query --seat architect --since" in item1, item1
+
+
+def test_each_substrate_has_exactly_one_non_wrapping_start_line():
+    names = re.findall(r"(?m)^  ([a-z][a-z_]*):\s*$",
+                       _SUBSTRATE_REGISTRY.read_text(encoding="utf-8"))
+    assert {"local", "interactive", "cloud", "codespace"} <= set(names), names
+    lines = _boot_text().split("\n")
+    wants = {"cloud": "no start verb; read-only work only", "codespace": "codespace-exec",
+             "local": "dispatch.py launch", "interactive": "claude"}
+    problems = []
+    for name in names:
+        idx = [i for i, ln in enumerate(lines) if ln.startswith(f"- **{name}**")]
+        if len(idx) != 1:
+            problems.append(f"{name}: {len(idx)} boot lines start with `- **{name}**`, want 1")
+            continue
+        i = idx[0]
+        if i + 1 < len(lines) and lines[i + 1].startswith(" "):
+            problems.append(f"{name}: its line wraps onto {lines[i + 1][:40]!r}")
+        if name in wants and wants[name] not in lines[i]:
+            problems.append(f"{name}: its line lacks {wants[name]!r}")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_seat_cycle_names_integrator_3h_and_dispatcher_2h_on_one_line():
+    assert _boot_lines_with("integrator", "3 h", "dispatcher", "2 h"), \
+        "no boot line gives the seat cycle (integrator 3 h, dispatcher 2 h)"
+
+
+def _row_status(row: str) -> str:
+    (path,) = sorted((_REPO / "tasks").glob(f"{row}-*.md"))
+    m = re.search(r"(?m)^status:\s*(\S+)", path.read_text(encoding="utf-8"))
+    assert m, path
+    return m.group(1).strip("\"'")
+
+
+_PENDING_TERMS = {"1535": ("Conductor E", "distiller", "point task"), "1536": ("routing table",)}
+
+
+def test_unbuilt_mechanisms_are_taught_as_pending_not_as_working():
+    boot = _boot_text()
+    lines = boot.split("\n")
+    problems = []
+    for row, terms in _PENDING_TERMS.items():
+        marker = f"pending `[#{row}]`"
+        is_open = _row_status(row) == "open"
+        for term in terms:
+            if term.lower() not in boot.lower():
+                problems.append(f"the boot never mentions {term!r}")
+            for ln in lines:
+                if term.lower() in ln.lower() and (marker in ln) != is_open:
+                    problems.append(
+                        f"row {row} is {'open' if is_open else 'closed'}: line with {term!r} "
+                        f"{'lacks' if is_open else 'still carries'} {marker}: {ln[:90]!r}")
+    for word in ("CHALLENGE", "duplicate"):
+        if word not in boot:
+            problems.append(f"the boot never teaches {word!r}")
+    assert not problems, "\n".join(problems)
+
+
+def test_the_reading_rule_orders_copilot_before_agy_and_names_the_gate_and_flag():
+    hits = _boot_lines_with("Copilot", "agy", "read_gate", "--add-dir")
+    assert hits, "no boot line states the reading rule (Copilot, agy, read_gate, --add-dir)"
+    assert any(h.index("Copilot") < h.index("agy") for h in hits), hits
+
+
+def test_verification_is_taught_as_os_agnostic_with_a_linux_first_input_required_rule():
+    boot = _boot_text()
+    assert "ADR-127" in boot and "OS-agnostic" in boot
+    assert _boot_lines_with("Linux-first", "INPUT_REQUIRED"), \
+        "no boot line ties `Linux-first` to `INPUT_REQUIRED`"
+
+
+def test_the_r76_line_carries_the_triad():
+    hits = _boot_lines_with("- **R76**")
+    assert len(hits) == 1, hits
+    assert "the browser proposes, CC challenges, the operator decides" in hits[0], hits[0]
+
+
+def test_the_boot_points_at_the_plan_row_the_ledgers_and_the_dispatch_map():
+    boot = _boot_text()
+    for pointer in ("`Plan` row", "LEDGER-", "MAP-DISPATCH.md"):
+        assert pointer in boot, f"the boot lacks the pointer {pointer!r}"
+
+
+def test_the_boot_has_no_v5_v6_leftover_no_one_shot_and_names_which_file_the_architect_reads():
+    boot = _boot_text()
+    stale = re.findall(r"\bv[56]\b", boot)
+    assert not stale, f"leftover version tokens in the boot: {stale}"
+    assert "one-shot" not in boot, "`one-shot` leaks a queue command the dispatcher template owns"
+    assert _boot_lines_with("SEAT-BOOT", "this file"), \
+        "no boot line says which file the architect reads against the SEAT-BOOT files"
+
+
+def test_every_ruling_and_adr_the_boot_cites_resolves():
+    import handoff_state as hs
+    cites = hs.boot_citations(_REPO, None)
+    bad = [f"{c.kind} {c.ref}: {c.status} -- {c.detail}" for c in cites
+           if c.kind in ("ruling", "adr") and c.status != hs.CITATION_OK]
+    assert not bad, "\n".join(bad)
