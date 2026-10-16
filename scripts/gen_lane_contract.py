@@ -156,6 +156,7 @@ from gen_handoff import transport_root  # noqa: E402
 #: Imported as the module (not by name) so a test patches `transport.emit` where it is called.
 import transport as _transport  # noqa: E402
 import transport_lint as _transport_lint  # noqa: E402
+import vendor_probe as _vendor_probe  # noqa: E402
 #: `[#716]` — THE STEP-0 SYNC RETIRES ITSELF. `worktree_seed` is the repo's worktree-
 #: provisioning organ (live `graph_queries.py process-list`: "no trigger; ON-DEMAND-BY-OPERATOR,
 #: invoked by /lane-boot"), and `base_ref_verdict` is its answer to "does a lane dispatched now
@@ -1981,9 +1982,26 @@ _IDEA_LINE_RE = re.compile(r"^(title|proposes|class)\s*:\s*(.*?)\s*$", re.IGNORE
 _DEFAULT_REVIEW_ARGV = {
     "openai": lambda prompt: ["codex", "exec", "-s", "read-only", prompt],
     "xai": lambda prompt: ["grok", "-p", "--max-turns", "2", prompt],
-    "copilot-enterprise": lambda prompt: ["copilot", "-p", prompt],
+    "copilot-enterprise": lambda prompt: ["copilot", "-p", prompt, "--allow-all-tools",
+                                          "--no-ask-user", "--no-color"],
     "anthropic": lambda prompt: ["claude", "-p", prompt],
 }
+
+
+def review_argv(vendor: str, prompt: str) -> Optional[list]:
+    """The reviewer's argv. A CLI is ALWAYS asked for the registry's model by id (`-m` / `--model`):
+    Grok without `-m` served `grok-4.20-0309-non-reasoning`, not the registry's `grok-4.7`
+    (DIGEST-BU-2026-10-15). A vendor with no argv builder is None."""
+    build = _DEFAULT_REVIEW_ARGV.get(vendor)
+    if build is None:
+        return None
+    argv = build(prompt)
+    model = _vendor_probe.registry_model(vendor)
+    if model and vendor == "xai":
+        argv = [argv[0], "-m", model, *argv[1:]]
+    elif model and vendor == "copilot-enterprise":
+        argv = [*argv, "--model", model]
+    return argv
 
 
 class DistillRefused(Exception):
@@ -2122,22 +2140,24 @@ def _default_reviewers(payload_for, nonce: str, input_hash: str) -> list:
     chain = []
     for entry in registry["roles"]["review"]["order"]:
         vendor = entry["provider"]
-        build = _DEFAULT_REVIEW_ARGV.get(vendor)
-        if build is None:
-            continue
         prompt = ("Challenge the idea in the text below: is it a duplicate of an existing organ, or "
                   "unneeded? Do not edit the repository. Write ONE JSON object (nonce, input_hash, "
                   f"verdict AGREE|AMEND|DISAGREE, reasons, amendments) to {payload_for(vendor)}, "
                   f"with nonce set to {nonce} and input_hash set to {input_hash} exactly.")
-        chain.append((vendor, build(prompt)))
+        chain.append((vendor, review_argv(vendor, prompt)))  # None = declared, no argv builder
     return chain
 
 
 def challenge(idea_text: str, *, producer_vendor: str, organ_index_text: str, reviewers=None,
               matrix_path: Optional[Path] = None, timeout_s: float = 900.0,
-              work_dir: Optional[Path] = None):
+              work_dir: Optional[Path] = None, vendor_gate=None):
     """The CHALLENGE sub-stage: a deterministic duplicate check first, then a reviewer of another
-    vendor. No reachable reviewer is INPUT_REQUIRED -- never a pass."""
+    vendor. No reachable reviewer is INPUT_REQUIRED -- never a pass.
+
+    A vendor that cannot serve is NEVER skipped silently: `vendor_gate(vendor)` (a ProbeResult; in
+    production `vendor_probe.probe_today`) refuses a vendor whose probe failed today, and a vendor
+    that is absent or fails its phase leaves a `VENDOR-FAIL <vendor> challenge <error>` line in the
+    receipt's evidence, whichever reviewer finally answers."""
     import hashlib
     import shutil
     import tempfile
@@ -2183,24 +2203,47 @@ def challenge(idea_text: str, *, producer_vendor: str, organ_index_text: str, re
 
     if reviewers is None:
         reviewers = _default_reviewers(payload_for, nonce, input_hash)
+    failures: list[str] = []
     for vendor, argv in reviewers:
-        if vendor == producer_vendor or not argv or shutil.which(argv[0]) is None:
+        if vendor == producer_vendor:
             continue
+        if not argv:
+            failures.append(_vendor_probe.vendor_fail_line(vendor, "challenge", "no argv builder"))
+            continue
+        if shutil.which(argv[0]) is None:
+            failures.append(_vendor_probe.vendor_fail_line(vendor, "challenge", f"{argv[0]}: not on PATH"))
+            continue
+        if vendor_gate is not None:
+            try:
+                probed = vendor_gate(vendor)
+            except Exception as exc:  # noqa: BLE001 -- any gate failure is the vendor's failure, recorded
+                failures.append(_vendor_probe.vendor_fail_line(
+                    vendor, "challenge", f"probe-error: {exc.__class__.__name__}: {exc}"))
+                continue
+            if not probed.ok:
+                failures.append(_vendor_probe.vendor_fail_line(
+                    vendor, "challenge", f"probe-failed-today: {probed.error}"))
+                continue
         payload = payload_for(vendor)
         payload.unlink(missing_ok=True)
-        run = run_phase.run_phase(argv, timeout_s, payload_path=payload, nonce=nonce,
+        # cwd = work_dir: the payload path is inside it, so a headless Copilot never needs a path
+        # grant (it denies every path outside its cwd in -p mode).
+        run = run_phase.run_phase(argv, timeout_s, cwd=work_dir, payload_path=payload, nonce=nonce,
                                   input_hash=input_hash, payload_model=challenge_receipt.ChallengePayload)
         if run.status != run_phase.COMPLETE or not run.payload:
+            failures.append(_vendor_probe.vendor_fail_line(
+                vendor, "challenge", run.reason or run.status or "no payload"))
             continue
         verdict = run.payload["verdict"]
         return challenge_receipt.ChallengeReceipt(
             **base, verdict=verdict,
             row_state="proceed" if verdict in ("AGREE", "AMEND") else "INPUT_REQUIRED",
             reviewer_vendor=vendor, served_model=None, nonce=nonce,
-            evidence=list(run.payload.get("reasons", [])) + [f"amend: {a}" for a in run.payload.get("amendments", [])])
+            evidence=failures + list(run.payload.get("reasons", []))
+            + [f"amend: {a}" for a in run.payload.get("amendments", [])])
     return challenge_receipt.ChallengeReceipt(
         **base, verdict="INPUT_REQUIRED", row_state="INPUT_REQUIRED", reviewer_vendor=None,
-        served_model=None, nonce=None, evidence=["no reviewer of another vendor completed"])
+        served_model=None, nonce=None, evidence=failures + ["no reviewer of another vendor completed"])
 
 
 def _distill_row(repo_root: Path, row_id: str, *, plan: Optional[Path], idea: Optional[Path],
@@ -2226,7 +2269,7 @@ def _distill_row(repo_root: Path, row_id: str, *, plan: Optional[Path], idea: Op
     elif idea is not None or matrix is not None:
         idea_text = idea.read_text(encoding="utf-8") if idea else row.text
         chal = challenge(idea_text, producer_vendor=producer_vendor, organ_index_text=organ_text,
-                         matrix_path=matrix)
+                         matrix_path=matrix, vendor_gate=_vendor_probe.probe_today)
 
     harness = repo_root / "ecosystem" / "harness.yaml"
     if not harness.is_file():

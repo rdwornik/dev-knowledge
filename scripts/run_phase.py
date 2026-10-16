@@ -107,6 +107,17 @@ def _write_heartbeat(path, pid: int, started: float, payload_path) -> None:
         pass
 
 
+def stage_input(src, dest_dir) -> Path:
+    """Copy `src` into `dest_dir` and return the copy. A headless Copilot (`-p`) cannot ask for a
+    path outside its cwd and `--allow-all-tools` does not grant one (measured 2026-10-16, Copilot
+    CLI 1.0.98), so an input is staged INSIDE the directory the phase runs in, never pointed at."""
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    staged = dest / Path(src).name
+    shutil.copyfile(src, staged)
+    return staged
+
+
 def run_phase(argv, timeout_s, *, cwd=None, env=None, payload_path=None, nonce=None,
               input_hash=None, payload_model=None, heartbeat_path=None, heartbeat_s=60.0,
               poll_s=0.2, stdout_path=None) -> PhaseRun:
