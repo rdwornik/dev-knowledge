@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "656814a02ba5d5b099d49a1896ced7a37d2f842d3cde5818287b898c24d87fd4",
+  "generated_sha256": "53e7371bb6aaafd22162a8be57ec7fa803b51b0dd0a1edefa8fa88998ec0180d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3130,10 +3130,6 @@
     {
       "task": 1534,
       "file": "1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md"
-    },
-    {
-      "task": 1535,
-      "file": "1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md"
     },
     {
       "task": 1536,
