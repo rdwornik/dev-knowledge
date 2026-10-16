@@ -164,6 +164,9 @@ except ImportError:  # pragma: no cover
 #: The `**Files you own:**` paragraph: from the label to the next blank line (or end of text).
 _FILES_YOU_OWN_RE = re.compile(
     r"\*\*Files you own:\*\*\s*(?P<body>.*?)(?:\n\s*\n|\Z)", re.DOTALL)
+#: `**Owns:**` -- a synonym label some contracts use for the same paragraph; read only when
+#: `**Files you own:**` is absent, so the canonical label always wins.
+_OWNS_RE = re.compile(r"\*\*Owns:\*\*\s*(?P<body>.*?)(?:\n\s*\n|\Z)", re.DOTALL)
 #: A backtick-quoted token that looks like a repo path (contains a `/`) — excludes bare
 #: identifiers like `merge_receipt.open` or `harness.yaml`'s own moment name, which are quoted
 #: in the same paragraph but are not files.
@@ -309,7 +312,7 @@ def parse_lane_contract(path: Path) -> LaneContract:
     title_match = _TITLE_RE.search(text)
     title = title_match.group("title") if title_match else slug
 
-    files_match = _FILES_YOU_OWN_RE.search(text)
+    files_match = _FILES_YOU_OWN_RE.search(text) or _OWNS_RE.search(text)
     files_text = files_match.group("body") if files_match else ""
     owned = tuple(dict.fromkeys(m.group(1) for m in _PATH_TOKEN_RE.finditer(files_text)))
     moments = tuple(dict.fromkeys(m.group("moment") for m in _MOMENT_OWNERSHIP_RE.finditer(files_text)))

@@ -38,6 +38,9 @@ routed through `run`: the wrapper bounds only what it starts, and it adds an int
 hook, which makes the measured failure -- hook interpreters created suspended, never resumed --
 likelier rather than less. Every `POSTURES` entry is therefore `wrapped=False`, and the surface
 rides inside the SessionStart hook that already runs (`fleet_health.hook_bypass_lines`).
+The WATCHDOG TRIGGER (`maybe_trigger_watchdog`, [#863]) is not wiring: it starts nothing inside a
+hook's own spawn chain, only a detached `hook_watchdog.py sweep` from a Python that is already
+running, at most once per `TRIGGER_INTERVAL_S` machine-wide.
 
 THE BYPASS RATE IS THE SIGNAL (same ruling, item 2). Fail-open-silently is the state that let the
 guards time out unseen for days; fail-closed on a guard that cannot start wedges the box. So a
@@ -144,12 +147,15 @@ POSTURES: tuple[Posture, ...] = (
             "event-fired denominator (X-3, operator ruling 2026-09-17; a recorded-only one reads "
             "13% and is the bias behind the retracted 83%). Which way it goes past its bound is a class "
             "(b) ruling, not a wrapper default -- so it is escalated. Removed from the settings "
-            "file by the 2026-09-17 emergency order."),
+            "file by the 2026-09-17 emergency order; RE-ARMED 2026-10-15 ([#863], "
+            "lane-bu-863-prompts-guard) only under the hook watchdog, which every call of this "
+            "guard now triggers (`maybe_trigger_watchdog`)."),
     Posture("immutable-edits-guard", "block_immutable_edits.py", "escalated", False,
             "ADR-77 transcript-immutability guard, fail-CLOSED in-zone by design. It carried no "
             "timeout, so the measured 600 s harness default applied. Whether it may fail open "
             "sooner is a class (b) ruling. Removed from the settings file by the 2026-09-17 "
-            "emergency order."),
+            "emergency order; RE-ARMED 2026-10-15 ([#863]) with an explicit harness timeout, "
+            "under the hook watchdog."),
     Posture("deny-and-point", "deny_and_point.py", "fail-open", False,
             "[#727] nudge, fail-OPEN by its own design. Held OFF the settings file since "
             "2026-09-15; 182 timeouts in the week to 2026-09-17, 2% of the calls it matched. "
@@ -270,6 +276,128 @@ def append_record(row: dict) -> Path | None:
         LOG.warning("[hook-bypass] could not write the record at %s: %r", path, exc)
         return None
     return path
+
+
+# --- the watchdog trigger --------------------------------------------------------------------
+
+#: env override of the trigger lock path (tests).
+TRIGGER_ENV = "DEV_KNOWLEDGE_HOOK_WATCHDOG_TRIGGER"
+#: the lock lives under the PRIMARY checkout like the bypass record and is git-ignored by the
+#: existing `logs/HOOK-BYPASSES*` rule, so a trigger never dirties the tree.
+TRIGGER_RELPATH = Path("logs") / "HOOK-BYPASSES-WATCHDOG-TRIGGER.lock"
+#: 120 s because the sweep itself waits `hook_watchdog.DEFAULT_THRESHOLD_S` (30 s) and every
+#: PreToolUse call of every session reaches the trigger, so the interval bounds the spawn rate to
+#: one sweep per two minutes machine-wide while a suspended orphan is found within interval +
+#: threshold of the next hook call in ANY session.
+TRIGGER_INTERVAL_S = 120.0
+
+
+def trigger_path() -> Path:
+    override = os.environ.get(TRIGGER_ENV, "").strip()
+    if override:
+        return Path(override)
+    return primary_root(_REPO_ROOT) / TRIGGER_RELPATH
+
+
+def watchdog_sweep_argv() -> list[str]:
+    """The sweep needs psutil, which only the locked environment carries; this module stays
+    stdlib, so the sweep is started through `uv run --locked`."""
+    return ["uv", "run", "--locked", "python",
+            str(_REPO_ROOT / "scripts" / "hooks" / "hook_watchdog.py"), "sweep"]
+
+
+def _spawn_detached(argv: list[str], cwd: Path) -> None:
+    """Start `argv` detached via `lane_end_guard.spawn_worker`, which already does job-object
+    breakaway, its own process group and closed stdio -- so the sweep can never hold the
+    harness's pipe. Reused, not re-implemented."""
+    scripts_dir = str(_REPO_ROOT / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import lane_end_guard
+
+    lane_end_guard.spawn_worker(argv, cwd, dict(os.environ))
+
+
+def _claim_trigger(path: Path) -> bool:
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        return False
+    try:
+        os.write(fd, _utc_now().encode("ascii"))
+    finally:
+        os.close(fd)
+    return True
+
+
+def _reclaim_stale(path: Path, now: float, interval_s: float) -> bool:
+    """Remove the trigger lock only if the file removed is the STALE one.
+
+    Why: two callers can both see a stale lock; a bare unlink by the second would delete the
+    first's fresh claim and let both spawn. Renaming the lock aside first means each caller
+    removes exactly the file it judged, re-checked after the move: a fresh one is put back.
+    Honest limit: a third claimer landing between that move and its restore can still yield
+    two sweeps; `hook_watchdog.py kill_tree` treats an already-dead pid as done, so a twin costs
+    at most a duplicate kill record."""
+    aside = path.with_name(f"{path.name}.{os.getpid()}.{time.monotonic_ns()}.stale")
+    try:
+        os.rename(path, aside)
+    except FileNotFoundError:
+        return True
+    if now - aside.stat().st_mtime < interval_s:
+        try:
+            os.rename(aside, path)
+        except OSError:
+            aside.unlink(missing_ok=True)
+        return False
+    aside.unlink(missing_ok=True)
+    return True
+
+
+def maybe_trigger_watchdog(*, now: float | None = None, interval_s: float = TRIGGER_INTERVAL_S,
+                           spawn=None) -> bool:
+    """Start a detached `hook_watchdog.py sweep` at most once per `interval_s`, machine-wide.
+
+    Why: [#863] (2) -- the watchdog was manual; a suspended orphan holds a session's pipe until
+    something outside its tree kills it, and the one thing every session already runs on every
+    tool call is this repo's PreToolUse guards.
+
+    Not a wrapper: it adds no interpreter to a hook's own spawn chain (operator ruling
+    2026-09-17 item 1 holds); the spawn happens from an already-running Python, whose
+    CreateProcess is not the MSYS2 suspend-then-resume path.
+
+    Honest limit: a session that is itself wedged makes no further calls, so it is rescued by the
+    next hook call of ANY other session or by the next SessionStart; on a box with a single
+    wedged session nothing fires until a new session starts.
+
+    Under pytest (`PYTEST_CURRENT_TEST` set, which pytest exports only while a test runs and its
+    subprocesses inherit) only an injected `spawn` runs. Honest limit: a Claude session started
+    from inside a running test would not sweep either; nothing outside pytest sets the variable.
+
+    Never raises, never prints; returns whether this call spawned the sweep."""
+    try:
+        if spawn is None and os.environ.get("PYTEST_CURRENT_TEST"):
+            # A test that runs the real guard or SessionStart leg -- in process, or as a
+            # subprocess that inherits this variable -- must not start a real sweep that kills
+            # processes on the box and outlives the run; only an injected spawner runs there.
+            return False
+        now = time.time() if now is None else now
+        spawn = _spawn_detached if spawn is None else spawn
+        path = trigger_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not _claim_trigger(path):
+            if now - path.stat().st_mtime < interval_s:
+                return False
+            if not _reclaim_stale(path, now, interval_s) or not _claim_trigger(path):
+                return False
+        try:
+            os.utime(path, (now, now))
+        except FileNotFoundError:
+            pass  # a peer's `_reclaim_stale` has this claim aside; it restores it -- still ours
+        spawn(watchdog_sweep_argv(), _REPO_ROOT)
+        return True
+    except Exception:
+        return False
 
 
 # --- run ------------------------------------------------------------------------------------

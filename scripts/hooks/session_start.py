@@ -53,11 +53,17 @@ _HOOKS = _SCRIPTS / "hooks"
 #: the nine entries, 9,222 of them from `fleet_health.py` alone (most of it the `[hook-rate]` /
 #: `[hook-BROKEN]` / `[hook-ADVISORY]` lines, several over 400 bytes each). Set under Claude
 #: Code's own 10,000-character hook-output ceiling, with the line cap below doing most of the work.
-OUTPUT_CAP_BYTES = 8192
+#: Lowered 8192 -> 2560 by [#1617] (BATCH-TOKEN-CUTS-2026-10-16): the boot text is paid on every
+#: turn, so the digest keeps the refusals and a summary, and the whole text goes to
+#: `FULL_TEXT_FILE` (read it on demand).
+OUTPUT_CAP_BYTES = 2560
 
 #: The byte cap on one line. Long enough for every tag, id and verdict a line leads with; the
 #: tail it trims is the prose remedy, which `--full` prints whole.
-LINE_CAP_BYTES = 240
+LINE_CAP_BYTES = 160
+
+#: Where the uncapped composed text is written each start (gitignored, overwritten).
+FULL_TEXT_FILE = ROOT / "logs" / "SESSION-START-FULL.txt"
 
 #: How long the entry waits for its readers, all together, before naming the stragglers. Under
 #: the settings entry's own timeout (60 s) so the entry always gets to print what it has.
@@ -323,13 +329,14 @@ def compose(lines: Sequence[str], cap: int = OUTPUT_CAP_BYTES,
         kept.pop()
         dropped += 1
     notice = (f"[session-start] cut {dropped} line(s) at the {cap}-byte cap -- full text: "
-              f"uv run --locked python scripts/hooks/session_start.py {_FULL_FLAG}")
+              f"logs/{FULL_TEXT_FILE.name}")
     return kept + [_shorten(notice, min(LINE_CAP_BYTES, cap - size(kept) - 1))]
 
 
 def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
         deadline_s: float = DEADLINE_S, bounded: bool = True,
-        silence_stragglers: bool = False) -> tuple[str, str]:
+        silence_stragglers: bool = False,
+        full_sink: Optional[list] = None) -> tuple[str, str]:
     """Run `readers` in this interpreter, one thread each; return (stdout, stderr) composed.
 
     With `silence_stragglers` (the hook's own call), `sys.stdout` / `sys.stderr` are left
@@ -382,6 +389,8 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
     err_parts.append(stray_err.getvalue())
 
     err_text = "".join(err_parts)
+    if full_sink is not None:
+        full_sink.extend(out_lines)
     if bounded:
         out_lines = compose(out_lines)
         err_text = "\n".join(compose(err_text.splitlines())) + ("\n" if err_text else "")
@@ -389,11 +398,27 @@ def run(readers: Sequence[Reader] = READERS, *, payload: str = "",
     return out_text, err_text
 
 
+def _save_full(lines: Sequence[str]) -> Optional[str]:
+    """Write the uncapped text; None on success, else a short reason (never raises)."""
+    try:
+        FULL_TEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        FULL_TEXT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    except OSError as exc:  # a read-only tree never fails boot
+        return f"{type(exc).__name__}"
+    return None
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     payload = read_payload(sys.stdin)
     real_out, real_err = sys.stdout, sys.stderr
-    out, err = run(payload=payload, bounded=_FULL_FLAG not in args, silence_stragglers=True)
+    full: list[str] = []
+    out, err = run(READERS, payload=payload, bounded=_FULL_FLAG not in args,
+                   silence_stragglers=True, full_sink=full)
+    failure = _save_full(full)
+    if failure:
+        out = out.replace(f"full text: logs/{FULL_TEXT_FILE.name}", "full text not saved")
+        out += f"[session-start] full text not saved ({failure})\n"
     for stream, text in ((real_out, out), (real_err, err)):
         try:
             stream.reconfigure(errors="replace")  # a reader's non-ASCII never costs the digest

@@ -136,6 +136,7 @@ class Candidate:
     model: Optional[str]
     position: int
     note: Optional[str] = None
+    max_turns_floor: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,7 @@ class Verdict:
     position: int
     refusal: Optional[str]
     reason: str
+    max_turns_floor: Optional[int] = None
 
 
 def manifest_path(path: Optional[Path] = None) -> Path:
@@ -241,7 +243,8 @@ def explain(
     for position, entry in enumerate(declared_order(role, registry_path)):
         provider = str(entry["provider"])
         model = entry.get("model")
-        common = dict(provider=provider, model=model, position=position)
+        common = dict(provider=provider, model=model, position=position,
+                      max_turns_floor=entry.get("max_turns_floor"))
 
         if provider not in allowed:
             verdicts.append(Verdict(
@@ -317,7 +320,8 @@ def route(
     verdicts = explain(role, repo, produced_by=produced_by,
                        registry_path=registry_path, manifest=manifest)
     eligible = [
-        Candidate(provider=v.provider, model=v.model, position=v.position)
+        Candidate(provider=v.provider, model=v.model, position=v.position,
+                  max_turns_floor=v.max_turns_floor)
         for v in verdicts if v.refusal is None
     ]
     if eligible or not strict:
@@ -687,10 +691,16 @@ if click is not None:
     @click.option("--repo", default=".dev-knowledge", show_default=True)
     @click.option("--produced-by", default=None)
     def _route(role: str, repo: str, produced_by: Optional[str]) -> None:
-        """Who answers ROLE in --repo, and every candidate refused, with its reason."""
+        """Who answers ROLE in --repo (provider, model, turns floor), and every candidate refused, with its reason."""
         for verdict in explain(role, repo, produced_by=produced_by):
             mark = "OK " if verdict.refusal is None else f"{verdict.refusal}:"
-            click.echo(f"  [{verdict.position}] {verdict.provider:<22} {mark} {verdict.reason}")
+            model = verdict.model or "-"
+            floor = (f"--max-turns >= {verdict.max_turns_floor} "
+                     if verdict.max_turns_floor else "")
+            click.echo(
+                f"  [{verdict.position}] {verdict.provider:<22} {model:<22} "
+                f"{floor}{mark} {verdict.reason}"
+            )
 
     @cli.command(name="rerank")
     @click.argument("role")

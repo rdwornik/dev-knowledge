@@ -195,8 +195,10 @@ def test_the_report_names_every_provider_admission_state(router):
     # `copilot-enterprise` is the 2026-09-23 exception (operator ruling O-3): ADMITTED on
     # `implement` specifically, still NOT ADMITTED on every other role it appears in. Checked
     # separately below rather than folded into the "admitted nowhere" loop, which now excludes it.
-    assert by_provider["copilot-enterprise"].admitted_in == ["implement"]
-    for provider in ("xai", "antigravity", "openai"):
+    # R104 (operator, 2026-10-14; [#1536]) adds Copilot's `qa` seat and Grok's `review` seat.
+    assert by_provider["copilot-enterprise"].admitted_in == ["implement", "qa"]
+    assert by_provider["xai"].admitted_in == ["review"]
+    for provider in ("antigravity", "openai"):
         assert by_provider[provider].admitted_in == [], f"{provider} is NOT ADMITTED anywhere"
 
 
@@ -218,8 +220,11 @@ def test_the_report_carries_the_licence_alongside_the_admission(router):
     everywhere — is what still demonstrates the two-fields-are-independent point directly."""
     by_provider = {r.provider: r for r in router.admission_report()}
     assert by_provider["copilot-enterprise"].licence == "permitted"
-    assert by_provider["xai"].licence == "permitted"
-    assert by_provider["xai"].admitted_in == [], "xai: licensed but still unadmitted anywhere"
+    # xai was this example until R104 (2026-10-14, [#1536]) admitted it on review; antigravity
+    # is now the licensed-but-unadmitted-everywhere provider that shows the independence.
+    assert by_provider["antigravity"].licence == "permitted"
+    assert by_provider["antigravity"].admitted_in == [], (
+        "antigravity: licensed but still unadmitted anywhere")
 
 
 # --- the CLI (done-contract item 4: "Click for a CLI where one is warranted") -----------------

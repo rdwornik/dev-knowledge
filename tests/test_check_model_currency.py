@@ -96,7 +96,10 @@ def test_only_the_role_pins_whose_seams_sit_in_this_lanes_files_move() -> None:
     is a ROWS-OWED line. No seam outside the registry names an `xai` model, so both `xai` role
     entries move to the id served on 2026-10-03 and their stale-pin exceptions go."""
     roles = preg.roles()
-    assert roles["implement"]["order"][0]["model"] == "claude-sonnet-5"
+    # R104 (2026-10-14, [#1536]) moved the implement pin to `claude-sonnet-5-5` behind copilot;
+    # the `sonnet` alias seams in dispatch.py / plan_lint.py stay [#1452]'s.
+    anthropic = [e for e in roles["implement"]["order"] if e["provider"] == "anthropic"]
+    assert [e["model"] for e in anthropic] == ["claude-sonnet-5-5"]
     xai = [e for spec in roles.values() for e in spec["order"] if e["provider"] == "xai"]
     assert len(xai) == 2
     assert all(e["model"] == "grok-4.7" for e in xai), [e["model"] for e in xai]

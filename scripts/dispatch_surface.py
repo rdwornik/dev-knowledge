@@ -271,6 +271,17 @@ def _vocabulary():
     return _glc
 
 
+def _registered_anthropic_model_ids() -> tuple[str, ...]:
+    """Full model ids the provider registry declares under provider `anthropic` -- the ONE source
+    of model ids, so no id is spelled in this file. Imported lazily, like `_vocabulary`."""
+    try:
+        from scripts import provider_registry as _pr  # noqa: PLC0415
+    except ImportError:  # pragma: no cover -- the scripts/-on-sys.path entrypoint
+        import provider_registry as _pr               # noqa: PLC0415
+    return tuple(mid for mid, fields in _pr.models().items()
+                 if (fields or {}).get("provider") == "anthropic")
+
+
 def _grammar(name: str):
     """One private grammar off `gen_lane_contract`, or a loud refusal naming it."""
     found = getattr(_vocabulary(), name, None)
@@ -319,10 +330,17 @@ def resolve_launch(*, model: str, mode: str, effort: str, shape: str, slug: str)
     model, mode, effort, shape = (str(v or "").strip() for v in (model, mode, effort, shape))
     refusals: list[str] = []
 
-    for value, enum, label in ((model, glc.MODEL_ENUM, "model"),
+    registered = _registered_anthropic_model_ids()
+    for value, enum, label in ((model, (*glc.MODEL_ENUM, *registered), "model"),
                                (effort, glc.EFFORT_ENUM, "effort"),
                                (mode, glc.MODE_ENUM, "mode")):
         if value not in enum:
+            if label == "model":
+                refusals.append(f"model {value!r} is outside the enum "
+                                f"{{{' | '.join(glc.MODEL_ENUM)}}} and the registered anthropic "
+                                f"model ids {{{' | '.join(registered)}}} -- a miss is refused, "
+                                f"never rounded to a neighbour")
+                continue
             refusals.append(f"{label} {value!r} is outside the enum {{{' | '.join(enum)}}} -- "
                             f"a miss is refused, never rounded to a neighbour")
     if shape not in glc.SHAPE_ENUM:

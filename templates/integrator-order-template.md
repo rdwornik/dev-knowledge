@@ -199,7 +199,7 @@ successor` would otherwise quote) and record the launched job id in a `STATE` li
 operator answers. Witnessed working 2026-10-15 16:14 (LEDGER v212).
 
 **Waits are foreground.** Run every long wait and every full test run in the foreground of an active
-turn, never as a background shell while the session is idle (the memory-pressure reaper takes idle
+turn, not as a background shell while the session is idle (the memory-pressure reaper takes idle
 sessions' shells), and put every heavy step behind
 `uv run --locked python scripts/memory_admission_gate.py wait`. A step the reaper killed is
 re-queued once and the verdict stays INCOMPLETE until it ran.

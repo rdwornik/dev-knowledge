@@ -53,7 +53,7 @@ import subprocess
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 import yaml
 
@@ -336,21 +336,27 @@ def _npm_shim(name: str) -> str:
 
 def _cli_invoker(
     cli: str,
-    argv_builder: Callable[[str, Path], list[str]],
+    argv_builder: Callable[[str, Path, Path], list[str]],
     timeout_s: int,
     *,
     runner: Callable[..., "subprocess.CompletedProcess[str]"] = subprocess.run,
 ) -> Invoker:
     def invoke(route: RouteSpec, source_path: Path, workdir: Path) -> InvokeAttempt:
-        output_path = workdir / f"{route.provider}.output.txt"
+        output_path = (workdir / f"{route.provider}.output.txt").resolve()
         output_path.unlink(missing_ok=True)
+        source_abs = source_path.resolve()
         prompt = (
-            f"Read exactly this file and nothing else: {source_path}. "
+            f"Read exactly this file and nothing else: {source_abs}. "
             "Quote, verbatim and in double quotes, the sentence(s) that answer what it says. "
             f"Write your answer to exactly this path and no other: {output_path}. "
             "Do not modify, move, or write to any other file."
         )
-        argv = [_npm_shim(cli), *argv_builder(prompt, output_path)]
+        built = argv_builder(prompt, output_path, source_abs)
+        if cli == "agy":
+            refusal = agy_argv_refusal(built)
+            if refusal:
+                return InvokeAttempt(None, log_text=refusal, status="refused")
+        argv = [_npm_shim(cli), *built]
         try:
             # `stdin=DEVNULL`: a CLI that waits on stdin for EOF or an interactive prompt
             # must not stall this route for the full timeout (Codex terra HIGH,
@@ -372,19 +378,69 @@ def _cli_invoker(
     return invoke
 
 
-def _agy_argv(prompt: str, _output_path: Path) -> list[str]:
+def _agy_argv(prompt: str, output_path: Path, source_path: Optional[Path] = None) -> list[str]:
     """Mirrors `provider_bench._agy_args`: print mode soft-denies every tool without
     `--dangerously-skip-permissions`, and the prompt must be attached to `--print=` or the
-    flag swallows the next argv entry."""
-    return [
-        "--output-format", "json", "--print-timeout=10m",
-        "--dangerously-skip-permissions", f"--print={prompt}",
-    ]
+    flag swallows the next argv entry.
+
+    agy 1.3.5 auto-denies an out-of-workspace read in print mode without `--add-dir`
+    (measured 2026-10-15, `to-browser/DIGEST-BUILD1-READY-2026-10-15.md` CHALLENGE R113/L2
+    row; R113 (a)), so the workspace is declared, never assumed: the absolute parent of the
+    source and of the output path are each passed as `--add-dir` (deduplicated)."""
+    dirs: list[str] = []
+    for path in (source_path, output_path):
+        if path is None:
+            continue
+        parent = str(Path(path).resolve().parent)
+        if parent not in dirs:
+            dirs.append(parent)
+    argv = ["--output-format", "json", "--print-timeout=10m"]
+    for d in dirs:
+        argv += ["--add-dir", d]
+    argv += ["--dangerously-skip-permissions", f"--print={prompt}"]
+    return argv
 
 
-def _copilot_argv(prompt: str, _output_path: Path) -> list[str]:
+_PRINT_FLAGS = ("-p", "--print", "--prompt")
+
+
+def agy_argv_refusal(argv: Sequence[str]) -> Optional[str]:
+    """None when `argv` carries `--add-dir <dir>` AND the print prompt names an absolute
+    path; otherwise a one-line refusal. The documented agy read entry point is
+    `scripts/read_gate.py` (absolute path + `--add-dir`)."""
+    items = list(argv)
+    def _abs_operand(v: str) -> bool:
+        return bool(re.match(r"(?:[A-Za-z]:[\\/]|/)", v))
+
+    has_dir = False
+    for i, a in enumerate(items):
+        if a == "--add-dir":
+            nxt = items[i + 1] if i + 1 < len(items) else ""
+            if nxt and not nxt.startswith("-") and _abs_operand(nxt):
+                has_dir = True
+        elif a.startswith("--add-dir="):
+            if _abs_operand(a[len("--add-dir="):]):
+                has_dir = True
+    prompts: list[str] = []
+    for i, a in enumerate(items):
+        if a in _PRINT_FLAGS and i + 1 < len(items):
+            prompts.append(items[i + 1])
+        else:
+            for flag in _PRINT_FLAGS:
+                if a.startswith(flag + "="):
+                    prompts.append(a[len(flag) + 1:])
+    abs_path = re.compile(r"(?:(?<![\w.])[A-Za-z]:[\\/]|(?<![\w.:~])/[^\s/])")
+    if has_dir and any(abs_path.search(p) for p in prompts):
+        return None
+    return (
+        "refused: agy print mode needs --add-dir and an absolute path in the prompt; the "
+        "documented agy read entry point is scripts/read_gate.py (absolute path + --add-dir)"
+    )
+
+
+def _copilot_argv(prompt: str, _output_path: Path, _source_path: Optional[Path] = None) -> list[str]:
     """Mirrors `provider_bench._copilot_args` (minus `--usage-output-file`, which this lane
-    does not consume)."""
+    does not consume). The source path is accepted and ignored."""
     return ["-p", prompt, "--allow-all-tools", "--no-ask-user", "--no-color"]
 
 

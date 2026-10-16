@@ -89,8 +89,10 @@ def test_the_role_vocabulary_is_exactly_the_ax21_1_table():
     refuses with `extra="forbid"`.
     """
     mod = _load()
+    # `red`, `qa`, `judge` added by a recorded ruling, not in passing: R104 (operator,
+    # 2026-10-14), carried by [#1536].
     assert mod.ROLES == frozenset(
-        {"orchestrate", "plan", "implement", "review", "read", "verify"}
+        {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge"}
     )
 
 

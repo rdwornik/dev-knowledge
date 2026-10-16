@@ -124,6 +124,10 @@ def dry_bundle(tmp_path_factory) -> Path:
         f"refreshed {today}\n", encoding="utf-8")
     (to_browser / f"RATIFICATION-{today}.md").write_text(
         "# Ratification -- test fixture\n", encoding="utf-8")
+    # The transport files the boot cites (`handoff_state.boot_citations`, R95 D1): a temp
+    # transport without them reads MISSING and the cut's preflight refuses, as it must on a real one.
+    (to_browser / "INDEX.md").write_text("# INDEX -- test fixture\n", encoding="utf-8")
+    (to_browser / "MAP-DISPATCH.md").write_text("# MAP -- test fixture\n", encoding="utf-8")
 
     mp = pytest.MonkeyPatch()
     mp.setenv("CLAUDE_PROMPTS_DIR", str(transport_root))

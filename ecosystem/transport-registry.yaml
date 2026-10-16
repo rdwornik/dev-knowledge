@@ -903,6 +903,17 @@ kinds:
     notes: >-
       (lane-transport-strays)
 
+  - kind: HANDOFF_VERIFY  # retired kind, kept registered until a bundle cut after the retirement is active
+    prefix: "HANDOFF-VERIFY-"  # retired
+    pattern: '^HANDOFF-VERIFY-[A-Za-z0-9._-]+\.md$'  # retired
+    folder: to-browser
+    class: non-decision
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Retired (the command is gone); registered only so the active bundle's recorded kind set still resolves.
+
   - kind: HANDOFF_BOOT_TRANSPORT
     prefix: "HANDOFF_BOOT-"
     pattern: '^HANDOFF_BOOT-[A-Za-z0-9._-]+\.md$'

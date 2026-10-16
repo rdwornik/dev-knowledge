@@ -552,3 +552,77 @@ def test_verify_read_still_rejects_a_code_span_quotation_absent_from_the_source(
     assert not verdict.accepted
     assert verdict.failed_check is not None
     assert verdict.failed_check.startswith("quotation-not-in-source:")
+
+
+# --- [#1536] (6): agy reads need --add-dir and an absolute path ---------------------------------
+
+
+def test_r1536_agy_argv_carries_add_dir_of_the_absolute_source_parent(tmp_path: Path) -> None:
+    source = tmp_path / "notes.md"
+    source.write_text("x", encoding="utf-8")
+    prompt = f"Read {source.resolve()} and quote it."
+    argv = gate._agy_argv(prompt, tmp_path / "out.txt", source)
+    assert "--add-dir" in argv
+    assert argv[argv.index("--add-dir") + 1] == str(source.resolve().parent)
+    assert str(source.resolve()) in " ".join(argv)
+
+
+def test_r1536_agy_argv_refusal_passes_the_gate_argv_and_refuses_an_ad_hoc_one(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "notes.md"
+    source.write_text("x", encoding="utf-8")
+    good = gate._agy_argv(f"Read {source.resolve()}", tmp_path / "out.txt", source)
+    assert gate.agy_argv_refusal(good) is None
+    refusal = gate.agy_argv_refusal(["agy", "-p", "read notes.md"])
+    assert isinstance(refusal, str) and refusal
+
+
+def test_r1536_registry_read_role_names_the_documented_agy_entry_point() -> None:
+    reg = yaml.safe_load(
+        (Path(__file__).resolve().parent.parent / "ecosystem" / "provider-registry.yaml")
+        .read_text(encoding="utf-8")
+    )
+    agy = next(e for e in reg["roles"]["read"]["order"] if e["provider"] == "antigravity")
+    assert "scripts/read_gate.py" in agy["note"]
+    assert "--add-dir" in agy["note"]
+
+
+# --- [#1536] judge round 1 (J1): --add-dir must carry an absolute operand --------------------------
+
+_J1_PROMPT = "--print=Read C:\\x\\y.md"
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--add-dir", _J1_PROMPT],
+        ["--add-dir=", _J1_PROMPT],
+        ["--add-dir", "relative/dir", _J1_PROMPT],
+        [_J1_PROMPT, "--add-dir"],
+    ],
+    ids=["valueless-then-flag", "empty-equals", "relative-operand", "trailing-no-operand"],
+)
+def test_r1536_j1_refuses_an_add_dir_without_an_absolute_operand(argv: list[str]) -> None:
+    refusal = gate.agy_argv_refusal(argv)
+    assert isinstance(refusal, str) and refusal
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--add-dir", "C:\\x", _J1_PROMPT],
+        ["--add-dir=C:\\x", "-p", "Read C:\\x\\y.md"],
+    ],
+    ids=["separate-operand", "equals-operand"],
+)
+def test_r1536_j1_accepts_an_add_dir_with_an_absolute_operand(argv: list[str]) -> None:
+    assert gate.agy_argv_refusal(argv) is None
+
+
+def test_r1536_j1_the_gate_built_argv_is_still_accepted(tmp_path: Path) -> None:
+    source = tmp_path / "notes.md"
+    source.write_text("x", encoding="utf-8")
+    out = tmp_path / "sub" / "out.txt"
+    argv = gate._agy_argv(f"Read {source.resolve()}", out, source)
+    assert gate.agy_argv_refusal(argv) is None

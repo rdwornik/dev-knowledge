@@ -85,7 +85,11 @@ permissions:
   contents: read          # least privilege. This workflow reports; it writes no repo state.
 
 concurrency:
-  group: conductor-${{ github.ref }}
+  # [#1540]: the event name is in the group so a nightly `schedule` run on main never
+  # cancels the in-progress `push` run of the same sha (push run 37304780263 lost its Windows
+  # leg to schedule run 37305923170 on 2026-10-05); two pushes of one ref still share a group,
+  # so a superseded push is still cancelled.
+  group: conductor-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true    # unlike the wall, a superseded GATE result is worthless
 
 jobs:

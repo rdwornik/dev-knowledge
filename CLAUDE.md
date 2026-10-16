@@ -9,11 +9,9 @@ owner: Rob
 <!-- scope: meta -->
 <!-- version: 2.77 — 2026-09-08 -->
 
-> **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
+> **Session boot contract** — auto-read at session start (ADR-53/ADR-115): a rule lives here only if a session needs it *before it can act*; detail lives at the home each line cites.
 >
-> **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
->
-> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` was **deleted 2026-09-14** (`[#628]`) — its doctrine lives in PLAYBOOK; do not look for it.
+> **Budget — bytes bind. ≤21,504 B** (`tests/test_claude_md_byte_cap.py`, `tests/test_startup_budget.py`; ADR-53's ≤200 lines kept). `protocols/PLAYBOOK.md` is the on-demand reference, never a boot read. Relocated detail: `.claude/BOOT-REFERENCE.md`.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -37,7 +35,7 @@ In order, read:
 - **Purpose:** the universal LLM-driven development guide and methodology framework governing every project under `Dev/` — Layer 2 of the ADR-28 three-layer ecosystem model
 - **Critical paths:** `protocols/`, `docs/decisions/`, `templates/`, `README.md`, `ARCHITECTURE.md`
 - **Related:** `~/.claude/` (L0 runtime config) · `.claude/` (project config) · `Dev/` child repos, each owning its own `CLAUDE.md`
-- **Portable layer:** root `AGENTS.md` carries the build/test/landing facts every provider reads (ADR-115, superseding ADR-53 Decision 2); this file keeps the Claude-runtime remainder and imports it below. No fact is duplicated across the two — the importer preserves ADR-53's substance
+- **Portable layer:** `AGENTS.md` (imported below) carries the build/test/landing facts every provider reads (ADR-115); this file keeps the Claude-runtime remainder.
 
 @AGENTS.md
 <!-- methodology:end id=repo-identity -->
@@ -49,33 +47,28 @@ In order, read:
 
 `ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51 as amended 2026-05-23). NOT a code project: markdown governance files plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4).
 
-- **Where to jump:** **Ch2** organ map — which organ fires when, and how it fails · **Ch3** automation axes — cloud/nightly Routine, spec-orchestration, model routing · **Ch4** distribution — carriers, child floor, browser bundle · **Ch6** verification mesh — the nightly outcome loop.
-- **The daily working mode is NOT in ARCHITECTURE.** Parallel worktree lanes, lane dispatch and the ADR-110 batch protocol are `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**.
+- Jump: ARCHITECTURE Ch2 organs · Ch3 automation · Ch4 distribution · Ch6 verification mesh. Daily working mode (lanes, batches): `protocols/PLAYBOOK.md` Ch8 "Session boundaries". Full pointer text: `.claude/BOOT-REFERENCE.md` §3.
 <!-- methodology:end id=repo-architecture -->
 
 ## 4. Conventions
 <!-- scope: meta -->
 
-- **Naming:** UPPERCASE for top-level living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` for dated artifacts, `docs/audits/` names also carrying a closed-enum class (`validate_hermetization.AUDIT_CLASS_ENUM`); `logs/` artifacts UPPERCASE-KEBAB, extension honest to the format ([#395]); kebab-case otherwise
+- **Naming:** UPPERCASE top-level living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` dated artifacts (audit classes, `logs/` naming: `.claude/BOOT-REFERENCE.md` §Conventions); kebab-case otherwise
 > **[HUB - methodology]** region `conventions-commit-branch` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-commit-branch owner=hub -->
 - **Commits & branches:** Branch prefixes are a closed enum — author-chosen `feat/ fix/ docs/ chore/`, plus four machine-produced lane prefixes `worktree-<name>`, `epic/<slug>`, `claude/<slug>`, `automation/<slug>` (each admitted only by a recorded ruling, never invented in passing — full provenance: PLAYBOOK Ch3 "Branch prefixes — the closed enum"). Commit **types** follow Conventional Commits plus `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 <!-- methodology:end id=conventions-commit-branch -->
+- **Also (relocated: `.claude/BOOT-REFERENCE.md` §Conventions):** scope tags · file lifecycle (append-only `LESSONS.md`/`logs/TOKEN-LOG.md`, newest-first `JOURNAL.md`, `BACKLOG.md` generated — edit `tasks/`) · freshness cadence · TDD · spec-driven development.
 - **Testing:** `uv run --locked pytest -x --tb=short` — a bare `pytest` resolves nothing on a clean checkout (ADR-106 §4). In a lane run the **targeted** tests for that lane's diff; the **full suite runs once, at integration** ([#528])
 - **Linting:** `uv run --locked ruff check --fix`; `ruff check` is also a pre-commit gate (§9) and blocks
-- **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal, not enforced (ADR-27/ADR-48)
-- **File lifecycle:** append-only `LESSONS.md` + `logs/TOKEN-LOG.md`; newest-first-prepend `JOURNAL.md`; immutable ADRs / transcripts / handoffs / audits; living `README.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md` — rules and exceptions at §5. **`BACKLOG.md` is generated:** edit `tasks/`, then `gen_task_tree.py --emit-source`
-- **Freshness cadence:** the stamped set is **computed, not restated here** — `canonical_docs.py::FRESHNESS_FILES` + `audit.py::_HUB_ONLY_FRESHNESS_FILES`. A `last_reviewed` stamp means *re-read end-to-end and confirmed accurate, or drift filed*, never merely "touched"
-- **TDD — a build-arc standard, not a blanket mandate.** ADR-108 §B binds every build arc: RED-first witnesses, failing tests before build code, frozen after freeze; the architect freezes the pass/fail criterion *before* it, and CC may strengthen but **never weaken** it (ADR-81 amend. 2026-06-24). A blanket mandate is **not** live — Council rejected "Mandatory TDD". Say partial when it is partial
-- **Spec-driven development (ADR-108 §B)** — spec before build, acceptance contract ex-ante. Live: the `check-against-spec` skill, `coherence-nudge` over `_SPEC_REGISTRY`, the `reconciled_versions` check, this file's `reconciled_with:` stamp
 > **[HUB - methodology]** region `conventions-library-first` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-library-first owner=hub -->
 - **Library-first:** before any build — stdlib > established dependency > stabilized project > industry pattern; hand-roll only on a MEASURED divergence on this repo, recorded so it is not relitigated. Every plan names its library-first check or gives a one-line reason for its absence.
 <!-- methodology:end id=conventions-library-first -->
 - **Dependencies (ADR-106):** declared by `pyproject.toml` + `uv.lock` + `.python-version`, rebuilt by `uv sync --locked`, `uv` pinned **exactly** — a uv bump is its own gated change. Every gate runs `uv run --locked …`, so a bare `python`/`pytest` in a doc is a defect, not a shorthand
-- **Decision funnel (ADR-111):** every audit finding is triaged into **exactly one** of OWNED / DISCHARGED / CANDIDATE / REJECTED — no finding becomes a backlog row without triage, and the only path is CANDIDATE → intake (ADR-98) → ratification. Question routing is ADR-108 §A: the operator rules **functional** questions, the architect **technical** ones
+- **Decision funnel (ADR-111):** every audit finding is triaged into exactly one of OWNED / DISCHARGED / CANDIDATE / REJECTED; the only path to a backlog row is CANDIDATE → intake (ADR-98) → ratification. Operator rules functional questions, architect technical ones (ADR-108 §A).
 
-**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard is OFF since 2026-09-17 (expiry 2026-10-08, [#863]; §9).
+**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. Do not recreate the in-hub Council transcript archive (deleted 2026-07-22).
 
 > **[HUB - methodology]** region `conventions-output-formatting` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-output-formatting owner=hub -->
@@ -145,10 +138,6 @@ Repo-level skills live in `.claude/skills/<name>/SKILL.md` — list that directo
 <!-- scope: runtime -->
 > **[REPO - local]** region `hooks-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=hooks-repo-roster owner=repo -->
-
-> **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
-
-<!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
 Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 12 (counter+expiry; `dispatch-conformance` retired 2026-10-05) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
@@ -186,11 +175,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 - `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
 - `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
 
-**Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
-
-Session hooks (`.claude/settings.json`, `disableAllHooks: false`): **1 SessionStart**, `scripts/hooks/session_start.py` via the shared launcher ([#1001]): 9 readers in one interpreter (`arm_hooks`, `surface_triage`, `changelog_sentinel`, `conductor` session-start, `resource_lifecycle` session-start, `codespace_regime` session-start, `billing_leak_sentinel`, `fleet_health`, `quota_daily`), output byte-capped **+ 2 Stop** (`session_end_backpressure`, advisory; `lane_end_guard`). **PreToolUse** `scripts/hooks/scope_guard.py` IS wired, at `.claude/settings.json:89` (L2, every tool call). Separately, PreToolUse `[#727]` deny-and-point stays UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Off since 2026-09-17, expiry 2026-10-08 pending wave 5b ([#863]): the prompts guard, the ADR-77 transcript guard, `logs_retention.py`. `propose_closures` (plugin Stop) still runs, KNOWN-UNGOVERNABLE.
-
-Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
+Session hooks, arming and rules: `.claude/BOOT-REFERENCE.md` §9 (live sources: `.claude/settings.json`, `ecosystem/organ-index.md`). Arm once per clone: `pre-commit install --hook-type pre-push` (SessionStart's `arm_hooks.py` does it idempotently). Rule: `.claude/rules/git-discipline.md` — commit after every file edit; clean tree at session end.
 
 ### Methodology-deployed roster (generated — do not hand-edit)
 

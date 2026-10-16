@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "656814a02ba5d5b099d49a1896ced7a37d2f842d3cde5818287b898c24d87fd4",
+  "generated_sha256": "25d8cae452cb046bdaa46ebf883211b9563b794eb6eff60297bb8e4a65574bbe",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2732,10 +2732,6 @@
       "file": "1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md"
     },
     {
-      "task": 1332,
-      "file": "1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md"
-    },
-    {
       "task": 1333,
       "file": "1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md"
     },
@@ -2980,6 +2976,10 @@
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
     },
     {
+      "task": 1443,
+      "file": "1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md"
+    },
+    {
       "task": 1444,
       "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
     },
@@ -2992,10 +2992,6 @@
       "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
     },
     {
-      "task": 1450,
-      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
-    },
-    {
       "task": 1451,
       "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
     },
@@ -3006,10 +3002,6 @@
     {
       "task": 1453,
       "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
-    },
-    {
-      "task": 1454,
-      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
     },
     {
       "task": 1455,
@@ -3132,10 +3124,6 @@
       "file": "1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md"
     },
     {
-      "task": 1535,
-      "file": "1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md"
-    },
-    {
       "task": 1536,
       "file": "1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md"
     },
@@ -3144,16 +3132,284 @@
       "file": "1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md"
     },
     {
-      "task": 1538,
-      "file": "1538-rulings-r100-r115-land-in-standing-rulings-by-id.md"
-    },
-    {
-      "task": 1539,
-      "file": "1539-the-architect-reads-an-inbox-and-request-status-is-derived.md"
-    },
-    {
       "task": 1540,
       "file": "1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md"
+    },
+    {
+      "task": 1619,
+      "file": "1619-a-dependency-on-another-sessions-event-is-a-wait-never-a-skip-n1.md"
+    },
+    {
+      "task": 1620,
+      "file": "1620-a-session-ends-only-when-every-part-is-done-or-blocked-with-owner-n2.md"
+    },
+    {
+      "task": 1621,
+      "file": "1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md"
+    },
+    {
+      "task": 1622,
+      "file": "1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md"
+    },
+    {
+      "task": 1623,
+      "file": "1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md"
+    },
+    {
+      "task": 1551,
+      "file": "1551-codespace-heartbeat-and-six-injected-failures.md"
+    },
+    {
+      "task": 1552,
+      "file": "1552-codespace-credential-lifetime-register.md"
+    },
+    {
+      "task": 1553,
+      "file": "1553-codespace-concurrency-two-then-six.md"
+    },
+    {
+      "task": 1554,
+      "file": "1554-a-duplicate-ask-is-refused-at-distill.md"
+    },
+    {
+      "task": 1555,
+      "file": "1555-adr-123-step-1-carve-the-harness-package.md"
+    },
+    {
+      "task": 1560,
+      "file": "1560-a-lane-push-runs-tier-1-impacted-tests-and-one-always-run-gate-job-judges-the-run.md"
+    },
+    {
+      "task": 1561,
+      "file": "1561-impacted-tests-selects-for-workflow-and-ecosystem-data-and-for-a-removed-module.md"
+    },
+    {
+      "task": 1562,
+      "file": "1562-the-night-suite-runs-in-four-pytest-split-shards-per-os-under-the-existing-leg-names.md"
+    },
+    {
+      "task": 1563,
+      "file": "1563-the-always-red-ci-ship-gate-job-is-removed-r112.md"
+    },
+    {
+      "task": 1564,
+      "file": "1564-the-night-opens-on-a-live-known-reds-registry-and-ship-gate-diff-records-what-it-catches.md"
+    },
+    {
+      "task": 1565,
+      "file": "1565-tests-become-graph-nodes-with-static-and-coverage-exercises-edges.md"
+    },
+    {
+      "task": 1566,
+      "file": "1566-the-test-census-classifies-every-test-orphan-duplicate-zero-kill-no-outcome.md"
+    },
+    {
+      "task": 1567,
+      "file": "1567-mutmut-runs-nightly-on-the-changed-functions-with-a-per-lane-score.md"
+    },
+    {
+      "task": 1568,
+      "file": "1568-pre-commit-refuses-a-removal-that-leaves-orphan-tests.md"
+    },
+    {
+      "task": 1569,
+      "file": "1569-moment-merge-runs-without-a-hand-set-harness-contract-takes-its-worktree-from-the-integrat.md"
+    },
+    {
+      "task": 1570,
+      "file": "1570-the-hook-writer-emits-lf-hooks-with-one-shebang-so-a-sessionstart-re-arm-never-undoes-a-re.md"
+    },
+    {
+      "task": 1571,
+      "file": "1571-a-reaper-killed-merge-path-py-land-resumes-from-its-recorded-ci-run-without-a-second-integ.md"
+    },
+    {
+      "task": 1572,
+      "file": "1572-dispatch-py-queue-skips-an-already-launched-lane-and-fires-the-eligible-ones-instead-of-ha.md"
+    },
+    {
+      "task": 1573,
+      "file": "1573-a-seat-hand-over-launches-its-successor-and-records-the-launch-only-a-launch-error-becomes.md"
+    },
+    {
+      "task": 1574,
+      "file": "1574-a-copilot-child-run-is-not-recorded-as-a-wedged-seat-and-its-stop-hook-resolves-a-real-pat.md"
+    },
+    {
+      "task": 1575,
+      "file": "1575-claude-md-section-9-the-hook-watchdog-fate-date-and-canonical-freshness-tell-the-truth-abo.md"
+    },
+    {
+      "task": 1576,
+      "file": "1576-the-transport-janitor-treats-withdrawn-like-superseded-and-never-moves-a-file-that-tracked.md"
+    },
+    {
+      "task": 1577,
+      "file": "1577-seat-authored-transport-files-carry-by-live-in-the-right-folder-and-a-dispatcher-never-wri.md"
+    },
+    {
+      "task": 1578,
+      "file": "1578-every-harness-script-prints-help-and-exits-0-and-none-crashes-on-a-cp1252-console.md"
+    },
+    {
+      "task": 1579,
+      "file": "1579-the-handoff-generator-s-dry-cut-and-preflight-do-not-refuse-on-whole-repo-rows-and-its-man.md"
+    },
+    {
+      "task": 1580,
+      "file": "1580-explicit-model-ids-claude-opus-5-5-claude-sonnet-5-5-resolve-in-every-reader-family-enum-p.md"
+    },
+    {
+      "task": 1581,
+      "file": "1581-ci-jobs-report-what-they-ran-a-not-run-job-is-not-success-and-the-heartbeat-handoff-manife.md"
+    },
+    {
+      "task": 1582,
+      "file": "1582-test-every-committed-record-still-proves-out-proves-all-86-archived-row-bodies.md"
+    },
+    {
+      "task": 1583,
+      "file": "1583-the-fourteen-912-known-reds-entries-have-an-owner-before-they-expire-red-on-2026-10-31.md"
+    },
+    {
+      "task": 1584,
+      "file": "1584-the-863-lane-s-owed-items-are-rows-ci-environment-owner-audit-health-funnel-and-proof-laye.md"
+    },
+    {
+      "task": 1585,
+      "file": "1585-provider-census-probes-only-providers-that-exist-and-each-probe-answers-or-says-why.md"
+    },
+    {
+      "task": 1586,
+      "file": "1586-the-provider-checker-is-re-run-from-a-writable-seat-and-its-disagrees-are-resolved.md"
+    },
+    {
+      "task": 1587,
+      "file": "1587-the-handoff-digest-checker-is-re-run-from-a-seat-with-a-writable-uv-cache-covering-all-fiv.md"
+    },
+    {
+      "task": 1588,
+      "file": "1588-a-hook-declared-broken-is-disarmed-by-bounded-hook-py-not-only-reported-r109.md"
+    },
+    {
+      "task": 1589,
+      "file": "1589-hook-and-gate-roster-claims-match-the-config-ruff-seal-identity-lane-contract-check-decisi.md"
+    },
+    {
+      "task": 1590,
+      "file": "1590-each-of-the-21-dead-organs-and-11-unexplained-files-is-used-wired-or-removed-r112.md"
+    },
+    {
+      "task": 1591,
+      "file": "1591-the-generated-handoff-carries-a-branch-fate-table-the-defect-register-and-the-live-seat-se.md"
+    },
+    {
+      "task": 1592,
+      "file": "1592-session-start-py-starts-no-detached-fleet-health-producer-outside-the-worktree-and-the-pro.md"
+    },
+    {
+      "task": 1593,
+      "file": "1593-handoff-docs-stop-contradicting-each-other-v5-v6-prose-the-r30-conflict-four-seats-three-q.md"
+    },
+    {
+      "task": 1594,
+      "file": "1594-phase-0-residuals-r48-last-ran-print-lane-report-py-stale-adr-121-adr-125-actions-minutes.md"
+    },
+    {
+      "task": 1595,
+      "file": "1595-the-cloud-and-interactive-substrates-have-a-launcher-or-are-removed-r112.md"
+    },
+    {
+      "task": 1596,
+      "file": "1596-the-merge-moment-fires-on-a-real-merge-and-leaves-a-receipt-per-organ-or-is-removed.md"
+    },
+    {
+      "task": 1597,
+      "file": "1597-the-lane-start-moment-has-a-caller-and-fires-on-a-real-lane-start-or-is-removed.md"
+    },
+    {
+      "task": 1598,
+      "file": "1598-the-batch-close-moment-reads-a-receipt-and-fires-at-a-real-batch-close-or-is-removed.md"
+    },
+    {
+      "task": 1599,
+      "file": "1599-the-seat-release-moment-is-run-by-a-command-or-hook-not-by-hand-or-is-removed.md"
+    },
+    {
+      "task": 1600,
+      "file": "1600-phases-p1-p7-and-the-c-constraints-run-in-one-real-round.md"
+    },
+    {
+      "task": 1601,
+      "file": "1601-the-three-guards-that-expired-2026-10-08-are-each-used-or-removed-block-immutable-edits-py.md"
+    },
+    {
+      "task": 1602,
+      "file": "1602-deny-and-point-py-is-wired-and-fires-on-a-real-denied-call-or-is-removed.md"
+    },
+    {
+      "task": 1603,
+      "file": "1603-hook-watchdog-py-kills-a-real-hung-hook-and-logs-it-or-is-removed.md"
+    },
+    {
+      "task": 1604,
+      "file": "1604-the-ci-job-terra-runs-with-a-credential-or-is-removed.md"
+    },
+    {
+      "task": 1605,
+      "file": "1605-each-of-the-70-fates-scripts-is-wired-dated-or-removed-the-11-with-expired-dates-first.md"
+    },
+    {
+      "task": 1606,
+      "file": "1606-the-crud-sandbox-qa-suite-ledger-v32-lane-22-is-built-and-run-once-against-the-process-mat.md"
+    },
+    {
+      "task": 1607,
+      "file": "1607-a-uv-lock-change-create-update-delete-a-dependency-is-gated-by-a-process.md"
+    },
+    {
+      "task": 1608,
+      "file": "1608-a-ci-workflow-change-create-update-delete-is-gated-before-it-lands.md"
+    },
+    {
+      "task": 1609,
+      "file": "1609-a-release-or-tag-create-update-delete-has-a-process.md"
+    },
+    {
+      "task": 1610,
+      "file": "1610-superseded-means-code-removed-adr-125-is-enforced-when-an-adr-is-superseded-or-a-feature-d.md"
+    },
+    {
+      "task": 1611,
+      "file": "1611-create-and-delete-under-protocols-are-gated-like-any-other-doc.md"
+    },
+    {
+      "task": 1612,
+      "file": "1612-a-job-in-state-done-or-blocked-with-a-handback-on-the-transport-is-stopped-automatically.md"
+    },
+    {
+      "task": 1613,
+      "file": "1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md"
+    },
+    {
+      "task": 1614,
+      "file": "1614-the-resource-organ-s-free-memory-figure-is-named-available-and-read-from-the-os-available.md"
+    },
+    {
+      "task": 1615,
+      "file": "1615-a-step-the-memory-reaper-killed-is-re-queued-once-and-the-lane-verdict-stays-incomplete-un.md"
+    },
+    {
+      "task": 1616,
+      "file": "1616-start-up-context-cut-1-claude-md-carries-only-what-a-session-needs-before-it-can-act-hooks.md"
+    },
+    {
+      "task": 1617,
+      "file": "1617-start-up-context-cut-2-the-sessionstart-hook-output-is-capped-at-2-kb.md"
+    },
+    {
+      "task": 1618,
+      "file": "1618-start-up-context-cut-3-the-auto-memory-index-memory-md-is-held-to-8-kb-and-the-repo-rule-g.md"
     },
     {
       "prose": ""

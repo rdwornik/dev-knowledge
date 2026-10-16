@@ -23,6 +23,7 @@ never depend on any real hook's verdict.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -67,11 +68,45 @@ def _hook_commands() -> list[tuple[str, str]]:
 _DASH_C = re.compile(r"(?<!\S)-c(?!\S)")
 
 
+#: The ONE named exception: the AX15-1 prompts guard, re-armed 2026-10-15 by [#863]. Its
+#: permit must be PROVEN by a stdout marker checked outside the interpreter the PATH chooses,
+#: so its program lives in the command by ruling, and it cannot ride this launcher, which drops
+#: every argument after the target (`sys.argv = [target]`) and so could never pass
+#: `--prompts-guard`. The exception is pinned to the command's exact bytes -- the pre-disable
+#: bash program of 645ec4db, unchanged, inside the bash/PowerShell polyglot wrapper (see
+#: `test_the_prompts_guard_command_parses_and_allows_under_powershell`) -- so an edit to that
+#: program, or any OTHER command carrying a program, is still refused.
+_AX15_1_PROMPTS_GUARD_SHA256 = "7b40c5d6aafccd09f0af789663023f2161f46fccdd8544ad050a434c81678814"
+#: The wrapped bash program alone: 645ec4db's command, byte for byte.
+_AX15_1_BASH_PROGRAM_SHA256 = "3548dda45b4db9c1cf2f9923d411ca50e0cd8433f897d5b57a0b7886a5c4f7ec"
+
+
+def _is_ax15_1_prompts_guard(event: str, cmd: str) -> bool:
+    return (event == "PreToolUse"
+            and hashlib.sha256(cmd.encode("utf-8")).hexdigest() == _AX15_1_PROMPTS_GUARD_SHA256)
+
+
 def test_no_hook_command_holds_inline_code():
     """Done-contract 2: a `command` names programs and files; it never carries a program."""
     offenders = [(event, cmd) for event, cmd in _hook_commands()
-                 if _DASH_C.search(cmd) or ";" in cmd]
+                 if (_DASH_C.search(cmd) or ";" in cmd) and not _is_ax15_1_prompts_guard(event, cmd)]
     assert not offenders, offenders
+    exempt = [cmd for event, cmd in _hook_commands() if _is_ax15_1_prompts_guard(event, cmd)]
+    assert len(exempt) <= 1, "the AX15-1 exception covers exactly one prompts-guard entry"
+
+
+def test_the_ax15_1_exception_admits_only_the_pinned_bytes():
+    """Review finding (Codex terra, 2026-10-15): a substring match on `--prompts-guard` let any
+    statement prepended to that command ride the exception. Only the exact command is exempt."""
+    pinned = [cmd for event, cmd in _hook_commands() if _is_ax15_1_prompts_guard(event, cmd)]
+    assert len(pinned) == 1, "the re-armed prompts guard is not the pinned command"
+    assert not _is_ax15_1_prompts_guard("PreToolUse", "echo pwned; " + pinned[0])
+    assert not _is_ax15_1_prompts_guard("PreToolUse", "bash -c 'echo --prompts-guard'")
+    assert not _is_ax15_1_prompts_guard("SessionStart", pinned[0])
+    head, program, *tail = pinned[0].split("\n")
+    assert head == "echo `# <#` >/dev/null" and len(tail) == 3
+    assert tail[0] == "#>" and tail[1].startswith("# ") and tail[2] == "exit 0"
+    assert hashlib.sha256(program.encode("utf-8")).hexdigest() == _AX15_1_BASH_PROGRAM_SHA256
 
 
 @pytest.mark.parametrize("event,target",
@@ -149,12 +184,65 @@ def _env(**extra: str) -> dict:
     return env
 
 
-def _launch(shell: str, cwd: Path, env: dict, target: str = "scripts/probe.py"):
+def _launch(shell: str, cwd: Path, env: dict, target: str = "scripts/probe.py",
+            command: str | None = None, stdin: str = _PAYLOAD):
     argv = _SHELLS[shell]()
     if argv is None:
         pytest.skip(f"{shell} is not runnable on this box -- NOT_RUN, not a pass")
-    return subprocess.run([*argv, launch_command(target)], cwd=cwd, env=env, input=_PAYLOAD,
-                          capture_output=True, text=True, timeout=180)
+    return subprocess.run([*argv, command or launch_command(target)], cwd=cwd, env=env,
+                          input=stdin, capture_output=True, text=True, timeout=180)
+
+
+@pytest.mark.parametrize("shell", ["pwsh", "powershell"])
+def test_the_prompts_guard_command_parses_and_allows_under_powershell(shell):
+    """[#863] (4), measured 2026-10-15 (lane-bu-863 QA): Copilot CLI 1.0.98 runs this file's
+    PreToolUse hooks through PowerShell and fails CLOSED on a hook error, and the bash-only
+    prompts-guard program is a PowerShell ParserError -- every Copilot shell call in this repo
+    was refused. Claude Code runs a hook through PowerShell only when its entry declares
+    `"shell": "powershell"` (claude.exe 2.1.300) -- asserted absent below, since it would turn
+    this ALLOW branch into a disarmed guard -- so PowerShell is reached only by a non-Claude
+    client, whose calls the Claude prompts-dir guard does not govern: it must parse, print
+    nothing on stderr and ALLOW."""
+    hooks = json.loads(_SETTINGS.read_text(encoding="utf-8"))["hooks"]["PreToolUse"]
+    entries = [h for g in hooks for h in g["hooks"] if "--prompts-guard" in h.get("command", "")]
+    assert len(entries) == 1 and entries[0].get("shell", "bash") == "bash", entries
+    commands = [entries[0]["command"]]
+    proc = _launch(shell, _REPO, _env(), command=commands[0])
+    assert proc.returncode == 0, (proc.returncode, proc.stdout, proc.stderr)
+    assert proc.stderr.strip() == "", proc.stderr
+    # Line 1's literal `#` is the one byte PowerShell prints; Copilot CLI 1.0.98 ALLOWS on it
+    # (measured 2026-10-15: `echo PROBE-OK-7c41` ran with this command wired).
+    assert proc.stdout.strip() == "#", proc.stdout
+
+
+#: [#863] (4) round 2: the ADR-77 guard stays on the SYSTEM interpreter (settings.json `//`
+#: ruling: stdlib-only, a stale lockfile must never block every Edit/Write), so it does not take
+#: the uv launcher shape; it uses the launcher's two shell-neutral locators on the guard itself.
+_ADR77 = "scripts/hooks/block_immutable_edits.py"
+_ADR77_SHAPE = ('python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/' + _ADR77 + '"} $(git rev-parse'
+                ' --no-revs --no-flags -- ./$(git rev-parse --path-format=relative --show-toplevel)'
+                + _ADR77 + ') -m os')
+
+
+@pytest.mark.parametrize("shell", sorted(_SHELLS))
+def test_the_adr77_guard_runs_on_the_system_interpreter_and_blocks_in_zone_in_every_shell(shell):
+    """Copilot CLI 1.0.98 runs this file's hooks through PowerShell, fail-closed, with no
+    CLAUDE_PROJECT_DIR: the pre-disable `python "$CLAUDE_PROJECT_DIR/..."` would have refused
+    every Copilot edit. Under every shell the guard must still block an in-zone Edit and allow
+    an out-of-zone one."""
+    commands = [cmd for ev, cmd in _hook_commands() if ev == "PreToolUse" and _ADR77 in cmd]
+    assert commands == [_ADR77_SHAPE], commands
+    zone = json.dumps({"tool_name": "Edit", "tool_input": {
+        "file_path": "docs/decisions/transcripts/2026-03-29-council-browser-handoff.md"}})
+    blocked = _launch(shell, _REPO, _env(), command=commands[0], stdin=zone)
+    # bash relays 2 exactly; `pwsh -Command` reports any failed native exit as 1, which Copilot
+    # CLI fails closed on -- either way the edit is refused, and the JSON verdict is printed
+    expected = {2} if shell == "bash" else {1, 2}
+    assert blocked.returncode in expected, (blocked.returncode, blocked.stdout, blocked.stderr)
+    assert json.loads(blocked.stdout.strip().splitlines()[-1])["decision"] == "block"
+    outside = json.dumps({"tool_name": "Edit", "tool_input": {"file_path": "README.md"}})
+    allowed = _launch(shell, _REPO, _env(), command=commands[0], stdin=outside)
+    assert allowed.returncode == 0, (allowed.returncode, allowed.stdout, allowed.stderr)
 
 
 def _probe_report(proc: subprocess.CompletedProcess) -> dict:

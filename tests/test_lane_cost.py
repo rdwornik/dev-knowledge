@@ -797,3 +797,19 @@ def test_the_line_bound_clears_the_largest_line_this_repo_has_ever_written():
         f"the bound {lc.MAX_TRANSCRIPT_LINE_BYTES} leaves less than 2x headroom over the "
         f"largest line actually measured ({largest_real_line_bytes}) -- it would start "
         f"dropping real turns")
+
+
+# --- [#1536] (3): claude-sonnet-5-5 is priced ---------------------------------------------------
+
+
+def test_r1536_sonnet_5_5_resolves_a_rate():
+    rate = pr.resolve_rate("claude-sonnet-5-5")
+    assert rate.input == 2.0
+    assert rate.output == 10.0
+
+
+def test_r1536_sonnet_5_5_prices_positive_usd():
+    usage = lc.TokenUsage(input_tokens=1_000, output_tokens=1_000, calls=1)
+    cost = lc.price_usage("claude-sonnet-5-5", usage)
+    assert cost.is_priced, cost.unpriced_reason
+    assert cost.usd > 0

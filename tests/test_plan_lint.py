@@ -82,6 +82,21 @@ def test_parse_lane_contract_reads_slug_owned_paths_and_moment(tmp_path):
     assert lane.moments_touched == ("merge",)
 
 
+def test_parse_lane_contract_reads_ownership_from_an_owns_label(tmp_path):
+    """A contract that labels ownership `**Owns:**` (no `**Files you own:**`) still yields its
+    path tokens -- row 1015."""
+    text = (
+        "# LANE lane-owns — a synthetic lane\n\n"
+        "slug `lane-owns` -> branch `worktree-lane-owns` -> contract `LANE-owns.md`\n\n"
+        "**Owns:** `scripts/foo.py`, `tests/test_foo.py`.\n\n"
+        "## Value\n\nsynthetic fixture, not a real lane.\n"
+    )
+    path = tmp_path / "LANE-owns.md"
+    path.write_text(text, encoding="utf-8")
+    lane = plan_lint.parse_lane_contract(path)
+    assert lane.owned_paths == ("scripts/foo.py", "tests/test_foo.py")
+
+
 def test_parse_lane_contract_reads_serial_and_starts_after(tmp_path):
     a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/a.py`.",
                   extra_body="**Serial: you run first; every other lane waits for your merge.**")

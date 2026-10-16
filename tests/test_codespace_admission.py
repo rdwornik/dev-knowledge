@@ -168,11 +168,47 @@ def test_gh_present_and_broken_refuses(tmp_path):
     bindir.mkdir()
     (bindir / "gh").write_text("", encoding="utf-8")
     (bindir / "gh").chmod(0o755)
-    probe = _StubRunProbe({"PATH": str(bindir)}, returncode=1)
+    probe = _StubRunProbe({"PATH": str(bindir), "GH_TOKEN": "offered-but-rejected"}, returncode=1)
     cond = ca.check_gh_not_broken(probe)
     assert not cond.ok
     assert cond.gates
     assert "broken tool" in cond.detail
+
+
+@pytest.mark.parametrize("name", ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"])
+def test_gh_with_an_offered_token_that_it_rejects_still_refuses(tmp_path, name):
+    """The gate is kept where it means something: a token WAS offered and gh will not use it."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "gh").write_text("", encoding="utf-8")
+    (bindir / "gh").chmod(0o755)
+    cond = ca.check_gh_not_broken(_StubRunProbe({"PATH": str(bindir), name: "x"}, returncode=1))
+    assert not cond.ok and cond.gates
+    assert "broken tool" in cond.detail
+
+
+def test_gh_installed_in_a_build_that_offers_it_no_token_is_not_gated(tmp_path):
+    """WITNESSED 2026-10-09 (heartbeat run 37983101579, and the first red after the last green, run
+    37201398677): the heartbeat's container job is credential-free on purpose and installs the pinned
+    gh, so `gh auth status` fails there for want of any token -- `codespace-admission: REFUSED
+    gh_not_broken` -- and the whole run went red on that one line. An absent credential is not a
+    broken tool; the check still gates where a token was offered (the test above)."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "gh").write_text("", encoding="utf-8")
+    (bindir / "gh").chmod(0o755)
+    cond = ca.check_gh_not_broken(_StubRunProbe({"PATH": str(bindir)}, returncode=1))
+    assert cond.ok and not cond.gates, cond.detail
+    assert "no token" in cond.detail and "GH_TOKEN" in cond.detail
+
+
+def test_an_empty_token_variable_is_no_token_offered(tmp_path):
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "gh").write_text("", encoding="utf-8")
+    (bindir / "gh").chmod(0o755)
+    cond = ca.check_gh_not_broken(_StubRunProbe({"PATH": str(bindir), "GH_TOKEN": ""}, returncode=1))
+    assert cond.ok and not cond.gates
 
 
 def test_gh_present_and_authenticated_admits(tmp_path):

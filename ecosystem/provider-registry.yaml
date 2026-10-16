@@ -389,23 +389,13 @@ providers:
     # a request — so no amount of re-auth, quota or patience clears it, and the only
     # documented way past it is an API key the standing auth ruling forbids. `agy` is the
     # channel to Google models and it carries the operator's own subscription.
-    # The `cli:`/`version_command:` pair below STAYS: the SessionStart probe is a local
-    # version read and it still exits 0, and deleting a working probe to express a policy
-    # would make the sentinel blind rather than make the ruling true.
-    # Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
-    # PRESENCE/BASIS/DATE ONLY — this records what the host does, grants no role and
-    # revisits no admission verdict. The live route to this vendor's models is the separate
-    # `antigravity` provider below; whether that route may be USED is not this file's call.
-    #
-    # NO `changelog_tool_key` / `changelog_source_url`, deliberately and with the discharge
-    # path named. Those two keys are the S8 half of `ecosystem/tool-versions.yaml`, whose rows
-    # carry `last_reviewed_version` + `reviewed_date` — an ADR-80 DURABLE record of a review
-    # the OPERATOR performed. Writing a row here would either fabricate that act or seed a row
-    # the sentinel is structurally silent on (`parse_version("") -> None -> is_newer False`).
-    # Discharge: run `/changelog-review` against the gemini CLI once; the tool-versions row and
-    # these two keys then land together, and the S8 check begins asserting on the same commit.
-    cli: gemini
-    version_command: ["gemini", "--version"]
+    # R88b (batch B2-W2, lane b2w2-codespace-finish, `[#1423]`): the gemini CLI is no longer an
+    # expectation of this registry, so `cli:` and `version_command:` below are null and neither
+    # C1 nor the Codespace toolset probes, installs or signs in a `gemini`. The key stays: the
+    # council alias and the `google` models still hang on it. Evidence for the retirement:
+    # docs/audits/2026-08-26-technical-provider-surface-v2.md. `agy` is the channel to these models.
+    cli: null
+    version_command: null
     licence:
       status: not-applicable
       reason: >-
@@ -591,6 +581,10 @@ providers:
 # steady state on the implement role is Copilot -> Grok -> Sonnet, and it is deliberately NOT
 # written below, because writing it would be the "fixed list wearing a router's name" failure
 # AX21-2 exists to name. Until admission, implement order is SONNET FIRST.
+# SUPERSEDED 2026-10-14 by R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: the
+# operator re-ordered implement to Copilot Enterprise -> Sonnet 5.5 -> Grok 4.7, and added the
+# `red`, `qa` and `judge` roles at the end of this collection. The sentence above is kept as the
+# record of the order that stood until then.
 #
 # ALIAS DRIFT, MADE VISIBLE -- RECORDED 2026-09-23 (`lane-provider-registry`, WAVE5A, citing
 # `docs/audits/2026-09-23-changelog-review.md` Part C / `A5`). Claude Code 2.1.280 made
@@ -667,24 +661,15 @@ roles:
       than AX22-1's >= 8-of-10 measurement bar. ORDER stays Sonnet-first: the position swap
       AX21-1 declares is gated on that measurement specifically, not on admission in general,
       and AX21-2 makes the swap a re-rank's job, not a hand edit.
+      SUPERSEDED 2026-10-14 by R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]:
+      the declared order is now Copilot Enterprise -> Sonnet 5.5 -> Grok 4.7, set by operator
+      ruling rather than by the AX22-1 measurement; the Sonnet-first text above is the record
+      of what stood until then.
     routing_table_role: producer
     order:
-      - provider: anthropic
-        model: claude-sonnet-5
-        note: >-
-          FIRST for now. AX22-1's measurement gate ("it holds until Copilot and Grok clear the
-          >= 8-of-10 bar, at which point AX21-2's re-rank -- not a hand edit -- moves them") is
-          UNCHANGED by copilot-enterprise's 2026-09-23 admission below: that admission is an
-          operator ruling on demonstrated fact, not the >= 8-of-10 measurement, so it does not
-          itself clear this bar or move this position.
-        admission:
-          verdict: admitted
-          decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
       - provider: copilot-enterprise
         note: >-
-          ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: FIRST. ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
           transport-only; cited for date/author only, not as the evidence itself). The evidence is
           IN-REPO: `JOURNAL.md` lines 962 and 1113, merge `88dc48f4`, and the ab-828/ab-832
           receipts (`HANDBACK.json`, `copilot-usage.json`), which existed only on the transport
@@ -695,16 +680,28 @@ roles:
           producer verb -- that moves in-repo in wave 5b. This is an OPERATOR admission on
           demonstrated fact, not an AX22-1 >= 8-of-10 measurement: AX22-1's bar is still
           Half B's to clear, and clearing it is what would move this entry ahead of Sonnet per
-          AX21-2's re-rank (not a hand edit -- position is UNCHANGED by this lane).
+          AX21-2's re-rank (not a hand edit -- position was UNCHANGED by that lane). SUPERSEDED
+          2026-10-14: R104 (operator ruling) moved this entry FIRST by hand, which is a ruling,
+          not the AX22-1 measurement; [#1536] carries it.
         admission:
           verdict: admitted
           decided_by: operator
           decided_on: "2026-09-23"
           evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        note: >-
+          SECOND. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536], re-ordered the
+          chain Copilot -> Sonnet 5.5 -> Grok; this entry was FIRST (as `claude-sonnet-5`) until then.
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
         model: grok-4.7
         note: >-
-          NOT ADMITTED for this role. Its only recorded verdict is a REFUSED fan-out (a
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: THIRD. NOT ADMITTED for this role. Its only recorded verdict is a REFUSED fan-out (a
           different role, 2026-08-23, floors G1+G2) and that refusal is not transferred here --
           admission is per role. AX21-3 adds a hard precondition for Half B to clear first: a
           CLI that cannot enforce a token ceiling by flag is not ordered, and grok's flags are
@@ -728,51 +725,51 @@ roles:
     routing_table_role: reviewer
     order:
       - provider: openai
-        model: gpt-6-astra
+        model: gpt-5.6-terra
         note: >-
-          MOVED from `gpt-5.6-terra` 2026-10-05 (`b2-codespace-green`, R82 -- the newest model per
-          role). SERVED evidence: `codex debug models` (codex-cli 0.155.0) lists `gpt-6-astra` at
-          priority 2, the head of the list, and `codex exec -m gpt-6-astra` answered on this account
-          with the run header `model: gpt-6-astra`, `provider: openai`. The standing reviewer (`ecosystem/routing-table.yaml` reviewer row, the AUTHORITY for
-          role -> CLI under Z-G3 A2) and NOT ADMITTED, which is not a contradiction and is worth
-          stating because it reads like one. Half A's contract names Codex terra among the four
-          entries whose admission state is recorded NOT ADMITTED; AX22-1's >= 8-of-10 bar has
-          measured no non-Claude provider, Codex included. The reason it stays ROUTABLE anyway
-          is that the router's admission refusal is scoped to the IMPLEMENT role by this lane's
-          done-contract item 1 -- "REFUSES a non-admitted provider in the implement role" -- so
-          an unadmitted REVIEWER is refused by nothing. Admission and routability are separate
-          questions here, and only the implement role couples them.
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: "Codex (terra; astra
+          opt-in for structural work)". HEAD again: R82 (2026-10-05, `b2-codespace-green`) had moved
+          this position to `gpt-6-astra`, which stays registered and is the opt-in for structural
+          work. The standing reviewer (`ecosystem/routing-table.yaml` reviewer row, the AUTHORITY
+          for role -> CLI under Z-G3 A2) and NOT ADMITTED, which is not a contradiction: the
+          router's admission refusal is scoped to the IMPLEMENT role, so an unadmitted REVIEWER is
+          refused by nothing. Admission and routability are separate questions here.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
       - provider: xai
         model: grok-4.7
-        # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)
-        # or Sonnet" -- while leaving the review role itself ungated, which is what keeps Codex
-        # terra routable here despite being NOT ADMITTED. A role-level gate could not express
-        # the pair; this flag is where the clause actually puts the condition.
+        # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)".
         requires_admission: true
+        # R104 / common rules section 7.6b: `grok -p` returns nothing at `--max-turns 1`.
+        max_turns_floor: 2
         note: >-
-          AX22-2's named fallback when Codex produced, and it is conditional on an admission
-          that has not happened. So the review chain skips this position today and lands on
-          Sonnet -- which is AX22-2's own terminal fallback, reached by the route the clause
-          describes rather than by an edit. MOVED from `grok-4.6` 2026-10-04
-          (`foundation-10-model-currency`, R61) on the same served evidence as the `implement`
-          entry above; the batch order's own review route already named `grok-4.7`.
-        admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
-      - provider: anthropic
-        model: claude-sonnet-5
-        note: >-
-          AX22-2's terminal fallback, and the only one that is live today. Admitted, licensed,
-          and subject to the same producer exclusion as every other entry -- Sonnet does not
-          review a diff Sonnet produced.
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: named in the reviewer
+          chain, so ADMITTED for `review` (this entry was `unevaluated` until then). Declares
+          `max_turns_floor: 2` because `grok -p` returns nothing at `--max-turns 1`. MOVED from
+          `grok-4.6` 2026-10-04 (`foundation-10-model-currency`, R61) on served evidence.
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: copilot-enterprise
+        model: gpt-6-luna
+        note: >-
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a NON-Anthropic model
+          (`gpt-6-luna`) so the reviewer is never the producer's vendor. NOT ADMITTED for review.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: antigravity
+        model: gemini-3.8-flash
+        note: >-
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: the chain's last link
+          ("-> Gemini"). The old terminal `claude-sonnet-5` entry is removed -- R104's chain names
+          no Anthropic reviewer. NOT ADMITTED for review.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
   read:
     description: >-
       Locate and quote. AX21-1: "read / scan -> agy -> Copilot Enterprise -> Sonnet (locator +
@@ -786,6 +783,11 @@ roles:
           NOT ADMITTED. Licence permits (operator's own subscription) but no admission
           measurement exists -- `[#627]` records a single `analysis` admission, which is a
           different role. AX21-1 ranks it first here; the ranking is declared, not earned.
+          Entry point: `scripts/read_gate.py` only, which passes an absolute source path and
+          `--add-dir <dir>` (agy 1.3.5 auto-denies an out-of-workspace read without one; CHALLENGE
+          M2, R113 (a)); an ad-hoc `agy -p` without either is refused by
+          `read_gate.agy_argv_refusal`. R104 (RATIFICATION-2026-10-14 v3, operator), carried by
+          [#1536].
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
@@ -795,13 +797,13 @@ roles:
           verdict: unevaluated
           floors: ["AX22-1"]
       - provider: anthropic
-        model: claude-sonnet-5
-        note: "The live terminal fallback."
+        model: claude-sonnet-5-5
+        note: "The live terminal fallback. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: model moved to claude-sonnet-5-5."
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
   verify:
     description: >-
       Confirm the work holds. AX21-1: "verify -> Sonnet + the lane's RED-first tests." The tests
@@ -810,13 +812,63 @@ roles:
     routing_table_role: null
     order:
       - provider: anthropic
-        model: claude-sonnet-5
-        note: "Sonnet, alongside the lane's RED-first tests (AX21-1)."
+        model: claude-sonnet-5-5
+        note: "Sonnet, alongside the lane's RED-first tests (AX21-1). R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: model moved to claude-sonnet-5-5."
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+  red:
+    description: >-
+      Write the RED tests before the build. R104: Sonnet 5.5 writes the RED tests and never
+      produces the code it tests.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+  qa:
+    description: >-
+      Independent quality check of a lane's diff. Common rules section 7.5: a separate Copilot
+      session runs ci_verdict against the base plus the known-reds compare.
+    routing_table_role: null
+    order:
+      - provider: copilot-enterprise
+        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a separate Copilot session."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: fallback."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+  judge:
+    description: >-
+      Rule on the reviewers' findings. R104: Opus 5.5 judges; it reads the reviewers' findings and
+      the diff, never the implementer's report.
+    rerankable: false
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-opus-5-5
+        note: "Opus only, not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
 
 # ===========================================================================================
 # DISPATCHER -- ADDED 2026-09-29 (`lane-ratified-unbuilt`, WAVE5B-N5-R, R22), ALIGNING THE
@@ -931,7 +983,7 @@ models:
   claude-opus-5-5:
     provider: anthropic
     tier: L
-    roles: [orchestrate, plan]
+    roles: [orchestrate, plan, judge]
     rates:
       input: 4.0
       output: 20.0
@@ -1008,7 +1060,7 @@ models:
     # The doctrinal review lane until 2026-10-05, when `gpt-6-astra` superseded it (R82). Kept
     # registered so a provenance attribution naming it (older review records, `reviewed_by`
     # telemetry) still resolves; it holds no live role.
-    roles: [provenance]
+    roles: [reviewer, provenance]
     attribution_token: "gpt-5.6-terra"
     pinned_at: []
     # R61: read as SERVED on 2026-10-03 -- lane 6's second review ran `codex exec -c
@@ -1087,9 +1139,15 @@ models:
   claude-sonnet-5-5:
     provider: anthropic
     tier: M
-    # Unpriced on purpose: no rate source for this id was read, and an invented price is worse
-    # than the by-name refusal `provider_registry.RateUnavailable` gives an unpriced row.
-    roles: []
+    # PRICED 2026-10-14 BY `[#1536]` (R104): it was unpriced on purpose until a rate source was
+    # read; the claude-api skill's cached Current Models table now supplies one (below).
+    roles: [implement, read, verify, red, qa]
+    rates:
+      input: 2.0
+      output: 10.0
+      source: >-
+        claude-api skill cached Current Models table (cache date 2026-10-06): Claude Sonnet 5.5
+        $2.00/$10.00 per MTok, cache reads $0.20 (= the card's 0.1x, so no override)
     pinned_at: []
     # Every FOUNDATION lane transcript carries `message.model` = `claude-sonnet-5-5`; the render
     # record's step 0.3 probe (job 0d5e4736) is the first read.
@@ -1102,7 +1160,7 @@ models:
   # session store, with `modelUsage` naming only `grok-4.7`. Both `xai` role entries pin it.
   grok-4.7:
     provider: xai
-    roles: []
+    roles: [implement, reviewer]
     pinned_at: []
     last_verified: 2026-10-03
     evidence:
@@ -1114,9 +1172,22 @@ models:
   # which is why the row sits under `antigravity` while its predecessor `gemini-3.7-flash`
   # sits under `google`. The label agy printed was "Gemini 3.8 Flash (High)" on every run of
   # the B2-prep digest; `agy models` lists the family as `gemini-3.8-flash-{high,medium,low}`.
+  # ADDED 2026-10-06 BY `b2-codespace-subscription-auth` (W1-13, R82: a pin on SERVED evidence only).
+  # `copilot --model auto --output-format json` on the laptop served `gpt-6-luna` on 2026-10-06
+  # (the `assistant.message` event's `model`, and `session.auto_mode_resolved` listed it as the one
+  # model available to the seat). No `roles:` entry pins it -- copilot's role entries still name the
+  # provider only -- so the row exists so C1's served-id probe has an id to compare with.
+  gpt-6-luna:
+    provider: copilot-enterprise
+    roles: [reviewer]
+    pinned_at: []
+    last_verified: 2026-10-06
+    evidence:
+      - docs/audits/2026-10-06-technical-codespace-subscription-auth-run.md
+
   gemini-3.8-flash:
     provider: antigravity
-    roles: []
+    roles: [reviewer]
     pinned_at: []
     last_verified: 2026-10-03
     evidence:
