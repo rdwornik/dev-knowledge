@@ -205,3 +205,6 @@ logs/receipts/
 # ecosystem/system-map-record.json (the map sha, the previous sha and the node diff).
 ecosystem/system-map.json
 ecosystem/system-map.html
+
+# [#1617] the uncapped SessionStart text, rewritten each start; must never dirty the tree
+logs/SESSION-START-FULL.txt

@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-16 (n) - CC (Opus 5.5, integrator BU cycle-4): worktree-token-cuts-2026-10-16 merges on repair 1 -- the per-turn start-up context is cut by about 7.9k tokens [#1616] [#1617] [#1618]
+
+**Anchors:** `8f5d3de0` (repair 1: the evidence-refused roster bodies return, branch `worktree-token-cuts-2026-10-16`, introduced by this merge), `0ae8915f` (repair 1: session_start newline, audit citation restored), `6826a770`, `67c75b20` and `22565eb3` (the cut and its RED).
+
+**Did:** merged `--no-ff` on `f8ca281c` after the refusal of `6826a770` (`to-browser/REFUSED-token-cuts-2026-10-16.md`). The roster bodies return to `CLAUDE.md` section 9 (the hook roster, which again cites `2026-09-18-technical-b2-lane4-hook-role-review.md`) and the two @-imports. `ecosystem/boot-retrieval-evidence.json`, `tests/boot_retrieval.py` and `scripts/validate_doc_claims.py` are byte-identical to main. Check review: the CLAUDE.md cap goes from 24 to 21 KiB, and the new start-up caps are stricter; no check is weakened. The owner's witness: start-up median 55,987 to 48,127 tokens (-7,860, required at least 6,000). Rows `[#1616]`-`[#1618]` stay open. The linux-first land before this was REFUSED (`to-browser/REFUSED-linux-first-ci-2026-10-16.md`); its arc receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `CLAUDE.md`, `.claude/BOOT-REFERENCE.md`, `.claude/rules/git-discipline.md`, `.gitignore`, `scripts/hooks/session_start.py`, `tests/test_startup_budget.py`, `tests/test_claude_md_byte_cap.py`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** linux-first-ci repair 1 when handed back, then resume-vendor-fix @ `f387e8f1`; night-retire repair 1 when routed.
+
+---
+
 ### 2026-10-16 (k) - CC (Opus 5.5, integrator BU cycle-4): worktree-night-archive-2026-10-15 merges on repair 1 -- the 2026-10-14/15 digests are archived with an intake consumer, and rows [#1551]-[#1618] are filed (operator GO 2026-10-16)
 
 **Anchors:** `515a62f6` (repair 1, branch `worktree-night-archive-2026-10-15`, introduced by this merge), `2401b65e` (the branch's own JOURNAL anchor), `85096e84` and `72ae7f78` (rows), `061818ee` and `45751026` (the test-strategy and define-outcomes merges it carries), `c14dab1e` and `388f3752` (the archive).
