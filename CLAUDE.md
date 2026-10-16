@@ -138,7 +138,7 @@ Repo-level skills: `.claude/skills/<name>/SKILL.md` — list that directory; run
 <!-- scope: runtime -->
 > **[REPO - local]** region `hooks-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=hooks-repo-roster owner=repo -->
-Pre-commit / commit-msg / pre-push roster, session hooks, rules: `.claude/BOOT-REFERENCE.md` §9 (live sources: `.pre-commit-config.yaml`, `.claude/settings.json`, `ecosystem/organ-index.md`). Arm once per clone: `pre-commit install --hook-type pre-push` (SessionStart's `arm_hooks.py` does it idempotently). Rule: `.claude/rules/git-discipline.md` — commit after every file edit; clean tree at session end.
+Hook role review (B2 lane4, 12 armed): `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`. Pre-commit / commit-msg / pre-push roster, session hooks, rules: `.claude/BOOT-REFERENCE.md` §9 (live sources: `.pre-commit-config.yaml`, `.claude/settings.json`, `ecosystem/organ-index.md`). Arm once per clone: `pre-commit install --hook-type pre-push` (SessionStart's `arm_hooks.py` does it idempotently). Rule: `.claude/rules/git-discipline.md` — commit after every file edit; clean tree at session end.
 
 ### Methodology-deployed roster (generated — do not hand-edit)
 

@@ -402,7 +402,7 @@ def _save_full(lines: Sequence[str]) -> Optional[str]:
     """Write the uncapped text; None on success, else a short reason (never raises)."""
     try:
         FULL_TEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        FULL_TEXT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        FULL_TEXT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     except OSError as exc:  # a read-only tree never fails boot
         return f"{type(exc).__name__}"
     return None
