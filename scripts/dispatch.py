@@ -74,13 +74,14 @@ import json
 import logging
 import os
 import re
+import secrets
 import shlex
 import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field, replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 
@@ -111,6 +112,11 @@ try:  # pragma: no cover -- the regime ledger: the ONE writer of a lane's fate r
     from scripts import codespace_regime as regime
 except ImportError:  # pragma: no cover
     import codespace_regime as regime
+
+try:  # pragma: no cover -- the sign-in table and the expiry reader the launch-time mirror shares with C1
+    from scripts import codespace_parity as cpar
+except ImportError:  # pragma: no cover
+    import codespace_parity as cpar
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
@@ -534,10 +540,71 @@ class Plan:
 LANE_REPORT_SCHEMA = Path(__file__).resolve().parents[1] / "ecosystem" / "schema" / "lane-report.schema.json"
 
 
+#: The API refuses these at the TOP level of a `--json-schema` (nested ones are accepted) ([#1537]).
+_API_REFUSED_TOP_LEVEL = frozenset({"$schema", "allOf", "anyOf", "oneOf"})
+
+
+def api_safe_schema(schema: dict) -> dict:
+    """A new dict: `schema` minus the top-level keys the API refuses. The input is never mutated."""
+    return {k: v for k, v in schema.items() if k not in _API_REFUSED_TOP_LEVEL}
+
+
 def lane_report_schema_arg() -> str:
     """The LANE REPORT schema as ONE compact argv token, for `claude -p --json-schema`."""
-    schema = json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8"))
+    schema = api_safe_schema(json.loads(LANE_REPORT_SCHEMA.read_text(encoding="utf-8")))
     return json.dumps(schema, separators=(",", ":"), ensure_ascii=False)
+
+
+@dataclass(frozen=True)
+class SmokeResult:
+    ok: bool
+    exit_code: int
+    detail: str
+
+
+_SCHEMA_SMOKE_PROMPT = ('Reply with a minimal LANE REPORT: state FAILED, reason "schema smoke". '
+                        "Do not use any tool.")
+_SCHEMA_SMOKE_TIMEOUT_S = 300
+
+
+def schema_smoke_argv(head_argv: Sequence[str]) -> Optional[list[str]]:
+    """The argv of a one-shot live `claude` call carrying the head's own `--json-schema` token, or None
+    when the head is not a claude head with a schema."""
+    head = list(head_argv)
+    if not head or head[0] != "claude" or "--json-schema" not in head:
+        return None
+    token_at = head.index("--json-schema") + 1
+    if token_at >= len(head) or "--model" not in head or head.index("--model") + 1 >= len(head):
+        return None
+    model = head[head.index("--model") + 1]
+    return ["claude", "-p", "--output-format", "json", "--model", model, "--effort", "low",
+            "--json-schema", head[token_at], _SCHEMA_SMOKE_PROMPT]
+
+
+def run_schema_smoke(argv: Sequence[str]) -> SmokeResult:
+    """Run the smoke for real: ok iff exit 0 and the stdout JSON says `is_error` false."""
+    try:
+        proc = subprocess.run(list(argv), stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=_SCHEMA_SMOKE_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return SmokeResult(False, 124, f"timed out after {_SCHEMA_SMOKE_TIMEOUT_S}s")
+    except OSError as exc:
+        return SmokeResult(False, 127, str(exc)[:300])
+    stdout = proc.stdout or ""
+    payload = None
+    try:
+        payload = json.loads(stdout)
+    except ValueError:
+        pass
+    is_error = payload.get("is_error") if isinstance(payload, dict) else None
+    ok = proc.returncode == 0 and is_error is False
+    if ok:
+        return SmokeResult(True, 0, "")
+    text = ""
+    if isinstance(payload, dict) and isinstance(payload.get("result"), str):
+        text = payload["result"]
+    text = text or stdout.strip() or (proc.stderr or "").strip()
+    return SmokeResult(False, proc.returncode, text[:300])
 
 
 def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
@@ -2010,15 +2077,29 @@ def format_gh_line(argv: Sequence[str]) -> str:
     return "gh " + " ".join(parts)
 
 
-def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
-           timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
+def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[..., GhResult]] = None,
+           timeout: float = GH_TIMEOUT_SECONDS, input_bytes: Optional[bytes] = None) -> GhResult:
     """The single seam every `gh` call in the codespace legs goes through -- ported from
     `Invoke-CodespaceGh`. Returns ok/exit_code/stdout rather than raising: a non-zero `gh` exit is
     data this domain reasons about (unauthenticated, no such codespace, quota), never an
     exception. `invoker` is the test seam -- every test below hands in a recording stand-in and
-    asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`."""
+    asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`.
+
+    `input_bytes` is the one way bytes reach a remote command without being an argument: they go on
+    the command's STDIN, so a credential never appears in an argv, a log line or a process listing
+    (b2-codespace-subscription-auth, R13). The seam receives them only when there are some."""
     if invoker is not None:
-        return invoker(argv)
+        return invoker(argv) if input_bytes is None else invoker(argv, input_bytes)
+    if input_bytes is not None:  # pragma: no cover -- real gh
+        try:
+            raw = subprocess.run(["gh", *argv], capture_output=True, input=input_bytes, timeout=timeout)
+        except OSError as exc:
+            return GhResult(ok=False, exit_code=127, stdout=f"gh could not be run: {exc}")
+        except subprocess.TimeoutExpired:
+            return GhResult(ok=False, exit_code=124, stdout=f"gh timed out after {timeout}s")
+        return GhResult(ok=(raw.returncode == 0), exit_code=raw.returncode,
+                        stdout=(raw.stdout or b"").decode("utf-8", "replace"),
+                        stderr=(raw.stderr or b"").decode("utf-8", "replace"))
     # `timeout` is per call: an observer's read is bounded in seconds, a whole lane's run step in
     # hours, and neither is the 900 s default. stdin is closed so a `gh` prompt can only fail,
     # never wait on a pipe nobody writes to.
@@ -2052,13 +2133,28 @@ class ExecResult:
     failure: str = ""
     #: A failed lane's fate (R65): `{"fate": "FAILED", "step": ..., "reason": ...}`. Empty on success.
     fate: dict = field(default_factory=dict)
+    #: The credential mirror's record, one dict per CLI: names, paths, modes and booleans -- never a
+    #: value (R13). Empty when the launch ran without a mirror.
+    mirror: tuple = ()
+    #: The finish witnesses: one `codespace-step` row per step that ran (empty without a `batch`).
+    steps: tuple = ()
 
-
-#: The five Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
+#: The Codespaces secrets a lane needs, probed as BOOLEANS by the runner (R13: a value never
 #: enters a file or a log). `claude -p` needs the first, `gh` and `git push` the second, the two
 #: review heads the next two, and the transport read/write the last.
-RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN", "CODEX_API_KEY",
-                                   "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN")
+RUNNER_SECRETS: tuple[str, ...] = ("CLAUDE_CODE_OAUTH_TOKEN", "GITHUB_TOKEN",
+                                   "XAI_API_KEY", "RCLONE_CONFIG_GDRIVE_TOKEN",
+                                   # R88a: Copilot signs in through this token, not a keyring login
+                                   "COPILOT_GITHUB_TOKEN",
+                                   # R87 fallback: a SEPARATE ChatGPT login's auth.json, written to
+                                   # ~/.codex/auth.json only when the mirror put nothing there
+                                   "CODEX_AUTH_JSON")
+
+#: The API keys NO codex invocation may see (R87.3, b2w2-codespace-finish). The runner records each one's
+#: presence as a boolean (`present-before-unset`) and removes it from the environment on EVERY launch,
+#: mirror configured or not: OpenAI does not document a key's precedence over a ChatGPT sign-in, so the
+#: lane does not leave it to precedence. They are no lane secret, so they are not in `RUNNER_SECRETS`.
+RUNNER_NEVER_SET: tuple[str, ...] = ("CODEX_API_KEY", "OPENAI_API_KEY")
 
 #: The runner's own bounds, from the classifier's: a head whose run log is quiet for longer than
 #: this is killed and its receipt says why.
@@ -2073,9 +2169,595 @@ CREATION_LOG_WAIT_S = 20
 #: is long, and the stall watchdog in the runner (not this number) is what ends a quiet one.
 RUN_TIMEOUT_SECONDS = 3 * 3600
 
+#: What bounds the life of a mirrored credential copy in the box, besides the run: the time to create
+#: the box and ship the copy in. A declared bound, not a measurement -- create plus ship is minutes.
+MIRROR_LEAD_S = 3600
+
+#: How long a mirrored copy can live: the runner removes it on exit (EXIT trap), so the run's own
+#: bound plus the lead is the longest it can exist.
+COPY_LIFETIME_S = RUN_TIMEOUT_SECONDS + MIRROR_LEAD_S
+
+
+def codex_mirror_max_age_days() -> float:
+    """The oldest codex cache the launch may copy: the age at which codex refreshes on its next call
+    (`CODEX_REFRESH_DAYS`) less the copy's whole lifetime, so the copy is gone before it could reach
+    that refresh. Derived, never typed."""
+    return cpar.CODEX_REFRESH_DAYS - COPY_LIFETIME_S / 86400.0
+
+
+# ----- the credential mirror (b2-codespace-subscription-auth, R87) ----------------------------------
+#
+# DECIDED-BY-LANE (channel): a cache file travels as the STDIN of `gh codespace ssh -- bash -l
+# credential-tools.sh install <relpath>`, not through `gh codespace cp`. `cp` needs a local file
+# path the bytes would have to be staged under (a second copy of a credential on this disk) and its
+# failures have been measured three ways on this transport (`codespace_plan`'s docstring); stdin
+# puts the bytes in no argv, no temp file and no listing. The remote script is a constant shipped
+# by `cp` (it holds no secret), takes ONLY a path from the declared allow-list, writes umask 077,
+# `chmod 700` on the directory and `600` on the file, and prints the mode -- never a byte.
+#
+# DECIDED-BY-LANE (what is mirrored): measured on the laptop 2026-10-06, per CLI, in
+# `codespace_parity.SIGN_IN` (route, files, refresh verdict, why). A CLI whose sign-in is an OS keyring
+# entry and has no token route (agy) has no file to copy and ends WAITING with its renew step -- never
+# a workaround. Copilot signs in through its COPILOT_GITHUB_TOKEN secret (R88a). An env API key is used
+# in the Codespace only where the laptop itself uses one (grok).
+
+#: Where the shipped helper lives in the box, and how long its calls may run.
+CREDENTIAL_TOOLS_NAME = "credential-tools.sh"
+CREDENTIAL_CALL_TIMEOUT_S = 300
+
+_SEMVER_STRICT = re.compile(r"^\d+\.\d+\.\d+$")
+
+#: What a status call says when the sign-in is dead -- classified from OUTPUT TEXT only (a refresh
+#: that failed, a token already used, a login that is gone). Exit status alone is read too: a
+#: mirrored credential that the CLI cannot use is expired for the lane's purposes.
+_CREDENTIAL_DEAD = re.compile(
+    r"expired|could not be refreshed|refresh token (?:was )?(?:already )?(?:used|reused|invalid|revoked)"
+    r"|refresh_token_reused|invalid_grant|log ?in again|logged out|not logged in|please (?:run )?log ?in"
+    r"|\b401\b|unauthori[sz]ed", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class MirrorConfig:
+    """What the launch-time mirror reads: the laptop's HOME and environment (booleans are taken from
+    it, never values -- the bytes of a cache file are read only to be shipped), the provider registry
+    that names the CLIs, and the clock. `local_versions` is the laptop's `claude --version`; None
+    means "read it now". `verdicts` overrides a CLI's recorded refresh verdict (`SIGN_IN.refresh`)."""
+
+    home: Path
+    env: Mapping[str, str]
+    registry: Mapping
+    now: Optional[datetime] = None
+    local_versions: Optional[Mapping[str, str]] = None
+    verdicts: Mapping[str, str] = field(default_factory=dict)
+    #: Refreshes the laptop's codex cache with ONE keyless call; True when the call ran. None means
+    #: the default (`_refresh_codex_on_laptop`). A test seam: no real codex is ever run by a test.
+    refresh_codex: Optional[Callable[[], bool]] = None
+
+
+@dataclass(frozen=True)
+class MirrorItem:
+    """One CLI's launch decision. `action`: mirrored | not-mirrored | gap | fallback | absent |
+    refused | no-cli | undeclared. `files` are paths relative to HOME that WILL be copied. `gap` is
+    the stable id of a sign-in only an operator can finish (agy)."""
+
+    cli: str
+    route: str = ""
+    action: str = ""
+    files: tuple[str, ...] = ()
+    detail: str = ""
+    operator_action: str = ""
+    gap: str = ""
+
+
+def default_mirror_config(env: Optional[Mapping[str, str]] = None) -> MirrorConfig:
+    """The launcher's own: this laptop's HOME and environment and the repository's registry."""
+    return MirrorConfig(home=Path.home(), env=dict(os.environ if env is None else env),
+                        registry=cpar.load_registry())
+
+
+AGY_GAP_ID = "agy-interactive-sign-in"
+AGY_SIGNIN_WAIT_S = 600
+AGY_HEARTBEAT_S = 60
+AGY_POLL_S = 2
+AGY_READ_FALLBACK = "copilot"
+
+
+def _refresh_codex_on_laptop() -> bool:
+    """ONE laptop-side codex call, made so codex refreshes its own cache (it does so from
+    `CODEX_REFRESH_DAYS`). Run with neither API key (R87.3). True when the call exited 0."""
+    argv = cpar.keyless_command("codex", ["codex", "exec", "--skip-git-repo-check", "-s", "read-only", "ok"])
+    res = cpar.default_run(argv, timeout=CREDENTIAL_CALL_TIMEOUT_S, env=cpar.probe_env("codex"))
+    return res.returncode == 0
+
+
+def _codex_last_refresh(home: Path, rel: str) -> Optional[datetime]:
+    try:
+        return cpar._iso(json.loads((home / rel).read_text(encoding="utf-8")).get("last_refresh"))
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+def _decide_guarded_codex(cfg: MirrorConfig, cli: str, spec, present: tuple[str, ...], now: datetime,
+                          refresh: str) -> MirrorItem:
+    """The mirror decision for a `guarded` cache (codex): mirrored while its age leaves room for the
+    copy's whole life before codex's own refresh; `due` (8 days or older) is refreshed by the launcher
+    with one keyless laptop call and judged again; the band between is refused with the instant it
+    reopens, because no call can refresh a cache that young."""
+    ceiling = codex_mirror_max_age_days()
+    state = cpar.credential_expiry(cli, cfg.home, now=now)
+    note = ""
+    if state["state"] == "due":
+        refresher = cfg.refresh_codex or _refresh_codex_on_laptop
+        refresher()
+        state = cpar.credential_expiry(cli, cfg.home, now=now)
+        note = "; refreshed by the launcher"
+    if state["state"] == "expired":
+        return MirrorItem(cli, "mirror", "refused", files=present,
+                          detail=f"the laptop's {cli} sign-in has expired: {state['detail']}",
+                          operator_action=f"OPERATOR-ACTION: {state['renew']}")
+    if state["state"] == "due":
+        return MirrorItem(cli, "mirror", "refused", files=present,
+                          detail=f"the laptop's {cli} cache is {state.get('age_days', '?')} days old and the "
+                                 "launcher's own refresh call did not refresh it",
+                          operator_action=f"OPERATOR-ACTION: {state['renew']}, then relaunch")
+    age = float(state.get("age_days", 0.0))
+    if age >= ceiling:
+        refreshed = _codex_last_refresh(cfg.home, present[0])
+        reopens = (refreshed + timedelta(days=cpar.CODEX_REFRESH_DAYS)) if refreshed else None
+        when = reopens.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%MZ") if reopens else "its 8th day"
+        return MirrorItem(cli, "mirror", "refused", files=present,
+                          detail=f"the laptop's {cli} cache is {age:g} days old, past the {ceiling:.2f}-day "
+                                 "window: a copy could reach codex's own refresh while the laptop may "
+                                 "refresh it too",
+                          operator_action=f"OPERATOR-ACTION: relaunch after {when}, when the launcher "
+                                          f"refreshes the laptop's {cli} cache by itself (or {state['renew']})")
+    return MirrorItem(cli, "mirror", "mirrored", files=present,
+                      detail=f"{state['detail']}{note}; refresh verdict {refresh!r}")
+
+
+def credential_decisions(cfg: MirrorConfig) -> list[MirrorItem]:
+    """Decide, per registry provider and per declared non-model tool, what the launch does with its
+    sign-in -- from the laptop's own files and the recorded refresh verdicts, offline, before any box
+    exists. A `refused` item carries the ONE `OPERATOR-ACTION` line that renews it (R59, R65)."""
+    now = cfg.now or datetime.now(timezone.utc)
+    items: list[MirrorItem] = []
+    for provider in cpar.providers_without_cli(cfg.registry):
+        items.append(MirrorItem(provider, "none", "no-cli",
+                                detail="the registry names no CLI for this provider: nothing to mirror"))
+    for cli in cpar.lane_tools(cfg.registry):
+        spec = cpar.SIGN_IN.get(cli)
+        if spec is None:
+            items.append(MirrorItem(cli, "none", "undeclared",
+                                    detail=f"no sign-in is declared for {cli} in codespace_parity.SIGN_IN"))
+            continue
+        refresh = str(cfg.verdicts.get(cli, spec.refresh))
+        if spec.route in ("secret-token", "env-key"):
+            items.append(MirrorItem(cli, spec.route, "not-mirrored", detail=spec.why))
+        elif spec.route == "waiting":
+            # no non-interactive subscription sign-in exists (G1): a recorded GAP, never a refusal --
+            # the launch goes on and the sign-in URL is surfaced to the operator on stderr
+            items.append(MirrorItem(cli, "waiting", "gap", detail=spec.why, gap=AGY_GAP_ID,
+                                    operator_action=f"OPERATOR-ACTION: {spec.renew}"))
+        elif spec.route == "mirror":
+            present = tuple(rel for rel in spec.files if (cfg.home / rel).is_file())
+            if not present or present[0] != spec.files[0]:
+                items.append(MirrorItem(cli, "mirror", "absent",
+                                        detail=f"the laptop has no {spec.files[0]} to copy",
+                                        operator_action=f"OPERATOR-ACTION: {spec.renew}"))
+            elif refresh in ("rotates", "unknown"):
+                items.append(MirrorItem(
+                    cli, "secret-fallback", "fallback",
+                    detail=f"refresh verdict {refresh!r}: a copy could sign the other side out, so the "
+                           f"cache is not copied. {spec.why}",
+                    operator_action="OPERATOR-ACTION: " + (spec.fallback or f"no fallback is declared for {cli}")))
+            elif cli == "codex" and refresh == "guarded":
+                items.append(_decide_guarded_codex(cfg, cli, spec, present, now, refresh))
+            else:
+                state = cpar.credential_expiry(cli, cfg.home, now=now)
+                if state["state"] == "expired":
+                    items.append(MirrorItem(
+                        cli, "mirror", "refused", files=present,
+                        detail=f"the laptop's {cli} sign-in has expired: {state['detail']}",
+                        operator_action=f"OPERATOR-ACTION: {state['renew']}"))
+                elif state["state"] == "due":
+                    items.append(MirrorItem(
+                        cli, "mirror", "refused", files=present,
+                        detail=f"the laptop's {cli} cache is {state.get('age_days', '?')} days old: a copy "
+                               "would reach its refresh while the laptop may refresh it too",
+                        operator_action=f"OPERATOR-ACTION: {state['renew']}, then relaunch"))
+                else:
+                    items.append(MirrorItem(cli, "mirror", "mirrored", files=present,
+                                            detail=f"{state['detail']}; refresh verdict {refresh!r}"))
+        else:
+            items.append(MirrorItem(cli, spec.route, "undeclared", detail=f"unknown route {spec.route!r}"))
+    return items
+
+
+def leak_check(credentials: Mapping[str, bytes], artefacts: Iterable[str]) -> list[str]:
+    """The NAMES of the credentials whose bytes reached any artefact (R13): the whole file's sha-256,
+    any of its string values of twelve characters or more, or the file itself. Compared in memory;
+    neither the credential nor the artefact is ever returned, printed or logged."""
+    texts = [a for a in artefacts if a]
+    hits: list[str] = []
+    for name, blob in sorted(credentials.items()):
+        needles = {hashlib.sha256(blob).hexdigest()}
+        text = blob.decode("utf-8", "replace")
+        if len(text) >= 12:
+            needles.add(text)
+        try:
+            tree = json.loads(text)
+        except json.JSONDecodeError:
+            tree = None
+
+        def leaves(node):
+            if isinstance(node, str):
+                yield node
+            elif isinstance(node, Mapping):
+                for v in node.values():
+                    yield from leaves(v)
+            elif isinstance(node, (list, tuple)):
+                for v in node:
+                    yield from leaves(v)
+
+        needles.update(v for v in leaves(tree) if len(v) >= 12)
+        if any(n in t for n in needles for t in texts):
+            hits.append(name)
+    return hits
+
+
+def _credential_tools_script(allowed: Sequence[str]) -> str:
+    """The helper shipped into the box: `install <relpath>` (stdin -> HOME/<relpath>, mode 600, the
+    path from the allow-list only), `status <cli>`, `claude-version`, `claude-install <x.y.z>`. It
+    prints modes, versions and each CLI's own status text -- never a credential."""
+    paths = "|".join(shlex.quote(p) for p in allowed) or "__none__"
+    return "\n".join([
+        "#!/usr/bin/env bash",
+        "# shipped by dispatch.py (b2-codespace-subscription-auth): holds no secret, prints no secret",
+        "set -u",
+        'sub="${1:-}"',
+        'case "$sub" in',
+        "  install)",
+        '    rel="${2:-}"',
+        '    case "$rel" in',
+        f"      {paths}) ;;",
+        '      *) echo "refused: not a declared sign-in cache path" >&2; exit 64 ;;',
+        "    esac",
+        "    umask 077",
+        '    dest="$HOME/$rel"; dir="$(dirname "$dest")"',
+        '    mkdir -p "$dir" && chmod 700 "$dir" || exit 65',
+        '    tmp="$dest.tmp.$$"',
+        '    cat > "$tmp" || { rm -f "$tmp"; exit 66; }',
+        '    chmod 600 "$tmp" && mv -f "$tmp" "$dest" || exit 67',
+        '    echo "mode $(stat -c %a "$dest")"',
+        "    ;;",
+        "  status)",
+        '    case "${2:-}" in',
+        "      codex) env -u CODEX_API_KEY -u OPENAI_API_KEY codex login status 2>&1 ;;",
+        "      claude) claude auth status 2>&1 ;;",
+        "      gh) gh auth status 2>&1 ;;",
+        '      *) echo "no status command" >&2; exit 64 ;;',
+        "    esac",
+        "    ;;",
+        "  claude-version) claude --version 2>&1 ;;",
+        "  agy-signin-start)",
+        # agy holds its sign-in only in an OS keyring (G1): start it in a sized pty that outlives this
+        # ssh call, BROWSER unset, its stdin a FIFO; the setsid leader's pid and the FIFO holder's pid
+        # are kept so `agy-signin-stop` can kill the whole tree; print ONLY the authorization URL line
+        '    box="$HOME/.agy-signin"; umask 077',
+        '    mkdir -p "$box" && chmod 700 "$box" || exit 65',
+        '    rm -f "$box/in" "$box/out" "$box/pid" "$box/holder"; mkfifo "$box/in" || exit 65',
+        # own stdin/stderr: a captured caller never sees EOF while the holder inherits its pipes
+        '    sleep 900 < /dev/null > "$box/in" 2>/dev/null &',
+        '    echo $! > "$box/holder"',
+        '    nohup setsid script -qfec "stty cols 500 rows 50; exec env -u BROWSER timeout 900 agy" '
+        '"$box/out" < "$box/in" > /dev/null 2>&1 &',
+        '    echo $! > "$box/pid"',
+        # live finding (agy 1.3.5): agy draws a login menu before any URL and waits for a key; option 1
+        # (Google OAuth) is the highlighted default, so ONE Enter answers it -- never anything else
+        "    sent=0",
+        "    for _ in $(seq 1 90); do",
+        '      if [ "$sent" = 0 ] && sed -e \'s/\\x1b\\[[0-9;?]*[a-zA-Z]//g\' "$box/out" 2>/dev/null '
+        "| grep -aq 'Select login method'; then",
+        "        printf '\\r' > \"$box/in\"; sent=1",
+        "      fi",
+        "      url=\"$(sed -e 's/\\x1b\\[[0-9;?]*[a-zA-Z]//g' \"$box/out\" 2>/dev/null | tr -d '\\r' "
+        "| grep -aoE 'https://[^[:space:]]+' | head -n 1)\"",
+        '      if [ -n "$url" ]; then printf "%s\\n" "$url"; exit 0; fi',
+        "      sleep 1",
+        "    done",
+        "    exit 70",
+        "    ;;",
+        "  agy-signin-stop)",
+        '    box="$HOME/.agy-signin"',
+        '    pg="$(cat "$box/pid" 2>/dev/null)"; holder="$(cat "$box/holder" 2>/dev/null)"',
+        '    [[ "$pg" =~ ^[0-9]+$ ]] && kill -TERM -- -"$pg" 2>/dev/null',
+        '    [[ "$holder" =~ ^[0-9]+$ ]] && kill -TERM "$holder" 2>/dev/null',
+        "    sleep 1",
+        '    [[ "$pg" =~ ^[0-9]+$ ]] && kill -KILL -- -"$pg" 2>/dev/null',
+        '    [[ "$holder" =~ ^[0-9]+$ ]] && kill -KILL "$holder" 2>/dev/null',
+        '    rm -rf "$box"',
+        "    exit 0",
+        "    ;;",
+        "  agy-signin-diag)",
+        # facts only: yes/no per variable, a byte count and sanitized output -- never a URL or a code
+        '    box="$HOME/.agy-signin"',
+        "    for v in SSH_CONNECTION SSH_TTY BROWSER DISPLAY DBUS_SESSION_BUS_ADDRESS; do",
+        '      if [ -n "${!v:-}" ]; then echo "$v=yes"; else echo "$v=no"; fi',
+        "    done",
+        '    pg="$(cat "$box/pid" 2>/dev/null)"',
+        '    if [[ "$pg" =~ ^[0-9]+$ ]] && kill -0 "$pg" 2>/dev/null; then echo "agy_alive=yes"; '
+        'else echo "agy_alive=no"; fi',
+        '    echo "out_bytes=$(wc -c < "$box/out" 2>/dev/null || echo 0)"',
+        "    sed -e 's/\\x1b\\[[0-9;?]*[a-zA-Z]//g' \"$box/out\" 2>/dev/null | tr -d '\\r' "
+        "| tail -n 30 | sed -E 's#https?://[^[:space:]]+#<url>#g'",
+        "    exit 0",
+        "    ;;",
+        "  agy-probe)",
+        # the nonce proves a sign-in works: refused unless alphanumeric, so it is safe in the prompt
+        '    nonce="${2:-}"',
+        '    [[ "$nonce" =~ ^[A-Za-z0-9]{8,64}$ ]] || { echo "refused: not a probe nonce" >&2; exit 64; }',
+        '    pg="$(cat "$HOME/.agy-signin/pid" 2>/dev/null)"',
+        '    if [[ "$pg" =~ ^[0-9]+$ ]]; then',
+        "      for _ in $(seq 1 60); do kill -0 \"$pg\" 2>/dev/null || break; sleep 1; done",
+        "    fi",
+        '    timeout 300 agy -p "Reply with exactly this token and nothing else: $nonce" < /dev/null 2>&1',
+        '    exit "${PIPESTATUS[0]}"',
+        "    ;;",
+        "  agy-signin-code)",
+        # the code is a credential: read from STDIN only, never an argument
+        '    IFS= read -r line || exit 66',
+        '    [ -p "$HOME/.agy-signin/in" ] || { echo "no agy sign-in is waiting" >&2; exit 67; }',
+        '    printf "%s\\n" "$line" > "$HOME/.agy-signin/in"',
+        "    ;;",
+        "  claude-install)",
+        '    ver="${2:-}"',
+        '    [[ "$ver" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || { echo "refused: not x.y.z" >&2; exit 64; }',
+        '    curl -fsSL https://claude.ai/install.sh | bash -s "$ver" 2>&1 | tail -3',
+        '    exit "${PIPESTATUS[0]}"',
+        "    ;;",
+        '  *) echo "unknown subcommand" >&2; exit 64 ;;',
+        "esac",
+        "",
+    ])
+
+
+def _local_claude_version(cfg: MirrorConfig) -> Optional[str]:
+    if cfg.local_versions is not None:
+        return cfg.local_versions.get("claude")
+    res = cpar.default_run(["claude", "--version"], timeout=60)
+    return cpar._semver((res.stdout or "").splitlines()[0]) if res.returncode == 0 and res.stdout else None
+
+
+def _refusal(step: str, failure: str, mirror: Sequence[dict], name: str = "",
+             commands: Sequence[str] = (), fate: str = "WAITING") -> "ExecResult":
+    return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+                      fate={"fate": fate, "step": step, "reason": failure}, mirror=tuple(mirror))
+
+
+def _mirror_record(item: MirrorItem, **extra) -> dict:
+    rec = {"cli": item.cli, "route": item.route, "action": item.action, "present": bool(item.files),
+           "files": list(item.files), "mode": None, "detail": item.detail,
+           "operator_action": item.operator_action}
+    if item.gap:
+        rec["gap"] = item.gap
+    rec.update(extra)
+    return rec
+
+
+def _mirrored_rel_files(items: Sequence[MirrorItem]) -> tuple[str, ...]:
+    """Every $HOME-relative cache the mirror copied in -- the runner removes them on EVERY exit."""
+    return tuple(sorted({rel for i in items if i.action == "mirrored" for rel in i.files}))
+
+
+def _runner_unset(items: Sequence[MirrorItem]) -> tuple[str, ...]:
+    """The API-key variables the lane must NOT see because the sign-in cache is mirrored: a key the
+    laptop does not use for that CLI (R87). Taken from the same table the mirror reads."""
+    names: list[str] = []
+    for item in items:
+        if item.action == "mirrored":
+            names.extend(k for k in cpar.SIGN_IN[item.cli].env_keys if k not in names)
+    return tuple(names)
+
+
+def _status_is_dead(cli: str, res: GhResult) -> bool:
+    """Is the sign-in the Codespace's own status call reports unusable? A non-zero exit or any of the
+    dead-credential phrases in what the CLI printed; claude's JSON says `loggedIn` outright."""
+    text = f"{res.stdout}\n{res.stderr}"
+    if cli == "claude" and re.search(r'"loggedIn"\s*:\s*false', text):
+        return True
+    return (not res.ok) or bool(_CREDENTIAL_DEAD.search(text))
+
+
+def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: list[dict], name: str,
+                     workdir: str, call: Callable[..., GhResult], artefacts: list[str],
+                     commands: Sequence[str], tmp: Path, surface_agy: bool = False,
+                     agy_wait_s: float = 0, clock: Callable[[], float] = time.monotonic,
+                     sleep: Callable[[float], None] = time.sleep,
+                     agy_channel: Optional[Path] = None) -> Optional["ExecResult"]:
+    """The box-side half of the mirror. Returns None when every step held, else the refusal (the box
+    exists and is named for teardown). Order: ship the helper; copy each mirrorable cache over stdin;
+    leak-check what came back; have the Codespace's own status calls confirm each sign-in; make the
+    Codespace's claude the laptop's. Nothing here prints, logs or records a byte of a credential."""
+    tools_remote = f"{workdir}/{CREDENTIAL_TOOLS_NAME}"
+    allowed = sorted({rel for i in items if i.action == "mirrored" for rel in i.files})
+    helper = tmp / CREDENTIAL_TOOLS_NAME
+    helper.write_text(_credential_tools_script(allowed), encoding="utf-8", newline="\n")
+    shipped = call(["codespace", "cp", "-c", name, "-e", str(helper), f"remote:{tools_remote}"])
+    if not shipped.ok:
+        return _refusal("credentials", f"shipping the credential helper in exited {shipped.exit_code}",
+                        records, name, commands, fate="FAILED")
+
+    def tool(*args: str, stdin: Optional[bytes] = None) -> GhResult:
+        return call(["codespace", "ssh", "-c", name, "--", "bash", "-l", tools_remote, *args],
+                    timeout=CREDENTIAL_CALL_TIMEOUT_S, input_bytes=stdin)
+
+    by_cli = {r["cli"]: r for r in records}
+    credentials: dict[str, bytes] = {}
+
+    def leaked(names: Sequence[str]) -> "ExecResult":
+        return _refusal("credentials",
+                        f"credential leak: the bytes of {', '.join(names)} reached a command line or an "
+                        "output (compared by hash and value; nothing was printed) -- REFUSED before the runner",
+                        records, name, commands, fate="FAILED")
+
+    for item in items:
+        if item.action != "mirrored":
+            continue
+        for index, rel in enumerate(item.files):
+            blob = (cfg.home / rel).read_bytes()
+            credentials[item.cli if index == 0 else f"{item.cli}:{rel}"] = blob
+            res = tool("install", rel, stdin=blob)
+            echoed = leak_check({item.cli: blob}, [res.stdout, res.stderr])
+            if echoed:     # judged before anything else: the box answered with the credential
+                return leaked(echoed)
+            mode = (re.search(r"^mode (\d+)\s*$", res.stdout or "", re.MULTILINE) or [None, None])[1]
+            if not res.ok or mode != "600":
+                return _refusal("credentials",
+                                f"copying the {item.cli} sign-in cache ({rel}) into the box exited "
+                                f"{res.exit_code} with mode {mode or 'unread'}; owner-only is the bar",
+                                records, name, commands, fate="FAILED")
+            if index == 0:
+                by_cli[item.cli]["mode"] = mode
+    leaks = leak_check(credentials, [*artefacts, *commands])
+    if leaks:
+        return leaked(leaks)
+
+    # agy (G1): there is no non-interactive sign-in, so the OPERATOR is asked once -- the URL goes to
+    # stderr and the credentials row, the code comes back through a laptop file and goes to agy's STDIN
+    # only. No code in the window (or a failed relay/probe) is a recorded GAP: the box's auth process
+    # tree is killed and reads go through copilot. The launch always continues.
+    if surface_agy:
+        for item in items:
+            if item.action != "gap" or item.cli != "agy":
+                continue
+            record = by_cli[item.cli]
+            channel = agy_channel if agy_channel is not None else tmp / "agy-code.txt"
+            usable = True
+            try:
+                if channel.exists():     # a code left by an earlier run is never the answer
+                    channel.unlink()
+            except OSError:
+                usable = False                      # ...and one that cannot be removed cannot be told apart
+            signin = "no-url"
+            code: Optional[str] = None
+            if not usable:
+                signin = "channel-unusable"
+                record["auth_url_surfaced"] = False
+            else:
+                try:
+                    res = tool("agy-signin-start")
+                    found = re.search(r"https://\S+", res.stdout or "") if res.ok else None
+                    record["auth_url_surfaced"] = bool(found)
+                    if found:
+                        line = (f"OPERATOR-ACTION: agy sign-in: open {found.group(0)}, "
+                                f"then put the browser's code in {channel}")
+                        record["operator_action_line"] = line
+                        print(f"[codespace {name}] agy sign-in: waiting for the operator "
+                              f"(up to {agy_wait_s:g}s)", file=sys.stderr)
+                        print(line, file=sys.stderr)
+                        start = clock()
+                        beats = 0
+                        next_beat = start + AGY_HEARTBEAT_S
+                        while True:     # the last read happens at the deadline, never past it
+                            try:
+                                text = channel.read_text(encoding="utf-8").strip() if channel.is_file() else ""
+                            except OSError:
+                                text = ""
+                            if text:
+                                code = text
+                                break
+                            if clock() >= start + agy_wait_s:
+                                break
+                            if clock() >= next_beat:
+                                beats += 1
+                                next_beat += AGY_HEARTBEAT_S
+                                print(f"[codespace {name}] agy sign-in: waiting for the code in {channel} "
+                                      f"({int(clock() - start)}s of {agy_wait_s:g}s)", file=sys.stderr)
+                            sleep(AGY_POLL_S)
+                        record["heartbeats"] = beats
+                        signin = "timeout"
+                finally:
+                    try:
+                        channel.unlink(missing_ok=True)
+                    except OSError:
+                        record["channel_removed"] = False
+            if code is not None:
+                credentials["agy"] = code.encode("utf-8")
+                relayed = tool("agy-signin-code", stdin=(code + "\n").encode("utf-8"))
+                echoed = leak_check({"agy": credentials["agy"]}, [relayed.stdout, relayed.stderr])
+                if echoed:
+                    return leaked(echoed)
+                if relayed.ok:
+                    nonce = secrets.token_hex(8)
+                    probed = tool("agy-probe", nonce)
+                    ok = nonce in (probed.stdout or "")
+                    record.update({"probe_nonce": nonce, "probe_ok": ok})
+                    signin = "signed-in" if ok else "probe-failed"
+                else:
+                    signin = "relay-failed"
+            record["signin"] = signin
+            if signin != "signed-in":
+                if signin == "no-url":
+                    diag = tool("agy-signin-diag")
+                    record["signin_diag"] = [ln for ln in (diag.stdout or "").splitlines() if ln.strip()]
+                stopped = tool("agy-signin-stop")
+                record.update({"auth_tree_killed": stopped.ok, "read_route": AGY_READ_FALLBACK})
+                print(f"GAP: agy sign-in {signin}: the auth process tree was killed; "
+                      f"reads go through {AGY_READ_FALLBACK}", file=sys.stderr)
+            else:
+                # the login lives in the keyring; the sign-in TUI would otherwise run to its own timeout
+                record["auth_tree_killed"] = tool("agy-signin-stop").ok
+            if "agy" in credentials:
+                echoed = leak_check(
+                    {"agy": credentials["agy"]},
+                    [*artefacts, *commands, json.dumps(records, default=str)])
+                if echoed:
+                    return leaked(echoed)
+    # the Codespace's own status call decides whether a sign-in is usable there (R59, R65)
+    dead: list[str] = []
+    for item in items:
+        spec = cpar.SIGN_IN.get(item.cli)
+        if spec is None or item.cli not in ("codex", "claude", "gh"):
+            continue
+        if item.action not in ("mirrored", "not-mirrored"):
+            continue
+        res = tool("status", item.cli)
+        by_cli[item.cli]["remote_status"] = "dead" if _status_is_dead(item.cli, res) else "ok"
+        if by_cli[item.cli]["remote_status"] == "dead":
+            dead.append(f"OPERATOR-ACTION: {spec.renew}")
+    if dead:
+        return _refusal("credentials", "\n".join(dead), records, name, commands)
+
+    # the Codespace's claude is the laptop's, derived at every launch -- never a hand-typed pin
+    local = _local_claude_version(cfg)
+    if not local or not _SEMVER_STRICT.match(local):
+        return _refusal("claude-version", "the laptop's claude version could not be read: the "
+                        "Codespace's cannot be made equal to it", records, name, commands, fate="FAILED")
+
+    def remote_claude() -> Optional[str]:
+        first = (tool("claude-version").stdout or "").strip().splitlines()
+        return cpar._semver(first[0]) if first else None
+
+    remote = remote_claude()
+    if remote != local:
+        tool("claude-install", local)
+        remote = remote_claude()
+    claude = by_cli.get("claude")
+    if claude is None:
+        claude = {"cli": "claude"}
+        records.append(claude)
+    claude.update({"local_version": local, "codespace_version": remote})
+    if remote != local:
+        return _refusal("claude-version",
+                        f"claude version skew: the laptop runs {local} and the Codespace {remote or 'none'} "
+                        "even after installing the laptop's version -- REFUSED before the runner",
+                        records, name, commands, fate="FAILED")
+    return None
+
 
 def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str],
-                             stall_after_s: int = RUNNER_STALL_AFTER_S) -> str:
+                             stall_after_s: int = RUNNER_STALL_AFTER_S,
+                             unset: Sequence[str] = (), mirrored: Sequence[str] = ()) -> str:
     """The bash script shipped in and run as `bash <path>` -- never a string crossing the ssh
     boundary (the same measured failure `codespace_plan`'s own docstring names for the contract
     prompt: a command travels as a FILE, not an argument). `head_argv` runs with `checkout_dir`
@@ -2088,6 +2770,7 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
     quoted = " ".join(shlex.quote(a) for a in head_argv)
     run_log = f"{workdir}/run.log"
     receipt_json = f"{workdir}/receipt.json"
+    handback_json = f"{workdir}/handback.json"
     # ONE STATEMENT PER LINE, joined by "\n" -- never ";" across a block. A `try/except`/`for`
     # body de-indented with ";" instead of a real newline is a Python IndentationError, and that
     # is exactly the failure mode this script exists not to introduce (measured while writing
@@ -2105,9 +2788,10 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
     # `is_error`, status `hung`, and a FAILED fate with its reason and the step that failed -- so
     # a stalled lane is never an empty result with no fate.
     py = "\n".join([
-        "import json,sys",
+        "import json,sys,os",
         f"RUN_LOG={run_log!r}",
         f"RECEIPT={receipt_json!r}",
+        f"HANDBACK={handback_json!r}",
         f"STALL={int(stall_after_s)!r}",
         "t=open(RUN_LOG,encoding='utf-8',errors='replace').read()",
         "r=None",
@@ -2133,23 +2817,63 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "    receipt['status']='hung'",
         "    receipt['fate']={'fate':'FAILED','step':'run',"
         "'reason':'hung: no progress for more than %ds (bound %ds); the runner killed the head' % (STALL,STALL)}",
+        "hb_present=False",
+        "last=None",
+        "for ln in reversed(t.splitlines()):",
+        "    try:",
+        "        p=json.loads(ln.strip())",
+        "    except Exception:",
+        "        continue",
+        "    if isinstance(p,dict) and p.get('type')=='result':",
+        "        last=p",
+        "        break",
+        "if last is not None and isinstance(last.get('structured_output'),dict):",
+        "    json.dump(last['structured_output'],open(HANDBACK,'w'))",
+        "    hb_present=True",
+        "receipt['handback']={'present':hb_present}",
+        "E=os.environ.get",
+        "bs,hs,br,ps,pe=E('CS_BASE_SHA') or None,E('CS_HEAD_SHA') or None,E('CS_BRANCH') or None,"
+        "E('CS_PUSHED_SHA') or None,E('CS_PUSH_EXIT') or None",
+        "receipt['commit']={'branch':br,'base_sha':bs,'head_sha':hs,'pushed_sha':ps,"
+        "'committed':bool(hs and bs and hs!=bs),'pushed':bool(ps and ps==hs),"
+        "'push_exit':int(pe) if pe is not None else None}",
         "json.dump(receipt,open(RECEIPT,'w'))",
     ])
     heartbeat = shlex.quote(f"{workdir}/heartbeat")
     stalled = shlex.quote(f"{workdir}/stalled")
     names = " ".join(RUNNER_SECRETS)
+    never = " ".join(RUNNER_NEVER_SET)
+    removed = " ".join([*RUNNER_NEVER_SET, *(n for n in unset if n not in RUNNER_NEVER_SET)])
+    rm_list = " ".join(f'"$HOME/{m}"' for m in mirrored)
     return "\n".join([
         "#!/usr/bin/env bash",
         "set -uo pipefail",
         # a dropped ssh connection sends SIGHUP: the lane outlives it and the receipt is still written
         "trap '' HUP",
+        # the one EXIT trap, present even when nothing was mirrored: it also removes the fallback's auth.json
+        "cs_codex_fallback=0",
+        f"""trap 'rm -f {rm_list}; [ "$cs_codex_fallback" = 1 ] && rm -f "$HOME/.codex/auth.json"' EXIT""",
         f"cd {shlex.quote(checkout_dir)} || exit 90",
+        "base_sha=$(git rev-parse HEAD 2>/dev/null || true)",
         f"rm -f {stalled}",
         # BOOLEANS ONLY (R13): a name and yes/no. `${!n}` is read for emptiness and never printed.
         f"for n in {names}; do",
         '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
         '  echo "[runner] secret $n set=$v"',
         f"done > {shlex.quote(run_log)} 2>&1",
+        # the keys no codex call may see (R87.3): a boolean per name, then removed on EVERY launch
+        f"for n in {never}; do",
+        '  if [ -n "${!n:-}" ]; then v=yes; else v=no; fi',
+        '  echo "[runner] api-key $n present-before-unset=$v"',
+        f"done >> {shlex.quote(run_log)} 2>&1",
+        # the fallback sign-in (R87): a separate login's auth.json from a secret, only where the
+        # mirror put nothing -- written owner-only, its value never echoed
+        'if [ -n "${CODEX_AUTH_JSON:-}" ] && [ ! -f "$HOME/.codex/auth.json" ]; then '
+        'umask 077; mkdir -p "$HOME/.codex"; printf "%s" "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"; '
+        'chmod 600 "$HOME/.codex/auth.json"; cs_codex_fallback=1; fi',
+        # no codex invocation sees an API key, and a key the laptop does not use for a mirrored CLI is
+        # not in the lane's environment either (R87, R87.3)
+        f"unset {removed}",
         # the heartbeat says the runner PROCESS lives (the run log's age says the lane works)
         f"( while :; do date +%s > {heartbeat}; sleep {cs.HEARTBEAT_S}; done ) &",
         "hb=$!",
@@ -2173,6 +2897,16 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "kill $hb $wd 2>/dev/null",
         'stalled=""',
         f'if [ -f {stalled} ]; then stalled=stalled; code=124; fi',
+        'head_sha=$(git rev-parse HEAD 2>/dev/null || true)',
+        'branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)',
+        'push_exit=""; pushed_sha=""',
+        'if [ -n "$base_sha" ] && [ "$head_sha" != "$base_sha" ] && [ -n "$branch" ] '
+        '&& [ "$branch" != main ] && [ "$branch" != HEAD ]; then',
+        '  git push origin "HEAD:refs/heads/$branch" >> ' + shlex.quote(run_log) + ' 2>&1; push_exit=$?',
+        '  pushed_sha=$(git ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1 | head -n1)',
+        "fi",
+        'CS_BASE_SHA="$base_sha" CS_HEAD_SHA="$head_sha" CS_BRANCH="$branch" '
+        'CS_PUSHED_SHA="$pushed_sha" CS_PUSH_EXIT="$push_exit" '
         f'python3 -c {shlex.quote(py)} "$code" "$stalled"',
         "exit $code",
         "",
@@ -2182,9 +2916,111 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
 def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
                     *, machine: str = "standardLinux32gb", idle_timeout: str = "240m",
                     retention: str = "24h", workdir: str = "/workspaces/dispatch",
-                    invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+                    invoker: Optional[Callable[..., GhResult]] = None,
                     sleep: Callable[[float], None] = time.sleep,
-                    run_timeout_s: float = RUN_TIMEOUT_SECONDS) -> ExecResult:
+                    run_timeout_s: float = RUN_TIMEOUT_SECONDS,
+                    mirror: Optional[MirrorConfig] = None, batch: str,
+                    receipts_root: Optional[Path] = None,
+                    ledger_path: Optional[Path] = None,
+                    schema_smoke: Optional[Callable[[list[str]], "SmokeResult"]] = None,
+                    pins: Optional[Callable[[str], tuple[int, list[str]]]] = None,
+                    agy_wait_s: float = 0,
+                    clock: Callable[[], float] = time.monotonic) -> ExecResult:
+    """`_codespace_exec_core` plus the FINISH witnesses. `batch` is a required keyword: every step of
+    the line -- create, credentials, run, commit, handback -- writes one row of `<receipts_root>/
+    <batch>/<slug>/steps.jsonl` (`ExecResult.steps` carries the same rows), the regime ledger gets its
+    open row once the box exists, and a run whose lane committed and pushed nothing, or returned no
+    valid handback, is FAILED at that step. An empty `batch` is refused before any `gh` call."""
+    if not batch:
+        raise DispatchRefused("codespace_exec needs a non-empty batch: the FINISH receipts and gates "
+                              "are not optional")
+    for flag in ("--json-schema", "--model"):
+        if list(head_argv).count(flag) > 1:
+            raise DispatchRefused(f"head_argv carries {flag} more than once: the schema smoke and the "
+                                  "run would not judge the same token")
+    rows: list[dict] = []
+    steps_path = _harvest_dir(batch, slug, root=receipts_root) / "steps.jsonl"
+
+    def rec(step: str, ok: bool, codespace: str = "", evidence: Optional[dict] = None,
+            failure: str = "", fate: Optional[dict] = None) -> None:
+        rows.append(write_step(steps_path, batch, slug, codespace, step, ok, evidence, failure, fate))
+
+    result = _codespace_exec_core(repo, branch, slug, contract, head_argv, machine=machine,
+                                  idle_timeout=idle_timeout, retention=retention, workdir=workdir,
+                                  invoker=invoker, sleep=sleep, run_timeout_s=run_timeout_s,
+                                  mirror=mirror, batch=batch, rec=rec, ledger_path=ledger_path,
+                                  schema_smoke=schema_smoke, pins=pins, agy_wait_s=agy_wait_s,
+                                  clock=clock, agy_channel=steps_path.parent / "agy-code.txt")
+    return replace(result, steps=tuple(rows))
+
+
+def branch_pin_check(branch: str, *, run: Callable[..., "cpar.CmdResult"] = cpar.default_run,
+                     laptop: Optional[Mapping[str, Optional[str]]] = None) -> tuple[int, list[str]]:
+    """`(exit code, finding lines)` for the pin record the BRANCH carries -- read at FETCH_HEAD, never
+    the checked-out copy: the box is created from the branch, so the branch's record is what binds.
+    A fetch or read that fails is `(2, [reason])`: could not look, never silently clean."""
+    fetched = run(["git", "fetch", "origin", branch], cwd=HUB_ROOT, timeout=120)
+    if fetched.returncode != 0:
+        return 2, [f"could not fetch origin {branch} (exit {fetched.returncode})"]
+    shown = run(["git", "show", "FETCH_HEAD:.devcontainer/provisioning.yaml"], cwd=HUB_ROOT, timeout=60)
+    if shown.returncode != 0:
+        return 2, [f"could not read .devcontainer/provisioning.yaml on {branch} (exit {shown.returncode})"]
+    with tempfile.TemporaryDirectory() as tmp:
+        record = Path(tmp) / "provisioning.yaml"
+        record.write_text(shown.stdout, encoding="utf-8", newline="\n")
+        try:
+            if laptop is None:
+                laptop = cpar.read_laptop_versions(tuple(cpar.typed_pins(record)))
+            return cpar.pin_check(record, laptop)
+        except cpar.PinError as exc:
+            return 2, [str(exc)]
+
+
+def write_step(path: Path, batch: str, lane: str, codespace: str, step: str, ok: bool,
+               evidence: Optional[dict] = None, failure: str = "",
+               fate: Optional[dict] = None) -> dict:
+    """Append one `codespace-step` row (booleans, ids, counts and paths -- never a value, R13)."""
+    row = {"schema": 1, "kind": "codespace-step", "batch": batch, "lane": lane,
+           "codespace": codespace, "step": step, "ok": bool(ok),
+           "recorded": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "evidence": evidence or {}, "failure": failure, "fate": fate or {}}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+    return row
+
+
+def _handback_evidence(raw: str) -> dict:
+    """{present, valid, errors} for a pulled `handback.json` -- judged by the LaneReport schema."""
+    if not raw.strip():
+        return {"present": False, "valid": False, "errors": []}
+    try:
+        from ecosystem.schema.lane_report import LaneReport
+        LaneReport.model_validate(json.loads(raw))
+    except json.JSONDecodeError as exc:
+        return {"present": True, "valid": False, "errors": [f"not JSON: {exc.msg}"]}
+    except Exception as exc:
+        errors = getattr(exc, "errors", None)
+        found = ([f"{'.'.join(str(p) for p in e.get('loc', ()))}: {e.get('msg', '')}" for e in errors()]
+                 if callable(errors) else [str(exc)])
+        return {"present": True, "valid": False, "errors": found}
+    return {"present": True, "valid": True, "errors": []}
+
+
+def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
+                    *, machine: str = "standardLinux32gb", idle_timeout: str = "240m",
+                    retention: str = "24h", workdir: str = "/workspaces/dispatch",
+                    invoker: Optional[Callable[..., GhResult]] = None,
+                    sleep: Callable[[float], None] = time.sleep,
+                    run_timeout_s: float = RUN_TIMEOUT_SECONDS,
+                    mirror: Optional[MirrorConfig] = None, batch: str,
+                    rec: Optional[Callable[..., None]] = None,
+                    ledger_path: Optional[Path] = None,
+                    schema_smoke: Optional[Callable[[list[str]], "SmokeResult"]] = None,
+                    pins: Optional[Callable[[str], tuple[int, list[str]]]] = None,
+                    agy_wait_s: float = 0,
+                    clock: Callable[[], float] = time.monotonic,
+                    agy_channel: Optional[Path] = None) -> ExecResult:
     """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
     of `Start-DispatchCodespace` (create, read the NAME back, read the creation log and refuse a
     recovery container, ship the contract and a generated runner script in, run it, pull
@@ -2197,12 +3033,37 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     PS verb did, what `codespace_admission` and `codespace_parity` already assume ("PATH is only
     complete there"), and what the night's workaround proved; an equivalent (sourcing a profile
     by hand) would be a second spelling of the same fact. The runner closes the head's stdin (D8)
-    and records the five secrets as booleans (R13)."""
+    and records the five secrets as booleans (R13).
+
+    THE CREDENTIAL MIRROR (b2-codespace-subscription-auth, R87). With a `mirror` config the launch
+    decides every CLI's sign-in from the laptop's own files BEFORE a box exists (a dead credential
+    refuses here, WAITING, with its one renew line and no `gh` call), copies each mirrorable cache in
+    over stdin once the box is up, has the Codespace's own status call confirm it, makes the
+    Codespace's claude the laptop's version, and proves by hash that no credential reached any
+    artefact -- all before the runner starts. The CLI verb always passes one; `None` (a library
+    caller's seam) skips it and says so in the result's empty `mirror`."""
     if not head_argv:
         # Codex terra P1 (2026-09-27): an empty argv made `_codespace_runner_script` emit a
         # redirection-only shell command -- `> run.log 2>&1` with no left-hand side -- that exits
         # 0 and writes a success receipt having run no agent at all.
         return ExecResult(False, failure="head_argv is empty -- nothing to run in the codespace")
+    rec = rec or (lambda *a, **k: None)
+    items: list[MirrorItem] = []
+    records: list[dict] = []
+
+    def creds_evidence() -> dict:
+        return {"clis": [dict(r) for r in records],
+                "gaps": [i.cli for i in items if i.action == "gap"]}
+
+    if mirror is not None:
+        items = credential_decisions(mirror)
+        records = [_mirror_record(i) for i in items]
+        refused = [i for i in items if i.action == "refused"]
+        if refused:
+            failure = "\n".join(i.operator_action for i in refused)
+            result = _refusal("credentials", failure, records)
+            rec("credentials", False, "", creds_evidence(), failure, result.fate)
+            return result
     # RESOLVE TO ABSOLUTE, matching `plan` cmd's own `path.resolve()` before it builds the prompt
     # embedded in `head_argv` (line ~1792). Codex terra P1 (2026-09-27): a caller following the
     # documented `plan` -> `codespace-exec --argv-json` flow with a RELATIVE contract argument
@@ -2211,15 +3072,45 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     contract = Path(contract).resolve()
     commands: list[str] = []
 
-    def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS) -> GhResult:
+    artefacts: list[str] = []   # every string a `gh` call returned, for the leak check
+
+    smoke_argv = schema_smoke_argv(head_argv) if schema_smoke is not None else None
+    if smoke_argv is not None:
+        smoked = schema_smoke(smoke_argv)
+        if not smoked.ok:
+            failure = f"schema smoke: claude refused the --json-schema token (exit {smoked.exit_code}): {smoked.detail}"
+            result = ExecResult(False, mirror=tuple(records), failure=failure,
+                                fate={"fate": "FAILED", "step": "schema-smoke", "reason": failure})
+            rec("schema-smoke", False, "", {"exit_code": smoked.exit_code}, failure, result.fate)
+            return result
+        rec("schema-smoke", True, "", {"exit_code": smoked.exit_code})
+    if pins is not None:
+        pin_code, pin_lines = pins(branch)
+        if pin_code != 0:
+            action = (f"OPERATOR-ACTION: run `uv run --locked python scripts/codespace_parity.py pin write`, "
+                      f"commit it to {branch} and push, then launch again")
+            failure = "\n".join([*pin_lines, action])
+            result = _refusal("pins", failure, records)
+            rec("pins", False, "", {"exit_code": pin_code, "findings": len(pin_lines)}, failure, result.fate)
+            return result
+        rec("pins", True, "", {"exit_code": pin_code})
+
+    def call(argv: Sequence[str], timeout: float = GH_TIMEOUT_SECONDS,
+             input_bytes: Optional[bytes] = None) -> GhResult:
         commands.append(format_gh_line(argv))
-        return run_gh(argv, invoker=invoker, timeout=timeout)
+        res = run_gh(argv, invoker=invoker, timeout=timeout, input_bytes=input_bytes)
+        artefacts.extend((res.stdout, res.stderr))
+        return res
 
     created = call(["codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
                     "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug])
     if not created.ok:
-        return ExecResult(False, commands=tuple(commands),
-                           failure=f"create exited {created.exit_code}")
+        failure = f"create exited {created.exit_code}"
+        fate = {"fate": "FAILED", "step": "create", "reason": failure} if batch else {}
+        rec("create", False, "", {"repo": repo, "branch": branch, "machine": machine,
+                                  "exit_code": created.exit_code}, failure, fate)
+        return ExecResult(False, commands=tuple(commands), mirror=tuple(records),
+                           failure=failure, fate=fate)
     # THE NAME IS RETURNED BY CREATE -- IT IS NEVER RECONSTRUCTED (measured, `[CLI-SRC]`:
     # `gh codespace create` writes `codespace.Name` via `fmt.Fprintln`,
     # `DIGEST-2026-09-15-codespaces-reference.md:182-183`). Codex terra P1 (2026-09-27): an
@@ -2229,9 +3120,13 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     # orphaned untracked on a list failure or a match miss.
     name = created.stdout.strip()
     if not name:
-        return ExecResult(False, commands=tuple(commands),
+        return ExecResult(False, commands=tuple(commands), mirror=tuple(records),
                            failure="`gh codespace create` returned no name on stdout")
-
+    rec("create", True, name, {"repo": repo, "branch": branch, "machine": machine,
+                               "exit_code": created.exit_code})
+    if batch:
+        regime.write_receipt(slug, batch, name, created=datetime.now(timezone.utc), deleted=None,
+                             machine=machine, prebuild=False, tokens={}, ledger_path=ledger_path)
     # THE CREATION LOG IS READ BEFORE ANYTHING SHIPS (item 3, D3). A recovery container is
     # reachable and reports `Available` throughout, so nothing else says it is not ours; the log is
     # the one discriminator GitHub documents. A log that is not finished yet is read again a
@@ -2239,7 +3134,7 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
     # failed creation, REFUSES the run -- the box exists and is named for teardown.
     refusal = _creation_log_refusal(name, call, sleep)
     if refusal:
-        return ExecResult(False, name=name, commands=tuple(commands), failure=refusal)
+        return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=refusal)
 
     # REWRITE THE CONTRACT PATH. `head_argv` (built by `plan` from `build_plan`) carries the
     # prompt "Read and execute the frozen contract at <LOCAL path>" -- a path on the machine that
@@ -2256,7 +3151,9 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
 
     with tempfile.TemporaryDirectory() as tmp:
         runner_local = Path(tmp) / f"run-{slug}.sh"
-        runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv),
+        runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv,
+                                                         unset=_runner_unset(items),
+                                                         mirrored=_mirrored_rel_files(items)),
                                  encoding="utf-8", newline="\n")
         receipt_local = Path(tmp) / "receipt.json"
         runner_remote = f"{workdir}/run-{slug}.sh"
@@ -2267,19 +3164,28 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
         # every fresh codespace because the directory had never existed.
         mkdir = call(["codespace", "ssh", "-c", name, "--", "mkdir", "-p", workdir])
         if not mkdir.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"creating {workdir} exited {mkdir.exit_code}")
 
         cp1 = call(["codespace", "cp", "-c", name, "-e", str(contract),
                     f"remote:{workdir}/{Path(contract).name}"])
         if not cp1.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"shipping the contract in exited {cp1.exit_code}")
+
+        if mirror is not None:
+            stop = _mirror_into_box(mirror, items, records, name, workdir, call, artefacts, commands,
+                                    Path(tmp), surface_agy=bool(batch), agy_wait_s=agy_wait_s,
+                                    clock=clock, sleep=sleep, agy_channel=agy_channel)
+            if stop is not None:
+                rec("credentials", False, name, creds_evidence(), stop.failure, stop.fate)
+                return stop
+            rec("credentials", True, name, creds_evidence())
 
         cp2 = call(["codespace", "cp", "-c", name, "-e", str(runner_local),
                     f"remote:{runner_remote}"])
         if not cp2.ok:
-            return ExecResult(False, name=name, commands=tuple(commands),
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"shipping the runner in exited {cp2.exit_code}")
 
         # THE RECEIPT IS PULLED REGARDLESS OF `ran.ok` (codex terra P1, 2026-09-27): the runner
@@ -2310,36 +3216,70 @@ def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv:
             if not ran.ok:
                 failure = f"the runner exited {ran.exit_code}; {failure}"
             fate = transport_fate or {"fate": "FAILED", "step": "receipt", "reason": failure}
-            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
+            rec("run", False, name, {"exit_code": ran.exit_code, "status": None, "is_error": None,
+                                     "turns": None, "session_id": None}, failure, fate)
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=failure,
                               fate=fate)
         try:
             receipt = json.loads(receipt_local.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             failure = f"receipt.json did not parse: {exc}"
-            return ExecResult(False, name=name, commands=tuple(commands), failure=failure,
-                              fate={"fate": "FAILED", "step": "receipt", "reason": failure})
+            fate = {"fate": "FAILED", "step": "receipt", "reason": failure}
+            rec("run", False, name, {"exit_code": ran.exit_code, "status": None, "is_error": None,
+                                     "turns": None, "session_id": None}, failure, fate)
+            return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records), failure=failure,
+                              fate=fate)
 
         # a stalled head's receipt carries the runner's own fate (reason + step), written there
         # by the runner that killed it
         receipt_fate = receipt.get("fate") if isinstance(receipt.get("fate"), dict) else {}
+        run_failure, run_fate = "", {}
         if not ran.ok:
-            failure = f"the runner exited {ran.exit_code}"
-            fate = transport_fate or receipt_fate or {
+            run_failure = f"the runner exited {ran.exit_code}"
+            run_fate = transport_fate or receipt_fate or {
                 "fate": "FAILED", "step": "run",
-                "reason": f"{failure}; the receipt reports status={receipt.get('status')!r}"}
-            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
-                               failure=failure, fate=fate)
+                "reason": f"{run_failure}; the receipt reports status={receipt.get('status')!r}"}
         # THE RECEIPT'S OWN VERDICT GATES SUCCESS TOO (codex terra P1, 2026-09-27): the ssh call
         # can exit 0 while the agent it ran reports `is_error: true` or a non-success status --
         # `bash runner_remote` only ever fails on a TRANSPORT problem, not a lane one.
-        if receipt.get("is_error") or receipt.get("status") not in (None, "success"):
-            failure = (f"the lane's own receipt reports failure: "
-                       f"is_error={receipt.get('is_error')!r} status={receipt.get('status')!r}")
-            fate = receipt_fate or {"fate": "FAILED", "step": "run", "reason": failure}
-            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
+        elif receipt.get("is_error") or receipt.get("status") not in (None, "success"):
+            run_failure = (f"the lane's own receipt reports failure: "
+                           f"is_error={receipt.get('is_error')!r} status={receipt.get('status')!r}")
+            run_fate = receipt_fate or {"fate": "FAILED", "step": "run", "reason": run_failure}
+        transcript = receipt.get("transcript") if isinstance(receipt.get("transcript"), dict) else {}
+        rec("run", not run_failure, name,
+            {"exit_code": receipt.get("exit_code"), "status": receipt.get("status"),
+             "is_error": receipt.get("is_error"), "turns": receipt.get("turns"),
+             "session_id": transcript.get("session_id")}, run_failure, run_fate)
+
+        failure, fate = run_failure, run_fate
+        if batch:
+            commit = receipt.get("commit") if isinstance(receipt.get("commit"), dict) else {}
+            commit_ok = bool(commit.get("committed") and commit.get("pushed"))
+            commit_failure = "" if commit_ok else (
+                "the lane committed nothing" if not commit.get("committed")
+                else "the lane's commit was not pushed to origin")
+            commit_fate = {} if commit_ok else {"fate": "FAILED", "step": "commit",
+                                                "reason": commit_failure}
+            rec("commit", commit_ok, name,
+                {k: commit.get(k) for k in ("branch", "base_sha", "head_sha", "pushed_sha",
+                                            "committed", "pushed", "push_exit")},
+                commit_failure, commit_fate)
+            pulled = call(["codespace", "ssh", "-c", name, "--", "cat", f"{workdir}/handback.json"])
+            evidence = _handback_evidence(pulled.stdout if pulled.ok else "")
+            hb_ok = evidence["present"] and evidence["valid"]
+            hb_failure = "" if hb_ok else (
+                "the lane returned no handback" if not evidence["present"]
+                else "the lane's handback does not validate against the lane-report schema")
+            hb_fate = {} if hb_ok else {"fate": "FAILED", "step": "handback", "reason": hb_failure}
+            rec("handback", hb_ok, name, evidence, hb_failure, hb_fate)
+            if not failure:
+                failure, fate = commit_failure or hb_failure, commit_fate or hb_fate
+        if failure:
+            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands), mirror=tuple(records),
                                failure=failure, fate=fate)
 
-    return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands))
+    return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands), mirror=tuple(records))
 
 
 def _creation_log_refusal(name: str, call: Callable[..., GhResult],
@@ -2464,7 +3404,7 @@ def codespace_observe(name: str, *, workdir: str = "/workspaces/dispatch",
 #: absent on the remote is SKIPPED at harvest, not refused -- a stalled lane's partial evidence is
 #: still worth capturing -- but only the files actually captured enter the manifest, and
 #: `codespace_delete` gates on exactly that manifest, never on this constant.
-HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json")
+HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json", "handback.json")
 
 #: The platform's creation log, read from its FIXED remote path rather than from `workdir`, and kept
 #: as `creation.log`. A run refused before it started (a recovery container, a failed creation --
@@ -2526,9 +3466,12 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         return run_gh(argv, invoker=invoker)
 
     if manifest_path.exists() and not force:
+        failure = f"{manifest_path} already exists -- pass force=True to replace it"
+        if not dry_run:
+            write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", False,
+                       {"manifest_path": str(manifest_path), "files": {}}, failure)
         return HarvestResult(False, name=name, out_dir=out_dir, manifest_path=manifest_path,
-                              failure=f"{manifest_path} already exists -- pass force=True to "
-                                      "replace it")
+                              failure=failure)
 
     if dry_run:
         for rel in files:
@@ -2565,6 +3508,8 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         # NOTHING TO RECOVER IS NOT A FAILURE (Save-CodespaceLaneHarvest's own doctrine) -- an
         # empty manifest is still written, and it is still what codespace_delete gates on.
         commands.append("# nothing captured -- every named file was absent on the remote")
+    write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", True,
+               {"manifest_path": str(manifest_path), "files": manifest})
     return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
                          files=manifest, commands=tuple(commands))
 
@@ -2645,8 +3590,9 @@ class DeleteResult:
 
 
 def codespace_delete(name: str, *, out_dir: Path,
-                      invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
-                      ) -> DeleteResult:
+                      invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+                      batch: str = "", lane: str = "", receipts_root: Optional[Path] = None,
+                      ledger_path: Optional[Path] = None) -> DeleteResult:
     """R17: delete a codespace only once `verify_harvest_manifest(out_dir)` passes.
 
     The PS module deliberately composes no `gh codespace delete` anywhere -- `deletion is
@@ -2654,11 +3600,33 @@ def codespace_delete(name: str, *, out_dir: Path,
     function IS that act, now with a checked precondition: a missing manifest, an empty one, or a
     hash mismatch refuses WITHOUT calling `gh` at all, so a failed harvest can never be compounded
     by a destroyed codespace -- the retention period (D2's stop-then-delete belt) is what a
-    refusal here leaves the operator to fall back on."""
+    refusal here leaves the operator to fall back on.
+
+    With a `batch` and `lane` the outcome is also one `delete` step row, and a successful delete
+    closes the regime ledger's open row for the box (uptime minutes included)."""
+    steps_path = (_harvest_dir(batch, lane, root=receipts_root) / "steps.jsonl") if batch and lane else None
     verdict = verify_harvest_manifest(out_dir, expected_name=name)
     if not verdict.ok:
+        if steps_path:
+            write_step(steps_path, batch, lane, name, "delete", False,
+                       {"refused": True, "exit_code": None, "reason": verdict.reason,
+                        "uptime_minutes": None}, verdict.reason)
         return DeleteResult(False, name=name, refused=True, reason=verdict.reason)
     res = run_gh(["codespace", "delete", "-c", name, "--force"], invoker=invoker)
+    if steps_path:
+        minutes = None
+        if res.ok:
+            opened = next((r for r in regime.open_receipts(ledger_path) if r.get("codespace") == name), None)
+            if opened and opened.get("created"):
+                closed = regime.write_receipt(
+                    lane, batch, name, created=datetime.fromisoformat(opened["created"]),
+                    deleted=datetime.now(timezone.utc), machine=opened.get("machine", ""),
+                    prebuild=bool(opened.get("prebuild")), tokens={}, ledger_path=ledger_path)
+                minutes = closed["uptime_minutes"]
+        write_step(steps_path, batch, lane, name, "delete", res.ok,
+                   {"refused": False, "exit_code": res.exit_code, "reason": verdict.reason,
+                    "uptime_minutes": minutes},
+                   "" if res.ok else f"delete exited {res.exit_code}")
     return DeleteResult(res.ok, name=name, refused=False, reason=verdict.reason,
                         exit_code=res.exit_code)
 
@@ -2673,9 +3641,13 @@ def codespace_delete(name: str, *, out_dir: Path,
 @click.option("--machine", default="standardLinux32gb", show_default=True)
 @click.option("--idle-timeout", default="240m", show_default=True)
 @click.option("--retention", default="24h", show_default=True)
+@click.option("--batch", required=True, help="The batch id: step rows and the regime receipt are keyed by it.")
 @click.option("--workdir", default="/workspaces/dispatch", show_default=True)
+@click.option("--agy-signin-wait-s", type=float, default=AGY_SIGNIN_WAIT_S, show_default=True,
+              help=f"How long to wait for the operator's agy sign-in code (0..{AGY_SIGNIN_WAIT_S}).")
 def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_json: str,
-                       machine: str, idle_timeout: str, retention: str, workdir: str) -> None:
+                       machine: str, idle_timeout: str, retention: str, batch: str, workdir: str,
+                       agy_signin_wait_s: float) -> None:
     """Actually dispatch a Codespace lane end to end: create, ship, run, pull the receipt back.
 
     `--argv-json` is deliberately not re-derived from the contract here -- `dispatch.py plan
@@ -2690,11 +3662,17 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
         raise DispatchRefused("--argv-json must be a JSON list of strings")
     if not head_argv:
         raise DispatchRefused("--argv-json is empty -- nothing to run in the codespace")
+    if not 0 <= agy_signin_wait_s <= AGY_SIGNIN_WAIT_S:
+        raise DispatchRefused(f"--agy-signin-wait-s must be between 0 and {AGY_SIGNIN_WAIT_S} seconds")
+    # the launcher always mirrors the laptop's own sign-ins (R87): this verb is the launcher
     result = codespace_exec(repo, branch, slug, Path(contract), head_argv, machine=machine,
-                            idle_timeout=idle_timeout, retention=retention, workdir=workdir)
+                            idle_timeout=idle_timeout, retention=retention, workdir=workdir,
+                            mirror=default_mirror_config(), batch=batch,
+                            schema_smoke=run_schema_smoke, pins=branch_pin_check,
+                            agy_wait_s=agy_signin_wait_s)
     click.echo(json.dumps(asdict(result)))
     if not result.ok:
-        sys.exit(EXIT_REFUSED)
+        sys.exit(EXIT_NO_COMMIT if result.fate.get("step") == "commit" else EXIT_REFUSED)
 
 
 @cli.command("codespace-observe")
@@ -2761,7 +3739,7 @@ def codespace_stop_cmd(name: str) -> None:
 def codespace_delete_cmd(name: str, batch: str, lane: str, out_root: Optional[Path]) -> None:
     """Delete a codespace -- refused unless `codespace-harvest`'s manifest verifies (R17)."""
     out_dir = _harvest_dir(batch, lane, root=out_root)
-    result = codespace_delete(name, out_dir=out_dir)
+    result = codespace_delete(name, out_dir=out_dir, batch=batch, lane=lane, receipts_root=out_root)
     click.echo(json.dumps(asdict(result)))
     if result.refused:
         click.echo(f"[codespace] REFUSED -- {result.reason}", err=True)

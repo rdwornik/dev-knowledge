@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-15 (g) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-1537-codespace-finish merges after repair 2 -- the Codespace finish, carried from 2026-10-14 and completed ([#1537] PARTIAL on clause 8)
+
+**Anchors:** `2ab6e523` (repair-2 tip, branch `worktree-lane-bu-1537-codespace-finish`, introduced by this merge), `5a47e97b` (repair-1 tip), `d22cd9f7` (the first handback's tip), `dccc2c03` (the lane's carry merge of `worktree-codespace-finish-2026-10-14` @ `f7cc1ef6`, sanctioned by its Done-contract 2).
+
+**Correction by addition (nothing above or below is edited):** this merge brings the carried branch's own JOURNAL entry, so two entries now read `2026-10-14 (b)`. The second one -- "the Codespace finish through the isolated stage chain -- REFUSE after round 2" -- is to be read as **2026-10-14 (c)**; the green-main pilot entry keeps (b).
+
+**Did:** two refusals before this merge. Repair 1 (`5a47e97b`): the five carried audits had no governance consumer once inherited on main, so the row file now cites them. Repair 2 (`2ab6e523`): a cross-lane red. 1535's `run_phase.load_cli_vendors` skips a null `cli`, and this lane's carried R88b retires the gemini CLI, so the test now asserts the retired CLI is skipped. Both are in `REFUSED-lane-bu-1537-codespace-finish.md`. Purity: the lane's commits, the carry merge and two syncs of origin/main, nothing else. Phase chain: RED `67789ad9`/`fd4911a8`/`579d4dae`/`bab97bc9` before each fix; Codex `gpt-5.6-terra` and Grok `grok-4.20-0309-non-reasoning` records with nonces, both rounds; judge round 2 ACCEPT. Merged `--no-ff` on `a3d0ae31`; regenerated `ecosystem/doc-counts.md` and `docs/audits/README.md`; appended the lane's QA ledger rows (2 sample + 2 parity) to `logs/CODESPACE-RECEIPTS.jsonl` after its own 9, and the 863 merge-receipt line to `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL on clause 8: the agy nonce probe is a GAP (no sign-in URL was ever printed; reads go through Copilot). This is repair 2 of 2: a further refusal would make the lane FAILED.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_parity.py`, `scripts/codespace_admission.py`, `scripts/substrate_heartbeat.py`, `.devcontainer/provision.sh` + `provisioning.yaml`, `ecosystem/provider-registry.yaml`, five carried audits, `tasks/1537-*`, tests (incl. new `tests/fake_agy.py`, one leg of `tests/test_run_phase.py`); `logs/CODESPACE-RECEIPTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`; generated `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** queue pass -- `lane-bu-1536-routing` becomes eligible once this lands; 1450 is in repair 1 (job `1da8910e`).
+
+---
+
 ### 2026-10-15 (f) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-863-prompts-guard merges -- the polyglot prompts guard re-armed, the [#912] merge check, the hook watchdog ([#863] [#912] [#1540], PARTIAL)
 
 **Anchors:** `7f0512b4` (lane tip, branch `worktree-lane-bu-863-prompts-guard`, introduced by this merge).
@@ -118,6 +134,21 @@
 **Next:** land through `merge_path.py land`; Part C lands `worktree-system-map-2026-10-14`. Judge's low note J2.N1: a `restamped` receipt line is appended before the atomic replace, so a failed replace logs restamped on an unchanged bundle.
 
 ---
+### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema
+
+**Anchors:** `0d97edde` (eea31c5d rebased onto b46836c8), `075254c5` + `bb13f0a2` (RED tests), `7e505b19` (implementation, Copilot), `41ba3dbe` (pin write), `d75bb2a9` (round-1 ledger rows), `e212ceea` + `54350e02` (round-2 tests, ledger isolation), `c61dc0b6` + `f544a906` (round-2 fixes), `c49fed74` (round-2 ledger rows). Branch `worktree-codespace-finish-2026-10-14`, NOT landed.
+
+**Did:** the held branch was rebased onto a new lane branch instead of the held one, which avoided a force-push. The order's 8 stages ran in isolation, with receipts under `logs/receipts/codespace-finish-2026-10-14/`. Two live rounds ran in real Codespaces: 4 boxes, all deleted by `codespace-delete`, and the ledger holds open and closed rows for each.
+
+**Result:** the judge REFUSED in round 2, the last round. Steps 1, 2 and 7 PASS live, as do C2, C4 and the leak check. Step 3 FAILs on main's `ecosystem/schema/lane_report.py`. In round 1, the 2020-12 `$schema` was rejected by the claude CLI. In round 2, with that key dropped, the top-level `allOf` (`:140`) is rejected by the API with a 400. So no Codespace claude lane can run on main. C1 failed on a copilot pin skew, C3 was REGRESSED (partly branch-owned: a stale doc-counts) and C5 failed on a scratch branch.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_parity.py`, `.devcontainer/provisioning.yaml`, `tests/test_dispatch_codespace.py`, `tests/test_dispatch_py.py`, `tests/test_codespace_parity.py`, `ecosystem/doc-counts.md`, `logs/CODESPACE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** the judge's carry-forward is in `to-browser/LANE-END-codespace-finish-2026-10-14.md`:
+- strip the top-level combinators from the argv token, with a live claude smoke test;
+- re-render doc-counts;
+- write the pins and delete the scratch branches inside the procedure.
+The land waits on green main either way.
 
 ### 2026-10-14 (a) - CC (Opus 5.5, handoff seat): architect handoff `2026-10-14-dev-knowledge-architect` cut, supplement filled, residual carries its debt (Tech-Architect-44 -> successor)
 
