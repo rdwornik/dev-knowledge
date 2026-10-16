@@ -268,6 +268,39 @@ jobs:
       - name: Fail the job on the known-reds compare's verdict, not the frozen-baseline gate's (LANE-5B3-8 repair 1)
         run: exit ${{ steps.known_reds.outputs.exit }}
 
+  windows-gate:
+    # ADR-127 AMENDMENT 2: the SERVER-SIDE half of "a Windows-sensitive diff still requires the
+    # Windows leg". A ruleset cannot require `pytest (windows-latest)` conditionally, so this ONE
+    # always-running job is the required context instead: it passes when the plan left Windows out
+    # (Linux alone judges the merge) and, when the plan put Windows in, passes only if the whole
+    # `pytest` matrix -- Windows leg included -- succeeded. `if: always()` is not a skip condition:
+    # it only stops a failed `pytest` or `plan` from SKIPPING this job (a skipped required check
+    # counts as passing), and an unreadable plan fails closed below.
+    needs: [plan, pytest]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PLAN_RESULT: ${{ needs.plan.result }}
+      PLAN_OS: ${{ needs.plan.outputs.os }}
+      PYTEST_RESULT: ${{ needs.pytest.result }}
+    steps:
+      - name: Windows leg, when the plan required it
+        run: |
+          if [ "$PLAN_RESULT" != "success" ] || [ -z "$PLAN_OS" ]; then
+            echo "::error::the plan job did not produce an OS list (result: $PLAN_RESULT) -- fail closed"
+            exit 1
+          fi
+          case "$PLAN_OS" in
+            *windows-latest*)
+              if [ "$PYTEST_RESULT" != "success" ]; then
+                echo "::error::the plan required windows-latest and the pytest matrix concluded: $PYTEST_RESULT"
+                exit 1
+              fi
+              echo "plan $PLAN_OS: both legs succeeded" ;;
+            *) echo "plan $PLAN_OS: Linux alone judges this merge; no Windows leg was required" ;;
+          esac
+
   windows-nightly-triage:
     # ADR-127 AMENDMENT 2 (Linux-first CI): a Windows red found at night becomes a row the next
     # morning and does not block the day. THE MORNING PICK-UP IS AN EXISTING KIND, not a new one:

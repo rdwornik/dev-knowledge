@@ -17,6 +17,7 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           { "context": "pytest (ubuntu-latest)" },
+          { "context": "windows-gate" },
           { "context": "ruff" },
           { "context": "seal" },
           { "context": "spine" },

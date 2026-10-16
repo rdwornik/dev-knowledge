@@ -575,6 +575,15 @@ def test_the_plan_job_calls_the_one_os_decision_function(workflow):
     assert "python3 scripts/ci_os_plan.py" in run and "--event" in run
 
 
+def test_the_windows_gate_fails_closed_and_enforces_the_leg_when_the_plan_required_it(workflow):
+    gate = workflow["jobs"]["windows-gate"]
+    assert gate["needs"] == ["plan", "pytest"]
+    run = next(s["run"] for s in gate["steps"] if "Windows leg" in s.get("name", ""))
+    # an unreadable plan fails closed; a plan with windows needs the WHOLE matrix to succeed
+    assert '"$PLAN_RESULT" != "success"' in run and "exit 1" in run
+    assert "*windows-latest*)" in run and '"$PYTEST_RESULT" != "success"' in run
+
+
 def test_the_windows_nightly_job_is_schedule_only_and_never_a_required_context(workflow, ruleset):
     job = workflow["jobs"]["windows-nightly-triage"]
     assert "github.event_name == 'schedule'" in job["if"]
@@ -712,7 +721,8 @@ def test_every_required_context_is_a_check_run_name_the_workflow_emits(workflow,
                 ruleset["rules"][0]["parameters"]["required_status_checks"]}
     # ADR-127 AMENDMENT 2: five. A server-side ruleset cannot require a check conditionally, so
     # the Windows leg is not in it; `merge_path.land` adds it for a Windows-sensitive diff.
-    assert contexts == {"pytest (ubuntu-latest)", "ruff", "seal", "spine", "anchor"}
+    assert contexts == {"pytest (ubuntu-latest)", "windows-gate", "ruff", "seal", "spine",
+                        "anchor"}
     assert contexts <= emitted_contexts(workflow), \
         f"required contexts no job emits: {sorted(contexts - emitted_contexts(workflow))}"
 
@@ -731,9 +741,15 @@ def test_every_required_context_is_emitted_on_a_main_push_with_no_path_filter_or
     assert "paths" not in push and "paths-ignore" not in push, \
         "a path filter on the push trigger can skip every required context"
     assert "main" in push["branches"]
-    required_jobs = {"pytest", "ruff", "seal", "spine", "anchor"}
+    required_jobs = {"pytest", "windows-gate", "ruff", "seal", "spine", "anchor"}
     for job_id in required_jobs:
-        assert "if" not in workflow["jobs"][job_id], \
+        job_if = workflow["jobs"][job_id].get("if")
+        # `windows-gate` needs `always()` so a failed `pytest`/`plan` cannot SKIP it (a skipped
+        # required check counts as passing); `always()` is never false, so it is not a skip.
+        if job_id == "windows-gate":
+            assert job_if == "${{ always() }}"
+            continue
+        assert job_if is None, \
             f"{job_id} carries a job-level `if:` -- it could be skipped on a main push"
     contexts = {c["context"] for c in
                 ruleset["rules"][0]["parameters"]["required_status_checks"]}

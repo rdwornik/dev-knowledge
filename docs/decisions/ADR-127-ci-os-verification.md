@@ -198,11 +198,17 @@ cost 10, modifiability 10, observability 15; area scores on a 5-point scale):
   suite (`schedule`; `workflow_dispatch` also runs both), and (b) on a merge whose **diff touches
   a Windows-sensitive path**. `conductor.yml` gains a `plan` job whose output is the matrix `os`
   list; `pytest` is `needs: plan`.
-- **D3 — as amended.** The required contexts are `pytest (ubuntu-latest)`, `ruff`, `seal`, `spine`,
-  `anchor` (five). `pytest (windows-latest)` leaves `deploy/conductor-required-checks.ruleset.json`
-  because a server-side ruleset cannot require a check conditionally. For a Windows-sensitive diff
-  `merge_path.py land` / `verdict` add it to the set the verdict must see `success`
-  (`actions_verdict.required_contexts_for`), and an unreadable diff reads as sensitive.
+- **D3 — as amended.** The required contexts are `pytest (ubuntu-latest)`, `windows-gate`, `ruff`,
+  `seal`, `spine`, `anchor` (six; the ruleset file lists exactly these).
+  `pytest (windows-latest)` leaves `deploy/conductor-required-checks.ruleset.json` because a
+  server-side ruleset cannot require a check conditionally. Its place is taken by `windows-gate`,
+  an always-running job that passes when the plan left Windows out and, when the plan put Windows
+  in, passes only if the whole `pytest` matrix succeeded and fails closed on an unreadable plan —
+  so an **armed** ruleset enforces the sensitive-diff rule without `merge_path.py` (Codex terra
+  review of this change, CRITICAL, `docs/audits/2026-10-16-codex-linux-first-ci.md`). For a
+  Windows-sensitive diff `merge_path.py land` / `verdict` additionally add the leg itself to the
+  set the verdict must see `success` (`actions_verdict.required_contexts_for`), and an unreadable
+  diff, scan or known-reds registry reads as sensitive.
 - **The sensitive list is derived from the repo, not invented** (`scripts/ci_os_plan.py`, quoted
   there): the order's own categories as paths (`.gitattributes`, `*.ps1`, `scripts/hooks/`,
   `.claude/settings.json`, `.pre-commit-config.yaml`, `.github/workflows/`); the files named by the

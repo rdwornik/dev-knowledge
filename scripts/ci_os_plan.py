@@ -90,11 +90,15 @@ def run_git(root: Path) -> GitFn:
 
 def registry_windows_only_files(registry_text: str) -> frozenset:
     """Source 2: the test files, and the files their `reason` names, of every member red on
-    windows-latest and not on ubuntu-latest."""
+    windows-latest and not on ubuntu-latest. Raises ValueError on text that is not a registry
+    carrying `members_by_os` as an object: a registry that cannot be read is a failed scan (the
+    caller fails closed), never an empty sensitive set."""
     try:
-        by_os = json.loads(registry_text).get("members_by_os") or {}
-    except ValueError:
-        return frozenset()
+        by_os = json.loads(registry_text)["members_by_os"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ValueError(f"{REGISTRY_RELPATH} is not a readable registry: {exc}") from exc
+    if not isinstance(by_os, dict):
+        raise ValueError(f"{REGISTRY_RELPATH}: members_by_os is not an object")
     windows = by_os.get(WINDOWS) or {}
     linux = by_os.get(LINUX) or {}
     files: set = set()
@@ -122,8 +126,9 @@ def sensitive_files(git: GitFn, *refs: str) -> frozenset:
     for ref in refs:
         found |= platform_branching_files(git, ref)
         code, text = git(["show", f"{ref}:{REGISTRY_RELPATH}"])
-        if code == 0:
-            found |= registry_windows_only_files(text)
+        if code != 0:
+            raise RuntimeError(f"{REGISTRY_RELPATH} could not be read at {ref} ({code})")
+        found |= registry_windows_only_files(text)
     return frozenset(found)
 
 
@@ -156,7 +161,7 @@ def windows_reasons(git: GitFn, base: str, head: str) -> list:
         if changed is None:
             return ["the diff could not be read (fail closed)"]
         return why_sensitive(changed, sensitive_files(git, base, head))
-    except (RuntimeError, OSError) as exc:
+    except (RuntimeError, OSError, ValueError) as exc:
         return [f"the sensitive-path scan failed: {exc} (fail closed)"]
 
 

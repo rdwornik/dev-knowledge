@@ -99,7 +99,10 @@ PYTEST_JOB = "pytest"
 #: merge is judged on Linux alone; `WINDOWS_CONTEXT` is added by `required_contexts_for(True)` only
 #: for a Windows-sensitive diff (`ci_os_plan` decides). The ruleset file lists exactly this tuple,
 #: because a server-side ruleset cannot require a check conditionally.
-REQUIRED_CONTEXTS = ("pytest (ubuntu-latest)", "ruff", "seal", "spine", "anchor")
+#: `windows-gate` is the always-running job that FAILS when the plan put Windows in the run and the
+#: Windows leg did not succeed -- the server-side half of the sensitive-diff rule, so an armed
+#: ruleset enforces it without `merge_path` (Codex terra review, 2026-10-16, CRITICAL).
+REQUIRED_CONTEXTS = ("pytest (ubuntu-latest)", "windows-gate", "ruff", "seal", "spine", "anchor")
 WINDOWS_CONTEXT = "pytest (windows-latest)"
 
 

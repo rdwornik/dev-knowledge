@@ -45,8 +45,8 @@ def _verdict(jobs, *, contexts, status="completed"):
         sleep_fn=lambda _s: None, timeout_s=0, interval_s=1, required_contexts=contexts)
 
 
-LINUX_ONLY_RUN = {LEG_U: "success", "ruff": "success", "seal": "success", "spine": "success",
-                  "anchor": "success"}
+LINUX_ONLY_RUN = {LEG_U: "success", "windows-gate": "success", "ruff": "success",
+                  "seal": "success", "spine": "success", "anchor": "success"}
 
 
 # --- the verdict -------------------------------------------------------------------------------
@@ -63,7 +63,8 @@ def test_the_default_required_set_no_longer_names_windows():
     assert LEG_W not in av.REQUIRED_CONTEXTS
     assert LEG_U in av.REQUIRED_CONTEXTS
     assert av.required_contexts_for(False) == av.REQUIRED_CONTEXTS
-    assert av.required_contexts_for(True) == (LEG_U, LEG_W, "ruff", "seal", "spine", "anchor")
+    assert av.required_contexts_for(True) == (LEG_U, LEG_W, "windows-gate", "ruff", "seal",
+                                              "spine", "anchor")
 
 
 def test_a_windows_sensitive_diff_still_requires_the_windows_leg():
@@ -183,14 +184,17 @@ def test_land_requires_windows_for_a_platform_branching_script():
 
 # --- the sensitive list, and where it comes from ------------------------------------------------
 
-def _git(changed, *, platform="", registry=None, diff_rc=0):
+_EMPTY_REGISTRY = json.dumps({"members_by_os": {}})
+
+
+def _git(changed, *, platform="", registry=_EMPTY_REGISTRY, diff_rc=0, registry_rc=0):
     def run(args):
         if args[0] == "diff":
             return diff_rc, "\n".join(changed)
         if args[0] == "grep":
             return (0, platform) if platform else (1, "")
         if args[0] == "show":
-            return (0, registry) if registry is not None else (128, "")
+            return registry_rc, registry
         if args[0] == "merge-base":
             return 0, BASE
         return 1, ""
@@ -236,10 +240,22 @@ def test_a_deleted_platform_script_still_counts_through_the_base_scan():
         if args[0] == "grep":
             seen.append(args[4])
             return (0, "base:scripts/gone.py\n") if args[4] == "base" else (1, "")
-        return 128, ""
+        return 0, _EMPTY_REGISTRY
 
     assert plan.sensitive_files(run, "base", "head") == {"scripts/gone.py"}
     assert seen == ["base", "head"]
+
+
+def test_an_unreadable_registry_at_either_end_fails_closed():
+    """Codex terra HIGH (2026-10-16): a registry that cannot be read must never be an empty set."""
+    for kwargs in ({"registry_rc": 128, "registry": ""}, {"registry": "not json"},
+                   {"registry": json.dumps({"members": {}})},
+                   {"registry": json.dumps({"members_by_os": []})}):
+        assert plan.windows_required(_git(["docs/x.md"], **kwargs), BASE, TIP), kwargs
+
+
+def test_a_readable_registry_and_a_clean_diff_is_linux_only():
+    assert not plan.windows_required(_git(["docs/x.md"]), BASE, TIP)
 
 
 def test_a_failing_scan_fails_closed():

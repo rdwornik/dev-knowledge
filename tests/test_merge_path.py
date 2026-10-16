@@ -235,8 +235,10 @@ def test_land_reads_the_ONE_verdict_with_the_six_required_contexts_and_the_base(
 
     kind, sha, kwargs = next(r for r in rig.recorded if r[0] == "verdict")
     assert sha == TIP and kwargs["baseline"] == BASE
+    # This Rig answers `diff` with an error, and an unreadable diff reads as Windows-sensitive
+    # (ADR-127 AMENDMENT 2): the full set, Windows leg included.
     assert kwargs["required_contexts"] == ("pytest (ubuntu-latest)", "pytest (windows-latest)",
-                                           "ruff", "seal", "spine", "anchor")
+                                           "windows-gate", "ruff", "seal", "spine", "anchor")
 
 
 def test_land_waits_for_CI_before_it_pushes_to_main():
@@ -410,7 +412,7 @@ def test_b2_land_hands_the_receipt_read_the_six_required_contexts():
     _land(rig)
 
     assert seen["required_contexts"] == ("pytest (ubuntu-latest)", "pytest (windows-latest)",
-                                         "ruff", "seal", "spine", "anchor")
+                                         "windows-gate", "ruff", "seal", "spine", "anchor")
 
 
 @dataclass
@@ -558,8 +560,8 @@ def test_b2_apply_still_needs_the_operators_GO_beside_a_good_record(tmp_path):
     assert len(unmet) == 1 and "GO" in unmet[0]
 
 
-@pytest.mark.parametrize("context", ["pytest (ubuntu-latest)", "ruff", "seal", "spine",
-                                     "anchor"])   # ADR-127 AMENDMENT 2: five; Windows is not in the ruleset
+@pytest.mark.parametrize("context", ["pytest (ubuntu-latest)", "windows-gate", "ruff", "seal",
+                                     "spine", "anchor"])   # ADR-127 AMENDMENT 2: the ruleset's six
 @pytest.mark.parametrize("conclusion", ["failure", "skipped", "cancelled", "timed_out", None])
 def test_b2_apply_refuses_a_record_where_ANY_required_context_is_not_success(
         tmp_path, context, conclusion):
