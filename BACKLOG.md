@@ -823,6 +823,11 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
 - [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
+- [#1619] [P1][S] A dependency on another session's event is a WAIT, never a skip (night contract N1) · tasks/1619-a-dependency-on-another-sessions-event-is-a-wait-never-a-skip-n1.md
+- [#1620] [P1][S] A session ends only when every part is DONE or BLOCKED-WITH-OWNER, or its stop condition fires (night contract N2) · tasks/1620-a-session-ends-only-when-every-part-is-done-or-blocked-with-owner-n2.md
+- [#1621] [P1][S] END-EARLY is an alarm: first line of the report plus a proactive send to the operator (night contract N3) · tasks/1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md
+- [#1622] [P1][M] A POST-CLOSE list the integrator reads every wake and executes at batch close (night contract N4) · tasks/1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md
+- [#1623] [P1][M] plan_lint refuses a batch or night order whose dependent part names no trigger and no wait mechanism, or says "do not poll" without an armed wake (night contract N5) · tasks/1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md
 
 ---
 

@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-16 (j) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-night-contract-2026-10-16 merges -- rows [#1619]-[#1623] filed for night-contract rules N1-N5
+
+**Anchors:** `a6cc4a29` (rows filed, branch `worktree-resume-night-contract-2026-10-16`, introduced by this merge), `ba74a507` (its origin/main sync).
+
+**Did:** merged `--no-ff` on `e1fd5543`, next in the queue under the Tech-Architect-45 ruling (2026-10-16). Five task files and their manifest nodes. `gen_task_tree --emit-source` reports BACKLOG.md current (663 tasks), and `--check` is ok. Lane 1015 landed before this as `e1fd5543`; `[#1015]` is held PARTIAL, not closed, because its Done-when clause (3), plan_lint wired at the pre-launch moment, is unmet on main (receipt). The 1015 arc receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `tasks/1619-*.md` .. `tasks/1623-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** night-archive repair 1 @ `515a62f6`, then night-retire @ `95e49a5d`, then resume-vendor-fix repair 2 @ `f387e8f1`.
+
+---
+
 ### 2026-10-16 (i) - CC (Opus 5.5, integrator BU cycle-4): worktree-lane-rn-1015-plan-lint-owns merges -- plan_lint reads ownership from **Owns:** when **Files you own:** is absent [#1015]
 
 **Anchors:** `9290c0e4` (fix, branch `worktree-lane-rn-1015-plan-lint-owns`, introduced by this merge), `529f40b7` (its RED).

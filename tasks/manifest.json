@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "1a3ec99a15099f3b874ec3ea0b44a0c0f2dab7cf7d0ff6e8b9397a337e318cad",
+  "generated_sha256": "23472688ecce89972c87998f1b9b04af8a1ebb080f02e2c68108c5192680d8d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3134,6 +3134,26 @@
     {
       "task": 1540,
       "file": "1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md"
+    },
+    {
+      "task": 1619,
+      "file": "1619-a-dependency-on-another-sessions-event-is-a-wait-never-a-skip-n1.md"
+    },
+    {
+      "task": 1620,
+      "file": "1620-a-session-ends-only-when-every-part-is-done-or-blocked-with-owner-n2.md"
+    },
+    {
+      "task": 1621,
+      "file": "1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md"
+    },
+    {
+      "task": 1622,
+      "file": "1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md"
+    },
+    {
+      "task": 1623,
+      "file": "1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md"
     },
     {
       "prose": ""
