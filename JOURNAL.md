@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-16 (d) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges -- the devcontainer pins claude 2.1.301 (batch-resume-night PART B, queued post-close)
+
+**Anchors:** `dbe4f3d7` (the pin write, branch `worktree-resume-pin-2026-10-16`, introduced by this merge).
+
+**Did:** merged `--no-ff` on `c13a166d` at the request of the batch-resume-night seat (AMEND-1, operator-authorized; it lands through the live integrator claim). One file: `.devcontainer/provisioning.yaml` moves claude 2.1.300 -> 2.1.301 with its re-measured sha256, because `dispatch.py codespace-exec`'s pin gate refused the first Codespace launch (the laptop prints 2.1.301). The bu-1539-row-close arc merge-receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `.devcontainer/provisioning.yaml`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-resume-vendor-fix-2026-10-16` @ `e3620066` lands next.
+
+---
 ### 2026-10-16 (c) - CC (Opus 5.5, integrator BU cycle-4): [#1539] [#1454] [#1332] close after the transport janitor --apply; the night-archive land is refused
 
 **Anchors:** `c81b326e` (the row close, branch `chore/bu-1539-row-close`, introduced by this arc's merge).
