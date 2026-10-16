@@ -263,7 +263,7 @@ def format_findings(results: list[ClaimResult]) -> str:
 # ARCHITECTURE.md, so a count bump edits only that (non-freshness) file and never trips
 # canonical_freshness A2 into forcing an ARCHITECTURE re-stamp (#222). The file is regenerated
 # by scripts/gen_doc_counts.py (which reuses these same derivers). The §9 roster set-claim
-# stays on CLAUDE.md. Regexes/derivers are unchanged by the move — reconcile is doc-agnostic.
+# stays on .claude/BOOT-REFERENCE.md (relocated from CLAUDE.md by [#1616]). Regexes/derivers are unchanged by the move — reconcile is doc-agnostic.
 _CLAIMS = [
     Claim("audit_check_count", "ecosystem/doc-counts.md",
           re.compile(r"\*\*(\d+)\s+registered checks\*\*"), "count",
@@ -273,7 +273,7 @@ _CLAIMS = [
           re.compile(r"pre-commit gates \((\d+)\)"), "count",
           lambda root, n: len(extract_hook_ids(
               (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")))),
-    Claim("precommit_hook_roster", "CLAUDE.md",
+    Claim("precommit_hook_roster", ".claude/BOOT-REFERENCE.md",
           None, "set",
           lambda root, n: set(extract_hook_ids(
               (root / ".pre-commit-config.yaml").read_text(encoding="utf-8")))),

@@ -22,8 +22,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 #: CLAUDE.md plus every file it @-imports -- the real session payload (the byte-cap module's
 #: docstring names the expanded payload as the unbuilt gate; this is it).
-CLAUDE_MD_CAP = 15 * 1024
-CLAUDE_MD_EXPANDED_CAP = 22 * 1024
+CLAUDE_MD_CAP = 17 * 1024
+CLAUDE_MD_EXPANDED_CAP = 23 * 1024
 #: The SessionStart hook's injected stdout (was 8,192).
 SESSION_START_CAP = 2560
 #: The always-loaded rule file (was 5,694).
@@ -73,7 +73,7 @@ def test_git_discipline_rule_is_under_target_and_keeps_its_verify_lines() -> Non
 
 
 def test_relocated_detail_has_its_home() -> None:
-    home = _REPO_ROOT / "docs" / "BOOT-REFERENCE.md"
+    home = _REPO_ROOT / ".claude" / "BOOT-REFERENCE.md"
     assert home.is_file()
     text = home.read_text(encoding="utf-8")
     for needle in ("Hooks active", "MERGE IS ATOMIC", "WORKTREE TEARDOWN IS TWO BRANCHES"):

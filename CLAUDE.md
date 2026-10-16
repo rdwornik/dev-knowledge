@@ -9,11 +9,9 @@ owner: Rob
 <!-- scope: meta -->
 <!-- version: 2.77 — 2026-09-08 -->
 
-> **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
+> **Session boot contract** — auto-read at session start (ADR-53/ADR-115): a rule lives here only if a session needs it *before it can act*; detail lives at the home each line cites.
 >
-> **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
->
-> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` was **deleted 2026-09-14** (`[#628]`) — its doctrine lives in PLAYBOOK; do not look for it.
+> **Budget — bytes bind. ≤17,408 B** (`tests/test_claude_md_byte_cap.py`, `tests/test_startup_budget.py`; ADR-53's ≤200 lines kept). `protocols/PLAYBOOK.md` is the on-demand reference, never a boot read. Relocated detail: `.claude/BOOT-REFERENCE.md`.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -37,7 +35,7 @@ In order, read:
 - **Purpose:** the universal LLM-driven development guide and methodology framework governing every project under `Dev/` — Layer 2 of the ADR-28 three-layer ecosystem model
 - **Critical paths:** `protocols/`, `docs/decisions/`, `templates/`, `README.md`, `ARCHITECTURE.md`
 - **Related:** `~/.claude/` (L0 runtime config) · `.claude/` (project config) · `Dev/` child repos, each owning its own `CLAUDE.md`
-- **Portable layer:** root `AGENTS.md` carries the build/test/landing facts every provider reads (ADR-115, superseding ADR-53 Decision 2); this file keeps the Claude-runtime remainder and imports it below. No fact is duplicated across the two — the importer preserves ADR-53's substance
+- **Portable layer:** `AGENTS.md` (imported below) carries the build/test/landing facts every provider reads (ADR-115); this file keeps the Claude-runtime remainder.
 
 @AGENTS.md
 <!-- methodology:end id=repo-identity -->
@@ -49,33 +47,28 @@ In order, read:
 
 `ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51 as amended 2026-05-23). NOT a code project: markdown governance files plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4).
 
-- **Where to jump:** **Ch2** organ map — which organ fires when, and how it fails · **Ch3** automation axes — cloud/nightly Routine, spec-orchestration, model routing · **Ch4** distribution — carriers, child floor, browser bundle · **Ch6** verification mesh — the nightly outcome loop.
-- **The daily working mode is NOT in ARCHITECTURE.** Parallel worktree lanes, lane dispatch and the ADR-110 batch protocol are `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**.
+- Jump: ARCHITECTURE Ch2 organs · Ch3 automation · Ch4 distribution · Ch6 verification mesh. Daily working mode (lanes, batches): `protocols/PLAYBOOK.md` Ch8 "Session boundaries". Full pointer text: `.claude/BOOT-REFERENCE.md` §3.
 <!-- methodology:end id=repo-architecture -->
 
 ## 4. Conventions
 <!-- scope: meta -->
 
-- **Naming:** UPPERCASE for top-level living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` for dated artifacts, `docs/audits/` names also carrying a closed-enum class (`validate_hermetization.AUDIT_CLASS_ENUM`); `logs/` artifacts UPPERCASE-KEBAB, extension honest to the format ([#395]); kebab-case otherwise
+- **Naming:** UPPERCASE top-level living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` dated artifacts (audit classes, `logs/` naming: `.claude/BOOT-REFERENCE.md` §Conventions); kebab-case otherwise
 > **[HUB - methodology]** region `conventions-commit-branch` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-commit-branch owner=hub -->
 - **Commits & branches:** Branch prefixes are a closed enum — author-chosen `feat/ fix/ docs/ chore/`, plus four machine-produced lane prefixes `worktree-<name>`, `epic/<slug>`, `claude/<slug>`, `automation/<slug>` (each admitted only by a recorded ruling, never invented in passing — full provenance: PLAYBOOK Ch3 "Branch prefixes — the closed enum"). Commit **types** follow Conventional Commits plus `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 <!-- methodology:end id=conventions-commit-branch -->
+- **Also (relocated: `.claude/BOOT-REFERENCE.md` §Conventions):** scope tags · file lifecycle (append-only `LESSONS.md`/`logs/TOKEN-LOG.md`, newest-first `JOURNAL.md`, `BACKLOG.md` generated — edit `tasks/`) · freshness cadence · TDD · spec-driven development.
 - **Testing:** `uv run --locked pytest -x --tb=short` — a bare `pytest` resolves nothing on a clean checkout (ADR-106 §4). In a lane run the **targeted** tests for that lane's diff; the **full suite runs once, at integration** ([#528])
 - **Linting:** `uv run --locked ruff check --fix`; `ruff check` is also a pre-commit gate (§9) and blocks
-- **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal, not enforced (ADR-27/ADR-48)
-- **File lifecycle:** append-only `LESSONS.md` + `logs/TOKEN-LOG.md`; newest-first-prepend `JOURNAL.md`; immutable ADRs / transcripts / handoffs / audits; living `README.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md` — rules and exceptions at §5. **`BACKLOG.md` is generated:** edit `tasks/`, then `gen_task_tree.py --emit-source`
-- **Freshness cadence:** the stamped set is **computed, not restated here** — `canonical_docs.py::FRESHNESS_FILES` + `audit.py::_HUB_ONLY_FRESHNESS_FILES`. A `last_reviewed` stamp means *re-read end-to-end and confirmed accurate, or drift filed*, never merely "touched"
-- **TDD — a build-arc standard, not a blanket mandate.** ADR-108 §B binds every build arc: RED-first witnesses, failing tests before build code, frozen after freeze; the architect freezes the pass/fail criterion *before* it, and CC may strengthen but **never weaken** it (ADR-81 amend. 2026-06-24). A blanket mandate is **not** live — Council rejected "Mandatory TDD". Say partial when it is partial
-- **Spec-driven development (ADR-108 §B)** — spec before build, acceptance contract ex-ante. Live: the `check-against-spec` skill, `coherence-nudge` over `_SPEC_REGISTRY`, the `reconciled_versions` check, this file's `reconciled_with:` stamp
 > **[HUB - methodology]** region `conventions-library-first` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-library-first owner=hub -->
 - **Library-first:** before any build — stdlib > established dependency > stabilized project > industry pattern; hand-roll only on a MEASURED divergence on this repo, recorded so it is not relitigated. Every plan names its library-first check or gives a one-line reason for its absence.
 <!-- methodology:end id=conventions-library-first -->
 - **Dependencies (ADR-106):** declared by `pyproject.toml` + `uv.lock` + `.python-version`, rebuilt by `uv sync --locked`, `uv` pinned **exactly** — a uv bump is its own gated change. Every gate runs `uv run --locked …`, so a bare `python`/`pytest` in a doc is a defect, not a shorthand
-- **Decision funnel (ADR-111):** every audit finding is triaged into **exactly one** of OWNED / DISCHARGED / CANDIDATE / REJECTED — no finding becomes a backlog row without triage, and the only path is CANDIDATE → intake (ADR-98) → ratification. Question routing is ADR-108 §A: the operator rules **functional** questions, the architect **technical** ones
+- **Decision funnel (ADR-111):** every audit finding is triaged into exactly one of OWNED / DISCHARGED / CANDIDATE / REJECTED; the only path to a backlog row is CANDIDATE → intake (ADR-98) → ratification. Operator rules functional questions, architect technical ones (ADR-108 §A).
 
-**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard is OFF since 2026-09-17 (expiry 2026-10-08, [#863]; §9).
+**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. Do not recreate the in-hub Council transcript archive (deleted 2026-07-22).
 
 > **[HUB - methodology]** region `conventions-output-formatting` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-output-formatting owner=hub -->
@@ -134,69 +127,22 @@ Repo-level commands are machine-enumerated in `.claude/generated/commands-repo.m
 ## 8. Skills active
 <!-- scope: runtime -->
 
-User-level (`~/.claude/skills/`): `gotchas` — universal dev gotchas (encoding, shell safety, test pitfalls). `verify` is **not** user-level; the live copy is hub-local, below. `boot` / `session-summary` / `handoff` / `save` are **commands** (§7), not skills, however the picker surfaces them.
+User-level (`~/.claude/skills/`): `gotchas`. `verify` is hub-local. `boot` / `session-summary` / `handoff` / `save` are **commands** (§7), not skills.
 
 > **[REPO - local]** region `skills-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=skills-repo-roster owner=repo -->
-Repo-level skills live in `.claude/skills/<name>/SKILL.md` — list that directory when a skill-shaped task arises; run `verify` after `pytest`. Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes. Plugin `tier1-lifecycle@dev-knowledge-methodology` is enabled (its `Stop` hook runs `propose_closures.py`; it ships `/review-closures` + `/ship`).
+Repo-level skills: `.claude/skills/<name>/SKILL.md` — list that directory; run `verify` after `pytest`. Empirical patterns: `LESSONS.md` (append-only; read before structural changes). Plugin `tier1-lifecycle@dev-knowledge-methodology` is enabled (ships `/review-closures` + `/ship`; its `Stop` hook runs `propose_closures.py`).
 <!-- methodology:end id=skills-repo-roster -->
 
 ## 9. Hooks active
 <!-- scope: runtime -->
 > **[REPO - local]** region `hooks-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=hooks-repo-roster owner=repo -->
-
-> **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
-
-<!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 12 (counter+expiry; `dispatch-conformance` retired 2026-10-05) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
-- `normalize-dated-headers` — dated-log header normalization
-- `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
-- `toc-freshness-playbook` — PLAYBOOK TOC staleness
-- `roster-freshness` — `.claude/methodology-roster.md` vs the deploy manifest
-- `claude-rosters-freshness` — the two generated `.claude/generated/` fragments
-- `audit-index-freshness` — generated `docs/audits/README.md`
-- `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
-- `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
-- `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
-- `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
-- `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
-- `check-seal-identity` — handoff-bundle seal identity at commit time
-- `block-commit-on-main` — core-invariant #5 PREVENT at commit time
-- `lane-contract-check` — shape gate for a generator-emitted lane contract
-- `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
-- `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
-- `validate-backlog` — BACKLOG story-map schema (ADR-66)
-- `row-archive-proof` — `archive_row_body.py verify`: byte-identity legs A-E over `tasks/archive/`; `verify` only, never the writing subcommands ([#664] TRIGGER row)
-- `graph-rebuild` — rebuilds the persisted FPG-1 store ([#664] clause 1)
-- `graph-orphan-census` — a process no wiring surface reaches, transitively ([#664] clause 2)
-- `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)
-- `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
-- `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
-- `decision-coverage` — an accepted decision no row implements; two legs, era-bounded ([#692])
-- `graph-edge-class-census` — edge-class ratchet ([#664])
-- `quality-requirements-freshness` — quality register ([#765])
-- `prepend-order` — newest-first / append-only logs ([#786])
-- `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
-- `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
-- `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
-- `backlog-id-on-close` (commit-msg) — `[#id]` required when a commit removes a task
-- `backlog-filing-backpressure` (commit-msg) — a commit ADDING a task id needs a flush-left `kill-candidates:` line
-- `commit-message-type-prefix` (commit-msg) — type prefix ([#834])
-- `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
-- `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
-
-**Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
-
-Session hooks (`.claude/settings.json`, `disableAllHooks: false`): **1 SessionStart**, `scripts/hooks/session_start.py` via the shared launcher ([#1001]): 9 readers in one interpreter (`arm_hooks`, `surface_triage`, `changelog_sentinel`, `conductor` session-start, `resource_lifecycle` session-start, `codespace_regime` session-start, `billing_leak_sentinel`, `fleet_health`, `quota_daily`), output byte-capped **+ 2 Stop** (`session_end_backpressure`, advisory; `lane_end_guard`). **PreToolUse** `scripts/hooks/scope_guard.py` IS wired, at `.claude/settings.json:89` (L2, every tool call). Separately, PreToolUse `[#727]` deny-and-point stays UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Off since 2026-09-17, expiry 2026-10-08 pending wave 5b ([#863]): the prompts guard, the ADR-77 transcript guard, `logs_retention.py`. `propose_closures` (plugin Stop) still runs, KNOWN-UNGOVERNABLE.
-
-Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
+Pre-commit / commit-msg / pre-push roster, session hooks, rules: `.claude/BOOT-REFERENCE.md` §9 (live sources: `.pre-commit-config.yaml`, `.claude/settings.json`, `ecosystem/organ-index.md`). Arm once per clone: `pre-commit install --hook-type pre-push` (SessionStart's `arm_hooks.py` does it idempotently). Rule: `.claude/rules/git-discipline.md` — commit after every file edit; clean tree at session end.
 
 ### Methodology-deployed roster (generated — do not hand-edit)
 
-What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yaml` and `@`-imported below (`gen_methodology_roster.py --write`; drift-gated by `roster-freshness`). §7–§9 stay hand-authored for the hub-LOCAL surface — the items with no manifest entry.
-
-@.claude/methodology-roster.md
+Generated from `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --write`; drift-gated by `roster-freshness`); read on demand, no longer `@`-imported: `.claude/methodology-roster.md`
 <!-- methodology:end id=hooks-repo-roster -->
 
 ## 10. Anti-patterns specific to Claude Code in this repo
@@ -219,7 +165,7 @@ What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yam
 
 Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editorial one-liners live in `docs/decisions/README.md`; the full governance list is in `ARCHITECTURE.md`.
 
-@.claude/generated/recent-adrs.md
+Read on demand: `.claude/generated/recent-adrs.md`
 <!-- methodology:end id=recent-adrs-roster -->
 
 ## 12. Section history
