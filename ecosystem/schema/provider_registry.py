@@ -39,6 +39,9 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
+#: 1.5.0 — `lane-bu-1536-routing` ([#1536], R104) adds `RoleEntry.max_turns_floor` (a reviewer entry
+#: declares the minimum `--max-turns` its CLI needs) and the `red`/`qa`/`judge` role names. MINOR:
+#: the field is optional, so every earlier registry validates unchanged.
 #: 1.4.0 — `foundation-10-model-currency` (R61) adds `Model.last_verified` and `Model.evidence`:
 #: the date a model id was last read as SERVED, and the records that show it. Both optional, so
 #: every pre-R61 registry validates unchanged (MINOR); an unset date is read as unverified by
@@ -56,7 +59,7 @@ from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 #: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
 #: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
 #: reconciliation obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.4.0"
+SCHEMA_VERSION = "1.5.0"
 
 #: The prefix that marks an evidence reference as living on the operator's transport rather than
 #: in this repository. CI cannot read the transport, so such a reference may ride beside an
@@ -547,7 +550,9 @@ class Model(_Contract):
         return self
 
 
-#: The six roles AX21-1's role->model table names, closed and in its order. Held here AND in
+#: The six roles AX21-1's role->model table names, closed and in its order, plus `red`, `qa` and
+#: `judge` (R104, 2026-10-14: Sonnet 5.5 writes the RED tests, a separate Copilot session runs QA,
+#: Opus 5.5 judges). Held here AND in
 #: `scripts/cost_usage_telemetry.ROLES` — two copies, which needs justifying rather than
 #: hand-waving: the emitter must not import a pydantic schema to validate one string (it is a
 #: leaf module with a deliberately thin import surface), and this module must not import a
@@ -557,7 +562,7 @@ class Model(_Contract):
 #: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
 #: keys a measured pass rate, and collapsing them would make one of the two lie.
 ROLE_NAMES: frozenset[str] = frozenset(
-    {"orchestrate", "plan", "implement", "review", "read", "verify"}
+    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge"}
 )
 
 
@@ -607,6 +612,18 @@ class RoleEntry(_Contract):
     #: rather than silently re-pinned, because moving an unadmitted position to an
     #: unverified id would manufacture the same kind of drift this field exists to end.
     currency_exception: Optional[CurrencyException] = None
+    #: R104 / common rules section 7.6b: `grok -p` returns nothing at `--max-turns 1`, so a
+    #: reviewer entry declares the minimum its CLI needs. `None` means no floor is declared.
+    max_turns_floor: Optional[int] = None
+
+    @model_validator(mode="after")
+    def _max_turns_floor_is_at_least_one(self) -> "RoleEntry":
+        if self.max_turns_floor is not None and self.max_turns_floor < 1:
+            raise ValueError(
+                f"max_turns_floor {self.max_turns_floor} is below 1 — a turn floor under one "
+                f"is not a floor"
+            )
+        return self
 
 
 class DispatcherPin(_Contract):

@@ -722,7 +722,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 - [#1331] [P1][L] The equilibrium's ruling register and cross-window state move into the repository · tasks/1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md
-- [#1332] [P2][M] P11 and the paste builder treat superseded decision files as discharged · tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md
 - [#1333] [P2][S] logs/QUOTA-READS.jsonl is tracked and dirty in every primary session; its home is per-user state · tasks/1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md
 - [#1334] [P2][M] The rclone Drive token expires every 7 days and nothing in the harness tracks it · tasks/1334-the-rclone-drive-token-expires-every-7-days-and.md
 - [#1335] [P2][M] Codespace parity: a lane there works only when one task meets five parity items, and none has been measured · tasks/1335-codespace-parity-a-lane-there-works-only-when-on.md
@@ -784,14 +783,13 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1440] [P1][M] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates · tasks/1440-handoff-readiness-pins-commit-and-completed-ci-run-across-dry-run-and-cut.md
 - [#1441] [P1][S] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) · tasks/1441-repair-the-new-reds-the-b-plus-step-2-landing-put-on-main.md
 - [#1442] [P1][M] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) · tasks/1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md
+- [#1443] [P1][M] Boot reading path: the generated dispatch map, the seat exam and the dispatch exam join HANDOFF_BOOT's reading path with W2-22 (R73, R80, R84) · tasks/1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md
 - [#1444] [P1][M] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) · tasks/1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md
 - [#1445] [P1][S] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date · tasks/1445-a-dated-item-warns-three-days-before-its-date.md
 - [#1447] [P2][S] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape · tasks/1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md
-- [#1450] [P1][S] HANDOFF_BOOT teaches the browser's triage-then-sequence order (R80) and names the generated transport INDEX as the first read (R84) · tasks/1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md
 - [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
 - [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
 - [#1453] [P1][M] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) · tasks/1453-the-codespace-reaches-production-on-three-green-runs-r83.md
-- [#1454] [P1][M] The generated transport index is built first in B2 W2 and groups files by the seat that wrote them (R84, R91) · tasks/1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md
 - [#1455] [P1][L] Handback to main takes at most 15 minutes at the median, and the four first-wave levers are built or disposed (R85) · tasks/1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md
 - [#1456] [P1][M] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) · tasks/1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
@@ -822,11 +820,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1532] [P3][S] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned · tasks/1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
 - [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
-- [#1535] [P1][L] The outer loop runs in code: the [#689] loop step (round loop, phase adapter, receipts, constraints, distiller with CHALLENGE, point tasks) and ADR-130 · tasks/1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md
 - [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
 - [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
-- [#1538] [P1][S] Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file (twin of [#1446]) · tasks/1538-rulings-r100-r115-land-in-standing-rulings-by-id.md
-- [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
 - [#1551] [P1][L] A Codespace lane carries a per-phase heartbeat, and six injected failures are detected and recovered without the operator · tasks/1551-codespace-heartbeat-and-six-injected-failures.md
 - [#1552] [P2][M] Every Codespace credential has a recorded class, issuer, expiry policy and renewal act, checked at creation · tasks/1552-codespace-credential-lifetime-register.md

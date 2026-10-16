@@ -57,6 +57,7 @@ from typing import Callable, Optional, Sequence
 
 import click
 
+import known_reds
 import memory_admission_gate  # LANE-5A-3: the ship-gate and pytest calls are gated
 import merge_path  # A4: one run event per gate, to the R17 private home
 
@@ -154,6 +155,66 @@ def _run_pytest(cwd: Path, args: list[str]) -> tuple[int, str]:
     return _run_argv_gated((*_UV, "pytest", "-x", "--tb=short", *args), cwd, workers_flag="-n")
 
 
+_TEST_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(test\w*)", re.MULTILINE)
+
+
+def _deselect_overreach(cwd: Path, node_id: str, owned: set[str]) -> str:
+    """Why `--deselect node_id` would also drop a test the registry does not own, or "".
+
+    pytest's `--deselect` is a node-id PREFIX match: a file-level id drops the whole file, and
+    `f.py::test_a` also drops an unowned `f.py::test_a_b`. Read statically from the file's
+    `def test*` names; a missing or unreadable file collects nothing, so nothing is over-dropped."""
+    if "::" not in node_id:
+        return "a file-level id would deselect every test in the file"
+    if "[" in node_id:
+        return ""
+    file_part, _, rest = node_id.partition("::")
+    name = rest.rsplit("::", 1)[-1]
+    if name.startswith("Test"):  # pytest's default `python_classes`
+        return "a class-level id would deselect every test in the class"
+    try:
+        text = (cwd / file_part).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+    prefix = node_id[: len(node_id) - len(name)]
+    for other in sorted(set(_TEST_DEF.findall(text))):
+        if other != name and other.startswith(name) and f"{prefix}{other}" not in owned:
+            return f"--deselect is a prefix match and would also drop unowned {other}"
+    return ""
+
+
+def _known_red_deselections(cwd: Path) -> tuple[list[str], list[str]]:
+    path = cwd / known_reds.REGISTRY_PATH
+    if not path.is_file():
+        return [], [f"known-reds registry absent at {path}: nothing deselected, "
+                    "the impacted set runs plain"]
+    try:
+        registry = known_reds.load_registry(path)
+    except known_reds.KnownRedsError as exc:
+        first = (str(exc).splitlines() or [""])[0]
+        return [], [f"known-reds registry refused: {first}; nothing deselected, "
+                    "the impacted set runs plain"]
+    except (OSError, ValueError) as exc:
+        return [], [f"known-reds registry unreadable: {exc!r}; nothing deselected, "
+                    "the impacted set runs plain"]
+    merged = {**registry.members, **registry.members_by_os.get(known_reds.default_os_key(), {})}
+    args: list[str] = []
+    report: list[str] = []
+    for node_id, entry in sorted(merged.items()):
+        overbroad = _deselect_overreach(cwd, node_id, set(merged))
+        if overbroad:
+            report.append(f"known-red NOT deselected: {node_id} ({overbroad}); it runs plain")
+            continue
+        args += ["--deselect", node_id]
+        report.append(f"known-red deselected: {node_id} (owned by {entry.get('task')}, "
+                      f"expires {entry.get('expiry')})")
+    return args, report
+
+
+# PLAIN, NOT PAIRED ([#912]): the only reds subtracted are the registry's owned, in-date
+# entries, named one per line; an expired or unowned entry makes `load_registry` refuse, and
+# then NOTHING is deselected -- the gate goes red rather than vouching for a red nobody owns.
+# `test_pairing.py` stays declared in moment `merge` but can no longer turn a red gate green.
 def impacted_tests_gate(cwd: Path, base: str = "HEAD^1") -> tuple[int, str]:
     code, out = _select_impacted(cwd, base)
     if code != 0:
@@ -166,7 +227,9 @@ def impacted_tests_gate(cwd: Path, base: str = "HEAD^1") -> tuple[int, str]:
     args = " ".join(line for line in lines if not line.startswith("#")).split()
     if not args:
         return 0, "no impacted tests selected (" + " | ".join(lines) + ")"
-    return _run_pytest(cwd, args)
+    deselect, report = _known_red_deselections(cwd)
+    code, text = _run_pytest(cwd, [*args, *deselect])
+    return code, "\n".join(report + [text]) if report else text
 
 
 #: THE DECLARED LIST. Order is the order they run; add a gate by adding a row, never by a flag.

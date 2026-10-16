@@ -74,7 +74,7 @@ generated bundle (booting the browser) is `docs/handoffs/README.md`.
 ## Preflight — pre-handoff hygiene is a MECHANISM, not a checklist
 
 `generate()` refuses a cut on any FAILING hygiene row, alongside the two boundary invariants
-it already enforces (WINDOW = BATCH, no leftovers). Ten rows, each PASS / FAIL / n-a with a
+it already enforces (WINDOW = BATCH, no leftovers). Each row is PASS / FAIL / n-a with a
 locator; every failure is named in ONE refusal; nothing is written. The rows and their
 predicates live in `scripts/gen_handoff.py` (`preflight_rows`, `assert_preflight`) — read them
 there, do not restate them here.

@@ -3,55 +3,74 @@
 no bound living INSIDE it can ever fire. Only an external watchdog that reads the OS process
 table from outside that process's own tree can see it at all. This module is that watchdog.
 
-WHY THE PROCESS IS CREATED SUSPENDED IN THE FIRST PLACE (Done-item 1) -- cited, not inferred.
-Every child process Node.js spawns on Windows goes through libuv's `uv_spawn`
-(`src/win/process.c`). For the class of spawn a hook's top-level command needs -- its own
-process group, so it survives independently of the harness process and can be killed as a
-whole tree at the hook's declared `timeout` (`UV_PROCESS_DETACHED`) -- libuv's own sequence is
-TWO separate Win32 calls, never one (quoted verbatim, libuv v1.x, fetched 2026-09-29 from
-`https://raw.githubusercontent.com/libuv/libuv/v1.x/src/win/process.c`, around line 1120-1174;
-a copy is kept beside this lane's handback):
+WHY THE PROCESS IS CREATED SUSPENDED IN THE FIRST PLACE (Done-item 1) -- read from the client's
+own spawn path and cited, not inferred. CORRECTED 2026-10-15 (lane-bu-863-prompts-guard): the
+first version of this paragraph (LANE-5B5-5) put the suspension in libuv's `UV_PROCESS_DETACHED`
+branch. Reading the installed client shows that branch is never taken for a hook on Windows.
 
-    process_flags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
-    process_flags |= CREATE_SUSPENDED;
-    ...
-    CreateProcessW(application_path, arguments, NULL, NULL, 1, process_flags, ..., &info)
-    ...
-    if (process_flags & CREATE_SUSPENDED) {
-      if (ResumeThread(info.hThread) == ((DWORD)-1)) {
-        err = GetLastError();
-        TerminateProcess(info.hProcess, 1);
-        goto done;
-      }
-    }
+1. THE CLIENT'S SPAWN. Claude Code 2.1.300 (`~/.local/bin/claude.exe`, a Bun single-file build,
+   sha256 56810a111c01dcd218b42727c23fd8763be42320038b1adcac93cf599fac2de2) runs a hook command,
+   in the function that sets `CLAUDE_PROJECT_DIR` / `CLAUDE_ENV_FILE` for it (byte offset
+   ~233104168 of that file), as:
 
-`CreateProcessW` is called WITH `CREATE_SUSPENDED`; the child's one thread is resumed only by
-the SEPARATE, LATER `ResumeThread` call. Standard-handle inheritance (the harness's own
-stdout/stderr pipes) is wired up by `CreateProcessW` itself, before any thread ever runs --
-this repo's own measurement (`bounded_hook.py`'s docstring, lane ab-808 step 1) already
-established that "the harness waits for [an inherited] pipe to close" past a hook's bound with
-no record at all. Put the two facts together: a child created suspended holds that inherited
-pipe open from the instant `CreateProcessW` returns, whether or not its thread is ever resumed.
+       let wo=!mt  ...  Rr=iRe(to,[],{env:qn,cwd:Eo,shell:Wr,detached:wo,windowsHide:!0,...})
 
-If the process that would next call `ResumeThread` -- the intermediate shell layer Claude Code
-hook commands run through, or Node itself -- exits or is killed in the window between those two
-calls, the child is orphaned already-suspended: one thread in `Wait/Suspended`, zero CPU, an
-inherited pipe held open forever, parent already gone. That is `[#863]`'s measured signature,
-verbatim ("0 s CPU, no image path, one thread in Wait/Suspended, parent shell dead"). It is also
-why `[#808]`'s bound cannot reach this mode: the bound fires on, and can only kill, the hook's
-TOP process -- and killing that top process while a grandchild's `uv_spawn` is mid-flight
-between its own `CreateProcessW` and `ResumeThread` is precisely what orphans the grandchild
-suspended. Nothing thereafter ever calls `ResumeThread` for it; the one process responsible for
-that call is the one the bound just killed. The measured 18-22 s interpreter cold-start jitter
-(`bounded_hook.py`'s `HARNESS_HEADROOM_S` comment) widens this window rather than closing it.
+   where `mt` is the Windows test (the same function throws `Hook "..." requires bash but Git
+   Bash was not found` when `mt` holds and no Git Bash is found, offset ~233105074) and `Wr` is
+   the Git Bash path. So on Windows a hook is spawned through Git Bash with `detached: false`:
+   the client's own top-level spawn does NOT ask for `CREATE_SUSPENDED`.
 
-OPERATOR-ACTION (honest limit, R15): confirming that Claude Code's own hook-command spawn
-passes Node's `detached: true` (the option that reaches `UV_PROCESS_DETACHED`) would upgrade
-this from a grounded synthesis of two cited, independently-verified facts to a confirmed one.
-That requires reading the installed client's own bundled source outside this repository, which
-is out of this batch's scope (R15). Path to check, if a future lane is given that scope: the
-installed Claude Code CLI's own child_process spawn call for a hook command (look for
-`detached` alongside the `shell` option in its bundled JS).
+2. THE CLIENT'S KILL. At the hook's `timeout` the client's `killProcessTree` (offset
+   ~223668042) runs `%SYSTEMROOT%\\System32\\taskkill.exe /PID <bash pid> /T /F`. `taskkill /T`
+   walks a snapshot of the tree and terminates it; a process created after the snapshot, or
+   whose creator dies first, is not resumed by anyone.
+
+3. WHERE THE SUSPENSION COMES FROM: the MSYS2 runtime under Git Bash. Git for Windows ships
+   `usr/bin/msys-2.0.dll` 3.6.10 ("Cygwin POSIX Emulation DLL"). Its `winsup/cygwin/spawn.cc`
+   (msys2-runtime tag msys2-3.6.10, fetched 2026-10-15 from
+   https://raw.githubusercontent.com/msys2/msys2-runtime/msys2-3.6.10/winsup/cygwin/spawn.cc)
+   creates EVERY non-Cygwin child -- `python.exe`, `uv.exe`, `git.exe` -- suspended, and resumes
+   it in a separate, later call (quoted verbatim, around lines 505-515 and 655-666):
+
+       /* ... So we have to start the child in suspend state, unfortunately, to avoid a race
+          condition. */
+       if (!newargv.win16_exe
+           && (!iscygwin () || mode != _P_OVERLAY || ::cygheap->fdtab.need_fixup_before ()))
+         c_flags |= CREATE_SUSPENDED;
+       ...
+       rc = CreateProcessW (runpath, ..., TRUE /* inherit handles */, c_flags, ...);
+       ...
+       /* Start the child running for non-cygwin process*/
+       if (!iscygwin () && (c_flags & CREATE_SUSPENDED))
+         {
+           DuplicateHandle (GetCurrentProcess (), wr_proc_pipe, pi.hProcess, ...);
+           ResumeThread (pi.hThread);
+           ...
+         }
+
+   THE SKIPPED STEP is that `ResumeThread (pi.hThread)`: it runs in the bash (or bash subshell)
+   process that called `CreateProcessW`. If that process is terminated between the two calls --
+   which, by these two sources (INFERRED, not observed: see 4), the client's `taskkill /T /F` at
+   the hook's `timeout` can do to a bash still spawning its interpreter on a loaded box (interpreter start measured at 18-22 s,
+   `bounded_hook.HARNESS_HEADROOM_S`, against a 10 s prompts-guard `timeout`) -- the child keeps
+   its one thread in `Wait/Suspended` forever. It already holds the inherited stdout/stderr
+   handles (`bInheritHandles = TRUE` in the same call), so the client, which waits for the pipe
+   to close, waits forever. That is `[#863]`'s measured signature verbatim: "0 s CPU, no image
+   path, one thread in Wait/Suspended, parent shell dead".
+
+4. OBSERVED ON THIS BOX, NOT REPRODUCED ON DEMAND (stated, R15). A process census taken during
+   this lane caught several `git.exe` processes started by other sessions' Git Bash in psutil
+   state `stopped` with 0.0 s CPU and a live parent -- the window between `CreateProcessW` and
+   `ResumeThread`, seen live. A deliberate reproduction (about 400 trials: start
+   `bash -c 'out=$(python -c "sleep")'`, then `TerminateProcess` or `taskkill /PID /T /F` on bash
+   at a random 0-1000 ms delay) produced NO suspended orphan: the window is microseconds wide and
+   a sleep-based kill does not land in it. The mechanism therefore rests on the two cited sources
+   above (the client's spawn and kill, read from the installed binary; the MSYS2 runtime's
+   suspend-then-resume), not on a reproduction.
+
+`[#808]`'s bound cannot reach this mode for the same reason the client's own timeout cannot: a
+bound acts on the hook's TOP process, and killing that process mid-spawn is what orphans the
+child suspended. Only a watchdog that reads the process table from outside the tree can see it.
 
 WHAT THIS MODULE DOES. `sweep()` takes ONE shared CPU-time sample of every candidate hook
 process (a live process whose command line names a script `.claude/settings.json` registers as
@@ -68,9 +87,7 @@ wiring is deliberately HELD (operator ruling 2026-09-17 item 1) for the very rea
 exists: wrapping adds another interpreter to spawn, which is one more chance to create one
 suspended. This module reads the OS process table from OUTSIDE the hook's own process tree,
 which is the only vantage a process that has not executed one instruction can be seen from at
-all. It carries no settings.json wiring of its own (`ecosystem/harness.yaml`'s `fates:` block
-records it `manual_until` the date this lane's handback states) -- it is run by hand,
-`sweep`, until a later lane judges an automatic trigger safe.
+all. It carries no settings.json wiring of its own: since 2026-10-15 (`[#863]`, lane-bu-863-prompts-guard) it is triggered AUTOMATICALLY -- `bounded_hook.maybe_trigger_watchdog` spawns one detached `sweep` at most every `bounded_hook.TRIGGER_INTERVAL_S` seconds machine-wide, from every `fleet_health.py --prompts-guard` call and every SessionStart -- and `sweep` can still be run by hand.
 
 Stdlib + `psutil` only (already declared, `pyproject.toml`; the same library `resource_lifecycle.py`
 and `memory_admission_gate.py` already use for process-tree reads -- library-first). The kill

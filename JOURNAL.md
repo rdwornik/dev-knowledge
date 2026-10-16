@@ -21,6 +21,115 @@
 
 ---
 
+### 2026-10-16 (f) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges its runner fix -- the Codespace runner witnesses and pushes a lane's own worktree-lane branch (batch-resume-night PART B)
+
+**Anchors:** `0b40de81` (fix, branch `worktree-resume-pin-2026-10-16`, introduced by this merge), `7bad21bb` (its RED).
+
+**Did:** merged `--no-ff` on `08b97986` at the batch-resume-night seat's request. The first live Codespace lane committed in a linked worktree and the runner's witness read "the lane committed nothing"; `scripts/dispatch.py` now witnesses and pushes the lane's `worktree-lane-*` branch when the checkout HEAD did not move. RED `7bad21bb` before `0b40de81`; 173 tests in `tests/test_dispatch_codespace.py` pass per the requesting seat. The resume-vendor-fix land before it was REFUSED (`to-browser/REFUSED-resume-vendor-fix-2026-10-16.md`); its receipt and the resume-pin receipt lines ride here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_codespace.py`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-lane-rn-1015-plan-lint-owns` @ `9290c0e4`, then `worktree-resume-night-contract-2026-10-16`.
+
+---
+### 2026-10-16 (d) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges -- the devcontainer pins claude 2.1.301 (batch-resume-night PART B, queued post-close)
+
+**Anchors:** `dbe4f3d7` (the pin write, branch `worktree-resume-pin-2026-10-16`, introduced by this merge).
+
+**Did:** merged `--no-ff` on `c13a166d` at the request of the batch-resume-night seat (AMEND-1, operator-authorized; it lands through the live integrator claim). One file: `.devcontainer/provisioning.yaml` moves claude 2.1.300 -> 2.1.301 with its re-measured sha256, because `dispatch.py codespace-exec`'s pin gate refused the first Codespace launch (the laptop prints 2.1.301). The bu-1539-row-close arc merge-receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `.devcontainer/provisioning.yaml`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-resume-vendor-fix-2026-10-16` @ `e3620066` lands next.
+
+---
+### 2026-10-16 (c) - CC (Opus 5.5, integrator BU cycle-4): [#1539] [#1454] [#1332] close after the transport janitor --apply; the night-archive land is refused
+
+**Anchors:** `c81b326e` (the row close, branch `chore/bu-1539-row-close`, introduced by this arc's merge).
+
+**Did:** under the operator's GO of 2026-10-16, closed the three rows of `LANE-bu-1539-transport.md`'s closes clause with `row_close.py` (merge `4ccb89c5`, CI run 38775124621, five named tests): `[#1539]` and `[#1454]` were held for the janitor `--apply` that ran 2026-10-16 (manifest `af5876e8`); `[#1332]` was fully met at the merge and closes with them (all-or-none). The bu-close-packet arc merge-receipt line rides here. The GO's first land, `worktree-night-archive-2026-10-15` @ `2401b65e` (merge `f99effc9`), was REFUSED REGRESSED on CI run 38879132625: 38 archived digests with no consumer (`test_consumer_at_landing` x2, both OS) and a cp1252 decode of their prose in `test_dodo`'s spine run (windows); `to-browser/REFUSED-night-archive-2026-10-15.md`.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `tasks/1539-*`, `tasks/1454-*`, `tasks/1332-*`, `tasks/manifest.json`, `BACKLOG.md` (658 tasks), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** the night-archive branch owner repairs per the REFUSED file; night-retire lands after it (its anchor is in night-archive's tip).
+
+---
+### 2026-10-15 (j) - CC (Opus 5.5, integrator BU cycle-4): batch BU closes -- six of six lanes landed on main, three rows closed, the rest held with their evidence
+
+**Anchors:** `2c105bed` (the close packet `docs/audits/2026-10-15-technical-batch-bu-close-packet.md`, branch `docs/bu-close-packet`, introduced by this arc's merge).
+
+**Did:** wrote the `closed_by` packet the BU manifest names: 1539 `4ccb89c5`, 1535 `97bcd374`, 863 `a3d0ae31`, 1537 `c949ffd6`, 1450 `d73c56c5`, 1536 `52b9a90b`, each LANDED PRE-EXISTING; five refusals, all repaired; no FAILED lane, no STOP-THE-LINE. Rows closed: `[#1535]`, `[#1450]`, `[#1538]`. Held open with evidence: `[#1539]`, `[#1454]`, `[#1332]` (janitor `--apply`), `[#863]`, `[#912]`, `[#1540]` (next conductor schedule run), `[#1537]` (clause 8 GAP), `[#1536]` (its contract also names `[#1452]`, PREMISE-FAILED). Lane cost USD 162.27 over six lanes (`lane_cost.py`). The 1536 merge-receipt line rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** batch BU CLOSED when this packet lands. The batch-close trial cut passed every row but `worktree_owners` (the integration worktree carrying this packet), removed after the land.
+
+**Changes:** `docs/audits/2026-10-15-technical-batch-bu-close-packet.md` (new), `docs/audits/README.md` (generated), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** BUILD-2 slot 1 is `[#1430]`, the steel thread. Digest: `to-browser/DIGEST-BU-2026-10-15.md`.
+
+---
+### 2026-10-15 (i) - CC (Opus 5.5, integrator BU cycle-4): lane-bu-1536-routing merges -- provider routing follows R104: Copilot implements first, Codex terra heads review, red/qa/judge roles, claude-sonnet-5-5 priced, model-id literals ratcheted ([#1536]; [#1452] PARTIAL)
+
+**Anchors:** `a2f7d27e` (handback tip, branch `worktree-lane-bu-1536-routing`, introduced by this merge; its sync of origin/main `d73c56c5`), `da3ffd7d` (judge round 2 note fix), `e2528652` (judge round 1 fix), `bcb8f277` (judge round 1 RED), `40e914d7` (fix), `f89b937a` (RED).
+
+**Did:** merged `--no-ff` on `d73c56c5`. The lane makes routing data that matches R104: `route implement` is copilot-enterprise -> claude-sonnet-5-5 -> grok (not admitted); `route review` is gpt-5.6-terra -> grok-4.7 (`--max-turns >= 2`) -> copilot gpt-6-luna -> gemini-3.8-flash (not admitted). It adds the `red`, `qa` and `judge` roles, prices claude-sonnet-5-5 above zero in `lane_cost.py`, lets `dispatch_surface.resolve_launch` accept every registered anthropic id, adds `tests/test_model_id_single_source.py` (two shrink-only AST scans over `scripts/` string constants), and makes `read_gate` declare an absolute `--add-dir` for agy reads. Phase chain: RED `f89b937a` before `40e914d7`, RED `bcb8f277` before `e2528652`; Codex `gpt-5.6-terra` (nonces `R1536-9d41e7`, `R1536-2c80f5`) and Grok `grok-4.20-0309-non-reasoning` (nonce `R1536-9d41e7`) records; judge round 2 ACCEPT. Codex's round-2 HIGH (every absolute prompt path covered by a declared `--add-dir`) was judged beyond the frozen criterion and is owed as a row. Also carried in this merge: the `[#1450]`/`[#1538]` row close of the 1450 merge (rows, `tasks/manifest.json`, `BACKLOG.md`) and its merge-receipt line in `logs/MERGE-RECEIPTS.jsonl`; two runtime lines the hook watchdog wrote into the primary's tracked `logs/HOOK-WATCHDOG-KILLS.jsonl`, LF-normalised. Regenerated `tasks/manifest.json` (pin), `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md` on the merged tree.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: the lane found `[#1452]` Done-when (1)-(2) reach `scripts/dispatch.py`, `scripts/plan_lint.py`, the S9/S10/S17 pins and a new `check_model_currency.py` finding, outside its footprint; `row_close.py` closes all of a contract's rows or none, so `[#1536]` stays open with its evidence until `[#1452]` is resolved.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/provider_router.py`, `scripts/dispatch_surface.py`, `scripts/read_gate.py`, `scripts/cost_usage_telemetry.py`, ten test files (one new); `tasks/1450-*`, `tasks/1538-*`, `logs/MERGE-RECEIPTS.jsonl`, `logs/HOOK-WATCHDOG-KILLS.jsonl`; generated `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** batch BU closes: all six lanes are merged. `gpt-5.6-terra` (`last_verified 2026-10-03`) now heads review; `check_model_currency` flags it stale after 2026-10-17 -- this lane's two served terra runs are fresh evidence for a restamp.
+
+---
+
+### 2026-10-15 (h) - CC (Opus 5.5, integrator BU cycle-3): lane-bu-1450-boot-v2 merges after repair 2 -- boot v2 teaches the flow, the seats and the four substrates; STANDING_RULINGS section AU lands R100-R115 by id ([#1450] [#1538], PARTIAL)
+
+**Anchors:** `35a89c96` (repair-2 tip, branch `worktree-lane-bu-1450-boot-v2`, introduced by this merge), `82007802` (its sync of origin/main `c949ffd6`), `bb644d35` (repair-1 tip), `74442ec9` (repair 1's sync of origin/main), `895d62b4` (the first handback's tip), `a4fde7bf` (the lane's merge of the carried `worktree-lane-bw-1450-boot-teaching` @ `f0d49169`).
+
+**Did:** this lane was refused twice before this merge (`REFUSED-lane-bu-1450-boot-v2.md`). Repair 1 (`bb644d35`) rewrote the boot's Conductor E and distiller bullets as built (ADR-130 cited), cited the carried review audit from `tasks/1443-*`, and re-measured the boot body pin. The discarded merge `fb3088ff` of repair 1 regressed CI run 38834837205 with 24 reds in `tests/test_seat_release_moment.py`: the `dry_bundle` fixture's temp transport lacked the two transport files boot v2 cites. Repair 2 (`35a89c96`) seeds `to-browser/INDEX.md` and `to-browser/MAP-DISPATCH.md` in that fixture. `boot_citations` and the preflight are unchanged. Phase chain: RED `8f116357` before `44e20d89`; Codex `gpt-5.6-terra` and Grok `grok-4.20-0309-non-reasoning` records with nonces; judge round 2 ACCEPT. Both repairs are text, citation and fixture changes, recorded in their commit bodies. Merged `--no-ff` on `c949ffd6`; regenerated `tasks/manifest.json` (pin), `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`. The lane-bu-1537 merge-receipt line rides in `logs/MERGE-RECEIPTS.jsonl`; one runtime line the 863 hook watchdog wrote into the primary's tracked `logs/HOOK-WATCHDOG-KILLS.jsonl` rides here, LF-normalised.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: `verify_handoff_probes` and the ship-gate stay red on live seat and transport state (`BD-seats`, `BD-plan`), red on main alike.
+
+**Changes:** `protocols/HANDOFF_BOOT.md` (boot v2), `protocols/STANDING_RULINGS.md` (section AU), `scripts/gen_handoff.py`, `scripts/assemble_paste.py`, `scripts/handoff_state.py`, `.claude/commands/handoff.md`, `tasks/1438-*`, `tasks/1443-*`, one carried audit, nine test files; `logs/MERGE-RECEIPTS.jsonl`, `logs/HOOK-WATCHDOG-KILLS.jsonl`; generated `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** OPERATOR-ACTION: re-upload `protocols/HANDOFF_BOOT.md` as the Project knowledge file (the ROLE PIN sha moves). OPERATOR-ACTION: the live transport has no current `status: MASTER PLAN` (`BD-plan`). `lane-bu-1536-routing` runs (job `99486af8`); the batch closes after it.
+
+---
+
+### 2026-10-15 (g) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-1537-codespace-finish merges after repair 2 -- the Codespace finish, carried from 2026-10-14 and completed ([#1537] PARTIAL on clause 8)
+
+**Anchors:** `2ab6e523` (repair-2 tip, branch `worktree-lane-bu-1537-codespace-finish`, introduced by this merge), `5a47e97b` (repair-1 tip), `d22cd9f7` (the first handback's tip), `dccc2c03` (the lane's carry merge of `worktree-codespace-finish-2026-10-14` @ `f7cc1ef6`, sanctioned by its Done-contract 2).
+
+**Correction by addition (nothing above or below is edited):** this merge brings the carried branch's own JOURNAL entry, so two entries now read `2026-10-14 (b)`. The second one -- "the Codespace finish through the isolated stage chain -- REFUSE after round 2" -- is to be read as **2026-10-14 (c)**; the green-main pilot entry keeps (b).
+
+**Did:** two refusals before this merge. Repair 1 (`5a47e97b`): the five carried audits had no governance consumer once inherited on main, so the row file now cites them. Repair 2 (`2ab6e523`): a cross-lane red. 1535's `run_phase.load_cli_vendors` skips a null `cli`, and this lane's carried R88b retires the gemini CLI, so the test now asserts the retired CLI is skipped. Both are in `REFUSED-lane-bu-1537-codespace-finish.md`. Purity: the lane's commits, the carry merge and two syncs of origin/main, nothing else. Phase chain: RED `67789ad9`/`fd4911a8`/`579d4dae`/`bab97bc9` before each fix; Codex `gpt-5.6-terra` and Grok `grok-4.20-0309-non-reasoning` records with nonces, both rounds; judge round 2 ACCEPT. Merged `--no-ff` on `a3d0ae31`; regenerated `ecosystem/doc-counts.md` and `docs/audits/README.md`; appended the lane's QA ledger rows (2 sample + 2 parity) to `logs/CODESPACE-RECEIPTS.jsonl` after its own 9, and the 863 merge-receipt line to `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL on clause 8: the agy nonce probe is a GAP (no sign-in URL was ever printed; reads go through Copilot). This is repair 2 of 2: a further refusal would make the lane FAILED.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_parity.py`, `scripts/codespace_admission.py`, `scripts/substrate_heartbeat.py`, `.devcontainer/provision.sh` + `provisioning.yaml`, `ecosystem/provider-registry.yaml`, five carried audits, `tasks/1537-*`, tests (incl. new `tests/fake_agy.py`, one leg of `tests/test_run_phase.py`); `logs/CODESPACE-RECEIPTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`; generated `ecosystem/doc-counts.md`, `docs/audits/README.md`.
+
+**Next:** queue pass -- `lane-bu-1536-routing` becomes eligible once this lands; 1450 is in repair 1 (job `1da8910e`).
+
+---
+
+### 2026-10-15 (f) - CC (Opus 5.5, integrator BU cycle-2): lane-bu-863-prompts-guard merges -- the polyglot prompts guard re-armed, the [#912] merge check, the hook watchdog ([#863] [#912] [#1540], PARTIAL)
+
+**Anchors:** `7f0512b4` (lane tip, branch `worktree-lane-bu-863-prompts-guard`, introduced by this merge).
+
+**Did:** purity: 10 lane commits on `b6161972`, no merges, no file overlap with main since; 16 files, `scripts/gates.py` + `.claude/commands/lane-integrate.md` being the `[#912]` merge-check site the contract lets it name. Phase chain: RED `848fdd23`/`3b197aef`/`418ed275`/`02419126` before each fix; Codex `gpt-5.6-terra` (nonces + diff sha256) and Grok (`grok-4.20-0309-non-reasoning`, then `grok-4.7`) records; judge ACCEPT rounds 1 and 2. Merged `--no-ff` on `97bcd374`; regenerated `ecosystem/organ-index.md` (73 -> 75 organs: two PreToolUse hooks armed in `.claude/settings.json`) and `ecosystem/doc-counts.md`. Carries the `[#1535]` row close and its merge-receipt line (`9567ff88` on `chore/bu-1535-row-close`) byte-identical. Lane 1537 was refused before its land (repair 1 of 2: five carried audits with no governance consumer), so this merge goes first.
+
+**Result:** pending CI on the integration branch; verdict, the `[#1540]` post-merge schedule-run receipt and the row closes in `to-browser/SESSION-integrator-bu-2026-10-15.md`. PARTIAL: the `[#912]` R108 measure and the `[#1540]` receipt are owed after the merge.
+
+**Changes:** `scripts/gates.py`, `scripts/fleet_health.py`, `scripts/hooks/bounded_hook.py`, `scripts/hooks/hook_watchdog.py`, `.claude/settings.json`, `.claude/commands/lane-integrate.md`, `.github/workflows/conductor.yml`, `logs/KNOWN-REDS-REGISTRY.json`, eight test files; generated `ecosystem/organ-index.md`, `ecosystem/doc-counts.md`; carried `BACKLOG.md`, `tasks/1535-*`, `tasks/manifest.json`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** 1537 repair 1 (job `7faf1f29`) re-merges when handed back, then 1536 becomes eligible; 1450 (@ `895d62b4`) merges after. MORNING: KNOWN-REDS-REGISTRY member `[#1350]` expires 2026-10-19.
+
+---
 ### 2026-10-16 (b) - CC (Sonnet 5.5, night close-out): defect rows, process matrix, `/handoff-verify` retired, `[#1350]` renewed
 
 **Anchors:** `72ae7f78` (rows [#1569]-[#1595] and intake 116), `85096e84` (rows [#1596]-[#1618], intake 117, the process-matrix audit), `abb1ef70`; on branch `worktree-night-retire-handoff-verify-2026-10-15`: `7bc3526e` (command and wiring removed), `cd55715d` (Codex terra findings fixed), `a9ae5280` (transport lock fix and `[#1350]` renewed to 2026-10-26), `95e49a5d` (seat-ids regenerated).
@@ -122,6 +231,21 @@
 **Next:** land through `merge_path.py land`; Part C lands `worktree-system-map-2026-10-14`. Judge's low note J2.N1: a `restamped` receipt line is appended before the atomic replace, so a failed replace logs restamped on an unchanged bundle.
 
 ---
+### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema
+
+**Anchors:** `0d97edde` (eea31c5d rebased onto b46836c8), `075254c5` + `bb13f0a2` (RED tests), `7e505b19` (implementation, Copilot), `41ba3dbe` (pin write), `d75bb2a9` (round-1 ledger rows), `e212ceea` + `54350e02` (round-2 tests, ledger isolation), `c61dc0b6` + `f544a906` (round-2 fixes), `c49fed74` (round-2 ledger rows). Branch `worktree-codespace-finish-2026-10-14`, NOT landed.
+
+**Did:** the held branch was rebased onto a new lane branch instead of the held one, which avoided a force-push. The order's 8 stages ran in isolation, with receipts under `logs/receipts/codespace-finish-2026-10-14/`. Two live rounds ran in real Codespaces: 4 boxes, all deleted by `codespace-delete`, and the ledger holds open and closed rows for each.
+
+**Result:** the judge REFUSED in round 2, the last round. Steps 1, 2 and 7 PASS live, as do C2, C4 and the leak check. Step 3 FAILs on main's `ecosystem/schema/lane_report.py`. In round 1, the 2020-12 `$schema` was rejected by the claude CLI. In round 2, with that key dropped, the top-level `allOf` (`:140`) is rejected by the API with a 400. So no Codespace claude lane can run on main. C1 failed on a copilot pin skew, C3 was REGRESSED (partly branch-owned: a stale doc-counts) and C5 failed on a scratch branch.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_parity.py`, `.devcontainer/provisioning.yaml`, `tests/test_dispatch_codespace.py`, `tests/test_dispatch_py.py`, `tests/test_codespace_parity.py`, `ecosystem/doc-counts.md`, `logs/CODESPACE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** the judge's carry-forward is in `to-browser/LANE-END-codespace-finish-2026-10-14.md`:
+- strip the top-level combinators from the argv token, with a live claude smoke test;
+- re-render doc-counts;
+- write the pins and delete the scratch branches inside the procedure.
+The land waits on green main either way.
 
 ### 2026-10-14 (a) - CC (Opus 5.5, handoff seat): architect handoff `2026-10-14-dev-knowledge-architect` cut, supplement filled, residual carries its debt (Tech-Architect-44 -> successor)
 

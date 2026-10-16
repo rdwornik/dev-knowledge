@@ -114,7 +114,9 @@ def test_order_is_a_list_not_a_set_so_position_is_meaningful(live):
     """
     registry = ProviderRegistry.model_validate(live)
     implement = [e.provider for e in registry.roles["implement"].order]
-    assert implement[0] == "anthropic", "AX22-1: implement order until admission is Sonnet first"
+    assert implement[0] == "copilot-enterprise", (
+        "R104 (operator, 2026-10-14; [#1536]): Copilot implements first, Sonnet 5.5 is the "
+        "fallback and Grok the alternative -- superseding AX22-1's Sonnet-first order")
     assert len(implement) > 1, "a fallback chain needs somewhere to fall back to"
 
 
@@ -147,7 +149,8 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
     admission check disagree about which vendor is being routed to — one keys on `provider`,
     the other resolves through the model row."""
     def mutate(d):
-        d["roles"]["implement"]["order"][0]["model"] = "gpt-5.6-terra"
+        # order[1] is the anthropic entry since R104 put copilot (provider-only) first.
+        d["roles"]["implement"]["order"][1]["model"] = "gpt-5.6-terra"
 
     message = _refuses(_mutated(live, mutate))
     assert "openai" in message and "anthropic" in message
@@ -180,7 +183,15 @@ def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
         for entry in role.order
         if entry.admission is not None and entry.admission.verdict == "admitted"
     }
-    assert admitted_providers == {"anthropic", "copilot-enterprise"}
+    # `xai` joined 2026-10-14 by R104 (operator ruling, [#1536]), on the REVIEW role only --
+    # pinned below so the exception cannot widen to implement unnoticed.
+    assert admitted_providers == {"anthropic", "copilot-enterprise", "xai"}
+    xai_admitted_in = {
+        name for name, role in registry.roles.items() for entry in role.order
+        if entry.provider == "xai" and entry.admission is not None
+        and entry.admission.verdict == "admitted"
+    }
+    assert xai_admitted_in == {"review"}
 
 
 def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(live):
@@ -200,9 +211,14 @@ def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(l
         for entry in role.order:
             admitted = entry.admission is not None and entry.admission.verdict == "admitted"
             listed[entry.provider] = listed.get(entry.provider, False) or admitted
-    for provider in ("antigravity", "xai", "openai"):
+    for provider in ("antigravity", "openai"):
         assert provider in listed, f"{provider} must be LISTED for the router refusal to be trip-testable"
         assert listed[provider] is False, f"{provider} is NOT ADMITTED in Half A"
+    # `xai` is admitted on review by R104 (2026-10-14) but stays the NOT ADMITTED trip-test
+    # target on implement, the one admission-gated role.
+    grok_implement = [e for e in registry.roles["implement"].order if e.provider == "xai"]
+    assert grok_implement, "xai must be LISTED on implement for the refusal to be trip-testable"
+    assert all(e.admission is None or e.admission.verdict != "admitted" for e in grok_implement)
 
 
 def test_admission_copilot_enterprise_is_admitted_on_implement_not_elsewhere(live):
@@ -288,10 +304,12 @@ def test_licence_an_absent_block_reads_as_unknown_never_permitted(live):
     """The default must be the conservative one: the field's absence must not grant what its
     presence was added to withhold."""
     def mutate(d):
-        del d["providers"]["xai"]["licence"]
+        # antigravity, not xai: since R104 xai holds an admitted review entry, and an admitted
+        # entry under an unknown licence is refused at load (the leg (c) rule tested below).
+        del d["providers"]["antigravity"]["licence"]
 
     registry = ProviderRegistry.model_validate(_mutated(live, mutate))
-    assert registry.licence_of("xai") == "unknown"
+    assert registry.licence_of("antigravity") == "unknown"
 
 
 def test_licence_the_employer_metered_seat_was_ruled_2026_09_23(live):
@@ -348,12 +366,12 @@ def test_licence_unknown_needs_no_decider_but_still_needs_a_reason(live):
     """The exemption is scoped to provenance, not to the reason. An `unknown` with no stated
     open question teaches the next reader nothing and is the drift the field exists to end."""
     def mutate(d):
-        d["providers"]["xai"]["licence"] = {"status": "unknown", "reason": "the open question"}
+        d["providers"]["antigravity"]["licence"] = {"status": "unknown", "reason": "the open question"}
 
     ProviderRegistry.model_validate(_mutated(live, mutate))  # valid
 
     def mutate_bad(d):
-        d["providers"]["xai"]["licence"] = {"status": "unknown"}
+        d["providers"]["antigravity"]["licence"] = {"status": "unknown"}
 
     assert "reason" in _refuses(_mutated(live, mutate_bad))
 
@@ -377,7 +395,10 @@ def test_the_review_fallback_order_is_ax22_2s_own(live):
     admission) or Sonnet."* Encoded in that order, with Grok NOT admitted — so today the
     exclusion resolves to Sonnet, which is the only live fallback."""
     registry = ProviderRegistry.model_validate(live)
-    assert [e.provider for e in registry.roles["review"].order] == ["openai", "xai", "anthropic"]
+    # SUPERSEDED 2026-10-14 by R104 ([#1536]): "Codex (terra) -> Grok -> Copilot with a
+    # non-Anthropic model -> Gemini"; the reviewer is never the producer's vendor.
+    assert [e.provider for e in registry.roles["review"].order] == [
+        "openai", "xai", "copilot-enterprise", "antigravity"]
 
 
 # --- AX21-1's one non-re-rankable line -------------------------------------------------------
@@ -394,7 +415,9 @@ def test_orchestrate_and_plan_are_pinned_against_the_re_rank(live):
     """
     registry = ProviderRegistry.model_validate(live)
     pinned = {r for r, s in registry.roles.items() if not s.rerankable}
-    assert pinned == {"orchestrate", "plan"}
+    # `judge` joined 2026-10-14 (R104, [#1536]): Opus 5.5 judges, the same reason orchestrate
+    # and plan are pinned -- the seat that rules on the others is never promoted from below.
+    assert pinned == {"orchestrate", "plan", "judge"}
 
 
 # --- the two role-keyed surfaces must not drift ---------------------------------------------
@@ -488,3 +511,32 @@ def test_a_work_repository_excludes_the_paid_third_party_route(manifest):
     allowed = set(manifest["providers"]["allowed"]["corp-monorepo"])
     assert "xai" not in allowed
     assert "copilot-enterprise" not in allowed
+
+
+# --- [#1536] (2): red / qa / judge roles --------------------------------------------------------
+
+
+def test_r1536_red_qa_judge_are_registered_and_in_the_vocabulary(live):
+    for role in ("red", "qa", "judge"):
+        assert role in live["roles"], role
+        assert role in ROLE_NAMES, role
+
+
+def test_r1536_role_pins(live):
+    roles = live["roles"]
+    assert roles["red"]["order"][0]["provider"] == "anthropic"
+    assert roles["red"]["order"][0]["model"] == "claude-sonnet-5-5"
+    assert roles["judge"]["order"][0]["model"] == "claude-opus-5-5"
+    assert roles["judge"].get("rerankable") is False
+    assert roles["qa"]["order"][0]["provider"] == "copilot-enterprise"
+
+
+def test_r1536_the_new_roles_validate_through_the_schema(live):
+    reg = ProviderRegistry.model_validate(live)
+    assert {"red", "qa", "judge"} <= set(reg.roles)
+    assert reg.roles["judge"].rerankable is False
+
+
+def test_r1536_grok_review_entry_carries_a_max_turns_floor(live):
+    grok = [e for e in live["roles"]["review"]["order"] if e["provider"] == "xai"]
+    assert grok and grok[0].get("max_turns_floor") == 2

@@ -163,6 +163,20 @@ features:
       pin can use, and `GROK_DEPLOYMENT_KEY`, which is a credential and is never passed here.
       Added by b2-codespace-1to1 on the operator's order (2026-10-04): "1:1, all models in sync
       -- Grok, Codex, Gemini".
+  leg_f5_copilot:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature installs the GitHub Copilot CLI; docs.github.com
+      "Install Copilot CLI" (read 2026-10-06) names `npm install -g @github/copilot` (Node 22+,
+      which the declared node feature provides). Added by b2-codespace-subscription-auth.
+  leg_f6_codex_subscription:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature writes a Codex configuration or a login-shell environment
+      policy. The leg merges `forced_login_method = "chatgpt"` (a value OpenAI documents, read
+      2026-10-09) into `~/.codex/config.toml` and adds a marked block to the first login-startup
+      file that unsets the codex API keys, so a login shell hands codex neither (R87.3,
+      b2w2-codespace-finish).
 
 # --- foundation-13: THE LANE'S TOOLSET, pinned in one place --------------------------------------
 #
@@ -194,7 +208,7 @@ features:
 # name instead of being hidden by a tool that floats.
 tools:
   claude:
-    version: "2.1.290"
+    version: "2.1.301"
     method: >-
       native installer with a version argument: curl -fsSL https://claude.ai/install.sh | bash -s <version>;
       auto-update off via DISABLE_AUTOUPDATER in settings.json env
@@ -214,23 +228,33 @@ tools:
       precompiled binary: downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip
     doc: https://rclone.org/install/
   agy:
-    version: "1.2.17"
+    version: "1.3.5"
     method: curl -fsSL https://antigravity.google/cli/install.sh | bash
     doc: https://codelabs.developers.google.com/antigravity-cli-hands-on
     reason: >-
       PINNED BUT NOT SELECTABLE (b2-codespace-1to1, R63): the vendor installer takes only --dir and
       installs the manifest's latest release, so the leg cannot choose this version. It ASSERTS it:
-      a release the vendor publishes past the workstation's 1.2.17 is a named skew refusal here
-      and a C1 version-skew FAIL, never a silent one. The manifest read 2026-10-04 named 1.2.16;
+      a release the vendor publishes past the laptop's pin is a named skew in the build log and a C1
+      version-skew FAIL, never a silent one -- and since b2w2-codespace-finish (R88c) it is a RECORDED
+      state (`present, BLOCKED-AUTH`, one OPERATOR-ACTION line), no longer a refusal that turns the
+      container into a recovery container; only an agy a login shell cannot resolve still refuses. The manifest read 2026-10-04 named 1.2.16;
       it named 1.2.17 on 2026-10-05, when a Codespace created at the 1.2.16 pin refused (run 1 of
       b2-codespace-green: `L-F5 FAILED -- agy is not the pinned 1.2.16`), became a recovery
       container, and the workstation's own `agy --version` read 1.2.17.
   grok:
-    version: "1.0.44"
+    version: "1.0.52"
     method: >-
       xAI first-party installer with a version argument: curl -fsSL https://x.ai/cli/install.sh | bash -s <version>;
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
     doc: https://github.com/xai-org/grok-build
+  copilot:
+    version: "1.0.98"
+    method: npm install -g @github/copilot@<version>
+    doc: https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
+    reason: >-
+      Pinned to the workstation's `copilot --version` read 2026-10-06 (1.0.92). Its sign-in is an
+      OS-keyring entry on the workstation and is NOT mirrored (b2-codespace-subscription-auth); the
+      Codespace signs in through the COPILOT_GITHUB_TOKEN secret (R88a).
 
 # --- B1: history sufficiency ---------------------------------------------------------------
 #
@@ -389,3 +413,18 @@ prebuild:
   # CONTEXT of a ref and a region, so both are sent; asking without them asks a different
   # question. The default branch is the one a prebuild is built from.
   ref: main
+
+# ---- BEGIN generated: pins_record (scripts/codespace_parity.py pin write) -- do not hand-edit ----
+pins_record:
+  source: laptop
+  measured_at: "2026-10-16T10:08:45Z"
+  versions:
+    agy: "1.3.5"
+    claude: "2.1.301"
+    codex: "0.155.0"
+    copilot: "1.0.98"
+    gh: "2.93.0"
+    grok: "1.0.52"
+    rclone: "1.73.2"
+  sha256: "d0250dc801160ee6b4fd056ba90856be4de5cf921ba0b0954752b8dbbf0fcb92"
+# ---- END generated: pins_record ----

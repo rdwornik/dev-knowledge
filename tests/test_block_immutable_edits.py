@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -205,3 +206,49 @@ def test_wire_allow_new_transcript_create_exits_0():
     proc = _run(_payload("Write", new_path))
     assert proc.returncode == 0
     assert proc.stdout.strip() == ""
+
+
+def test_the_live_adr77_command_still_blocks_an_in_zone_edit_as_claude_code_runs_it():
+    """[#863] (4) round 2: the re-armed entry locates the guard with two shell-neutral locators
+    (Copilot CLI runs this file's hooks under PowerShell) on the system interpreter. Run the LIVE
+    command the way Claude Code does -- Git Bash, CLAUDE_PROJECT_DIR set -- and the guard's exit 2
+    and JSON verdict must survive the extra argv; an out-of-zone edit still allows."""
+    import os
+    import shutil
+
+    repo = _SCRIPT.parents[2]
+    settings = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    commands = [hook["command"] for block in settings["hooks"].get("PreToolUse", [])
+                for hook in block["hooks"] if "block_immutable_edits.py" in hook["command"]]
+    assert len(commands) == 1, commands
+    bash = next((b for b in (r"C:\Program Files\Git\bin\bash.exe", shutil.which("bash"))
+                 if b and Path(b).is_file()), None)
+    assert bash, "no POSIX shell -- Claude Code runs hook commands through one"
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
+
+    def run(path: str) -> subprocess.CompletedProcess:
+        payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
+        return subprocess.run([bash, "-c", commands[0]], cwd=str(repo), env=env,
+                              input=json.dumps(payload), capture_output=True, text=True,
+                              timeout=180)
+
+    blocked = run(_TRANSCRIPT)
+    assert blocked.returncode == 2, (blocked.returncode, blocked.stdout, blocked.stderr)
+    assert json.loads(blocked.stdout.strip().splitlines()[-1])["decision"] == "block"
+    allowed = run("README.md")
+    assert allowed.returncode == 0, (allowed.returncode, allowed.stdout, allowed.stderr)
+
+
+def test_the_live_settings_wire_the_adr77_guard_on_every_edit_tool_with_an_explicit_bound():
+    """[#863] (4): the guard is re-armed in `hooks.PreToolUse`, matching all four mutating
+    tools (regex fullmatch, as the harness matches) and carrying a numeric timeout."""
+    settings = json.loads((_SCRIPT.parents[2] / ".claude" / "settings.json")
+                          .read_text(encoding="utf-8"))
+    wired = [(block["matcher"], hook)
+             for block in settings["hooks"].get("PreToolUse", [])
+             for hook in block["hooks"] if "block_immutable_edits.py" in hook["command"]]
+    assert wired, "no PreToolUse entry runs block_immutable_edits.py"
+    matcher, hook = wired[0]
+    for tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        assert re.fullmatch(matcher, tool), f"matcher {matcher!r} does not cover {tool}"
+    assert isinstance(hook.get("timeout"), (int, float)) and hook["timeout"] > 0

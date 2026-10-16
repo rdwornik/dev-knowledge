@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "48d9927723bbc0b0d0591bcfb8e90b712910d383c555f894826e01eb042c2110",
+  "generated_sha256": "fdc97a03f3116f137e7599227aa6719f06534c4a1167c0b0ee6dc4fde236cf12",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2732,10 +2732,6 @@
       "file": "1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md"
     },
     {
-      "task": 1332,
-      "file": "1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md"
-    },
-    {
       "task": 1333,
       "file": "1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md"
     },
@@ -2980,6 +2976,10 @@
       "file": "1442-every-landing-on-main-outside-a-batch-still-passes-the-merge-gate.md"
     },
     {
+      "task": 1443,
+      "file": "1443-boot-reading-path-carries-the-dispatch-map-the-seat-exam-and-the-dispatch-exam.md"
+    },
+    {
       "task": 1444,
       "file": "1444-every-merge-is-timed-per-stage-from-handback-to-main-by-code.md"
     },
@@ -2992,10 +2992,6 @@
       "file": "1447-gen-lane-contract-check-agrees-with-plan-lint-and-r82.md"
     },
     {
-      "task": 1450,
-      "file": "1450-handoff-boot-teaches-the-triage-then-sequence-order-r80-and-the-index-r84.md"
-    },
-    {
       "task": 1451,
       "file": "1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md"
     },
@@ -3006,10 +3002,6 @@
     {
       "task": 1453,
       "file": "1453-the-codespace-reaches-production-on-three-green-runs-r83.md"
-    },
-    {
-      "task": 1454,
-      "file": "1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md"
     },
     {
       "task": 1455,
@@ -3132,24 +3124,12 @@
       "file": "1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md"
     },
     {
-      "task": 1535,
-      "file": "1535-the-outer-loop-runs-in-code-the-689-loop-step-and-adr-130.md"
-    },
-    {
       "task": 1536,
       "file": "1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md"
     },
     {
       "task": 1537,
       "file": "1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md"
-    },
-    {
-      "task": 1538,
-      "file": "1538-rulings-r100-r115-land-in-standing-rulings-by-id.md"
-    },
-    {
-      "task": 1539,
-      "file": "1539-the-architect-reads-an-inbox-and-request-status-is-derived.md"
     },
     {
       "task": 1540,
