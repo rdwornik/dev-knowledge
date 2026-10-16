@@ -9,6 +9,7 @@ file, which is the path the matrix showed `-p` mode denies outside the cwd.
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import sys
 import tempfile
@@ -52,7 +53,6 @@ def registry_model(vendor: str, role: str = "review") -> Optional[str]:
 
 
 def _cache_dir(cache_dir: Optional[Path]) -> Path:
-    import os
     root = cache_dir or os.environ.get(CACHE_ENV) or Path(tempfile.gettempdir()) / "dev-knowledge-vendor-probe"
     path = Path(root)
     path.mkdir(parents=True, exist_ok=True)
@@ -91,17 +91,34 @@ def default_probe(vendor: str) -> ProbeResult:
 
 
 def probe_today(vendor: str, *, cache_dir: Optional[Path] = None, today: Optional[str] = None,
-                probe: Optional[Callable[[str], ProbeResult]] = None) -> ProbeResult:
-    """`vendor`'s probe result for `today`: from the cache when one was recorded today, else probed
-    and recorded. A cached FAILURE is kept for the day too (a vendor is not hammered)."""
+                probe: Optional[Callable[[str], ProbeResult]] = None,
+                model: Optional[str] = None) -> ProbeResult:
+    """`vendor`'s probe result for `today`: from the cache when one was recorded today FOR THIS
+    VENDOR AND REGISTRY MODEL, else probed and recorded. A cached FAILURE is kept for the day too (a
+    vendor is not hammered). A cache entry that names another vendor or model, or cannot be read, is
+    a miss; a cache that cannot be written leaves the result uncached -- never an exception, so the
+    caller records a VENDOR-FAIL instead of aborting (Codex terra, round 1)."""
     today = today or date.today().isoformat()
-    path = _cache_dir(cache_dir) / f"{vendor}.json"
+    model = model if model is not None else registry_model(vendor)
     try:
-        cached = json.loads(path.read_text(encoding="utf-8"))
-        if cached.get("day") == today:
-            return ProbeResult(**cached["result"])
-    except (OSError, ValueError, KeyError, TypeError):
-        pass
+        path: Optional[Path] = _cache_dir(cache_dir) / f"{vendor}.json"
+    except OSError:
+        path = None
+    if path is not None:
+        try:
+            cached = json.loads(path.read_text(encoding="utf-8"))
+            hit = ProbeResult(**cached["result"])
+            if cached.get("day") == today and cached.get("model") == model and hit.vendor == vendor:
+                return hit
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     result = (probe or default_probe)(vendor)
-    path.write_text(json.dumps({"day": today, "result": asdict(result)}), encoding="utf-8", newline="\n")
+    if path is not None:
+        tmp = path.with_suffix(f".{secrets.token_hex(3)}.tmp")
+        try:
+            tmp.write_text(json.dumps({"day": today, "model": model, "result": asdict(result)}),
+                           encoding="utf-8", newline="\n")
+            os.replace(tmp, path)
+        except OSError:
+            tmp.unlink(missing_ok=True)
     return result

@@ -58,7 +58,7 @@ def test_read_gate_copilot_reads_a_staged_copy_with_cwd_at_the_workdir(tmp_path:
     assert Path(seen["kw"]["cwd"]).resolve() == work.resolve()
     assert str(source.parent) not in prompt, "the prompt must not point Copilot outside its cwd"
     assert "--add-dir" not in seen["argv"] and "--allow-all-paths" not in seen["argv"]
-    assert (work / "src.txt").read_text(encoding="utf-8") == "the sentence"
+    assert (work / "copilot-input" / "src.txt").read_text(encoding="utf-8") == "the sentence"
 
 
 # --- Grok: always -m, from the registry, and the served id must equal it --------------------

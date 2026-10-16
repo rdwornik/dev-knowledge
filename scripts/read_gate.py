@@ -351,7 +351,7 @@ def _cli_invoker(
             # grant one (matrix, tests/test_vendor_fix.py): stage the source INSIDE the workdir and
             # run there, so no path in the prompt leaves the cwd.
             import run_phase
-            source_abs = run_phase.stage_input(source_abs, workdir).resolve()
+            source_abs = run_phase.stage_input(source_abs, workdir / "copilot-input").resolve()
             run_kw["cwd"] = str(workdir)
         prompt = (
             f"Read exactly this file and nothing else: {source_abs}. "

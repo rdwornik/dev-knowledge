@@ -2140,13 +2140,11 @@ def _default_reviewers(payload_for, nonce: str, input_hash: str) -> list:
     chain = []
     for entry in registry["roles"]["review"]["order"]:
         vendor = entry["provider"]
-        if vendor not in _DEFAULT_REVIEW_ARGV:
-            continue
         prompt = ("Challenge the idea in the text below: is it a duplicate of an existing organ, or "
                   "unneeded? Do not edit the repository. Write ONE JSON object (nonce, input_hash, "
                   f"verdict AGREE|AMEND|DISAGREE, reasons, amendments) to {payload_for(vendor)}, "
                   f"with nonce set to {nonce} and input_hash set to {input_hash} exactly.")
-        chain.append((vendor, review_argv(vendor, prompt)))
+        chain.append((vendor, review_argv(vendor, prompt)))  # None = declared, no argv builder
     return chain
 
 
@@ -2207,13 +2205,21 @@ def challenge(idea_text: str, *, producer_vendor: str, organ_index_text: str, re
         reviewers = _default_reviewers(payload_for, nonce, input_hash)
     failures: list[str] = []
     for vendor, argv in reviewers:
-        if vendor == producer_vendor or not argv:
+        if vendor == producer_vendor:
+            continue
+        if not argv:
+            failures.append(_vendor_probe.vendor_fail_line(vendor, "challenge", "no argv builder"))
             continue
         if shutil.which(argv[0]) is None:
             failures.append(_vendor_probe.vendor_fail_line(vendor, "challenge", f"{argv[0]}: not on PATH"))
             continue
         if vendor_gate is not None:
-            probed = vendor_gate(vendor)
+            try:
+                probed = vendor_gate(vendor)
+            except Exception as exc:  # noqa: BLE001 -- any gate failure is the vendor's failure, recorded
+                failures.append(_vendor_probe.vendor_fail_line(
+                    vendor, "challenge", f"probe-error: {exc.__class__.__name__}: {exc}"))
+                continue
             if not probed.ok:
                 failures.append(_vendor_probe.vendor_fail_line(
                     vendor, "challenge", f"probe-failed-today: {probed.error}"))
