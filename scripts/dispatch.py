@@ -2757,7 +2757,8 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
 
 def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str],
                              stall_after_s: int = RUNNER_STALL_AFTER_S,
-                             unset: Sequence[str] = (), mirrored: Sequence[str] = ()) -> str:
+                             unset: Sequence[str] = (), mirrored: Sequence[str] = (),
+                             lane_branch: str = "") -> str:
     """The bash script shipped in and run as `bash <path>` -- never a string crossing the ssh
     boundary (the same measured failure `codespace_plan`'s own docstring names for the contract
     prompt: a command travels as a FILE, not an argument). `head_argv` runs with `checkout_dir`
@@ -2900,7 +2901,22 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         'head_sha=$(git rev-parse HEAD 2>/dev/null || true)',
         'branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)',
         'push_exit=""; pushed_sha=""',
-        'if [ -n "$base_sha" ] && [ "$head_sha" != "$base_sha" ] && [ -n "$branch" ] '
+        # A lane that followed the repo rule "parallel work needs a worktree" commits on its own
+        # branch in a LINKED worktree; the checkout's HEAD never moves. When the checkout is
+        # unchanged, the lane's declared branch is witnessed and pushed instead (live 2026-10-16:
+        # finished work read "the lane committed nothing").
+        f"lane_branch={shlex.quote(lane_branch)}",
+        'lane_sha=""',
+        'if [ -n "$lane_branch" ] && [ "$head_sha" = "$base_sha" ] '
+        '&& [ "$lane_branch" != main ]; then',
+        '  lane_sha=$(git rev-parse --verify --quiet "refs/heads/$lane_branch" 2>/dev/null || true)',
+        "fi",
+        'if [ -n "$lane_sha" ] && [ "$lane_sha" != "$base_sha" ]; then',
+        '  head_sha="$lane_sha"; branch="$lane_branch"',
+        '  git push origin "refs/heads/$lane_branch:refs/heads/$lane_branch" >> '
+        + shlex.quote(run_log) + ' 2>&1; push_exit=$?',
+        '  pushed_sha=$(git ls-remote origin "refs/heads/$lane_branch" 2>/dev/null | cut -f1 | head -n1)',
+        'elif [ -n "$base_sha" ] && [ "$head_sha" != "$base_sha" ] && [ -n "$branch" ] '
         '&& [ "$branch" != main ] && [ "$branch" != HEAD ]; then',
         '  git push origin "HEAD:refs/heads/$branch" >> ' + shlex.quote(run_log) + ' 2>&1; push_exit=$?',
         '  pushed_sha=$(git ls-remote origin "refs/heads/$branch" 2>/dev/null | cut -f1 | head -n1)',
@@ -3153,7 +3169,11 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
         runner_local = Path(tmp) / f"run-{slug}.sh"
         runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv,
                                                          unset=_runner_unset(items),
-                                                         mirrored=_mirrored_rel_files(items)),
+                                                         mirrored=_mirrored_rel_files(items),
+                                                         lane_branch=(slug if slug.startswith("worktree-")
+                                                                      else "worktree-" + (
+                                                                          slug if slug.startswith("lane-")
+                                                                          else "lane-" + slug))),
                                  encoding="utf-8", newline="\n")
         receipt_local = Path(tmp) / "receipt.json"
         runner_remote = f"{workdir}/run-{slug}.sh"
