@@ -722,7 +722,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 - [#1331] [P1][L] The equilibrium's ruling register and cross-window state move into the repository · tasks/1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md
-- [#1332] [P2][M] P11 and the paste builder treat superseded decision files as discharged · tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md
 - [#1333] [P2][S] logs/QUOTA-READS.jsonl is tracked and dirty in every primary session; its home is per-user state · tasks/1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md
 - [#1334] [P2][M] The rclone Drive token expires every 7 days and nothing in the harness tracks it · tasks/1334-the-rclone-drive-token-expires-every-7-days-and.md
 - [#1335] [P2][M] Codespace parity: a lane there works only when one task meets five parity items, and none has been measured · tasks/1335-codespace-parity-a-lane-there-works-only-when-on.md
@@ -791,7 +790,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1451] [P2][M] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) · tasks/1451-ci-runs-pytest-split-a-coverage-gate-and-the-mutation-pilot-nightly-r81-r86.md
 - [#1452] [P2][S] Every role pin names the newest served model, and a check flags a role pinned below it (R82) · tasks/1452-every-role-pin-names-the-newest-served-model-r82.md
 - [#1453] [P1][M] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) · tasks/1453-the-codespace-reaches-production-on-three-green-runs-r83.md
-- [#1454] [P1][M] The generated transport index is built first in B2 W2 and groups files by the seat that wrote them (R84, R91) · tasks/1454-the-transport-index-is-built-first-and-groups-files-by-seat-r84-r91.md
 - [#1455] [P1][L] Handback to main takes at most 15 minutes at the median, and the four first-wave levers are built or disposed (R85) · tasks/1455-handback-to-main-median-is-at-most-fifteen-minutes-r85.md
 - [#1456] [P1][M] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) · tasks/1456-a-handoff-cut-refuses-unless-the-four-steps-before-it-hold-r89.md
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
@@ -824,7 +822,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
 - [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
 - [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
-- [#1539] [P1][M] The architect reads an inbox and request status is derived, not typed: query --since, answers joined in the INDEX, INDEX current by its trigger · tasks/1539-the-architect-reads-an-inbox-and-request-status-is-derived.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
 
 ---

@@ -79,7 +79,7 @@ def default_probe(vendor: str) -> ProbeResult:
         if cli == "copilot":
             src = Path(tmp) / "outside" / "probe.txt"
             src.parent.mkdir()
-            src.write_text(nonce + "\n", encoding="utf-8")
+            src.write_text(nonce + "\n", encoding="utf-8", newline="\n")
             work = Path(tmp) / "work"
             run_phase.stage_input(src, work)
             res = cp.default_run(["copilot", "-p", "Read probe.txt in the current directory and reply with "
