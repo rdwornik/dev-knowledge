@@ -375,7 +375,7 @@ def test_load_cli_vendors_reads_real_registry():
     got = pr.load_cli_vendors(_REGISTRY)
     assert got["claude"] == "anthropic" and got["codex"] == "openai"
     assert got["copilot"] == "copilot-enterprise" and got["grok"] == "xai"
-    assert got["gemini"] == "google" and got["agy"] == "antigravity"
+    assert "gemini" not in got and got["agy"] == "antigravity"
     assert None not in got
 
 

@@ -145,6 +145,21 @@ say()  { printf '[provision] %s\n' "$*"; }
 noop() { printf '[provision] %s (no-op)\n' "$*"; }
 die()  { printf '[provision] REFUSED: %s\n' "$*" >&2; exit 1; }
 
+# R87.3 (b2w2-codespace-finish): codex signs in by the ChatGPT subscription and never by an API key.
+# OpenAI documents `forced_login_method` (`chatgpt` | `api`) and a non-interactive key route but not
+# which wins when both are present, so the keys are not left to precedence: they are removed from
+# this process before any leg runs, and every child it starts (the version probes included) inherits
+# the scrubbed environment. Only the NAME is said, never a value.
+scrub_model_keys() {
+  local n
+  for n in CODEX_API_KEY OPENAI_API_KEY; do
+    if [ -n "${!n:-}" ]; then
+      say "scrub: ${n} was set in the environment and is now unset (R87.3)"
+    fi
+    unset "${n}"
+  done
+}
+
 # --- pin readers: the single-source discipline, in code ------------------------------------------
 
 # pyproject.toml [tool.uv] required-version, section-scoped. Section scoping is not decoration:
@@ -732,6 +747,126 @@ fetch_installer() {
   echo "${dest}"
 }
 
+# --- F6: codex signs in by subscription, never by an API key (R87.3) -----------------------------
+# Two writes, both idempotent and both MERGED into what is already there. (1) `~/.codex/config.toml`
+# gets the top-level key `forced_login_method = "chatgpt"` (OpenAI's documented values are `chatgpt`
+# and `api`; on mismatched credentials Codex logs out and exits rather than falling back), placed
+# first because a top-level key written below a `[table]` would belong to it. (2) A marked block in the
+# FIRST existing login-startup file (the resolution `leg_pc_login_path` documents) unsets the two key
+# variables: the Codespaces secrets are exported by the login chain, and a lane head runs in a login
+# shell (`bash -l`), so the unset has to come after that chain, in `~/.profile`. It runs BEFORE
+# `leg_f5_codex` so the login-shell version probe that leg makes is already keyless.
+leg_f6_codex_subscription() {
+  local cfg="${HOME}/.codex/config.toml"
+  local marker='# dev-knowledge provision: codex signs in by subscription, never an API key (R87.3)'
+  local login_rc="" candidate state
+
+  # The config is TOML, so "does it force the sign-in" is a question about the TOP-LEVEL key, and a
+  # grep/sed over the whole file cannot answer it: the same text under a `[table]` or inside a
+  # multiline string is a different setting (Codex close-out review, 2026-10-10, HIGH). The helper
+  # parses the file (stdlib tomllib; the image's python3 is 3.12), edits only the top-level key,
+  # parses the result and compares it with the original plus that one key. It refuses, touching
+  # nothing, when it cannot show that -- an invalid file, or a layout it cannot edit safely.
+  f6_config() {
+    python3 - "$@" <<'PY'
+import os, re, stat, sys, tomllib
+
+sys.stdout.reconfigure(newline="\n")   # the shell compares the printed word; no CR from a Windows python
+KEY, VALUE = "forced_login_method", "chatgpt"
+mode, path = sys.argv[1], sys.argv[2]
+try:
+    with open(path, encoding="utf-8", newline="") as handle:
+        text = handle.read()
+except FileNotFoundError:
+    text = ""
+try:
+    data = tomllib.loads(text)
+except tomllib.TOMLDecodeError as exc:
+    sys.exit(f"{path} is not valid TOML ({exc}); not editing it")
+if data.get(KEY) == VALUE:
+    print("already")
+    sys.exit(0)
+if mode == "check":
+    sys.exit(f"the top-level {KEY} in {path} is {data.get(KEY)!r}, not {VALUE!r}")
+
+want = f'{KEY} = "{VALUE}"'
+expected = {**data, KEY: VALUE}
+key_line = re.compile(r'^\s*["\']?' + KEY + r'["\']?\s*=')
+table_line = re.compile(r'^\s*\[\[?[\sA-Za-z0-9_."\'-]+\]\]?\s*(#.*)?$')
+candidates = []
+if KEY in data:
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if table_line.match(line.rstrip("\r\n")):
+            break
+        if key_line.match(line):
+            eol = "\r\n" if line.endswith("\r\n") else "\n"
+            candidates.append("".join(lines[:index]) + want + eol + "".join(lines[index + 1:]))
+    verb = "rewritten"
+else:
+    candidates.append(want + "\n" + text)
+    verb = "added"
+for new in candidates:
+    try:
+        ok = tomllib.loads(new) == expected
+    except tomllib.TOMLDecodeError:
+        ok = False
+    if ok:
+        # the config may hold secret-valued settings, so the new content is never more readable than
+        # the original: the temp file is created 0600, takes the ORIGINAL's mode only just before it
+        # replaces it (so it is readable by exactly whom the original was), and a file that is new
+        # stays private (the old `sed -i` kept the mode)
+        try:
+            mode = stat.S_IMODE(os.stat(path).st_mode)
+        except FileNotFoundError:
+            mode = 0o600
+        tmp = f"{path}.tmp.{os.getpid()}"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+            handle.write(new)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+        print(verb)
+        sys.exit(0)
+sys.exit(f"cannot set the top-level {KEY} in {path} without changing another setting; edit it by hand")
+PY
+  }
+
+  mkdir -p "${HOME}/.codex"
+  state="$(f6_config ensure "${cfg}")" \
+    || die "L-F6 FAILED — could not force the ChatGPT sign-in in ${cfg} (the reason is printed above)"
+  if [ "${state}" = "already" ]; then
+    noop "L-F6 codex config already forces the ChatGPT sign-in"
+  else
+    CHANGED=$((CHANGED + 1))
+    say "L-F6 codex config now forces the ChatGPT sign-in (top-level key ${state})"
+  fi
+
+  for candidate in "${HOME}/.bash_profile" "${HOME}/.bash_login" "${HOME}/.profile"; do
+    if [ -f "${candidate}" ]; then
+      login_rc="${candidate}"
+      break
+    fi
+  done
+  [ -n "${login_rc}" ] || login_rc="${HOME}/.profile"
+  if ! grep -Fq "${marker}" "${login_rc}" 2>/dev/null; then
+    { echo ''
+      echo "${marker}"
+      echo 'unset CODEX_API_KEY OPENAI_API_KEY'
+    } >> "${login_rc}"
+    CHANGED=$((CHANGED + 1))
+    say "L-F6 login shells now unset the codex API keys (${login_rc})"
+  else
+    noop "L-F6 login shells already unset the codex API keys"
+  fi
+
+  [ "$(f6_config check "${cfg}")" = "already" ] \
+    || die "L-F6 FAILED — the top-level forced_login_method in ${cfg} is not \"chatgpt\" after the write"
+  grep -Fq "${marker}" "${login_rc}" \
+    || die "L-F6 FAILED — ${login_rc} does not carry the codex key unset after the write"
+  say "L-F6 OK — codex is forced to the ChatGPT sign-in and no login shell carries a codex API key"
+}
+
 # --- F5a: claude, PINNED -------------------------------------------------------------------------
 # Anthropic's setup doc (code.claude.com/docs/en/setup, "Install a specific version"):
 #   curl -fsSL https://claude.ai/install.sh | bash -s 2.1.89
@@ -759,7 +894,7 @@ else:
     print("set")
 PY
 
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only claude --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only claude --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 claude already at the pinned ${want}"
   else
@@ -785,7 +920,7 @@ leg_f5_gh() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get gh)" \
     || die "L-F5 cannot read the gh pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no gh pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gh --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gh --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 gh already at the pinned ${want}"
   else
@@ -813,7 +948,7 @@ leg_f5_codex() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get codex)" \
     || die "L-F5 cannot read the codex pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no codex pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only codex --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only codex --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 codex already at the pinned ${want}"
   else
@@ -839,7 +974,7 @@ leg_f5_rclone() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get rclone)" \
     || die "L-F5 cannot read the rclone pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no rclone pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only rclone --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only rclone --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 rclone already at the pinned ${want}"
   else
@@ -865,12 +1000,20 @@ leg_f5_rclone() {
 # It accepts --dir and NO version, so this leg cannot SELECT the pin; it ASSERTS it (b2-codespace-
 # 1to1, R63). A release the vendor publishes past the pin in `provisioning.yaml` `tools:` is then a
 # named refusal here, and a version-skew FAIL in parity condition 1, rather than a tool that floats.
+#
+# b2w2-codespace-finish (M3, R88c): what the leg cannot choose it cannot be made to `die` over. The pin
+# is now generated from the laptop (`codespace_parity.py pin write`, R70), so a skew means the vendor
+# published a release between that reading and this build. A container that has agy, and a login shell
+# that resolves it, is not a recovery container for that: the skew is RECORDED -- the leg says
+# `present, BLOCKED-AUTH` with exactly one OPERATOR-ACTION line -- and parity C1 still names it. An agy
+# that does not resolve in a login shell is still a refusal. Sign-in to agy is an operator act either
+# way (no login subcommand, no secret; its model call shows the login).
 leg_f5_agy() {
-  local want ok=1 installer
+  local want ok=1 installer have
   want="$(uv run --no-sync python scripts/provision_legs.py tools get agy)" \
     || die "L-F5 cannot read the agy pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no agy pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 agy already at the pinned ${want}"
   else
@@ -883,9 +1026,15 @@ leg_f5_agy() {
     CHANGED=$((CHANGED + 1))
   fi
   ensure_login_resolvable agy
-  uv run --no-sync python scripts/provision_legs.py tools check --only agy --login \
-    || die "L-F5 FAILED — agy is not the pinned ${want} in a login shell (its installer takes no version, so a release past the pin shows up here). A login shell resolves: $(login_resolves agy)"
-  say "L-F5 OK — agy ${want}"
+  if uv run --no-sync python scripts/provision_legs.py tools check --only agy --login; then
+    say "L-F5 OK — agy ${want}"
+    return 0
+  fi
+  have="$(bash -lc 'command -v agy >/dev/null 2>&1 && agy --version' 2>/dev/null | head -n 1)" || true
+  [ -n "${have}" ] \
+    || die "L-F5 FAILED — agy does not resolve in a login shell. A login shell resolves: $(login_resolves agy)"
+  say "L-F5 agy ${have} (pin ${want}; the vendor installer serves only its latest) -- present, BLOCKED-AUTH"
+  say "OPERATOR-ACTION: sign in to agy in the Codespace once (gh codespace ssh, open the URL it prints)"
 }
 
 # --- F5f: grok -----------------------------------------------------------------------------------
@@ -900,7 +1049,7 @@ leg_f5_grok() {
   want="$(uv run --no-sync python scripts/provision_legs.py tools get grok)" \
     || die "L-F5 cannot read the grok pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no grok pin"
-  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only grok --login || ok=0
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only grok --login 2>/dev/null || ok=0
   if [ "${ok}" -eq 1 ]; then
     noop "L-F5 grok already at the pinned ${want}"
   else
@@ -918,6 +1067,32 @@ leg_f5_grok() {
   uv run --no-sync python scripts/provision_legs.py tools check --only grok --login \
     || die "L-F5 FAILED — grok is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves grok)"
   say "L-F5 OK — grok ${want}"
+}
+
+# --- F5h: copilot --------------------------------------------------------------------------------
+# docs.github.com "Install Copilot CLI": `npm install -g @github/copilot` (Node 22+); the pin is the
+# npm version tag. b2-codespace-subscription-auth: the registry names this CLI. Its sign-in is an
+# OS-keyring entry on the workstation and is not mirrored: the Codespace signs in through the
+# COPILOT_GITHUB_TOKEN secret (R88a), which this script never reads or writes.
+leg_f5_copilot() {
+  local want ok=1
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get copilot)" \
+    || die "L-F5 cannot read the copilot pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no copilot pin"
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only copilot --login 2>/dev/null || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 copilot already at the pinned ${want}"
+  else
+    say "L-F5 installing copilot ${want}"
+    npm install -g "@github/copilot@${want}" >/dev/null 2>&1 \
+      || sudo -n env "PATH=${PATH}" npm install -g "@github/copilot@${want}" >/dev/null \
+      || die "L-F5 npm could not install @github/copilot@${want}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable copilot
+  uv run --no-sync python scripts/provision_legs.py tools check --only copilot --login \
+    || die "L-F5 FAILED — copilot is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves copilot)"
+  say "L-F5 OK — copilot ${want}"
 }
 
 # --- F4: workspace trust, so the DECLARED permission set is the EFFECTIVE one --------------------
@@ -1131,6 +1306,7 @@ refresh() {
 }
 
 main() {
+  scrub_model_keys
   case "${1:-}" in
     --gate) gate; return 0 ;;
     --refresh) refresh; return 0 ;;
@@ -1155,12 +1331,14 @@ main() {
   leg3_hooks
   leg_pc_login_path
   leg_f1_claude
+  leg_f6_codex_subscription
   leg_f5_claude_pin
   leg_f5_gh
   leg_f5_codex
   leg_f5_rclone
   leg_f5_agy
   leg_f5_grok
+  leg_f5_copilot
   leg_f2_git_credential
   leg_f4_workspace_trust
   smoke_gate_liveness
