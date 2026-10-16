@@ -69,7 +69,17 @@ def _matrix_os_lists(doc: object) -> list[list[object]]:
         os_list = matrix.get("os")
         if isinstance(os_list, list) and os_list:
             out.append(os_list)
+        elif isinstance(os_list, str) and _is_expression(os_list):
+            # ADR-127 AMENDMENT 2: the hub's own matrix is `${{ fromJSON(needs.plan.outputs.os) }}`
+            # -- the OS set is a runtime output of its `plan` job. The platforms are still
+            # DECLARED, in the workflow; a string expression is how GitHub spells "computed".
+            out.append([os_list])
     return out
+
+
+def _is_expression(value: str) -> bool:
+    text = value.strip()
+    return text.startswith("${{") and text.endswith("}}") and len(text) > len("${{}}")
 
 
 def check_platform_matrix(repo_path: Path) -> list[Finding]:

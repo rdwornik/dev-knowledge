@@ -94,8 +94,24 @@ PYTEST_JOB = "pytest"
 #: The contexts a push run must show completed-and-successful before a sha is mergeable.
 #: `tests/test_conductor_governance_jobs.py` pins this to the ruleset JSON, so the two cannot
 #: drift.
-REQUIRED_CONTEXTS = ("pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff", "seal",
-                     "spine", "anchor")
+#:
+#: ADR-127 AMENDMENT 2 (Linux-first CI, 2026-10-16): the WINDOWS leg is no longer in this tuple. A
+#: merge is judged on Linux alone; `WINDOWS_CONTEXT` is added by `required_contexts_for(True)` only
+#: for a Windows-sensitive diff (`ci_os_plan` decides). The ruleset file lists exactly this tuple,
+#: because a server-side ruleset cannot require a check conditionally.
+REQUIRED_CONTEXTS = ("pytest (ubuntu-latest)", "ruff", "seal", "spine", "anchor")
+WINDOWS_CONTEXT = "pytest (windows-latest)"
+
+
+def required_contexts_for(windows_required: bool) -> tuple:
+    """The contexts a push run must show `success` for a merge: `REQUIRED_CONTEXTS`, plus the
+    Windows leg when the diff is Windows-sensitive (`ci_os_plan.windows_required`)."""
+    if not windows_required:
+        return REQUIRED_CONTEXTS
+    # The Windows leg sits second, where the matrix has always listed it.
+    return (REQUIRED_CONTEXTS[0], WINDOWS_CONTEXT, *REQUIRED_CONTEXTS[1:])
+
+
 #: The one file the base registry is read from, AT THE BASE SHA -- a lane that registers its own
 #: red in the same diff cannot launder it, because the tip's registry is never consulted.
 _REGISTRY_RELPATH = "logs/KNOWN-REDS-REGISTRY.json"

@@ -1135,7 +1135,7 @@ def _install_ci(monkeypatch, *, tip, base, kind="both-red", tip_ids=(), base_ids
         return [{"name": n, "databaseId": first_id + i,
                  "conclusion": (pytest_c if n in (_LEG_U, _LEG_W)
                                 else ruff_c if n == "ruff" else "success")}
-                for i, n in enumerate(av.REQUIRED_CONTEXTS)]
+                for i, n in enumerate(av.required_contexts_for(True))]   # a full (both-OS) run
 
     def run(sha, run_id):
         return {"databaseId": run_id, "headSha": sha, "status": "completed", "conclusion": run_c,

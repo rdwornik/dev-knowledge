@@ -98,16 +98,54 @@ jobs:
   # required check, so deploy/conductor-required-checks.ruleset.json and these four ids are
   # one fact in two files; tests/test_conductor.py asserts they agree.
 
+  plan:
+    # ADR-127 AMENDMENT 2 (Linux-first CI, 2026-10-16): which OS legs this run needs. A merge is
+    # judged on ubuntu-latest alone; windows-latest joins (a) on `schedule` / `workflow_dispatch`
+    # (the nightly full run) and (b) when the diff touches a Windows-sensitive path. The decision
+    # is `scripts/ci_os_plan.py` -- the SAME function `merge_path.land` uses to pick the required
+    # contexts, so the run and the verdict cannot disagree. Stdlib only: no `uv sync` here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      os: ${{ steps.plan.outputs.os }}
+      reason: ${{ steps.plan.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Local `main` ref and origin/main
+        run: |
+          git rev-parse --verify --quiet refs/heads/main >/dev/null 2>&1 || git branch main origin/main || true
+      - name: Decide the OS legs
+        id: plan
+        run: |
+          python3 scripts/ci_os_plan.py --event "${{ github.event_name }}" \
+            --head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --before "${{ github.event.before }}" --ref "${{ github.ref }}"
+          {
+            echo "## OS legs"
+            echo
+            grep '^os=' "$GITHUB_OUTPUT" | tail -1
+            echo
+            grep '^reason=' "$GITHUB_OUTPUT" | tail -1 | cut -c8-
+          } >> "$GITHUB_STEP_SUMMARY"
+
   pytest:
     # LANE-5B4-3 (L1, D1): the OS matrix. `fail-fast: false` so a red on one leg never cancels
     # the other before ITS duration is known -- the whole point of this lane is measuring both.
     # Job id stays `pytest`; GitHub names the two check CONTEXTS `pytest (ubuntu-latest)` and
     # `pytest (windows-latest)` from the matrix automatically (RATIFICATION D3) -- renaming the
     # job id, not the matrix values, is what would disarm those contexts.
+    # ADR-127 AMENDMENT 2: the `os` list is the `plan` job's output -- ["ubuntu-latest"], plus
+    # "windows-latest" on the nightly / manual run or a Windows-sensitive diff. The check
+    # CONTEXTS are still `pytest (ubuntu-latest)` / `pytest (windows-latest)`; the ruleset file
+    # requires only the first (a server-side rule cannot require a check conditionally), and
+    # `merge_path.land` adds the second to its required set for a sensitive diff.
+    needs: plan
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(needs.plan.outputs.os) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45      # the wall measures ~5m30s-6m with -n auto, 13m19s serial (Linux;
                              # the Windows leg's own duration is what this lane exists to measure)
@@ -229,6 +267,52 @@ jobs:
           if-no-files-found: warn
       - name: Fail the job on the known-reds compare's verdict, not the frozen-baseline gate's (LANE-5B3-8 repair 1)
         run: exit ${{ steps.known_reds.outputs.exit }}
+
+  windows-nightly-triage:
+    # ADR-127 AMENDMENT 2 (Linux-first CI): a Windows red found at night becomes a row the next
+    # morning and does not block the day. THE MORNING PICK-UP IS AN EXISTING KIND, not a new one:
+    # a GitHub Issue labelled `nightly-triage`, which `scripts/surface_triage.py` (`triage_lines`,
+    # run by SessionStart's `session_start.py`) already lists as "[triage] N nightly finding(s)
+    # await: #N". The session that sees it files the repair row and feeds it to the integrator's
+    # queue. Scoped to `schedule`: a push run never opens an Issue. Nothing here is a required
+    # context, so it can never hold a merge.
+    needs: pytest
+    if: ${{ always() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Open a nightly-triage Issue when the Windows leg is not green
+        run: |
+          set -e
+          concl=$(gh run view "${{ github.run_id }}" --json jobs \
+            --jq '.jobs[] | select(.name == "pytest (windows-latest)") | .conclusion')
+          echo "pytest (windows-latest) concluded: ${concl:-<absent>}"
+          case "$concl" in
+            success|skipped) echo "Windows leg green: nothing to file"; exit 0 ;;
+          esac
+          title="Windows nightly red on main @ ${GITHUB_SHA::8} (run ${{ github.run_id }})"
+          gh label create nightly-triage --color D93F0B \
+            --description "A nightly finding awaiting morning triage" 2>/dev/null || true
+          existing=$(gh issue list --label nightly-triage --state open \
+            --search "\"run ${{ github.run_id }}\" in:title" --json number --jq '.[].number')
+          if [ -n "$existing" ]; then echo "an open issue for this run exists: $existing"; exit 0; fi
+          {
+            echo "The nightly full-suite run's Windows leg concluded \`${concl:-absent}\`."
+            echo
+            echo "- run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- sha: ${GITHUB_SHA}"
+            echo "- leg: \`pytest (windows-latest)\`; its known-reds compare is in the job summary and the \`pytest-windows-latest-*\` artifact."
+            echo
+            echo "Per ADR-127 AMENDMENT 2 (Linux-first CI) this does not block merges. File the repair row from this finding and feed it to the integrator's queue; close this Issue when the row is filed."
+          } > body.md
+          gh issue create --label nightly-triage --title "$title" --body-file body.md
 
   ruff:
     runs-on: ubuntu-latest

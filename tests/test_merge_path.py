@@ -558,8 +558,8 @@ def test_b2_apply_still_needs_the_operators_GO_beside_a_good_record(tmp_path):
     assert len(unmet) == 1 and "GO" in unmet[0]
 
 
-@pytest.mark.parametrize("context", ["pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff",
-                                     "seal", "spine", "anchor"])
+@pytest.mark.parametrize("context", ["pytest (ubuntu-latest)", "ruff", "seal", "spine",
+                                     "anchor"])   # ADR-127 AMENDMENT 2: five; Windows is not in the ruleset
 @pytest.mark.parametrize("conclusion", ["failure", "skipped", "cancelled", "timed_out", None])
 def test_b2_apply_refuses_a_record_where_ANY_required_context_is_not_success(
         tmp_path, context, conclusion):
@@ -766,14 +766,14 @@ def test_b2_apply_execute_with_a_failing_record_refuses_and_names_the_context(
     calls = []
     monkeypatch.setattr(mp.subprocess, "run", lambda *a, **k: calls.append(a) or None)
     contexts = {c: "success" for c in mp.required_contexts()}
-    contexts["pytest (windows-latest)"] = "failure"
+    contexts["pytest (ubuntu-latest)"] = "failure"
     path = _write_record(tmp_path, _rehearsal(contexts=contexts))
 
     result = CliRunner().invoke(mp.cli, ["ruleset", "apply", "--repo", "o/r", "--sha", TIP,
                                          "--go", "recorded GO", "--rehearsal", str(path),
                                          "--execute"])
 
-    assert result.exit_code == 1 and "pytest (windows-latest)" in result.output
+    assert result.exit_code == 1 and "pytest (ubuntu-latest)" in result.output
     assert calls == []
 
 

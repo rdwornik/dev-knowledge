@@ -554,13 +554,37 @@ def test_the_workflow_carries_the_four_triggers_section_4_names(workflow):
     assert triggers["schedule"], "a schedule leg is what makes the runner more than a push-reactor"
 
 
-def test_the_pytest_job_runs_both_OSes_with_fail_fast_off(workflow):
-    # D1: "strategy.matrix.os: [ubuntu-latest, windows-latest], fail-fast: false" -- fail-fast
-    # off so one OS's red does not cancel the other leg's run before its duration is known.
-    strategy = workflow["jobs"]["pytest"]["strategy"]
-    assert strategy["matrix"]["os"] == ["ubuntu-latest", "windows-latest"]
+def test_the_pytest_job_takes_its_OS_legs_from_the_plan_job_with_fail_fast_off(workflow):
+    # D1, as amended by ADR-127 AMENDMENT 2 (Linux-first CI): the matrix `os` is the `plan` job's
+    # output (ubuntu always; windows on the nightly / manual run or a Windows-sensitive diff).
+    # fail-fast stays off so one OS's red does not cancel the other leg before its duration is
+    # known.
+    job = workflow["jobs"]["pytest"]
+    strategy = job["strategy"]
+    assert strategy["matrix"]["os"] == "${{ fromJSON(needs.plan.outputs.os) }}"
+    assert job["needs"] == "plan"
     assert strategy["fail-fast"] is False
-    assert workflow["jobs"]["pytest"]["runs-on"] == "${{ matrix.os }}"
+    assert job["runs-on"] == "${{ matrix.os }}"
+
+
+def test_the_plan_job_calls_the_one_os_decision_function(workflow):
+    plan = workflow["jobs"]["plan"]
+    assert plan["runs-on"] == "ubuntu-latest"
+    assert plan["outputs"]["os"] == "${{ steps.plan.outputs.os }}"
+    run = next(s["run"] for s in plan["steps"] if s.get("id") == "plan")
+    assert "python3 scripts/ci_os_plan.py" in run and "--event" in run
+
+
+def test_the_windows_nightly_job_is_schedule_only_and_never_a_required_context(workflow, ruleset):
+    job = workflow["jobs"]["windows-nightly-triage"]
+    assert "github.event_name == 'schedule'" in job["if"]
+    assert job["permissions"]["issues"] == "write"
+    run = next(s["run"] for s in job["steps"] if "nightly-triage" in s.get("name", ""))
+    assert "--label nightly-triage" in run     # the kind scripts/surface_triage.py consumes
+    required = {c["context"] for c in
+                ruleset["rules"][0]["parameters"]["required_status_checks"]}
+    assert "windows-nightly-triage" not in required
+    assert "pytest (windows-latest)" not in required
 
 
 def test_the_pytest_jobs_checkout_step_fetches_full_history(workflow):
@@ -664,6 +688,12 @@ def emitted_contexts(workflow) -> set:
         base = job.get("name", job_id)
         matrix = {k: v for k, v in (job.get("strategy", {}).get("matrix") or {}).items()
                   if isinstance(v, list) and k not in ("include", "exclude")}
+        # ADR-127 AMENDMENT 2: `os` is a `fromJSON` expression (the plan job's output); the
+        # contexts it CAN emit are every OS `ci_os_plan` can name.
+        for key, value in (job.get("strategy", {}).get("matrix") or {}).items():
+            if key == "os" and isinstance(value, str) and "fromJSON" in value:
+                import ci_os_plan
+                matrix[key] = [ci_os_plan.LINUX, ci_os_plan.WINDOWS]
         if not matrix:
             names.add(base)
             continue
@@ -680,8 +710,9 @@ def test_every_required_context_is_a_check_run_name_the_workflow_emits(workflow,
     # fact, with the matrix expansion included.
     contexts = {c["context"] for c in
                 ruleset["rules"][0]["parameters"]["required_status_checks"]}
-    assert contexts == {"pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff", "seal",
-                        "spine", "anchor"}
+    # ADR-127 AMENDMENT 2: five. A server-side ruleset cannot require a check conditionally, so
+    # the Windows leg is not in it; `merge_path.land` adds it for a Windows-sensitive diff.
+    assert contexts == {"pytest (ubuntu-latest)", "ruff", "seal", "spine", "anchor"}
     assert contexts <= emitted_contexts(workflow), \
         f"required contexts no job emits: {sorted(contexts - emitted_contexts(workflow))}"
 
