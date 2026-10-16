@@ -220,13 +220,23 @@ def pre_push_stdin(tip: str, origin_main_sha: str) -> str:
 LANDABLE_STATES = ("PASS", "PRE-EXISTING")
 
 
-def required_contexts() -> tuple[str, ...]:
+def required_contexts(windows_required: bool = False) -> tuple[str, ...]:
+    """The contexts a landing must see `success`. Windows joins them only for a Windows-sensitive
+    diff (ADR-127 AMENDMENT 2); the default is what the ruleset file lists."""
     import actions_verdict as av
-    return av.REQUIRED_CONTEXTS
+    return av.required_contexts_for(windows_required)
+
+
+def windows_required_for(git: Runner, base: str, sha: str) -> bool:
+    """Whether `base..sha` is Windows-sensitive (`ci_os_plan`). An unreadable diff or scan reads
+    True: a landing is never licensed to skip the Windows leg by a git failure."""
+    import ci_os_plan
+    return ci_os_plan.windows_required(git, base, sha)
 
 
 def read_verdict(sha: str, *, base: str, root: Path, timeout_s: int, interval_s: int,
-                 verdict_fn: Optional[Callable] = None, run_id: Optional[int] = None):
+                 verdict_fn: Optional[Callable] = None, run_id: Optional[int] = None,
+                 contexts: Optional[tuple] = None):
     """THE one CI verdict for `sha` -- `ci_verdict.verdict_for`, required contexts and baseline
     included. `verdict_fn` is the test seam. `run_id` pins the read to one run (the replay
     acceptance offers a cancelled run alone); it is passed only when given, so a verdict function
@@ -236,7 +246,7 @@ def read_verdict(sha: str, *, base: str, root: Path, timeout_s: int, interval_s:
         verdict_fn = civ.verdict_for
     extra = {"run_id": run_id} if run_id is not None else {}
     return verdict_fn(sha, repo_root=root, timeout_s=timeout_s, interval_s=interval_s,
-                      baseline=base, required_contexts=required_contexts(), **extra)
+                      baseline=base, required_contexts=contexts or required_contexts(), **extra)
 
 
 def is_landable(verdict) -> bool:
@@ -299,10 +309,14 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                       f"{sha} is not a two-parent merge commit whose first parent is the "
                       f"integration base {base} (git said: {out.strip()[:160]!r})")
     sha = parts[0]
+    # ADR-127 AMENDMENT 2: Linux alone judges this merge unless its diff is Windows-sensitive.
+    # Read ONCE, here, so the verdict and the receipt's second read of the run judge the same set.
+    contexts = required_contexts(windows_required_for(git, base, sha))
 
     if no_push:
         verdict = read_verdict(sha, base=base, root=root, timeout_s=timeout_s,
-                               interval_s=interval_s, verdict_fn=verdict_fn, run_id=run_id)
+                               interval_s=interval_s, verdict_fn=verdict_fn, run_id=run_id,
+                               contexts=contexts)
         state = getattr(verdict, "state", "UNKNOWN") or "UNKNOWN"
         return LandResult(False, state, getattr(verdict, "reason", "") or "", sha=sha,
                           branch=branch, verdict=verdict, commands=commands,
@@ -328,12 +342,12 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
     record_push_fn(root, slug=slug, target="integration", branch=branch, sha=sha, seconds=pushed_s)
 
     verdict = read_verdict(sha, base=base, root=root, timeout_s=timeout_s, interval_s=interval_s,
-                           verdict_fn=verdict_fn)
+                           verdict_fn=verdict_fn, contexts=contexts)
     try:
-        # The receipt's suite step is a SECOND read of the same run: it is handed the same six
+        # The receipt's suite step is a SECOND read of the same run: it is handed the same
         # required contexts the landing decision above judged, so a receipt cannot complete on a
         # state `land` refused, and its FLAGGED buckets are what the receipt records.
-        record_suite_fn(root, slug=slug, sha=sha, required_contexts=required_contexts())
+        record_suite_fn(root, slug=slug, sha=sha, required_contexts=contexts)
     except Exception as exc:                  # noqa: BLE001 -- recorded in the refusal, never hidden
         return refuse("RECEIPT-REFUSED", f"the suite read could not be recorded: {exc}", verdict)
     if not is_landable(verdict):
@@ -599,8 +613,11 @@ def cmd_verdict(ctx: click.Context, sha: str, base: str, timeout_s: int, interva
                 run_id: Optional[int]) -> None:
     """Read the ONE CI verdict for a sha. Exit 0 only when it is landable."""
     with timed_event("merge_path.verdict", sha=sha[:12]) as result:
-        verdict = read_verdict(sha, base=base, root=ctx.obj["root"], timeout_s=timeout_s,
-                               interval_s=interval_s, run_id=run_id)
+        root = ctx.obj["root"]
+        verdict = read_verdict(sha, base=base, root=root, timeout_s=timeout_s,
+                               interval_s=interval_s, run_id=run_id,
+                               contexts=required_contexts(
+                                   windows_required_for(_run_git(root), base, sha)))
         landable = is_landable(verdict)
         result["outcome"] = "ok" if landable else "fail"
     click.echo(json.dumps(verdict.to_dict(), indent=2))

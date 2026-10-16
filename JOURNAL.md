@@ -21,6 +21,34 @@
 
 ---
 
+### 2026-10-16 (p) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-vendor-fix-2026-10-16 merges on repair 2 -- the vendor probe stages Copilot's input, pins Grok's model, and makes a failed vendor loud (AMEND-1 PART V)
+
+**Anchors:** `71dd42ca` (repair 1: lazy siblings loaded by importlib, branch `worktree-resume-vendor-fix-2026-10-16`, introduced by this merge), `e528ff22` (the seat's receipts-ledger line), `f387e8f1` (repair 2: origin/main merged in, no code change), plus `f71f9442`, `e3620066`, `77ea0b16` and their REDs `1617858d`, `aa1affe6`.
+
+**Did:** merged `--no-ff` on `8e8ef452`, after linux-first-ci landed, under the FINAL NIGHT ORDER (2026-10-16). Two refusals came before this one (`to-browser/REFUSED-resume-vendor-fix-2026-10-16.md`); the second was Windows-only (`test_worktree_import_proof` end_to_end_fail and the handoff dry-cut bound), and the owner argues it was load flake. `ci_os_plan.py` names this diff Windows-sensitive (`scripts/read_gate.py`, `scripts/run_phase.py`), so the Windows leg runs and `windows-gate` judges it against the base. The integrator does not override the planner. A new Windows red here is strike three and goes to the operator. The importlib choice was ACCEPTED by Tech-Architect-45 ([#691] Half B owns the provider_router wiring). The linux-first arc receipt line rides here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `scripts/vendor_probe.py`, `scripts/run_phase.py`, `scripts/read_gate.py`, `scripts/gen_lane_contract.py`, `tests/test_vendor_fix.py`, `tests/test_vendor_fix_review.py`, `logs/CODESPACE-RECEIPTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** night-retire repair 1 when handed back (repair seat 820a152f).
+
+---
+
+### 2026-10-16 (o) - CC (Opus 5.5, integrator BU cycle-4): worktree-linux-first-ci-2026-10-16 merges on repair 1 -- merges are judged on Linux; windows-gate judges the Windows leg like the merge verdict (ADR-127 amendment 2)
+
+**Anchors:** `367a0470` (repair 1: `scripts/windows_gate.py`, and the r2 record gets a consumer; branch `worktree-linux-first-ci-2026-10-16`, introduced by this merge), `47fae392` (regenerated counts and index), `ec465782` (feature), `646daedc` (terra round 1 fixes), `866d0925` (terra round 2 record).
+
+**Did:** merged `--no-ff` on `2767501b` after the refusal of `866d0925` (`to-browser/REFUSED-linux-first-ci-2026-10-16.md`). `windows-gate` now runs `scripts/windows_gate.py`. It passes on a green leg, or on reds that are red at the base too (`known_reds.compare_to_base`, the same functions the merge verdict uses). It fails on a new red, a non-test failure, a skipped, cancelled or absent leg, or an unreadable log or registry, and it stays required. The r2 Codex record is cited by the ADR-127 amendment 2 text. Check review: no check is weakened. The `doc-counts.md` conflict is regenerated after this commit. The token-cuts-r1 arc receipt line was lost to an integrator `git reset --hard` before this merge (recorded in the receipt), so it does not ride here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `.github/workflows/conductor.yml`, `deploy/conductor-required-checks.ruleset.json`, `docs/decisions/ADR-127-ci-os-verification.md`, `scripts/ci_os_plan.py`, `scripts/windows_gate.py`, `scripts/merge_path.py`, `scripts/actions_verdict.py`, `scripts/audit_checks/check_platform_matrix.py`, the two Codex records, tests.
+
+**Next:** resume-vendor-fix @ `f387e8f1` under the Linux-only verdict; night-retire repair 1 when routed.
+
+---
+
 ### 2026-10-16 (n) - CC (Opus 5.5, integrator BU cycle-4): worktree-token-cuts-2026-10-16 merges on repair 1 -- the per-turn start-up context is cut by about 7.9k tokens [#1616] [#1617] [#1618]
 
 **Anchors:** `8f5d3de0` (repair 1: the evidence-refused roster bodies return, branch `worktree-token-cuts-2026-10-16`, introduced by this merge), `0ae8915f` (repair 1: session_start newline, audit citation restored), `6826a770`, `67c75b20` and `22565eb3` (the cut and its RED).

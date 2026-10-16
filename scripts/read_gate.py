@@ -345,6 +345,14 @@ def _cli_invoker(
         output_path = (workdir / f"{route.provider}.output.txt").resolve()
         output_path.unlink(missing_ok=True)
         source_abs = source_path.resolve()
+        run_kw: dict[str, Any] = {}
+        if cli == "copilot":
+            # `copilot -p` cannot ask for a path outside its cwd and `--allow-all-tools` does not
+            # grant one (matrix, tests/test_vendor_fix.py): stage the source INSIDE the workdir and
+            # run there, so no path in the prompt leaves the cwd.
+            import run_phase
+            source_abs = run_phase.stage_input(source_abs, workdir / "copilot-input").resolve()
+            run_kw["cwd"] = str(workdir)
         prompt = (
             f"Read exactly this file and nothing else: {source_abs}. "
             "Quote, verbatim and in double quotes, the sentence(s) that answer what it says. "
@@ -364,7 +372,7 @@ def _cli_invoker(
             # `provider_bench.run_one`.
             proc = runner(
                 argv, capture_output=True, text=True, timeout=timeout_s, check=False,
-                stdin=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL, **run_kw,
             )
         except (OSError, subprocess.SubprocessError) as exc:
             return InvokeAttempt(None, log_text=str(exc), status="unavailable")
