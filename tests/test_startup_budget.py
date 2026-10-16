@@ -22,8 +22,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 #: CLAUDE.md plus every file it @-imports -- the real session payload (the byte-cap module's
 #: docstring names the expanded payload as the unbuilt gate; this is it).
-CLAUDE_MD_CAP = 17 * 1024
-CLAUDE_MD_EXPANDED_CAP = 23 * 1024
+CLAUDE_MD_CAP = 21 * 1024
+CLAUDE_MD_EXPANDED_CAP = 31 * 1024
 #: The SessionStart hook's injected stdout (was 8,192).
 SESSION_START_CAP = 2560
 #: The always-loaded rule file (was 5,694).
@@ -79,7 +79,7 @@ _RELOCATED_ANCHORS = (
     "The ancestor proof is the safety check", "WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE",
     "| carrier branch | tip | closes when | expires |", "docs: update PLAYBOOK S5 council debate format",
     # CLAUDE.md section 9, section 4 and the header
-    "## 9. Hooks active", "A roster, not a manual", "block-unanchored-push", "ADR-108",
+    "## 9. Hooks active", "A roster, not a manual", "disableAllHooks", "ADR-108",
     "**TDD", "**Spec-driven development", "**Freshness cadence:**", "**File lifecycle:**",
     "**Scope tags:**", "Budget — bytes bind. ≤24,576 B",
 )

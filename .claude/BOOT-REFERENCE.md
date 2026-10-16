@@ -31,42 +31,7 @@
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 12 (counter+expiry; `dispatch-conformance` retired 2026-10-05) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
-- `normalize-dated-headers` — dated-log header normalization
-- `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
-- `toc-freshness-playbook` — PLAYBOOK TOC staleness
-- `roster-freshness` — `.claude/methodology-roster.md` vs the deploy manifest
-- `claude-rosters-freshness` — the two generated `.claude/generated/` fragments
-- `audit-index-freshness` — generated `docs/audits/README.md`
-- `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
-- `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
-- `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
-- `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
-- `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
-- `check-seal-identity` — handoff-bundle seal identity at commit time
-- `block-commit-on-main` — core-invariant #5 PREVENT at commit time
-- `lane-contract-check` — shape gate for a generator-emitted lane contract
-- `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
-- `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
-- `validate-backlog` — BACKLOG story-map schema (ADR-66)
-- `row-archive-proof` — `archive_row_body.py verify`: byte-identity legs A-E over `tasks/archive/`; `verify` only, never the writing subcommands ([#664] TRIGGER row)
-- `graph-rebuild` — rebuilds the persisted FPG-1 store ([#664] clause 1)
-- `graph-orphan-census` — a process no wiring surface reaches, transitively ([#664] clause 2)
-- `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)
-- `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
-- `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
-- `decision-coverage` — an accepted decision no row implements; two legs, era-bounded ([#692])
-- `graph-edge-class-census` — edge-class ratchet ([#664])
-- `quality-requirements-freshness` — quality register ([#765])
-- `prepend-order` — newest-first / append-only logs ([#786])
-- `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
-- `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
-- `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
-- `backlog-id-on-close` (commit-msg) — `[#id]` required when a commit removes a task
-- `backlog-filing-backpressure` (commit-msg) — a commit ADDING a task id needs a flush-left `kill-candidates:` line
-- `commit-message-type-prefix` (commit-msg) — type prefix ([#834])
-- `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
-- `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
+Pre-commit / commit-msg / pre-push roster: moved BACK to `CLAUDE.md` §9 by [#1616] repair 1 (the boot-retrieval evidence refused the pointer form of the `hooks-roster` item: fetched 3/3, canary quoted 0/3), so CLAUDE.md is its single home.
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 

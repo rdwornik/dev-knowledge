@@ -83,8 +83,7 @@ def _init_doc_repo(tmp_path, *, checks=15, gates=8, collected=372, ids=None, ros
     (repo / "ecosystem" / "doc-counts.md").write_text(
         _doc_counts_md(checks, gates, collected), encoding="utf-8")
     (repo / ".pre-commit-config.yaml").write_text(_precommit_yaml(ids), encoding="utf-8")
-    (repo / ".claude").mkdir()
-    (repo / ".claude" / "BOOT-REFERENCE.md").write_text(_claude_md(roster_ids), encoding="utf-8")  # relocated by [#1616]
+    (repo / "CLAUDE.md").write_text(_claude_md(roster_ids), encoding="utf-8")
     return repo
 
 

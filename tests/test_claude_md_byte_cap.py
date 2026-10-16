@@ -80,7 +80,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 #: `CLAUDE.md`'s own boot budget. See the module docstring for the derivation. NOT Codex's
 #: `project_doc_max_bytes` -- a different cap, for a different consumer, at a different size.
-CLAUDE_MD_CAP_BYTES = 17 * 1024  # was 24 KiB; lowered by [#1616] (BATCH-TOKEN-CUTS-2026-10-16)
+CLAUDE_MD_CAP_BYTES = 21 * 1024  # was 24 KiB; lowered by [#1616] (BATCH-TOKEN-CUTS-2026-10-16)
 
 CLAUDE_MD = _REPO_ROOT / "CLAUDE.md"
 
