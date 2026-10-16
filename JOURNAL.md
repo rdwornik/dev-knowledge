@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-16 (f) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges its runner fix -- the Codespace runner witnesses and pushes a lane's own worktree-lane branch (batch-resume-night PART B)
+
+**Anchors:** `0b40de81` (fix, branch `worktree-resume-pin-2026-10-16`, introduced by this merge), `7bad21bb` (its RED).
+
+**Did:** merged `--no-ff` on `08b97986` at the batch-resume-night seat's request. The first live Codespace lane committed in a linked worktree and the runner's witness read "the lane committed nothing"; `scripts/dispatch.py` now witnesses and pushes the lane's `worktree-lane-*` branch when the checkout HEAD did not move. RED `7bad21bb` before `0b40de81`; 173 tests in `tests/test_dispatch_codespace.py` pass per the requesting seat. The resume-vendor-fix land before it was REFUSED (`to-browser/REFUSED-resume-vendor-fix-2026-10-16.md`); its receipt and the resume-pin receipt lines ride here.
+
+**Result:** pending CI on the integration branch; verdict in `to-browser/SESSION-integrator-bu-2026-10-15.md`.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_codespace.py`, `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** `worktree-lane-rn-1015-plan-lint-owns` @ `9290c0e4`, then `worktree-resume-night-contract-2026-10-16`.
+
+---
 ### 2026-10-16 (d) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-pin-2026-10-16 merges -- the devcontainer pins claude 2.1.301 (batch-resume-night PART B, queued post-close)
 
 **Anchors:** `dbe4f3d7` (the pin write, branch `worktree-resume-pin-2026-10-16`, introduced by this merge).
