@@ -2172,6 +2172,27 @@ def test_the_runner_pushes_only_its_own_branch_and_never_main(tmp_path):
     assert _git(origin, "rev-parse", "refs/heads/main") == base_main, "main on origin never moves"
 
 
+def test_a_lane_that_commits_in_a_linked_worktree_branch_is_witnessed_and_pushed(tmp_path):
+    """Live 2026-10-16 (batch-resume-night PART B): the lane followed the repo rule "parallel work
+    needs a worktree", committed its RED and fix on `worktree-lane-<slug>` in a linked worktree, and the
+    checkout's own HEAD never moved -- the witness read "the lane committed nothing" for finished work.
+    The runner now also looks at the lane's declared branch."""
+    origin, checkout = _git_lane(tmp_path, "main")
+    work = _sub(tmp_path, "work")
+    wt = (tmp_path / "lane-wt").as_posix()
+    head = _head_stub(tmp_path, f'git worktree add -q "{wt}" -b worktree-lane-x\n'
+                                f'git -C "{wt}" commit -q --allow-empty -m "lane work in a linked worktree"\n')
+    body = d._codespace_runner_script(work.as_posix(), checkout.as_posix(), head,
+                                      lane_branch="worktree-lane-x")
+    _run_runner(tmp_path, body, work, _lane_env(tmp_path))
+    receipt = json.loads((work / "receipt.json").read_text(encoding="utf-8"))
+    commit = receipt["commit"]
+    lane_tip = _git(checkout, "rev-parse", "refs/heads/worktree-lane-x")
+    assert commit["committed"] is True and commit["branch"] == "worktree-lane-x"
+    assert commit["head_sha"] == lane_tip and commit["pushed"] is True
+    assert _git(origin, "rev-parse", "refs/heads/worktree-lane-x") == lane_tip
+
+
 _STREAM_FIRST = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 1,
                  "session_id": "s-0", "structured_output": {"state": "FAILED", "marker": "first"}}
 
