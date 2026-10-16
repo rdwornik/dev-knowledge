@@ -169,16 +169,21 @@ def windows_required(git: GitFn, base: str, head: str) -> bool:
     return bool(windows_reasons(git, base, head))
 
 
+def resolve_base(event: str, git: GitFn, head: str, before: Optional[str],
+                 main_ref: str) -> Optional[str]:
+    """The sha a run's diff (and the `windows-gate`'s known-reds compare) is taken against, or
+    None: `github.event.before` for a push to main, else merge-base(origin/main, head)."""
+    if event == "push" and main_ref == "refs/heads/main":
+        return before if before and set(before) != {"0"} else None
+    code, out = git(["merge-base", "origin/main", head])
+    return out.strip() if code == 0 and out.strip() else None
+
+
 def plan(event: str, git: GitFn, head: str, before: Optional[str], main_ref: str) -> "tuple[list, str]":
     """`(os_list, reason)` for one workflow run."""
     if event in FULL_MATRIX_EVENTS:
         return [LINUX, WINDOWS], f"{event}: the full matrix runs (nightly / manual)"
-    on_main = main_ref == "refs/heads/main"
-    if on_main and event == "push":
-        base = before if before and set(before) != {"0"} else None
-    else:
-        code, out = git(["merge-base", "origin/main", head])
-        base = out.strip() if code == 0 and out.strip() else None
+    base = resolve_base(event, git, head, before, main_ref)
     if not base:
         return [LINUX, WINDOWS], "no diff base could be resolved (fail closed)"
     reasons = windows_reasons(git, base, head)
@@ -196,14 +201,16 @@ def main(argv: Optional[list] = None) -> int:
     ap.add_argument("--ref", default="", help="github.ref")
     ap.add_argument("--root", default=".")
     args = ap.parse_args(argv)
-    os_list, reason = plan(args.event, run_git(Path(args.root)), args.head, args.before, args.ref)
-    line_os, line_reason = f"os={json.dumps(os_list)}", f"reason={reason}"
-    print(line_os)
-    print(line_reason)
+    git = run_git(Path(args.root))
+    os_list, reason = plan(args.event, git, args.head, args.before, args.ref)
+    base = resolve_base(args.event, git, args.head, args.before, args.ref) or ""
+    lines = [f"os={json.dumps(os_list)}", f"reason={reason}", f"base={base}"]
+    for line in lines:
+        print(line)
     target = os.environ.get("GITHUB_OUTPUT")
     if target:
         with open(target, "a", encoding="utf-8", newline="\n") as handle:
-            handle.write(line_os + "\n" + line_reason + "\n")
+            handle.write("\n".join(lines) + "\n")
     return 0
 
 

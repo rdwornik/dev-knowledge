@@ -205,7 +205,14 @@ cost 10, modifiability 10, observability 15; area scores on a 5-point scale):
   an always-running job that passes when the plan left Windows out and, when the plan put Windows
   in, passes only if the whole `pytest` matrix succeeded and fails closed on an unreadable plan —
   so an **armed** ruleset enforces the sensitive-diff rule without `merge_path.py` (Codex terra
-  review of this change, CRITICAL, `docs/audits/2026-10-16-codex-linux-first-ci.md`). For a
+  review of this change, round 1, CRITICAL, `docs/audits/2026-10-16-codex-linux-first-ci.md`;
+  round 2 confirming the fixes, 0/0/0/0, `docs/audits/2026-10-16-codex-linux-first-ci-r2.md`).
+  The gate judges the Windows leg as the merge verdict does (`scripts/windows_gate.py`, reusing
+  `known_reds.compare_to_base`): a green leg passes; a red leg passes only where the base is red
+  too, with no new red and no non-test failure; a skipped, cancelled, absent or unreadable leg,
+  log or registry fails closed (repair 1 of the integrator's refusal of the first build, which
+  read the raw matrix conclusion and was red on every Windows-sensitive merge while any known
+  red existed). For a
   Windows-sensitive diff `merge_path.py land` / `verdict` additionally add the leg itself to the
   set the verdict must see `success` (`actions_verdict.required_contexts_for`), and an unreadable
   diff, scan or known-reds registry reads as sensitive.

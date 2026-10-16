@@ -578,10 +578,17 @@ def test_the_plan_job_calls_the_one_os_decision_function(workflow):
 def test_the_windows_gate_fails_closed_and_enforces_the_leg_when_the_plan_required_it(workflow):
     gate = workflow["jobs"]["windows-gate"]
     assert gate["needs"] == ["plan", "pytest"]
-    run = next(s["run"] for s in gate["steps"] if "Windows leg" in s.get("name", ""))
-    # an unreadable plan fails closed; a plan with windows needs the WHOLE matrix to succeed
-    assert '"$PLAN_RESULT" != "success"' in run and "exit 1" in run
-    assert "*windows-latest*)" in run and '"$PYTEST_RESULT" != "success"' in run
+    steps = {s.get("id"): s for s in gate["steps"] if s.get("id")}
+    # an unreadable plan fails closed
+    need = steps["need"]["run"]
+    assert '"$PLAN_RESULT" != "success"' in need and "exit 1" in need
+    assert "*windows-latest*)" in need
+    # a plan with Windows is judged by scripts/windows_gate.py (known-reds-aware), NOT by the raw
+    # matrix conclusion (REFUSED-linux-first-ci repair 1)
+    judge = next(s for s in gate["steps"] if "Judge the Windows leg" in s.get("name", ""))
+    assert "scripts/windows_gate.py" in judge["run"] and judge["if"].startswith("steps.need.")
+    assert "needs.pytest.result" not in str(gate)
+    assert gate["permissions"]["actions"] == "read"
 
 
 def test_the_windows_nightly_job_is_schedule_only_and_never_a_required_context(workflow, ruleset):

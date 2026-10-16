@@ -109,6 +109,7 @@ jobs:
     outputs:
       os: ${{ steps.plan.outputs.os }}
       reason: ${{ steps.plan.outputs.reason }}
+      base: ${{ steps.plan.outputs.base }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -272,34 +273,81 @@ jobs:
     # ADR-127 AMENDMENT 2: the SERVER-SIDE half of "a Windows-sensitive diff still requires the
     # Windows leg". A ruleset cannot require `pytest (windows-latest)` conditionally, so this ONE
     # always-running job is the required context instead: it passes when the plan left Windows out
-    # (Linux alone judges the merge) and, when the plan put Windows in, passes only if the whole
-    # `pytest` matrix -- Windows leg included -- succeeded. `if: always()` is not a skip condition:
-    # it only stops a failed `pytest` or `plan` from SKIPPING this job (a skipped required check
-    # counts as passing), and an unreadable plan fails closed below.
+    # (Linux alone judges the merge) and, when the plan put Windows in, judges the WINDOWS LEG the
+    # way the merge verdict does -- `scripts/windows_gate.py`: success passes; a red leg passes
+    # only if every red is also red at the base (no NEW red, no non-test failure); skipped,
+    # cancelled, absent or unreadable fails closed. (The first version read the raw matrix
+    # conclusion and was red on every Windows-sensitive merge while any known red existed:
+    # REFUSED-linux-first-ci, repair 1.) `if: always()` is not a skip condition: it only stops a
+    # failed `pytest` or `plan` from SKIPPING this job (a skipped required check counts as
+    # passing), and an unreadable plan fails closed below.
     needs: [plan, pytest]
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
       PLAN_RESULT: ${{ needs.plan.result }}
       PLAN_OS: ${{ needs.plan.outputs.os }}
-      PYTEST_RESULT: ${{ needs.pytest.result }}
+      PLAN_BASE: ${{ needs.plan.outputs.base }}
     steps:
-      - name: Windows leg, when the plan required it
+      - name: Does the plan require the Windows leg?
+        id: need
         run: |
           if [ "$PLAN_RESULT" != "success" ] || [ -z "$PLAN_OS" ]; then
             echo "::error::the plan job did not produce an OS list (result: $PLAN_RESULT) -- fail closed"
             exit 1
           fi
           case "$PLAN_OS" in
-            *windows-latest*)
-              if [ "$PYTEST_RESULT" != "success" ]; then
-                echo "::error::the plan required windows-latest and the pytest matrix concluded: $PYTEST_RESULT"
-                exit 1
-              fi
-              echo "plan $PLAN_OS: both legs succeeded" ;;
-            *) echo "plan $PLAN_OS: Linux alone judges this merge; no Windows leg was required" ;;
+            *windows-latest*) echo "windows=yes" >> "$GITHUB_OUTPUT" ;;
+            *) echo "windows=no" >> "$GITHUB_OUTPUT"
+               echo "plan $PLAN_OS: Linux alone judges this merge; no Windows leg was required" ;;
           esac
+      - uses: actions/checkout@v4
+        if: steps.need.outputs.windows == 'yes'
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        if: steps.need.outputs.windows == 'yes'
+        with:
+          version: "0.11.19" # MUST equal pyproject.toml [tool.uv] required-version EXACTLY.
+      - name: Sync the locked environment
+        if: steps.need.outputs.windows == 'yes'
+        run: uv sync --locked
+      - name: The Windows leg's conclusion and its pytest output, tip and base
+        id: leg
+        if: steps.need.outputs.windows == 'yes'
+        run: |
+          conclusion=$(gh run view "${{ github.run_id }}" --json jobs \
+            --jq '.jobs[] | select(.name == "pytest (windows-latest)") | .conclusion')
+          echo "conclusion=${conclusion:-absent}" >> "$GITHUB_OUTPUT"
+          if [ "$conclusion" = "failure" ]; then
+            gh run download "${{ github.run_id }}" -n "pytest-windows-latest-${{ github.sha }}" -D tip || true
+            # The base's Windows red-set: the run on the base sha itself when it ran Windows;
+            # otherwise the newest completed run on main that did (Linux-only merges leave no
+            # Windows leg, so the nightly run is the usual source). Nothing found = fail closed.
+            candidates=$( { [ -n "$PLAN_BASE" ] && gh run list --workflow conductor.yml \
+                --status completed --commit "$PLAN_BASE" --limit 3 --json databaseId,headSha \
+                --jq '.[] | "\(.databaseId) \(.headSha)"'; \
+              gh run list --workflow conductor.yml --branch main --status completed --limit 15 \
+                --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"'; } || true)
+            echo "$candidates" | while read -r rid rsha; do
+              [ -n "$rid" ] || continue
+              if gh run download "$rid" -n "pytest-windows-latest-$rsha" -D base 2>/dev/null; then
+                echo "base Windows output: run $rid @ $rsha"; break
+              fi
+            done
+          fi
+      - name: Judge the Windows leg like the merge verdict does
+        if: steps.need.outputs.windows == 'yes'
+        run: |
+          uv run --locked python scripts/windows_gate.py \
+            --leg-conclusion "${{ steps.leg.outputs.conclusion }}" \
+            --tip-out tip/pytest.out --base-out base/pytest.out --base-sha "$PLAN_BASE"
 
   windows-nightly-triage:
     # ADR-127 AMENDMENT 2 (Linux-first CI): a Windows red found at night becomes a row the next
