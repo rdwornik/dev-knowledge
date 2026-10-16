@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-15 (j) - CC (Opus 5.5, integrator BU cycle-4): batch BU closes -- six of six lanes landed on main, three rows closed, the rest held with their evidence
+
+**Anchors:** `2c105bed` (the close packet `docs/audits/2026-10-15-technical-batch-bu-close-packet.md`, branch `docs/bu-close-packet`, introduced by this arc's merge).
+
+**Did:** wrote the `closed_by` packet the BU manifest names: 1539 `4ccb89c5`, 1535 `97bcd374`, 863 `a3d0ae31`, 1537 `c949ffd6`, 1450 `d73c56c5`, 1536 `52b9a90b`, each LANDED PRE-EXISTING; five refusals, all repaired; no FAILED lane, no STOP-THE-LINE. Rows closed: `[#1535]`, `[#1450]`, `[#1538]`. Held open with evidence: `[#1539]`, `[#1454]`, `[#1332]` (janitor `--apply`), `[#863]`, `[#912]`, `[#1540]` (next conductor schedule run), `[#1537]` (clause 8 GAP), `[#1536]` (its contract also names `[#1452]`, PREMISE-FAILED). Lane cost USD 162.27 over six lanes (`lane_cost.py`). The 1536 merge-receipt line rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** batch BU CLOSED when this packet lands. The batch-close trial cut passed every row but `worktree_owners` (the integration worktree carrying this packet), removed after the land.
+
+**Changes:** `docs/audits/2026-10-15-technical-batch-bu-close-packet.md` (new), `docs/audits/README.md` (generated), `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** BUILD-2 slot 1 is `[#1430]`, the steel thread. Digest: `to-browser/DIGEST-BU-2026-10-15.md`.
+
+---
 ### 2026-10-15 (i) - CC (Opus 5.5, integrator BU cycle-4): lane-bu-1536-routing merges -- provider routing follows R104: Copilot implements first, Codex terra heads review, red/qa/judge roles, claude-sonnet-5-5 priced, model-id literals ratcheted ([#1536]; [#1452] PARTIAL)
 
 **Anchors:** `a2f7d27e` (handback tip, branch `worktree-lane-bu-1536-routing`, introduced by this merge; its sync of origin/main `d73c56c5`), `da3ffd7d` (judge round 2 note fix), `e2528652` (judge round 1 fix), `bcb8f277` (judge round 1 RED), `40e914d7` (fix), `f89b937a` (RED).
