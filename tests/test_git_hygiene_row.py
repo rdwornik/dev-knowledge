@@ -74,6 +74,32 @@ def test_the_worktree_running_the_preflight_is_not_a_stray(tmp_path, monkeypatch
     assert gh._row_git_hygiene(repo).status == gh.PREFLIGHT_PASS
 
 
+def test_the_branch_checked_out_in_the_running_worktree_is_not_a_stray(tmp_path, monkeypatch):
+    """The cut is committed on the session's own cut branch (operator, 2026-10-17: 'your own
+    cut worktree until you end'), so that branch -- local and its origin twin -- is not trash."""
+    repo = _repo(tmp_path)
+    _stub(monkeypatch, local=("main", "worktree-cut-x"), remote=("main", "worktree-cut-x"))
+    monkeypatch.setattr(gh, "_git_current_branch", lambda _r: "worktree-cut-x")
+    assert gh._row_git_hygiene(repo).status == gh.PREFLIGHT_PASS
+    _stub(monkeypatch, local=("main", "worktree-cut-x", "other"), remote=("main", "other"))
+    row = gh._row_git_hygiene(repo)
+    assert row.failed and "other" in row.detail and "worktree-cut-x" not in row.detail
+
+
+def test_the_cut_boundary_does_not_refuse_the_worktree_it_runs_in(tmp_path, monkeypatch):
+    """The cut is made from the session's own cut worktree; `assert_boundary_hygiene` listed it
+    as a leftover and refused every such cut. Another worktree is still a leftover."""
+    repo = tmp_path / "me"
+    (repo / ".git").mkdir(parents=True)
+    monkeypatch.setattr(gh, "_stash_entries", lambda _r: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _r: [str(repo)])
+    gh.assert_boundary_hygiene(repo)
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _r: [str(repo), "/w/lane-a"])
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.assert_boundary_hygiene(repo)
+    assert "lane-a" in str(exc.value) and str(repo) not in str(exc.value)
+
+
 def test_an_allow_listed_branch_with_an_owner_passes(tmp_path, monkeypatch):
     _stub(monkeypatch, local=("main", "automation/fleet-audit"),
           remote=("main", "automation/fleet-audit"))
