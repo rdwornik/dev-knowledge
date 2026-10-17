@@ -86,6 +86,20 @@ def test_the_branch_checked_out_in_the_running_worktree_is_not_a_stray(tmp_path,
     assert row.failed and "other" in row.detail and "worktree-cut-x" not in row.detail
 
 
+def test_the_cut_boundary_does_not_refuse_the_worktree_it_runs_in(tmp_path, monkeypatch):
+    """The cut is made from the session's own cut worktree; `assert_boundary_hygiene` listed it
+    as a leftover and refused every such cut. Another worktree is still a leftover."""
+    repo = tmp_path / "me"
+    (repo / ".git").mkdir(parents=True)
+    monkeypatch.setattr(gh, "_stash_entries", lambda _r: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _r: [str(repo)])
+    gh.assert_boundary_hygiene(repo)
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _r: [str(repo), "/w/lane-a"])
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.assert_boundary_hygiene(repo)
+    assert "lane-a" in str(exc.value) and str(repo) not in str(exc.value)
+
+
 def test_an_allow_listed_branch_with_an_owner_passes(tmp_path, monkeypatch):
     _stub(monkeypatch, local=("main", "automation/fleet-audit"),
           remote=("main", "automation/fleet-audit"))

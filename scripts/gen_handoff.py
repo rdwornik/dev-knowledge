@@ -589,7 +589,11 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
     """
     if not (Path(repo_root) / ".git").exists():
         return
-    leftovers = [f"linked worktree {p}" for p in _linked_worktrees(repo_root)]
+    # The checkout the cut runs in is the session's own worktree, never a leftover of it
+    # (operator, 2026-10-17: 'your own cut worktree until you end').
+    me = os.path.normcase(os.path.realpath(str(repo_root)))
+    leftovers = [f"linked worktree {p}" for p in _linked_worktrees(repo_root)
+                 if os.path.normcase(os.path.realpath(p)) != me]
     leftovers += [f"stash entry {s}" for s in _stash_entries(repo_root)]
     if leftovers:
         raise BoundaryHygieneError(
