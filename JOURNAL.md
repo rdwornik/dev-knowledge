@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-10-17 (b) - CC (Sonnet 5.5, night-retire land follow-up): the night-retire receipt is closed and [#1624] is filed
+
+**Anchors:** `1e104b5f` (branch `chore/night-retire-land-follow-up`, introduced by this merge); `39ff8268` (the night-retire merge it follows, landed under CI run 39037381373).
+
+**Did:** closed the merge receipt (verdict PRE-EXISTING; the only flag is the stale-registry `test_archive_row_body` red, red on both sides) and filed [#1624] (the identity assert, Tech-Architect-45 ruling (1)). [#1350]'s registry expiry on main reads 2026-10-26, past 2026-10-19: no renewal needed. Rows [#1616] [#1617] [#1618] are NOT closed: `CLAUDE.md` is 20,548 B against [#1616]'s <= 14,000 B test, and a fresh `claude -p` here reads 96,295 tokens against witnesses of <= 52,000 / 53,500 / 51,500, so their Done-when is not shown met.
+
+**Next:** the operator rules the three rows (close on the merge evidence, or amend the thresholds); teardown of the night-retire and integrate-bu trees.
+
 ### 2026-10-17 (a) - CC (Sonnet 5.5, night-retire repair 1 + land): worktree-night-retire-handoff-verify-2026-10-15 merges -- `/handoff-verify` retired, the boot is the role pin alone
 
 **Anchors:** `92918815` (repair 1: origin/main `0bea1ff6` merged in; branch `worktree-night-retire-handoff-verify-2026-10-15`, introduced by this merge), `aa8c2994` (the integration branch's closed receipt for resume-vendor-fix r2; its ledger line is carried in this merge's own diff).
