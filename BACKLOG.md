@@ -828,6 +828,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1621] [P1][S] END-EARLY is an alarm: first line of the report plus a proactive send to the operator (night contract N3) · tasks/1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md
 - [#1622] [P1][M] A POST-CLOSE list the integrator reads every wake and executes at batch close (night contract N4) · tasks/1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md
 - [#1623] [P1][M] plan_lint refuses a batch or night order whose dependent part names no trigger and no wait mechanism, or says "do not poll" without an armed wake (night contract N5) · tasks/1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md
+- [#1624] [P3][S] test_manifest_link_route's class-enum assert compares by identity, so a module reload by an earlier test in the same xdist worker reds it · tasks/1624-test-manifest-link-route-asserts-equality-not-identity-after-a-module-reload.md
 - [#1551] [P1][L] A Codespace lane carries a per-phase heartbeat, and six injected failures are detected and recovered without the operator · tasks/1551-codespace-heartbeat-and-six-injected-failures.md
 - [#1552] [P2][M] Every Codespace credential has a recorded class, issuer, expiry policy and renewal act, checked at creation · tasks/1552-codespace-credential-lifetime-register.md
 - [#1553] [P2][M] Codespace lanes run two, then six at once, each monitored, inside a declared core-hour cap · tasks/1553-codespace-concurrency-two-then-six.md
