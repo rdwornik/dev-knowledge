@@ -2026,6 +2026,11 @@ def _git_hygiene_branches(repo_root: Path) -> "tuple[list[str], list[str] | None
     return (local, remote)
 
 
+def _git_current_branch(repo_root: Path) -> str:
+    """The branch checked out in `repo_root` ("" when detached or unreadable)."""
+    return _git(repo_root, "branch", "--show-current")
+
+
 def _git_hygiene_allowed(repo_root: Path) -> "set[str]":
     """Allow-listed branch names that carry a non-empty owner (an ownerless entry is ignored)."""
     import yaml
@@ -2053,6 +2058,10 @@ def _row_git_hygiene(repo_root: Path) -> PreflightRow:
         return PreflightRow("git_hygiene", PREFLIGHT_FAIL, locator,
                             "branches could not be listed (local refs or origin unreadable); "
                             "an unknown git is not a clean one")
+    # The cut is committed on the session's own cut branch, so the branch checked out in the
+    # checkout running the preflight (and its origin twin) is not a stray either.
+    own = _git_current_branch(repo_root)
+    allowed = allowed | ({own} if own else set())
     stray = [b for b in local if b not in allowed]
     stray += [f"origin/{b}" for b in remote if b not in allowed]
     # The checkout running the preflight is the session's own cut worktree (operator,
