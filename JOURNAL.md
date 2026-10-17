@@ -21,6 +21,26 @@
 
 ---
 
+### 2026-10-17 (c) - CC (Sonnet 5.5, batch-cut seat): worktree-cut-2026-10-17 merges -- the git_hygiene preflight row, no cut on a dirty git (AMEND-1-BATCH-CUT-2026-10-17)
+
+**Anchors:** `3bb45118` (the `git_hygiene` row, RED-first: `tests/test_git_hygiene_row.py` 10 failed before the row existed; branch `worktree-cut-2026-10-17`, introduced by this merge), `b42fe1ba` ([#1374] gains the archive-tag pointer and its three open findings).
+
+**Did:** built row 12 of `gen_handoff.py --preflight-only`: FAIL on any branch but `main` and the owner-named allow-list `ecosystem/git-hygiene-allowlist.yaml`, local or on origin, and on any linked worktree but the one running the preflight; fails closed on an unreadable origin. First land attempt `bd3b4e77` was REFUSED REGRESSED (run 39047844937): a task body must be one physical line, the dry-cut/bundle tests read the live branch list (a session-scoped stub in `tests/conftest.py` now fixes that, the row keeps its own tests), `doc-counts` had not moved. Re-landed `793a7f8e` (the night-retire follow-up, PRE-EXISTING vs `39ff8268`) first, because its first parent was still `origin/main`; this merge follows it.
+
+**Result:** the 12 affected test files 227 passed (+ preflight and row tests 65 passed). Pending CI on the integration branch.
+
+**Changes:** `scripts/gen_handoff.py`, `ecosystem/git-hygiene-allowlist.yaml`, `tests/test_git_hygiene_row.py`, `tests/test_gen_handoff_preflight.py`, `tests/conftest.py`, `tasks/1374-*`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (+1 line).
+
+**Next:** hygiene (archive tags, branch and worktree deletions), then the trial cut and the cut. Rows [#1616]-[#1618] stay OPEN (R121).
+
+### 2026-10-17 (b) - CC (Sonnet 5.5, night-retire land follow-up): the night-retire receipt is closed and [#1624] is filed
+
+**Anchors:** `1e104b5f` (branch `chore/night-retire-land-follow-up`, introduced by this merge); `39ff8268` (the night-retire merge it follows, landed under CI run 39037381373).
+
+**Did:** closed the merge receipt (verdict PRE-EXISTING; the only flag is the stale-registry `test_archive_row_body` red, red on both sides) and filed [#1624] (the identity assert, Tech-Architect-45 ruling (1)). [#1350]'s registry expiry on main reads 2026-10-26, past 2026-10-19: no renewal needed. Rows [#1616] [#1617] [#1618] are NOT closed: `CLAUDE.md` is 20,548 B against [#1616]'s <= 14,000 B test, and a fresh `claude -p` here reads 96,295 tokens against witnesses of <= 52,000 / 53,500 / 51,500, so their Done-when is not shown met.
+
+**Next:** the operator rules the three rows (close on the merge evidence, or amend the thresholds); teardown of the night-retire and integrate-bu trees.
+
 ### 2026-10-17 (a) - CC (Sonnet 5.5, night-retire repair 1 + land): worktree-night-retire-handoff-verify-2026-10-15 merges -- `/handoff-verify` retired, the boot is the role pin alone
 
 **Anchors:** `92918815` (repair 1: origin/main `0bea1ff6` merged in; branch `worktree-night-retire-handoff-verify-2026-10-15`, introduced by this merge), `aa8c2994` (the integration branch's closed receipt for resume-vendor-fix r2; its ledger line is carried in this merge's own diff).

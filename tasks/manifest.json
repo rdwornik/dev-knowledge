@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "25d8cae452cb046bdaa46ebf883211b9563b794eb6eff60297bb8e4a65574bbe",
+  "generated_sha256": "96a578f5f1fbc285ed08885bf4b10da8b8a85a19da111c0dc8cc6a4a65b45acd",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3154,6 +3154,10 @@
     {
       "task": 1623,
       "file": "1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md"
+    },
+    {
+      "task": 1624,
+      "file": "1624-test-manifest-link-route-asserts-equality-not-identity-after-a-module-reload.md"
     },
     {
       "task": 1551,
