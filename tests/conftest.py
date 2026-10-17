@@ -66,6 +66,32 @@ def _wake_home_is_not_the_operators(tmp_path_factory: pytest.TempPathFactory):
             os.environ["HARNESS_WAKE_DIR"] = prior
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _git_hygiene_row_reads_no_live_git():
+    """AMEND-1-BATCH-CUT-2026-10-17: the `git_hygiene` preflight row reads the LIVE branch list,
+    origin and worktree list -- state no test owns, and which differs on every clone (CI's origin
+    carries the integration branch `land` just pushed). Every test that runs the real preflight
+    (a dry cut, a bundle fixture) would otherwise pass or fail on the box's git, not on its own
+    subject. SESSION-scoped, because the bundle fixtures are module-scoped and cut before any
+    function-scoped patch runs. The row has its own tests (`tests/test_git_hygiene_row.py`),
+    which restore the real one. Patched on every module object the repo's three-root pythonpath
+    may hold."""
+    import sys
+    mp = pytest.MonkeyPatch()
+    for name in ("gen_handoff", "scripts.gen_handoff"):
+        mod = sys.modules.get(name)
+        if mod is not None and hasattr(mod, "_row_git_hygiene"):
+            mp.setattr(
+                mod, "_row_git_hygiene",
+                lambda _root, _m=mod: _m.PreflightRow(
+                    "git_hygiene", _m.PREFLIGHT_PASS, "tests/conftest.py",
+                    "stubbed: a test reads no live git state"))
+    try:
+        yield
+    finally:
+        mp.undo()
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",

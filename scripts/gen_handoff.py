@@ -703,6 +703,8 @@ PREFLIGHT_ROW_NAMES = (
     "p11_carriage",
     # Row 11, added by BW lane D5 ([#1450], R95 D1), appended for the same reason row 10 was.
     "boot_citations",
+    # Row 12, added by AMEND-1-BATCH-CUT-2026-10-17: no cut on a dirty git.
+    "git_hygiene",
 )
 
 
@@ -1996,6 +1998,74 @@ def _row_boot_citations(repo_root, transport) -> PreflightRow:
 #: transport's ledger/ratification are refreshed once per window, not once per trial cut.
 TRIAL_CUT_EXCLUDED_ROWS = ("ledger_refreshed", "ratification_present")
 
+# --- ROW 12: GIT HYGIENE (AMEND-1-BATCH-CUT-2026-10-17) -------------------------------------
+#
+# "No handoff until every branch is merged and deleted; an architect never again leaves trash
+# on git" (operator, 2026-10-17). FAILs on any branch other than `main` and the allow-listed
+# protected branches -- local OR on origin -- and on any linked worktree. The allow-list is
+# data (`ecosystem/git-hygiene-allowlist.yaml`) and every entry must name its owner. Both
+# unknowns fail closed: an unreadable origin is not a clean origin.
+
+GIT_HYGIENE_ALLOWLIST = Path("ecosystem") / "git-hygiene-allowlist.yaml"
+
+
+def _git_hygiene_branches(repo_root: Path) -> "tuple[list[str], list[str] | None]":
+    """`(local branch names, origin branch names or None if origin is unreadable)`.
+
+    Origin is read with `ls-remote` (the live remote, not the cached `refs/remotes`)."""
+    ok, out = _git_status(repo_root, "for-each-ref", "--format=%(refname:short)", "refs/heads")
+    local = [ln.strip() for ln in out.splitlines() if ln.strip()] if ok else []
+    if not ok:
+        return (local, None)
+    ok, out = _git_status(repo_root, "ls-remote", "--heads", "origin")
+    if not ok:
+        return (local, None)
+    prefix = "refs/heads/"
+    remote = [ln.split("\t", 1)[1].strip()[len(prefix):]
+              for ln in out.splitlines() if "\t" in ln and ln.split("\t", 1)[1].startswith(prefix)]
+    return (local, remote)
+
+
+def _git_hygiene_allowed(repo_root: Path) -> "set[str]":
+    """Allow-listed branch names that carry a non-empty owner (an ownerless entry is ignored)."""
+    import yaml
+    p = Path(repo_root) / GIT_HYGIENE_ALLOWLIST
+    if not p.is_file():
+        return set()
+    data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    return {str(e["name"]) for e in (data.get("branches") or [])
+            if isinstance(e, dict) and e.get("name") and str(e.get("owner", "")).strip()}
+
+
+def _row_git_hygiene(repo_root: Path) -> PreflightRow:
+    """Row 12 -- no stray branch (local or origin) and no linked worktree."""
+    locator = "`git branch` x `git ls-remote --heads origin` x `git worktree list` x " + \
+        GIT_HYGIENE_ALLOWLIST.as_posix()
+    try:
+        trees = _linked_worktrees(repo_root)
+        local, remote = _git_hygiene_branches(repo_root)
+        allowed = {"main"} | _git_hygiene_allowed(repo_root)
+    except (BoundaryHygieneError, OSError, ValueError) as exc:
+        return PreflightRow("git_hygiene", PREFLIGHT_FAIL, locator,
+                            f"git or the allow-list could not be read ({exc}); an unknown "
+                            f"git is not a clean one")
+    if remote is None:
+        return PreflightRow("git_hygiene", PREFLIGHT_FAIL, locator,
+                            "branches could not be listed (local refs or origin unreadable); "
+                            "an unknown git is not a clean one")
+    stray = [b for b in local if b not in allowed]
+    stray += [f"origin/{b}" for b in remote if b not in allowed]
+    # The checkout running the preflight is the session's own cut worktree (operator,
+    # 2026-10-17: "plus your own cut worktree until you end") -- not a stray.
+    me = os.path.normcase(os.path.realpath(str(repo_root)))
+    stray += [f"worktree {t}" for t in trees if os.path.normcase(os.path.realpath(t)) != me]
+    if stray:
+        return PreflightRow("git_hygiene", PREFLIGHT_FAIL, locator,
+                            f"{len(stray)} stray: " + "; ".join(stray))
+    return PreflightRow("git_hygiene", PREFLIGHT_PASS, locator,
+                        "only main and allow-listed protected branches; no linked worktree")
+
+
 #: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
 #: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
 #: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
@@ -2050,6 +2120,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_worktree_owners(repo_root, sessions_root),
         _row_p11_carriage(transport, repo_root),
         _row_boot_citations(repo_root, transport),
+        _row_git_hygiene(repo_root),
     ]
 
 
