@@ -1,0 +1,10 @@
+# ecosystem/git-hygiene-allowlist.yaml -- AMEND-1-BATCH-CUT-2026-10-17: the branches the
+# `git_hygiene` preflight row (scripts/gen_handoff.py::_row_git_hygiene) tolerates besides
+# `main`. The row FAILs on any other branch, local or on origin, and on any linked worktree.
+#
+# Every entry MUST name its owner; an entry with an empty owner is not an exception. A new
+# exception is a recorded ruling, not an edit made in passing.
+
+branches:
+  - name: automation/fleet-audit
+    owner: "scripts/audit.py::_commit_routine_outputs writes it via commit-tree (ADR-84; _AUTOMATION_BRANCH = \"automation/fleet-audit\"); permanently protected, never merges (STANDING_RULINGS I-D)"
