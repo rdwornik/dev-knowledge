@@ -9,9 +9,19 @@ from __future__ import annotations
 
 import subprocess
 
+import pytest
+
 import yaml
 
 import gen_handoff as gh
+
+
+_REAL_ROW = gh._row_git_hygiene     # captured at import, before conftest's autouse stub runs
+
+
+@pytest.fixture(autouse=True)
+def _real_row(monkeypatch):
+    monkeypatch.setattr(gh, "_row_git_hygiene", _REAL_ROW)
 
 
 def _repo(tmp_path, extra_allow=()):
