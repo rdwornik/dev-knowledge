@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
+
+**Anchors:** `6f3b77a1` (the bundle; branch `worktree-cut-2026-10-17`, introduced by this merge), `21c9a428` (git_hygiene exempts the running cut branch).
+
+**Did:** night-retire reported END-EARLY (its follow-up `793a7f8e` was refused UNATTRIBUTED for want of a baseline), so the cut went on regardless. Re-landed `793a7f8e` (PRE-EXISTING vs `39ff8268`, CI run 39040757760), landed the gate `292de884`, archive-tagged and deleted `worktree-lane-bw-1374-lane-controller`, `-bw-1450-boot-teaching`, `worktree-integrate-bw`, `-b2w2-codespace-finish`, `-codespace-finish-2026-10-14` (local + origin; tags `archive/<branch>` pushed first), deleted `chore/bu-merge-receipts` and `chore/night-retire-land-follow-up`, removed the two fleet-health-producer trees, `integrate-bu` and `night-retire-handoff-verify-2026-10-15`, and fast-forwarded the primary. Preflight: `ledger_refreshed` and `git_hygiene` PASS. The supplement answers were transcribed verbatim from `to-browser/SUPPLEMENT-ANSWERS-TA45-2026-10-17.md`; the 161 `carried-by: OPEN` transport files and 13 carried QUESTION files are named mechanically in the residual (no owner invented).
+
+**Result:** main's push run for `292de884` is PRE-EXISTING against `793a7f8e` (only `test_archive_row_body` stale-registry-signature). Rows [#1616] [#1617] [#1618] stay OPEN (R121): CLAUDE.md is above [#1616]'s byte bound and the start-up witness is above its token bound.
+
+**Changes:** `docs/handoffs/2026-10-17-dev-knowledge-architect/`, `scripts/gen_handoff.py` (the cut boundary does not list the worktree it runs in), `tests/test_git_hygiene_row.py`, `logs/MERGE-RECEIPTS.jsonl`, `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl`, `ecosystem/doc-counts.md`.
+
+**Next:** the next seat (Tech-Architect-46) boots on the ROLE PIN and runs the decision-to-implementation audit (R125) first; re-upload `protocols/HANDOFF_BOOT.md` only if its sha8 differs from the operator's Project knowledge copy (this cut: `cbe2b6b6`).
+
 ### 2026-10-17 (c) - CC (Sonnet 5.5, batch-cut seat): worktree-cut-2026-10-17 merges -- the git_hygiene preflight row, no cut on a dirty git (AMEND-1-BATCH-CUT-2026-10-17)
 
 **Anchors:** `3bb45118` (the `git_hygiene` row, RED-first: `tests/test_git_hygiene_row.py` 10 failed before the row existed; branch `worktree-cut-2026-10-17`, introduced by this merge), `b42fe1ba` ([#1374] gains the archive-tag pointer and its three open findings).
