@@ -264,8 +264,8 @@ def test_the_retired_fates_are_now_declared_at_the_seat_release_moment():
                              "seat_release.manifest", "seat_release.copy"}
     assert ".claude/commands/handoff.md" in by_organ["seat_release.notes"].paths
     assert ".claude/commands/handoff.md" in by_organ["seat_release.bundle"].paths
-    assert ".claude/commands/handoff-verify.md" in by_organ["seat_release.manifest"].paths
-    assert ".claude/commands/handoff-verify.md" in by_organ["seat_release.copy"].paths
+    assert ".claude/commands/handoff-verify.md" not in by_organ["seat_release.manifest"].paths
+    assert ".claude/commands/handoff-verify.md" not in by_organ["seat_release.copy"].paths
 
 
 # --- Done-when 4: the CI leg (conductor.yml's `handoff-manifest` job) reds a tampered bundle ---

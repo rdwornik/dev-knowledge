@@ -98,18 +98,12 @@ def _row_text(row) -> str:
 
 # --- FR1 (R1) — /handoff-verify is a separate command, not a /handoff flag --------
 
-def test_fr1_handoff_verify_is_a_separate_command():
-    """R1: the one-round-trip boot is exposed as `/handoff-verify`, a SEPARATE command file.
-
-    The generator stays answer-free, the checker answer-producing; a `--verify` flag on
-    /handoff would recouple the ferry/proof boundary the anti-bluff contract protects.
+def test_fr1_handoff_verify_stays_retired_and_the_generator_grows_no_verify_flag():
+    """R1's separate-command half is retired (R30, night close-out 2026-10-15): the browser
+    boots on the ROLE PIN alone and CC runs the probe gate at the cut. What stays true is the
+    negative half -- `/handoff` must not grow a `--verify` flag, and `/boot` stays archived.
     """
-    cmd = _COMMANDS / "handoff-verify.md"
-    assert cmd.is_file(), f"R1 unbuilt: {cmd.relative_to(_REPO)} absent"
-
-    body = cmd.read_text(encoding="utf-8")
-    # Sol draft §2: ONE command runs the whole gate and emits EXACTLY ONE evidence block.
-    assert "evidence block" in body.lower(), "handoff-verify does not declare the single-evidence-block contract"
+    assert not (_COMMANDS / "handoff-verify.md").exists(), "the retired /handoff-verify came back"
 
     # The generator must NOT grow a verify flag (R1's negative half).
     handoff = (_COMMANDS / "handoff.md").read_text(encoding="utf-8")

@@ -190,7 +190,6 @@ _LANE_TRANSPORT_STRAYS_SAMPLES = {
     "HANDBACK-batch-AC-consolidated.md": "HANDBACK",
     "HANDBACK-wave2-boot-base-2026-09-19.md": "HANDBACK",
     "HANDOFF-SUPPLEMENT-2026-09-06.md": "HANDOFF_SUPPLEMENT",
-    "HANDOFF-VERIFY-2026-09-08-architect-2.md": "HANDOFF_VERIFY",
     "HANDOFF_BOOT-2026-09-06-architect.md": "HANDOFF_BOOT_TRANSPORT",
     "HANDOVER-ARCHITECTURE-2026-09-08.md": "HANDOVER",
     "HOW-TO-DISPATCH-AND-INTEGRATE-2026-09-20-v1-superseded.md": "HOW_TO_DISPATCH_AND_INTEGRATE",
@@ -489,6 +488,51 @@ def test_cmd_strays_unclassified_count_excludes_a_misfoldered_but_known_kind(t, 
     assert payload["misfoldered_count"] == 1
 
 
+def test_the_append_lock_reads_a_windows_delete_pending_permission_error_as_contention(
+        t, tmp_path, monkeypatch):
+    """[#1350] RED-first: on Windows `os.open(O_CREAT|O_EXCL)` on a lock file another thread is
+    deleting raises PermissionError. That is contention, retried inside the same deadline; a
+    PermissionError that never clears still ends at the deadline with a refusal (no hang)."""
+    import time
+
+    real_open = os.open
+    calls = {"n": 0}
+
+    def flaky_open(path, flags, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError(13, "delete pending")
+        return real_open(path, flags, *a, **kw)
+
+    monkeypatch.setattr(t.os, "open", flaky_open)
+    monkeypatch.setattr(t._DestinationLock, "_POLL_S", 0.001)
+    with t._DestinationLock(tmp_path / "SESSION-x.md"):
+        pass
+    assert calls["n"] == 3
+
+    def always_denied(*a, **kw):
+        raise PermissionError(13, "denied")
+
+    monkeypatch.setattr(t.os, "open", always_denied)
+    start = time.monotonic()
+    with pytest.raises(t.TransportWriteRefused):
+        with t._DestinationLock(tmp_path / "SESSION-y.md", timeout_s=0.2):
+            pass
+    assert time.monotonic() - start < 5
+
+
+def test_the_known_reds_registry_loads_on_2026_10_20():
+    """[#1350]: from 2026-10-19 `load_registry` refused the WHOLE registry (the windows member
+    expired). The renewed entry keeps it loadable past that day."""
+    import datetime
+
+    import known_reds as kr
+
+    reg = kr.load_registry(_REPO / "logs" / "KNOWN-REDS-REGISTRY.json",
+                           today=datetime.date(2026, 10, 20))
+    assert reg is not None
+
+
 def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_skipped():
     """foundation-8 item 2. The cause lives in `scripts/transport.py`
     (`_DestinationLock.__enter__` catches only FileExistsError; Windows answers a lock file that
@@ -510,7 +554,8 @@ def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_sk
     assert row_files, f"task {entry.get('task')!r} resolves to no tasks/ row"
     assert "status: open" in row_files[0].read_text(encoding="utf-8")
     assert entry.get("owner")
-    assert datetime.date.fromisoformat(entry["expiry"]) <= datetime.date(2026, 10, 19)
+    # renewed 2026-10-16 (night close-out, [#1350]) from 2026-10-19; removed once 10 green windows runs show the fix
+    assert datetime.date.fromisoformat(entry["expiry"]) <= datetime.date(2026, 10, 26)
     reason = entry.get("reason", "")
     assert "PermissionError" in reason and "scripts/transport.py" in reason
     assert len(re.findall(r"\b\d+/\d+\b", reason)) >= 2, "no measured control-run rates"

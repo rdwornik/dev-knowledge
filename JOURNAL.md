@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-17 (a) - CC (Sonnet 5.5, night-retire repair 1 + land): worktree-night-retire-handoff-verify-2026-10-15 merges -- `/handoff-verify` retired, the boot is the role pin alone
+
+**Anchors:** `92918815` (repair 1: origin/main `0bea1ff6` merged in; branch `worktree-night-retire-handoff-verify-2026-10-15`, introduced by this merge), `aa8c2994` (the integration branch's closed receipt for resume-vendor-fix r2; its ledger line is carried in this merge's own diff).
+
+**Did:** repaired the 2026-10-16 refusal (`REFUSED-night-retire-handoff-verify-2026-10-15`): `HANDOFF_VERIFY` stays registered, marked retired, so the active bundle's recorded kinds resolve; the added order-template sentences drop the normative word. Merged `--no-ff` on `0bea1ff6` under the Tech-Architect-45 ruling and operator GO 2026-10-17.
+
+**Result:** the seven refused files 301 passed; the lane's full run had 53 reds, 52 also red on `0bea1ff6`, the 53rd (`test_manifest_link_route` module identity) ruled order-dependent. Pending CI on the integration branch.
+
+**Changes:** `ecosystem/transport-registry.yaml`, `templates/*-order-template.md`, retired-command surfaces, `tests/test_handoff_verify_retired.py`, `logs/MERGE-RECEIPTS.jsonl` (+1 carried line), regenerated `organ-index` and `doc-counts`.
+
+**Next:** land, verify [#1350] expiry, close [#1616] [#1617] [#1618], file the identity-assert row, teardown.
+
 ### 2026-10-16 (p) - CC (Opus 5.5, integrator BU cycle-4): worktree-resume-vendor-fix-2026-10-16 merges on repair 2 -- the vendor probe stages Copilot's input, pins Grok's model, and makes a failed vendor loud (AMEND-1 PART V)
 
 **Anchors:** `71dd42ca` (repair 1: lazy siblings loaded by importlib, branch `worktree-resume-vendor-fix-2026-10-16`, introduced by this merge), `e528ff22` (the seat's receipts-ledger line), `f387e8f1` (repair 2: origin/main merged in, no code change), plus `f71f9442`, `e3620066`, `77ea0b16` and their REDs `1617858d`, `aa1affe6`.

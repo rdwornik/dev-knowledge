@@ -890,7 +890,7 @@ jobs:
     # copying) verify_handoff_probes._rule_bd_manifest -- the same check moment:seat-release's
     # own `manifest` organ runs locally. A bundle cut before lane-handoff-min (Part A) carries no
     # manifest at all -- 126 of the 127 committed bundles at this lane's own landing -- and is
-    # EXEMPT, not failed, the same era-boundary posture handoff-verify.md's pre-v6 exemption
+    # EXEMPT, not failed, the same era-boundary posture the retired handoff-verify.md's pre-v6 exemption
     # already uses: only a bundle that HAS a manifest and no longer matches it reds this job.
     runs-on: ubuntu-latest
     timeout-minutes: 10

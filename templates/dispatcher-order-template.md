@@ -126,6 +126,11 @@ state file (`scripts/seat_state.py read --path to-browser/STATE-<batch-slug>-dis
 instead of rereading the whole night's log. Stop every Monitor, poll, shell and `queue --watch`
 loop of yours before handing over, then run
 `uv run --locked python scripts/seat_registry.py unbind` once, before the new seat is started:
-the registry then reads you `absent`, not `wedged`. The incoming seat relaunches `queue --watch` and resumes
+the registry then reads you `absent`, not `wedged`. The outgoing seat launches the successor itself: run the `claude --bg ...` line your receipt carries
+for it and record the job id; write an `OPERATOR-ACTION` only if that launch errors (quote the error,
+keep your seat) — witnessed working 2026-10-15 16:14 (LEDGER v212). Run every long wait and full test
+run in the foreground of an active turn, not as a background shell while idle, and put every heavy
+step behind `uv run --locked python scripts/memory_admission_gate.py wait`; a step the reaper killed
+is re-queued once and the verdict stays INCOMPLETE until it ran. The incoming seat relaunches `queue --watch` and resumes
 ticking from where the state file says the batch stood; a state file older than its own staleness
 bound is a signal the outgoing seat died mid-cycle, not a file to trust.
