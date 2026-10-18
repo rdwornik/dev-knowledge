@@ -1,16 +1,14 @@
 {
- "built_at": "ae9a62dcf48df6184bc9370484743ba634807d50",
+ "built_at": "5405155d4fc0d8c0e091526801e0a7fb3f8b86e2",
  "diff": {
   "added": [],
   "added_count": 0,
   "baseline": false,
-  "removed": [
-   "file:scripts/hooks/deny_and_point.py"
-  ],
-  "removed_count": 1
+  "removed": [],
+  "removed_count": 0
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "fbec8ef02243470a77a3a55e0beb63454a718528830136db06c40c6fd23fe888",
+ "map_sha": "e29f090f6760a4a1d179423c32c1ddd5bb9efd1279a3444301c78306ea5845db",
  "node_count": 370,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
@@ -384,6 +382,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": "9b3d02c00a80eaef46e91fdce62aba72edd958b1bd2786b95e345e3b993142be",
+ "previous_sha": "fbec8ef02243470a77a3a55e0beb63454a718528830136db06c40c6fd23fe888",
  "schema": "system-map-record/1"
 }

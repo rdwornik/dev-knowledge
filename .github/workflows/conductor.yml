@@ -408,6 +408,11 @@ jobs:
       - name: ruff
         # `check`, never `check --fix`: a gate that edits the tree is not a gate.
         run: uv run --locked ruff check
+      - name: platform-skip ratchet (ADR-127 D7)
+        # A step of the existing `ruff` job, not a new job: a new job would be a new check
+        # context, and the ruleset's required list is a separate decision. The script exits
+        # non-zero when a platform-conditioned skip is added above the committed baseline.
+        run: uv run --locked python scripts/platform_skip_ratchet.py
 
   seal:
     runs-on: ubuntu-latest

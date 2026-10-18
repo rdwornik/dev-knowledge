@@ -115,10 +115,13 @@ def _without_organ(tmp: Path, moment_name: str, organ_id: str) -> Path:
     moment-wide run depend on this box's live preflight state at test time -- `trial_cut` gets
     its own declared-shape test below, and its live behaviour is recorded in the session file
     (a derive-and-mark unit test would only prove the marker runs, which the generic
-    `tests/test_spine_moments.py` organ-shape tests already cover for every moment)."""
+    `tests/test_spine_moments.py` organ-shape tests already cover for every moment).
+    `ci_red_age` calls `gh`, so the same isolation drops it: a digest-only run must not
+    depend on this box's GitHub auth, and a missing JSON is the digest's own no-red-line path."""
     data = _real()
     moment = next(m for m in data["moments"] if m["name"] == moment_name)
-    moment["organs"] = [o for o in moment["organs"] if o["id"] != organ_id]
+    drop = {organ_id, "ci_red_age"} if organ_id == "trial_cut" else {organ_id}
+    moment["organs"] = [o for o in moment["organs"] if o["id"] not in drop]
     path = tmp / "harness-without.yaml"
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return path
@@ -304,8 +307,8 @@ def test_an_organ_that_does_not_continue_on_failure_still_stops_the_moment(tmp_p
 
 def test_batch_close_moment_declares_the_digest_run_by_the_integrator():
     moment = _moment("batch-close")
-    assert [o["id"] for o in moment["organs"]] == ["digest", "trial_cut"]
-    digest = moment["organs"][0]
+    assert [o["id"] for o in moment["organs"]] == ["ci_red_age", "digest", "trial_cut"]
+    digest = moment["organs"][1]
     assert digest["receipt"] == "MOMENT-BATCH-CLOSE-DIGEST.json" and digest.get("manual_until")
     assert "scripts/lane_digest.py" in digest["command"]
     assert "integrator" in moment["trigger"] and "last merge" in moment["trigger"]
@@ -315,7 +318,7 @@ def test_batch_close_moment_declares_the_trial_cut_organ():
     """ADR-129 item 12/L7: one new organ in `batch-close`, `optional` / `manual_until:
     2026-10-05` (render note N10) -- `digest` is untouched, this pins only the new row."""
     moment = _moment("batch-close")
-    trial = moment["organs"][1]
+    trial = moment["organs"][2]
     assert trial["id"] == "trial_cut"
     assert trial["receipt"] == "MOMENT-BATCH-CLOSE-TRIAL-CUT.json"
     assert trial.get("optional") is True
