@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e555c148cad9e8aa26d5266e114ff40e2b4f22fe6b3c8f9af6e20aa360fc2195",
+  "generated_sha256": "ea9356bf4b2fc38b3ab44f18cf0cb7d7da9c4134640317ba2e54a5cd67951a30",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3464,14 +3464,6 @@
       "file": "1636-r94-stop-hook-cycle-gate-built-or-withdr.md"
     },
     {
-      "task": 1637,
-      "file": "1637-row-close-runs-in-the-integrator-templat.md"
-    },
-    {
-      "task": 1638,
-      "file": "1638-generated-status-md-is-the-one-front-doo.md"
-    },
-    {
       "task": 1639,
       "file": "1639-two-way-completeness-gate-node-to-code-e.md"
     },
@@ -3484,8 +3476,32 @@
       "file": "1641-codespace-parity-c1-c5-re-run-live.md"
     },
     {
-      "task": 1642,
-      "file": "1642-queue-does-not-refire-a-merged-lane.md"
+      "task": 1643,
+      "file": "1643-cloudsubstrate-read-only-port.md"
+    },
+    {
+      "task": 1644,
+      "file": "1644-agy-credential-path-in-a-box.md"
+    },
+    {
+      "task": 1645,
+      "file": "1645-r133-consolidation-and-decision-gate.md"
+    },
+    {
+      "task": 1646,
+      "file": "1646-m1-v2-vendors-measured-in-role.md"
+    },
+    {
+      "task": 1647,
+      "file": "1647-transport-lint-prompts-dir.md"
+    },
+    {
+      "task": 1648,
+      "file": "1648-plan-lint-code-lane-needs-integrator.md"
+    },
+    {
+      "task": 1649,
+      "file": "1649-plan-lint-row-birth-needs-ratifying-act.md"
     },
     {
       "prose": ""
