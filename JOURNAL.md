@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-18 (b) - CC (Sonnet 5.5, D0 orchestrator): BATCH-D0-PROCESS - the AS-IS process model, the main-green and queue lanes, the adoption audit, the model probe, the B-vs-C spike and the seat exam; three PROPOSAL-ADR drafts for the operator
+
+**Anchors:** `dbce4c89` (the D0 and D1 rows [#1625]-[#1642]; branch `worktree-d0-rows`, introduced by this merge), `4af83b48` (P0 lane tip, not merged), `9eb33856` (#1572 lane tip, not merged).
+
+**Did:** D0.1 AS-IS model (binding file, 197 nodes, 189 anchors exact, rendered diagrams, 1,902-byte handoff block); D0.2 P0 lane in a Codespace (ship-gate 11 -> 8 hard-fail, registry re-signed 81 -> 79; STOPPED by contract on the 8 `consumer_at_landing` fails; verified by a fresh Sonnet session and Codex terra); D0.7 [#1572] queue fix in a Codespace (RED-first, 142 targeted tests, terra APPROVE after one P1 fixed by the orchestrator, fresh verifier REQUEST-CHANGES on the OCCUPIED case only); D0.3 R125 adoption audit (725 decisions, 32 percent first-pass correction rate, the 7-day gate does not exist); D0.4 M1 probe (lane could not log in, matrix run on the laptop, USD ~3.7); D0.5 B-vs-C spike (Codex sol: grading NOT SOUND); D0.6 seat exam. Three ADR drafts: seat model, process-model form, Substrate protocol.
+
+**Result:** main is NOT green (D0.2 unmet); nothing was landed on main. Findings: the account caps running Codespaces at 2; `pins` refuses every launch after a laptop CLI update; `codespace-harvest` under cp1252 writes a 0-byte `run.log` and the delete gate passes it; `claude -p` JSON keeps only the last message and a Stop hook eats the report; the box tool shell has no Claude login. Gotchas appended for the three novel patterns.
+
+**Changes:** `tasks/1625-*` .. `tasks/1642-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `.claude/BOOT-REFERENCE.md` (carrier table: three kept branches), `JOURNAL.md`. Outputs on the transport: `to-browser/DIGEST-*-2026-10-18*.md`, `PROPOSAL-ADR-*-2026-10-18.md`, `SEAT-EXAM-2026-10-18.md`. Archive tags `archive/worktree-lane-dz-0-m1-model-probe`, `archive/worktree-lane-dz-0-spike-b-vs-c`; scratch branches and `worktree-d0-pin` deleted (pin commit `d8aa4dd7` rides in both kept lane branches).
+
+**Abandoned:** landing P0 and #1572 (not mine to merge); filing the 33 audit candidate rows (ADR-111: intake first).
+
+**Next:** the operator rules the three ADRs and the 8 `consumer_at_landing` hard-fails; the integrator lands `worktree-lane-dz-1350-p0-green-main` then `worktree-lane-dz-1572-queue-halt`, then `worktree-d0-rows`; on landing, this entry's letter may need re-lettering against the P0 branch's `2026-10-18 (a)` CORRECTION entry.
+
 ### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
 
 **Anchors:** `6f3b77a1` (the bundle; branch `worktree-cut-2026-10-17`, introduced by this merge), `21c9a428` (git_hygiene exempts the running cut branch).
