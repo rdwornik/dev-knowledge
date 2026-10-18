@@ -119,7 +119,7 @@
       <bpmn:exclusiveGateway id="g_spawn" name="provider started?" default="w_spawn_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1174" dz:test="tests/test_dispatch_launch.py::test_a_spawn_that_failed_leaves_no_intent_receipt_behind"/>
       <bpmn:sequenceFlow id="w_spawn_yes" name="started" sourceRef="g_spawn" targetRef="t_identify"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">spawn["returncode"] == 0</bpmn:conditionExpression></bpmn:sequenceFlow>
       <bpmn:sequenceFlow id="w_spawn_no" name="exit != 0" sourceRef="g_spawn" targetRef="w_err_spawn"/>
-      <bpmn:endEvent id="w_err_spawn" name="spawn_failed"><bpmn:errorEventDefinition id="ed_spawn" errorRef="err_spawn"/></bpmn:endEvent>
+      <bpmn:endEvent id="w_err_spawn" name="spawn_failed" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1176" dz:test="tests/test_dispatch_launch.py::test_a_spawn_that_failed_leaves_no_intent_receipt_behind"><bpmn:errorEventDefinition id="ed_spawn" errorRef="err_spawn"/></bpmn:endEvent>
       <bpmn:serviceTask id="t_identify" name="identify the job" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1204" dz:test="tests/test_dispatch_launch.py::test_a_lane_that_already_finished_is_still_identified_by_its_worktree">
         <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="identify" resultVariable="identify"><spiffworkflow:parameters><spiffworkflow:parameter id="stdout" type="str" value="spawn['stdout']"/></spiffworkflow:parameters></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
       </bpmn:serviceTask>
@@ -127,7 +127,7 @@
       <bpmn:exclusiveGateway id="g_identify" name="job identified?" default="w_id_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1195" dz:test="tests/test_dispatch_launch.py::test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success"/>
       <bpmn:sequenceFlow id="w_id_yes" name="identified" sourceRef="g_identify" targetRef="t_receipt"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">bool(identify["job_id"])</bpmn:conditionExpression></bpmn:sequenceFlow>
       <bpmn:sequenceFlow id="w_id_no" name="unresolved" sourceRef="g_identify" targetRef="w_err_unresolved"/>
-      <bpmn:endEvent id="w_err_unresolved" name="unresolved"><bpmn:errorEventDefinition id="ed_unres" errorRef="err_unresolved"/></bpmn:endEvent>
+      <bpmn:endEvent id="w_err_unresolved" name="unresolved" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1195" dz:test="tests/test_dispatch_launch.py::test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success"><bpmn:errorEventDefinition id="ed_unres" errorRef="err_unresolved"/></bpmn:endEvent>
       <bpmn:serviceTask id="t_receipt" name="launch receipt" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1234" dz:test="tests/test_dispatch_launch.py::test_a_launch_writes_a_receipt_and_a_job_to_lane_record">
         <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="receipt" resultVariable="receipt"><spiffworkflow:parameters><spiffworkflow:parameter id="job_id" type="str" value="identify['job_id']"/><spiffworkflow:parameter id="session_id" type="str" value="identify['session_id']"/><spiffworkflow:parameter id="name" type="str" value="identify['name']"/></spiffworkflow:parameters></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
       </bpmn:serviceTask>
@@ -135,16 +135,16 @@
       <bpmn:endEvent id="w_end" name="w_end"/>
     </bpmn:subProcess>
     <bpmn:sequenceFlow id="f14" sourceRef="launch_window" targetRef="eg_running"/>
-    <bpmn:boundaryEvent id="b_spawn_failed" name="spawn failed" attachedToRef="launch_window"><bpmn:errorEventDefinition id="bd_spawn" errorRef="err_spawn"/></bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="b_spawn_failed" name="spawn failed" attachedToRef="launch_window" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1176" dz:test="tests/test_dispatch_launch.py::test_a_spawn_that_failed_leaves_no_intent_receipt_behind"><bpmn:errorEventDefinition id="bd_spawn" errorRef="err_spawn"/></bpmn:boundaryEvent>
     <bpmn:sequenceFlow id="f_b1" sourceRef="b_spawn_failed" targetRef="end_refused"/>
-    <bpmn:boundaryEvent id="b_unresolved" name="no job identified" attachedToRef="launch_window"><bpmn:errorEventDefinition id="bd_unres" errorRef="err_unresolved"/></bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="b_unresolved" name="no job identified" attachedToRef="launch_window" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1195" dz:test="tests/test_dispatch_launch.py::test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success"><bpmn:errorEventDefinition id="bd_unres" errorRef="err_unresolved"/></bpmn:boundaryEvent>
     <bpmn:sequenceFlow id="f_b2" sourceRef="b_unresolved" targetRef="end_unresolved"/>
 
     <bpmn:eventBasedGateway id="eg_running" name="lane live: P1 watches" dz:actor="seat" dz:zone="BOTH" dz:glue="true" dz:bind="scripts/dispatch.py:3787" dz:test="tests/test_dispatch_launch.py::test_govern_over_a_synthetic_over_cap_transcript_records_and_does_not_stop"/>
     <bpmn:sequenceFlow id="f15" sourceRef="eg_running" targetRef="c_handback"/>
     <bpmn:sequenceFlow id="f16" sourceRef="eg_running" targetRef="c_reaped"/>
     <bpmn:sequenceFlow id="f17" sourceRef="eg_running" targetRef="c_early"/>
-    <bpmn:intermediateCatchEvent id="c_handback" name="lane handback" dz:actor="seat" dz:zone="BOTH"><bpmn:messageEventDefinition id="md1" messageRef="msg_handback"/></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="c_handback" name="lane handback" dz:actor="seat" dz:zone="BOTH" dz:bind="scripts/dispatch.py:3787" dz:test="tests/test_dispatch_launch.py::test_govern_over_a_synthetic_over_cap_transcript_records_and_does_not_stop"><bpmn:messageEventDefinition id="md1" messageRef="msg_handback"/></bpmn:intermediateCatchEvent>
     <bpmn:intermediateCatchEvent id="c_reaped" name="lane reaped" dz:actor="operator" dz:zone="BOTH" dz:glue="true"><bpmn:messageEventDefinition id="md2" messageRef="msg_reaped"/></bpmn:intermediateCatchEvent>
     <bpmn:intermediateCatchEvent id="c_early" name="lane ended early" dz:actor="seat" dz:zone="BOTH" dz:glue="true"><bpmn:messageEventDefinition id="md3" messageRef="msg_early"/></bpmn:intermediateCatchEvent>
     <bpmn:sequenceFlow id="f18" sourceRef="c_handback" targetRef="end_launched"/>

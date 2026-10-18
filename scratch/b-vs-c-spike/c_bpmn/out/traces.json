@@ -314,7 +314,7 @@
    "job_id": "abc12345",
    "spawned": 1
   },
-  "seconds": 4.4
+  "seconds": 4.2
  },
  {
   "scenario": "S2-refused",
@@ -1409,7 +1409,7 @@
    "message": "spike-clean was started (claude exited 0) but no job could be identified: its output carried no id and no record in .claude/worktrees/spike-clean appeared. Run ",
    "spawned": 1
   },
-  "seconds": 3.8
+  "seconds": 3.9
  },
  {
   "scenario": "S5-dependency-hold",
@@ -1736,7 +1736,7 @@
    }
   ],
   "oracle": null,
-  "seconds": 2.6
+  "seconds": 2.5
  },
  {
   "scenario": "M1-reaped",
@@ -2048,7 +2048,7 @@
    }
   ],
   "oracle": null,
-  "seconds": 3.8
+  "seconds": 3.9
  },
  {
   "scenario": "M2-end-early",
@@ -2360,6 +2360,6 @@
    }
   ],
   "oracle": null,
-  "seconds": 3.9
+  "seconds": 3.8
  }
 ]

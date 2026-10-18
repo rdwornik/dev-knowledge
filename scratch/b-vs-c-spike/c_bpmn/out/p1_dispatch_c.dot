@@ -1,0 +1,100 @@
+digraph P1 {
+rankdir=TB; fontname=Helvetica; node [fontname=Helvetica]; edge [fontname=Helvetica, fontsize=9];
+subgraph "cluster_launch_window" { label="launch window (spawn, identify, receipt)"; style=rounded; color=grey;
+"t_spawn" [label="spawn\ndispatch.py:1169", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_spawn" [label="provider started?\ndispatch.py:1174", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"w_err_spawn" [label="spawn_failed\ndispatch.py:1176", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"t_identify" [label="identify the job\ndispatch.py:1204", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_identify" [label="job identified?\ndispatch.py:1195", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"w_err_unresolved" [label="unresolved\ndispatch.py:1195", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"t_receipt" [label="launch receipt\ndispatch.py:1234", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+}
+"start" [label="start: queue/launch entry\ndispatch.py:3933", shape=ellipse, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=1, fontcolor=black, fontsize=10]
+"t_schedule" [label="static launch order (queue --dry-run)\ndispatch.py:1503", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_parse" [label="contract parsed (table + Dispatch block)\ndispatch.py:742", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_agree" [label="table = block?\ndispatch.py:765", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_valid" [label="provider / model / effort valid\ndispatch.py:213", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_valid" [label="valid?\ndispatch.py:214", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_tier" [label="R101(a) tier refusal (OWED)\nNO CODE  [HOLE]", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=red, fontsize=10]
+"t_claim" [label="claim\nclaim.py:223", shape=box, style="filled,dashed", fillcolor="#c8e6c9", color=red, penwidth=3, peripheries=1, fontcolor=black, fontsize=10]
+"g_claim" [label="claim won?\nclaim.py:233", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_dep" [label="read dependency status\ndispatch.py:1601", shape=box, style="filled,dashed", fillcolor="#c8e6c9", color=red, penwidth=3, peripheries=1, fontcolor=black, fontsize=10]
+"g_dep" [label="Starts after MERGED?\ndispatch.py:1601", shape=diamond, style="filled,dashed", fillcolor="#c8e6c9", color=red, penwidth=3, peripheries=1, fontcolor=black, fontsize=10]
+"t_serial" [label="read serialize-group\ndispatch.py:1615", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_serial" [label="serialize-group clear?\ndispatch.py:1615", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_substrate" [label="read substrate\ndispatch.py:1465", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_substrate" [label="substrate?\ndispatch.py:1657", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_route" [label="route to codespace-exec\ndispatch.py:1978", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_capram" [label="read local cap + RAM floor\ndispatch.py:1661", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_capram" [label="local cap + RAM floor?\ndispatch.py:1661", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_prelaunch" [label="moment:pre-launch (local only)\ndispatch.py:958", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_prelaunch" [label="pre-launch cleared?\ndispatch.py:1148", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"t_held" [label="read held-by (receipt + listing)\ndispatch.py:1055", shape=box, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"g_held" [label="already launched / occupied?\ndispatch.py:1140", shape=diamond, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=1, fontcolor=black, fontsize=10]
+"b_spawn_failed" [label="spawn failed\ndispatch.py:1176", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"b_unresolved" [label="no job identified\ndispatch.py:1195", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"eg_running" [label="lane live: P1 watches\ndispatch.py:3787", shape=diamond, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=1, fontcolor=black, fontsize=10]
+"c_handback" [label="lane handback\ndispatch.py:3787", shape=ellipse, style="filled", fillcolor="#fff59d", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"c_reaped" [label="lane reaped\nNO CODE  [HOLE]", shape=ellipse, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=2, fontcolor=red, fontsize=10]
+"c_early" [label="lane ended early\nNO CODE  [HOLE]", shape=ellipse, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=2, fontcolor=red, fontsize=10]
+"end_launched" [label="END launched\ndispatch.py:1201", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_refused" [label="END REFUSED (exit 5)\ndispatch.py:149", shape=ellipse, style="filled", fillcolor="#fff59d", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_already_launched" [label="END already-launched [#1572]\ndispatch.py:1141", shape=ellipse, style="filled", fillcolor="#fff59d", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_hold" [label="END HOLD (re-poll)\ndispatch.py:1628", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_routed_codespace" [label="END routed to codespace\ndispatch.py:1630", shape=ellipse, style="filled", fillcolor="#c8e6c9", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_unresolved" [label="END job unresolved (exit 8)\ndispatch.py:1196", shape=ellipse, style="filled", fillcolor="#fff59d", color=black, penwidth=1, peripheries=2, fontcolor=black, fontsize=10]
+"end_reaped" [label="END reaped (RAM)\nNO CODE  [HOLE]", shape=ellipse, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=2, fontcolor=red, fontsize=10]
+"end_early" [label="END-EARLY\nNO CODE  [HOLE]", shape=ellipse, style="filled,dashed", fillcolor="#fff59d", color=red, penwidth=3, peripheries=2, fontcolor=red, fontsize=10]
+"launch_window" [shape=point, width=0.01, label=""];
+"start" -> "t_schedule" [label=""];
+"t_schedule" -> "t_parse" [label=""];
+"t_parse" -> "g_agree" [label=""];
+"g_agree" -> "t_valid" [label="agree\n[parse['ok']]"];
+"g_agree" -> "end_refused" [label="disagree"];
+"t_valid" -> "g_valid" [label=""];
+"g_valid" -> "t_tier" [label="valid\n[valid['ok']]"];
+"g_valid" -> "end_refused" [label="invalid"];
+"t_tier" -> "t_claim" [label=""];
+"t_claim" -> "g_claim" [label=""];
+"g_claim" -> "t_dep" [label="won\n[claim['ok']]"];
+"g_claim" -> "end_refused" [label="refused (exit 3)"];
+"t_dep" -> "g_dep" [label=""];
+"g_dep" -> "t_serial" [label="READY\n[dep['status'] == 'READY']"];
+"g_dep" -> "end_refused" [label="BLOCKED-FAILED\n[dep['status'] == 'BLOCKED-FAILED']"];
+"g_dep" -> "end_hold" [label="WAITING"];
+"t_serial" -> "g_serial" [label=""];
+"g_serial" -> "t_substrate" [label="clear\n[serial['clear']]"];
+"g_serial" -> "end_hold" [label="member live"];
+"t_substrate" -> "g_substrate" [label=""];
+"g_substrate" -> "t_capram" [label="local\n[substrate['substrate'] == 'local']"];
+"g_substrate" -> "t_route" [label="codespace\n[substrate['substrate'] == 'codespace']"];
+"g_substrate" -> "end_refused" [label="cloud (no code)"];
+"t_route" -> "end_routed_codespace" [label=""];
+"t_capram" -> "g_capram" [label=""];
+"g_capram" -> "t_prelaunch" [label="FIRE\n[capram['action'] == 'FIRE']"];
+"g_capram" -> "end_hold" [label="HOLD"];
+"t_prelaunch" -> "g_prelaunch" [label=""];
+"g_prelaunch" -> "t_held" [label="cleared\n[prelaunch['passed']]"];
+"g_prelaunch" -> "end_refused" [label="refused"];
+"t_held" -> "g_held" [label=""];
+"g_held" -> "end_already_launched" [label="held\n[bool(held['held'])]"];
+"g_held" -> "end_refused" [label="listing unreadable\n[bool(held.get('unreadable'))]"];
+"g_held" -> "t_spawn" [label="free", lhead=cluster_launch_window];
+"t_spawn" -> "g_spawn" [label=""];
+"g_spawn" -> "t_identify" [label="started\n[spawn['returncode'] == 0]"];
+"g_spawn" -> "w_err_spawn" [label="exit != 0"];
+"t_identify" -> "g_identify" [label=""];
+"g_identify" -> "t_receipt" [label="identified\n[bool(identify['job_id'])]"];
+"g_identify" -> "w_err_unresolved" [label="unresolved"];
+"t_receipt" -> "eg_running" [label="", ltail=cluster_launch_window];
+"b_spawn_failed" -> "end_refused" [label="", style=dashed];
+"b_unresolved" -> "end_unresolved" [label="", style=dashed];
+"eg_running" -> "c_handback" [label=""];
+"eg_running" -> "c_reaped" [label=""];
+"eg_running" -> "c_early" [label=""];
+"c_handback" -> "end_launched" [label=""];
+"c_reaped" -> "end_reaped" [label=""];
+"c_early" -> "end_early" [label=""];
+"t_spawn" -> "b_spawn_failed" [style=dotted, arrowhead=none, constraint=false];
+"t_identify" -> "b_unresolved" [style=dotted, arrowhead=none, constraint=false];
+compound=true; }
