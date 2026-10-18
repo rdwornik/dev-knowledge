@@ -10,3 +10,5 @@ DECIDED-BY-LANE: task c re-seeded to the pre-fix lock because [#1350] is already
 DECIDED-BY-LANE: claim exit 2 (no transport) treated as an environment fault, not contention; no marker written.
 OPERATOR-ACTION: provide a Claude login to the lane's tool environment, then run the 12 cells (see RESULT.md).
 USD by model/effort: all 0.00 (claude-haiku-5-5: 0, claude-sonnet-5-5: 0); Copilot: 17.32 AI Credits, up 290.2k / down 1.8k tokens.
+
+HANDBACK worktree-lane-dz-0-m1-model-probe @ 5e98a7c9 docs
