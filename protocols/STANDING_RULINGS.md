@@ -6975,7 +6975,7 @@ Landed by lane `e1-rows` (batch E1, `to-cc/BATCH-E1-LAND-2026-10-18.md` v2 §2 l
 
 - **R119 — day/night cadence** (operator, 2026-10-15; option A; full text `RATIFICATION-2026-10-14.md:29` (v9)). The ADR the T2 mini-council drafts from R119 and R120 needs the operator's ratification (`RATIFICATION-2026-10-14.md:9`); this entry lands the ruling, not that ADR. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** [#1560], [#1562], [#1564] (BUILD-2a slot 1: the day Tier 1 job, the night shards, the night's registry and ship-gate-diff rules)
+  **Carried by:** no implementation required — of this register; the mechanism is carried by [#1560], [#1562] and [#1564] (BUILD-2a slot 1: the day Tier 1 job, the night shards, the night's registry and ship-gate-diff rules), which name R119 but carry no `owner:` clause, so the gate cannot take them as its carrier (owner: the BUILD-2a slot 1 lane that dispatches them; reopen if a batch renders any of them with no owner clause)
 
   ```verbatim to-browser/RATIFICATION-2026-10-14.md:29-55
   ## R119 — day/night cadence (operator, 2026-10-15; option A)
@@ -7009,7 +7009,7 @@ Landed by lane `e1-rows` (batch E1, `to-cc/BATCH-E1-LAND-2026-10-18.md` v2 §2 l
 
 - **R120 — tests in the graph, and tests that prove something** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14.md:57` (v9)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** [#1565], [#1566], [#1567], [#1568] (the test graph nodes, the census, the nightly mutation run and the strengthen-or-remove step)
+  **Carried by:** no implementation required — of this register; the mechanism is carried by [#1565], [#1566], [#1567] and [#1568] (the test graph nodes, the census, the nightly mutation run and the strengthen-or-remove step), which name R120 but carry no `owner:` clause, so the gate cannot take them as its carrier (owner: the BUILD-2a night-run lane that dispatches them; reopen if a batch renders any of them with no owner clause)
 
   ```verbatim to-browser/RATIFICATION-2026-10-14.md:57-81
   ## R120 — tests in the graph, and tests that prove something (operator, 2026-10-15)
