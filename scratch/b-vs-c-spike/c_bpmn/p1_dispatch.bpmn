@@ -109,7 +109,7 @@
     <bpmn:sequenceFlow id="f_held_unreadable" name="listing unreadable" sourceRef="g_held" targetRef="end_refused"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">bool(held.get("unreadable"))</bpmn:conditionExpression></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="f_held_free" name="free" sourceRef="g_held" targetRef="launch_window"/>
 
-    <bpmn:subProcess id="launch_window" name="launch window (spawn, identify, receipt)" dz:actor="code" dz:zone="HARNESS">
+    <bpmn:subProcess id="launch_window" name="launch window (spawn, identify, receipt)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1115" dz:test="tests/test_dispatch_launch.py::test_a_free_slug_spawns_exactly_once_with_n_slug_in_its_argv">
       <bpmn:startEvent id="w_start" name="w_start"/>
       <bpmn:sequenceFlow id="w1" sourceRef="w_start" targetRef="t_spawn"/>
       <bpmn:serviceTask id="t_spawn" name="spawn" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1169" dz:test="tests/test_dispatch_launch.py::test_a_free_slug_spawns_exactly_once_with_n_slug_in_its_argv">
