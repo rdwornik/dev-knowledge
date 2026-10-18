@@ -21,6 +21,15 @@
 
 ---
 
+### 2026-10-18 (a) - CC (Sonnet 5.5, lane lane-dz-1350-p0-green-main, D0): CORRECTION -- 2026-10-14 carries two entries lettered (b); [#926]
+
+**Correction by addition** (JOURNAL is append-only; neither entry is edited). Two 2026-10-14 entries both carry the letter (b). Read them in this order, top to bottom as they stand in the file, as (b) and (c) -- each one names its block by its full heading line:
+
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot -- main's 25 regressions repaired through isolated stage agents (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part B)` -- keeps (b)
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema` -- is read as (c)
+
+**Why this entry:** the in-body note at the 2026-10-15 merge entry names the collision but is not a CORRECTION-headed entry, so `audit.py::check_journal_day_letters` (the `[#926]` correction-by-addition narrowing) did not count it and reported `2026-10-14 (b)` as an open duplicate on main. **Honest limit:** this clears `journal_day_letters` only until the `[#926]` narrowing expires (2026-11-18); after that the collision counts again and `[#926]` must be re-ruled. The other two resolved collisions the gate lists (2026-09-18 (f), 2026-10-11 (d)) are unchanged.
+
 ### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
 
 **Anchors:** `6f3b77a1` (the bundle; branch `worktree-cut-2026-10-17`, introduced by this merge), `21c9a428` (git_hygiene exempts the running cut branch).
