@@ -1,0 +1,1353 @@
+[
+ {
+  "scenario": "S1-clean",
+  "end": "end_launched",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "local"
+    }
+   },
+   {
+    "n": 12,
+    "node": "g_capram",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "action": "FIRE"
+    }
+   },
+   {
+    "n": 13,
+    "node": "prelaunch",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "passed": true
+    }
+   },
+   {
+    "n": 14,
+    "node": "g_prelaunch",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 15,
+    "node": "g_held",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "held": ""
+    }
+   },
+   {
+    "n": 16,
+    "node": "spawn",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "returncode": 0
+    }
+   },
+   {
+    "n": 17,
+    "node": "g_spawn",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 18,
+    "node": "identify",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "job_id": "abc12345"
+    }
+   },
+   {
+    "n": 19,
+    "node": "g_identify",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 20,
+    "node": "receipt",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {}
+   },
+   {
+    "n": 21,
+    "node": "running",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "BOTH"
+   },
+   {
+    "n": 22,
+    "node": "end_launched",
+    "kind": "end",
+    "actor": "code",
+    "zone": "HARNESS"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": {
+   "outcome": "launched",
+   "exit": 0,
+   "job_id": "abc12345",
+   "spawned": 1
+  },
+  "seconds": 4.2
+ },
+ {
+  "scenario": "S2-refused",
+  "end": "end_refused",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": false,
+     "exit": 1
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "end_refused",
+    "kind": "end",
+    "actor": "code",
+    "zone": "BOTH"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-refused.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-refused.md",
+    "exit": 1
+   }
+  ],
+  "oracle": null,
+  "seconds": 0.7
+ },
+ {
+  "scenario": "S3-already-launched",
+  "end": "end_already_launched",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "local"
+    }
+   },
+   {
+    "n": 12,
+    "node": "g_capram",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "action": "FIRE"
+    }
+   },
+   {
+    "n": 13,
+    "node": "prelaunch",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "passed": true
+    }
+   },
+   {
+    "n": 14,
+    "node": "g_prelaunch",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 15,
+    "node": "g_held",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "held": "job abc12345 is running"
+    }
+   },
+   {
+    "n": 16,
+    "node": "end_already_launched",
+    "kind": "end",
+    "actor": "code",
+    "zone": "BOTH"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": {
+   "outcome": "already-launched",
+   "exit": 5,
+   "message": "spike-clean is already launched: job abc12345 is running. Not launching a second lane.",
+   "spawned": 0
+  },
+  "seconds": 3.2
+ },
+ {
+  "scenario": "S4-prelaunch-refused",
+  "end": "end_refused",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "local"
+    }
+   },
+   {
+    "n": 12,
+    "node": "g_capram",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "action": "FIRE"
+    }
+   },
+   {
+    "n": 13,
+    "node": "prelaunch",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "passed": false
+    }
+   },
+   {
+    "n": 14,
+    "node": "g_prelaunch",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 15,
+    "node": "end_refused",
+    "kind": "end",
+    "actor": "code",
+    "zone": "BOTH"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": {
+   "outcome": "refused",
+   "exit": 5,
+   "message": "pre-launch refused spike-clean: REFUSED [worktree_occupancy]: husk in .claude/worktrees/spike-clean",
+   "spawned": 0
+  },
+  "seconds": 2.8
+ },
+ {
+  "scenario": "S5-dependency-hold",
+  "end": "end_hold",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "WAITING"
+    }
+   },
+   {
+    "n": 10,
+    "node": "end_hold",
+    "kind": "end",
+    "actor": "code",
+    "zone": "HARNESS"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-dep.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-dep.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": null,
+  "seconds": 1.5
+ },
+ {
+  "scenario": "S6-codespace-route",
+  "end": "end_routed_codespace",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "codespace"
+    }
+   },
+   {
+    "n": 12,
+    "node": "route_codespace",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "steps": 12
+    }
+   },
+   {
+    "n": 13,
+    "node": "end_routed_codespace",
+    "kind": "end",
+    "actor": "code",
+    "zone": "HARNESS"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md --token-cap ...",
+    "exit": 0
+   }
+  ],
+  "oracle": null,
+  "seconds": 2.5
+ },
+ {
+  "scenario": "M1-reaped",
+  "end": "end_reaped",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "local"
+    }
+   },
+   {
+    "n": 12,
+    "node": "g_capram",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "action": "FIRE"
+    }
+   },
+   {
+    "n": 13,
+    "node": "prelaunch",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "passed": true
+    }
+   },
+   {
+    "n": 14,
+    "node": "g_prelaunch",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 15,
+    "node": "g_held",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "held": ""
+    }
+   },
+   {
+    "n": 16,
+    "node": "spawn",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "returncode": 0
+    }
+   },
+   {
+    "n": 17,
+    "node": "g_spawn",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 18,
+    "node": "identify",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "job_id": "abc12345"
+    }
+   },
+   {
+    "n": 19,
+    "node": "g_identify",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 20,
+    "node": "receipt",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {}
+   },
+   {
+    "n": 21,
+    "node": "running",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "BOTH"
+   },
+   {
+    "n": 22,
+    "node": "end_reaped",
+    "kind": "end",
+    "actor": "operator",
+    "zone": "BOTH"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": null,
+  "seconds": 3.8
+ },
+ {
+  "scenario": "M2-end-early",
+  "end": "end_early",
+  "trace": [
+   {
+    "n": 1,
+    "node": "start",
+    "kind": "event",
+    "actor": "seat",
+    "zone": "BOTH",
+    "result": {
+     "ok": true
+    }
+   },
+   {
+    "n": 2,
+    "node": "parse",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 3,
+    "node": "g_agree",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 4,
+    "node": "valid",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 5,
+    "node": "g_valid",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 6,
+    "node": "tier",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"
+    }
+   },
+   {
+    "n": 7,
+    "node": "claim",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "HARNESS",
+    "result": {
+     "ok": true,
+     "exit": 0
+    }
+   },
+   {
+    "n": 8,
+    "node": "g_claim",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 9,
+    "node": "g_dep",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "status": "READY"
+    }
+   },
+   {
+    "n": 10,
+    "node": "g_serial",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "clear": true
+    }
+   },
+   {
+    "n": 11,
+    "node": "g_substrate",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "substrate": "local"
+    }
+   },
+   {
+    "n": 12,
+    "node": "g_capram",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "action": "FIRE"
+    }
+   },
+   {
+    "n": 13,
+    "node": "prelaunch",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "passed": true
+    }
+   },
+   {
+    "n": 14,
+    "node": "g_prelaunch",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 15,
+    "node": "g_held",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "held": ""
+    }
+   },
+   {
+    "n": 16,
+    "node": "spawn",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "returncode": 0
+    }
+   },
+   {
+    "n": 17,
+    "node": "g_spawn",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 18,
+    "node": "identify",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {
+     "job_id": "abc12345"
+    }
+   },
+   {
+    "n": 19,
+    "node": "g_identify",
+    "kind": "gateway",
+    "actor": "code",
+    "zone": "HARNESS"
+   },
+   {
+    "n": 20,
+    "node": "receipt",
+    "kind": "task",
+    "actor": "code",
+    "zone": "HARNESS",
+    "result": {}
+   },
+   {
+    "n": 21,
+    "node": "running",
+    "kind": "task",
+    "actor": "seat",
+    "zone": "BOTH"
+   },
+   {
+    "n": 22,
+    "node": "end_early",
+    "kind": "end",
+    "actor": "seat",
+    "zone": "BOTH"
+   }
+  ],
+  "verbs": [
+   {
+    "verb": "uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ...",
+    "exit": 0
+   },
+   {
+    "verb": "uv run --locked python scripts/claim.py --session spike0001 --transport-root ...",
+    "exit": 0
+   }
+  ],
+  "oracle": null,
+  "seconds": 4.0
+ }
+]
