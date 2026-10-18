@@ -21,9 +21,16 @@ discipline `test_dispatch_launch.py` already applies to `launch_lane`.
 """
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
+import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import psutil
 import pytest
 from click.testing import CliRunner
 
@@ -804,7 +811,8 @@ def test_queue_reports_a_lane_whose_launch_lock_is_held_and_fires_the_rest(tmp_p
     fleet.install(monkeypatch)
     lock = d.receipts_dir() / "LAUNCH-LOCK-LANE-A"
     lock.parent.mkdir(parents=True, exist_ok=True)
-    lock.write_text("pid 1 at 2026-10-18T12:00:00Z\n", encoding="utf-8")
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
     contracts = _three_contracts(tmp_path)
 
     out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
@@ -813,3 +821,265 @@ def test_queue_reports_a_lane_whose_launch_lock_is_held_and_fires_the_rest(tmp_p
     assert out.exit_code == 0, out.output
     assert fleet.spawned == ["lane-b", "lane-c"]
     assert "already-launched lane-a" in out.output
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+
+
+# --- [#1572] D6: a held launch lock is judged by its holder --------------------------------------
+
+_UNPARSEABLE_LOCKS = [
+    ("empty", ""),
+    ("garbage", "garbage"),
+    ("missing-stamp-pid-1", "pid 1"),
+    ("non-numeric-pid", "pid abc at x"),
+    ("zero-pid", "pid 0 at 2026-10-18T12:00:00+00:00"),
+    ("negative-pid", "pid -5 at 2026-10-18T12:00:00+00:00"),
+    ("missing-stamp-current-pid", f"pid {os.getpid()}"),
+]
+
+
+def _dead_holder_pid() -> int:
+    process = subprocess.Popen([sys.executable, "-c", "pass"])
+    process.wait()
+    return process.pid
+
+
+def test_queue_reclaims_a_dead_holder_lock_and_fires_every_lane(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(a): a lock held by a dead process is journaled, removed, and relaunched."""
+    dead_pid = _dead_holder_pid()
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    stamp = d._stamp()
+    lock.write_text(f"pid {dead_pid} at {stamp}\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-a", "lane-b", "lane-c"]
+    assert "already-launched lane-a" not in out.output
+    reclaim = receipts / "LAUNCH-RECLAIM-LANE-A.jsonl"
+    lines = reclaim.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert set(record) == {"event", "slug", "lock", "dead_pid", "at"}
+    assert record["event"] == "lock-reclaimed"
+    assert record["slug"] == "lane-a"
+    assert record["lock"] == str(lock)
+    assert record["dead_pid"] == dead_pid
+    assert datetime.fromisoformat(record["at"]) >= datetime.fromisoformat(stamp)   # when it was reclaimed
+    assert not lock.exists()
+
+
+def test_queue_reclaims_a_recycled_pid_lock_and_fires_every_lane(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(a2): a live pid whose start postdates the lock stamp is treated as recycled."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {os.getpid()} at 1970-01-02T00:00:00+00:00\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-a", "lane-b", "lane-c"]
+    assert "already-launched lane-a" not in out.output
+    reclaim = receipts / "LAUNCH-RECLAIM-LANE-A.jsonl"
+    lines = reclaim.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert set(record) == {"event", "slug", "lock", "dead_pid", "at"}
+    assert record["event"] == "lock-reclaimed"
+    assert record["slug"] == "lane-a"
+    assert record["lock"] == str(lock)
+    assert record["dead_pid"] == os.getpid()
+    assert datetime.fromisoformat(record["at"]).year >= 2026   # when it was reclaimed, not the lock's stamp
+    assert not lock.exists()
+
+
+def test_live_holder_lock_stays_already_launched_for_queue_and_direct_launch(tmp_path, monkeypatch,
+                                                                             receipts):
+    """[#1572] D6(b): a live holder remains protected and is never recorded as reclaimed."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert "already-launched lane-a" in out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    with pytest.raises(d.AlreadyLaunched) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("live lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert "in progress" in refused.value.message
+
+
+@pytest.mark.parametrize(("case", "contents"), _UNPARSEABLE_LOCKS,
+                         ids=[case for case, _ in _UNPARSEABLE_LOCKS])
+def test_unparseable_lock_refuses_queue_and_direct_launch(tmp_path, monkeypatch, receipts, case,
+                                                          contents):
+    """[#1572] D6(c): malformed lock contents fail closed without changing or reclaiming the lock."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code != 0, out.output
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == []
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("unparseable lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert not isinstance(refused.value, d.AlreadyLaunched)
+    assert "in progress" in refused.value.message
+
+
+def test_undeterminable_lock_holder_refuses_queue_and_direct_launch(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(c): inability to check a well-formed holder's liveness fails closed."""
+    def boom(pid):
+        raise psutil.Error("boom")
+
+    monkeypatch.setattr("psutil.Process", boom)
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code != 0, out.output
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == []
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("undeterminable lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert not isinstance(refused.value, d.AlreadyLaunched)
+    assert "in progress" in refused.value.message
+
+
+@pytest.mark.parametrize(
+    ("case", "malformed_contents"),
+    [("dead", None), ("recycled", None),
+     *((f"unparseable-{case}", contents) for case, contents in _UNPARSEABLE_LOCKS),
+     ("undeterminable", None)],
+    ids=["dead", "recycled", *(f"unparseable-{case}" for case, _ in _UNPARSEABLE_LOCKS),
+         "undeterminable"],
+)
+def test_no_stale_lock_path_exits_zero_without_a_launch_and_a_reclaim_line(
+        tmp_path, monkeypatch, receipts, case, malformed_contents):
+    """[#1572] D6(d): any stale or indeterminate lock either launches after reclaim or fails closed."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    if case == "dead":
+        contents = f"pid {_dead_holder_pid()} at {d._stamp()}\n"
+    elif case == "recycled":
+        contents = f"pid {os.getpid()} at 1970-01-02T00:00:00+00:00\n"
+    elif case == "undeterminable":
+        def boom(pid):
+            raise psutil.Error("boom")
+
+        monkeypatch.setattr("psutil.Process", boom)
+        contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    else:
+        contents = malformed_contents
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    if out.exit_code == 0:
+        assert "lane-a" in fleet.spawned
+        assert (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+
+
+def test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once(tmp_path, receipts):
+    """[#1572] D6(e): concurrent attempts serialize dead-lock reclamation and exactly one spawn."""
+    contract = _contract(tmp_path, "LANE-a.md", "lane-a")
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {_dead_holder_pid()} at {d._stamp()}\n", encoding="utf-8")
+    request = d.request_from_contract(contract)
+    start = threading.Barrier(2)
+    release_spawn = threading.Event()
+    already_finished = threading.Event()
+    spawned = []
+    results = []
+    refused = []
+    unexpected = []
+
+    def spawn(*args):
+        spawned.append(args)
+        if not release_spawn.wait(10):
+            raise TimeoutError("test did not release the blocked spawn")
+        return d.Spawned(returncode=0, stdout="backgrounded abcdef12\n", pid=os.getpid())
+
+    def launch():
+        start.wait(timeout=10)
+        try:
+            results.append(d.launch_lane(request, prelaunch=lambda req: d.PreLaunch(passed=True),
+                                         spawn=spawn, agents=lambda: [], cwd=tmp_path,
+                                         sleep=lambda seconds: None))
+        except d.AlreadyLaunched as exc:
+            refused.append(exc)
+            already_finished.set()
+        except Exception as exc:
+            unexpected.append(exc)
+
+    threads = [threading.Thread(target=launch) for _ in range(2)]
+    try:
+        for thread in threads:
+            thread.start()
+        assert already_finished.wait(10), "the competing launch did not refuse while spawn was blocked"
+    finally:
+        release_spawn.set()
+        for thread in threads:
+            if thread.ident is not None:
+                thread.join(timeout=10)
+
+    assert all(not thread.is_alive() for thread in threads), "launch thread hung"
+    assert not unexpected
+    assert len(spawned) == 1
+    assert len(refused) == 1
+    assert len(results) == 1
+    reclaim_lines = (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").read_text(
+        encoding="utf-8").splitlines()
+    assert len(reclaim_lines) == 1
