@@ -90,13 +90,15 @@ def cmd_spawn(p):
     request = _request(p["contract"])
     rc = p.get("returncode", 0)
     # the recorder: what spawn_process would have been handed. NOTHING is executed.
-    return {"argv": request.argv, "returncode": rc, "stdout": "backgrounded abc12345 " + request.slug if rc == 0 else "boom"}
+    out = "" if p.get("empty_listing") else ("backgrounded abc12345 " + request.slug if rc == 0 else "boom")
+    return {"argv": request.argv, "returncode": rc, "stdout": out}
 
 
 def cmd_identify(p):
     request = _request(p["contract"])
     started = d.Spawned(0, p["stdout"], None)
-    job, session, name = d._identify(request, started, "", lambda: _fake_listing(request.slug),
+    listing = [] if p.get("empty_listing") else _fake_listing(request.slug)
+    job, session, name = d._identify(request, started, "", lambda: listing,
                                      lambda s: None, time.time())
     return {"job_id": job, "session_id": session, "name": name}
 
@@ -118,18 +120,23 @@ def cmd_oracle(p):
         d._write_json(d._receipt_path(request.slug), p["receipt"])
     spawned = []
 
+    rc = p.get("spawn_returncode", 0)
+    blank = p.get("empty_listing")
+
     def spawn(argv, env, cwd):
         spawned.append(list(argv))
-        return d.Spawned(0, "backgrounded abc12345", None)
+        return d.Spawned(rc, "" if blank else ("backgrounded abc12345" if rc == 0 else "boom"), None)
 
     def agents():   # before the spawn: what the scenario says is live; after it: the new job
-        return _fake_listing(request.slug) if spawned else (p.get("agents") or [])
+        return (([] if blank else _fake_listing(request.slug)) if spawned else (p.get("agents") or []))
 
     verdict = d.PreLaunch(**p["prelaunch"])
     try:
         out = d.launch_lane(request, prelaunch=lambda r: verdict, spawn=spawn,
                             agents=agents,
                             cwd=Path(_TMP), secrets_file=None, sleep=lambda s: None)
+    except d.LaunchIncomplete as exc:
+        return {"outcome": "unresolved", "exit": exc.exit_code, "message": exc.message[:160], "spawned": len(spawned)}
     except d.LaunchRefused as exc:
         kind = "already-launched" if "is already launched" in exc.message else "refused"
         return {"outcome": kind, "exit": exc.exit_code, "message": exc.message[:160], "spawned": len(spawned)}

@@ -67,6 +67,7 @@ class Scenario:
     receipt: dict | None = None        # a planted earlier-launch receipt
     agents: tuple[dict, ...] = ()      # the literal `claude agents --json` listing
     spawn_returncode: int = 0
+    empty_listing: bool = False        # the lane vanished before the listing showed it (reaped-before-listed)
     expect_end: str = ""               # the terminal node id the code's behaviour implies
     expect_oracle: str = ""            # what the real launch_lane does ('' = not comparable)
 
@@ -98,6 +99,10 @@ SCENARIOS = {
     "S4-prelaunch-refused": Scenario(
         "S4-prelaunch-refused", "LANE-spike-clean.md", expect_end="end_refused", expect_oracle="refused",
         prelaunch={"passed": False, "reason": "REFUSED [worktree_occupancy]: husk in .claude/worktrees/spike-clean"}),
+    "S7-spawn-fails": Scenario("S7-spawn-fails", "LANE-spike-clean.md", expect_end="end_refused",
+                               expect_oracle="refused", spawn_returncode=1),
+    "S8-job-unresolved": Scenario("S8-job-unresolved", "LANE-spike-clean.md", expect_end="end_unresolved",
+                                  expect_oracle="unresolved", empty_listing=True),
     "S5-dependency-hold": Scenario(
         "S5-dependency-hold", "LANE-spike-dep.md", all_contracts=("LANE-spike-clean.md", "LANE-spike-dep.md"),
         expect_end="end_hold"),
@@ -183,10 +188,11 @@ class Services:
         return probe("held", slug=self.sc.slug, receipt=self.sc.receipt, agents=list(self.sc.agents))
 
     def spawn(self) -> dict:
-        return probe("spawn", contract=self.sc.path, returncode=self.sc.spawn_returncode)
+        return probe("spawn", contract=self.sc.path, returncode=self.sc.spawn_returncode,
+                     empty_listing=self.sc.empty_listing)
 
     def identify(self, stdout: str) -> dict:
-        return probe("identify", contract=self.sc.path, stdout=stdout)
+        return probe("identify", contract=self.sc.path, stdout=stdout, empty_listing=self.sc.empty_listing)
 
     def receipt(self, job_id: str, session_id: str, name: str) -> dict:
         return probe("receipt", contract=self.sc.path, job_id=job_id, session_id=session_id, name=name)
@@ -194,7 +200,8 @@ class Services:
     # --- the oracle: the real launch_lane, spawn faked ------------------------------------------
     def oracle(self) -> dict:
         return probe("oracle", contract=self.sc.path, prelaunch=self.sc.prelaunch, receipt=self.sc.receipt,
-                     agents=list(self.sc.agents))
+                     agents=list(self.sc.agents),
+                     spawn_returncode=self.sc.spawn_returncode, empty_listing=self.sc.empty_listing)
 
     def close(self) -> None:
         if self._claimed:

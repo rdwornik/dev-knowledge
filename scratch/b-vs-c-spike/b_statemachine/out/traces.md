@@ -77,6 +77,54 @@ verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-
 
 verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ... -> exit 0; uv run --locked python scripts/claim.py --session spike0001 --transport-root ... -> exit 0
 
+## S7-spawn-fails: end=end_refused (expected end_refused: OK); oracle launch_lane: refused exit 5 -> AGREE; 3.5s
+
+-  1. start [event, seat/BOTH] {"ok": true}
+-  2. parse [task, code/HARNESS] {"ok": true, "exit": 0}
+-  3. g_agree [gateway, code/HARNESS] ""
+-  4. valid [task, code/HARNESS] {"ok": true, "exit": 0}
+-  5. g_valid [gateway, code/HARNESS] ""
+-  6. tier [task, code/HARNESS] {"ok": true, "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"}
+-  7. claim [task, seat/HARNESS] {"ok": true, "exit": 0}
+-  8. g_claim [gateway, code/HARNESS] ""
+-  9. g_dep [gateway, code/HARNESS] {"status": "READY"}
+- 10. g_serial [gateway, code/HARNESS] {"clear": true}
+- 11. g_substrate [gateway, code/HARNESS] {"substrate": "local"}
+- 12. g_capram [gateway, code/HARNESS] {"action": "FIRE"}
+- 13. prelaunch [task, code/HARNESS] {"passed": true}
+- 14. g_prelaunch [gateway, code/HARNESS] ""
+- 15. g_held [gateway, code/HARNESS] {"held": ""}
+- 16. spawn [task, code/HARNESS] {"returncode": 1}
+- 17. g_spawn [gateway, code/HARNESS] ""
+- 18. end_refused [end, code/BOTH] ""
+
+verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ... -> exit 0; uv run --locked python scripts/claim.py --session spike0001 --transport-root ... -> exit 0
+
+## S8-job-unresolved: end=end_unresolved (expected end_unresolved: OK); oracle launch_lane: unresolved exit 8 -> AGREE; 3.9s
+
+-  1. start [event, seat/BOTH] {"ok": true}
+-  2. parse [task, code/HARNESS] {"ok": true, "exit": 0}
+-  3. g_agree [gateway, code/HARNESS] ""
+-  4. valid [task, code/HARNESS] {"ok": true, "exit": 0}
+-  5. g_valid [gateway, code/HARNESS] ""
+-  6. tier [task, code/HARNESS] {"ok": true, "hole": "R101(a) tier refusal is not built (lane_boot owes it); passes by default"}
+-  7. claim [task, seat/HARNESS] {"ok": true, "exit": 0}
+-  8. g_claim [gateway, code/HARNESS] ""
+-  9. g_dep [gateway, code/HARNESS] {"status": "READY"}
+- 10. g_serial [gateway, code/HARNESS] {"clear": true}
+- 11. g_substrate [gateway, code/HARNESS] {"substrate": "local"}
+- 12. g_capram [gateway, code/HARNESS] {"action": "FIRE"}
+- 13. prelaunch [task, code/HARNESS] {"passed": true}
+- 14. g_prelaunch [gateway, code/HARNESS] ""
+- 15. g_held [gateway, code/HARNESS] {"held": ""}
+- 16. spawn [task, code/HARNESS] {"returncode": 0}
+- 17. g_spawn [gateway, code/HARNESS] ""
+- 18. identify [task, code/HARNESS] {"job_id": ""}
+- 19. g_identify [gateway, code/HARNESS] ""
+- 20. end_unresolved [end, code/BOTH] ""
+
+verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ... -> exit 0; uv run --locked python scripts/claim.py --session spike0001 --transport-root ... -> exit 0
+
 ## S5-dependency-hold: end=end_hold (expected end_hold: OK); oracle launch_lane: n/a -> n/a; 1.5s
 
 -  1. start [event, seat/BOTH] {"ok": true}
@@ -110,7 +158,7 @@ verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-
 
 verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md -> exit 0; uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md --token-cap ... -> exit 0; uv run --locked python scripts/claim.py --session spike0001 --transport-root ... -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-codespace.md --token-cap ... -> exit 0
 
-## M1-reaped: end=end_reaped (expected end_reaped: OK); oracle launch_lane: n/a -> n/a; 3.8s
+## M1-reaped: end=end_reaped (expected end_reaped: OK); oracle launch_lane: n/a -> n/a; 3.9s
 
 -  1. start [event, seat/BOTH] {"ok": true}
 -  2. parse [task, code/HARNESS] {"ok": true, "exit": 0}
@@ -137,7 +185,7 @@ verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-
 
 verbs run: uv run --locked python scripts/dispatch.py queue --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py launch --dry-run scratch/b-vs-c-spike/contracts/LANE-spike-clean.md -> exit 0; uv run --locked python scripts/dispatch.py plan scratch/b-vs-c-spike/contracts/LANE-spike-clean.md --token-cap ... -> exit 0; uv run --locked python scripts/claim.py --session spike0001 --transport-root ... -> exit 0
 
-## M2-end-early: end=end_early (expected end_early: OK); oracle launch_lane: n/a -> n/a; 4.0s
+## M2-end-early: end=end_early (expected end_early: OK); oracle launch_lane: n/a -> n/a; 3.9s
 
 -  1. start [event, seat/BOTH] {"ok": true}
 -  2. parse [task, code/HARNESS] {"ok": true, "exit": 0}

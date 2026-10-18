@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P1 dispatch as BPMN 2.0 (form C). The FILE is the source of truth: node attributes dz:actor, dz:zone,
+     dz:glue (TODAY-GLUE), dz:bind (ONE file:line; absent = HOLE), dz:test sit on the elements themselves.
+     Order follows the contract, with substrate before cap/RAM as decide_lane does (dispatch.py:1657). -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core"
+                  xmlns:dz="https://dev-knowledge.invalid/spike/dz"
+                  id="defs" targetNamespace="https://dev-knowledge.invalid/spike/p1">
+  <bpmn:message id="msg_handback" name="lane_handback"/>
+  <bpmn:message id="msg_reaped" name="lane_reaped"/>
+  <bpmn:message id="msg_early" name="lane_ended_early"/>
+  <bpmn:error id="err_spawn" name="spawn_failed" errorCode="spawn_failed"/>
+  <bpmn:error id="err_unresolved" name="unresolved" errorCode="unresolved"/>
+  <bpmn:process id="p1_dispatch" isExecutable="true">
+
+    <bpmn:startEvent id="start" name="start: queue/launch entry" dz:actor="seat" dz:zone="BOTH" dz:glue="true" dz:bind="scripts/dispatch.py:3933" dz:test="tests/test_dispatch_queue.py::test_launch_order_refuses_a_cycle">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="start" targetRef="t_schedule"/>
+
+    <bpmn:serviceTask id="t_schedule" name="static launch order (queue --dry-run)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1503" dz:test="tests/test_dispatch_queue.py::test_launch_order_refuses_a_cycle">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="schedule" resultVariable="schedule"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f2" sourceRef="t_schedule" targetRef="t_parse"/>
+
+    <bpmn:serviceTask id="t_parse" name="contract parsed (table + Dispatch block)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:742" dz:test="tests/test_dispatch_launch.py::test_a_dispatch_model_that_disagrees_with_the_table_is_refused">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="parse_contract" resultVariable="parse"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f3" sourceRef="t_parse" targetRef="g_agree"/>
+    <bpmn:exclusiveGateway id="g_agree" name="table = block?" default="f_agree_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:765" dz:test="tests/test_dispatch_launch.py::test_a_dispatch_model_that_disagrees_with_the_table_is_refused"/>
+    <bpmn:sequenceFlow id="f_agree_yes" name="agree" sourceRef="g_agree" targetRef="t_valid"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">parse["ok"]</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_agree_no" name="disagree" sourceRef="g_agree" targetRef="end_refused"/>
+
+    <bpmn:serviceTask id="t_valid" name="provider / model / effort valid" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:213" dz:test="tests/test_dispatch_py.py::test_an_unknown_provider_is_refused_naming_the_known_ones">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="validate" resultVariable="valid"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f4" sourceRef="t_valid" targetRef="g_valid"/>
+    <bpmn:exclusiveGateway id="g_valid" name="valid?" default="f_valid_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:214" dz:test="tests/test_dispatch_py.py::test_effort_shorthand_is_mapped_and_an_unknown_effort_refused"/>
+    <bpmn:sequenceFlow id="f_valid_yes" name="valid" sourceRef="g_valid" targetRef="t_tier"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">valid["ok"]</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_valid_no" name="invalid" sourceRef="g_valid" targetRef="end_refused"/>
+
+    <bpmn:serviceTask id="t_tier" name="R101(a) tier refusal (OWED)" dz:actor="code" dz:zone="HARNESS">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="tier" resultVariable="tier"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f5" sourceRef="t_tier" targetRef="t_claim"/>
+
+    <bpmn:serviceTask id="t_claim" name="claim" dz:actor="seat" dz:zone="HARNESS" dz:glue="true" dz:bind="scripts/claim.py:223" dz:test="tests/test_claim.py::test_the_cli_claims_and_the_second_call_refuses">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="claim" resultVariable="claim"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f6" sourceRef="t_claim" targetRef="g_claim"/>
+    <bpmn:exclusiveGateway id="g_claim" name="claim won?" default="f_claim_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/claim.py:233" dz:test="tests/test_claim.py::test_a_hand_made_marker_refuses_a_claim_too"/>
+    <bpmn:sequenceFlow id="f_claim_yes" name="won" sourceRef="g_claim" targetRef="t_dep"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">claim["ok"]</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_claim_no" name="refused (exit 3)" sourceRef="g_claim" targetRef="end_refused"/>
+
+    <bpmn:serviceTask id="t_dep" name="read dependency status" dz:actor="code" dz:zone="HARNESS" dz:glue="true" dz:bind="scripts/dispatch.py:1601" dz:test="tests/test_dispatch_queue.py::test_dependency_status_blocked_when_a_dependency_failed">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="dependency" resultVariable="dep"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f7" sourceRef="t_dep" targetRef="g_dep"/>
+    <bpmn:exclusiveGateway id="g_dep" name="Starts after MERGED?" default="f_dep_wait" dz:actor="code" dz:zone="HARNESS" dz:glue="true" dz:bind="scripts/dispatch.py:1601" dz:test="tests/test_dispatch_queue.py::test_dependency_status_blocked_when_a_dependency_failed"/>
+    <bpmn:sequenceFlow id="f_dep_ready" name="READY" sourceRef="g_dep" targetRef="t_serial"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">dep["status"] == "READY"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_dep_failed" name="BLOCKED-FAILED" sourceRef="g_dep" targetRef="end_refused"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">dep["status"] == "BLOCKED-FAILED"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_dep_wait" name="WAITING" sourceRef="g_dep" targetRef="end_hold"/>
+
+    <bpmn:serviceTask id="t_serial" name="read serialize-group" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1615" dz:test="tests/test_dispatch_queue.py::test_serialize_group_holds_while_another_member_is_live">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="serialize" resultVariable="serial"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f8" sourceRef="t_serial" targetRef="g_serial"/>
+    <bpmn:exclusiveGateway id="g_serial" name="serialize-group clear?" default="f_serial_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1615" dz:test="tests/test_dispatch_queue.py::test_serialize_group_holds_while_another_member_is_live"/>
+    <bpmn:sequenceFlow id="f_serial_yes" name="clear" sourceRef="g_serial" targetRef="t_substrate"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">serial["clear"]</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_serial_no" name="member live" sourceRef="g_serial" targetRef="end_hold"/>
+
+    <bpmn:serviceTask id="t_substrate" name="read substrate" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1465" dz:test="tests/test_dispatch_queue.py::test_lane_substrate_reads_dispatch_codespace_head_as_codespace">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="substrate" resultVariable="substrate"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f9" sourceRef="t_substrate" targetRef="g_substrate"/>
+    <bpmn:exclusiveGateway id="g_substrate" name="substrate?" default="f_sub_other" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1657" dz:test="tests/test_dispatch_queue.py::test_decide_lane_routes_codespace_before_cap_or_ram_ever_apply"/>
+    <bpmn:sequenceFlow id="f_sub_local" name="local" sourceRef="g_substrate" targetRef="t_capram"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">substrate["substrate"] == "local"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_sub_cs" name="codespace" sourceRef="g_substrate" targetRef="t_route"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">substrate["substrate"] == "codespace"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_sub_other" name="cloud (no code)" sourceRef="g_substrate" targetRef="end_refused"/>
+
+    <bpmn:serviceTask id="t_route" name="route to codespace-exec" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1978" dz:test="tests/test_dispatch_codespace.py::test_codespace_plan_shows_harvest_and_manifest_check_before_delete">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="route_codespace" resultVariable="route"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f10" sourceRef="t_route" targetRef="end_routed_codespace"/>
+
+    <bpmn:serviceTask id="t_capram" name="read local cap + RAM floor" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1661" dz:test="tests/test_dispatch_queue.py::test_decide_lane_local_cap_holds_when_full">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="cap_ram" resultVariable="capram"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f11" sourceRef="t_capram" targetRef="g_capram"/>
+    <bpmn:exclusiveGateway id="g_capram" name="local cap + RAM floor?" default="f_cap_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1661" dz:test="tests/test_dispatch_queue.py::test_decide_lane_local_cap_holds_when_full"/>
+    <bpmn:sequenceFlow id="f_cap_yes" name="FIRE" sourceRef="g_capram" targetRef="t_prelaunch"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">capram["action"] == "FIRE"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_cap_no" name="HOLD" sourceRef="g_capram" targetRef="end_hold"/>
+
+    <bpmn:serviceTask id="t_prelaunch" name="moment:pre-launch (local only)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:958" dz:test="tests/test_dispatch_launch.py::test_a_pre_launch_that_could_not_run_is_a_refusal_never_a_pass">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="prelaunch" resultVariable="prelaunch"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f12" sourceRef="t_prelaunch" targetRef="g_prelaunch"/>
+    <bpmn:exclusiveGateway id="g_prelaunch" name="pre-launch cleared?" default="f_pre_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1148" dz:test="tests/test_dispatch_launch.py::test_a_pre_launch_organ_that_was_skipped_does_not_clear_the_launch"/>
+    <bpmn:sequenceFlow id="f_pre_yes" name="cleared" sourceRef="g_prelaunch" targetRef="t_held"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">prelaunch["passed"]</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_pre_no" name="refused" sourceRef="g_prelaunch" targetRef="end_refused"/>
+
+    <bpmn:serviceTask id="t_held" name="read held-by (receipt + listing)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1055" dz:test="tests/test_dispatch_launch.py::test_running_launch_twice_on_one_contract_refuses_the_second">
+      <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="held" resultVariable="held"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f13" sourceRef="t_held" targetRef="g_held"/>
+    <bpmn:exclusiveGateway id="g_held" name="already launched / occupied?" default="f_held_free" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1140" dz:test="tests/test_dispatch_launch.py::test_running_launch_twice_on_one_contract_refuses_the_second"/>
+    <bpmn:sequenceFlow id="f_held_live" name="held" sourceRef="g_held" targetRef="end_already_launched"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">bool(held["held"])</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_held_unreadable" name="listing unreadable" sourceRef="g_held" targetRef="end_refused"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">bool(held.get("unreadable"))</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_held_free" name="free" sourceRef="g_held" targetRef="launch_window"/>
+
+    <bpmn:subProcess id="launch_window" name="launch window (spawn, identify, receipt)" dz:actor="code" dz:zone="HARNESS">
+      <bpmn:startEvent id="w_start" name="w_start"/>
+      <bpmn:sequenceFlow id="w1" sourceRef="w_start" targetRef="t_spawn"/>
+      <bpmn:serviceTask id="t_spawn" name="spawn" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1169" dz:test="tests/test_dispatch_launch.py::test_a_free_slug_spawns_exactly_once_with_n_slug_in_its_argv">
+        <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="spawn" resultVariable="spawn"><spiffworkflow:parameters/></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="w2" sourceRef="t_spawn" targetRef="g_spawn"/>
+      <bpmn:exclusiveGateway id="g_spawn" name="provider started?" default="w_spawn_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1174" dz:test="tests/test_dispatch_launch.py::test_a_spawn_that_failed_leaves_no_intent_receipt_behind"/>
+      <bpmn:sequenceFlow id="w_spawn_yes" name="started" sourceRef="g_spawn" targetRef="t_identify"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">spawn["returncode"] == 0</bpmn:conditionExpression></bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="w_spawn_no" name="exit != 0" sourceRef="g_spawn" targetRef="w_err_spawn"/>
+      <bpmn:endEvent id="w_err_spawn" name="spawn_failed"><bpmn:errorEventDefinition id="ed_spawn" errorRef="err_spawn"/></bpmn:endEvent>
+      <bpmn:serviceTask id="t_identify" name="identify the job" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1204" dz:test="tests/test_dispatch_launch.py::test_a_lane_that_already_finished_is_still_identified_by_its_worktree">
+        <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="identify" resultVariable="identify"><spiffworkflow:parameters><spiffworkflow:parameter id="stdout" type="str" value="spawn['stdout']"/></spiffworkflow:parameters></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="w3" sourceRef="t_identify" targetRef="g_identify"/>
+      <bpmn:exclusiveGateway id="g_identify" name="job identified?" default="w_id_no" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1195" dz:test="tests/test_dispatch_launch.py::test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success"/>
+      <bpmn:sequenceFlow id="w_id_yes" name="identified" sourceRef="g_identify" targetRef="t_receipt"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">bool(identify["job_id"])</bpmn:conditionExpression></bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="w_id_no" name="unresolved" sourceRef="g_identify" targetRef="w_err_unresolved"/>
+      <bpmn:endEvent id="w_err_unresolved" name="unresolved"><bpmn:errorEventDefinition id="ed_unres" errorRef="err_unresolved"/></bpmn:endEvent>
+      <bpmn:serviceTask id="t_receipt" name="launch receipt" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1234" dz:test="tests/test_dispatch_launch.py::test_a_launch_writes_a_receipt_and_a_job_to_lane_record">
+        <bpmn:extensionElements><spiffworkflow:serviceTaskOperator id="receipt" resultVariable="receipt"><spiffworkflow:parameters><spiffworkflow:parameter id="job_id" type="str" value="identify['job_id']"/><spiffworkflow:parameter id="session_id" type="str" value="identify['session_id']"/><spiffworkflow:parameter id="name" type="str" value="identify['name']"/></spiffworkflow:parameters></spiffworkflow:serviceTaskOperator></bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="w4" sourceRef="t_receipt" targetRef="w_end"/>
+      <bpmn:endEvent id="w_end" name="w_end"/>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="f14" sourceRef="launch_window" targetRef="eg_running"/>
+    <bpmn:boundaryEvent id="b_spawn_failed" name="spawn failed" attachedToRef="launch_window"><bpmn:errorEventDefinition id="bd_spawn" errorRef="err_spawn"/></bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="f_b1" sourceRef="b_spawn_failed" targetRef="end_refused"/>
+    <bpmn:boundaryEvent id="b_unresolved" name="no job identified" attachedToRef="launch_window"><bpmn:errorEventDefinition id="bd_unres" errorRef="err_unresolved"/></bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="f_b2" sourceRef="b_unresolved" targetRef="end_unresolved"/>
+
+    <bpmn:eventBasedGateway id="eg_running" name="lane live: P1 watches" dz:actor="seat" dz:zone="BOTH" dz:glue="true" dz:bind="scripts/dispatch.py:3787" dz:test="tests/test_dispatch_launch.py::test_govern_over_a_synthetic_over_cap_transcript_records_and_does_not_stop"/>
+    <bpmn:sequenceFlow id="f15" sourceRef="eg_running" targetRef="c_handback"/>
+    <bpmn:sequenceFlow id="f16" sourceRef="eg_running" targetRef="c_reaped"/>
+    <bpmn:sequenceFlow id="f17" sourceRef="eg_running" targetRef="c_early"/>
+    <bpmn:intermediateCatchEvent id="c_handback" name="lane handback" dz:actor="seat" dz:zone="BOTH"><bpmn:messageEventDefinition id="md1" messageRef="msg_handback"/></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="c_reaped" name="lane reaped" dz:actor="operator" dz:zone="BOTH" dz:glue="true"><bpmn:messageEventDefinition id="md2" messageRef="msg_reaped"/></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="c_early" name="lane ended early" dz:actor="seat" dz:zone="BOTH" dz:glue="true"><bpmn:messageEventDefinition id="md3" messageRef="msg_early"/></bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="f18" sourceRef="c_handback" targetRef="end_launched"/>
+    <bpmn:sequenceFlow id="f19" sourceRef="c_reaped" targetRef="end_reaped"/>
+    <bpmn:sequenceFlow id="f20" sourceRef="c_early" targetRef="end_early"/>
+
+    <bpmn:endEvent id="end_launched" name="END launched" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1201" dz:test="tests/test_dispatch_launch.py::test_a_free_slug_spawns_exactly_once_with_n_slug_in_its_argv"/>
+    <bpmn:endEvent id="end_refused" name="END REFUSED (exit 5)" dz:actor="code" dz:zone="BOTH" dz:bind="scripts/dispatch.py:149" dz:test="tests/test_dispatch_launch.py::test_the_cli_exits_non_zero_with_the_reason_and_spawns_nothing"/>
+    <bpmn:endEvent id="end_already_launched" name="END already-launched [#1572]" dz:actor="code" dz:zone="BOTH" dz:bind="scripts/dispatch.py:1141" dz:test="tests/test_dispatch_launch.py::test_running_launch_twice_on_one_contract_refuses_the_second"/>
+    <bpmn:endEvent id="end_hold" name="END HOLD (re-poll)" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1628" dz:test="tests/test_dispatch_queue.py::test_decide_lane_ram_gate_holds_below_the_floor"/>
+    <bpmn:endEvent id="end_routed_codespace" name="END routed to codespace" dz:actor="code" dz:zone="HARNESS" dz:bind="scripts/dispatch.py:1630" dz:test="tests/test_dispatch_queue.py::test_decide_lane_routes_codespace_before_cap_or_ram_ever_apply"/>
+    <bpmn:endEvent id="end_unresolved" name="END job unresolved (exit 8)" dz:actor="code" dz:zone="BOTH" dz:bind="scripts/dispatch.py:1196" dz:test="tests/test_dispatch_launch.py::test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success"/>
+    <bpmn:endEvent id="end_reaped" name="END reaped (RAM)" dz:actor="operator" dz:zone="BOTH" dz:glue="true"/>
+    <bpmn:endEvent id="end_early" name="END-EARLY" dz:actor="seat" dz:zone="BOTH" dz:glue="true"/>
+  </bpmn:process>
+</bpmn:definitions>
