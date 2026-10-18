@@ -21,6 +21,29 @@
 
 ---
 
+### 2026-10-18 (c) - CC (Opus 5.5, integrator E1): e1-p0-fix merges -- the D5 re-date is reverted, detector consumer-at-landing/v5 clears exactly the 8 consumer_at_landing hard-fails (D4); `[#1347]` stays red with its row
+
+**Anchors:** `afcf5152` (handback tip, branch `worktree-e1-p0-fix`, introduced by this merge), `7353821c` (RED), `df81e8ca` (revert of `1fbac5a7`, the harness.yaml re-date), `66478e51` (agy pin), `4af83b48`, `097881ea`, `2c320567`, `d8aa4dd7` (the D0 P0 commits it started from).
+
+**Did:** merged `--no-ff` on `579053a3`. `ecosystem/harness.yaml` is untouched by the merge (D5: no silent re-date, no RETIRE-CANDIDATE mark). Detector `consumer-at-landing/v5`; the baseline's artifact name list is identical before and after (802 names), only its stamp fields moved. Kept from D0: the `last_reviewed` stamps, JOURNAL (a), the archive-row-body registry re-sign 81 -> 79. Phase chain: RED `7353821c` before `afcf5152`; Codex `gpt-5.6-terra` APPROVE (nonce `NONCE-5d35565f`); isolated verify PASS. Regenerated `ecosystem/doc-counts.md` (11087 -> 11092) on the merged tree. Targeted tests on the merged tree: 261 passed.
+
+**Result:** ship-gate on the merged tree reads 1 hard-fail (`organ_truth`, six past-due `manual_until` fates), down from 9 on the base; their fates are the operator's (`to-browser/DIGEST-E1-FATES-2026-10-19.md`). W1 is therefore 1, not 0. Deviation carried, not repaired: the implement and RED phases were written by claude-sonnet-5-5 although the Grok and Copilot probes passed (R134 roles; no VENDOR-FAIL under R124). The lane ran unclaimed (no transport in the box).
+
+**Changes:** `scripts/consumer_at_landing.py`, `tests/test_consumer_at_landing.py`, `ecosystem/audit-consumer-baseline.json`, `logs/KNOWN-REDS-REGISTRY.json`, `.devcontainer/provisioning.yaml`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`, `JOURNAL.md`; generated `ecosystem/doc-counts.md`.
+
+**Next:** e1-1572-fix, then e1-rows (which carries (b)).
+
+---
+
+### 2026-10-18 (a) - CC (Sonnet 5.5, lane lane-dz-1350-p0-green-main, D0): CORRECTION -- 2026-10-14 carries two entries lettered (b); [#926]
+
+**Correction by addition** (JOURNAL is append-only; neither entry is edited). Two 2026-10-14 entries both carry the letter (b). Read them in this order, top to bottom as they stand in the file, as (b) and (c) -- each one names its block by its full heading line:
+
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot -- main's 25 regressions repaired through isolated stage agents (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part B)` -- keeps (b)
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema` -- is read as (c)
+
+**Why this entry:** the in-body note at the 2026-10-15 merge entry names the collision but is not a CORRECTION-headed entry, so `audit.py::check_journal_day_letters` (the `[#926]` correction-by-addition narrowing) did not count it and reported `2026-10-14 (b)` as an open duplicate on main. **Honest limit:** this clears `journal_day_letters` only until the `[#926]` narrowing expires (2026-11-18); after that the collision counts again and `[#926]` must be re-ruled. The other two resolved collisions the gate lists (2026-09-18 (f), 2026-10-11 (d)) are unchanged.
+
 ### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
 
 **Anchors:** `6f3b77a1` (the bundle; branch `worktree-cut-2026-10-17`, introduced by this merge), `21c9a428` (git_hygiene exempts the running cut branch).
