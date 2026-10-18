@@ -795,3 +795,21 @@ def test_queue_watch_with_the_cap_full_of_launched_lanes_ends_without_waiting(tm
     assert out.exit_code == 0, out.output
     assert fleet.spawned == []
     assert "already-launched lane-a" in out.output and "all clear" in out.output
+
+
+def test_queue_reports_a_lane_whose_launch_lock_is_held_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    """Codex review P1 on [#1572]: a second `queue` run racing the first finds the slug's launch
+    lock held before any receipt or listing entry exists. That is already-launched too, not a halt."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = d.receipts_dir() / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text("pid 1 at 2026-10-18T12:00:00Z\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
