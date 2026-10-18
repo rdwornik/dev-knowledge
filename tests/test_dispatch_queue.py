@@ -768,3 +768,30 @@ def test_queue_watch_never_refires_a_lane_whose_receipt_reads_merged(tmp_path, m
     assert out.exit_code == 0, out.output
     assert fleet.spawned == ["lane-b", "lane-c"]
     assert "all clear" in out.output
+
+
+def test_decide_lane_reports_a_live_lane_as_already_launched_before_the_cap_or_ram_gate():
+    """Codex review P2 on [#1572]: a lane already live holds a slot of the very cap it would be
+    held by, so with the cap full (or RAM low) a re-run said HOLD and `--watch` waited out its
+    deadline for a lane that was running. Liveness decides it before any new-launch gate."""
+    lane = _lane("lane-a")
+    full = d.decide_lane(lane, states={}, live_slugs={"lane-a"}, all_lanes=[lane], local_cap=1,
+                         local_live_count=1, free_mb=10_000, floor_mb=0)
+    low = d.decide_lane(lane, states={}, live_slugs={"lane-a"}, all_lanes=[lane], local_cap=4,
+                        local_live_count=1, free_mb=1, floor_mb=3072)
+    assert full.action == low.action == d.ACTION_ALREADY_LAUNCHED
+
+
+def test_queue_watch_with_the_cap_full_of_launched_lanes_ends_without_waiting(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    fleet.install(monkeypatch)
+    contracts = [_contract(tmp_path, "LANE-a.md", "lane-a")]
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--cap", "1", "--watch", "--deadline-s", "5",
+                                     "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == []
+    assert "already-launched lane-a" in out.output and "all clear" in out.output
