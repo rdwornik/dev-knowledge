@@ -18,7 +18,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 **105 intake documents.**
 
-### SEED (22)
+### SEED (21)
 
 - [#4](2026-07-07-arc5-pilot-followup-seeds.md) — SEED batch — Arc-5 pilot follow-ups (one batched doc per the feed pattern)
 - [#5](2026-07-07-changelog-review-seeds.md) — SEED — changelog-review findings (claude-code 2.1.202)
@@ -41,7 +41,6 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#115](2026-10-15-tech-test-strategy-rows.md) — SEED -- the day/night test system (R119) and tests in the graph (R120) need build rows
 - [#116](2026-10-16-tech-harness-defect-register.md) — SEED -- the harness defects found on 2026-10-14/15 are rows, not report prose
 - [#117](2026-10-16-tech-process-matrix-and-token-baseline.md) — SEED -- every declared process is used in a real run or removed, and the start-up context shrinks
-- [#118](2026-10-18-tech-d0-rows-without-a-ratified-ruling.md) — SEED -- four D0 rows whose only authority was the batch order
 
 ### DRAFT (43)
 
@@ -111,7 +110,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#61](2026-08-28-tech-handoff-engine-deployable-carrier.md) — The handoff engine becomes a deployable, versioned carrier
 - [#66](2026-09-01-tech-observable-harness.md) — The OBSERVABLE HARNESS — four layers, one home each, and the layer that has no home at all
 
-### ACCEPTED (21)
+### ACCEPTED (22)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -134,6 +133,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#65](2026-09-01-tech-consumer-at-landing-identifier-gap.md) — A gate that measures a class of artifact it cannot discharge
 - [#70](2026-09-05-tech-aj-second-pass.md) — Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
 - [#94](2026-09-13-tech-command-files-as-a-wiring-surface.md) — Whether a command file counts as adoption, and what adoption is allowed to mean
+- [#118](2026-10-18-tech-d0-rows-without-a-ratified-ruling.md) — SEED -- four D0 rows whose only authority was the batch order
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is

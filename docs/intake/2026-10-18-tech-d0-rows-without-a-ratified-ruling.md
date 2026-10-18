@@ -1,8 +1,9 @@
 ---
 intake-id: 118
-status: SEED
+status: ACCEPTED
 origin: "lane e1-rows (batch E1, 2026-10-18): the seat's D8 ruling in RATIFICATION-2026-10-18 v2 ('rows with no ratified ruling behind them go to intake'), applied to the D0 rows [#1625]-[#1642]"
-consumed-by:
+decided-by: "R137 (RATIFICATION-2026-10-18 v5, Q5, the operator's plan r4 OK of 2026-10-18; landed in protocols/STANDING_RULINGS.md section AX by lane e2-rulings)"
+disposition: active
 ---
 
 # SEED -- four D0 rows whose only authority was the batch order
@@ -66,6 +67,12 @@ removed in the same change; git history keeps them):
 - Does an operator ruling or an ADR already cover any of the four that this search missed? In particular, is the fourth item (the P0 main-green row) covered by a ruling beyond R98? (Recorded, not answered here.)
 - Should the first item wait for the code queue runner ([#1633]), whose template change touches the same integrator template?
 
+## Ruling (Q5, restored 2026-10-18 by lane e2-rulings)
+
+The operator's line, verbatim: "the plan r4 OK of 2026-10-18 is the ruling for [#1629] [#1637] [#1638] [#1642]"
+
+Source: R137 (Q5), `to-browser/RATIFICATION-2026-10-18.md` v5, Part 2 (operator, 2026-10-18 ~22:30, dictated; condensed); landed in `protocols/STANDING_RULINGS.md` section AX. All four items are ACCEPTED together; the four rows are born again from their carried text above with `decided-by: R137` and no other change.
+
 ## Status
 
-SEED -- awaiting triage and ratification (ADR-111 section 3).
+ACCEPTED (`decided-by: R137`, `disposition: active`) -- the four rows [#1629] [#1637] [#1638] [#1642] are restored as task files; ADR-111 section 3 is discharged by R137.

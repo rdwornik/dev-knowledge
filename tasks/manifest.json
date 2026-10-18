@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "09dd889c1367d4d293e903f19f235ca0d6f49358b0b1b9cf93d4911a93f45b27",
+  "generated_sha256": "4bf556e34954d91e0e2a6678f39964cbc1e1ab48f9b5a8e91c9d8a1f1aa2f95b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3432,6 +3432,10 @@
       "file": "1628-m1-measured-model-and-effort-table-per-r.md"
     },
     {
+      "task": 1629,
+      "file": "1629-main-ship-gate-reads-0-hard-fail-archive.md"
+    },
+    {
       "task": 1630,
       "file": "1630-r101-a-tier-refusal-runs-in-pre-launch.md"
     },
@@ -3460,6 +3464,14 @@
       "file": "1636-r94-stop-hook-cycle-gate-built-or-withdr.md"
     },
     {
+      "task": 1637,
+      "file": "1637-row-close-runs-in-the-integrator-templat.md"
+    },
+    {
+      "task": 1638,
+      "file": "1638-generated-status-md-is-the-one-front-doo.md"
+    },
+    {
       "task": 1639,
       "file": "1639-two-way-completeness-gate-node-to-code-e.md"
     },
@@ -3470,6 +3482,10 @@
     {
       "task": 1641,
       "file": "1641-codespace-parity-c1-c5-re-run-live.md"
+    },
+    {
+      "task": 1642,
+      "file": "1642-queue-does-not-refire-a-merged-lane.md"
     },
     {
       "task": 1643,
