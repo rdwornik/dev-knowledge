@@ -126,7 +126,20 @@ MERGE_RECEIPTS_RELPATH = "logs/MERGE-RECEIPTS.jsonl"
 #: Copilot CLI (Codex limit-refused) lands exactly that name, so on merge it was UNDECLARED
 #: and reddened three tests of this module. Fixed here, per the rule above: the predicate,
 #: re-measured and re-stamped -- no exclusion entry, no audit edit.
-DETECTOR_ID = "consumer-at-landing/v4"
+#:
+#: v4 -> v5 (e1-p0-fix, 2026-10-18, ruling D4): a governance-pool citation became a consumer
+#: declaration on the LANDING leg. Eight audits (the 2026-10-14 `verify-*` digests and the
+#: 2026-10-15 `build1-challenge-m2/m3` ones) are verbatim archive copies of transport files; each
+#: carries no citation of its own, and each is NAMED by `docs/intake/2026-10-16-tech-harness-
+#: defect-register.md`. The consumption leg already counted that as consumed -- they were never
+#: in the baseline's `unconsumed` -- while `undeclared()` read only the artifact's own text, so
+#: the same file was consumed and undeclared at once and hard-FAILed the ship-gate with no route
+#: to clear it. The two legs now agree on what a consumer is: the artifact's own citation, a
+#: merge receipt, or a pool surface that names it by identifier. Fixed here, per the rule above:
+#: the predicate, re-measured and re-stamped -- no exclusion entry, no audit edit. The
+#: `unconsumed` set is unchanged by construction (the route reuses `tokens`), so the baseline's
+#: name list does not move; only the stamp does.
+DETECTOR_ID = "consumer-at-landing/v5"
 
 #: New landings only. The row: *"the 290 historical orphans are exempt by date cutoff."*
 ARM_DATE = _dt.date(2026, 8, 27)
@@ -225,6 +238,9 @@ class Measurement:
     #: artifact -> lane slug, the [#1329] integrator-merge-receipt route. Unlike
     #: `manifest_linked`, this ALSO exempts the artifact from `undeclared()`'s FAIL leg.
     receipt_linked: dict[str, str] = field(default_factory=dict)
+    #: artifacts a governance-pool surface names by identifier (v5). The same evidence the
+    #: `unconsumed` ratchet reads, exposed so `undeclared()` can agree with it.
+    pool_cited: set[str] = field(default_factory=set)
     detector_id: str = DETECTOR_ID
 
 
@@ -464,6 +480,10 @@ def measure(repo_root_path: Path) -> Measurement:
     # three audits hard-FAILing with no route to clear (R42.2/R42.4, DETECTOR_ID v2->v3).
     m.receipt_linked = receipt_linked_identifiers(m.corpus, merge_receipt_slugs(root))
 
+    # THE POOL-CITATION ROUTE (v5). Only a RESOLVED pool contributes: an unreadable pool yields
+    # fewer tokens, so a partial read exempts nothing -- the fail-safe direction for an exemption.
+    m.pool_cited = {n for n in m.corpus if identifiers(n) & tokens} if m.pool_resolved else set()
+
     m.unconsumed = sorted(n for n in m.corpus
                           if not (identifiers(n) & tokens) and n not in m.manifest_linked
                           and n not in m.receipt_linked)
@@ -471,19 +491,22 @@ def measure(repo_root_path: Path) -> Measurement:
 
 
 def undeclared(m: Measurement) -> list[Artifact]:
-    """Artifacts landed on/after `ARM_DATE` that declare no consumer and are not linked by an
-    integrator merge receipt. Leg 1's verdict set.
+    """Artifacts landed on/after `ARM_DATE` that declare no consumer, are not linked by an
+    integrator merge receipt and are named by no governance-pool surface. Leg 1's verdict set.
 
     The receipt-linked exemption is the [#1329] addition: `declares_consumer` reads only the
     artifact's OWN text, by design (LIBRARY-FIRST / IDENTIFIER-KEYED docstring above) -- the
     receipt link is deliberately a second, measurement-level route, not a change to what
-    `Artifact.declares_consumer` means.
+    `Artifact.declares_consumer` means. The v5 pool-citation route is a third, of the same kind:
+    a surface in the governance pool that names the artifact is a consumer by the definition the
+    consumption leg already applies, and the pool's exclusions (`JOURNAL.md`, `ecosystem/`,
+    `docs/audits/` itself, ...) bind here exactly as there.
     """
     out: list[Artifact] = []
     for n in m.corpus:
         a = m.artifacts[n]
         if (a.landed is not None and a.landed >= ARM_DATE and not a.declares_consumer
-                and n not in m.receipt_linked):
+                and n not in m.receipt_linked and n not in m.pool_cited):
             out.append(a)
     return out
 
