@@ -893,6 +893,24 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1616] [P1][M] Start-up context cut 1: `CLAUDE.md` carries only what a session needs before it can act (hooks roster and conventions detail move on demand) · tasks/1616-start-up-context-cut-1-claude-md-carries-only-what-a-session-needs-before-it-can-act-hooks.md
 - [#1617] [P1][S] Start-up context cut 2: the SessionStart hook output is capped at 2 KB · tasks/1617-start-up-context-cut-2-the-sessionstart-hook-output-is-capped-at-2-kb.md
 - [#1618] [P2][S] Start-up context cut 3: the auto-memory index `MEMORY.md` is held to 8 KB and the repo rule `git-discipline.md` to 2 KB · tasks/1618-start-up-context-cut-3-the-auto-memory-index-memory-md-is-held-to-8-kb-and-the-repo-rule-g.md
+- [#1625] [P1][M] AS-IS process model: binding file, generated diagrams, 14-row index · tasks/1625-as-is-process-model-binding-file-generat.md
+- [#1626] [P2][S] B-vs-C spike on P1 dispatch: state machine vs BPMN engine · tasks/1626-b-vs-c-spike-on-p1-dispatch-state-machin.md
+- [#1627] [P2][S] R125 audit: every ruling since 2026-07-01 counted by adoption state · tasks/1627-r125-audit-every-ruling-since-2026-07-01.md
+- [#1628] [P1][M] M1: measured model and effort table per role · tasks/1628-m1-measured-model-and-effort-table-per-r.md
+- [#1629] [P1][S] main ship-gate reads 0 hard-fail; archive-row signature current · tasks/1629-main-ship-gate-reads-0-hard-fail-archive.md
+- [#1630] [P1][S] R101(a) tier refusal runs in pre-launch · tasks/1630-r101-a-tier-refusal-runs-in-pre-launch.md
+- [#1631] [P2][S] Lane distiller default model comes from a role table · tasks/1631-lane-distiller-default-model-comes-from.md
+- [#1632] [P1][L] One Substrate protocol; pre-launch for every substrate · tasks/1632-one-substrate-protocol-pre-launch-for-ev.md
+- [#1633] [P1][S] The queue has one owner in the templates (ADR-alpha) · tasks/1633-the-queue-has-one-owner-in-the-templates.md
+- [#1634] [P2][M] Hub dispatch shim installed; duplicate launchers removed on GO · tasks/1634-hub-dispatch-shim-installed-duplicate-la.md
+- [#1635] [P2][S] MAP-DISPATCH regenerated with the outside-hub entry points · tasks/1635-map-dispatch-regenerated-with-the-outsid.md
+- [#1636] [P2][S] R94 Stop-hook cycle gate built or withdrawn · tasks/1636-r94-stop-hook-cycle-gate-built-or-withdr.md
+- [#1637] [P2][S] row_close runs in the integrator template · tasks/1637-row-close-runs-in-the-integrator-templat.md
+- [#1638] [P2][M] Generated STATUS.md is the one front door · tasks/1638-generated-status-md-is-the-one-front-doo.md
+- [#1639] [P1][M] Two-way completeness gate: node to code, entry point to node · tasks/1639-two-way-completeness-gate-node-to-code-e.md
+- [#1640] [P1][M] gen_handoff carries generated L0, process index, staleness preflight · tasks/1640-gen-handoff-carries-generated-l0-process.md
+- [#1641] [P2][S] Codespace parity C1-C5 re-run live · tasks/1641-codespace-parity-c1-c5-re-run-live.md
+- [#1642] [P1][S] queue does not refire a MERGED lane · tasks/1642-queue-does-not-refire-a-merged-lane.md
 
 ---
 

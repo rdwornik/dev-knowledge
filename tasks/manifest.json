@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "96a578f5f1fbc285ed08885bf4b10da8b8a85a19da111c0dc8cc6a4a65b45acd",
+  "generated_sha256": "e555c148cad9e8aa26d5266e114ff40e2b4f22fe6b3c8f9af6e20aa360fc2195",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3414,6 +3414,78 @@
     {
       "task": 1618,
       "file": "1618-start-up-context-cut-3-the-auto-memory-index-memory-md-is-held-to-8-kb-and-the-repo-rule-g.md"
+    },
+    {
+      "task": 1625,
+      "file": "1625-as-is-process-model-binding-file-generat.md"
+    },
+    {
+      "task": 1626,
+      "file": "1626-b-vs-c-spike-on-p1-dispatch-state-machin.md"
+    },
+    {
+      "task": 1627,
+      "file": "1627-r125-audit-every-ruling-since-2026-07-01.md"
+    },
+    {
+      "task": 1628,
+      "file": "1628-m1-measured-model-and-effort-table-per-r.md"
+    },
+    {
+      "task": 1629,
+      "file": "1629-main-ship-gate-reads-0-hard-fail-archive.md"
+    },
+    {
+      "task": 1630,
+      "file": "1630-r101-a-tier-refusal-runs-in-pre-launch.md"
+    },
+    {
+      "task": 1631,
+      "file": "1631-lane-distiller-default-model-comes-from.md"
+    },
+    {
+      "task": 1632,
+      "file": "1632-one-substrate-protocol-pre-launch-for-ev.md"
+    },
+    {
+      "task": 1633,
+      "file": "1633-the-queue-has-one-owner-in-the-templates.md"
+    },
+    {
+      "task": 1634,
+      "file": "1634-hub-dispatch-shim-installed-duplicate-la.md"
+    },
+    {
+      "task": 1635,
+      "file": "1635-map-dispatch-regenerated-with-the-outsid.md"
+    },
+    {
+      "task": 1636,
+      "file": "1636-r94-stop-hook-cycle-gate-built-or-withdr.md"
+    },
+    {
+      "task": 1637,
+      "file": "1637-row-close-runs-in-the-integrator-templat.md"
+    },
+    {
+      "task": 1638,
+      "file": "1638-generated-status-md-is-the-one-front-doo.md"
+    },
+    {
+      "task": 1639,
+      "file": "1639-two-way-completeness-gate-node-to-code-e.md"
+    },
+    {
+      "task": 1640,
+      "file": "1640-gen-handoff-carries-generated-l0-process.md"
+    },
+    {
+      "task": 1641,
+      "file": "1641-codespace-parity-c1-c5-re-run-live.md"
+    },
+    {
+      "task": 1642,
+      "file": "1642-queue-does-not-refire-a-merged-lane.md"
     },
     {
       "prose": ""
