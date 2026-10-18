@@ -102,6 +102,59 @@ def test_a_no_consumer_line_with_no_reason_is_not_a_declaration(tree):
     assert [a.name for a in cal.undeclared(cal.measure(tree))] == ["2026-09-01-technical-x.md"]
 
 
+def test_an_archive_copy_named_by_an_intake_declares_its_consumer_there(tree):
+    """`consumer-at-landing/v5` (e1-p0-fix, D4): the shape of the eight 2026-10-14/15 archive
+    copies of transport digests. Each carries no citation of its own (the copy is verbatim, its
+    provenance header names an AMEND file, not a repo surface), but a governance-pool surface --
+    `docs/intake/2026-10-16-tech-harness-defect-register.md` -- NAMES it. The consumption leg
+    already counts that as consumed; the landing leg read only the artifact's own text, so the
+    same artifact was consumed and undeclared at once. A pool citation is a declared consumer."""
+    name = "2026-10-14-technical-verify-ci.md"
+    _audit(tree, name, "# Archive copy of transport file DIGEST-VERIFY-ci-2026-10-14.md\n\n"
+                       "> Provenance: verbatim copy, archived by the night close-out.\n")
+    _pool(tree, "docs/intake/2026-10-16-tech-harness-defect-register.md",
+          f"Evidence: docs/audits/{name}\n")
+    m = cal.measure(tree)
+    assert m.unconsumed == []
+    assert cal.undeclared(m) == []
+    assert cal.ratchet_findings(m, None)[0][0] == "warn"  # inert ratchet only: no FAIL
+
+
+def test_the_same_archive_copy_named_by_nothing_stays_undeclared(tree):
+    """The negative of the above -- the v5 route is the pool's citation, not the archive-copy
+    SHAPE: an identical artifact no governance surface names is still a landing with no
+    consumer."""
+    name = "2026-10-14-technical-verify-ci.md"
+    _audit(tree, name, "# Archive copy of transport file DIGEST-VERIFY-ci-2026-10-14.md\n")
+    m = cal.measure(tree)
+    assert [a.name for a in cal.undeclared(m)] == [name]
+    assert m.unconsumed == [name]
+
+
+def test_a_mention_in_an_excluded_surface_does_not_declare_a_consumer(tree):
+    """The route inherits the pool's exclusions rather than widening them: a session log or a
+    machine baseline records that the file existed, not that anything consumes it."""
+    name = "2026-10-14-technical-verify-ci.md"
+    _audit(tree, name)
+    _pool(tree, "JOURNAL.md", f"docs/audits/{name}\n")
+    _pool(tree, "ecosystem/audit-funnel-baseline.json", f'{{"artifacts": ["{name}"]}}\n')
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [name]
+
+
+def test_a_pool_citation_of_a_longer_name_does_not_declare_a_shorter_artifact(tree):
+    """Identifier-keyed with the both-sided boundary (`_AUDIT_NAME_RE`): a citation of
+    `...-verify-ci-extra.md` must not bind to `...-verify-ci.md`."""
+    _audit(tree, "2026-10-14-technical-verify-ci.md")
+    _pool(tree, "docs/intake/1-x.md", "docs/audits/2026-10-14-technical-verify-ci-extra.md\n")
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-10-14-technical-verify-ci.md"]
+
+
+def test_the_detector_id_is_v5(tree):
+    assert cal.DETECTOR_ID == "consumer-at-landing/v5"
+    assert cal.measure(tree).detector_id == "consumer-at-landing/v5"
+
+
 def test_artifacts_before_the_cutoff_are_grandfathered(tree):
     """The 290 historical orphans are exempt by date — new landings only."""
     _audit(tree, "2026-08-01-technical-old.md", "Names nothing.\n")
