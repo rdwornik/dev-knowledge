@@ -21,9 +21,16 @@ discipline `test_dispatch_launch.py` already applies to `launch_lane`.
 """
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
+import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import psutil
 import pytest
 from click.testing import CliRunner
 
@@ -661,3 +668,470 @@ def test_queue_cli_passes_repo_root_to_the_local_launch(tmp_path, monkeypatch):
                                      "--floor-mb", "0"])
     assert out.exit_code == 0, out.output
     assert calls == [other_root]
+
+
+# --- [#1572]: a re-run of `queue` is idempotent ---------------------------------------------------
+
+class _Fleet:
+    """A fake `claude agents` listing plus a fake spawn that adds a live record per launched slug,
+    so a three-lane `queue` run exercises the real `launch_lane` collision check end to end."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        self.root = tmp_path / "repo"
+        self.root.mkdir()
+        self.records: list[dict] = []
+        self.spawned: list[str] = []
+
+    def add_live(self, slug: str, job: str) -> None:
+        self.records.append({"id": job, "sessionId": f"sid-{job}", "name": slug, "state": "working",
+                             "status": "busy",
+                             "cwd": str(self.root / ".claude" / "worktrees" / slug)})
+
+    def agents(self) -> list[dict]:
+        return list(self.records)
+
+    def spawn(self, argv, env, cwd, log_path=None):
+        slug = argv[argv.index("-n") + 1]
+        job = f"{len(self.spawned) + 1:08x}"
+        self.spawned.append(slug)
+        self.add_live(slug, job)
+        return d.Spawned(returncode=0, stdout=f"backgrounded {job}\n", pid=4000 + len(self.spawned))
+
+    def install(self, monkeypatch) -> None:
+        monkeypatch.setattr(d, "run_prelaunch", lambda request: d.PreLaunch(passed=True))
+        monkeypatch.setattr(d, "spawn_process", self.spawn)
+        monkeypatch.setattr(d, "list_agents", self.agents)
+
+
+def _three_contracts(tmp_path: Path) -> list[Path]:
+    return [_contract(tmp_path, f"LANE-{n}.md", f"lane-{n}") for n in ("a", "b", "c")]
+
+
+def test_queue_reports_an_already_launched_lane_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    """[#1572] RED first: lane-a is already launched (a live job and its launch receipt). One
+    re-run of `queue` used to exit 5 at lane-a and never reach lane-b or lane-c."""
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    d._write_json(d._receipt_path("lane-a"), {
+        "schema": 1, "organ": "launch", "launched_at": d._stamp(), "exit_code": 0,
+        "job_id": "aaaa1111", "slug": "lane-a", "provider": "claude"})
+    fleet.install(monkeypatch)
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
+
+
+def test_queue_watch_reports_an_already_launched_lane_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    d._write_json(d._receipt_path("lane-a"), {
+        "schema": 1, "organ": "launch", "launched_at": d._stamp(), "exit_code": 0,
+        "job_id": "aaaa1111", "slug": "lane-a", "provider": "claude"})
+    fleet.install(monkeypatch)
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--watch", "--deadline-s", "5",
+                                     "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
+
+
+def test_queue_never_refires_a_lane_whose_receipt_reads_merged(tmp_path, monkeypatch, receipts):
+    """[#1572] sibling: the integrator's `STATE lane-a MERGED ...` line is the lane's end. A lane
+    that finished (no live job, so `launch_lane` sees nothing holding it) was fired again."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    state = tmp_path / "SESSION-integrator-x.md"
+    state.write_text("STATE lane-a MERGED abc1234 2026-10-18T10:00 5\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--state-file", str(state)])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "lane-a" in out.output and "MERGED" in out.output
+
+
+def test_queue_watch_never_refires_a_lane_whose_receipt_reads_merged(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    state = tmp_path / "SESSION-integrator-x.md"
+    state.write_text("STATE lane-a MERGED abc1234 2026-10-18T10:00 5\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--state-file", str(state), "--watch",
+                                     "--deadline-s", "5", "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "all clear" in out.output
+
+
+def test_decide_lane_reports_a_live_lane_as_already_launched_before_the_cap_or_ram_gate():
+    """Codex review P2 on [#1572]: a lane already live holds a slot of the very cap it would be
+    held by, so with the cap full (or RAM low) a re-run said HOLD and `--watch` waited out its
+    deadline for a lane that was running. Liveness decides it before any new-launch gate."""
+    lane = _lane("lane-a")
+    full = d.decide_lane(lane, states={}, live_slugs={"lane-a"}, all_lanes=[lane], local_cap=1,
+                         local_live_count=1, free_mb=10_000, floor_mb=0)
+    low = d.decide_lane(lane, states={}, live_slugs={"lane-a"}, all_lanes=[lane], local_cap=4,
+                        local_live_count=1, free_mb=1, floor_mb=3072)
+    assert full.action == low.action == d.ACTION_ALREADY_LAUNCHED
+
+
+def test_queue_watch_with_the_cap_full_of_launched_lanes_ends_without_waiting(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    fleet.install(monkeypatch)
+    contracts = [_contract(tmp_path, "LANE-a.md", "lane-a")]
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--cap", "1", "--watch", "--deadline-s", "5",
+                                     "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == []
+    assert "already-launched lane-a" in out.output and "all clear" in out.output
+
+
+def test_queue_reports_a_lane_whose_launch_lock_is_held_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    """Codex review P1 on [#1572]: a second `queue` run racing the first finds the slug's launch
+    lock held before any receipt or listing entry exists. That is already-launched too, not a halt."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = d.receipts_dir() / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+
+
+# --- [#1572] D6: a held launch lock is judged by its holder --------------------------------------
+
+_UNPARSEABLE_LOCKS = [
+    ("empty", ""),
+    ("garbage", "garbage"),
+    ("missing-stamp-pid-1", "pid 1"),
+    ("non-numeric-pid", "pid abc at x"),
+    ("zero-pid", "pid 0 at 2026-10-18T12:00:00+00:00"),
+    ("negative-pid", "pid -5 at 2026-10-18T12:00:00+00:00"),
+    ("missing-stamp-current-pid", f"pid {os.getpid()}"),
+]
+
+
+def _dead_holder_pid() -> int:
+    process = subprocess.Popen([sys.executable, "-c", "pass"])
+    process.wait()
+    return process.pid
+
+
+def test_queue_reclaims_a_dead_holder_lock_and_fires_every_lane(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(a): a lock held by a dead process is journaled, removed, and relaunched."""
+    dead_pid = _dead_holder_pid()
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    stamp = d._stamp()
+    lock.write_text(f"pid {dead_pid} at {stamp}\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-a", "lane-b", "lane-c"]
+    assert "already-launched lane-a" not in out.output
+    reclaim = receipts / "LAUNCH-RECLAIM-LANE-A.jsonl"
+    lines = reclaim.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert set(record) == {"event", "slug", "lock", "dead_pid", "at"}
+    assert record["event"] == "lock-reclaimed"
+    assert record["slug"] == "lane-a"
+    assert record["lock"] == str(lock)
+    assert record["dead_pid"] == dead_pid
+    assert datetime.fromisoformat(record["at"]) >= datetime.fromisoformat(stamp)   # when it was reclaimed
+    assert not lock.exists()
+
+
+def test_queue_reclaims_a_recycled_pid_lock_and_fires_every_lane(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(a2): a live pid whose start postdates the lock stamp is treated as recycled."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {os.getpid()} at 1970-01-02T00:00:00+00:00\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-a", "lane-b", "lane-c"]
+    assert "already-launched lane-a" not in out.output
+    reclaim = receipts / "LAUNCH-RECLAIM-LANE-A.jsonl"
+    lines = reclaim.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert set(record) == {"event", "slug", "lock", "dead_pid", "at"}
+    assert record["event"] == "lock-reclaimed"
+    assert record["slug"] == "lane-a"
+    assert record["lock"] == str(lock)
+    assert record["dead_pid"] == os.getpid()
+    assert datetime.fromisoformat(record["at"]).year >= 2026   # when it was reclaimed, not the lock's stamp
+    assert not lock.exists()
+
+
+def test_live_holder_lock_stays_already_launched_for_queue_and_direct_launch(tmp_path, monkeypatch,
+                                                                             receipts):
+    """[#1572] D6(b): a live holder remains protected and is never recorded as reclaimed."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert "already-launched lane-a" in out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    with pytest.raises(d.AlreadyLaunched) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("live lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert "in progress" in refused.value.message
+
+
+@pytest.mark.parametrize(("case", "contents"), _UNPARSEABLE_LOCKS,
+                         ids=[case for case, _ in _UNPARSEABLE_LOCKS])
+def test_unparseable_lock_refuses_queue_and_direct_launch(tmp_path, monkeypatch, receipts, case,
+                                                          contents):
+    """[#1572] D6(c): malformed lock contents fail closed without changing or reclaiming the lock."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code != 0, out.output
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == []
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("unparseable lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert not isinstance(refused.value, d.AlreadyLaunched)
+    assert "in progress" in refused.value.message
+
+
+def test_undeterminable_lock_holder_refuses_queue_and_direct_launch(tmp_path, monkeypatch, receipts):
+    """[#1572] D6(c): inability to check a well-formed holder's liveness fails closed."""
+    def boom(pid):
+        raise psutil.Error("boom")
+
+    monkeypatch.setattr("psutil.Process", boom)
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code != 0, out.output
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == []
+    assert lock.exists()
+    assert lock.read_text(encoding="utf-8") == contents
+    assert not (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(d.request_from_contract(contracts[0]), prelaunch=lambda request: d.PreLaunch(
+            passed=True), spawn=lambda *args: pytest.fail("undeterminable lock must not spawn"),
+                     agents=lambda: [], cwd=fleet.root)
+    assert not isinstance(refused.value, d.AlreadyLaunched)
+    assert "in progress" in refused.value.message
+
+
+@pytest.mark.parametrize(
+    ("case", "malformed_contents"),
+    [("dead", None), ("recycled", None),
+     *((f"unparseable-{case}", contents) for case, contents in _UNPARSEABLE_LOCKS),
+     ("undeterminable", None)],
+    ids=["dead", "recycled", *(f"unparseable-{case}" for case, _ in _UNPARSEABLE_LOCKS),
+         "undeterminable"],
+)
+def test_no_stale_lock_path_exits_zero_without_a_launch_and_a_reclaim_line(
+        tmp_path, monkeypatch, receipts, case, malformed_contents):
+    """[#1572] D6(d): any stale or indeterminate lock either launches after reclaim or fails closed."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    if case == "dead":
+        contents = f"pid {_dead_holder_pid()} at {d._stamp()}\n"
+    elif case == "recycled":
+        contents = f"pid {os.getpid()} at 1970-01-02T00:00:00+00:00\n"
+    elif case == "undeterminable":
+        def boom(pid):
+            raise psutil.Error("boom")
+
+        monkeypatch.setattr("psutil.Process", boom)
+        contents = f"pid {os.getpid()} at {d._stamp()}\n"
+    else:
+        contents = malformed_contents
+    lock.write_text(contents, encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    if out.exit_code == 0:
+        assert "lane-a" in fleet.spawned
+        assert (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").exists()
+    assert "already-launched lane-a" not in out.output
+
+
+def test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once(tmp_path, receipts):
+    """[#1572] D6(e): concurrent attempts serialize dead-lock reclamation and exactly one spawn."""
+    contract = _contract(tmp_path, "LANE-a.md", "lane-a")
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {_dead_holder_pid()} at {d._stamp()}\n", encoding="utf-8")
+    request = d.request_from_contract(contract)
+    start = threading.Barrier(2)
+    release_spawn = threading.Event()
+    already_finished = threading.Event()
+    spawned = []
+    results = []
+    refused = []
+    unexpected = []
+
+    def spawn(*args):
+        spawned.append(args)
+        if not release_spawn.wait(10):
+            raise TimeoutError("test did not release the blocked spawn")
+        return d.Spawned(returncode=0, stdout="backgrounded abcdef12\n", pid=os.getpid())
+
+    def launch():
+        start.wait(timeout=10)
+        try:
+            results.append(d.launch_lane(request, prelaunch=lambda req: d.PreLaunch(passed=True),
+                                         spawn=spawn, agents=lambda: [], cwd=tmp_path,
+                                         sleep=lambda seconds: None))
+        except d.AlreadyLaunched as exc:
+            refused.append(exc)
+            already_finished.set()
+        except Exception as exc:
+            unexpected.append(exc)
+
+    threads = [threading.Thread(target=launch) for _ in range(2)]
+    try:
+        for thread in threads:
+            thread.start()
+        assert already_finished.wait(10), "the competing launch did not refuse while spawn was blocked"
+    finally:
+        release_spawn.set()
+        for thread in threads:
+            if thread.ident is not None:
+                thread.join(timeout=10)
+
+    assert all(not thread.is_alive() for thread in threads), "launch thread hung"
+    assert not unexpected
+    assert len(spawned) == 1
+    assert len(refused) == 1
+    assert len(results) == 1
+    reclaim_lines = (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").read_text(
+        encoding="utf-8").splitlines()
+    assert len(reclaim_lines) == 1
+
+
+def test_a_lock_removed_between_the_create_and_the_read_is_gone_not_unreadable(receipts):
+    """[#1572] D6: a holder that finishes between our failed create and our read leaves nothing to
+    judge -- the launcher tries the create again, it does not refuse."""
+    verdict, pid, _why = d._judge_lock(receipts / "LAUNCH-LOCK-LANE-A")
+    assert verdict == "GONE" and pid is None
+
+
+def test_a_holder_whose_start_time_is_denied_refuses_rather_than_reading_as_alive(tmp_path, monkeypatch, receipts):
+    """[#1572] Codex terra review P1: a pid that exists but whose start time cannot be read might be a
+    recycled pid -- it cannot be told from the holder, so the lock is refused (not AlreadyLaunched,
+    which `queue` would report with exit 0)."""
+    class Denied:
+        def __init__(self, pid):
+            pass
+
+        def create_time(self):
+            raise psutil.AccessDenied()
+
+    monkeypatch.setattr("psutil.Process", Denied)
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {os.getpid()} at {d._stamp()}\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == [] and lock.exists()
+    assert "already-launched lane-a" not in out.output
+
+
+def test_a_stamp_the_platform_cannot_convert_is_unreadable_not_a_crash(receipts, monkeypatch):
+    """[#1572] Codex terra review P2: `fromisoformat` accepts dates `.timestamp()` cannot convert on some
+    platforms; that is an unreadable lock (a refusal), never an uncaught OverflowError."""
+    class Unconvertible:
+        tzinfo = object()
+
+        def timestamp(self):
+            raise OverflowError("year out of range")
+
+    class FakeDatetime:
+        @staticmethod
+        def fromisoformat(text):
+            return Unconvertible()
+
+    monkeypatch.setattr(d, "datetime", FakeDatetime)
+    assert d._lock_stamp_epoch("9999-12-31T23:59:59+00:00") is None

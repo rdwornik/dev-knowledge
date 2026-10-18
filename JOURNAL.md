@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-18 (d) - CC (Opus 5.5, integrator E1): e1-1572-fix merges, stacked on (c) -- a held launch lock is judged by its holder: dead reclaimed with a recorded line, live refuses, unreadable or undeterminable refuses (D6) [#1572]
+
+**Anchors:** `1798a6a2` (handback tip, branch `worktree-e1-1572-fix`, introduced by this merge), `98c8752a` (fix), `d075c519` (RED), `d5705d20` (agy pin; same blob as the p0 lane's `66478e51`), and the D0 commits it started from (`9eb33856`, `4fdfb299`, `56c1ddbd`, `410f9f29`, `c15db3e4`, `edaa0a66`, `d8aa4dd7`).
+
+**Did:** merged `--no-ff` on top of the e1-p0-fix merge in one integration branch (R37 cut 3: both handed back together; their only shared file, `.devcontainer/provisioning.yaml`, is the identical blob `c8bf9113` on both). `scripts/dispatch.py` `_judge_lock` / `_holder_liveness` (psutil + filelock, both already declared): a dead holder (pid gone, or a pid started > 120 s after the stamp) is reclaimed after one line in `LAUNCH-RECLAIM-<SLUG>.jsonl`; a live holder stays `AlreadyLaunched`; an unreadable lock or undeterminable liveness is `LaunchRefused` (queue exit 5). Phase chain: RED `d075c519` (21 failing) before `98c8752a`; Grok 4.7 implemented, Copilot gpt-6-luna wrote the RED tests (R134 roles held); Codex `gpt-5.6-terra` REQUEST-CHANGES then APPROVE (nonces `d64c11d73ddb5759`, `c88b55195ebd1f4e`), fixed in `1798a6a2`; isolated verify INTENT-MET. Regenerated `ecosystem/doc-counts.md` (11092 -> 11124). Targeted tests on the stacked tree: 211 passed; ruff clean.
+
+**Result:** pending CI on the integration branch. Residual accepted by the lane and carried: a pid recycled within 120 s of the stamp reads ALIVE, so that narrow case still reports already-launched. OCCUPIED stays out of scope as a CANDIDATE (it lives at `scripts/worktree_occupancy.py:243`, not the contract's `dispatch.py:1155-1156`).
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_queue.py`, `JOURNAL.md`; generated `ecosystem/doc-counts.md`.
+
+**Next:** e1-rows (carries (b)).
+
+---
+
 ### 2026-10-18 (c) - CC (Opus 5.5, integrator E1): e1-p0-fix merges -- the D5 re-date is reverted, detector consumer-at-landing/v5 clears exactly the 8 consumer_at_landing hard-fails (D4); `[#1347]` stays red with its row
 
 **Anchors:** `afcf5152` (handback tip, branch `worktree-e1-p0-fix`, introduced by this merge), `7353821c` (RED), `df81e8ca` (revert of `1fbac5a7`, the harness.yaml re-date), `66478e51` (agy pin), `4af83b48`, `097881ea`, `2c320567`, `d8aa4dd7` (the D0 P0 commits it started from).
