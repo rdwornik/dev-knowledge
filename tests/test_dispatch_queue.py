@@ -661,3 +661,110 @@ def test_queue_cli_passes_repo_root_to_the_local_launch(tmp_path, monkeypatch):
                                      "--floor-mb", "0"])
     assert out.exit_code == 0, out.output
     assert calls == [other_root]
+
+
+# --- [#1572]: a re-run of `queue` is idempotent ---------------------------------------------------
+
+class _Fleet:
+    """A fake `claude agents` listing plus a fake spawn that adds a live record per launched slug,
+    so a three-lane `queue` run exercises the real `launch_lane` collision check end to end."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        self.root = tmp_path / "repo"
+        self.root.mkdir()
+        self.records: list[dict] = []
+        self.spawned: list[str] = []
+
+    def add_live(self, slug: str, job: str) -> None:
+        self.records.append({"id": job, "sessionId": f"sid-{job}", "name": slug, "state": "working",
+                             "status": "busy",
+                             "cwd": str(self.root / ".claude" / "worktrees" / slug)})
+
+    def agents(self) -> list[dict]:
+        return list(self.records)
+
+    def spawn(self, argv, env, cwd, log_path=None):
+        slug = argv[argv.index("-n") + 1]
+        job = f"{len(self.spawned) + 1:08x}"
+        self.spawned.append(slug)
+        self.add_live(slug, job)
+        return d.Spawned(returncode=0, stdout=f"backgrounded {job}\n", pid=4000 + len(self.spawned))
+
+    def install(self, monkeypatch) -> None:
+        monkeypatch.setattr(d, "run_prelaunch", lambda request: d.PreLaunch(passed=True))
+        monkeypatch.setattr(d, "spawn_process", self.spawn)
+        monkeypatch.setattr(d, "list_agents", self.agents)
+
+
+def _three_contracts(tmp_path: Path) -> list[Path]:
+    return [_contract(tmp_path, f"LANE-{n}.md", f"lane-{n}") for n in ("a", "b", "c")]
+
+
+def test_queue_reports_an_already_launched_lane_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    """[#1572] RED first: lane-a is already launched (a live job and its launch receipt). One
+    re-run of `queue` used to exit 5 at lane-a and never reach lane-b or lane-c."""
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    d._write_json(d._receipt_path("lane-a"), {
+        "schema": 1, "organ": "launch", "launched_at": d._stamp(), "exit_code": 0,
+        "job_id": "aaaa1111", "slug": "lane-a", "provider": "claude"})
+    fleet.install(monkeypatch)
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
+
+
+def test_queue_watch_reports_an_already_launched_lane_and_fires_the_rest(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.add_live("lane-a", "aaaa1111")
+    d._write_json(d._receipt_path("lane-a"), {
+        "schema": 1, "organ": "launch", "launched_at": d._stamp(), "exit_code": 0,
+        "job_id": "aaaa1111", "slug": "lane-a", "provider": "claude"})
+    fleet.install(monkeypatch)
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--watch", "--deadline-s", "5",
+                                     "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "already-launched lane-a" in out.output
+
+
+def test_queue_never_refires_a_lane_whose_receipt_reads_merged(tmp_path, monkeypatch, receipts):
+    """[#1572] sibling: the integrator's `STATE lane-a MERGED ...` line is the lane's end. A lane
+    that finished (no live job, so `launch_lane` sees nothing holding it) was fired again."""
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    state = tmp_path / "SESSION-integrator-x.md"
+    state.write_text("STATE lane-a MERGED abc1234 2026-10-18T10:00 5\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--state-file", str(state)])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "lane-a" in out.output and "MERGED" in out.output
+
+
+def test_queue_watch_never_refires_a_lane_whose_receipt_reads_merged(tmp_path, monkeypatch, receipts):
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    state = tmp_path / "SESSION-integrator-x.md"
+    state.write_text("STATE lane-a MERGED abc1234 2026-10-18T10:00 5\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0", "--state-file", str(state), "--watch",
+                                     "--deadline-s", "5", "--poll-interval", "0.01"])
+
+    assert out.exit_code == 0, out.output
+    assert fleet.spawned == ["lane-b", "lane-c"]
+    assert "all clear" in out.output
