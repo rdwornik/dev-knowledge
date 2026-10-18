@@ -1090,3 +1090,48 @@ def test_a_lock_removed_between_the_create_and_the_read_is_gone_not_unreadable(r
     judge -- the launcher tries the create again, it does not refuse."""
     verdict, pid, _why = d._judge_lock(receipts / "LAUNCH-LOCK-LANE-A")
     assert verdict == "GONE" and pid is None
+
+
+def test_a_holder_whose_start_time_is_denied_refuses_rather_than_reading_as_alive(tmp_path, monkeypatch, receipts):
+    """[#1572] Codex terra review P1: a pid that exists but whose start time cannot be read might be a
+    recycled pid -- it cannot be told from the holder, so the lock is refused (not AlreadyLaunched,
+    which `queue` would report with exit 0)."""
+    class Denied:
+        def __init__(self, pid):
+            pass
+
+        def create_time(self):
+            raise psutil.AccessDenied()
+
+    monkeypatch.setattr("psutil.Process", Denied)
+    fleet = _Fleet(tmp_path)
+    fleet.install(monkeypatch)
+    lock = receipts / "LAUNCH-LOCK-LANE-A"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pid {os.getpid()} at {d._stamp()}\n", encoding="utf-8")
+    contracts = _three_contracts(tmp_path)
+
+    out = CliRunner().invoke(d.cli, ["queue", *map(str, contracts), "--repo-root", str(fleet.root),
+                                     "--floor-mb", "0"])
+
+    assert out.exit_code == 5, out.output
+    assert fleet.spawned == [] and lock.exists()
+    assert "already-launched lane-a" not in out.output
+
+
+def test_a_stamp_the_platform_cannot_convert_is_unreadable_not_a_crash(receipts, monkeypatch):
+    """[#1572] Codex terra review P2: `fromisoformat` accepts dates `.timestamp()` cannot convert on some
+    platforms; that is an unreadable lock (a refusal), never an uncaught OverflowError."""
+    class Unconvertible:
+        tzinfo = object()
+
+        def timestamp(self):
+            raise OverflowError("year out of range")
+
+    class FakeDatetime:
+        @staticmethod
+        def fromisoformat(text):
+            return Unconvertible()
+
+    monkeypatch.setattr(d, "datetime", FakeDatetime)
+    assert d._lock_stamp_epoch("9999-12-31T23:59:59+00:00") is None

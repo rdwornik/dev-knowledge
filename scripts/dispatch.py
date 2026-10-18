@@ -1078,7 +1078,10 @@ def _lock_stamp_epoch(text: str) -> Optional[float]:
         return None
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
-    return stamp.timestamp()
+    try:
+        return stamp.timestamp()
+    except (OverflowError, OSError, ValueError):   # a date the platform cannot convert (Windows)
+        return None
 
 
 def _holder_liveness(pid: int, stamp_epoch: float) -> tuple[str, str]:
@@ -1093,8 +1096,8 @@ def _holder_liveness(pid: int, stamp_epoch: float) -> tuple[str, str]:
         return "UNDETERMINABLE", f"pid {pid} could not be looked up ({type(exc).__name__}: {exc})"
     try:
         started = holder.create_time()
-    except psutil.AccessDenied:
-        return "ALIVE", f"pid {pid} exists; its start time could not be read"
+    except psutil.AccessDenied:   # exists, but a recycled pid cannot be told from the holder
+        return "UNDETERMINABLE", f"pid {pid} exists; its start time could not be read (access denied)"
     except psutil.Error as exc:
         return "UNDETERMINABLE", f"pid {pid} start time could not be read ({type(exc).__name__}: {exc})"
     except OSError as exc:
