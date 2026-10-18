@@ -21,7 +21,7 @@
 
 ---
 
-### 2026-10-18 (c) - CC (Sonnet 5.5, lane e1-rows, batch E1): R116-R136 land in STANDING_RULINGS, the 18 D0 rows get a ratifying act (RETRO-RATIFICATION), seven owed rows filed
+### 2026-10-18 (e) - CC (Sonnet 5.5, lane e1-rows, batch E1): R116-R136 land in STANDING_RULINGS, the 18 D0 rows get a ratifying act (RETRO-RATIFICATION), seven owed rows filed
 
 **Anchors:** `6ab3f5b6` (sections AV and AW), `ddcad6f8` (decided-by, the `[#1633]` rewrite, rows `[#1643]`-`[#1649]`, intake 118), `152f953b` (the rulings_carried repair); branch `worktree-d0-rows`, introduced by this merge. This letter follows `(b)` of this branch; the P0 branch carries `(a)`.
 
@@ -39,6 +39,34 @@
 
 **Next:** the integrator lands this branch after the two code lanes and regenerates the generated surfaces on the merged tree; the operator rules intake 118; the seat decides whether `[#1626]` still needs its spike now that R131 ruled ADR-beta = B.
 
+### 2026-10-18 (d) - CC (Opus 5.5, integrator E1): e1-1572-fix merges, stacked on (c) -- a held launch lock is judged by its holder: dead reclaimed with a recorded line, live refuses, unreadable or undeterminable refuses (D6) [#1572]
+
+**Anchors:** `1798a6a2` (handback tip, branch `worktree-e1-1572-fix`, introduced by this merge), `98c8752a` (fix), `d075c519` (RED), `d5705d20` (agy pin; same blob as the p0 lane's `66478e51`), and the D0 commits it started from (`9eb33856`, `4fdfb299`, `56c1ddbd`, `410f9f29`, `c15db3e4`, `edaa0a66`, `d8aa4dd7`).
+
+**Did:** merged `--no-ff` on top of the e1-p0-fix merge in one integration branch (R37 cut 3: both handed back together; their only shared file, `.devcontainer/provisioning.yaml`, is the identical blob `c8bf9113` on both). `scripts/dispatch.py` `_judge_lock` / `_holder_liveness` (psutil + filelock, both already declared): a dead holder (pid gone, or a pid started > 120 s after the stamp) is reclaimed after one line in `LAUNCH-RECLAIM-<SLUG>.jsonl`; a live holder stays `AlreadyLaunched`; an unreadable lock or undeterminable liveness is `LaunchRefused` (queue exit 5). Phase chain: RED `d075c519` (21 failing) before `98c8752a`; Grok 4.7 implemented, Copilot gpt-6-luna wrote the RED tests (R134 roles held); Codex `gpt-5.6-terra` REQUEST-CHANGES then APPROVE (nonces `d64c11d73ddb5759`, `c88b55195ebd1f4e`), fixed in `1798a6a2`; isolated verify INTENT-MET. Regenerated `ecosystem/doc-counts.md` (11092 -> 11124). Targeted tests on the stacked tree: 211 passed; ruff clean.
+
+**Result:** pending CI on the integration branch. Residual accepted by the lane and carried: a pid recycled within 120 s of the stamp reads ALIVE, so that narrow case still reports already-launched. OCCUPIED stays out of scope as a CANDIDATE (it lives at `scripts/worktree_occupancy.py:243`, not the contract's `dispatch.py:1155-1156`).
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_queue.py`, `JOURNAL.md`; generated `ecosystem/doc-counts.md`.
+
+**Next:** e1-rows (carries (b)).
+
+---
+
+### 2026-10-18 (c) - CC (Opus 5.5, integrator E1): e1-p0-fix merges -- the D5 re-date is reverted, detector consumer-at-landing/v5 clears exactly the 8 consumer_at_landing hard-fails (D4); `[#1347]` stays red with its row
+
+**Anchors:** `afcf5152` (handback tip, branch `worktree-e1-p0-fix`, introduced by this merge), `7353821c` (RED), `df81e8ca` (revert of `1fbac5a7`, the harness.yaml re-date), `66478e51` (agy pin), `4af83b48`, `097881ea`, `2c320567`, `d8aa4dd7` (the D0 P0 commits it started from).
+
+**Did:** merged `--no-ff` on `579053a3`. `ecosystem/harness.yaml` is untouched by the merge (D5: no silent re-date, no RETIRE-CANDIDATE mark). Detector `consumer-at-landing/v5`; the baseline's artifact name list is identical before and after (802 names), only its stamp fields moved. Kept from D0: the `last_reviewed` stamps, JOURNAL (a), the archive-row-body registry re-sign 81 -> 79. Phase chain: RED `7353821c` before `afcf5152`; Codex `gpt-5.6-terra` APPROVE (nonce `NONCE-5d35565f`); isolated verify PASS. Regenerated `ecosystem/doc-counts.md` (11087 -> 11092) on the merged tree. Targeted tests on the merged tree: 261 passed.
+
+**Result:** ship-gate on the merged tree reads 1 hard-fail (`organ_truth`, six past-due `manual_until` fates), down from 9 on the base; their fates are the operator's (`to-browser/DIGEST-E1-FATES-2026-10-19.md`). W1 is therefore 1, not 0. Deviation carried, not repaired: the implement and RED phases were written by claude-sonnet-5-5 although the Grok and Copilot probes passed (R134 roles; no VENDOR-FAIL under R124). The lane ran unclaimed (no transport in the box).
+
+**Changes:** `scripts/consumer_at_landing.py`, `tests/test_consumer_at_landing.py`, `ecosystem/audit-consumer-baseline.json`, `logs/KNOWN-REDS-REGISTRY.json`, `.devcontainer/provisioning.yaml`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`, `JOURNAL.md`; generated `ecosystem/doc-counts.md`.
+
+**Next:** e1-1572-fix, then e1-rows (which carries (b)).
+
+---
+
 ### 2026-10-18 (b) - CC (Sonnet 5.5, D0 orchestrator): BATCH-D0-PROCESS - the AS-IS process model, the main-green and queue lanes, the adoption audit, the model probe, the B-vs-C spike and the seat exam; three PROPOSAL-ADR drafts for the operator
 
 **Anchors:** `dbce4c89` (the D0 and D1 rows [#1625]-[#1642]; branch `worktree-d0-rows`, introduced by this merge), `4af83b48` (P0 lane tip, not merged), `9eb33856` (#1572 lane tip, not merged).
@@ -52,6 +80,16 @@
 **Abandoned:** landing P0 and #1572 (not mine to merge); filing the 33 audit candidate rows (ADR-111: intake first).
 
 **Next:** the operator rules the three ADRs and the 8 `consumer_at_landing` hard-fails; the integrator lands `worktree-lane-dz-1350-p0-green-main` then `worktree-lane-dz-1572-queue-halt`, then `worktree-d0-rows`; on landing, this entry's letter may need re-lettering against the P0 branch's `2026-10-18 (a)` CORRECTION entry.
+
+### 2026-10-18 (a) - CC (Sonnet 5.5, lane lane-dz-1350-p0-green-main, D0): CORRECTION -- 2026-10-14 carries two entries lettered (b); [#926]
+
+**Correction by addition** (JOURNAL is append-only; neither entry is edited). Two 2026-10-14 entries both carry the letter (b). Read them in this order, top to bottom as they stand in the file, as (b) and (c) -- each one names its block by its full heading line:
+
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, R104): green-main pilot -- main's 25 regressions repaired through isolated stage agents (BATCH-GREEN-MAIN-PILOT-2026-10-14 Part B)` -- keeps (b)
+- `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema` -- is read as (c)
+
+**Why this entry:** the in-body note at the 2026-10-15 merge entry names the collision but is not a CORRECTION-headed entry, so `audit.py::check_journal_day_letters` (the `[#926]` correction-by-addition narrowing) did not count it and reported `2026-10-14 (b)` as an open duplicate on main. **Honest limit:** this clears `journal_day_letters` only until the `[#926]` narrowing expires (2026-11-18); after that the collision counts again and `[#926]` must be re-ruled. The other two resolved collisions the gate lists (2026-09-18 (f), 2026-10-11 (d)) are unchanged.
+
 
 ### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
 

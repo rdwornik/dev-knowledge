@@ -1,12 +1,12 @@
 {
   "_": "Committed baseline for the docs/audits consumer ratchet ([#595]). Regenerate: python scripts/consumer_at_landing.py --write-baseline. Contract, pool definition and honest limits: scripts/consumer_at_landing.py (module docstring).",
-  "detector_id": "consumer-at-landing/v4",
-  "measured_at": "2026-10-14",
-  "measured_at_sha": "0599a040",
-  "corpus": 1445,
-  "pool_files": 1175,
+  "detector_id": "consumer-at-landing/v5",
+  "measured_at": "2026-10-18",
+  "measured_at_sha": "7353821c",
+  "corpus": 1493,
+  "pool_files": 1262,
   "unconsumed": 802,
-  "provenance": "BW-window re-stamp (2026-10-14), measured on the green-main lane tree at 0599a040: +18 undated LANE-bw-*.md launch contracts ADMITTED to the baseline as owed debt, still UNCONSUMED (an undated name cannot be consumed by citation; dated-name tokenizer), each carried by backlog rows [#1510]-[#1527]; -1 drained 2026-10-10-verification-b2w3-red-burn-down-review.md; the 5 dated audits owed by docs/audits/2026-10-12-technical-batch-bw-close-packet.md ROWS-OWED are consumed by rows [#1528]-[#1532] + intake 107 (f4c0eebe)",
+  "provenance": "e1-p0-fix re-stamp (2026-10-18), detector v4 -> v5 (ruling D4), measured on 7353821c plus the v5 predicate: a governance-pool citation now declares a consumer on the landing leg, clearing the 8 undeclared archive-copy audits (2026-10-14 verify-{ci,dispatch,hooks-gates,land,providers,transport}, 2026-10-15 build1-challenge-{m2-r113,m3-r114}), all named by docs/intake/2026-10-16-tech-harness-defect-register.md; the unconsumed name list is UNCHANGED (none of the 8 was ever in it) -- only the detector stamp moves",
   "artifacts": [
     "1a-L01.md",
     "1a-L02.md",

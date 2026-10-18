@@ -86,7 +86,9 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import click
+import psutil
 import yaml
+from filelock import FileLock, Timeout as FileLockTimeout
 
 try:  # pragma: no cover -- exercised by whichever path the caller uses
     from scripts import lane_cost as lc
@@ -149,6 +151,12 @@ class DispatchRefused(click.ClickException):
 class LaunchRefused(DispatchRefused):
     """A launch that was refused at the door (or whose provider did not start): nothing is running."""
     exit_code = EXIT_REFUSED
+
+
+class AlreadyLaunched(LaunchRefused):
+    """The slug's earlier launch is still holding it. Still a refusal (exit 5, nothing spawned) for
+    `launch`; `queue` reads it as "already launched" -- a fact about one lane, not a reason to stop
+    the pass ([#1572])."""
 
 
 class ListingUnreadable(RuntimeError):
@@ -1052,6 +1060,85 @@ def _age_seconds(stamp: object) -> Optional[float]:
     return (datetime.now(timezone.utc) - then.astimezone(timezone.utc)).total_seconds()
 
 
+# The holder started BEFORE it wrote the stamp, so a process that began much later is a recycled
+# pid; the slack absorbs boot-time and clock jitter so a live holder is never judged dead.
+_LOCK_PID_RECYCLE_SLACK_S = 120
+_LOCK_LINE = re.compile(r"^pid (\d+) at (\S+)\s*$")
+_LOCK_ATTEMPTS = 3
+_LOCK_RECLAIM_TIMEOUT_S = 30
+
+
+def _lock_stamp_epoch(text: str) -> Optional[float]:
+    """UTC epoch of a lock stamp, or None when it will not parse. A trailing Z is UTC; a naive
+    stamp is treated as UTC."""
+    raw = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        stamp = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    try:
+        return stamp.timestamp()
+    except (OverflowError, OSError, ValueError):   # a date the platform cannot convert (Windows)
+        return None
+
+
+def _holder_liveness(pid: int, stamp_epoch: float) -> tuple[str, str]:
+    """`(ALIVE|DEAD|UNDETERMINABLE, why)` for the process named by a parsed lock.
+
+    `psutil.Process` rather than `os.kill(pid, 0)`: the latter is not portable to Windows."""
+    try:
+        holder = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return "DEAD", f"pid {pid} is not running"
+    except psutil.Error as exc:
+        return "UNDETERMINABLE", f"pid {pid} could not be looked up ({type(exc).__name__}: {exc})"
+    try:
+        started = holder.create_time()
+    except psutil.AccessDenied:   # exists, but a recycled pid cannot be told from the holder
+        return "UNDETERMINABLE", f"pid {pid} exists; its start time could not be read (access denied)"
+    except psutil.Error as exc:
+        return "UNDETERMINABLE", f"pid {pid} start time could not be read ({type(exc).__name__}: {exc})"
+    except OSError as exc:
+        return "UNDETERMINABLE", f"pid {pid} start time could not be read ({type(exc).__name__}: {exc})"
+    if started > stamp_epoch + _LOCK_PID_RECYCLE_SLACK_S:
+        return "DEAD", f"pid {pid} started after the lock was written (recycled)"
+    return "ALIVE", f"pid {pid} is running"
+
+
+def _judge_lock(path: Path) -> tuple[str, Optional[int], str]:
+    """`(verdict, pid, why)` for the lock file at `path`.
+
+    Verdict is ALIVE, DEAD, UNREADABLE, UNDETERMINABLE, or GONE (the holder finished and removed it
+    between the caller's create and this read -- the caller just tries the create again). `pid` is
+    set only when the line parsed."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return "GONE", None, "the lock was removed"
+    except OSError as exc:
+        return "UNREADABLE", None, f"cannot read the lock ({type(exc).__name__}: {exc})"
+    matched = _LOCK_LINE.fullmatch(text.strip())
+    if matched is None:
+        return "UNREADABLE", None, "the lock text is not 'pid <pid> at <stamp>'"
+    pid = int(matched.group(1))
+    if pid <= 0:
+        return "UNREADABLE", None, f"pid {pid} is not a live process id"
+    stamp_epoch = _lock_stamp_epoch(matched.group(2))
+    if stamp_epoch is None:
+        return "UNREADABLE", None, f"stamp {matched.group(2)!r} is not a time"
+    verdict, why = _holder_liveness(pid, stamp_epoch)
+    return verdict, pid, why
+
+
+def _refuse_unjudged(slug: str, path: Path, why: str) -> LaunchRefused:
+    return LaunchRefused(
+        f"a launch of {slug} is in progress or left a lock that cannot be judged "
+        f"(lock {path}: {why}); refusing rather than assuming it is free or held -- "
+        "remove the lock by hand once you know")
+
+
 def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]]) -> str:
     """'' when nothing holds the slug; else what does. ListingUnreadable when a Claude lane's state
     cannot be read -- the caller refuses, it never assumes free.
@@ -1087,23 +1174,72 @@ class _SlugLock:
     """One launch of a slug at a time: an exclusive-create lock file beside the receipts.
 
     A launch that finds it refuses (`in progress`); it is removed when the launch ends, refused or
-    not. It is never stolen: a launch killed outright leaves it, and the refusal names the file --
-    removing it is the operator's call, like any other husk."""
+    not. A live holder's lock is never taken. A DEAD holder's lock is reclaimed, and the reclaim is
+    recorded before the file is removed. An unreadable or undeterminable lock is refused and left
+    in place: the refusal names the file, and removing it is the operator's call."""
 
     def __init__(self, slug: str):
         self.path = receipts_dir() / f"LAUNCH-LOCK-{slug.upper()}"
         self.slug = slug
 
+    def _raise_for(self, verdict: str, pid: Optional[int], why: str) -> None:
+        if verdict == "ALIVE":
+            raise AlreadyLaunched(
+                f"a launch of {self.slug} is in progress (lock {self.path}, held by live pid {pid})")
+        if verdict in ("UNREADABLE", "UNDETERMINABLE"):
+            raise _refuse_unjudged(self.slug, self.path, why)
+
+    def _reclaim_dead(self, pid: int) -> None:
+        """Under the reclaim guard, re-judge and take a lock that is still DEAD.
+
+        The journal line is appended BEFORE the unlink: a reclaim with no recorded line must not
+        happen. The guard file `<lock>.reclaim` is a filelock (an OS-level lock, released on
+        process death); it is left in place -- unlinking a lock file other processes may be waiting
+        on would strand them."""
+        guard = FileLock(str(self.path) + ".reclaim", timeout=_LOCK_RECLAIM_TIMEOUT_S, thread_local=False)
+        try:
+            with guard:
+                if not self.path.exists():
+                    return
+                verdict, held, why = _judge_lock(self.path)
+                self._raise_for(verdict, held, why)
+                if verdict != "DEAD" or held is None:
+                    return
+                line = json.dumps({
+                    "event": "lock-reclaimed", "slug": self.slug, "lock": str(self.path),
+                    "dead_pid": held, "at": _stamp()}) + "\n"
+                journal = receipts_dir() / f"LAUNCH-RECLAIM-{self.slug.upper()}.jsonl"
+                try:
+                    with journal.open("a", encoding="utf-8", newline="\n") as sink:
+                        sink.write(line)
+                except OSError as exc:
+                    raise LaunchRefused(
+                        f"a launch of {self.slug} found a dead lock ({self.path}) but could not record "
+                        f"the reclaim ({type(exc).__name__}: {exc}); refusing rather than taking it "
+                        "unrecorded") from exc
+                self.path.unlink()
+                click.echo(f"[dispatch] reclaimed the launch lock of {self.slug}: holder pid {held} "
+                           f"is dead ({self.path})", err=True)
+        except FileLockTimeout as exc:
+            raise LaunchRefused(
+                f"a launch of {self.slug} could not reclaim the lock ({self.path}): the reclaim guard "
+                f"was not free within {_LOCK_RECLAIM_TIMEOUT_S}s") from exc
+
     def __enter__(self) -> "_SlugLock":
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc:
-            raise LaunchRefused(f"a launch of {self.slug} is in progress (lock {self.path}); if that launch "
-                                "died, remove the lock file by hand") from exc
-        with os.fdopen(fd, "w", encoding="utf-8") as sink:
-            sink.write(f"pid {os.getpid()} at {_stamp()}\n")
-        return self
+        for _attempt in range(_LOCK_ATTEMPTS):
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                verdict, pid, why = _judge_lock(self.path)
+                self._raise_for(verdict, pid, why)
+                if verdict == "DEAD" and pid is not None:
+                    self._reclaim_dead(pid)
+                continue
+            with os.fdopen(fd, "w", encoding="utf-8") as sink:
+                sink.write(f"pid {os.getpid()} at {_stamp()}\n")
+            return self
+        raise LaunchRefused(f"the launch lock of {self.slug} keeps changing")
 
     def __exit__(self, *exc: object) -> None:
         try:
@@ -1138,7 +1274,7 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"cannot tell whether {request.slug} is already launched ({exc}); "
                                 "refusing rather than assuming it is free") from exc
         if holder:
-            raise LaunchRefused(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
+            raise AlreadyLaunched(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
         env = child_env(request.provider, environ if environ is not None else os.environ,
                         read_secrets(secrets_file) if provider.key else None)
         try:
@@ -1628,6 +1764,8 @@ ACTION_FIRE = "FIRE"
 ACTION_HOLD = "HOLD"
 ACTION_HELD_FAILED = "HELD-FAILED"
 ACTION_ROUTE_CODESPACE = "ROUTE-CODESPACE"
+ACTION_SKIP_MERGED = "SKIP-MERGED"
+ACTION_ALREADY_LAUNCHED = "already-launched"
 
 
 @dataclass(frozen=True)
@@ -1643,6 +1781,14 @@ def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iter
     """One lane's decision, gate by gate, in the order a real launch must clear them: dependency,
     then `serialize-group`, then substrate (a codespace lane is ROUTED, never gated on cap/RAM --
     it does not use either), then the local cap, then the RAM floor."""
+    if states.get(lane.slug) == "MERGED":
+        return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
+                             "the integrator's receipt reads MERGED -- the lane is done, never refired")
+    if lane.slug in set(live_slugs):
+        # Before every new-launch gate: a live lane already holds a slot of the cap and the RAM it
+        # would be held by, so gating it reports HOLD for a lane that is running ([#1572]).
+        return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
+                             "a live lane of this slug is in the agent listing -- not launching a second")
     dep = dependency_status(lane, states)
     if dep == DEP_BLOCKED_FAILED:
         return QueueDecision(lane.slug, ACTION_HELD_FAILED,
@@ -1775,11 +1921,15 @@ class WatchResult:
     fired: tuple[str, ...]
     held_failed: tuple[str, ...] = ()
     routed_codespace: tuple[str, ...] = ()
+    skipped_merged: tuple[str, ...] = ()
+    already_launched: tuple[str, ...] = ()
 
     @property
     def terminal(self) -> frozenset[str]:
-        """Every slug this watcher is done waiting on, for any of the three reasons."""
-        return frozenset(self.fired) | frozenset(self.held_failed) | frozenset(self.routed_codespace)
+        """Every slug this watcher is done waiting on, for any of the five reasons ([#1572] added
+        `skipped_merged` and `already_launched` -- neither is a launch, so neither joins `fired`)."""
+        return (frozenset(self.fired) | frozenset(self.held_failed) | frozenset(self.routed_codespace)
+                | frozenset(self.skipped_merged) | frozenset(self.already_launched))
 
 
 def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s: float,
@@ -1792,8 +1942,8 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
                 free_mb_fn: Optional[Callable[[], float]] = None,
                 local_cap: int = 4, floor_mb: float = 3072.0,
                 max_polls: Optional[int] = None) -> WatchResult:
-    """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`),
-    OR `deadline_s` elapses -- whichever comes first, NEVER longer (each sleep is CLAMPED to what
+    """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`/
+    `SKIP-MERGED`/already launched), OR `deadline_s` elapses -- whichever comes first, NEVER longer (each sleep is CLAMPED to what
     is left before the deadline, Codex terra review HIGH: a full, un-clamped `poll_interval_s`
     sleep with little time left overshoots past `deadline_s` before the next check catches it).
 
@@ -1811,28 +1961,39 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
     fired: set[str] = set()
     held_failed: set[str] = set()
     routed: set[str] = set()
+    merged: set[str] = set()
+    already: set[str] = set()
     polls = 0
 
     def _result(expired: bool) -> WatchResult:
-        return WatchResult(polls, expired, tuple(fired), tuple(held_failed), tuple(routed))
+        return WatchResult(polls, expired, tuple(fired), tuple(held_failed), tuple(routed),
+                           tuple(merged), tuple(already))
 
     while True:
         polls += 1
-        resolved = fired | held_failed | routed
+        resolved = fired | held_failed | routed | merged | already
         decisions = plan_pass(lanes, order, fired=resolved, states=states_fn(),
                               live_slugs=live_slugs_fn(), local_cap=local_cap,
                               local_live_count=local_live_count_fn(), free_mb=free_mb_fn(),
                               floor_mb=floor_mb)
         for decision in decisions:
             if decision.action == ACTION_FIRE:
-                if on_fire is not None:
-                    on_fire(decision.slug)
-                fired.add(decision.slug)
+                try:
+                    if on_fire is not None:
+                        on_fire(decision.slug)
+                except AlreadyLaunched:
+                    already.add(decision.slug)   # launched earlier: reported, not fired, never a halt
+                else:
+                    fired.add(decision.slug)
             elif decision.action == ACTION_HELD_FAILED:
                 held_failed.add(decision.slug)
             elif decision.action == ACTION_ROUTE_CODESPACE:
                 routed.add(decision.slug)
-        resolved = fired | held_failed | routed
+            elif decision.action == ACTION_SKIP_MERGED:
+                merged.add(decision.slug)
+            elif decision.action == ACTION_ALREADY_LAUNCHED:
+                already.add(decision.slug)
+        resolved = fired | held_failed | routed | merged | already
         if all(slug in resolved for slug in order):
             return _result(expired=False)
         elapsed = clock() - start
@@ -3941,7 +4102,9 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
     pass over it (or, with --watch, a bounded loop -- see `watch_queue`) firing whatever clears
     its dependency (the --state-file fixture), `serialize-group`, local-cap and RAM gates. A
     codespace lane (`Dispatch-Codespace` head) is reported ROUTE-CODESPACE and never spawned here
-    -- `dispatch.py launch` refuses that head by design; use the codespace verb for it."""
+    -- `dispatch.py launch` refuses that head by design; use the codespace verb for it. A re-run
+    is idempotent ([#1572]): a lane already launched is reported `already-launched` (exit stays 0,
+    the pass goes on) and a lane the --state-file reads MERGED is `SKIP-MERGED`, never refired."""
     lanes = load_queue(list(contracts))
     order = launch_order(lanes)
     by_slug = {lane.slug: lane for lane in lanes}
@@ -3959,6 +4122,19 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
         result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
         click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
 
+    already_reasons: dict[str, str] = {}
+
+    def launch_or_report(slug: str) -> None:
+        """`do_launch`, but an already-launched lane (found by `launch_lane`'s own collision check,
+        which sees what the listing alone does not) is RECORDED and re-raised for the caller to step
+        over -- a fact about one lane, not a reason to stop the pass ([#1572]). Any other refusal
+        still propagates (exit 5)."""
+        try:
+            do_launch(slug)
+        except AlreadyLaunched as exc:
+            already_reasons[slug] = exc.message
+            raise
+
     def live_slugs() -> set:
         try:
             agents = list_agents()
@@ -3973,13 +4149,17 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 
     if watch:
         result = watch_queue(lanes, order, deadline_s=deadline_s, poll_interval_s=poll_interval,
-                             on_fire=do_launch, states_fn=states_fn, live_slugs_fn=live_slugs,
+                             on_fire=launch_or_report, states_fn=states_fn, live_slugs_fn=live_slugs,
                              local_live_count_fn=local_live_count, free_mb_fn=mag.free_memory_mb,
                              local_cap=cap, floor_mb=floor_mb)
+        for slug in result.already_launched:
+            click.echo(f"[queue] already-launched {slug}: "
+                       f"{already_reasons.get(slug) or 'a live lane of this slug is in the agent listing'}")
         pending = [s for s in order if s not in result.terminal]
         click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}, "
                    f"held-failed {len(result.held_failed)}, routed-codespace "
-                   f"{len(result.routed_codespace)}, of {len(order)}; "
+                   f"{len(result.routed_codespace)}, skipped-merged {len(result.skipped_merged)}, "
+                   f"already-launched {len(result.already_launched)}, of {len(order)}; "
                    f"{'DEADLINE -- still pending: ' + ', '.join(pending) if result.expired else 'all clear'}")
         return
 
@@ -3988,7 +4168,10 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
                           free_mb=mag.free_memory_mb(), floor_mb=floor_mb)
     for decision in decisions:
         if decision.action == ACTION_FIRE:
-            do_launch(decision.slug)
+            try:
+                launch_or_report(decision.slug)
+            except AlreadyLaunched:
+                click.echo(f"[queue] already-launched {decision.slug}: {already_reasons[decision.slug]}")
         else:
             click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
 
