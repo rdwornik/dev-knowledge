@@ -6885,6 +6885,296 @@ Landed by `lane-bu-1450-boot-v2` (batch BU = BUILD-1, lane L5, row [#1538]; orde
   2. **CONSUMER-1:** the first `corp-monorepo` row end to end through the loop, the operator's last milestone after the trials (2026-09-24).
   ```
 
+## AV. RATIFICATION 2026-10-15 → 2026-10-17 R116–R128 — landed verbatim from their sources, each carried by a row or by a written "no implementation required" (operator, 2026-10-15 → 2026-10-17)
+
+Landed by lane `e1-rows` (batch E1, `to-cc/BATCH-E1-LAND-2026-10-18.md` v2 §2 lane e1-rows; contract `LANE-e1-rows.md`). The shape is §AU's: each entry carries its ruling's **source lines byte for byte** in a fenced block whose info string is `verbatim <source>:<first line>-<last line>`; the bullet and the `Carried by:` line are this register's own words.
+
+**What this section is.** §AU said "R116–R120 (v8 and v9 of the 2026-10-14/15 file) are later than this section's range and wait for their own rulings-landing row"; this is that landing, and §AU is not edited. R121–R128 come from `RATIFICATION-2026-10-17.md`, a table whose rows are "the operator's words, condensed": the ruling's text is its row, and the table's header lines (8–9) are not copied.
+
+**How the list was derived.** A scan of every non-superseded `to-browser/RATIFICATION-*.md` for a `## R<n>` heading, a `- **R<n>` bullet or a `| R<n> |` table row, minus the ids that have a `- **R<n>` bullet here, left R116, R119, R120 (`RATIFICATION-2026-10-14.md`), R121–R128 (`RATIFICATION-2026-10-17.md`) and R129–R136 (`RATIFICATION-2026-10-18.md`, §AW). **R117 and R118 are landed here too, beyond the bundle's list:** v9 carries "R116–R118 (v8)" unchanged, so they are ratified, and their text exists only in the superseded v8. No `- **R<n>` entry for any id R116–R136 existed before this section (§AU only names R116–R120 as not landed). The collision check for R121–R136 read every use of those ids in the repository: `JOURNAL.md`, `docs/handoffs/2026-10-17-dev-knowledge-architect/SUPPLEMENT.md` and the task rows use them in the meanings landed here, with the one exception §AW names.
+
+**R103 is still no ruling** (§AU). **Not landed here:** each source file's `## Carriage` / `Pending` / `Still open` section is the transcriber's routing note, not a ruling, and stays on the transport.
+
+**Two lines of every entry are read by a gate,** as in §AU: the bullet `- **R<n> — …` (counted by `scripts/handoff_state.py`) and the `**Carried by:**` line (judged by `scripts/decision_coverage.py rulings`). A row is named only where it exists, is open and names the ruling; where no row carries a mechanism the line says **OWED**.
+
+- **R116 — the BUILD-1 CHALLENGE outcome, closed** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v8-superseded.md:23-33` (v8) and `RATIFICATION-2026-10-14.md:23-27` (v9)). The v8 block is the seat's concession of CC's DISAGREEs (R111 Linux-first and R112 list A withdrawn); the v9 block records the operator accepting R113 (a) and the `[#669]` waiver. R123 later "reinstates R111 and withdraws R116's withdrawal" (`RATIFICATION-2026-10-17.md:12`). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a closing record of the BUILD-1 CHALLENGE outcome: it builds nothing, its R112 list A withdrawal stands and its R111 withdrawal was itself withdrawn by R123 (owner: the architect seat; reopen if the R113 item a waiver or the `[#669]` waiver is revoked)
+
+  ```verbatim to-browser/archive/2026-10/RATIFICATION-2026-10-14-v8-superseded.md:23-33
+  ## R116 — the BUILD-1 CHALLENGE outcome (seat concedes; evidence: DIGEST-BUILD1-CHALLENGE-*-2026-10-15)
+
+  - **R111 Linux-first: withdrawn.**
+    - The repo is public, so standard runners cost $0 (7 days: $0).
+    - ADR-127 makes `pytest (windows-latest)` a required check.
+    - The OS-agnostic requirement is already met by the two legs.
+    - The seat's "374 %" counted minutes, not cost; that was not checked before it proposed.
+  - **R112 list A: withdrawn.** All four items are live (callers and tests). Lesson: a map class of DEAD or DUPLICATE is not a licence to delete; the caller check comes first. Lists B and C are each challenged item by item in BUILD-2.
+  - **Open:**
+    - R113 confinement: (a) accept the residual risk (agy writes its own `~/.gemini` scratch), with the workspace declared by `--add-dir`; or (b) require `--sandbox`, which is unprobed;
+    - the `[#669]` waiver: already R109 D-2; the operator confirms.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14.md:23-27
+  ## R116 — closed
+
+  The operator, 2026-10-15: "pójdę za twoją rekomendacją".
+  - **R113 (a):** agy's own `~/.gemini` scratch writes are an accepted residual risk. The workspace is declared with `--add-dir`, and every read is verified (R59).
+  - **The `[#669]` → `[#664]` waiver** is confirmed (= R109 D-2).
+  ```
+
+- **R117 — decision tiers: research only where a decision is really being made** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v8-superseded.md:35` (v8)). v9 carries it "unchanged (v8)" (`RATIFICATION-2026-10-14.md:21`); its text exists only in the superseded v8, and the bundle's list of unlanded ids omits it. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the tier field and the mini-council wiring are OWED with no row yet: `[#1554]` cites R117 only as its own tier, and the source's carriage line sends the BUILD-2 rows through intake (owner: the architect seat, who routes the tier-field row through intake; reopen if no row names R117 as its subject by the next batch)
+
+  ```verbatim to-browser/archive/2026-10/RATIFICATION-2026-10-14-v8-superseded.md:35-48
+  ## R117 — decision tiers: research only where a decision is really being made (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "destylator musi rozsądnie podejmować decyzje, które są taski, na przykład z backlogu, no to wiadomo, że już nie trzeba robić web research, a na jakimś etapie zawsze trzeba zrobić web research … przeglądarka musi podejmować, co potrzebuje web researchu, a co potrzebuje po prostu wdrożenia"
+
+  | Tier | When | What runs |
+  |---|---|---|
+  | **T0 decided** | the row carries a ratified decision and a Done-when (a task from the backlog) | no research; the map/duplicate check, then the phases |
+  | **T1 light** | a bounded fix or extension inside an existing organ; no new organ, dependency, structure or technology | the map/duplicate check + the constraint checkers; one reviewer from another vendor |
+  | **T2 decision** | a new organ, command, dependency, technology, structure or ruling, or a T0/T1 input whose premise fails | the **mini-council**: web research (agy reads, with sources) + CC + Codex sol and Grok as independent adversaries + a `decide_checks` matrix on the operator's criteria → AGREE / AMEND / DISAGREE; DISAGREE halts at INPUT_REQUIRED |
+
+  - **The tier is set by the distiller as data** (the DistillReceipt field `tier`), with the reason. A reviewer may raise it, never lower it.
+  - **The browser writes each order's tier.** A T0/T1 order carries no research step.
+  - **Measured:** the share of T2 runs that end AMEND or DISAGREE. If it is 0 over a batch, the T2 threshold is too low; if T0/T1 lanes are refused for premise failures, it is too high.
+  ```
+
+- **R118 — change admission through the graph: the harness answers, CC follows** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14-v8-superseded.md:50` (v8)). v9 carries it "unchanged (v8)" (`RATIFICATION-2026-10-14.md:21`); its text exists only in the superseded v8, and the bundle's list of unlanded ids omits it. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the admission step, its PreToolUse hook and the pre-commit scope check are OWED with no row yet: `[#1565]` cites R118 only as a reader of its test edges (owner: the architect seat, who routes the admission rows through intake; reopen if no row names R118 as its subject by the next batch)
+
+  ```verbatim to-browser/archive/2026-10/RATIFICATION-2026-10-14-v8-superseded.md:50-71
+  ## R118 — change admission through the graph: the harness answers, CC follows (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "graf wymuszał każdą zmianę na kodzie … żeby przeszło przez jakiś lej decyzyjny procesowy, żeby potem ta biblioteka zwróciła jakiś return, jakiś kod, jakieś info, jakiś token … żeby to CC razem z harnessem, systemem, bibliotekami pracowało, a nie, że ono robi arbitralnie, nadpisuje rzeczy i ma w dupie wszystkie te biblioteki i jej outputy"
+
+  1. **Admission.** Before a phase writes code, it calls the harness (the distiller's admission step). The harness queries:
+     - the process graph (`system_map`, `file_purpose_graph` on rustworkx);
+     - the code graph (`grimp` or `tach` for imports; the BUILD-3 trial adds symbols and calls).
+
+     It returns an **AdmissionReceipt**: the files admitted; extend-not-create targets with `file:line`; dependencies and impacted tests; the constraints; a receipt id.
+  2. **Feedback in the loop (library-first: Claude Code hooks).** A PreToolUse hook on Write and Edit compares the target with the admission. Outside it, the hook blocks (exit 2) and returns the admission and the reason to the model as feedback. That return is the "token" telling CC how to build.
+  3. **The hard net.** Pre-commit refuses a diff that touches files outside the admission, or that creates a module or dependency without a T2 verdict. This also catches writes made through Bash.
+  4. **Reuse first:** `reuse_gate.py` (PreToolUse, live), `read_gate.py` (nonce), the L1 constraint registry, `impacted_tests.py`. Extend them; build no parallel gate.
+  5. **Pragmatic limit:**
+     - Admission is per phase, not per keystroke.
+     - It covers code paths (`scripts/`, `.claude/`, `ecosystem/` code), not transport or docs writes.
+     - A blocked write gets one re-admission, at most; a second block is INPUT_REQUIRED.
+
+  **Measured:**
+  - a seeded duplicate module is blocked at Write with the admission returned;
+  - a Bash-written file outside the admission is refused at commit;
+  - over a batch, edits outside the admission land at 0.
+  ```
+
+- **R119 — day/night cadence** (operator, 2026-10-15; option A; full text `RATIFICATION-2026-10-14.md:29` (v9)). The ADR the T2 mini-council drafts from R119 and R120 needs the operator's ratification (`RATIFICATION-2026-10-14.md:9`); this entry lands the ruling, not that ADR. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1560], [#1562], [#1564] (BUILD-2a slot 1: the day Tier 1 job, the night shards, the night's registry and ship-gate-diff rules)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14.md:29-55
+  ## R119 — day/night cadence (operator, 2026-10-15; option A)
+
+  **The operator's words:**
+  > "Powinniśmy w ciągu dnia skupić się na działaniu, a w nocy na testowanie i integrowanie. W nocy testy mogą lecieć całą noc i mi to nie przeszkadza, ale jeżeli ja w ciągu dnia nic nie mogę zrobić, dlatego że cały czas integrujemy … to jest niemożliwe." — and: "pójdę za twoją rekomendacją".
+
+  **By day:**
+  - Lanes build.
+  - Each lane branch gets **Tier 1** in the cloud: lint and types plus **impacted tests only** (`impacted_tests.py` first; other tools per the council), in parallel, on Linux.
+  - The lane runs only its own RED → GREEN tests locally.
+
+  **By night:**
+  - ONE integration batch, with lands serial or grouped.
+  - The **full suite on Ubuntu + Windows** (ADR-127 unchanged), **sharded** across parallel jobs.
+  - **mutmut** on changed modules.
+  - The heavy gates (`ship_gate_diff`).
+  - A morning digest.
+
+  **Exceptions:**
+  - A blocker (for example a batch freeze) may land by day on the full CI.
+  - A dependent lane builds on its predecessor's branch rather than waiting for the night.
+
+  **Transition:** BUILD-1 (batch BU) finishes under its frozen orders, landing as handbacks arrive. R119 applies from BUILD-2.
+
+  **Measured goals:**
+  - a lane's Tier-1 verdict in ≤ 5 min;
+  - the night batch finishes, with its repair rounds, by morning;
+  - 0 regressions reach main that the full suite would catch.
+  ```
+
+- **R120 — tests in the graph, and tests that prove something** (operator, 2026-10-15; full text `RATIFICATION-2026-10-14.md:57` (v9)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1565], [#1566], [#1567], [#1568] (the test graph nodes, the census, the nightly mutation run and the strengthen-or-remove step)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-14.md:57-81
+  ## R120 — tests in the graph, and tests that prove something (operator, 2026-10-15)
+
+  **The operator's words:**
+  > "ty tworzysz tak testy, żeby same przeszły … nie testujesz outcome'ów, funkcjonalności … ile jest martwych, a pewnie nadal odpalamy testy z tym związane … kiedy usuwamy jakąś funkcjonalność … musimy razem dependency na testy usunąć. I dependency musi być w grafie."
+
+  **The evidence:** mutmut on 2026-10-15 executed 2077 mutants, killed 863 and let **1210 survive (≈ 41 % killed)**. Many tests do not detect wrong behaviour.
+
+  1. **Tests are nodes in the graph.**
+     - Edges test → code come from **coverage contexts** (coverage.py `--cov-context=test`, library-first) and the import graph.
+     - Edges test → row or feature come from the Done-when it proves.
+     - The system map and R118's admission read these edges.
+  2. **Removal carries its tests.** Removing an organ, script or feature lists every test whose only covered code is that element (graph query). Those tests are removed or rewritten in the **same change**. Pre-commit refuses a removal that leaves orphan tests.
+  3. **A test must prove something.** The census flags each test:
+     - **ORPHAN:** it covers only dead or removed code;
+     - **DUPLICATE:** its coverage is a subset of another test's, with no extra assertions;
+     - **ZERO-KILL:** it killed no mutant of the code it covers;
+     - **NO-OUTCOME:** it asserts only on mocks or implementation details, with no outcome.
+
+     Each is STRENGTHENED (an outcome assertion, RED first) or REMOVED. Removal follows R112's caller-check rule and the operator's GO on the list.
+  4. **New tests (R45, R104):** the RED test asserts the **outcome** the row's Done-when names. It is written by an agent other than the implementer, and its mutation score on the changed code is measured at night.
+
+  **Measured goals:**
+  - the mutation score on changed code ≥ 70 % per lane;
+  - across the repo, rising every week;
+  - orphan tests = 0 after the first census.
+  ```
+
+- **R121 — built but unused = a failure** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:10` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; R121 is the definition of done every row is judged by, and the contract-template gate that enforces it is OPEN in the adoption audit with no row yet (owner: the architect seat; reopen if a batch is rendered whose lane contract has no witnessed real-use Done-when)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:10-10
+  | R121 | **Built but unused = a failure.** Everything built is used in a real run or removed. A lane is DONE only with a witnessed real use (R112 made the definition of done). | 2026-10-16 | rows from NIGHT PART 8/9 (`[#1569]`–`[#1618]`); the DoD/contract-template gate is OPEN (the adoption audit row) |
+  ```
+
+- **R122 — a night run works until morning or until done** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:11` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1619], [#1620], [#1621], [#1622], [#1623] (N1–N5, one row each), and [#1632] for the Codespace launch that waits at the account cap instead of failing
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:11-11
+  | R122 | **A night run works until morning or until done.** Dependencies are waits, END-EARLY is an alarm, post-close work goes to the integrator's queue, and lint refuses an untriggered dependency (N1–N5). | 2026-10-16 | `to-cc/DECLARE-NIGHT-RUN-CONTRACT-2026-10-16.md`; rows `[#1619]`–`[#1623]` (main eda714a4) |
+  ```
+
+- **R123 — merges are judged on Linux only** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:12` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the carrier is `docs/decisions/ADR-127-ci-os-verification.md` AMENDMENT 2, on main at 8e8ef452 (owner: the architect seat; reopen if a Windows-sensitive diff lands with no Windows run)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:12-12
+  | R123 | **Merges are judged on Linux only.** Windows runs nightly and on Windows-sensitive diffs. This reinstates R111 and withdraws R116's withdrawal. | 2026-10-16 | ADR-127 AMENDMENT 2, main 8e8ef452 |
+  ```
+
+- **R124 — no silent vendor substitution** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:13` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — of this register; the vendor-fix landed on main at 0bea1ff6, and the remainder, routing the distiller only to vendors whose probe passed today, is OWED in the adoption audit with no row yet (owner: the architect seat; reopen if a lane runs a substitute its contract did not name)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:13-13
+  | R124 | **No silent vendor substitution.** VENDOR-FAIL is recorded; a substitute runs only if the contract names it; the distiller routes only to vendors whose probe passed today. | 2026-10-16 | main 0bea1ff6 (vendor-fix r2); the probe-routing remainder is OPEN in the adoption audit |
+  ```
+
+- **R125 — a decision-to-implementation audit comes before any new decision** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:14` (the 2026-10-15 … 2026-10-17 table)). R133 (§AW) limits the refusal half to decisions ratified after 2026-10-18. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1627] (the audit itself); the refusal half is [#1645]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:14-14
+  | R125 | **A decision-to-implementation audit comes before any new decision.** A batch is refused while a ratified decision older than 7 days has no carrier. | 2026-10-16 | `to-cc/DECLARE-DECISION-ADOPTION-AUDIT-2026-10-16.md` (the first task of the next window) |
+  ```
+
+- **R126 — no pause; prioritise** (operator, 2026-10-16; full text `RATIFICATION-2026-10-17.md:15` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — a priority order, not a mechanism: its first three items landed (token cuts at main 2767501b, vendors at 0bea1ff6, the Codespace path at e1fd5543), and the rest (tiered CI, RAM, handoff) go to the master plan (owner: the architect seat; reopen if the order is changed by a later ruling)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:15-15
+  | R126 | **No pause; prioritise.** The order: start-up token cuts → vendors (Copilot/Grok) → Codespace end to end → tiered CI → RAM → handoff. | 2026-10-16 | token cuts main 2767501b; vendors 0bea1ff6; Codespace e1fd5543 (`[#1015]` lane); the rest goes to the master plan |
+  ```
+
+- **R127 — deletion GO for verified-unneeded items** (operator, 2026-10-15 and 2026-10-17; full text `RATIFICATION-2026-10-17.md:16` (the 2026-10-15 … 2026-10-17 table)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — an authorisation, not a mechanism: each deletion still runs the archive-tag step and the caller check first (owner: the operator, whose GO this is; reopen if a deletion is made without its archive tag)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:16-16
+  | R127 | **Deletion GO for verified-unneeded items.** Old branches are archive-tagged, then deleted. | 2026-10-15 / 2026-10-17 | the night-retire land order §5 |
+  ```
+
+- **R128 — seat successors launch themselves** (operator, 2026-10-15; full text `RATIFICATION-2026-10-17.md:17` (the 2026-10-15 … 2026-10-17 table)). The source row reads "Seat rulings v212/v213; not vetoed." R130 (§AW) retires the integrator's queue duty this row names ("the dispatcher seat and the integrator's queue duty retire"); the successor-launch half stands and R136 (§AW) restates it. **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1633] (the queue owner, rewritten under R130) and [#1573] (the first seat handover)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-17.md:17-17
+  | R128 | **Seat successors launch themselves.** The BU dispatcher was retired into the integrator (it owns the queue after every merge/refusal). Seat rulings v212/v213; not vetoed. | 2026-10-15 | the templates in night-retire (landing); A9 in the master plan |
+  ```
+
+## AW. RATIFICATION 2026-10-18 (v2) R129–R136 — landed verbatim from their source, each carried by a row or by a written "no implementation required" (operator, 2026-10-18)
+
+Landed by lane `e1-rows` (batch E1, `to-cc/BATCH-E1-LAND-2026-10-18.md` v2 §2 lane e1-rows). The source is `to-browser/RATIFICATION-2026-10-18.md`, **v2**: R133 and R134 are the operator's reworded text, and R135 and R136 exist only in v2. `RATIFICATION-2026-10-18-v1-superseded.md` is not a source. The ruling's text is its table row (lines 11–18); the header lines (9–10) are not copied.
+
+**Not landed here:** the file's "Seat rulings of 2026-10-18" (D4, D5, D6) are technical seat rulings, not R-ids, and keep their home in that file; its "Still open" list is the transcriber's routing note.
+
+**One name already in use.** `tasks/1579-…` writes "Per R129 (ADR-129)", where R129 names ADR-129's handoff-cut ruling; the R129 landed below is the process-and-handoff zone ruling. No ruling file carries the first meaning.
+
+- **R129 — process and handoff change together** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:11` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1640], [#1639] (the generated L0 plus process index in the handoff, and the two-way completeness gate)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:11-11
+  | R129 | **Process and handoff change together.** Every process node has one zone, each in its own colour: BROWSER, HARNESS or BOTH. TODAY-GLUE marks harness work a human does today. The handoff carries the generated L0 + process index, never hand-written. | `[#1640]`, `[#1639]`; PLAN r4 rules 1–4 |
+  ```
+
+- **R130 — dispatch is triggered by the harness, not by a seat** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:12` (v2)). This refines R128's queue duty ("the dispatcher seat and the integrator's queue duty retire"). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1633] (rewritten as the code queue runner, target batch E2) and [#1573]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:12-12
+  | R130 | **Dispatch is triggered by the harness, not by a seat.** Code fires the queue on events (handback, merge, refusal). **The integrator only integrates:** it watches what has finished, lands each lane on its handback, and stacks ready disjoint lanes (R37 cut 3). **ADR-α = C**; the dispatcher seat and the integrator's queue duty retire. The integrator's context load is measured. | ADR-α Accepted (C); `[#1633]` rewritten as the code runner; `[#1573]`; templates change in the same change |
+  ```
+
+- **R131 — the process model is code, and the diagram is generated from it** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:13` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1625], [#1626], [#1639]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:13-13
+  | R131 | **The process model is code, and the diagram is generated from it.** Library-first: a Python library runs the process and exports the diagram; no hand-maintained prose or diagram. Start simple (P1 first). **The process comes before the dispatch code:** the TO-BE machine for P1/P11/P13 is written first; the dispatch runner is implemented as part of that machine, not beside it. CC validates the library by web research first. **ADR-β = B.** | ADR-β Accepted (B); `[#1625]` `[#1626]` `[#1639]` |
+  ```
+
+- **R132 — one Substrate protocol in the hub for local, codespace and cloud** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:14` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1632], [#1634] and [#1643] (the read-only CloudSubstrate port)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:14-14
+  | R132 | **One Substrate protocol in the hub for local, codespace and cloud.** Cloud is not a build substrate but **is used for read-only tasks**, launched through the hub, never through win-tooling. **ADR-γ = B + a read-only CloudSubstrate.** | ADR-γ Accepted (amended); `[#1632]` + a new row for the CloudSubstrate port; `[#1634]` after the hub path works (operator GO per list) |
+  ```
+
+- **R133 — R125 applies to decisions ratified after this date** (operator, 2026-10-18 (v2 wording); full text `RATIFICATION-2026-10-18.md:15` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1645] (the consolidation track and the `plan_lint` gate for new decisions)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:15-15
+  | R133 | **R125 applies to decisions ratified after this date.** The older decisions are **reviewed, not mechanically burned down:** a read-only fan-out (Haiku, and Gemini through agy where it runs) reads the reports and writes one consolidated report — which decisions still hold, which are worth adopting, which are obsolete and should be withdrawn. The operator rules on that report. The DIGEST-ADOPTION-AUDIT-2026-10-18 counts are its starting input. | a consolidation track (read-only) → `to-browser/DIGEST-DECISION-CONSOLIDATION-<date>.md`; the `plan_lint` gate for new decisions (audit C01) |
+  ```
+
+- **R134 — roles are defined as tasks, and models plug into them as data** (operator, 2026-10-18 (v2 wording); full text `RATIFICATION-2026-10-18.md:16` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1630], [#1646], [#1628] (the tier refusal, M1 v2 per vendor in its role, and the first measured table)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:16-16
+  | R134 | **Roles are defined as TASKS, and models plug into them as data.** Today: Grok implements · Codex reviews · Gemini (via agy) reads files · Copilot writes and runs isolated tests · Haiku does read-only fan-out · Sonnet orchestrates lanes · Opus plans and judges. **The operator may swap any model later** (including new or other-vendor models). The role → model + effort table lives in the registry, is enforced by code at pre-launch (R101(a)), and is the tool for **distributing tokens to cheaper models, not only Opus.** Grok must get real runs (none since its pin). Supersedes R104's "Sonnet writes the RED tests". No silent substitution (R124). | `ecosystem/provider-registry.yaml` roles as the single table; `[#1630]` tier refusal; M1 v2 measures each vendor in its role |
+  ```
+
+- **R135 — fix agy in boxes** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:17` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1644]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:17-17
+  | R135 | **Fix agy (Antigravity, which serves Gemini) in boxes.** It works in the CLI on the laptop, as Copilot does. "Not in boxes" is a defect to fix, not a limit to accept. Resolves the pending "agy path" decision. | a new row: a non-interactive agy credential path for Codespace (research antigravity-cli #223 + a seeded credential), witness: one box lane whose reads ran through agy |
+  ```
+
+- **R136 — CC seats manage their own context** (operator, 2026-10-18; full text `RATIFICATION-2026-10-18.md:18` (v2)). **Status:** landed as text by lane `e1-rows`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1636] (the R94 cycle gate, built or withdrawn) and [#1573] (the first handover)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:18-18
+  | R136 | **CC seats manage their own context.** A seat (the integrator first) starts its own successor session when its context runs low, at a safe point, with no operator paste. This existed in part before (later handovers self-launched); it must be code, not prose. | P13 TO-BE machine; R94 cycle gate (ratified, unbuilt); `[#1573]` (the first handover) |
+  ```
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
