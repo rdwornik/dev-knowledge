@@ -163,8 +163,6 @@ again with no edit required, and keeping it longer needs a new dated entry.
 
 | carrier branch | tip | closes when | expires |
 |---|---|---|---|
-| `worktree-lane-dz-1350-p0-green-main` | `4af83b48` | the operator rules the 8 `consumer_at_landing` hard-fails (predicate bump or audit-copy amendment) and `[#1347]`'s 7 UNPROVEN archive records, then the integrator lands it (D0.2; unmet in D0, partial work verified) | 2026-11-01 |
-| `worktree-lane-dz-1572-queue-halt` | `9eb33856` | the integrator lands it after the P0 branch (D0.7; verified, terra APPROVE; open decision: a stale launch lock now reads already-launched) | 2026-11-01 |
 | `worktree-d0-rows` | `dbce4c89` + the D0 close commit | the operator ratifies the D0/D1 rows `[#1625]`-`[#1642]` and the integrator lands the branch | 2026-11-01 |
 
 - verify: every `worktree-*` branch with no registered worktree is either merged and deleted,
