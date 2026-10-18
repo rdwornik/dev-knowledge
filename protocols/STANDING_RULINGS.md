@@ -7247,7 +7247,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R142 — deploy first, then evolve** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:49` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** no implementation required of its own: it applies to every E2 order (`to-cc/BATCH-E2-0-2026-10-18.md` §0 measure)
+  **Carried by:** no implementation required — it is a standing instruction to every E2 order (`to-cc/BATCH-E2-0-2026-10-18.md` §0 measure: real use is the measure), with nothing to build (owner: E2-ORCHESTRATOR)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:49-49
   | R142 | **Deploy first, then evolve.** Real use is the measure of deployment (R121); a working first version beats a perfect plan. | applies to every E2 order |
@@ -7279,7 +7279,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R146 — Copilot runs on the default-signed-in GitHub account** (operator, 2026-10-18 ~23:10, dictated; condensed; full text `RATIFICATION-2026-10-18.md:69` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §3 and §7; the role table names the account class (lane `e2-subst-gate`)
+  **Carried by:** no implementation required — the batch order fixes the account (`to-cc/BATCH-E2-0-2026-10-18.md` §3 and §7) and the role table names the account class when lane `e2-subst-gate` lands it (owner: E2-ORCHESTRATOR)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:69-69
   | R146 | **Copilot runs on the GitHub account signed in by default — the operator's Enterprise account** (his Copilot use is partly for work). The employer sets its limits; the harness sets no Copilot stop and does not use the private account. | BATCH-E2.0 v2 §3, §7; role table names the account class |
@@ -7287,7 +7287,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R147 — the junior rule** (operator, 2026-10-18 ~23:10, dictated; condensed; full text `RATIFICATION-2026-10-18.md:70` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §3; the isolated verify plus the review pair on every lane; ISOLATED-CHECK on close digests; owed row (h) harvest copies the lane's SESSION file (harvest copies the lane's SESSION file, so a different agent can check it)
+  **Carried by:** no implementation required — the junior rule is applied by the batch order §3 (the isolated verify, the review pair, ISOLATED-CHECK on close digests); the owed harvest row (h) widens the evidence it can check (owner: E2-ORCHESTRATOR)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:70-70
   | R147 | **The junior rule:** any agent may be used (Haiku in boxes included), but it works isolated and **never verifies itself** — like a junior, someone else checks its hands. Every output is checked by a different agent before it counts. | BATCH-E2.0 v2 §3; the isolated verify + review pair; ISOLATED-CHECK on close digests |
