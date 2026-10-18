@@ -1,0 +1,110 @@
+stateDiagram-v2
+    direction LR
+    state "start: queue/launch entry" as start
+    start : entry / on_enter_state, on_enter_start
+    state "contract parsed (table + Dispatch block)" as parse
+    parse : entry / on_enter_state, on_enter_parse
+    state "table = block?" as g_agree
+    g_agree : entry / on_enter_state
+    state "provider / model / effort valid" as valid
+    valid : entry / on_enter_state, on_enter_valid
+    state "valid?" as g_valid
+    g_valid : entry / on_enter_state
+    state "R101(a) tier refusal (OWED)" as tier
+    tier : entry / on_enter_state, on_enter_tier
+    claim : entry / on_enter_state, on_enter_claim
+    state "claim won?" as g_claim
+    g_claim : entry / on_enter_state
+    state "Starts after MERGED?" as g_dep
+    g_dep : entry / on_enter_state, on_enter_g_dep
+    state "serialize-group clear?" as g_serial
+    g_serial : entry / on_enter_state, on_enter_g_serial
+    state "substrate?" as g_substrate
+    g_substrate : entry / on_enter_state, on_enter_g_substrate
+    state "local cap + RAM floor?" as g_capram
+    g_capram : entry / on_enter_state, on_enter_g_capram
+    state "route to codespace-exec" as route_codespace
+    route_codespace : entry / on_enter_state, on_enter_route_codespace
+    state "moment:pre-launch (local only)" as prelaunch
+    prelaunch : entry / on_enter_state, on_enter_prelaunch
+    state "pre-launch cleared?" as g_prelaunch
+    g_prelaunch : entry / on_enter_state
+    state "already launched / occupied?" as g_held
+    g_held : entry / on_enter_state, on_enter_g_held
+    spawn : entry / on_enter_state, on_enter_spawn
+    state "provider started?" as g_spawn
+    g_spawn : entry / on_enter_state
+    state "identify the job" as identify
+    identify : entry / on_enter_state, on_enter_identify
+    state "job identified?" as g_identify
+    g_identify : entry / on_enter_state
+    state "launch receipt" as receipt
+    receipt : entry / on_enter_state, on_enter_receipt
+    state "lane live: P1 watches" as running
+    running : entry / on_enter_state
+    state "END launched" as end_launched
+    end_launched : entry / on_enter_state
+    state "END REFUSED (exit 5)" as end_refused
+    end_refused : entry / on_enter_state
+    state "END already-launched [#1572]" as end_already_launched
+    end_already_launched : entry / on_enter_state
+    state "END HOLD (re-poll)" as end_hold
+    end_hold : entry / on_enter_state
+    state "END routed to codespace" as end_routed_codespace
+    end_routed_codespace : entry / on_enter_state
+    state "END job unresolved (exit 8)" as end_unresolved
+    end_unresolved : entry / on_enter_state
+    state "END reaped (RAM)" as end_reaped
+    end_reaped : entry / on_enter_state
+    state "END-EARLY" as end_early
+    end_early : entry / on_enter_state
+    [*] --> start
+    end_launched --> [*]
+    end_refused --> [*]
+    end_already_launched --> [*]
+    end_hold --> [*]
+    end_routed_codespace --> [*]
+    end_unresolved --> [*]
+    end_reaped --> [*]
+    end_early --> [*]
+    start --> parse : Go
+    parse --> g_agree
+    g_agree --> valid : [parse_ok]
+    g_agree --> end_refused : [!parse_ok]
+    valid --> g_valid
+    g_valid --> tier : [valid_ok]
+    g_valid --> end_refused : [!valid_ok]
+    tier --> claim
+    claim --> g_claim
+    g_claim --> g_dep : [claim_ok]
+    g_claim --> end_refused : [!claim_ok]
+    g_dep --> g_serial : [dep_ready]
+    g_dep --> end_refused : [dep_failed]
+    g_dep --> end_hold : [dep_waiting]
+    g_serial --> g_substrate : [serial_clear]
+    g_serial --> end_hold : [!serial_clear]
+    g_substrate --> g_capram : [sub_local]
+    g_substrate --> route_codespace : [sub_codespace]
+    g_substrate --> end_refused : [sub_other]
+    g_capram --> prelaunch : [capram_fire]
+    g_capram --> end_hold : [!capram_fire]
+    route_codespace --> end_routed_codespace
+    prelaunch --> g_prelaunch
+    g_prelaunch --> g_held : [prelaunch_ok]
+    g_prelaunch --> end_refused : [!prelaunch_ok]
+    g_held --> spawn : [held_free]
+    g_held --> end_already_launched : [held_live]
+    g_held --> end_refused : [held_unreadable]
+    spawn --> g_spawn
+    g_spawn --> identify : [spawn_ok]
+    g_spawn --> end_refused : [!spawn_ok]
+    identify --> g_identify
+    g_identify --> receipt : [identified]
+    g_identify --> end_unresolved : [!identified]
+    receipt --> running
+    running --> end_launched : Lane handback
+    running --> end_reaped : Lane reaped
+    running --> end_early : Lane ended early
+
+    classDef active fill:#40E0D0,stroke:#333
+    start:::active
