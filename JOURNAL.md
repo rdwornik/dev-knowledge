@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-18 (e) - CC (Sonnet 5.5, lane e1-rows, batch E1): R116-R136 land in STANDING_RULINGS, the 18 D0 rows get a ratifying act (RETRO-RATIFICATION), seven owed rows filed
+
+**Anchors:** `6ab3f5b6` (sections AV and AW), `ddcad6f8` (decided-by, the `[#1633]` rewrite, rows `[#1643]`-`[#1649]`, intake 118), `152f953b` (the rulings_carried repair); branch `worktree-d0-rows`, introduced by this merge. This letter follows `(b)` of this branch; the P0 branch carries `(a)`.
+
+**Did:** landed R116-R128 (§AV) and R129-R136 (§AW) verbatim from their transport sources: 22 fenced blocks diffed against their line ranges, 0 mismatches. The list was derived, not assumed: R116, R119, R120 (`RATIFICATION-2026-10-14.md`), R121-R128 (`-10-17`), R129-R136 (`-10-18` v2, R133 and R134 in the v2 wording). **R117 and R118 are landed too:** v9 carries them unchanged and their text exists only in the superseded v8, so the bundle's "not landed" list omitted them. No R116-R136 entry existed before; the one clashing name is `[#1579]`'s "R129 (ADR-129)", reported not edited.
+
+**D8 deviation, stated plainly: this is a RETRO-RATIFICATION.** The 18 rows `[#1625]`-`[#1642]` were born on 2026-10-18 with no ratifying act in their bodies (ADR-111 §4); the acts that cover them were landed afterwards, by this lane. It is not the ADR-111 2026-08-25 amendment's packet route (no adjudication packet with a per-row reason exists), and nothing here claims it is. Fourteen rows keep their place with `· decided-by:` citing landed rulings (R63, R94, R101, R114, R122, R125, R128-R134, R136); `[#1633]` is rewritten as the code queue runner under R130 (target batch E2). Four rows have no ratified ruling, Accepted ADR or ACCEPTED intake behind them and left the branch: `[#1629]` main ship-gate 0 hard-fail (R98 covers only the known-red registry entries; the Codex review of this lane rated keeping it HIGH), `[#1637]` row_close in the integrator template, `[#1638]` generated STATUS.md, `[#1642]` queue refire of a MERGED lane. Their text is carried verbatim in intake 118 (`docs/intake/2026-10-18-tech-d0-rows-without-a-ratified-ruling.md`, SEED). `[#1635]` (R131, R129) is the weakest remaining fit: the rulings cover the generated-model class, not MAP-DISPATCH by name (the Codex review rated it MED).
+
+**Filed:** `[#1643]` CloudSubstrate read-only port (R132) · `[#1644]` agy credential path in a box (R135) · `[#1645]` R133 consolidation and the `plan_lint` decision gate · `[#1646]` M1 v2 per vendor in its role (R134) · `[#1647]` `transport_lint` and `$CLAUDE_PROMPTS_DIR` (R71) · `[#1648]` `plan_lint` needs an integrator for a code lane (R130, R128) · `[#1649]` `plan_lint` needs a ratifying act for a row birth (I-F1, ADR-111 §4). Each has an owner, an executable Done-when with a real-use witness, a target batch (E2) and `decided-by`.
+
+**Result:** `decision_coverage.py rulings` reads 81 of 81 gated rulings carried (R119 and R120 by written disposition, as §AU did: the rows that carry them name no `owner:` clause). The orchestrator's `chore(logs)` commit `43f7e880` swept the staged deletions of the three rows into itself (one checkout, two committers); the content is unchanged.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (§AV, §AW), `tasks/1625-*` .. `tasks/1649-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `docs/intake/` (intake 118, `README.md` and `manifest.json` regenerated), `JOURNAL.md`.
+
+**Abandoned:** nothing landed on `main`; no old entry, ADR, or ruling edited; no row filed beyond `[#1643]`-`[#1649]`.
+
+**Next:** the integrator lands this branch after the two code lanes and regenerates the generated surfaces on the merged tree; the operator rules intake 118; the seat decides whether `[#1626]` still needs its spike now that R131 ruled ADR-beta = B.
+
 ### 2026-10-18 (d) - CC (Opus 5.5, integrator E1): e1-1572-fix merges, stacked on (c) -- a held launch lock is judged by its holder: dead reclaimed with a recorded line, live refuses, unreadable or undeterminable refuses (D6) [#1572]
 
 **Anchors:** `1798a6a2` (handback tip, branch `worktree-e1-1572-fix`, introduced by this merge), `98c8752a` (fix), `d075c519` (RED), `d5705d20` (agy pin; same blob as the p0 lane's `66478e51`), and the D0 commits it started from (`9eb33856`, `4fdfb299`, `56c1ddbd`, `410f9f29`, `c15db3e4`, `edaa0a66`, `d8aa4dd7`).
@@ -49,6 +67,20 @@
 
 ---
 
+### 2026-10-18 (b) - CC (Sonnet 5.5, D0 orchestrator): BATCH-D0-PROCESS - the AS-IS process model, the main-green and queue lanes, the adoption audit, the model probe, the B-vs-C spike and the seat exam; three PROPOSAL-ADR drafts for the operator
+
+**Anchors:** `dbce4c89` (the D0 and D1 rows [#1625]-[#1642]; branch `worktree-d0-rows`, introduced by this merge), `4af83b48` (P0 lane tip, not merged), `9eb33856` (#1572 lane tip, not merged).
+
+**Did:** D0.1 AS-IS model (binding file, 197 nodes, 189 anchors exact, rendered diagrams, 1,902-byte handoff block); D0.2 P0 lane in a Codespace (ship-gate 11 -> 8 hard-fail, registry re-signed 81 -> 79; STOPPED by contract on the 8 `consumer_at_landing` fails; verified by a fresh Sonnet session and Codex terra); D0.7 [#1572] queue fix in a Codespace (RED-first, 142 targeted tests, terra APPROVE after one P1 fixed by the orchestrator, fresh verifier REQUEST-CHANGES on the OCCUPIED case only); D0.3 R125 adoption audit (725 decisions, 32 percent first-pass correction rate, the 7-day gate does not exist); D0.4 M1 probe (lane could not log in, matrix run on the laptop, USD ~3.7); D0.5 B-vs-C spike (Codex sol: grading NOT SOUND); D0.6 seat exam. Three ADR drafts: seat model, process-model form, Substrate protocol.
+
+**Result:** main is NOT green (D0.2 unmet); nothing was landed on main. Findings: the account caps running Codespaces at 2; `pins` refuses every launch after a laptop CLI update; `codespace-harvest` under cp1252 writes a 0-byte `run.log` and the delete gate passes it; `claude -p` JSON keeps only the last message and a Stop hook eats the report; the box tool shell has no Claude login. Gotchas appended for the three novel patterns.
+
+**Changes:** `tasks/1625-*` .. `tasks/1642-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `.claude/BOOT-REFERENCE.md` (carrier table: three kept branches), `JOURNAL.md`. Outputs on the transport: `to-browser/DIGEST-*-2026-10-18*.md`, `PROPOSAL-ADR-*-2026-10-18.md`, `SEAT-EXAM-2026-10-18.md`. Archive tags `archive/worktree-lane-dz-0-m1-model-probe`, `archive/worktree-lane-dz-0-spike-b-vs-c`; scratch branches and `worktree-d0-pin` deleted (pin commit `d8aa4dd7` rides in both kept lane branches).
+
+**Abandoned:** landing P0 and #1572 (not mine to merge); filing the 33 audit candidate rows (ADR-111: intake first).
+
+**Next:** the operator rules the three ADRs and the 8 `consumer_at_landing` hard-fails; the integrator lands `worktree-lane-dz-1350-p0-green-main` then `worktree-lane-dz-1572-queue-halt`, then `worktree-d0-rows`; on landing, this entry's letter may need re-lettering against the P0 branch's `2026-10-18 (a)` CORRECTION entry.
+
 ### 2026-10-18 (a) - CC (Sonnet 5.5, lane lane-dz-1350-p0-green-main, D0): CORRECTION -- 2026-10-14 carries two entries lettered (b); [#926]
 
 **Correction by addition** (JOURNAL is append-only; neither entry is edited). Two 2026-10-14 entries both carry the letter (b). Read them in this order, top to bottom as they stand in the file, as (b) and (c) -- each one names its block by its full heading line:
@@ -57,6 +89,7 @@
 - `### 2026-10-14 (b) - CC (Opus 5.5, orchestrator, BATCH-CODESPACE-FINISH-2026-10-14): the Codespace finish through the isolated stage chain -- REFUSE after round 2, step 3 blocked by main's lane-report schema` -- is read as (c)
 
 **Why this entry:** the in-body note at the 2026-10-15 merge entry names the collision but is not a CORRECTION-headed entry, so `audit.py::check_journal_day_letters` (the `[#926]` correction-by-addition narrowing) did not count it and reported `2026-10-14 (b)` as an open duplicate on main. **Honest limit:** this clears `journal_day_letters` only until the `[#926]` narrowing expires (2026-11-18); after that the collision counts again and `[#926]` must be re-ruled. The other two resolved collisions the gate lists (2026-09-18 (f), 2026-10-11 (d)) are unchanged.
+
 
 ### 2026-10-17 (d) - CC (Sonnet 5.5, batch-cut seat): the handoff cut `2026-10-17-dev-knowledge-architect` for Tech-Architect-46, after a clean-git hygiene sweep (BATCH-CUT-2026-10-17 + AMEND-1)
 

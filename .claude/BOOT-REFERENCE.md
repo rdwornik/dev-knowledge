@@ -163,6 +163,7 @@ again with no edit required, and keeping it longer needs a new dated entry.
 
 | carrier branch | tip | closes when | expires |
 |---|---|---|---|
+| `worktree-d0-rows` | `dbce4c89` + the D0 close commit | the operator ratifies the D0/D1 rows `[#1625]`-`[#1642]` and the integrator lands the branch | 2026-11-01 |
 
 - verify: every `worktree-*` branch with no registered worktree is either merged and deleted,
   or listed in the carrier table above, before its expiry, with `git ls-remote --heads origin

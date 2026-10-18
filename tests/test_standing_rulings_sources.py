@@ -459,19 +459,19 @@ def test_r58_is_landed_from_its_proposal_and_its_ratifying_line(entries_ar):
     assert "R58 is ratified" in blocks[1].body
 
 
-def test_the_bundles_landed_row_reads_through_r115_with_every_id_present():
+def test_the_bundles_landed_row_reads_through_r136_with_every_id_present():
     """Item 1: `handoff_state.row_landed` (W1-9's row) is read, not changed. On this tree it says
-    `through R115` (section AU, batch BU lane `lane-bu-1450-boot-v2`, extends section AT's R99),
-    and every id from R1 to R115 is bulleted except R103, which was never ruled (section AU)."""
+    `through R136` (sections AV and AW, batch E1 lane `e1-rows`, extend section AU's R115),
+    and every id from R1 to R136 is bulleted except R103, which was never ruled (section AU)."""
     import sys as _sys
     scripts = str(_REPO / "scripts")
     if scripts not in _sys.path:
         _sys.path.insert(0, scripts)
     import handoff_state as hs
     row = hs.row_landed(_REPO)
-    assert row.value.startswith("through R115 "), row.value
+    assert row.value.startswith("through R136 "), row.value
     ids = {int(n) for n in hs._LANDED_RE.findall(_REGISTER.read_text(encoding="utf-8"))}
-    want = set(range(1, 116)) - {103}
+    want = set(range(1, 137)) - {103}
     assert want <= ids, sorted(want - ids)
     assert 103 not in ids
 
