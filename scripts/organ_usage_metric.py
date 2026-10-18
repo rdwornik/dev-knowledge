@@ -2,20 +2,19 @@
 """organ_usage_metric.py -- AX9-5's metric: raw-search calls vs organ calls per session, and
 organs never called in `--days` (default 30) ([#694], AMEND-BATCH-X-ROSTER-009 Part 9).
 
-WHAT THIS ANSWERS. AX9-1's `deny_and_point.py` guard blocks a raw search over a governed
-question and points at the organ that answers it instead -- but a block is not a record, and
-nothing before this module counted how often the model reaches for `grep` versus a real organ.
-AX9-5 names the number: *"the operator sees in one number whether the model uses the harness
-or rebuilds it."*
+WHAT THIS ANSWERS. AX9-1's retired `deny_and_point.py` guard blocked a raw search over a
+governed question and pointed at the organ that answers it instead -- but a block is not a
+record, and nothing before this module counted how often the model reaches for `grep` versus
+a real organ. AX9-5 names the number: *"the operator sees in one number whether the model
+uses the harness or rebuilds it."*
 
 WHERE THE DATA COMES FROM, and why this is a READER, not an instrument -- the same posture
 `lane_cost.py` states for tokens (`"a reader rather than an instrument"`): every Bash/PowerShell/
 Grep tool call a session makes is ALREADY on disk, in Claude Code's own session transcripts
 under `~/.claude/projects/<slug>/*.jsonl`. This module classifies each `tool_use` content block
 it finds there and adds nothing: no new hook, no new PreToolUse side-effect, no live wiring at
-any call site. `deny_and_point.py` stays exactly as it was -- a blocking gate that emits no
-record -- and this module reads the same transcripts `lane_cost.py` already reads, for a
-different question.
+any call site. The retired guard emitted no record; this module reads the same transcripts
+`lane_cost.py` already reads, for a different question.
 
 WHY THIS IS ITS OWN MODULE, NOT A FUNCTION ON `cost_usage_telemetry.py`. That module's own
 docstring states the boundary this row's Done-when repeats about `telemetry_emit.py`: a
@@ -25,13 +24,14 @@ Its docstring also states plainly that it "owns no read surface, matching `telem
 own Stage-3 deferral" -- so a read-only report belongs beside it, in the row `[#694]` scopes to
 the surviving telemetry, never folded into the emitter whose own text refuses that fold.
 
-THE CLASSIFIER IS DELIBERATELY SIMPLER THAN `deny_and_point.py`'S PREDICATE. That module is a
-BLOCKING gate and pays for adversarial precision -- wrapper-stripping, pattern-vs-path, the
-declared escape marker -- because a false block wedges a session. This is a passive metric with
-no refusal to get wrong, so a modest miss rate on an unusual invocation form (a search buried in
-a heredoc body, an organ invoked through an alias) costs nothing. `RAW_SEARCH_HEADS` is the same
-head vocabulary `deny_and_point.SEARCH_HEADS` uses; `known_organs()` reads the SAME persisted
-FPG-1 process set `deny_and_point.load_processes()` reads, so "organ" means the same thing on
+THE CLASSIFIER IS DELIBERATELY SIMPLER THAN THE RETIRED GUARD'S PREDICATE. `deny_and_point.py`
+(retired; its search-head vocabulary, shell-tool tuple, repo root and `load_processes` now
+live here) was a BLOCKING gate and paid for adversarial precision -- wrapper-stripping,
+pattern-vs-path, the declared escape marker -- because a false block wedges a session. This
+is a passive metric with no refusal to get wrong, so a modest miss rate on an unusual
+invocation form (a search buried in a heredoc body, an organ invoked through an alias) costs
+nothing. `RAW_SEARCH_HEADS` is that re-homed `SEARCH_HEADS`; `known_organs()` reads the SAME
+persisted FPG-1 process set `load_processes()` reads, so "organ" means the same thing on
 both surfaces without this module recomputing it.
 
 HONEST LIMITS.
@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import json
 import shlex
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -65,18 +66,29 @@ from typing import Any, Iterator
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
-_HOOKS = _SCRIPTS / "hooks"
-if str(_HOOKS) not in sys.path:  # `deny_and_point.py` has no package (`scripts/hooks/`
-    sys.path.insert(0, str(_HOOKS))  # carries no `__init__.py`) -- reached the same way
-                                      # `deny_and_point.py` reaches ITS siblings: by path.
 
 try:  # the dual package/script import shim `lane_cost.py` documents at its own top
     from scripts import lane_cost as _lc
 except ImportError:
     import lane_cost as _lc  # noqa: E402
-import deny_and_point as _dap  # noqa: E402
 import graph_queries as _gq  # noqa: E402
 import graph_store as _gs  # noqa: E402
+
+#: This file lives at `scripts/`, so the root is one level up. The retired guard lived at
+#: `scripts/hooks/` and used parents[2]; the same checkout root, one parent fewer.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+#: Tools whose calls are judged at all. Re-homed verbatim from the retired deny_and_point guard.
+SHELL_TOOLS = ("Bash", "PowerShell")
+
+#: A search tool, recognised as the HEAD of a command segment only. Re-homed verbatim.
+SEARCH_HEADS = frozenset({
+    "grep", "egrep", "fgrep", "zgrep",
+    "rg", "ripgrep",
+    "ag", "ack",
+    "find",
+    "select-string", "sls",
+})
 
 #: Claude Code's session store -- same default `lane_cost.DEFAULT_SESSIONS_ROOT` names.
 DEFAULT_SESSIONS_ROOT = _lc.DEFAULT_SESSIONS_ROOT
@@ -85,9 +97,9 @@ DEFAULT_SESSIONS_ROOT = _lc.DEFAULT_SESSIONS_ROOT
 #: `lane_cost.MAX_TRANSCRIPT_LINE_BYTES` states (measured there: largest real line 1.36 MB).
 MAX_LINE_BYTES = _lc.MAX_TRANSCRIPT_LINE_BYTES
 
-#: The same search-tool vocabulary `deny_and_point.SEARCH_HEADS` uses -- a raw search means the
-#: same thing on both surfaces.
-RAW_SEARCH_HEADS: frozenset[str] = _dap.SEARCH_HEADS
+#: The re-homed search-tool vocabulary -- a raw search means the same thing the retired
+#: guard meant by it.
+RAW_SEARCH_HEADS: frozenset[str] = SEARCH_HEADS
 
 TOOL_CALL_CLASSES = ("raw_search", "organ_call")
 
@@ -120,7 +132,7 @@ def classify_tool_call(tool_name: str, tool_input: dict, organs: frozenset[str])
     """
     if tool_name == "Grep":
         return "raw_search"
-    if tool_name not in _dap.SHELL_TOOLS:
+    if tool_name not in SHELL_TOOLS:
         return None
     command = tool_input.get("command")
     if not isinstance(command, str) or not command.strip():
@@ -227,16 +239,38 @@ def canonical_repo_root(start: Path | str | None = None) -> Path:
     on PATH, not a git checkout) rather than raising -- a non-git context still gets a usable
     root instead of a crash.
     """
-    base = Path(start) if start is not None else _dap.REPO_ROOT
+    base = Path(start) if start is not None else REPO_ROOT
     return _git_common_dir(base) or base
 
 
+def load_processes(repo_root: Path | str = REPO_ROOT) -> dict[str, str]:
+    """The process set FPG-1 already holds: repo-relative path -> process class.
+
+    READ ONLY, and deliberately without a freshness check. Re-homed verbatim from the retired
+    deny_and_point guard: a stale or missing store must degrade to "not governed" rather than
+    to a refusal. A corrupt store raises (the caller decides); an absent file returns {}.
+    """
+    import graph_store as gs  # noqa: PLC0415 -- kept off the import path of a non-search caller
+
+    db = gs.store_path(repo_root)
+    if not Path(db).exists():
+        return {}
+    con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        rows = con.execute(
+            "SELECT path, process_class FROM nodes WHERE process_class IS NOT NULL"
+        ).fetchall()
+    finally:
+        con.close()
+    return {path: klass for path, klass in rows if path}
+
+
 def known_organs(repo_root: Path | str | None = None) -> frozenset[str]:
-    """The process set FPG-1 already holds -- the SAME store `deny_and_point.py` reads, so
+    """The process set FPG-1 already holds -- the SAME store the retired guard read, so
     "organ" is one vocabulary rather than two. Empty when the store is absent, never a raise:
     an unmeasured tree reports zero organs, not a crash."""
-    root = Path(repo_root) if repo_root is not None else _dap.REPO_ROOT
-    return frozenset(_dap.load_processes(root))
+    root = Path(repo_root) if repo_root is not None else REPO_ROOT
+    return frozenset(load_processes(root))
 
 
 def _session_dirs(repo_root: Path, sessions_root: Path) -> list[Path]:
@@ -301,10 +335,11 @@ def organ_usage_report(
     its own: the transcripts ARE the store, the same posture `lane_cost.py` takes on tokens.
 
     `organs` overrides `known_organs()` -- the injection seam a test uses, the same split
-    `deny_and_point.decide(payload, processes)` draws between the pure predicate and the
-    store-loading wrapper around it.
+    the retired guard's `decide(payload, processes)` drew between the pure predicate and the
+    store-loading wrapper around it. `decide` itself is not ported: it lived only as that
+    predicate, and this reader never judged a call.
     """
-    root = Path(repo_root) if repo_root is not None else _dap.REPO_ROOT
+    root = Path(repo_root) if repo_root is not None else REPO_ROOT
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
@@ -497,7 +532,7 @@ def process_census(
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
-    procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
+    procs = dict(processes) if processes is not None else dict(load_processes(root))
     reached = reachable if reachable is not None else wiring_reachable(root)
 
     counts: dict[str, int] = dict.fromkeys(procs, 0)
@@ -506,7 +541,7 @@ def process_census(
     for directory in session_dirs:
         for transcript in sorted(directory.glob("*.jsonl")):
             for ts, tool_name, tool_input in _iter_tool_calls(transcript):
-                if tool_name not in _dap.SHELL_TOOLS or not ts:
+                if tool_name not in SHELL_TOOLS or not ts:
                     continue
                 try:
                     when = datetime.fromisoformat(ts.replace("Z", "+00:00"))

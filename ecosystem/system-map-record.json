@@ -1,25 +1,17 @@
 {
- "built_at": "a3d48ee6f3e56d4266f5bba8234598ecc8c4a09d",
+ "built_at": "ae9a62dcf48df6184bc9370484743ba634807d50",
  "diff": {
   "added": [],
   "added_count": 0,
   "baseline": false,
   "removed": [
-   "file:.claude/commands/save.md",
-   "file:.claude/skills/aj-scan/SKILL.md",
-   "file:ecosystem/aj-scan-state.yaml",
-   "file:scripts/aj_scan.py",
-   "file:scripts/carrier_landed_check.py",
-   "file:scripts/export_backlog_view.py",
-   "file:scripts/hook_expiry_verdict.py",
-   "file:scripts/offload_admission.py",
-   "file:scripts/surface_triage.ps1"
+   "file:scripts/hooks/deny_and_point.py"
   ],
-  "removed_count": 9
+  "removed_count": 1
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "9b3d02c00a80eaef46e91fdce62aba72edd958b1bd2786b95e345e3b993142be",
- "node_count": 371,
+ "map_sha": "fbec8ef02243470a77a3a55e0beb63454a718528830136db06c40c6fd23fe888",
+ "node_count": 370,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
   "file:.claude/commands/boot-session.md",
@@ -202,7 +194,6 @@
   "file:scripts/harness_probes.py",
   "file:scripts/hooks/block_immutable_edits.py",
   "file:scripts/hooks/bounded_hook.py",
-  "file:scripts/hooks/deny_and_point.py",
   "file:scripts/hooks/hook_launcher.py",
   "file:scripts/hooks/hook_watchdog.py",
   "file:scripts/hooks/quota_daily.py",
@@ -393,6 +384,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": "2da753340781f614f9c72b6a0e71459187a4618f61d245607b2fe640447d5c2f",
+ "previous_sha": "9b3d02c00a80eaef46e91fdce62aba72edd958b1bd2786b95e345e3b993142be",
  "schema": "system-map-record/1"
 }
