@@ -1083,3 +1083,10 @@ def test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once(tmp_path, rec
     reclaim_lines = (receipts / "LAUNCH-RECLAIM-LANE-A.jsonl").read_text(
         encoding="utf-8").splitlines()
     assert len(reclaim_lines) == 1
+
+
+def test_a_lock_removed_between_the_create_and_the_read_is_gone_not_unreadable(receipts):
+    """[#1572] D6: a holder that finishes between our failed create and our read leaves nothing to
+    judge -- the launcher tries the create again, it does not refuse."""
+    verdict, pid, _why = d._judge_lock(receipts / "LAUNCH-LOCK-LANE-A")
+    assert verdict == "GONE" and pid is None

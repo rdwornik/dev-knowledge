@@ -86,7 +86,9 @@ from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import click
+import psutil
 import yaml
+from filelock import FileLock, Timeout as FileLockTimeout
 
 try:  # pragma: no cover -- exercised by whichever path the caller uses
     from scripts import lane_cost as lc
@@ -1058,6 +1060,82 @@ def _age_seconds(stamp: object) -> Optional[float]:
     return (datetime.now(timezone.utc) - then.astimezone(timezone.utc)).total_seconds()
 
 
+# The holder started BEFORE it wrote the stamp, so a process that began much later is a recycled
+# pid; the slack absorbs boot-time and clock jitter so a live holder is never judged dead.
+_LOCK_PID_RECYCLE_SLACK_S = 120
+_LOCK_LINE = re.compile(r"^pid (\d+) at (\S+)\s*$")
+_LOCK_ATTEMPTS = 3
+_LOCK_RECLAIM_TIMEOUT_S = 30
+
+
+def _lock_stamp_epoch(text: str) -> Optional[float]:
+    """UTC epoch of a lock stamp, or None when it will not parse. A trailing Z is UTC; a naive
+    stamp is treated as UTC."""
+    raw = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        stamp = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp.timestamp()
+
+
+def _holder_liveness(pid: int, stamp_epoch: float) -> tuple[str, str]:
+    """`(ALIVE|DEAD|UNDETERMINABLE, why)` for the process named by a parsed lock.
+
+    `psutil.Process` rather than `os.kill(pid, 0)`: the latter is not portable to Windows."""
+    try:
+        holder = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return "DEAD", f"pid {pid} is not running"
+    except psutil.Error as exc:
+        return "UNDETERMINABLE", f"pid {pid} could not be looked up ({type(exc).__name__}: {exc})"
+    try:
+        started = holder.create_time()
+    except psutil.AccessDenied:
+        return "ALIVE", f"pid {pid} exists; its start time could not be read"
+    except psutil.Error as exc:
+        return "UNDETERMINABLE", f"pid {pid} start time could not be read ({type(exc).__name__}: {exc})"
+    except OSError as exc:
+        return "UNDETERMINABLE", f"pid {pid} start time could not be read ({type(exc).__name__}: {exc})"
+    if started > stamp_epoch + _LOCK_PID_RECYCLE_SLACK_S:
+        return "DEAD", f"pid {pid} started after the lock was written (recycled)"
+    return "ALIVE", f"pid {pid} is running"
+
+
+def _judge_lock(path: Path) -> tuple[str, Optional[int], str]:
+    """`(verdict, pid, why)` for the lock file at `path`.
+
+    Verdict is ALIVE, DEAD, UNREADABLE, UNDETERMINABLE, or GONE (the holder finished and removed it
+    between the caller's create and this read -- the caller just tries the create again). `pid` is
+    set only when the line parsed."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return "GONE", None, "the lock was removed"
+    except OSError as exc:
+        return "UNREADABLE", None, f"cannot read the lock ({type(exc).__name__}: {exc})"
+    matched = _LOCK_LINE.fullmatch(text.strip())
+    if matched is None:
+        return "UNREADABLE", None, "the lock text is not 'pid <pid> at <stamp>'"
+    pid = int(matched.group(1))
+    if pid <= 0:
+        return "UNREADABLE", None, f"pid {pid} is not a live process id"
+    stamp_epoch = _lock_stamp_epoch(matched.group(2))
+    if stamp_epoch is None:
+        return "UNREADABLE", None, f"stamp {matched.group(2)!r} is not a time"
+    verdict, why = _holder_liveness(pid, stamp_epoch)
+    return verdict, pid, why
+
+
+def _refuse_unjudged(slug: str, path: Path, why: str) -> LaunchRefused:
+    return LaunchRefused(
+        f"a launch of {slug} is in progress or left a lock that cannot be judged "
+        f"(lock {path}: {why}); refusing rather than assuming it is free or held -- "
+        "remove the lock by hand once you know")
+
+
 def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]]) -> str:
     """'' when nothing holds the slug; else what does. ListingUnreadable when a Claude lane's state
     cannot be read -- the caller refuses, it never assumes free.
@@ -1093,23 +1171,72 @@ class _SlugLock:
     """One launch of a slug at a time: an exclusive-create lock file beside the receipts.
 
     A launch that finds it refuses (`in progress`); it is removed when the launch ends, refused or
-    not. It is never stolen: a launch killed outright leaves it, and the refusal names the file --
-    removing it is the operator's call, like any other husk."""
+    not. A live holder's lock is never taken. A DEAD holder's lock is reclaimed, and the reclaim is
+    recorded before the file is removed. An unreadable or undeterminable lock is refused and left
+    in place: the refusal names the file, and removing it is the operator's call."""
 
     def __init__(self, slug: str):
         self.path = receipts_dir() / f"LAUNCH-LOCK-{slug.upper()}"
         self.slug = slug
 
+    def _raise_for(self, verdict: str, pid: Optional[int], why: str) -> None:
+        if verdict == "ALIVE":
+            raise AlreadyLaunched(
+                f"a launch of {self.slug} is in progress (lock {self.path}, held by live pid {pid})")
+        if verdict in ("UNREADABLE", "UNDETERMINABLE"):
+            raise _refuse_unjudged(self.slug, self.path, why)
+
+    def _reclaim_dead(self, pid: int) -> None:
+        """Under the reclaim guard, re-judge and take a lock that is still DEAD.
+
+        The journal line is appended BEFORE the unlink: a reclaim with no recorded line must not
+        happen. The guard file `<lock>.reclaim` is a filelock (an OS-level lock, released on
+        process death); it is left in place -- unlinking a lock file other processes may be waiting
+        on would strand them."""
+        guard = FileLock(str(self.path) + ".reclaim", timeout=_LOCK_RECLAIM_TIMEOUT_S, thread_local=False)
+        try:
+            with guard:
+                if not self.path.exists():
+                    return
+                verdict, held, why = _judge_lock(self.path)
+                self._raise_for(verdict, held, why)
+                if verdict != "DEAD" or held is None:
+                    return
+                line = json.dumps({
+                    "event": "lock-reclaimed", "slug": self.slug, "lock": str(self.path),
+                    "dead_pid": held, "at": _stamp()}) + "\n"
+                journal = receipts_dir() / f"LAUNCH-RECLAIM-{self.slug.upper()}.jsonl"
+                try:
+                    with journal.open("a", encoding="utf-8", newline="\n") as sink:
+                        sink.write(line)
+                except OSError as exc:
+                    raise LaunchRefused(
+                        f"a launch of {self.slug} found a dead lock ({self.path}) but could not record "
+                        f"the reclaim ({type(exc).__name__}: {exc}); refusing rather than taking it "
+                        "unrecorded") from exc
+                self.path.unlink()
+                click.echo(f"[dispatch] reclaimed the launch lock of {self.slug}: holder pid {held} "
+                           f"is dead ({self.path})", err=True)
+        except FileLockTimeout as exc:
+            raise LaunchRefused(
+                f"a launch of {self.slug} could not reclaim the lock ({self.path}): the reclaim guard "
+                f"was not free within {_LOCK_RECLAIM_TIMEOUT_S}s") from exc
+
     def __enter__(self) -> "_SlugLock":
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc:
-            raise AlreadyLaunched(f"a launch of {self.slug} is in progress (lock {self.path}); if that launch "
-                                  "died, remove the lock file by hand") from exc
-        with os.fdopen(fd, "w", encoding="utf-8") as sink:
-            sink.write(f"pid {os.getpid()} at {_stamp()}\n")
-        return self
+        for _attempt in range(_LOCK_ATTEMPTS):
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                verdict, pid, why = _judge_lock(self.path)
+                self._raise_for(verdict, pid, why)
+                if verdict == "DEAD" and pid is not None:
+                    self._reclaim_dead(pid)
+                continue
+            with os.fdopen(fd, "w", encoding="utf-8") as sink:
+                sink.write(f"pid {os.getpid()} at {_stamp()}\n")
+            return self
+        raise LaunchRefused(f"the launch lock of {self.slug} keeps changing")
 
     def __exit__(self, *exc: object) -> None:
         try:
