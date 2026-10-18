@@ -314,7 +314,7 @@
         "task": "[#1347]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 81 == 86"
+        "signature": "AssertionError: assert 79 == 86"
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
@@ -628,7 +628,7 @@
         "task": "[#1347]",
         "owner": "rob",
         "expiry": "2026-10-31",
-        "signature": "AssertionError: assert 81 == 86"
+        "signature": "AssertionError: assert 79 == 86"
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
@@ -944,6 +944,7 @@
     "entries with no per-leg signature (the reason text varied over the evidence runs): test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock on win (3 distinct normalized signatures over 6 runs)",
     "2026-10-04 foundation-8-test-isolation: the three Windows flake members (the two graph-spine lock tests, [#1344]; the transport concurrent-append test, [#1350]) carry their shown cause, the script it lives in and their measured control rates; the transport member is new on windows-latest. No signature re-signed, no entry grew. The deny_and_point fail-closed pair was never registered (lane 5 merged on one CI read with the pair absent), so there is no entry of theirs to remove.",
     "2026-10-05 B2-W1 integrator cycle 11 (session ae3fca90), by operator emergency order 2026-10-05 (the decision AM2-2 waited for): 21 per-OS signatures re-signed to the live ones read on main 3e97b2fd's push run 37310685233 (ubuntu job 111765035834, windows job 111765035880; compare there: ubuntu 1, windows 21 REGRESSION, all SIG-CHANGED). Same cause, classified with evidence in to-browser/SESSION-integrator-b2-w1-2026-10-04.md (CLASSIFY-1/-2): (1) tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword on both legs 'assert 4 == 1' -> 'assert 5 == 1': the oracle resolves one more `class Finding` (scripts/transport_lint.py:66, added by 477353aa, lane b2-transport-lint) -- the [#1348] homonym count, a volatile fact (N5); (2) the 20 test_prompts_guard_hook_wiring.py entries on windows-latest \"KeyError: 'PreToolUse'\" -> 'expected exactly one prompts-guard hook, found 0': the guard is still OFF by operator order ([#863], expiry 2026-10-08); .claude/settings.json gained a PreToolUse block for scope_guard (193e9007, 2026-09-27), so the lookup no longer raises KeyError and finds no prompts-guard hook. Task, owner and expiry unchanged; no entry added, removed or widened.",
-    "2026-10-15 lane-bu-863-prompts-guard ([#863]/[#912]): removed the test_prompts_guard_hook_wiring entries (green once the prompts guard was re-armed), re-owned five entries to their exact open rows ([#673] x2, [#1022], [#829], [#457]), and gave every entry left on [#912] a disposition naming the row it is owed; shrink-only otherwise."
+    "2026-10-15 lane-bu-863-prompts-guard ([#863]/[#912]): removed the test_prompts_guard_hook_wiring entries (green once the prompts guard was re-armed), re-owned five entries to their exact open rows ([#673] x2, [#1022], [#829], [#457]), and gave every entry left on [#912] a disposition naming the row it is owed; shrink-only otherwise.",
+    "2026-10-18 lane-dz-1350-p0-green-main (D0): re-signed the two tests/test_archive_row_body.py::test_every_committed_record_still_proves_out signatures (ubuntu-latest, windows-latest) from 'assert 81 == 86' to the live 'assert 79 == 86' read on main 579053a3's push run 39059746061 (ubuntu). The entry is not widened or re-dated (task [#1347], expiry 2026-10-31 unchanged) and the test is untouched: the cause is 7 of 86 tasks/archive records whose row was edited after relocation, so archive_row_body.py verify reports LEG C UNPROVEN for them (tasks/archive/643, 669, 689, 694, 697, 740, 750). The fix is owed under [#1347], not here."
   ]
 }
