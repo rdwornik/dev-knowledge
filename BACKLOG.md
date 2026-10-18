@@ -897,7 +897,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1626] [P2][S] B-vs-C spike on P1 dispatch: state machine vs BPMN engine · tasks/1626-b-vs-c-spike-on-p1-dispatch-state-machin.md
 - [#1627] [P2][S] R125 audit: every ruling since 2026-07-01 counted by adoption state · tasks/1627-r125-audit-every-ruling-since-2026-07-01.md
 - [#1628] [P1][M] M1: measured model and effort table per role · tasks/1628-m1-measured-model-and-effort-table-per-r.md
-- [#1629] [P1][S] main ship-gate reads 0 hard-fail; archive-row signature current · tasks/1629-main-ship-gate-reads-0-hard-fail-archive.md
 - [#1630] [P1][S] R101(a) tier refusal runs in pre-launch · tasks/1630-r101-a-tier-refusal-runs-in-pre-launch.md
 - [#1631] [P2][S] Lane distiller default model comes from a role table · tasks/1631-lane-distiller-default-model-comes-from.md
 - [#1632] [P1][L] One Substrate protocol; pre-launch for every substrate · tasks/1632-one-substrate-protocol-pre-launch-for-ev.md

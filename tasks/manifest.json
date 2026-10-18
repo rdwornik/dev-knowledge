@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ea9356bf4b2fc38b3ab44f18cf0cb7d7da9c4134640317ba2e54a5cd67951a30",
+  "generated_sha256": "09dd889c1367d4d293e903f19f235ca0d6f49358b0b1b9cf93d4911a93f45b27",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3430,10 +3430,6 @@
     {
       "task": 1628,
       "file": "1628-m1-measured-model-and-effort-table-per-r.md"
-    },
-    {
-      "task": 1629,
-      "file": "1629-main-ship-gate-reads-0-hard-fail-archive.md"
     },
     {
       "task": 1630,

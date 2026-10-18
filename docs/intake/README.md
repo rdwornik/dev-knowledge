@@ -41,7 +41,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#115](2026-10-15-tech-test-strategy-rows.md) — SEED -- the day/night test system (R119) and tests in the graph (R120) need build rows
 - [#116](2026-10-16-tech-harness-defect-register.md) — SEED -- the harness defects found on 2026-10-14/15 are rows, not report prose
 - [#117](2026-10-16-tech-process-matrix-and-token-baseline.md) — SEED -- every declared process is used in a real run or removed, and the start-up context shrinks
-- [#118](2026-10-18-tech-d0-rows-without-a-ratified-ruling.md) — SEED -- three D0 rows whose only authority was the batch order
+- [#118](2026-10-18-tech-d0-rows-without-a-ratified-ruling.md) — SEED -- four D0 rows whose only authority was the batch order
 
 ### DRAFT (43)
 
