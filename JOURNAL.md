@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-10-18 (c) - CC (Sonnet 5.5, lane e1-rows, batch E1): R116-R136 land in STANDING_RULINGS, the 18 D0 rows get a ratifying act (RETRO-RATIFICATION), seven owed rows filed
+
+**Anchors:** `6ab3f5b6` (sections AV and AW), `ddcad6f8` (decided-by, the `[#1633]` rewrite, rows `[#1643]`-`[#1649]`, intake 118), `152f953b` (the rulings_carried repair); branch `worktree-d0-rows`, introduced by this merge. This letter follows `(b)` of this branch; the P0 branch carries `(a)`.
+
+**Did:** landed R116-R128 (§AV) and R129-R136 (§AW) verbatim from their transport sources: 22 fenced blocks diffed against their line ranges, 0 mismatches. The list was derived, not assumed: R116, R119, R120 (`RATIFICATION-2026-10-14.md`), R121-R128 (`-10-17`), R129-R136 (`-10-18` v2, R133 and R134 in the v2 wording). **R117 and R118 are landed too:** v9 carries them unchanged and their text exists only in the superseded v8, so the bundle's "not landed" list omitted them. No R116-R136 entry existed before; the one clashing name is `[#1579]`'s "R129 (ADR-129)", reported not edited.
+
+**D8 deviation, stated plainly: this is a RETRO-RATIFICATION.** The 18 rows `[#1625]`-`[#1642]` were born on 2026-10-18 with no ratifying act in their bodies (ADR-111 §4); the acts that cover them were landed afterwards, by this lane. It is not the ADR-111 2026-08-25 amendment's packet route (no adjudication packet with a per-row reason exists), and nothing here claims it is. Fifteen rows keep their place with `· decided-by:` citing landed rulings (R63, R94, R98, R101, R114, R122, R125, R128-R134, R136); `[#1633]` is rewritten as the code queue runner under R130 (target batch E2). Three rows have no ratified ruling, Accepted ADR or ACCEPTED intake behind them and left the branch: `[#1637]` row_close in the integrator template, `[#1638]` generated STATUS.md, `[#1642]` queue refire of a MERGED lane. Their text is carried verbatim in intake 118 (`docs/intake/2026-10-18-tech-d0-rows-without-a-ratified-ruling.md`, SEED). `[#1629]` (R98) and `[#1635]` (R131, R129) are the two weakest fits: the ruling covers the class, not the row by name.
+
+**Filed:** `[#1643]` CloudSubstrate read-only port (R132) · `[#1644]` agy credential path in a box (R135) · `[#1645]` R133 consolidation and the `plan_lint` decision gate · `[#1646]` M1 v2 per vendor in its role (R134) · `[#1647]` `transport_lint` and `$CLAUDE_PROMPTS_DIR` (R71) · `[#1648]` `plan_lint` needs an integrator for a code lane (R130, R128) · `[#1649]` `plan_lint` needs a ratifying act for a row birth (ADR-111 §4). Each has an owner, an executable Done-when with a real-use witness, a target batch (E2) and `decided-by`.
+
+**Result:** `decision_coverage.py rulings` reads 81 of 81 gated rulings carried (R119 and R120 by written disposition, as §AU did: the rows that carry them name no `owner:` clause). The orchestrator's `chore(logs)` commit `43f7e880` swept the staged deletions of the three rows into itself (one checkout, two committers); the content is unchanged.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (§AV, §AW), `tasks/1625-*` .. `tasks/1649-*`, `tasks/manifest.json`, `BACKLOG.md` (generated), `docs/intake/` (intake 118, `README.md` and `manifest.json` regenerated), `JOURNAL.md`.
+
+**Abandoned:** nothing landed on `main`; no old entry, ADR, or ruling edited; no row filed beyond `[#1643]`-`[#1649]`.
+
+**Next:** the integrator lands this branch after the two code lanes and regenerates the generated surfaces on the merged tree; the operator rules intake 118; the seat decides whether `[#1626]` still needs its spike now that R131 ruled ADR-beta = B.
+
 ### 2026-10-18 (b) - CC (Sonnet 5.5, D0 orchestrator): BATCH-D0-PROCESS - the AS-IS process model, the main-green and queue lanes, the adoption audit, the model probe, the B-vs-C spike and the seat exam; three PROPOSAL-ADR drafts for the operator
 
 **Anchors:** `dbce4c89` (the D0 and D1 rows [#1625]-[#1642]; branch `worktree-d0-rows`, introduced by this merge), `4af83b48` (P0 lane tip, not merged), `9eb33856` (#1572 lane tip, not merged).
