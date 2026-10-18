@@ -63,7 +63,6 @@ PROCESSES = {
     "scripts/gitenv.py": "script",
     "scripts/_common.py": "script",
     ".claude/commands/ship.md": "command",
-    ".claude/commands/save.md": "command",
     ".claude/commands/boot-session.md": "command",
     ".claude/skills/verify/SKILL.md": "skill",
 }

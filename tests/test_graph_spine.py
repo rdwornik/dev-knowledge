@@ -685,7 +685,9 @@ CENSUS_SCRIPT_ORPHANS = (
     #                                     which is `[#655]`'s missing production caller.
     "scripts/cost_usage_telemetry.py",
     "scripts/desired_state_loader.py",
-    "scripts/export_backlog_view.py",
+    # RETIRED by operator ratification R137 Q2 (worktree-e2-fates): export_backlog_view.py
+    # left with its tests, fixtures and ORPHAN_DISPOSITIONS entry. Named here rather than
+    # dropped, because a fixture that silently shrinks is not a fixture.
     "scripts/setup-fleet-scheduler.ps1",
     # RETIRED by lane `lane-x-664-delete-list-execution` ([#664]'s ratified DELETE list,
     # 2026-09-13), same rule as the [#734] block below and named separately so the two

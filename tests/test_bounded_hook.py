@@ -576,7 +576,7 @@ def test_the_rate_is_read_from_the_transcripts_for_a_hook_the_wrapper_never_ran(
     n = module.BROKEN_MIN_RUNS + 20
     start = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/changelog_sentinel.py"'
     sibling = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py"'
-    triage = 'powershell -ExecutionPolicy Bypass -File "$CLAUDE_PROJECT_DIR/scripts/surface_triage.ps1"'
+    triage = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/surface_triage.py"'
     guard = 'G="$CLAUDE_PROJECT_DIR/scripts/hooks/deny_and_point.py"; python "$G"'
     wrapped = 'python "x/scripts/hooks/bounded_hook.py" run --id arm-hooks --bound 40 -- python y'
     user_level = ('powershell -ExecutionPolicy Bypass -File '

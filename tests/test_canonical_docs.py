@@ -410,7 +410,7 @@ def test_the_living_doc_predicate_admits_the_a4_census_classes():
     (CLAUDE.md §4, "never restate a count or roster")."""
     for path in ("README.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md", "VISION.md",
                  "AGENTS.md", "protocols/PLAYBOOK.md", "protocols/ESSENTIALS.md",
-                 "protocols/HANDOFF_PROCESS.md", ".claude/commands/save.md",
+                 "protocols/HANDOFF_PROCESS.md", ".claude/commands/handoff.md",
                  ".claude/skills/verify/SKILL.md", ".claude/rules/git-discipline.md",
                  "deploy/global-instructions-codex.md", "plugins/tier1-lifecycle/INSTALL.md",
                  cdocs.HANDOFFS_README_PATH):

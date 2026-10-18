@@ -25,7 +25,10 @@ reached (the date itself is quoted, so the WARN names when it becomes a FAIL); a
 fate is `retire_candidate: true` (rolled into one list headed for the operator's GO). A fate
 whose shape is `moment: <name>` reads as OK -- no Finding at all -- when that moment's own
 organs left a receipt in the last 30 days (the organ fires as part of a moment the census's own
-reader does not credit it at); with no such receipt it falls back to leg 1, unfated.
+reader does not credit it at); with no such receipt it falls back to leg 1, unfated. A fate
+whose shape is `called_by: <repo-relative path>` reads as OK when that file exists under the
+repo root and its text contains the organ's repo path or its file name; otherwise it is a FAIL
+naming the organ and the reason. A verified `called_by` is a call, never a passed `manual_until`.
 
 FATES ARE A RECORD, NOT A NARROWING (R-W3-4, R-W4-1). `ecosystem/harness.yaml`'s `fates:` block
 is the disposition a prior census recorded for the organs it found uncalled -- this check reads
@@ -223,9 +226,10 @@ def _parse_date(value: object) -> "_dt.date | None":
 def _load_fates(root: Path) -> dict[str, dict]:
     """`{organ path: fate mapping}` from `ecosystem/harness.yaml`'s `fates:` block (R-W3-4,
     R-W4-1) -- the disposition a prior census recorded for each organ it found with no caller.
-    Each entry carries EXACTLY ONE of `manual_until`, `retire_candidate`, `moment` (the shape the
-    declaration's own comment names); a malformed entry raises, the same posture as an unreadable
-    declaration -- a check that cannot see its own ground truth FAILs, it does not skip it.
+    Each entry carries EXACTLY ONE of `manual_until`, `retire_candidate`, `moment`, `called_by`
+    (the shape the declaration's own comment names); a malformed entry raises, the same posture
+    as an unreadable declaration -- a check that cannot see its own ground truth FAILs, it does
+    not skip it.
     """
     path = root / _gq.MOMENTS_DECLARATION_REL
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -236,14 +240,43 @@ def _load_fates(root: Path) -> dict[str, dict]:
         if not isinstance(entry, dict) or not entry.get("path"):
             raise ValueError(
                 f"{_gq.MOMENTS_DECLARATION_REL}: a fates entry is not a mapping with a `path`")
-        shapes = [k for k in ("manual_until", "retire_candidate", "moment")
-                 if entry.get(k) not in (None, False)]
+        shapes = [k for k in ("manual_until", "retire_candidate", "moment", "called_by")
+                 if entry.get(k) not in (None, False, "")]
         if len(shapes) != 1:
             raise ValueError(
                 f"{_gq.MOMENTS_DECLARATION_REL}: fate for {entry['path']!r} must carry exactly "
-                f"one of manual_until, retire_candidate, moment (found {shapes or 'none'})")
+                f"one of manual_until, retire_candidate, moment, called_by "
+                f"(found {shapes or 'none'})")
         fates[str(entry["path"])] = entry
     return fates
+
+
+def _called_by_reason(root: Path, organ: str, caller_rel: object) -> str | None:
+    """Why a `called_by` fate fails, or None when the caller file exists and names the organ.
+
+    The caller is a repo-relative path. It must exist under the repo root, and its text must
+    contain the organ's repo path or its file name. A verified caller is a call -- never a
+    passed `manual_until`.
+    """
+    rel = str(caller_rel or "").strip()
+    if not rel or rel.startswith(("/", "\\")) or ".." in Path(rel).parts:
+        return f"{organ}: called_by {caller_rel!r} is not a repo-relative path"
+    caller = root / rel
+    try:
+        caller.resolve().relative_to(root.resolve())
+    except ValueError:
+        return f"{organ}: called_by {rel} escapes the repo root"
+    if not caller.is_file():
+        return f"{organ}: called_by {rel} is not a file"
+    try:
+        text = caller.read_text(encoding="utf-8")
+    except OSError as exc:
+        return f"{organ}: called_by {rel} could not be read ({exc})"
+    name = Path(organ).name
+    if organ not in text and name not in text:
+        return (f"{organ}: called_by {rel} never mentions the organ "
+                f"(neither {organ!r} nor {name!r})")
+    return None
 
 
 def _moment_ran_recently(root: Path, moment_name: str, today: _dt.date) -> bool:
@@ -323,6 +356,11 @@ def check_organ_truth(repo_path: Path) -> list[Finding]:
                 continue  # OK: the fate is satisfied, no Finding at all
             unfated.append(f"{row.path} (fate declares moment `{fate['moment']}` but it left no "
                            f"receipt in the last {_FATE_RECEIPT_WINDOW_DAYS} days)")
+        elif fate.get("called_by"):
+            reason = _called_by_reason(root, row.path, fate["called_by"])
+            if reason is None:
+                continue  # OK: a verified caller is a call, never a passed manual_until
+            findings.append(_fail(reason))
         else:  # pragma: no cover -- `_load_fates` already refuses any other shape
             unfated.append(row.path)
 

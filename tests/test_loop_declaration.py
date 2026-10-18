@@ -411,7 +411,7 @@ def test_the_declared_go_reader_row_runs_as_written(tmp_path, monkeypatch):
 
 # --- Done-contract 6: the 36 organs with no caller ---------------------------------------------------
 
-_FATE_KEYS = ("moment", "manual_until", "retire_candidate")
+_FATE_KEYS = ("moment", "manual_until", "retire_candidate", "called_by")
 _PRE_LANE_ORGANS = [
     "single_flight", "seat_refusals.refuse_no_live_integrator", "routing_agreement", "worktree_occupancy",
     "merge_receipt.models", "review_packet", "gates", "test_pairing", "no_leftovers", "lane_cost",
