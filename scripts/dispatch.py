@@ -1105,8 +1105,8 @@ class _SlugLock:
         try:
             fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError as exc:
-            raise LaunchRefused(f"a launch of {self.slug} is in progress (lock {self.path}); if that launch "
-                                "died, remove the lock file by hand") from exc
+            raise AlreadyLaunched(f"a launch of {self.slug} is in progress (lock {self.path}); if that launch "
+                                  "died, remove the lock file by hand") from exc
         with os.fdopen(fd, "w", encoding="utf-8") as sink:
             sink.write(f"pid {os.getpid()} at {_stamp()}\n")
         return self
