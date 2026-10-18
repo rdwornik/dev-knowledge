@@ -1,0 +1,36 @@
+● Remote index: queued rdwornik/dev-knowledge for indexing
+
+● cat tasks/1572-*.md | head -60; wc -l tests/test_dispatch_queue.py; grep -n "def \|^import\|^from"
+  tests/test_dispatch_queue.py | head -60
+  │ cat tasks/1572-*.md | head -60; wc -l tests/test_dispatch_queue.py; grep -n "def
+  │ \|^import\|^from" tests/test_dispatch_queue.py | head -60
+  └ 73 lines…
+
+● sed -n 28,86p tests/test_dispatch_queue.py; grep -n "CliRunner\|invoke" tests/test_dispatch_queue.
+
+  │ sed -n 28,86p tests/test_dispatch_queue.py; grep -n "CliRunner\|invoke"
+  │ tests/test_dispatch_queue.py
+  └ 61 lines…
+
+● sed -n 595,663p tests/test_dispatch_queue.py; grep -n "already.launched\|ALREADY" (shell)
+  scripts/dispatch.py | head -20
+  │ sed -n 595,663p tests/test_dispatch_queue.py; grep -n "already.launched\|ALREADY"
+  │ scripts/dispatch.py | head -20
+  └ 71 lines…
+
+● sed -n 1110,1145p scripts/dispatch.py; grep -n "def queue_cmd" -B12 scripts/dispatch.py | head -40
+  │ sed -n 1110,1145p scripts/dispatch.py; grep -n "def queue_cmd" -B12 scripts/dispatch.py | head
+  │ -40
+  └ 49 lines…
+
+● Create test_queue_already_launched.py +55
+  └ tests/test_queue_already_launched.py
+
+● uv run --locked pytest tests/test_queue_already_launched.py -x --tb=short -p no:cacheprovider 2>&1
+  tail -25; git status --short
+  │ uv run --locked pytest tests/test_queue_already_launched.py -x --tb=short -p no:cacheprovider
+  │ 2>&1 | tail -25; git status --short
+  └ 26 lines…
+
+`tests/test_queue_already_launched.py` fails on the assertion `exit_code == 0` because `queue` exits 5 with "lane-a is already launched: job abcd0001 is live…" instead of skipping lane-a and firing lanes 2 and 3. The file is the only change, and `scripts/dispatch.py` is untouched.
+

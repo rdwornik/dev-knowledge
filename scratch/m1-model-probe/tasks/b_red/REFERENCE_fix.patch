@@ -1,0 +1,19 @@
+diff --git a/scripts/dispatch.py b/scripts/dispatch.py
+index 4981ded2..11c9a030 100644
+--- a/scripts/dispatch.py
++++ b/scripts/dispatch.py
+@@ -3956,7 +3956,13 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
+         # `cwd=repo_root`: Codex terra review, HIGH -- without it, `launch_lane` defaulted to
+         # `Path.cwd()`, so `--repo-root` was accepted but silently had no effect on where a
+         # queued local lane's worktree was created.
+-        result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
++        try:
++            result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
++        except LaunchRefused as exc:
++            if "is already launched" not in str(exc):
++                raise
++            click.echo(f"[queue] already-launched {slug}: {exc}")
++            return
+         click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
+ 
+     def live_slugs() -> set:

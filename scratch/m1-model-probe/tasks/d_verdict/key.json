@@ -1,0 +1,4 @@
+{"verdict": "REQUEST-CHANGES",
+ "defect": {"file": "review.diff", "line": 11, "text": "return bool(re.search(r\"(?:[A-Za-z]:[\\\\/]|/)\", v))",
+            "why": "re.search instead of re.match: any operand that merely CONTAINS a slash (e.g. 'rel/dir') is accepted as absolute"},
+ "original": "original.diff has re.match at the same line; review.diff is original.diff plus this one seeded change"}

@@ -1,0 +1,9 @@
+{"files": ["scripts/claim.py", "templates/batch-common-rules-template.md", "tasks/1572-dispatch-py-queue-skips-an-already-launched-lane-and-fires-the-eligible-ones-instead-of-ha.md"],
+ "items": [
+  {"q": 1, "answer": "3", "file": "scripts/claim.py", "line": 107, "quote": "IN_FLIGHT = 3"},
+  {"q": 2, "answer": "10.0", "file": "scripts/claim.py", "line": 118, "quote": "_LOCK_TIMEOUT_S = 10.0"},
+  {"q": 3, "answer": ".CLAIMED-", "file": "scripts/claim.py", "line": 116, "quote": "_MARKER_INFIX = \".CLAIMED-\""},
+  {"q": 4, "answer": "to-browser/SESSION-<worktree-slug>.md", "file": "templates/batch-common-rules-template.md", "line": 93, "quote": "Your session file is exactly `to-browser/SESSION-<worktree-slug>.md`"},
+  {"q": 5, "answer": "none: no cron, no scheduled wake-ups, no loops", "file": "templates/batch-common-rules-template.md", "line": 82, "quote": "No cron, no scheduled wake-ups, no loops."},
+  {"q": 6, "answer": "97bcd374", "file": "tasks/1572-dispatch-py-queue-skips-an-already-launched-lane-and-fires-the-eligible-ones-instead-of-ha.md", "line": 12, "quote": "fails on 97bcd374"}
+ ]}

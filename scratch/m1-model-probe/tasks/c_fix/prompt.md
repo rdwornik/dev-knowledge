@@ -1,0 +1,3 @@
+You are in a checkout of a repository. The test file tests/test_transport_delete_pending.py is RED. It simulates a Windows delete-pending lock file (os.open raising PermissionError) and expects scripts/transport.py `_DestinationLock.__enter__` to treat that PermissionError as contention: retry inside the same deadline, and still end with TransportWriteRefused at the deadline if it never clears.
+
+Make the test green by editing scripts/transport.py ONLY (do not touch any test; do not edit any other file). Keep the change small (at most 15 changed lines). Run `uv run --locked pytest tests/test_transport_delete_pending.py tests/test_transport.py -q -p no:cacheprovider` and finish with one sentence saying what you changed.
