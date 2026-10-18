@@ -151,6 +151,12 @@ class LaunchRefused(DispatchRefused):
     exit_code = EXIT_REFUSED
 
 
+class AlreadyLaunched(LaunchRefused):
+    """The slug's earlier launch is still holding it. Still a refusal (exit 5, nothing spawned) for
+    `launch`; `queue` reads it as "already launched" -- a fact about one lane, not a reason to stop
+    the pass ([#1572])."""
+
+
 class ListingUnreadable(RuntimeError):
     """`claude agents --json` could not be read. NOT evidence that a lane finished or is absent."""
 
@@ -1138,7 +1144,7 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"cannot tell whether {request.slug} is already launched ({exc}); "
                                 "refusing rather than assuming it is free") from exc
         if holder:
-            raise LaunchRefused(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
+            raise AlreadyLaunched(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
         env = child_env(request.provider, environ if environ is not None else os.environ,
                         read_secrets(secrets_file) if provider.key else None)
         try:
@@ -1628,6 +1634,7 @@ ACTION_FIRE = "FIRE"
 ACTION_HOLD = "HOLD"
 ACTION_HELD_FAILED = "HELD-FAILED"
 ACTION_ROUTE_CODESPACE = "ROUTE-CODESPACE"
+ACTION_SKIP_MERGED = "SKIP-MERGED"
 
 
 @dataclass(frozen=True)
@@ -1643,6 +1650,9 @@ def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iter
     """One lane's decision, gate by gate, in the order a real launch must clear them: dependency,
     then `serialize-group`, then substrate (a codespace lane is ROUTED, never gated on cap/RAM --
     it does not use either), then the local cap, then the RAM floor."""
+    if states.get(lane.slug) == "MERGED":
+        return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
+                             "the integrator's receipt reads MERGED -- the lane is done, never refired")
     dep = dependency_status(lane, states)
     if dep == DEP_BLOCKED_FAILED:
         return QueueDecision(lane.slug, ACTION_HELD_FAILED,
@@ -1775,11 +1785,15 @@ class WatchResult:
     fired: tuple[str, ...]
     held_failed: tuple[str, ...] = ()
     routed_codespace: tuple[str, ...] = ()
+    skipped_merged: tuple[str, ...] = ()
+    already_launched: tuple[str, ...] = ()
 
     @property
     def terminal(self) -> frozenset[str]:
-        """Every slug this watcher is done waiting on, for any of the three reasons."""
-        return frozenset(self.fired) | frozenset(self.held_failed) | frozenset(self.routed_codespace)
+        """Every slug this watcher is done waiting on, for any of the five reasons ([#1572] added
+        `skipped_merged` and `already_launched` -- neither is a launch, so neither joins `fired`)."""
+        return (frozenset(self.fired) | frozenset(self.held_failed) | frozenset(self.routed_codespace)
+                | frozenset(self.skipped_merged) | frozenset(self.already_launched))
 
 
 def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s: float,
@@ -1792,8 +1806,8 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
                 free_mb_fn: Optional[Callable[[], float]] = None,
                 local_cap: int = 4, floor_mb: float = 3072.0,
                 max_polls: Optional[int] = None) -> WatchResult:
-    """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`),
-    OR `deadline_s` elapses -- whichever comes first, NEVER longer (each sleep is CLAMPED to what
+    """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`/
+    `SKIP-MERGED`/already launched), OR `deadline_s` elapses -- whichever comes first, NEVER longer (each sleep is CLAMPED to what
     is left before the deadline, Codex terra review HIGH: a full, un-clamped `poll_interval_s`
     sleep with little time left overshoots past `deadline_s` before the next check catches it).
 
@@ -1811,28 +1825,37 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
     fired: set[str] = set()
     held_failed: set[str] = set()
     routed: set[str] = set()
+    merged: set[str] = set()
+    already: set[str] = set()
     polls = 0
 
     def _result(expired: bool) -> WatchResult:
-        return WatchResult(polls, expired, tuple(fired), tuple(held_failed), tuple(routed))
+        return WatchResult(polls, expired, tuple(fired), tuple(held_failed), tuple(routed),
+                           tuple(merged), tuple(already))
 
     while True:
         polls += 1
-        resolved = fired | held_failed | routed
+        resolved = fired | held_failed | routed | merged | already
         decisions = plan_pass(lanes, order, fired=resolved, states=states_fn(),
                               live_slugs=live_slugs_fn(), local_cap=local_cap,
                               local_live_count=local_live_count_fn(), free_mb=free_mb_fn(),
                               floor_mb=floor_mb)
         for decision in decisions:
             if decision.action == ACTION_FIRE:
-                if on_fire is not None:
-                    on_fire(decision.slug)
-                fired.add(decision.slug)
+                try:
+                    if on_fire is not None:
+                        on_fire(decision.slug)
+                except AlreadyLaunched:
+                    already.add(decision.slug)   # launched earlier: reported, not fired, never a halt
+                else:
+                    fired.add(decision.slug)
             elif decision.action == ACTION_HELD_FAILED:
                 held_failed.add(decision.slug)
             elif decision.action == ACTION_ROUTE_CODESPACE:
                 routed.add(decision.slug)
-        resolved = fired | held_failed | routed
+            elif decision.action == ACTION_SKIP_MERGED:
+                merged.add(decision.slug)
+        resolved = fired | held_failed | routed | merged | already
         if all(slug in resolved for slug in order):
             return _result(expired=False)
         elapsed = clock() - start
@@ -3941,7 +3964,9 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
     pass over it (or, with --watch, a bounded loop -- see `watch_queue`) firing whatever clears
     its dependency (the --state-file fixture), `serialize-group`, local-cap and RAM gates. A
     codespace lane (`Dispatch-Codespace` head) is reported ROUTE-CODESPACE and never spawned here
-    -- `dispatch.py launch` refuses that head by design; use the codespace verb for it."""
+    -- `dispatch.py launch` refuses that head by design; use the codespace verb for it. A re-run
+    is idempotent ([#1572]): a lane already launched is reported `already-launched` (exit stays 0,
+    the pass goes on) and a lane the --state-file reads MERGED is `SKIP-MERGED`, never refired."""
     lanes = load_queue(list(contracts))
     order = launch_order(lanes)
     by_slug = {lane.slug: lane for lane in lanes}
@@ -3959,6 +3984,16 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
         result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
         click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
 
+    def launch_or_report(slug: str) -> None:
+        """`do_launch`, but an already-launched lane is REPORTED and re-raised for the caller to step
+        over -- a fact about one lane, not a reason to stop the pass ([#1572]). Any other refusal
+        still propagates (exit 5)."""
+        try:
+            do_launch(slug)
+        except AlreadyLaunched as exc:
+            click.echo(f"[queue] already-launched {slug}: {exc.message}")
+            raise
+
     def live_slugs() -> set:
         try:
             agents = list_agents()
@@ -3973,13 +4008,14 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 
     if watch:
         result = watch_queue(lanes, order, deadline_s=deadline_s, poll_interval_s=poll_interval,
-                             on_fire=do_launch, states_fn=states_fn, live_slugs_fn=live_slugs,
+                             on_fire=launch_or_report, states_fn=states_fn, live_slugs_fn=live_slugs,
                              local_live_count_fn=local_live_count, free_mb_fn=mag.free_memory_mb,
                              local_cap=cap, floor_mb=floor_mb)
         pending = [s for s in order if s not in result.terminal]
         click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}, "
                    f"held-failed {len(result.held_failed)}, routed-codespace "
-                   f"{len(result.routed_codespace)}, of {len(order)}; "
+                   f"{len(result.routed_codespace)}, skipped-merged {len(result.skipped_merged)}, "
+                   f"already-launched {len(result.already_launched)}, of {len(order)}; "
                    f"{'DEADLINE -- still pending: ' + ', '.join(pending) if result.expired else 'all clear'}")
         return
 
@@ -3988,7 +4024,10 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
                           free_mb=mag.free_memory_mb(), floor_mb=floor_mb)
     for decision in decisions:
         if decision.action == ACTION_FIRE:
-            do_launch(decision.slug)
+            try:
+                launch_or_report(decision.slug)
+            except AlreadyLaunched:
+                continue
         else:
             click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
 
