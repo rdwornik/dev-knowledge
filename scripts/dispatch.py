@@ -1635,6 +1635,7 @@ ACTION_HOLD = "HOLD"
 ACTION_HELD_FAILED = "HELD-FAILED"
 ACTION_ROUTE_CODESPACE = "ROUTE-CODESPACE"
 ACTION_SKIP_MERGED = "SKIP-MERGED"
+ACTION_ALREADY_LAUNCHED = "already-launched"
 
 
 @dataclass(frozen=True)
@@ -1653,6 +1654,11 @@ def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iter
     if states.get(lane.slug) == "MERGED":
         return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
                              "the integrator's receipt reads MERGED -- the lane is done, never refired")
+    if lane.slug in set(live_slugs):
+        # Before every new-launch gate: a live lane already holds a slot of the cap and the RAM it
+        # would be held by, so gating it reports HOLD for a lane that is running ([#1572]).
+        return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
+                             "a live lane of this slug is in the agent listing -- not launching a second")
     dep = dependency_status(lane, states)
     if dep == DEP_BLOCKED_FAILED:
         return QueueDecision(lane.slug, ACTION_HELD_FAILED,
@@ -1855,6 +1861,8 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
                 routed.add(decision.slug)
             elif decision.action == ACTION_SKIP_MERGED:
                 merged.add(decision.slug)
+            elif decision.action == ACTION_ALREADY_LAUNCHED:
+                already.add(decision.slug)
         resolved = fired | held_failed | routed | merged | already
         if all(slug in resolved for slug in order):
             return _result(expired=False)
@@ -3984,14 +3992,17 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
         result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
         click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
 
+    already_reasons: dict[str, str] = {}
+
     def launch_or_report(slug: str) -> None:
-        """`do_launch`, but an already-launched lane is REPORTED and re-raised for the caller to step
+        """`do_launch`, but an already-launched lane (found by `launch_lane`'s own collision check,
+        which sees what the listing alone does not) is RECORDED and re-raised for the caller to step
         over -- a fact about one lane, not a reason to stop the pass ([#1572]). Any other refusal
         still propagates (exit 5)."""
         try:
             do_launch(slug)
         except AlreadyLaunched as exc:
-            click.echo(f"[queue] already-launched {slug}: {exc.message}")
+            already_reasons[slug] = exc.message
             raise
 
     def live_slugs() -> set:
@@ -4011,6 +4022,9 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
                              on_fire=launch_or_report, states_fn=states_fn, live_slugs_fn=live_slugs,
                              local_live_count_fn=local_live_count, free_mb_fn=mag.free_memory_mb,
                              local_cap=cap, floor_mb=floor_mb)
+        for slug in result.already_launched:
+            click.echo(f"[queue] already-launched {slug}: "
+                       f"{already_reasons.get(slug) or 'a live lane of this slug is in the agent listing'}")
         pending = [s for s in order if s not in result.terminal]
         click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}, "
                    f"held-failed {len(result.held_failed)}, routed-codespace "
@@ -4027,7 +4041,7 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
             try:
                 launch_or_report(decision.slug)
             except AlreadyLaunched:
-                continue
+                click.echo(f"[queue] already-launched {decision.slug}: {already_reasons[decision.slug]}")
         else:
             click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
 
