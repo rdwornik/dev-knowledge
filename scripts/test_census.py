@@ -1,0 +1,372 @@
+"""The test census ([#1566], R120.3): classify every test ORPHAN / DUPLICATE / ZERO-KILL / NO-OUTCOME.
+
+No model decides a class. Edges come from coverage.py (`coverage json --show-contexts`,
+recorded with `pytest --cov-context=test`), assertions from stdlib `ast`, kill data from mutmut.
+
+Classes (R120.3 / row [#1566] Done-when 2):
+  ORPHAN      every edge points to a DEAD or missing module (a test with no edge is NOT orphan).
+  DUPLICATE   CANDIDATE only: covered (module, line) set is a strict subset of another test's,
+              equal normalised assert expressions, equal fixtures, neither parametrized.
+  ZERO-KILL   every mutated function the test covers has 0 kills; any covered function the kill
+              data does not reach makes it UNKNOWN, never ZERO-KILL.
+  NO-OUTCOME  no assertion-bearing call, or every one targets a Mock.
+  UNKNOWN     the kill-based class could not be decided (no / partial mutmut data).
+
+Subcommands: edges, classify, report. `report` deletes nothing and says so.
+
+Usage:
+  uv run --locked python scripts/test_census.py edges --cov cov.json --out test-edges-<sha>.json
+  uv run --locked python scripts/test_census.py classify --edges E.json --dead dead.txt \
+      --mutmut mutants/mutmut-stats.json --out census.jsonl
+  uv run --locked python scripts/test_census.py report --census census.jsonl
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import json
+import re
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+_PHASE = re.compile(r"\|(run|setup|teardown)$")
+_PARAM_SUFFIX = re.compile(r"\[.*\]$")
+_MUTANT_SUFFIX = re.compile(r"__mutmut_\d+$")
+#: mock-API assertions (`m.assert_called_once()`); unittest's are `assertEqual` etc.
+_MOCK_ASSERT = re.compile(r"^assert_(called|not_called|any_call|has_calls|awaited|not_awaited|"
+                          r"called_once|called_with|called_once_with|awaited_once|awaited_with)")
+_MOCK_FACTORIES = {"Mock", "MagicMock", "AsyncMock", "NonCallableMock", "PropertyMock",
+                   "create_autospec", "patch", "mocker", "object", "dict", "multiple"}
+_RAISES = {"raises", "warns", "deprecated_call"}
+#: mutmut exit codes that are NOT a kill: survived, not checked, no tests, skipped, suspicious, timeout.
+_NOT_KILL = {0, None, 5, 24, 33, 34, 35, 36, 152}
+_HELPER_DEPTH = 3
+
+
+# ---------------------------------------------------------------- edges
+
+def edges_from_coverage(cov: dict) -> dict[str, dict[str, list[int]]]:
+    """`coverage json --show-contexts` -> {test id: {module: sorted lines}}."""
+    out: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+    for path, info in cov.get("files", {}).items():
+        for line, ctxs in (info.get("contexts") or {}).items():
+            for ctx in ctxs:
+                if not ctx:
+                    continue
+                out[_PHASE.sub("", ctx)][path].add(int(line))
+    return {t: {m: sorted(ls) for m, ls in mods.items()} for t, mods in out.items()}
+
+
+# ---------------------------------------------------------------- NO-OUTCOME (ast)
+
+def _root_name(node: ast.AST) -> str | None:
+    while isinstance(node, (ast.Attribute, ast.Subscript, ast.Call)):
+        node = node.value if not isinstance(node, ast.Call) else node.func
+    return node.id if isinstance(node, ast.Name) else None
+
+
+def _callee(node: ast.Call) -> str | None:
+    f = node.func
+    return f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None
+
+
+def _is_mock_call(node: ast.AST) -> bool:
+    return isinstance(node, ast.Call) and _callee(node) in _MOCK_FACTORIES
+
+
+def _names_in(node: ast.AST) -> set[str]:
+    return {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+
+
+def _mock_names(fn: ast.AST) -> set[str]:
+    names: set[str] = set()
+    args = fn.args  # type: ignore[attr-defined]
+    for a in [*args.posonlyargs, *args.args, *args.kwonlyargs]:
+        if a.arg.startswith(("mock", "m_")) or a.arg == "mocker":
+            names.add(a.arg)
+    if any(isinstance(d, ast.Call) and _callee(d) == "patch" or
+           isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute) and d.func.attr == "patch"
+           for d in fn.decorator_list):  # type: ignore[attr-defined]
+        names |= {a.arg for a in args.args if a.arg != "self"}
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Assign) and _is_mock_call(n.value):
+            names |= {t.id for t in n.targets if isinstance(t, ast.Name)}
+        elif isinstance(n, ast.With):
+            for it in n.items:
+                if _is_mock_call(it.context_expr) and isinstance(it.optional_vars, ast.Name):
+                    names.add(it.optional_vars.id)
+    return names
+
+
+def _find_function(tree: ast.Module, func: str, cls: str | None):
+    if cls is None:
+        for n in tree.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == func:
+                return n
+    for n in ast.walk(tree):
+        if isinstance(n, ast.ClassDef) and (cls is None or n.name == cls):
+            for m in n.body:
+                if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)) and m.name == func:
+                    return m
+    return None
+
+
+def _real_assertion(fn: ast.AST, helpers: dict[str, ast.AST], depth: int) -> str | None:
+    """Return a description of the first assertion-bearing node that is not Mock-targeting."""
+    mocks = _mock_names(fn)
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Assert):
+            roots = _names_in(n.test)
+            if roots and roots <= mocks:
+                continue
+            return "assert statement"
+        if not isinstance(n, ast.Call):
+            continue
+        name = _callee(n)
+        if name is None:
+            continue
+        if name in _RAISES:
+            return f"pytest.{name}"
+        if name.startswith("assert") and not _MOCK_ASSERT.match(name):
+            roots = set().union(*(_names_in(a) for a in n.args), set()) if n.args else set()
+            if roots and roots <= mocks:
+                continue
+            return f"unittest {name}"
+        if _MOCK_ASSERT.match(name):
+            continue
+        if name in helpers and depth > 0 and helpers[name] is not fn:
+            if _real_assertion(helpers[name], helpers, depth - 1):
+                return f"helper {name}() asserts"
+    return None
+
+
+def no_outcome(source: str, func_name: str, class_name: str | None = None) -> dict[str, Any]:
+    """NO-OUTCOME verdict for one test function; stdlib `ast` only."""
+    tree = ast.parse(source)
+    fn = _find_function(tree, func_name, class_name)
+    if fn is None:
+        return {"no_outcome": False, "reason": f"{func_name} not found in source (no verdict)"}
+    helpers = {n.name: n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+               and n.name != func_name}
+    found = _real_assertion(fn, helpers, _HELPER_DEPTH)
+    if found:
+        return {"no_outcome": False, "reason": f"has {found}"}
+    anything = any(isinstance(n, ast.Assert) or (isinstance(n, ast.Call) and (_callee(n) or "").startswith("assert"))
+                   for n in ast.walk(fn))
+    return {"no_outcome": True,
+            "reason": "every assertion targets a Mock" if anything else "no assertion-bearing call"}
+
+
+def _fn_facts(fn: ast.AST) -> tuple[list[str], tuple[str, ...], bool]:
+    """(normalised asserts, fixture arg names, parametrized) for a test function node."""
+    asserts: list[str] = []
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Assert):
+            asserts.append(ast.dump(n.test))
+        elif isinstance(n, ast.Call) and (_callee(n) or "").startswith("assert"):
+            asserts.append(ast.dump(n))
+        elif isinstance(n, ast.Call) and _callee(n) in _RAISES:
+            asserts.append(ast.dump(n))
+    args = fn.args  # type: ignore[attr-defined]
+    fixtures = tuple(sorted(a.arg for a in [*args.posonlyargs, *args.args, *args.kwonlyargs] if a.arg != "self"))
+    param = any("parametrize" in ast.dump(d) for d in fn.decorator_list)  # type: ignore[attr-defined]
+    return sorted(asserts), fixtures, param
+
+
+# ---------------------------------------------------------------- classify
+
+def _duplicates(tests: dict[str, dict]) -> dict[str, str]:
+    """test id -> evidence, for strict-subset candidates within equal (asserts, fixtures) groups."""
+    groups: dict[tuple, list[str]] = defaultdict(list)
+    sets: dict[str, frozenset] = {}
+    for tid, t in tests.items():
+        if t.get("parametrized") or not t.get("asserts"):
+            continue
+        s = frozenset((m, ln) for m, lines in t.get("edges", {}).items() for ln in lines)
+        if not s:
+            continue
+        sets[tid] = s
+        groups[(tuple(t["asserts"]), tuple(t.get("fixtures", ())))].append(tid)
+    out: dict[str, str] = {}
+    for ids in groups.values():
+        if len(ids) < 2:
+            continue
+        posting: dict[Any, list[str]] = defaultdict(list)
+        for tid in ids:
+            for e in sets[tid]:
+                posting[e].append(tid)
+        for tid in sorted(ids):
+            s = sets[tid]
+            rare = min(s, key=lambda e: len(posting[e]))
+            supers = sorted(o for o in posting[rare] if o != tid and len(sets[o]) > len(s) and s < sets[o])
+            if supers:
+                more = f" (+{len(supers) - 1} more)" if len(supers) > 1 else ""
+                out[tid] = f"strict subset of {supers[0]}{more}; equal asserts, candidate only"
+    return out
+
+
+def _kill_class(tid: str, mutmut: dict | None) -> tuple[str | None, str]:
+    if not mutmut:
+        return "UNKNOWN", "no mutmut data"
+    tbf = mutmut.get("tests_by_function") or {}
+    kills = mutmut.get("kills_by_function") or {}
+    covered = sorted(f for f, ts in tbf.items() if tid in ts)
+    if not covered:
+        return "UNKNOWN", "covers no mutated function in the mutmut slice"
+    unreached = [f for f in covered if f not in kills]
+    if unreached:
+        return "UNKNOWN", f"kill data does not reach {len(unreached)} of {len(covered)} covered functions"
+    killed = [f for f in covered if kills[f] > 0]
+    if killed:
+        return None, ""
+    return "ZERO-KILL", f"all {len(covered)} covered mutated functions have 0 kills"
+
+
+def classify(tests: dict, dead: set[str], repo_files: set[str], mutmut_stats: dict | None) -> list[dict]:
+    dups = _duplicates(tests)
+    rows = []
+    for tid in sorted(tests):
+        t = tests[tid]
+        classes: dict[str, str] = {}
+        mods = list(t.get("edges", {}))
+        if mods and all(m in dead or m not in repo_files for m in mods):
+            gone = sorted(m for m in mods if m not in repo_files)
+            classes["ORPHAN"] = f"all {len(mods)} edge modules dead or missing" + (f" (missing: {', '.join(gone[:3])})" if gone else "")
+        if tid in dups:
+            classes["DUPLICATE"] = dups[tid]
+        label, why = _kill_class(tid, mutmut_stats)
+        if label:
+            classes[label] = why
+        if t.get("no_outcome"):
+            classes["NO-OUTCOME"] = t.get("no_outcome_reason", "no assertion-bearing call")
+        rows.append({"id": tid, "classes": sorted(classes), "evidence": classes})
+    return rows
+
+
+def report(rows: list[dict]) -> dict[str, Any]:
+    """KEEP / STRENGTHEN / REMOVE. Deletes nothing."""
+    rep: dict[str, Any] = {"KEEP": [], "STRENGTHEN": [], "REMOVE": [], "DUPLICATE_CANDIDATES": []}
+    for r in rows:
+        c = set(r["classes"])
+        bucket = "REMOVE" if "ORPHAN" in c else "STRENGTHEN" if c & {"NO-OUTCOME", "ZERO-KILL"} else "KEEP"
+        rep[bucket].append(r["id"])
+        if "DUPLICATE" in c:
+            rep["DUPLICATE_CANDIDATES"].append(r["id"])
+    rep["deleted"] = 0
+    rep["note"] = "report only: deletes nothing; every bucket is a proposal for the operator's GO"
+    return rep
+
+
+# ---------------------------------------------------------------- CLI
+
+def _split_id(tid: str) -> tuple[str, str | None, str]:
+    parts = _PARAM_SUFFIX.sub("", tid).split("::")
+    return parts[0], (parts[1] if len(parts) > 2 else None), parts[-1]
+
+
+def load_mutmut(path: Path) -> dict:
+    """Normalise raw `mutmut-stats.json` (+ sibling `.meta` kill files) or a pre-normalised dict."""
+    d = json.loads(path.read_text(encoding="utf-8"))
+    if "tests_by_function" in d:
+        return d
+    tbf = {_MUTANT_SUFFIX.sub("", k): v for k, v in d.get("tests_by_mangled_function_name", {}).items()}
+    per_func: dict[str, list[int | None]] = defaultdict(list)
+    for meta in path.parent.rglob("*.meta"):
+        try:
+            codes = json.loads(meta.read_text(encoding="utf-8")).get("exit_code_by_key", {})
+        except (OSError, ValueError):
+            continue
+        for key, code in codes.items():
+            per_func[_MUTANT_SUFFIX.sub("", key)].append(code)
+    kills: dict[str, int] = {}
+    for func, codes in per_func.items():
+        n = sum(1 for c in codes if c not in _NOT_KILL)
+        if n or all(c is not None for c in codes):  # 0 kills is only certain when every mutant ran
+            kills[func] = n
+    return {"tests_by_function": tbf, "kills_by_function": kills}
+
+
+def build_tests(edges: dict, root: Path) -> tuple[dict, set[str]]:
+    repo_files = {m for mods in edges.values() for m in mods if (root / m).exists()}
+    asts: dict[str, ast.Module | None] = {}
+    sources: dict[str, str] = {}
+    tests: dict[str, dict] = {}
+    for tid, mods in edges.items():
+        t: dict[str, Any] = {"edges": mods, "asserts": [], "fixtures": (), "parametrized": "[" in tid}
+        fpath, cls, func = _split_id(tid)
+        if fpath not in asts:
+            p = root / fpath
+            try:
+                sources[fpath] = p.read_text(encoding="utf-8")
+                asts[fpath] = ast.parse(sources[fpath])
+            except (OSError, SyntaxError, UnicodeDecodeError):
+                asts[fpath] = None
+        tree = asts[fpath]
+        fn = _find_function(tree, func, cls) if tree else None
+        if fn is not None:
+            t["asserts"], t["fixtures"], param = _fn_facts(fn)
+            t["parametrized"] = t["parametrized"] or param
+            res = no_outcome(sources[fpath], func, cls)
+            t["no_outcome"], t["no_outcome_reason"] = res["no_outcome"], res["reason"]
+        tests[tid] = t
+    return tests, repo_files
+
+
+def _cmd_edges(a) -> int:
+    cov = json.loads(Path(a.cov).read_text(encoding="utf-8"))
+    Path(a.out).write_text(json.dumps(edges_from_coverage(cov), sort_keys=True), encoding="utf-8")
+    return 0
+
+
+def _cmd_classify(a) -> int:
+    edges = json.loads(Path(a.edges).read_text(encoding="utf-8"))
+    dead = {ln.strip() for ln in Path(a.dead).read_text(encoding="utf-8").splitlines() if ln.strip()}
+    mm = load_mutmut(Path(a.mutmut)) if a.mutmut and a.mutmut != "none" else None
+    tests, repo_files = build_tests(edges, Path(a.root))
+    rows = classify(tests, dead, repo_files, mm)
+    with open(a.out, "w", encoding="utf-8") as fh:
+        fh.writelines(json.dumps(r, sort_keys=True) + "\n" for r in rows)
+    return 0
+
+
+def _cmd_report(a) -> int:
+    rows = [json.loads(ln) for ln in Path(a.census).read_text(encoding="utf-8").splitlines() if ln.strip()]
+    rep = report(rows)
+    cls: dict[str, int] = defaultdict(int)
+    for r in rows:
+        for c in r["classes"]:
+            cls[c] += 1
+    print(f"{len(rows)} tests; classes: " + ", ".join(f"{k}={v}" for k, v in sorted(cls.items())))
+    for b in ("REMOVE", "STRENGTHEN", "KEEP"):
+        print(f"{b}: {len(rep[b])}")
+        for tid in rep[b][: a.top]:
+            ev = next(r["evidence"] for r in rows if r["id"] == tid)
+            print(f"  {tid}  {'; '.join(f'{k}: {v}' for k, v in ev.items())}")
+    print(f"DUPLICATE candidates: {len(rep['DUPLICATE_CANDIDATES'])}")
+    print(rep["note"])
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    e = sub.add_parser("edges")
+    e.add_argument("--cov", required=True)
+    e.add_argument("--out", required=True)
+    c = sub.add_parser("classify")
+    c.add_argument("--edges", required=True)
+    c.add_argument("--dead", required=True)
+    c.add_argument("--mutmut", default=None)
+    c.add_argument("--out", required=True)
+    c.add_argument("--root", default=".")
+    r = sub.add_parser("report")
+    r.add_argument("--census", required=True)
+    r.add_argument("--top", type=int, default=20)
+    a = ap.parse_args(argv)
+    return {"edges": _cmd_edges, "classify": _cmd_classify, "report": _cmd_report}[a.cmd](a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
