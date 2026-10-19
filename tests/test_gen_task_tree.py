@@ -1197,9 +1197,9 @@ def test_check_and_the_size_bar_read_the_same_view_budget():
     """
     budget = gtt.load_view_budget()
     assert budget.value == gtt._VIEW_BYTE_CEILING
-    assert budget.value == 150_000
-    assert budget.cause == "ADR-122 step 0; the view is uncommitted and field-only at step 2"
-    assert budget.manual_until == "2026-10-15"
+    assert budget.value == 160_000
+    assert budget.cause == "ADR-122 step 0; the view is uncommitted and field-only at step 2 + R148 interim raise (2026-10-19)"
+    assert budget.manual_until == "2026-11-15"
 
 
 def test_the_view_is_one_line_per_row_and_carries_no_bodies():
