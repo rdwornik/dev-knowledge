@@ -175,7 +175,10 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
     for phase, cell in rows:
         rule = next(((role, prov) for pat, role, prov in _PHASE_RULES if pat.search(phase.lower())), None)
         if rule is None:
-            notes.append(f"model-per-role: phase {phase!r} maps to no registry role -- not judged")
+            problems.append(f"REFUSED [model-per-role]: lane {lane}: phase {phase!r} maps to no registry "
+                            f"role (known phases: implement/orchestrate, red tests, verify, review "
+                            f"Copilot/Codex half, read) -- a row the gate cannot judge is a row that "
+                            f"could carry a silent substitution (P1)")
             continue
         role, provider = rule
         entry = _role_entry(role, provider, registry_path)

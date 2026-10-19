@@ -144,11 +144,11 @@ def test_a_row_naming_the_wrong_model_is_refused(key, row, role, wrong):
                for p in problems)
 
 
-def test_an_unmapped_phase_name_is_a_note_not_a_problem():
+def test_an_unmapped_phase_name_is_refused_not_noted():
+    # repair 1 (M1): was a note ("not judged"), which let a silent substitution through the gate
     text = _contract() + "| coffee break | whatever | local |\n"
-    problems, notes = _problems(text)
-    assert problems == []
-    assert any("coffee break" in n for n in notes)
+    problems, _notes = _problems(text)
+    assert any("coffee break" in p and "maps to no registry role" in p for p in problems)
 
 
 # --- check_models_block -------------------------------------------------------------------------

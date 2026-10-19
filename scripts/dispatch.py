@@ -1938,6 +1938,10 @@ def repair_lane(request: RepairRequest, *, repo_root: Path,
     attempt) so the merge gate sees it and the model-per-role organ has judged it."""
     spawn = spawn or spawn_process
     prelaunch = prelaunch or run_prelaunch
+    if not (request.batch or "").strip():
+        raise DispatchRefused(f"the repair of {request.slug} names no batch (--batch, $HARNESS_BATCH and "
+                              "the slug's LAUNCH receipt are all absent): `--batch` is required -- a "
+                              "repair whose batch is unknown would skip the model-per-role check")
     tree = repair_worktree_path(repo_root, request.slug)
     if not tree.is_dir():
         raise DispatchRefused(f"no existing worktree at {tree} -- a repair reuses the lane's own "
