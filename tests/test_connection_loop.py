@@ -101,11 +101,14 @@ pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 #: `batch-close` moment (`ecosystem/harness.yaml`): it now runs between `digest` and the
 #: explicit digest-content check below, FAILS on this toy/fixture repo (exit 1), and
 #: `Step.stop` reports the FIRST unfired organ in declared order -- so `batch-close` now stops
-#: TWICE: once at the organ (`trial_cut`), and again at the separate, unconditional digest-
-#: content check a few lines down, which still runs regardless. Pinned so a change in EITHER
-#: direction is loud: a stop that disappears means a later wave fixed it (delete its row); a
-#: new one means the loop moved. Each row is (moment, organ).
-EXPECTED_STOPS = (("merge", "gates"), ("batch-close", "trial_cut"),
+#: TWICE: once at the organ, and again at the separate, unconditional digest-content check a
+#: few lines down, which still runs regardless. Re-pinned again (lane e2-fates): `ci_red_age`
+#: is wired before `digest`, `continue_on_failure`, and exits 2 on this toy repo (no gh
+#: history), so it is the first unfired organ of `batch-close` and replaces `trial_cut` as the
+#: reported stop. Pinned so a change in EITHER direction is loud: a stop that disappears means
+#: a later wave fixed it (delete its row); a new one means the loop moved. Each row is
+#: (moment, organ).
+EXPECTED_STOPS = (("merge", "gates"), ("batch-close", "ci_red_age"),
                   ("batch-close", "digest-names-the-task"))
 
 
@@ -762,7 +765,7 @@ def _stops(w: Walk) -> str:
 # --- Done-contract 1 + 2: the loop, the receipts, the digest ---------------------------------------------------------
 
 @pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21), re-pinned by lane-handoff-redesign repair U4 "
-                                       "(2026-10-02): stops at merge/gates (RED), at batch-close/trial_cut (RED), "
+                                       "(2026-10-02): stops at merge/gates (RED), at batch-close/ci_red_age (RED), "
                                        "and at batch-close (the digest never names the task) -- wave 4's queue. "
                                        "Delete this marker and EXPECTED_STOPS when the loop is connected.")
 def test_one_toy_task_leaves_a_receipt_at_every_moment_in_order(walk):
