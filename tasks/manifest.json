@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "09dd889c1367d4d293e903f19f235ca0d6f49358b0b1b9cf93d4911a93f45b27",
+  "generated_sha256": "95b2776e298ef5e4e26c66d3f42afd6bb14b247a8d60a3ebc14c34d10ef6bcef",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3432,6 +3432,10 @@
       "file": "1628-m1-measured-model-and-effort-table-per-r.md"
     },
     {
+      "task": 1629,
+      "file": "1629-main-ship-gate-reads-0-hard-fail-archive.md"
+    },
+    {
       "task": 1630,
       "file": "1630-r101-a-tier-refusal-runs-in-pre-launch.md"
     },
@@ -3460,6 +3464,14 @@
       "file": "1636-r94-stop-hook-cycle-gate-built-or-withdr.md"
     },
     {
+      "task": 1637,
+      "file": "1637-row-close-runs-in-the-integrator-templat.md"
+    },
+    {
+      "task": 1638,
+      "file": "1638-generated-status-md-is-the-one-front-doo.md"
+    },
+    {
       "task": 1639,
       "file": "1639-two-way-completeness-gate-node-to-code-e.md"
     },
@@ -3470,6 +3482,10 @@
     {
       "task": 1641,
       "file": "1641-codespace-parity-c1-c5-re-run-live.md"
+    },
+    {
+      "task": 1642,
+      "file": "1642-queue-does-not-refire-a-merged-lane.md"
     },
     {
       "task": 1643,
@@ -3498,6 +3514,90 @@
     {
       "task": 1649,
       "file": "1649-plan-lint-row-birth-needs-ratifying-act.md"
+    },
+    {
+      "task": 1650,
+      "file": "1650-aj-module-review-deferred.md"
+    },
+    {
+      "task": 1651,
+      "file": "1651-agy-recheck-on-pin-bump.md"
+    },
+    {
+      "task": 1652,
+      "file": "1652-review-findings-scoreboard.md"
+    },
+    {
+      "task": 1653,
+      "file": "1653-adr-delta-phasereceipt-contract.md"
+    },
+    {
+      "task": 1654,
+      "file": "1654-hypercare-register.md"
+    },
+    {
+      "task": 1655,
+      "file": "1655-cost-telemetry-per-vendor.md"
+    },
+    {
+      "task": 1656,
+      "file": "1656-today-glue-count-in-close-digest.md"
+    },
+    {
+      "task": 1657,
+      "file": "1657-harvest-copies-the-lane-session-file.md"
+    },
+    {
+      "task": 1658,
+      "file": "1658-codespace-delete-writes-close-row.md"
+    },
+    {
+      "task": 1659,
+      "file": "1659-agy-pin-tolerance.md"
+    },
+    {
+      "task": 1660,
+      "file": "1660-groom-view-back-under-150000.md"
+    },
+    {
+      "task": 1661,
+      "file": "1661-codespace-handback-fires-monitor-wake.md"
+    },
+    {
+      "task": 1662,
+      "file": "1662-runner-and-lane-share-handback-json.md"
+    },
+    {
+      "task": 1663,
+      "file": "1663-codex-review-of-box-lanes-runs-on-the-laptop.md"
+    },
+    {
+      "task": 1664,
+      "file": "1664-pins-gate-blocks-box-launch-on-cli-patch-bump.md"
+    },
+    {
+      "task": 1665,
+      "file": "1665-merge-receipt-has-no-abandon-verb.md"
+    },
+    {
+      "task": 1666,
+      "file": "1666-ship-gate-diff-relative-repo-and-caller-organs.md"
+    },
+    {
+      "task": 1667,
+      "file": "1667-handback-text-lost-in-transport.md"
+    },
+    {
+      "task": 1668,
+      "file": "1668-off-the-laptop-goal-13h-sleep.md"
+    },
+    {
+      "task": 1669,
+      "file": "1669-distiller-reads-no-r130-integrator-refusal.md"
+    },
+    {
+      "task": 1670,
+      "file": "1670-no-silent-substitution-launcher-and-lint.md"
     },
     {
       "prose": ""

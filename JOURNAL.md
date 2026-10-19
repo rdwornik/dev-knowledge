@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-19 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-3, batch E2.0): lane e2-rulings lands (repair 2 of 2) -- R137-R147 and P1-P3 in STANDING_RULINGS AX, intake 118 restored and now implemented by four rows, the BACKLOG view budget raised to 160,000 B by R148, 21 owed rows filed
+
+**Anchors:** `e8001689` (close rows for the 4 D0 Codespaces, ESTIMATED), `cdc3cab8` (R137-R147 + P1-P3 in section AX), `21907bf7` (Q5: intake 118 on R137, [#1629] [#1637] [#1638] [#1642] decided-by R137, [#1644] under R140), `da23955e` (gate repairs), `2e5dc7bb` (repair 1, R148: `scripts/view_budget.yaml` 150,000 -> 160,000 B, `manual_until` 2026-11-15, groom row [#1660]), `99c6e9a8` (rows [#1650]-[#1670]; (k) deduped to [#982]), `064108a6` (six `Carried by:` lines in AX), `c83f4320` (landed-count pin through R147), `e5a67d21` (rows cite an in-repo provenance token), `b357c111` (main 4a467883 merged into the lane), `e29a3091` (repair 2: `· implements: intake-118` on [#1629] [#1637] [#1638] [#1642]); branch `worktree-e2-rulings`, introduced by this merge. Launched by `scripts/dispatch.py launch`, repaired by `scripts/dispatch.py repair` (jobs e167e58b, 1a69029e).
+
+**Did:** the integrator merged the lane `--no-ff` on `4a467883` after the hand gate (REUSE CHECK quoted, no process change, docs-only in repair 2, author and isolated verify claude-sonnet-5-5, the verify's unconfirmed item checked by the integrator). Repair 2 answers the 21:58 land refusal of the first merge (`28654be6`): intake 118 was ACCEPTED with no row implementing it, which `tests/test_decision_coverage.py` turned red once e2-fates cleared the earlier red. This merge also carries the e2-fates merge receipt line into `logs/MERGE-RECEIPTS.jsonl` and two Codespace open rows (e2-subst-gate, e2-census) into `logs/CODESPACE-RECEIPTS.jsonl`. The integration branch name was freed first: origin `worktree-integrate-e2.0` (the refused `28654be6`) deleted and the local branch re-pointed with `-B`; nothing lost, as `28654be6` was e5a67d21 merged on 4a467883 plus the same carry line.
+
+**Result:** at the merge, the decision-coverage test on the laptop no longer names intake 118 (its remaining findings are `to-cc/` transport items CI cannot see); the Linux land run is the verdict.
+
+**Changes:** `protocols/STANDING_RULINGS.md`, `scripts/view_budget.yaml`, `tests/test_standing_rulings_sources.py`, `tests/test_gen_task_tree.py`, `tasks/` (21 rows + manifest; 4 rows gain `implements: intake-118`), `docs/intake/`, generated `BACKLOG.md`, `logs/CODESPACE-RECEIPTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Abandoned:** the AX paragraph "Owed rows not yet filed" stays stale (e2-cliff fixes it, night order v3 §2); R148-R152 are not landed here (RATIFICATION-2026-10-19 carries them).
+
+**Next:** e2-subst-gate, e2-tier1, e2-distill-pilot, then e2-cliff (R149) after e2-subst-gate; e2-census (the tool); [#1660] returns the view under 150,000 B before 2026-11-15.
+
+---
+
 ### 2026-10-19 (a) - CC (Opus 5.5, INTEGRATOR-E2 cycle-2, batch E2.0): lane e2-fates lands (repair 1 of 2) -- the seven R137-Q2 organs deleted, called_by: fate key, deny_and_point retired after the re-home; the connection-loop pin re-pinned for ci_red_age
 
 **Anchors:** `a3d48ee6` (RED tests, Copilot), `ae9a62dc` (`called_by` + the seven deletions, Grok), `5405155d` (deny_and_point re-home + retire, Grok), `49f6d12e` (ci_red_age in batch-close, platform_skip_ratchet as a conductor step, Grok), `c329d3be` (pin-write carrier commit, claude 2.1.302 -> 2.1.303), `5f7d9176` (repair 1: `EXPECTED_STOPS` re-pinned to `('batch-close', 'ci_red_age')`), `6646ab21` (repair 1: R150 parity comment); branch `worktree-e2-fates`, introduced by this merge. Lane and repair ran in Codespaces `e2-fates-9q5gr74w64qfxg54` and `e2-fates-repair-1-7r5j6v4w946cwqpp` (basicLinux32gb), launched by `scripts/dispatch.py codespace-exec`.

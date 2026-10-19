@@ -16,6 +16,14 @@
 # it to change behaviour on that date. At step 2 (ADR-122's migration step 2) the view stops
 # being committed and this budget becomes a render budget rather than a commit-gate ceiling
 # (ADR-122 §Migration step 0's own "Target (step 2)" note).
-value: 150000
-cause: "ADR-122 step 0; the view is uncommitted and field-only at step 2"
-manual_until: "2026-10-15"
+#
+# R148 (2026-10-19) -- the dated act that raises this ceiling. The ruling is R148, given by
+# the operator on 2026-10-19 (relayed in `to-browser/LEDGER-dev-knowledge.md` v238;
+# RATIFICATION v6 will carry its text): 150,000 B -> 160,000 B, `manual_until` 2026-11-15.
+# The previous interim `manual_until: 2026-10-15` had PASSED and was not silently re-dated --
+# this paragraph is the dated act. The ceiling returns to 150,000 B by the groom row [#1660]
+# (it closes done rows through the ADR-111 funnel; a row closes by its own Done-when).
+# `manual_until` is still a date to revisit, not an enforced expiry (see the sentence above).
+value: 160000
+cause: "ADR-122 step 0; the view is uncommitted and field-only at step 2 + R148 interim raise (2026-10-19)"
+manual_until: "2026-11-15"

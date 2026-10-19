@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "5273fde8e4dccc9de5695e99829113a85fb9cbaa85f6cbec06b7ec4deefe1008",
+  "source_sha256": "e5a5a7e0cc3e8cb1b874b470fb38ede170907d3c73b5a50cef239c6fd5d38639",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 105,
@@ -496,7 +496,8 @@
         "origin"
       ],
       "2026-10-18-tech-d0-rows-without-a-ratified-ruling.md": [
-        "consumed-by",
+        "decided-by",
+        "disposition",
         "origin"
       ]
     },
@@ -585,7 +586,7 @@
     },
     {
       "t": "line",
-      "v": "### SEED (22)"
+      "v": "### SEED (21)"
     },
     {
       "t": "line",
@@ -694,11 +695,6 @@
     {
       "t": "item",
       "file": "2026-10-16-tech-process-matrix-and-token-baseline.md",
-      "status": "SEED"
-    },
-    {
-      "t": "item",
-      "file": "2026-10-18-tech-d0-rows-without-a-ratified-ruling.md",
       "status": "SEED"
     },
     {
@@ -1041,7 +1037,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (21)"
+      "v": "### ACCEPTED (22)"
     },
     {
       "t": "line",
@@ -1150,6 +1146,11 @@
     {
       "t": "item",
       "file": "2026-09-13-tech-command-files-as-a-wiring-surface.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-10-18-tech-d0-rows-without-a-ratified-ruling.md",
       "status": "ACCEPTED"
     },
     {

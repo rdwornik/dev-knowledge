@@ -897,6 +897,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1626] [P2][S] B-vs-C spike on P1 dispatch: state machine vs BPMN engine · tasks/1626-b-vs-c-spike-on-p1-dispatch-state-machin.md
 - [#1627] [P2][S] R125 audit: every ruling since 2026-07-01 counted by adoption state · tasks/1627-r125-audit-every-ruling-since-2026-07-01.md
 - [#1628] [P1][M] M1: measured model and effort table per role · tasks/1628-m1-measured-model-and-effort-table-per-r.md
+- [#1629] [P1][S] main ship-gate reads 0 hard-fail; archive-row signature current · tasks/1629-main-ship-gate-reads-0-hard-fail-archive.md
 - [#1630] [P1][S] R101(a) tier refusal runs in pre-launch · tasks/1630-r101-a-tier-refusal-runs-in-pre-launch.md
 - [#1631] [P2][S] Lane distiller default model comes from a role table · tasks/1631-lane-distiller-default-model-comes-from.md
 - [#1632] [P1][L] One Substrate protocol; pre-launch for every substrate · tasks/1632-one-substrate-protocol-pre-launch-for-ev.md
@@ -904,16 +905,40 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1634] [P2][M] Hub dispatch shim installed; duplicate launchers removed on GO · tasks/1634-hub-dispatch-shim-installed-duplicate-la.md
 - [#1635] [P2][S] MAP-DISPATCH regenerated with the outside-hub entry points · tasks/1635-map-dispatch-regenerated-with-the-outsid.md
 - [#1636] [P2][S] R94 Stop-hook cycle gate built or withdrawn · tasks/1636-r94-stop-hook-cycle-gate-built-or-withdr.md
+- [#1637] [P2][S] row_close runs in the integrator template · tasks/1637-row-close-runs-in-the-integrator-templat.md
+- [#1638] [P2][M] Generated STATUS.md is the one front door · tasks/1638-generated-status-md-is-the-one-front-doo.md
 - [#1639] [P1][M] Two-way completeness gate: node to code, entry point to node · tasks/1639-two-way-completeness-gate-node-to-code-e.md
 - [#1640] [P1][M] gen_handoff carries generated L0, process index, staleness preflight · tasks/1640-gen-handoff-carries-generated-l0-process.md
 - [#1641] [P2][S] Codespace parity C1-C5 re-run live · tasks/1641-codespace-parity-c1-c5-re-run-live.md
+- [#1642] [P1][S] queue does not refire a MERGED lane · tasks/1642-queue-does-not-refire-a-merged-lane.md
 - [#1643] [P2][M] CloudSubstrate: a read-only cloud port in the hub · tasks/1643-cloudsubstrate-read-only-port.md
-- [#1644] [P1][M] agy signs in non-interactively in a box · tasks/1644-agy-credential-path-in-a-box.md
+- [#1644] [P2][S] agy re-check; laptop-only (R140) · tasks/1644-agy-credential-path-in-a-box.md
 - [#1645] [P1][M] R133 consolidation track and plan_lint decision gate · tasks/1645-r133-consolidation-and-decision-gate.md
 - [#1646] [P1][M] M1 v2: each vendor measured in its role · tasks/1646-m1-v2-vendors-measured-in-role.md
 - [#1647] [P2][S] transport_lint wants $CLAUDE_PROMPTS_DIR on transport paths · tasks/1647-transport-lint-prompts-dir.md
 - [#1648] [P1][S] plan_lint: a code lane needs an integrator · tasks/1648-plan-lint-code-lane-needs-integrator.md
 - [#1649] [P1][S] plan_lint: a row birth needs a ratifying act · tasks/1649-plan-lint-row-birth-needs-ratifying-act.md
+- [#1650] [P3][S] Architekt Jutra module review (deferred, R137 Q4) · tasks/1650-aj-module-review-deferred.md
+- [#1651] [P2][S] agy official headless route re-check on every agy pin bump (R140) · tasks/1651-agy-recheck-on-pin-bump.md
+- [#1652] [P2][M] Review-findings scoreboard computed from receipts (R138, P2) · tasks/1652-review-findings-scoreboard.md
+- [#1653] [P1][M] ADR-delta PhaseReceipt contract: role, effort, USD, usage, findings (R141, P3) · tasks/1653-adr-delta-phasereceipt-contract.md
+- [#1654] [P2][S] Hypercare register: a defect found in real use becomes a row (R143) · tasks/1654-hypercare-register.md
+- [#1655] [P2][M] Cost telemetry per vendor in every phase receipt (R144) · tasks/1655-cost-telemetry-per-vendor.md
+- [#1656] [P2][S] TODAY-GLUE count in every close digest (R145) · tasks/1656-today-glue-count-in-close-digest.md
+- [#1657] [P2][S] Harvest copies the lane SESSION file back (R145 hand step) · tasks/1657-harvest-copies-the-lane-session-file.md
+- [#1658] [P2][S] `codespace-delete` writes its close row (R144; true for the verb since 2026-10-19) · tasks/1658-codespace-delete-writes-close-row.md
+- [#1659] [P3][S] agy pin tolerance: 1.3.5 -> 1.4.2 must not block a launch (R140) · tasks/1659-agy-pin-tolerance.md
+- [#1660] [P2][M] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) · tasks/1660-groom-view-back-under-150000.md
+- [#1661] [P2][S] A Codespace handback fires a Monitor WAKE (R145 hand step; defect 4) · tasks/1661-codespace-handback-fires-monitor-wake.md
+- [#1662] [P1][S] The runner and the lane both write `/workspaces/dispatch/handback.json` (SEV-1; defect 1) · tasks/1662-runner-and-lane-share-handback-json.md
+- [#1663] [P2][S] Codex review of a box lane runs on the laptop against the pushed branch (defect 2; R151) · tasks/1663-codex-review-of-box-lanes-runs-on-the-laptop.md
+- [#1664] [P2][S] The pins gate blocks every box launch on each laptop CLI patch bump (defect 3) · tasks/1664-pins-gate-blocks-box-launch-on-cli-patch-bump.md
+- [#1665] [P2][S] `merge_receipt` has no abandon verb for a refused land (defect 5) · tasks/1665-merge-receipt-has-no-abandon-verb.md
+- [#1666] [P2][S] `ship_gate_diff.py` fails on a relative `--repo` and runs the caller's organ code on the target tree (defect 6) · tasks/1666-ship-gate-diff-relative-repo-and-caller-organs.md
+- [#1667] [P1][S] Handback text is lost in transport: the handback becomes a checked file, not a rendered one (defect 7) · tasks/1667-handback-text-lost-in-transport.md
+- [#1668] [P2][L] The laptop slept 02:00-15:00: 13 h of no progress (the off-the-laptop goal, defect 8) · tasks/1668-off-the-laptop-goal-13h-sleep.md
+- [#1669] [P2][S] The distiller reads none of an R130 integrator's refusals (defect 9) · tasks/1669-distiller-reads-no-r130-integrator-refusal.md
+- [#1670] [P1][M] No silent substitution: the launcher and contract lint refuse a model not in the phase or role table (R139, P1) · tasks/1670-no-silent-substitution-launcher-and-lint.md
 
 ---
 

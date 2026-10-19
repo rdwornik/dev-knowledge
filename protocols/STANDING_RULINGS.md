@@ -7175,6 +7175,124 @@ Landed by lane `e1-rows` (batch E1, `to-cc/BATCH-E1-LAND-2026-10-18.md` v2 §2 l
   | R136 | **CC seats manage their own context.** A seat (the integrator first) starts its own successor session when its context runs low, at a safe point, with no operator paste. This existed in part before (later handovers self-launched); it must be code, not prose. | P13 TO-BE machine; R94 cycle gate (ratified, unbuilt); `[#1573]` (the first handover) |
   ```
 
+## AX. RATIFICATION 2026-10-18 (v5) R137–R147 — landed verbatim from their source, each carried by a row, a batch lane or a written "no implementation required" (operator, 2026-10-18)
+
+Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4 lane e2-rulings). The source is `to-browser/RATIFICATION-2026-10-18.md`, **v5** (supersedes v4: R146–R147 added; nothing else changed). The ruling's text is its table row (R137–R142 at lines 44–49, R143–R145 at lines 61–63, R146–R147 at lines 69–70) and the three seat proposals P1–P3 (lines 53–55), which the operator accepted at ~22:50 and which are landed under the ruling each one is the mechanism of. **Where the source says "dictated; condensed" the text below is the operator's condensed words as the seat transcribed them**, not a stenographic record; nothing here is paraphrased by this lane.
+
+**R-number check, quoted.** `Grep R(13[7-9]|14[0-7])` over `protocols/` and `docs/decisions/` before this section was written returned 0 matches in 0 files; the highest R-number in this file was R136 (section AW).
+
+**Not landed here:** the file's "Still open" list and the seat rulings D4, D5, D6 (technical seat rulings, as in AW).
+
+**Owed rows not yet filed.** The twelve rows this section names as "owed row (a)" to "(l)" (ids 1650–1661 are reserved for them on origin) are drafted in `to-browser/SESSION-e2-rulings.md` and are not filed: the BACKLOG.md view stands at 149,990 of the 150,000-byte ceiling (`scripts/view_budget.yaml`), so filing them is refused by `gen_task_tree.py --emit-source` until the budget is ruled or the queue is groomed. Each is to be filed with `decided-by` citing the ruling it is listed under.
+
+**Supersession recorded.** R140 supersedes R135 (section AW): agy is laptop-only, so "fix agy in boxes" no longer stands. R135's entry above is left as landed (the file is append-only in practice); [#1644] is rewritten under R140. R138 amends R134's review roles. R137 closes the Q1–Q9 package of `to-browser/DIGEST-E1-REVIEW-2026-10-18.md` §7 as recommended.
+
+- **R137 — the E1 package is accepted as recommended** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:44` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** batch E2.0 lane `e2-fates` (Q1, Q2, Q3, Q8, Q9 are executed there); [#1629], [#1637], [#1638], [#1642] (Q5: the four D0 rows, restored by lane `e2-rulings` with `decided-by: R137`; intake 118 is ACCEPTED on this ruling); owed row (a) the Architekt Jutra module review (Q4: the deferred Architekt Jutra module review, no target batch)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:44-44
+  | R137 | **The E1 package is accepted as recommended** (operator: "I agree with all the other things you recommend"): Q1 a `called_by:` fate key verified by a test · **Q2 deletion GO** for save, aj-scan, hook_expiry_verdict, export_backlog_view, offload_admission, carrier_landed_check, surface_triage.ps1 with the tests that only read them (export_backlog_view and offload_admission ride `[#1033]`) · Q3 deny_and_point: re-home the vocabulary `organ_usage_metric` imports, then retire (R66) · Q5 "the plan r4 OK of 2026-10-18 is the ruling for [#1629] [#1637] [#1638] [#1642]" · Q8 python-statemachine 3.2.2, pinned · Q9 an agy read-only allow-rule. **Q4 aj-scan:** it belongs to the Architekt Jutra course tooling; it should not exist as a dedicated harness scanner, so it retires with Q2. Reviewing the Architekt Jutra modules for harness use is a later item, after the foundations. | E2.0 lane; one deferred row (AJ module review, no target batch yet) |
+  ```
+
+- **R138 — review is double for now: Codex + Copilot** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:45` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** the role table in `ecosystem/provider-registry.yaml` (batch E2.0 lane `e2-subst-gate`); [#1652] (the review-findings scoreboard computed from receipts); the PhaseReceipt findings fields ([#1653], the ADR-delta PhaseReceipt contract, ADR-δ)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:45-45
+  | R138 | **Review is double for now: Codex (gpt-5.6-terra) + Copilot**, both on every code lane. Supersedes the seat's Q6 recommendation (Sonnet primary). **Review telemetry starts now:** every finding is recorded per reviewer with a severity and a defect class (critical / logic / constraint / code cleanliness and more), so code can show who catches which errors. Taxonomy: P2. | role table in `ecosystem/provider-registry.yaml`; findings fields in the PhaseReceipt (R141); a scoreboard computed from receipts |
+  ```
+  **P2 — the R138 taxonomy (seat proposal, accepted by the operator ~22:50; CC still verifies the source)** (seat proposal P2; `RATIFICATION-2026-10-18.md:54` (v5)):
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:54-54
+  - **P2 (R138 taxonomy):** library-first — the code-review defect classes of Mäntylä & Lassenius (2009): functional (logic, interface/constraint, resource, check, security) vs evolvability (structure, documentation, visual/style); × severity critical / major / minor; × outcome confirmed / false positive / missed (seeded defects and later escapes). CC verifies the source before adoption.
+  ```
+
+
+- **R139 — a silent model substitution must never happen** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:46` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** batch E2.0 lane `e2-subst-gate` (pre-launch refusal and merge gate); [#1670] (the launcher and contract lint refuse a model not in the phase or role table); the S2 row raised to E2.0 priority
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:46-46
+  | R139 | **A silent model substitution must never happen.** e1-p0-fix ran Sonnet in the Grok and Copilot roles with passing probes and no notice — a systemic defect. No substitution without the operator being informed. Mechanism: P1. | pre-launch + merge gate; S2 row raised to E2.0 priority |
+  ```
+  **P1 — the R139 mechanism (seat proposal, accepted by the operator ~22:50)** (seat proposal P1; `RATIFICATION-2026-10-18.md:53` (v5)):
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:53-53
+  - **P1 (R139 mechanism):** a role runs on the role-table model only. A different model may run only after a recorded VENDOR-FAIL of the planned one, and the PhaseReceipt names both (requested, served). Pre-launch refuses a contract whose model differs from the role table; the merge gate refuses a receipt with served ≠ requested and no VENDOR-FAIL; any substitution is printed in the handback and the LEDGER. Orders stop naming substitutes (the E1 order's free substitute menu was the hole).
+  ```
+
+
+- **R140 — agy (Gemini) is laptop-only** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:47` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** owed row (b) the agy re-check on each pin bump (the agy official-headless-route re-check on every agy pin bump); [#1644] (rewritten under R140: it now tracks the re-check, not a credential path); owed row (j) agy pin tolerance (agy pin tolerance); the agy roles in the role table carry substrate = local
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:47-47
+  | R140 | **agy (Gemini) is laptop-only.** No seeded personal token in a box: if anything risks the account, the answer is no. Tasks that need agy are not delegated to a Codespace. The route is **re-checked regularly**, so the box path is adopted if an official headless route appears. **Supersedes R135.** | role table: agy roles carry substrate = local; a re-check row tied to each agy pin bump; `[#1644]` rewritten |
+  ```
+
+- **R141 — `--json-schema` (the PhaseReceipt) is part of the system** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:48` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1653] (the ADR-delta PhaseReceipt contract, target E2.1, before the queue runner E2.2 uses it); read-only track T1 of batch E2.0 (`to-browser/DIGEST-PHASERECEIPT-ASIS-2026-10-19.md`)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:48-48
+  | R141 | **`--json-schema` (the PhaseReceipt) is part of the system.** How it looks, and who emits what, is decided through the normal path (the seat proposes, CC challenges, the operator ratifies — an ADR), never by one seat alone. Procedure: P3. | ADR-δ PhaseReceipt contract in E2.1, before the queue runner (E2.2) uses it |
+  ```
+  **P3 — the R141 procedure (seat proposal, accepted by the operator ~22:50)** (seat proposal P3; `RATIFICATION-2026-10-18.md:55` (v5)):
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:55-55
+  - **P3 (R141 procedure):** CC quotes the existing PhaseReceipt schema (`run_phase.py`, built-unused) → the seat proposes the fields (phase, role, requested/served model, effort, verdict, tests run/passed, files, USD/tokens, findings[] per P2) → CC challenges → the operator ratifies ADR-δ → the schema is frozen in the repo with a test.
+  ```
+
+
+- **R142 — deploy first, then evolve** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:49` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — it is a standing instruction to every E2 order (`to-cc/BATCH-E2-0-2026-10-18.md` §0 measure: real use is the measure), with nothing to build (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:49-49
+  | R142 | **Deploy first, then evolve.** Real use is the measure of deployment (R121); a working first version beats a perfect plan. | applies to every E2 order |
+  ```
+
+- **R143 — hypercare** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:61` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §6; [#1654] (the hypercare register; the nine defects of the batch are filed as [#1662]-[#1669] and [#1661] under it)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:61-61
+  | R143 | **Hypercare.** Whatever is newly deployed is watched closely until it earns trust: each real use is checked against a witness, because the operator does not yet trust it fully. The harness does not verify itself — **isolated agents** check its claims. Exit criteria are a seat proposal (5 consecutive OK real uses, no open SEV-1; counted by use, not by calendar). | BATCH-E2.0 §6; a hypercare register row |
+  ```
+
+- **R144 — cost control** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:62` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §7; read-only track T2 (`to-browser/DIGEST-COST-BASELINE-2026-10-19.md`); [#1655] (cost telemetry per vendor); [#1658] (`codespace-delete` writes its close row, so compute-hours are measured)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:62-62
+  | R144 | **Cost control.** Part of the cost is covered by GitHub plans (Codespaces compute-hours; Copilot credits); the operator does not want to exceed them. Every batch states its stops and measures spend per vendor. | BATCH-E2.0 §7; T2 cost baseline; cost telemetry row |
+  ```
+
+- **R145 — more and more of the process moves into code, driven by telemetry** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:63` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1656] (the TODAY-GLUE count in every close digest); the E2.2 queue runner; [#1657] (harvest copies the lane's SESSION file) and [#1661] (a Codespace handback fires a Monitor wake) (hand steps the harness still leaves to a human)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:63-63
+  | R145 | **More and more of the process moves into code, driven by telemetry.** Dispatch is the first thing to heal; the TODAY-GLUE count is reported per batch and must fall. | W7 in every close digest; E2.2 queue runner |
+  ```
+
+- **R146 — Copilot runs on the default-signed-in GitHub account** (operator, 2026-10-18 ~23:10, dictated; condensed; full text `RATIFICATION-2026-10-18.md:69` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the batch order fixes the account (`to-cc/BATCH-E2-0-2026-10-18.md` §3 and §7) and the role table names the account class when lane `e2-subst-gate` lands it (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:69-69
+  | R146 | **Copilot runs on the GitHub account signed in by default — the operator's Enterprise account** (his Copilot use is partly for work). The employer sets its limits; the harness sets no Copilot stop and does not use the private account. | BATCH-E2.0 v2 §3, §7; role table names the account class |
+  ```
+
+- **R147 — the junior rule** (operator, 2026-10-18 ~23:10, dictated; condensed; full text `RATIFICATION-2026-10-18.md:70` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the junior rule is applied by the batch order §3 (the isolated verify, the review pair, ISOLATED-CHECK on close digests); the owed harvest row (h) widens the evidence it can check (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-18.md:70-70
+  | R147 | **The junior rule:** any agent may be used (Haiku in boxes included), but it works isolated and **never verifies itself** — like a junior, someone else checks its hands. Every output is checked by a different agent before it counts. | BATCH-E2.0 v2 §3; the isolated verify + review pair; ISOLATED-CHECK on close digests |
+  ```
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

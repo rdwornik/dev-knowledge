@@ -461,17 +461,19 @@ def test_r58_is_landed_from_its_proposal_and_its_ratifying_line(entries_ar):
 
 def test_the_bundles_landed_row_reads_through_r136_with_every_id_present():
     """Item 1: `handoff_state.row_landed` (W1-9's row) is read, not changed. On this tree it says
-    `through R136` (sections AV and AW, batch E1 lane `e1-rows`, extend section AU's R115),
-    and every id from R1 to R136 is bulleted except R103, which was never ruled (section AU)."""
+    `through R147` (sections AV and AW, batch E1 lane `e1-rows`, extend section AU's R115;
+    section AX, batch E2.0 lane `e2-rulings`, lands R137-R147), and every id from R1 to R147
+    is bulleted except R103, which was never ruled (section AU). The test name keeps `r136`
+    so the integrator's node id stays the same across the pin move."""
     import sys as _sys
     scripts = str(_REPO / "scripts")
     if scripts not in _sys.path:
         _sys.path.insert(0, scripts)
     import handoff_state as hs
     row = hs.row_landed(_REPO)
-    assert row.value.startswith("through R136 "), row.value
+    assert row.value.startswith("through R147 "), row.value
     ids = {int(n) for n in hs._LANDED_RE.findall(_REGISTER.read_text(encoding="utf-8"))}
-    want = set(range(1, 137)) - {103}
+    want = set(range(1, 148)) - {103}
     assert want <= ids, sorted(want - ids)
     assert 103 not in ids
 
