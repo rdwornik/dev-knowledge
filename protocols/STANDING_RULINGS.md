@@ -7197,7 +7197,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R138 — review is double for now: Codex + Copilot** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:45` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** the role table in `ecosystem/provider-registry.yaml` (batch E2.0 lane `e2-subst-gate`); owed row (c) the review-findings scoreboard (the review-findings scoreboard computed from receipts); the PhaseReceipt findings fields (owed row (d) the ADR-delta PhaseReceipt contract, ADR-δ)
+  **Carried by:** the role table in `ecosystem/provider-registry.yaml` (batch E2.0 lane `e2-subst-gate`); [#1652] (the review-findings scoreboard computed from receipts); the PhaseReceipt findings fields ([#1653], the ADR-delta PhaseReceipt contract, ADR-δ)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:45-45
   | R138 | **Review is double for now: Codex (gpt-5.6-terra) + Copilot**, both on every code lane. Supersedes the seat's Q6 recommendation (Sonnet primary). **Review telemetry starts now:** every finding is recorded per reviewer with a severity and a defect class (critical / logic / constraint / code cleanliness and more), so code can show who catches which errors. Taxonomy: P2. | role table in `ecosystem/provider-registry.yaml`; findings fields in the PhaseReceipt (R141); a scoreboard computed from receipts |
@@ -7211,7 +7211,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R139 — a silent model substitution must never happen** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:46` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** batch E2.0 lane `e2-subst-gate` (pre-launch refusal and merge gate); the S2 row raised to E2.0 priority
+  **Carried by:** batch E2.0 lane `e2-subst-gate` (pre-launch refusal and merge gate); [#1670] (the launcher and contract lint refuse a model not in the phase or role table); the S2 row raised to E2.0 priority
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:46-46
   | R139 | **A silent model substitution must never happen.** e1-p0-fix ran Sonnet in the Grok and Copilot roles with passing probes and no notice — a systemic defect. No substitution without the operator being informed. Mechanism: P1. | pre-launch + merge gate; S2 row raised to E2.0 priority |
@@ -7233,7 +7233,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R141 — `--json-schema` (the PhaseReceipt) is part of the system** (operator, 2026-10-18 ~22:30, dictated; condensed; full text `RATIFICATION-2026-10-18.md:48` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** owed row (d) the ADR-delta PhaseReceipt contract (ADR-δ PhaseReceipt contract, target E2.1, before the queue runner E2.2 uses it); read-only track T1 of batch E2.0 (`to-browser/DIGEST-PHASERECEIPT-ASIS-2026-10-19.md`)
+  **Carried by:** [#1653] (the ADR-delta PhaseReceipt contract, target E2.1, before the queue runner E2.2 uses it); read-only track T1 of batch E2.0 (`to-browser/DIGEST-PHASERECEIPT-ASIS-2026-10-19.md`)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:48-48
   | R141 | **`--json-schema` (the PhaseReceipt) is part of the system.** How it looks, and who emits what, is decided through the normal path (the seat proposes, CC challenges, the operator ratifies — an ADR), never by one seat alone. Procedure: P3. | ADR-δ PhaseReceipt contract in E2.1, before the queue runner (E2.2) uses it |
@@ -7255,7 +7255,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R143 — hypercare** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:61` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §6; owed row (e) the hypercare register (the hypercare register)
+  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §6; [#1654] (the hypercare register; the nine defects of the batch are filed as [#1662]-[#1669] and [#1661] under it)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:61-61
   | R143 | **Hypercare.** Whatever is newly deployed is watched closely until it earns trust: each real use is checked against a witness, because the operator does not yet trust it fully. The harness does not verify itself — **isolated agents** check its claims. Exit criteria are a seat proposal (5 consecutive OK real uses, no open SEV-1; counted by use, not by calendar). | BATCH-E2.0 §6; a hypercare register row |
@@ -7263,7 +7263,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R144 — cost control** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:62` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §7; read-only track T2 (`to-browser/DIGEST-COST-BASELINE-2026-10-19.md`); owed row (f) cost telemetry per vendor (cost telemetry per vendor); owed row (i) `codespace-delete` writes its close row (`codespace-delete` writes its close row, so compute-hours are measured)
+  **Carried by:** `to-cc/BATCH-E2-0-2026-10-18.md` §7; read-only track T2 (`to-browser/DIGEST-COST-BASELINE-2026-10-19.md`); [#1655] (cost telemetry per vendor); [#1658] (`codespace-delete` writes its close row, so compute-hours are measured)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:62-62
   | R144 | **Cost control.** Part of the cost is covered by GitHub plans (Codespaces compute-hours; Copilot credits); the operator does not want to exceed them. Every batch states its stops and measures spend per vendor. | BATCH-E2.0 §7; T2 cost baseline; cost telemetry row |
@@ -7271,7 +7271,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 - **R145 — more and more of the process moves into code, driven by telemetry** (operator, 2026-10-18 ~22:50, dictated; condensed; full text `RATIFICATION-2026-10-18.md:63` (v5)). **Status:** landed as text by lane `e2-rulings`; whether the mechanism it names is built is not asserted here.
 
-  **Carried by:** owed row (g) the TODAY-GLUE count in every close digest (the TODAY-GLUE count in every close digest); the E2.2 queue runner; owed row (h) harvest copies the lane's SESSION file and owed row (l) a Codespace handback fires a Monitor wake (hand steps the harness still leaves to a human)
+  **Carried by:** [#1656] (the TODAY-GLUE count in every close digest); the E2.2 queue runner; [#1657] (harvest copies the lane's SESSION file) and [#1661] (a Codespace handback fires a Monitor wake) (hand steps the harness still leaves to a human)
 
   ```verbatim to-browser/RATIFICATION-2026-10-18.md:63-63
   | R145 | **More and more of the process moves into code, driven by telemetry.** Dispatch is the first thing to heal; the TODAY-GLUE count is reported per batch and must fall. | W7 in every close digest; E2.2 queue runner |
