@@ -322,7 +322,8 @@ def _real() -> dict:
 # LANE-5B5-2 B1: `seat-release` is the seventh -- not a lane-lifecycle moment but a separate
 # operator-invoked one (the operator's own act of releasing a claude.ai seat).
 _MOMENT_ORGANS = {
-    "pre-launch": ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement"],
+    "pre-launch": ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement",
+                   "model_per_role"],
     "lane-start": ["single_flight"],
     # R-W4-4: `merge_receipt.open` is the FIRST organ, so a caller that runs only this moment
     # (no prior `merge_receipt.py open`, unlike the integrator's own walk) still opens a receipt

@@ -100,7 +100,7 @@ n. **Close-out:** targeted tests for this diff; Codex review record citing its c
    log, and a nonce or content hash the reviewer returned (a record without both reads as a
    failed read); self-check and purity per the common rules; handback in
    `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`. A box lane writes
-   `/workspaces/dispatch/lane-handback.json` (never `handback.json`, S5) carrying a `MODELS:` block
+   `/workspaces/dispatch/lane-handback.json` (not `handback.json`, S5) carrying a `MODELS:` block
    — `<phase>: requested=<model/effort> served=<model as the CLI reported it> [VENDOR-FAIL: <ref>]`
    — that the merge gate reads; served != requested with no `VENDOR-FAIL` is refused.
 

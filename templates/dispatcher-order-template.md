@@ -63,7 +63,7 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   remain: on the verb's own refusal (exit 5 — a declared-edge cycle, say) record the output
   verbatim, then fall back to the ONE named contract's own `## Dispatch` line and record
   `FALLBACK <slug>: <why>`.
-- **What a launch must leave, and what refuses it (P1, S4).** `moment:pre-launch` also runs
+- **What a launch leaves, and what refuses it (P1, S4).** `moment:pre-launch` also runs
   `model_per_role`: a contract whose head row, Dispatch `--model` or phase-table model differs from
   the role table (`ecosystem/provider-registry.yaml`) is refused with `REFUSED [model-per-role]` —
   on `dispatch.py codespace-exec` and `dispatch.py repair` as well as on `launch`, before anything
