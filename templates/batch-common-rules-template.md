@@ -85,8 +85,12 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 
 ## 5. Record what served
 
-Record the model that actually served each step you ran. A routed tool that did not answer is a
-**SUBSTITUTION** — record it, do not hide it. Routing: `ecosystem/provider-registry.yaml`.
+Record the model that actually served each step you ran, as the handback's `MODELS:` block
+(`<phase>: requested=<model/effort> served=<model> [VENDOR-FAIL: <ref>]`). A routed tool that did not
+answer is a **SUBSTITUTION** — record it, do not hide it, and do not run another model in its place
+(P1): write `VENDOR-FAIL: <phase> <model> <error>` and stop that phase. The merge gate refuses a
+handback with no `MODELS:` block, or served != requested with no `VENDOR-FAIL`. Routing:
+`ecosystem/provider-registry.yaml`.
 
 ## 6. Files
 

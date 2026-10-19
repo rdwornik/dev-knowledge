@@ -63,6 +63,14 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   remain: on the verb's own refusal (exit 5 — a declared-edge cycle, say) record the output
   verbatim, then fall back to the ONE named contract's own `## Dispatch` line and record
   `FALLBACK <slug>: <why>`.
+- **What a launch must leave, and what refuses it (P1, S4).** `moment:pre-launch` also runs
+  `model_per_role`: a contract whose head row, Dispatch `--model` or phase-table model differs from
+  the role table (`ecosystem/provider-registry.yaml`) is refused with `REFUSED [model-per-role]` —
+  on `dispatch.py codespace-exec` and `dispatch.py repair` as well as on `launch`, before anything
+  is spawned. Record that line verbatim; do not launch the lane with another model in its place.
+  A launch leaves `logs/receipts/LAUNCH-<SLUG>.json` (a Codespace lane: its `logs/CODESPACE-RECEIPTS.jsonl`
+  row); the merge gate refuses a lane with neither. A raw `claude --bg`, the PATH `dispatch` wrapper
+  and `dispatch.py queue` leave no such receipt, so a lane started that way cannot merge.
 - **Before each CODESPACE fire (W2, R7 — the one hard veto):**
   `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` — exit 0
   (OK): fire · exit 1 (REFUSED): record the refusal verbatim, do not fire. `<n>` is that
@@ -95,14 +103,17 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
    `from: the INTEGRATOR` and `repair N of 2`. `HANDBACK-REFUSED-*` files are a lane's own
    self-refusals: do not repair from them.
    ```
-   uv run --locked python scripts/dispatch.py repair <slug> <CONTRACT>.md --model <MODEL> --effort <EFFORT>
+   uv run --locked python scripts/dispatch.py repair <slug> <CONTRACT>.md --model <MODEL> --effort <EFFORT> --batch <BATCH>
    ```
-   This relaunches into the lane's EXISTING worktree, not a fresh one. Options: `--help`. On the
+   This relaunches into the lane's EXISTING worktree, not a fresh one, after the same `pre-launch`
+   moment a launch runs (a `REFUSED [model-per-role]` stops it), and rewrites
+   `logs/receipts/LAUNCH-<SLUG>.json` with `kind: repair`. Options: `--help`. On the
    verb's own refusal (no existing worktree there, say) record the output verbatim, then fall back
    to the contract's own `## Dispatch` line with `-n <slug>-repair-<n>` and the refusal path in the
    prompt, recorded as `FALLBACK <slug>-repair-<n>: <why>`.
 4. **Close** when `to-browser/STATE-BATCH-<BATCH>.md` reads `CLOSED`:
-   - write the summary — per lane: job, extra sessions, result, and the model that served;
+   - write the summary — per lane: job, extra sessions, result, and the model that served (the
+     lane's `MODELS:` block; carry every `VENDOR-FAIL` substitution line into it);
    - confirm it on the transport;
    - stop every Monitor, poll and shell of yours; stop.
 

@@ -32,8 +32,13 @@ reconciled_with: handoff-process@7.1.0
     `plan_lint.py` refuses a contract that names one instead.
 
   ROUTING IS DATA. The Model cell names the model the registry routes this lane's ROLE to
-  (`ecosystem/provider-registry.yaml` — produce, review, orchestrate, ...); do not pick a model
-  from memory. Commands come from `uv run --locked python scripts/dispatch.py launch --help`.
+  (`ecosystem/provider-registry.yaml` — the lane head is the `implement` role, R153; review,
+  verify and red are other rows); do not pick a model from memory. Commands come from
+  `uv run --locked python scripts/dispatch.py launch --help`.
+  A lane that runs several models adds a `| Phase | Model | Substrate |` table naming, per phase,
+  the model the registry table names for that role; `scripts/subst_gate.py` (pre-launch organ
+  `model_per_role`) refuses a contract whose phase, head row or Dispatch `--model` differs. No phase
+  names a substitute: a model that fails is `VENDOR-FAIL: <phase> <model> <error>` and the phase stops.
   Replace every <angle-bracket> placeholder; delete this comment.
 -->
 # LANE <slug> — <the value, as one clause>
@@ -94,7 +99,10 @@ n. **Close-out:** targeted tests for this diff; Codex review record citing its c
    or this contract) and carrying the R59 proof of read: the served model id from the tool's own
    log, and a nonce or content hash the reviewer returned (a record without both reads as a
    failed read); self-check and purity per the common rules; handback in
-   `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`.
+   `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`. A box lane writes
+   `/workspaces/dispatch/lane-handback.json` (never `handback.json`, S5) carrying a `MODELS:` block
+   — `<phase>: requested=<model/effort> served=<model as the CLI reported it> [VENDOR-FAIL: <ref>]`
+   — that the merge gate reads; served != requested with no `VENDOR-FAIL` is refused.
 
 ## Do not
 
