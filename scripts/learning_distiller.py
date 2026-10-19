@@ -171,32 +171,9 @@ def _title_from_what_failed(slug: str, body: str) -> str:
 
 
 def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
-    """One `repair` row from a `REFUSED-<slug>.md` file's own `## What failed`."""
-    heading = _REFUSED_HEADING_RE.search(text)
-    if not heading:
-        return None
-    slug, n, m = heading.group("slug"), heading.group("n"), heading.group("m")
-    from_m = _FRONTMATTER_FROM_RE.search(text)
-    batch_m = _FRONTMATTER_BATCH_RE.search(text)
-    date_m = _FRONTMATTER_DATE_RE.search(text)
-    what_failed_m = _WHAT_FAILED_RE.search(text)
-    body = what_failed_m.group("body").strip() if what_failed_m else ""
-
-    test_files = _test_files(body)
-    proposed = not test_files
-    check = (f"uv run --locked pytest {' '.join(test_files)} -q" if test_files
-             else f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
-                  f"# proposed regression test (not yet written) -- {path.name}'s "
-                  f"'What failed' named no `tests/*.py::test_*` node id")
-    provenance = (
-        f"{_relpath(path)} (from: {from_m.group(1).strip() if from_m else '?'}, "
-        f"repair {n} of {m}, batch {batch_m.group(1).strip() if batch_m else '?'}, "
-        f"{date_m.group(1).strip() if date_m else '?'})"
-    )
-    return CandidateRow(
-        kind="repair", slug=slug, title=_title_from_what_failed(slug, body),
-        provenance=provenance, check=check, detail=body[:600], proposed=proposed,
-    )
+    """The first `repair` row of a REFUSED file (see `parse_refused_events` for all of them)."""
+    rows = parse_refused_events(text, path)
+    return rows[0] if rows else None
 
 
 # A real integrator's REFUSED file is not one heading shape: `# REFUSED -- <slug>, repair N of M`
