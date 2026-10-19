@@ -157,7 +157,7 @@ def test_gate_pins_alls_green_by_commit_sha_with_a_tag_comment(workflow, raw):
     """R155 OQ1: the commit SHA is the pin; the tag beside it is for the human reader."""
     uses = _gate_step(workflow)["uses"]
     assert re.fullmatch(r"re-actors/alls-green@[0-9a-f]{40}", uses), uses
-    line = next(l for l in raw.splitlines() if "uses:" in l and uses in l)
+    line = next(ln for ln in raw.splitlines() if "uses:" in ln and uses in ln)
     assert re.search(r"#\s*v\d+\.\d+\.\d+\s*$", line), (
         f"the pinned line must carry a trailing `# vX.Y.Z` tag comment: {line!r}"
     )
