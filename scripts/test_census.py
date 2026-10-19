@@ -16,9 +16,11 @@ Classes (R120.3 / row [#1566] Done-when 2):
 Subcommands: edges, classify, report. `report` deletes nothing and says so.
 
 Usage:
-  uv run --locked python scripts/test_census.py edges --cov cov.json --out test-edges-<sha>.json
+  uv run --locked python scripts/test_census.py edges --data .coverage --out test-edges-<sha>.json
+      (--cov cov.json instead reads a `coverage json --show-contexts` report: small suites only)
   uv run --locked python scripts/test_census.py classify --edges E.json --dead dead.txt \
-      --mutmut mutants/mutmut-stats.json --out census.jsonl
+      --collected collected.txt --mutmut mutants/mutmut-stats.json --out census.jsonl
+      (--collected: `pytest --collect-only -q` ids; a collected test with no edge becomes UNCLASSIFIED)
   uv run --locked python scripts/test_census.py report --census census.jsonl
 """
 from __future__ import annotations
@@ -446,11 +448,30 @@ def edges_from_data(data_file: str) -> dict[str, dict[str, list[str]]]:
     return out
 
 
+def relativize(edges: dict, root: Path) -> dict:
+    """Absolute module paths under `root` -> posix repo-relative (coverage stores absolute paths unless
+    `relative_files` is set), so `tests/` filtering and `--dead` matching see repo paths."""
+    base = root.resolve()
+    out: dict = {}
+    for tid, mods in edges.items():
+        out[tid] = {}
+        for m, lines in mods.items():
+            try:
+                m = Path(m).resolve().relative_to(base).as_posix() if Path(m).is_absolute() else m
+            except ValueError:
+                pass
+            out[tid][m] = lines
+    return out
+
+
 def _cmd_edges(a) -> int:
+    if not a.data and not a.cov:
+        raise SystemExit("edges: give --cov FILE or --data .coverage")
     if a.data:
         edges = edges_from_data(a.data)
     else:
         edges = edges_from_coverage(json.loads(Path(a.cov).read_text(encoding="utf-8")))
+    edges = relativize(edges, Path(a.root))
     Path(a.out).write_text(json.dumps(edges, sort_keys=True), encoding="utf-8")
     return 0
 
@@ -496,6 +517,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--cov", default=None, help="coverage json --show-contexts output (small suites)")
     e.add_argument("--data", default=None, help="a .coverage database (large suites)")
     e.add_argument("--out", required=True)
+    e.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
     c = sub.add_parser("classify")
     c.add_argument("--edges", required=True)
     c.add_argument("--dead", required=True)

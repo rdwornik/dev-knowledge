@@ -1,4 +1,4 @@
-"""RED tests for scripts/test_census.py (module does not exist yet)."""
+"""Tests for scripts/test_census.py ([#1566]); written RED first, see the git log."""
 import importlib.util
 import json
 import subprocess
@@ -576,3 +576,13 @@ def test_build_tests_collected_param_is_accepted(census, tmp_path):
     tests, files = census.build_tests({"tests/test_x.py::test_a": {}}, tmp_path, collected=None)
     assert "tests/test_x.py::test_a" in tests
     assert isinstance(files, set)
+
+
+def test_relativize_makes_absolute_paths_repo_relative(census, tmp_path):
+    edges = {"t": {str(tmp_path / "scripts" / "m.py"): ["1-2"], "elsewhere/x.py": ["3-3"]}}
+    assert census.relativize(edges, tmp_path) == {"t": {"scripts/m.py": ["1-2"], "elsewhere/x.py": ["3-3"]}}
+
+
+def test_edges_without_source_is_a_usage_error(tmp_path):
+    r = run_cli("edges", "--out", tmp_path / "E.json")
+    assert r.returncode != 0 and "Traceback" not in r.stderr
