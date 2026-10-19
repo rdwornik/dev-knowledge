@@ -1,6 +1,6 @@
 """Coverage for scripts/gen_process_diagrams.py -- P1 dispatch-lane state machine <-> binding <-> diagram.
 
-Pins: the 24-state machine, the zone map, ecosystem/process-binding.yaml (schema process-binding/1),
+Pins: the 25-state machine, the zone map, ecosystem/process-binding.yaml (schema process-binding/1),
 the R130/R132 invariants, file:line anchors, and regenerate-and-compare of the stored Mermaid block.
 All tests use real repo files; no network.
 """
@@ -21,7 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 STATES = [
     "drafted", "emitted", "checked", "planned", "queued", "held_dependency",
     "held_capacity", "prelaunch", "launching_local", "launching_codespace",
-    "launching_cloud", "launch_incomplete", "running", "stalled", "resuming",
+    "launching_cloud", "launch_incomplete", "running", "running_cloud", "stalled", "resuming",
     "handed_back", "harvesting", "integrating", "merged", "refused", "repairing",
     "reported", "blocked_failed", "failed",
 ]
@@ -51,10 +51,10 @@ def _p1() -> dict:
     return gpd.load_binding()["processes"]["P1"]
 
 
-def test_machine_has_exactly_the_24_states_initial_and_finals():
+def test_machine_has_exactly_the_25_states_initial_and_finals():
     states = gpd.P1DispatchLane.states
     assert sorted(s.id for s in states) == sorted(STATES)
-    assert len(states) == 24
+    assert len(states) == 25
     assert {s.id for s in states if s.initial} == {"drafted"}
     assert {s.id for s in states if s.final} == FINALS
 
@@ -101,6 +101,27 @@ def test_r132_cloud_lane_can_never_be_integrated():
                 seen.add(nxt)
                 stack.append(nxt)
     assert "integrating" not in seen
+
+
+def test_cloud_path_is_closed():
+    edges: dict[str, set[str]] = {}
+    for _e, s, t in _machine_transitions():
+        edges.setdefault(s, set()).add(t)
+
+    def reachable(start: str) -> set[str]:
+        seen: set[str] = set()
+        stack = [start]
+        while stack:
+            for nxt in edges.get(stack.pop(), ()):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        return seen
+
+    from_cloud = reachable("launching_cloud")
+    assert from_cloud <= {"running_cloud", "reported", "failed"}
+    assert "running_cloud" in from_cloud
+    assert "reported" in reachable("running_cloud")
 
 
 def _anchored_entries():
