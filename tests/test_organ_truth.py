@@ -494,15 +494,16 @@ def test_an_index_row_for_a_hook_the_config_no_longer_carries_contradicts_whatev
 
 # --------------------- lane-organ-wirings: the live `fates:` corrections (Done-contract item 1)
 #
-# handback/lane_boot/plan_lint/deny_and_point are DECIDED-BY-LANE not wired as live moment
-# organs (dispatch.py's pre-launch gate and lane_end_guard.py's lane-end run for real,
-# fleet-wide, with no continue_on_failure escape -- wiring an untested organ into either is a
-# permanent, unconditional refusal of every future lane, not a soft addition). "Shown by the
-# harness's own listing" is this fates: block; these pin that each entry still says so.
+# handback/lane_boot/plan_lint are DECIDED-BY-LANE not wired as live moment organs
+# (dispatch.py's pre-launch gate and lane_end_guard.py's lane-end run for real, fleet-wide,
+# with no continue_on_failure escape -- wiring an untested organ into either is a permanent,
+# unconditional refusal of every future lane, not a soft addition). "Shown by the harness's
+# own listing" is this fates: block; these pin that each entry still says so. deny_and_point
+# was the fourth; it is retired, so its fate and the test that existed only to pin that fate
+# are gone.
 
 _ORGAN_WIRING_FATES = (
     "scripts/handback.py",
-    "scripts/hooks/deny_and_point.py",
     "scripts/lane_boot.py",
     "scripts/plan_lint.py",
 )
@@ -513,7 +514,7 @@ def _live_fates() -> dict[str, dict]:
     return {row["path"]: row for row in doc["fates"]}
 
 
-def test_the_live_fates_block_carries_all_four_organ_wiring_entries():
+def test_the_live_fates_block_carries_the_organ_wiring_entries():
     fates = _live_fates()
     for path in _ORGAN_WIRING_FATES:
         assert path in fates, f"{path} has no ecosystem/harness.yaml fates: entry"
@@ -531,13 +532,13 @@ def test_every_organ_wiring_fate_has_exactly_one_recognised_shape():
 
 
 def test_every_organ_wiring_fate_stays_manual_until_not_moment_or_retire():
-    """DECIDED-BY-LANE (this contract): each of the four is manual_until, specifically --
-    not moment: (which would claim a live caller none of these four has) and not
+    """DECIDED-BY-LANE (this contract): each remaining entry is manual_until, specifically --
+    not moment: (which would claim a live caller none of these has) and not
     retire_candidate: (none of them is being proposed for removal). A fate silently
     flipping to either shape at the same path is the regression this pins against
     (Codex terra review, HIGH, docs/audits/2026-09-26-codex-lane-organ-wirings.md:
     `test_every_organ_wiring_fate_has_exactly_one_recognised_shape` alone would still
-    pass if any of these four became `moment:` or `retire_candidate:`).
+    pass if any of these became `moment:` or `retire_candidate:`).
 
     DECIDED-BY-LANE (LANE-5B5-4-lane-fates-due): the date re-dated 2026-10-05 ->
     2026-10-19 with the rest of that lane's 50 re-dated fates (R33.3); only the SHAPE
@@ -565,7 +566,3 @@ def test_lane_boot_and_plan_lint_fates_cite_the_pre_launch_moment_they_are_propo
         assert "pre-launch" in fates[path]["reason"], fates[path]["reason"]
 
 
-def test_deny_and_point_s_fate_cites_its_own_unwired_pinning_tests():
-    reason = _live_fates()["scripts/hooks/deny_and_point.py"]["reason"]
-    assert "test_deny_and_point.py" in reason
-    assert "UNWIRED" in reason

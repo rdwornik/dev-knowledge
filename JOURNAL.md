@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-19 (a) - CC (Opus 5.5, INTEGRATOR-E2 cycle-2, batch E2.0): lane e2-fates lands (repair 1 of 2) -- the seven R137-Q2 organs deleted, called_by: fate key, deny_and_point retired after the re-home; the connection-loop pin re-pinned for ci_red_age
+
+**Anchors:** `a3d48ee6` (RED tests, Copilot), `ae9a62dc` (`called_by` + the seven deletions, Grok), `5405155d` (deny_and_point re-home + retire, Grok), `49f6d12e` (ci_red_age in batch-close, platform_skip_ratchet as a conductor step, Grok), `c329d3be` (pin-write carrier commit, claude 2.1.302 -> 2.1.303), `5f7d9176` (repair 1: `EXPECTED_STOPS` re-pinned to `('batch-close', 'ci_red_age')`), `6646ab21` (repair 1: R150 parity comment); branch `worktree-e2-fates`, introduced by this merge. Lane and repair ran in Codespaces `e2-fates-9q5gr74w64qfxg54` and `e2-fates-repair-1-7r5j6v4w946cwqpp` (basicLinux32gb), launched by `scripts/dispatch.py codespace-exec`.
+
+**Did:** the integrator merged the lane `--no-ff` on `ade16f33` after the hand gate (BATCH-E2-0 v2 §3, R147). The first landing (merge `12e3d6b4`, never on main) was refused by `merge_path.py land` for one new red on ubuntu, `tests/test_connection_loop.py::test_the_loop_stops_where_the_walk_recorded` (run 39176142019); repair 1 reproduced it on the box (red on the tip, green on `ade16f33`), traced it to `ci_red_age` (wired before `digest`, exit 2 on the toy repo) replacing `trial_cut` as batch-close's first unfired organ, and re-pinned. Codex gpt-5.6-terra (on the laptop, R151) asked for the organ to degrade instead; the integrator ruled the re-pin is the pin's own protocol (it removes no assertion) and owes a row for `Step.stop` vs `continue_on_failure`. This merge also carries ledger lines owed from earlier: the e1-rows receipt in `logs/MERGE-RECEIPTS.jsonl` (E1 CARRY) and four rows in `logs/CODESPACE-RECEIPTS.jsonl` (both Codespaces, open + close).
+
+**Result:** the branch's own `audit.py ship-gate`: 0 hard-fail organs (base: 1, organ_truth); the per-OS CI verdict is the landing's.
+
+**Changes:** `scripts/` (seven organs and their read-only tests deleted; `check_organ_truth.py`, `organ_usage_metric.py`, `graph_queries.py`, `gen_lane_contract.py`, `hooks/bounded_hook.py`), `tests/test_connection_loop.py`, `ecosystem/harness.yaml`, `ecosystem/parity-surfaces.yaml`, `.devcontainer/provisioning.yaml`, `.github/workflows/conductor.yml`, generated `ecosystem/` and `.claude/generated/` surfaces, `logs/MERGE-RECEIPTS.jsonl`, `logs/CODESPACE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Abandoned:** no `manual_until` re-dated (R149: lane e2-cliff applies the fates after this merge); the parity row `settings-deny-and-point` kept (R150).
+
+**Next:** e2-subst-gate starts from this main, then e2-cliff; the e2-rulings repair lands on its own.
+
+---
+
 ### 2026-10-18 (e) - CC (Sonnet 5.5, lane e1-rows, batch E1): R116-R136 land in STANDING_RULINGS, the 18 D0 rows get a ratifying act (RETRO-RATIFICATION), seven owed rows filed
 
 **Anchors:** `6ab3f5b6` (sections AV and AW), `ddcad6f8` (decided-by, the `[#1633]` rewrite, rows `[#1643]`-`[#1649]`, intake 118), `152f953b` (the rulings_carried repair); branch `worktree-d0-rows`, introduced by this merge. This letter follows `(b)` of this branch; the P0 branch carries `(a)`.

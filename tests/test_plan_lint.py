@@ -782,7 +782,7 @@ slug `lane-hooks-port` -> branch `worktree-lane-hooks-port` -> contract `LANE-5B
 
 **Owns:**
 
-**Files you own:** `scripts/surface_triage.ps1`, `scripts/billing_leak_sentinel.ps1` (ported to Python modules under scripts/), the `lane_end_guard` invocation, the hooks section of `.claude/settings.json`, and their tests.
+**Files you own:** `scripts/surface_triage.py`, `scripts/billing_leak_sentinel.py` (ported to Python modules under scripts/), the `lane_end_guard` invocation, the hooks section of `.claude/settings.json`, and their tests.
 
 ## Value
 

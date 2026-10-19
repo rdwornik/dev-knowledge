@@ -115,10 +115,13 @@ def _without_organ(tmp: Path, moment_name: str, organ_id: str) -> Path:
     moment-wide run depend on this box's live preflight state at test time -- `trial_cut` gets
     its own declared-shape test below, and its live behaviour is recorded in the session file
     (a derive-and-mark unit test would only prove the marker runs, which the generic
-    `tests/test_spine_moments.py` organ-shape tests already cover for every moment)."""
+    `tests/test_spine_moments.py` organ-shape tests already cover for every moment).
+    `ci_red_age` calls `gh`, so the same isolation drops it: a digest-only run must not
+    depend on this box's GitHub auth, and a missing JSON is the digest's own no-red-line path."""
     data = _real()
     moment = next(m for m in data["moments"] if m["name"] == moment_name)
-    moment["organs"] = [o for o in moment["organs"] if o["id"] != organ_id]
+    drop = {organ_id, "ci_red_age"} if organ_id == "trial_cut" else {organ_id}
+    moment["organs"] = [o for o in moment["organs"] if o["id"] not in drop]
     path = tmp / "harness-without.yaml"
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return path
@@ -304,8 +307,8 @@ def test_an_organ_that_does_not_continue_on_failure_still_stops_the_moment(tmp_p
 
 def test_batch_close_moment_declares_the_digest_run_by_the_integrator():
     moment = _moment("batch-close")
-    assert [o["id"] for o in moment["organs"]] == ["digest", "trial_cut"]
-    digest = moment["organs"][0]
+    assert [o["id"] for o in moment["organs"]] == ["ci_red_age", "digest", "trial_cut"]
+    digest = moment["organs"][1]
     assert digest["receipt"] == "MOMENT-BATCH-CLOSE-DIGEST.json" and digest.get("manual_until")
     assert "scripts/lane_digest.py" in digest["command"]
     assert "integrator" in moment["trigger"] and "last merge" in moment["trigger"]
@@ -315,7 +318,7 @@ def test_batch_close_moment_declares_the_trial_cut_organ():
     """ADR-129 item 12/L7: one new organ in `batch-close`, `optional` / `manual_until:
     2026-10-05` (render note N10) -- `digest` is untouched, this pins only the new row."""
     moment = _moment("batch-close")
-    trial = moment["organs"][1]
+    trial = moment["organs"][2]
     assert trial["id"] == "trial_cut"
     assert trial["receipt"] == "MOMENT-BATCH-CLOSE-TRIAL-CUT.json"
     assert trial.get("optional") is True
@@ -411,7 +414,7 @@ def test_the_declared_go_reader_row_runs_as_written(tmp_path, monkeypatch):
 
 # --- Done-contract 6: the 36 organs with no caller ---------------------------------------------------
 
-_FATE_KEYS = ("moment", "manual_until", "retire_candidate")
+_FATE_KEYS = ("moment", "manual_until", "retire_candidate", "called_by")
 _PRE_LANE_ORGANS = [
     "single_flight", "seat_refusals.refuse_no_live_integrator", "routing_agreement", "worktree_occupancy",
     "merge_receipt.models", "review_packet", "gates", "test_pairing", "no_leftovers", "lane_cost",
@@ -477,3 +480,168 @@ def test_dodo_evaluates_the_lane_end_precondition_from_the_declared_row(tmp_path
     assert mod._precondition_met(pre)[0] is True
     session.write_text("mentions HANDBACK in the middle of a sentence only\n", encoding="utf-8")
     assert mod._precondition_met(pre)[0] is False, "the line must BEGIN with HANDBACK, not merely contain it"
+
+
+# --- E2 fates: `called_by`, deletions, re-homes, wiring (RED-first) ---------------------------------
+
+def _cb_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _cb_repo(root: Path, fates: list[dict], extra_files: dict[str, str]) -> list[str]:
+    """A tiny repo whose uncalled organs are exactly those the fates name. Returns the organ paths."""
+    import generate_organ_index as goi  # noqa: PLC0415
+    import graph_queries as gq  # noqa: PLC0415
+    _cb_write(root / "scripts" / "built.py", "print(1)\n")
+    organs = ["scripts/built.py"]
+    for fate in fates:
+        _cb_write(root / fate["path"], "print(2)\n")
+        organs.append(fate["path"])
+    for rel, text in extra_files.items():
+        _cb_write(root / rel, text)
+    doc = {"stages": [], "fates": fates, "moments": [{
+        "name": "lane-start", "trigger": "t", "organs": [{
+            "id": "built", "receipt": "MOMENT-X-BUILT.json", "manual_until": "2026-10-04",
+            "command": ["uv", "run", "--locked", "python", "scripts/built.py"]}]}]}
+    _cb_write(root / "ecosystem" / "harness.yaml", yaml.safe_dump(doc, sort_keys=False))
+    _cb_write(root / ".pre-commit-config.yaml",
+              "default_stages: [pre-commit]\nrepos:\n  - repo: local\n    hooks:\n"
+              "      - id: armed-hook\n        entry: python scripts/a.py\n")
+    _cb_write(root / ".claude" / "settings.json", json.dumps({"disableAllHooks": False, "hooks": {}}))
+    goi._cmd_write(root)
+    rows = [gq.ProcessRow(path=p, process_class="script", triggered=False, trigger="") for p in organs]
+    return organs, rows
+
+
+def _cb_check(root, monkeypatch, fates, extra_files):
+    import audit as aud  # noqa: PLC0415
+    import graph_queries as gq  # noqa: PLC0415
+    _organs, rows = _cb_repo(root, fates, extra_files)
+    monkeypatch.setattr(gq, "roster_rows", lambda _r: rows)
+    return aud.check_organ_truth(root)
+
+
+_CB_GOOD = {"path": "scripts/x.py", "called_by": "templates/t.md", "reason": "called from the template"}
+_CB_GOOD_FILES = {"templates/t.md": "step 0: run scripts/x.py\n"}
+
+
+def _cb_fail_text(findings, organ: str) -> str:
+    return "\n".join(f.evidence for f in findings if f.status == "fail" and organ in f.evidence)
+
+
+def test_called_by_fate_with_a_caller_that_mentions_the_organ_is_accepted(tmp_path, monkeypatch):
+    findings = _cb_check(tmp_path, monkeypatch, [_CB_GOOD], _CB_GOOD_FILES)
+    assert [f for f in findings if f.status == "fail"] == [], [f.evidence for f in findings]
+
+
+def test_called_by_fate_naming_a_missing_file_is_refused(tmp_path, monkeypatch):
+    bad = {"path": "scripts/y.py", "called_by": "templates/missing.md", "reason": "r"}
+    findings = _cb_check(tmp_path, monkeypatch, [_CB_GOOD, bad], _CB_GOOD_FILES)
+    assert not _cb_fail_text(findings, "scripts/x.py"), "the accepted case must pass in the same repo"
+    assert "scripts/y.py" in _cb_fail_text(findings, "scripts/y.py"), [f.evidence for f in findings]
+
+
+def test_called_by_fate_whose_file_never_mentions_the_organ_is_refused(tmp_path, monkeypatch):
+    bad = {"path": "scripts/y.py", "called_by": "templates/other.md", "reason": "r"}
+    files = {**_CB_GOOD_FILES, "templates/other.md": "nothing relevant here\n"}
+    findings = _cb_check(tmp_path, monkeypatch, [_CB_GOOD, bad], files)
+    assert not _cb_fail_text(findings, "scripts/x.py"), "the accepted case must pass in the same repo"
+    assert "scripts/y.py" in _cb_fail_text(findings, "scripts/y.py"), [f.evidence for f in findings]
+
+
+def test_called_by_fate_is_not_treated_as_a_passed_manual_until(tmp_path, monkeypatch):
+    findings = _cb_check(tmp_path, monkeypatch, [_CB_GOOD], _CB_GOOD_FILES)
+    assert not [f for f in findings if f.status == "fail"], [f.evidence for f in findings]
+    assert not [f for f in findings if "manual_until" in f.evidence and "scripts/x.py" in f.evidence]
+
+
+def test_fate_keys_declare_called_by_and_every_real_called_by_resolves():
+    import test_loop_declaration as me  # noqa: PLC0415
+    assert "called_by" in me._FATE_KEYS
+    for fate in _fates():
+        if fate.get("called_by"):
+            caller = _REPO / fate["called_by"]
+            assert caller.is_file(), f"{fate['path']}: called_by {fate['called_by']} is not a file"
+            text = caller.read_text(encoding="utf-8")
+            assert fate["path"] in text or Path(fate["path"]).stem in text, fate["path"]
+
+
+def test_the_template_called_organs_hold_called_by_not_manual_until():
+    by_path = {f["path"]: f for f in _fates()}
+    for organ in ("scripts/claim.py", "scripts/learning_distiller.py", "scripts/seat_state.py"):
+        fate = by_path[organ]
+        assert fate.get("called_by"), f"{organ} holds no called_by"
+        assert not fate.get("manual_until"), f"{organ} still holds manual_until"
+        assert str(fate["called_by"]).startswith("templates/")
+        text = (_REPO / fate["called_by"]).read_text(encoding="utf-8")
+        assert organ in text or Path(organ).stem in text
+
+
+def test_wired_organs_carry_no_manual_until_fate():
+    by_path = {f["path"]: f for f in _fates()}
+    for organ in ("scripts/ci_red_age.py", "scripts/platform_skip_ratchet.py"):
+        assert not by_path.get(organ, {}).get("manual_until"), f"{organ} is wired; no manual_until"
+
+
+_E2_DELETED = [
+    "scripts/carrier_landed_check.py", "scripts/hook_expiry_verdict.py", "scripts/export_backlog_view.py",
+    "scripts/offload_admission.py", "scripts/aj_scan.py", ".claude/skills/aj-scan",
+    "ecosystem/aj-scan-state.yaml", "scripts/surface_triage.ps1", ".claude/commands/save.md",
+    "scripts/hooks/deny_and_point.py",
+    "tests/test_carrier_landed_check.py", "tests/test_hook_expiry_verdict.py",
+    "tests/test_export_backlog_view.py", "tests/test_offload_admission.py", "tests/test_aj_scan.py",
+    "tests/test_surface_triage_ps1.py", "tests/test_deny_and_point.py",
+]
+
+
+@pytest.mark.parametrize("rel", _E2_DELETED)
+def test_the_retired_organ_is_deleted(rel):
+    assert not (_REPO / rel).exists(), f"{rel} should be deleted"
+
+
+def test_no_fate_or_orphan_disposition_names_a_deleted_organ():
+    import graph_queries as gq  # noqa: PLC0415
+    fate_paths = {f["path"] for f in _fates()}
+    assert not fate_paths & set(_E2_DELETED), sorted(fate_paths & set(_E2_DELETED))
+    assert not set(gq.ORPHAN_DISPOSITIONS) & set(_E2_DELETED), \
+        sorted(set(gq.ORPHAN_DISPOSITIONS) & set(_E2_DELETED))
+
+
+def test_organ_usage_metric_owns_its_vocabulary_without_deny_and_point():
+    import organ_usage_metric as oum  # noqa: PLC0415
+    text = (_SCRIPTS / "organ_usage_metric.py").read_text(encoding="utf-8")
+    assert "import deny_and_point" not in text
+    for name in ("SEARCH_HEADS", "SHELL_TOOLS", "REPO_ROOT", "load_processes"):
+        assert hasattr(oum, name), f"organ_usage_metric lacks {name}"
+
+
+def test_batch_close_runs_ci_red_age_and_the_digest_reads_its_json():
+    commands = [" ".join(map(str, o["command"])) for o in _moment("batch-close")["organs"]]
+    assert any("ci_red_age.py" in c and "--out-json" in c for c in commands), commands
+    assert any("lane_digest.py" in c and "--ci-red-json" in c for c in commands), commands
+
+
+def test_the_digest_renders_the_ci_red_operator_action_line():
+    import lane_digest as ld  # noqa: PLC0415
+    out = ld.render_digest([], ci_red={"hours": 30.0, "sha": "abc", "url": "u", "since": "s"})
+    assert any(ln.startswith("OPERATOR-ACTION: main CI red") for ln in out.splitlines()), out
+
+
+def test_a_ci_workflow_runs_the_platform_skip_ratchet():
+    texts = [p.read_text(encoding="utf-8") for p in (_REPO / ".github" / "workflows").glob("*.yml")]
+    assert any("platform_skip_ratchet.py" in t for t in texts)
+
+
+def test_platform_skip_ratchet_refuses_a_new_platform_skip_and_passes_a_clean_tree(tmp_path):
+    import platform_skip_ratchet as psr  # noqa: PLC0415
+    _cb_write(tmp_path / "tests" / "test_a.py", "def test_a():\n    assert True\n")
+    root = str(tmp_path)
+    assert psr._main(["--repo-root", root, "--write-baseline", "--measured-at", "2026-10-18",
+                      "--sha", "abc"]) == 0
+    assert psr._main(["--repo-root", root]) == 0
+    _cb_write(tmp_path / "tests" / "test_b.py",
+              "import sys\nimport pytest\n\n\n"
+              "@pytest.mark.skipif(sys.platform == \"win32\", reason=\"x\")\n"
+              "def test_b():\n    assert True\n")
+    assert psr._main(["--repo-root", root]) != 0

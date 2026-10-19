@@ -166,7 +166,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/resource_lifecycle.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
     "scripts/session_end_backpressure.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED,
                                                        owner="[#863]"),
-    "scripts/surface_triage.ps1": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
     # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
     # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
@@ -399,14 +398,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "
                "old count: the census is a dated measurement, not a live roster",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/offload_admission.py": Disposition(
-        reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane "
-               "v-000-offload-admission, same class as gen_ledger.py above and recorded the "
-               "same way. It is UNWIRED BY DESIGN rather than by neglect: the lane's artifact "
-               "section 7 states it does not write ecosystem/routing-table.yaml, because "
-               "creating the offload role row is a routing decision and the lane REFUSED the "
-               "only route it measured. Wiring it would assert an admission that was denied",
-        owner="V+1 retirement-or-wiring list"),
     # ---- population A: tests are not triggers ----
     # `scripts/archive_row_body.py` WAS dispositioned here, on exactly that heading: referenced
     # only by its own test file, and a test proves a module works while scheduling nothing. It
@@ -416,12 +407,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # census named. A row leaves this register in both directions and for the same reason: the
     # register holds live rulings about orphans, and a wired module is not an orphan.
     # ---- population A: orphan BY DESIGN, and wiring it would RED a test ----
-    "scripts/export_backlog_view.py": Disposition(
-        reason="ORPHAN BY DESIGN: tests/test_export_backlog_view.py::test_no_gate_hook_or_"
-               "script_reads_the_export ASSERTS that nothing reads it ([#563] one-way view "
-               "layer). Wiring it would RED that test, so the disposition is a ruling rather "
-               "than a defect and this row must never be 'fixed'",
-        owner="[#563] -- settled; reopening needs a ruling, not a lane"),
     "scripts/setup-fleet-scheduler.ps1": Disposition(
         reason="one-shot INSTALLER. The task it registers is live (Get-ScheduledTask -> "
                "fleet-baseline, State=Ready), so the PROCESS is triggered; an installer is "
@@ -553,11 +538,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="its own frontmatter says 'wired into no gate' -- a self-declared orphan, and "
                "an adoption-first read-only helper is a legitimate shape for one",
         owner="V+1 retirement-or-wiring list"),
-    ".claude/commands/save.md": Disposition(
-        reason="convenience wrapper, not one of the seven acts. INVISIBLE TO THE CENSUS'S "
-               "OWN MECHANISM until this lane made every process file a node -- nothing "
-               "named it, so it had no vertex to be counted at",
-        owner="V+1 retirement-or-wiring list"),
     # ---- population C: skills. A MANDATE IN PROSE IS NOT A TRIGGER ----
     ".claude/skills/verify/SKILL.md": Disposition(
         reason="no event fires a skill; a skill is read when a seat chooses to read it. The "
@@ -642,13 +622,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "owed by the next wave\". A lane invokes it by hand at handback per its own "
                "docstring (FR2/RC3); no [#664] wiring surface names it yet",
         owner="the next wave's moment declaration; manual_until 2026-10-05"),
-    "scripts/hook_expiry_verdict.py": Disposition(
-        reason="harness.yaml fates: \"judges hook expiry for the 2026-09-25 zero-catch rule; "
-               "no caller wired yet -- a moment declaration is owed by wave 5b (LANE-5A-7)\". "
-               "Its own docstring states it prints a verdict and exits 0 always -- \"a report, "
-               "not a gate\"; acting on a REMOVE verdict is an operator/architect act, same "
-               "posture as `provider_bench.py`'s row above",
-        owner="LANE-5A-7 / wave 5b; manual_until 2026-10-05"),
     "scripts/learning_distiller.py": Disposition(
         reason="harness.yaml fates: \"5e v0 (LANE-5B2-13, ruling a): run by hand over a closed "
                "batch's receipts; emits candidate rows and files nothing (ruling h) -- a "
@@ -1174,7 +1147,6 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         ("coherence_enumerator",
          "intra-document line sites; the pair relation is validate_reconciliation's"),
         ("dispatch_surface", "value agreement at declared sites + enum checks"),
-        ("export_backlog_view", "renders task files to a view; resolves nothing"),
         ("fleet_health", "state files, dates, proposal log vs open ids (machine log)"),
         ("fleet_parity", "consumer repos' wiring (other trees) against a declared manifest"),
         ("gen_claude_rosters", "inventory of command frontmatter and ADR headers"),

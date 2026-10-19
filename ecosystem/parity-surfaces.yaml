@@ -537,8 +537,8 @@ surfaces:
   # refusal hung a session twelve hours. INVERSE keeps a live guard in the CORRECT direction: the
   # hub now fails fleet_parity (MUST-absent, "surface present where the role forbids it") if the
   # deny_and_point PreToolUse block is ever re-wired, instead of failing because it is gone.
-  # Script `scripts/hooks/deny_and_point.py` stays on disk (lane-4 audit
-  # docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md). Re-wiring is a ruling that
+  # Script `scripts/hooks/deny_and_point.py` was deleted on this branch under R137 Q3 / R66 (lane-4 audit
+  # docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md); the row now guards the wiring alone. Re-wiring is a ruling that
   # flips this row back, not an edit to settings.json alone.
   # EXPIRY NOT ENFORCED: rule 8's basis (BUILD MODE) expires 2026-11-18, but this schema has no
   # row-level expiry the checker reads, so nothing flags this row after that date -- [#928].
@@ -610,7 +610,7 @@ surfaces:
         # declaration -- DIGEST-WAVE3-2026-09-21.md queue item 7.
         # session_start.py added 2026-10-13 by lane-bw-1001-sessionstart-one ([#1001]) in the
         # same act as its SessionStart entry: the one entry that replaced the nine.
-        .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
+        .dev-knowledge: [fleet_health.py, billing_leak_sentinel.ps1,
                          changelog_sentinel.py, block_immutable_edits.py,
                          deny_and_point.py, resource_lifecycle.py, codespace_regime.py,
                          lane_end_guard.py, session_start.py]
@@ -983,14 +983,6 @@ surfaces:
       value: methodology-generic
       reason: "/preflight -- pre-flight verification of the repo locators a contract cites (lesson 8, [#483]); hub LOCAL today. Methodology-owned: the failure class it answers (a prompt's file:line / SHA / [#id] citations going stale) is universal to the contract-driven lane, not specific to this repo. ADOPTION-FIRST -- it is wired into no gate; whether it becomes one is [#483]'s ruling."
       provenance: *own-prov
-  - id: command-save
-    kind: command
-    tier: {hub: LOCAL}
-    probe: {type: command_present, file: save.md}
-    ownership:
-      value: methodology-generic
-      reason: "/save -- a methodology command (Conventional-Commits stage+commit; hub LOCAL today); methodology-owned."
-      provenance: *own-prov
   - id: command-changelog-review
     kind: command
     tier: {hub: LOCAL}
@@ -1052,7 +1044,7 @@ surfaces:
       provenance: *own-prov
 
   # command roster closure: a command file with NO covering row WARNs
-  # (handoff/save/changelog-review are hub-LOCAL rows above).
+  # (handoff/changelog-review are hub-LOCAL rows above).
   - id: claude-commands-roster
     kind: roster
     tier: {hub: MUST, consumer: MUST}
@@ -1075,7 +1067,7 @@ surfaces:
         # only this list, so the command measured as an undeclared extra. It joins expected_repo
         # rather than expected_all for the same reason as the two above: v1.5.0 is not deployed
         # anywhere yet, so an expected_all row would RED every consumer at once.
-        .dev-knowledge: [handoff.md, save.md, changelog-review.md, preflight.md, lane-boot.md, lane-integrate.md, boot-session.md]
+        .dev-knowledge: [handoff.md, changelog-review.md, preflight.md, lane-boot.md, lane-integrate.md, boot-session.md]
     ownership:
       value: methodology-generic
       reason: "The command-roster closure (MUST both) -- methodology-owned governance construct asserting every command file has a covering row; methodology machinery."

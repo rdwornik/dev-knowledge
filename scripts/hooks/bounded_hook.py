@@ -156,10 +156,6 @@ POSTURES: tuple[Posture, ...] = (
             "sooner is a class (b) ruling. Removed from the settings file by the 2026-09-17 "
             "emergency order; RE-ARMED 2026-10-15 ([#863]) with an explicit harness timeout, "
             "under the hook watchdog."),
-    Posture("deny-and-point", "deny_and_point.py", "fail-open", False,
-            "[#727] nudge, fail-OPEN by its own design. Held OFF the settings file since "
-            "2026-09-15; 182 timeouts in the week to 2026-09-17, 2% of the calls it matched. "
-            "Named here so its transcript rate is read under a stable id."),
     Posture("session-end-backpressure", "session_end_backpressure.py", "fail-open", False,
             "Advisory in full since the ADR-85 amendment A5: it cannot block a turn, so skipping "
             "it past its bound loses a nudge, never a gate."),
