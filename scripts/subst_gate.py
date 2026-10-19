@@ -78,7 +78,7 @@ def batch_malformed(batch: str) -> bool:
     """True for a NON-EMPTY batch id outside the grammar (`x`, `E2.0junk`). An empty id is "no batch",
     which is a different case; a malformed one must never read as "not applicable" (P1, fail closed)."""
     b = (batch or "").strip()
-    return bool(b) and not _BATCH_RE.match(b)
+    return bool(b) and not _BATCH_RE.fullmatch(b)
 
 
 def batch_grammar_refusal(lane: str, batch: str) -> str:
@@ -88,7 +88,7 @@ def batch_grammar_refusal(lane: str, batch: str) -> str:
 
 def batch_applies(batch: str) -> bool:
     """True for a batch id from E2.0 on (`E2.0`, `E2.1`, `E3.0`, ...); False for older ids and for none."""
-    m = _BATCH_RE.match((batch or "").strip())
+    m = _BATCH_RE.fullmatch((batch or "").strip())
     return bool(m) and (int(m.group(1)), int(m.group(2))) >= FIRST_BATCH
 
 

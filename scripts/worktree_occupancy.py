@@ -241,7 +241,7 @@ def check(slug: str, root: Path, sessions: Optional[list] = None,
         on_branch = _worktree_branch(root, tree)
         if on_branch != f"worktree-{slug}":
             raise OccupancyError(f"repair of {slug}: the registered worktree at {tree_dir} is on "
-                                 f"{on_branch or 'a detached HEAD'}, not worktree-{slug}; a repair "
+                                 f"{on_branch or 'no branch (detached HEAD)'}, not worktree-{slug}; a repair "
                                  f"reuses the lane's own branch")
         legs.update(worktree=False, directory=False, branch=False)
     return Occupancy(slug, legs)

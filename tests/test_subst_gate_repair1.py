@@ -270,3 +270,15 @@ def test_r2_m2_an_older_grammatical_batch_is_not_applicable():
 def test_r2_m2_batch_applies_rejects_junk_and_accepts_e2():
     assert sg.batch_applies("E2.0junk") is False
     assert sg.batch_applies("E2.0") is True
+
+
+def test_r2_m2_repair_cli_refuses_a_whitespace_only_batch(tmp_path, repo_root, monkeypatch):
+    out, seen, spawned = _repair_cli(tmp_path, repo_root, monkeypatch, ["--batch", "  "])
+    assert out.exit_code != 0
+    assert "--batch" in out.output
+    assert seen == [] and spawned == []
+
+
+def test_r2_m2_batch_grammar_judges_the_stripped_id():
+    assert sg.batch_malformed("E2.0\n") is False   # callers strip; a stripped id is the grammar's input
+    assert sg.batch_malformed("E2.0 junk") is True
