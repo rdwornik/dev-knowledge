@@ -132,6 +132,7 @@ class P1DispatchLane(StateMachine):
     evaluate = (
         _each(_held, merged, cond="is_merged")
         | _each(_held, running, cond="is_live")
+        | _each(_held, running_cloud, cond="is_live_cloud")
         | _each(_held, blocked_failed, cond="dep_failed")
         | _each(_held, held_dependency, cond="blocked_by_dependency")
         | _each(_held, held_capacity, cond="blocked_by_capacity")
@@ -143,6 +144,7 @@ class P1DispatchLane(StateMachine):
         prelaunch.to(launching_local, cond="substrate_is_local")
         | prelaunch.to(launching_codespace, cond="substrate_is_codespace")
         | prelaunch.to(launching_cloud, cond="substrate_is_cloud_read_only")
+        | prelaunch.to(failed, cond="substrate_is_cloud_writing")  # R132: a writing cloud lane never launches
     )
     prelaunch_refused = prelaunch.to(failed, cond="substrate_is_cloud_writing") | prelaunch.to(
         queued, unless="substrate_is_cloud_writing"
@@ -160,7 +162,7 @@ class P1DispatchLane(StateMachine):
         | _each((launching_local, launching_codespace), refused, unless="launch_attempts_left")
         | launching_cloud.to(failed)
     )
-    identified = launch_incomplete.to(running)
+    identified = launch_incomplete.to(running, cond="identify_tries_left")
     give_up = (
         launch_incomplete.to(failed, unless="identify_tries_left")
         | stalled.to(failed, unless="resumes_left")
@@ -183,7 +185,7 @@ class P1DispatchLane(StateMachine):
 
     # ---- refusal, repair, failure
     repair = refused.to(repairing, cond="repair_allowed")
-    repaired = repairing.to(running)
+    repaired = repairing.to(running, cond="worktree_exists")
     fail = refused.to(failed, unless="repair_allowed") | repairing.to(failed, unless="worktree_exists")
 
     def __init__(self, facts: Optional[LaneFacts] = None, **kw):
@@ -211,10 +213,13 @@ class P1DispatchLane(StateMachine):
         return self.facts.no_cycle
 
     def is_merged(self):
-        return self.facts.merged
+        return self.facts.merged and self.facts.substrate != "cloud"  # R132: a cloud lane is never merged
 
     def is_live(self):
-        return self.facts.live
+        return self.facts.live and self.facts.substrate != "cloud"
+
+    def is_live_cloud(self):
+        return self.facts.live and self.facts.substrate == "cloud"
 
     def dep_failed(self):
         return self.facts.dep_failed
@@ -234,6 +239,7 @@ class P1DispatchLane(StateMachine):
         return not (
             self.is_merged()
             or self.is_live()
+            or self.is_live_cloud()
             or self.dep_failed()
             or self.blocked_by_dependency()
             or self.blocked_by_capacity()
@@ -365,30 +371,34 @@ def render_mermaid() -> str:
     return "\n".join(lines) + "\n"
 
 
-_BLOCK = re.compile(rf"^{DIAGRAM_KEY}: \|\n(?:[ ]{{2}}.*\n|\n)*", re.MULTILINE)
+_BLOCK = re.compile(rf"^{DIAGRAM_KEY}: \|\r?\n(?:(?:[ ]{{2}}.*|[ \t]*)\r?\n)*", re.MULTILINE)
 
 
-def _block_text(diagram: str) -> str:
-    return f"{DIAGRAM_KEY}: |\n" + "".join(f"  {line}\n" if line else "\n" for line in diagram.rstrip("\n").split("\n"))
+def _block_text(diagram: str, eol: str = "\n") -> str:
+    lines = diagram.rstrip("\n").split("\n")
+    return f"{DIAGRAM_KEY}: |{eol}" + "".join((f"  {line}" if line else "") + eol for line in lines)
 
 
 def write_diagram(path: Path = BINDING_PATH) -> bool:
     """Replace (or append) the generated `diagram_mermaid` block in place. True when the file changed."""
-    text = path.read_text(encoding="utf-8")
-    block = _block_text(render_mermaid())
-    new = _BLOCK.sub(lambda _m: block, text) if _BLOCK.search(text) else text.rstrip("\n") + "\n" + block
+    with path.open(encoding="utf-8", newline="") as fh:  # newline="": the file's own line endings survive
+        text = fh.read()
+    eol = "\r\n" if "\r\n" in text else "\n"
+    block = _block_text(render_mermaid(), eol)
+    new = _BLOCK.sub(lambda _m: block, text) if _BLOCK.search(text) else text.rstrip("\r\n") + eol + block
     if new == text:
         return False
-    path.write_text(new, encoding="utf-8", newline="\n")
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        fh.write(new)
     return True
 
 
 def check_glue(path: Path = BINDING_PATH) -> list[str]:
     """States whose stored `today_glue` is not the derivation from zone + actor."""
     return [
-        s["name"]
+        str(s.get("name"))
         for s in load_binding(path)["processes"]["P1"]["states"]
-        if s["today_glue"] != today_glue(s["zone"], s.get("actor_today"))
+        if s.get("today_glue") != today_glue(s.get("zone", ""), s.get("actor_today"))
     ]
 
 

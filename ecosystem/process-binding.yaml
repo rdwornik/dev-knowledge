@@ -4,7 +4,7 @@
 # `today_glue` is derived (scripts/gen_process_diagrams.py::today_glue), never typed.
 # The `diagram_mermaid` block at the end is GENERATED: `uv run --locked python scripts/gen_process_diagrams.py --write`.
 schema: process-binding/1
-basis: 09123ce5e08e
+basis: b26052bd5540
 legend:
   BROWSER: blue
   HARNESS: green
@@ -462,6 +462,12 @@ processes:
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: queued
+      target: running_cloud
+      guard: is_live_cloud
+      r130: false
+      hole: no hub cloud verb and no cloud listing (R132, [#1643])
+    - event: evaluate
+      source: queued
       target: blocked_failed
       guard: dep_failed
       r130: false
@@ -486,8 +492,8 @@ processes:
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1778
-      anchor: def decide_lane
+      file_line: scripts/dispatch.py:1813
+      anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: evaluate
       source: held_dependency
       target: merged
@@ -504,6 +510,12 @@ processes:
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: held_dependency
+      target: running_cloud
+      guard: is_live_cloud
+      r130: false
+      hole: no hub cloud verb and no cloud listing (R132, [#1643])
+    - event: evaluate
+      source: held_dependency
       target: blocked_failed
       guard: dep_failed
       r130: false
@@ -528,8 +540,8 @@ processes:
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1778
-      anchor: def decide_lane
+      file_line: scripts/dispatch.py:1813
+      anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: evaluate
       source: held_capacity
       target: merged
@@ -546,6 +558,12 @@ processes:
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: held_capacity
+      target: running_cloud
+      guard: is_live_cloud
+      r130: false
+      hole: no hub cloud verb and no cloud listing (R132, [#1643])
+    - event: evaluate
+      source: held_capacity
       target: blocked_failed
       guard: dep_failed
       r130: false
@@ -570,8 +588,8 @@ processes:
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1778
-      anchor: def decide_lane
+      file_line: scripts/dispatch.py:1813
+      anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: prelaunch_passed
       source: prelaunch
       target: launching_local
@@ -591,6 +609,12 @@ processes:
       guard: substrate_is_cloud_read_only
       r130: false
       hole: no hub cloud verb (R132, [#1643])
+    - event: prelaunch_passed
+      source: prelaunch
+      target: failed
+      guard: substrate_is_cloud_writing
+      r130: false
+      hole: 'R132: a writing cloud lane is refused; no code enforces it'
     - event: prelaunch_refused
       source: prelaunch
       target: failed
@@ -602,8 +626,8 @@ processes:
       target: queued
       guard: '!substrate_is_cloud_writing'
       r130: false
-      file_line: scripts/dispatch.py:1281
-      anchor: outcome = prelaunch(request)
+      file_line: scripts/dispatch.py:1285
+      anchor: raise LaunchRefused(f"pre-launch refused
     - event: spawned
       source: launching_local
       target: running
@@ -649,8 +673,7 @@ processes:
       target: queued
       guard: launch_attempts_left
       r130: false
-      file_line: scripts/dispatch.py:1251
-      anchor: def launch_lane(
+      hole: codespace_exec reports FAILED at the failing step; nothing requeues the lane
     - event: launch_refused
       source: launching_codespace
       target: refused
@@ -672,7 +695,7 @@ processes:
     - event: identified
       source: launch_incomplete
       target: running
-      guard: null
+      guard: identify_tries_left
       r130: false
       hole: no re-identification after exit 8
     - event: give_up
@@ -781,8 +804,8 @@ processes:
       target: merged
       guard: landed
       r130: true
-      file_line: scripts/merge_path.py:353
-      anchor: 'if not is_landable(verdict):'
+      file_line: scripts/merge_path.py:658
+      anchor: '''LANDED'' if result.landed'
     - event: repair
       source: refused
       target: repairing
@@ -800,7 +823,7 @@ processes:
     - event: repaired
       source: repairing
       target: running
-      guard: null
+      guard: worktree_exists
       r130: false
       file_line: scripts/dispatch.py:1905
       anchor: return spawn(request.argv, env, tree)
@@ -886,18 +909,21 @@ diagram_mermaid: |
       planned --> queued : Enqueue [no_cycle]
       queued --> merged : Evaluate [is_merged]
       queued --> running : Evaluate [is_live]
+      queued --> running_cloud : Evaluate [is_live_cloud]
       queued --> blocked_failed : Evaluate [dep_failed]
       queued --> held_dependency : Evaluate [blocked_by_dependency]
       queued --> held_capacity : Evaluate [blocked_by_capacity]
       queued --> prelaunch : Evaluate [clear]
       held_dependency --> merged : Evaluate [is_merged]
       held_dependency --> running : Evaluate [is_live]
+      held_dependency --> running_cloud : Evaluate [is_live_cloud]
       held_dependency --> blocked_failed : Evaluate [dep_failed]
       held_dependency --> held_dependency : Evaluate [blocked_by_dependency]
       held_dependency --> held_capacity : Evaluate [blocked_by_capacity]
       held_dependency --> prelaunch : Evaluate [clear]
       held_capacity --> merged : Evaluate [is_merged]
       held_capacity --> running : Evaluate [is_live]
+      held_capacity --> running_cloud : Evaluate [is_live_cloud]
       held_capacity --> blocked_failed : Evaluate [dep_failed]
       held_capacity --> held_dependency : Evaluate [blocked_by_dependency]
       held_capacity --> held_capacity : Evaluate [blocked_by_capacity]
@@ -905,6 +931,7 @@ diagram_mermaid: |
       prelaunch --> launching_local : Prelaunch passed [substrate_is_local]
       prelaunch --> launching_codespace : Prelaunch passed [substrate_is_codespace]
       prelaunch --> launching_cloud : Prelaunch passed [substrate_is_cloud_read_only]
+      prelaunch --> failed : Prelaunch passed [substrate_is_cloud_writing]
       prelaunch --> failed : Prelaunch refused [substrate_is_cloud_writing]
       prelaunch --> queued : Prelaunch refused [!substrate_is_cloud_writing]
       launching_local --> running : Spawned [job_identified]
@@ -917,7 +944,7 @@ diagram_mermaid: |
       launching_codespace --> refused : Launch refused [!launch_attempts_left]
       launching_cloud --> running_cloud : Cloud started
       launching_cloud --> failed : Launch refused
-      launch_incomplete --> running : Identified
+      launch_incomplete --> running : Identified [identify_tries_left]
       launch_incomplete --> failed : Give up [!identify_tries_left]
       running --> stalled : Idle [is_idle]
       running --> handed_back : Handback [handback_on_local]
@@ -937,7 +964,7 @@ diagram_mermaid: |
       integrating --> merged : Merge [landed]
       refused --> repairing : Repair [repair_allowed]
       refused --> failed : Fail [!repair_allowed]
-      repairing --> running : Repaired
+      repairing --> running : Repaired [worktree_exists]
       repairing --> failed : Fail [!worktree_exists]
 
       classDef browser fill:#a5d8ff,stroke:#1971c2,color:#111

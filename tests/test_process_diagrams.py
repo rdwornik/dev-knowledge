@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from statemachine.exceptions import TransitionNotAllowed
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -72,8 +73,9 @@ def test_binding_state_names_match_machine():
 
 
 def test_binding_transitions_match_machine():
-    binding = {(t["event"], t["source"], t["target"]) for t in _p1()["transitions"]}
-    assert binding == _machine_transitions()
+    binding = {(t["event"], t["source"], t["target"], t.get("guard") or "") for t in _p1()["transitions"]}
+    machine = {(e, s, t, g or "") for e, s, t, g in gpd.machine_transitions()}
+    assert binding == machine
 
 
 @pytest.mark.parametrize("event", R130_EVENTS)
@@ -129,8 +131,6 @@ def _anchored_entries():
     entries = []
     for kind in ("states", "transitions"):
         for item in p1[kind]:
-            if item.get("hole"):
-                continue
             locs = []
             if item.get("file_line") and item.get("anchor"):
                 locs.append((item["file_line"], item["anchor"]))
@@ -155,6 +155,62 @@ def test_file_line_anchors_exist_and_match():
         n = int(line)
         assert 1 <= n <= len(lines), f"{kind} {ident}: line {n} out of range in {path}"
         assert anchor in lines[n - 1], f"{kind} {ident}: {anchor!r} not at {file_line}"
+
+
+def _lane(start_value=None, **facts):
+    kwargs = {"start_value": start_value} if start_value else {}
+    return gpd.P1DispatchLane(gpd.LaneFacts(**facts), **kwargs)
+
+
+def _state(sm) -> str:
+    return next(iter(sm.configuration)).id
+
+
+def _drive(sm, *events):
+    for ev in events:
+        sm.send(ev)
+
+
+_TO_PRELAUNCH = ("emit", "check", "plan", "enqueue", "evaluate")
+
+
+def test_cloud_lane_that_writes_is_refused_at_prelaunch():
+    sm = _lane(substrate="cloud", read_only=False)
+    _drive(sm, *_TO_PRELAUNCH)
+    assert _state(sm) == "prelaunch"
+    sm.send("prelaunch_passed")
+    assert _state(sm) == "failed"
+
+
+def test_cloud_lane_never_enters_the_local_running_or_merged_states_from_the_queue():
+    sm = _lane(substrate="cloud", read_only=True, merged=True)
+    _drive(sm, *_TO_PRELAUNCH)
+    assert _state(sm) != "merged"
+    assert _state(sm) == "prelaunch"
+    live = _lane(substrate="cloud", read_only=True, live=True)
+    _drive(live, *_TO_PRELAUNCH)
+    assert _state(live) == "running_cloud"
+
+
+def test_identified_is_guarded_by_the_identify_cap():
+    sm = _lane(job_identified=False)
+    _drive(sm, *_TO_PRELAUNCH, "prelaunch_passed", "spawn_incomplete")
+    assert _state(sm) == "launch_incomplete"
+    sm.facts.identify_tries = 4
+    with pytest.raises(TransitionNotAllowed):
+        sm.send("identified")
+    sm.facts.identify_tries = 0
+    sm.send("identified")
+    assert _state(sm) == "running"
+
+
+def test_repaired_is_guarded_by_the_worktree():
+    sm = _lane(start_value="repairing", worktree_exists=False)
+    assert _state(sm) == "repairing"
+    with pytest.raises(TransitionNotAllowed):
+        sm.send("repaired")
+    sm.send("fail")
+    assert _state(sm) == "failed"
 
 
 def test_every_state_has_binding_or_hole():
