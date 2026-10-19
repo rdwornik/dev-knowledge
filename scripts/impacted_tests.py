@@ -617,8 +617,13 @@ def select(
     depth: int = DEFAULT_DEPTH,
     rules: Sequence[Rule] | None = None,
     base_ref: str | None = None,
+    existing_only: bool = False,
 ) -> Selection:
     """Select the tests impacted by `changed`.
+
+    `existing_only` drops a changed test absent from the checkout. Only the lane-diff
+    entry point sets it (the lane's own deletion cannot be run); a caller naming main's
+    changes from a lane checkout (the reuse check) needs the file kept.
 
     `rules=()` is not a trick parameter -- it is how the RED-first witness proves the
     mapping is load-bearing. With no rules, nothing is claimed and the selector reports
@@ -644,7 +649,7 @@ def select(
                 full = True
             elif rule.kind == "self":
                 # A deleted test cannot be run; naming it would make pytest exit 4.
-                if (root / rel).exists():
+                if not existing_only or (root / rel).exists():
                     selected.add(rel)
             elif rule.kind == "fixed":
                 selected.update(rule.targets)
@@ -792,7 +797,8 @@ def select_lane_diff(
         check=False)
     if base.returncode != 0:
         raise RuntimeError(f"git merge-base {main_ref} {lane_ref} failed: {base.stderr.strip()}")
-    sel = select(root, changed, depth=depth, base_ref=base.stdout.strip())
+    sel = select(root, changed, depth=depth, base_ref=base.stdout.strip(),
+                 existing_only=True)
     return replace(sel, reasons={**exclusion_reasons, **sel.reasons})
 
 

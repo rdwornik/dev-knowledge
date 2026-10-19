@@ -1124,6 +1124,7 @@ jobs:
           if-no-files-found: warn
 
   # --- the one verdict --------------------------------------------------------------------
+  # `gate` needs commit-gate, so it reads red on main until commit-gate is green (intended); it is not a required check today (no branch protection on main; the ruleset is `enforcement: disabled` and omits it).
   gate:
     # [#1560] (R155 OQ1): ONE always-run job that judges the whole run. `if: always()` because a
     # job skipped by `if:` reports Success to a required check (GitHub docs, troubleshooting

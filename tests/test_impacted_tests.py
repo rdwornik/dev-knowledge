@@ -877,3 +877,26 @@ def test_a_mixed_docs_and_covered_code_diff_stays_targeted(tmp_path):
     sel = impacted_tests.select(tmp_path, ["JOURNAL.md", "scripts/covered.py"])
     assert sel.full_suite is False
     assert "tests/test_covered.py" in sel.test_files
+
+
+def test_select_keeps_a_changed_test_that_is_absent_from_the_checkout(tmp_path):
+    """A changed test the caller names must be selected even if the checked-out tree lacks it."""
+    root = tmp_path / "absent-src"
+    root.mkdir()
+    _git(root, "init", "-b", "main")
+    _commit(root, {
+        "pyproject.toml": '[tool.pytest.ini_options]\npythonpath = ["scripts"]\n',
+        "scripts/mod.py": "def value():\n    return 1\n",
+    }, "base")
+    _git(root, "checkout", "-b", "lane")
+    _commit(root, {"scripts/mod.py": "def value():\n    return 2\n"}, "lane touches mod")
+    _git(root, "checkout", "main")
+    _commit(root, {"scripts/other.py": "Y = 1\n",
+                   "tests/test_other.py": "def test_other():\n    assert True\n"},
+            "main adds a test after the lane branched")
+    _git(root, "checkout", "lane")
+    assert not (root / "tests" / "test_other.py").exists()
+
+    sel = impacted_tests.select(root, ["scripts/other.py", "tests/test_other.py"])
+
+    assert "tests/test_other.py" in sel.test_files
