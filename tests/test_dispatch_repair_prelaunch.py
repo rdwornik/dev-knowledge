@@ -7,7 +7,6 @@ there still refuses).
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -15,8 +14,6 @@ import pytest
 
 import dispatch as d
 import worktree_occupancy as wo
-
-requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 
 SLUG = "lane-repair-x"
 BATCH = "E2.0"
@@ -165,19 +162,16 @@ def _occupancy(repo, sessions):
     return wo.main([SLUG, "--repo-root", str(repo), "--sessions-file", str(sf)])
 
 
-@requires_git
 def test_a_lane_tree_is_occupied_without_the_repair_flag(lane_repo, monkeypatch):
     monkeypatch.delenv("HARNESS_REPAIR", raising=False)
     assert _occupancy(lane_repo, []) == 1
 
 
-@requires_git
 def test_the_repair_flag_lets_the_lanes_own_worktree_directory_and_branch_through(lane_repo, monkeypatch):
     monkeypatch.setenv("HARNESS_REPAIR", "1")
     assert _occupancy(lane_repo, []) == 0
 
 
-@requires_git
 def test_the_repair_flag_does_not_let_a_busy_session_through(lane_repo, monkeypatch):
     monkeypatch.setenv("HARNESS_REPAIR", "1")
     busy = [{"id": "abcd1234", "cwd": str(lane_repo / ".claude" / "worktrees" / SLUG),
