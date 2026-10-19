@@ -181,7 +181,8 @@ def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
 # (...)`; one file may hold several events, each running to the next such heading.
 _REFUSAL_HEADING_RE = re.compile(r"^#{1,2}[ \t]*(?:REFUSED|REFUSAL)\b(?P<rest>[^\n]*)$", re.M)
 _HEADING_LEGACY_SLUG_RE = re.compile(r"^\s*[—-]+\s*(?P<slug>\S+?),\s*repair\s+\d+\s+of\s+\d+")
-_HEADING_PAREN_SLUG_RE = re.compile(r"\((?P<slug>[\w.-]+)\)")
+# Only the `worktree-<slug> (<slug>)` shape: a bare `(word)` in a REFUSAL heading is prose, not a lane.
+_HEADING_PAREN_SLUG_RE = re.compile(r"worktree-[\w.-]+\s*\((?P<slug>[\w.-]+)\)")
 _REPAIR_OF_RE = re.compile(r"\brepair\s+(?P<n>\d+)\s+of\s+(?P<m>\d+)")
 _FRONTMATTER_LANE_RE = re.compile(r"^lane:\s*(?:origin/)?(?:worktree-)?(?P<slug>[\w.-]+)", re.M)
 _EVENT_DETAIL_CAP = 1200
@@ -208,7 +209,8 @@ def parse_refused_events(text: str, path: Path) -> list[CandidateRow]:
         slug_m = _HEADING_LEGACY_SLUG_RE.match(rest) or _HEADING_PAREN_SLUG_RE.search(rest)
         if slug_m is None:
             slug_m = _first_group(_FRONTMATTER_LANE_RE, section, preamble, text)
-        slug = slug_m.group("slug") if slug_m else path.stem.removeprefix("REFUSED-")
+        slug = (slug_m.group("slug").removeprefix("worktree-") if slug_m
+                else path.stem.removeprefix("REFUSED-"))
         rep = _first_group(_REPAIR_OF_RE, rest, section, preamble)
         n, m = (rep.group("n"), rep.group("m")) if rep else ("?", "?")
         from_m = _first_group(_FRONTMATTER_FROM_RE, section, text)

@@ -95,3 +95,16 @@ def test_front_matter_lane_with_an_origin_prefix_still_yields_the_bare_slug(tmp_
         "# REFUSAL 2026-10-19 -- repair 1 of 2 (a regression)\n\nbody\n", encoding="utf-8")
     rows = ld.parse_refused_events(f.read_text(encoding="utf-8"), f)
     assert [r.slug for r in rows] == ["lane-x"]
+
+
+def test_a_bare_parenthetical_in_a_refusal_heading_is_not_the_slug(tmp_path):
+    f = tmp_path / "REFUSED-x.md"
+    f.write_text("lane: worktree-lane-x @ abc1234\n\n# REFUSAL 2026-10-19 -- repair 1 of 2 (flaky)\n\nbody\n",
+                 encoding="utf-8")
+    assert [r.slug for r in ld.parse_refused_events(f.read_text(encoding="utf-8"), f)] == ["lane-x"]
+
+
+def test_a_legacy_heading_slug_loses_its_worktree_prefix(tmp_path):
+    f = tmp_path / "REFUSED-x.md"
+    f.write_text("# REFUSED -- worktree-x, repair 1 of 2\n\n## What failed\n\n**boom**\n", encoding="utf-8")
+    assert [r.slug for r in ld.parse_refused_events(f.read_text(encoding="utf-8"), f)] == ["x"]
