@@ -665,11 +665,31 @@ roles:
       the declared order is now Copilot Enterprise -> Sonnet 5.5 -> Grok 4.7, set by operator
       ruling rather than by the AX22-1 measurement; the Sonnet-first text above is the record
       of what stood until then.
+      SUPERSEDED 2026-10-19 by R153 (BATCH-E2-NIGHT-2026-10-19 v3 section 0, operator): "Sonnet
+      writes the code. The `implement` role is claude-sonnet-5-5; Grok is no longer the default
+      implementer; a switch away happens only by the R154 decision, announced in the digest and the
+      LEDGER (R139), never silent." The order is now Sonnet 5.5 -> Copilot Enterprise -> Grok 4.7,
+      which REVERSES the order R104 set (Copilot -> Sonnet -> Grok), carried by `e2-subst-gate`.
+      Per P1 (R139) a later entry runs only after a recorded VENDOR-FAIL of the one before it.
     routing_table_role: producer
     order:
-      - provider: copilot-enterprise
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        substrate: codespace
         note: >-
-          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: FIRST. ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
+          FIRST. R153 (BATCH-E2-NIGHT-2026-10-19 v3, operator): Sonnet 5.5 implements. This entry was
+          SECOND under R104 (RATIFICATION-2026-10-14 v3), carried by [#1536], and FIRST (as
+          `claude-sonnet-5`) before that. The lane head itself writes the code (Claude Code, the
+          operator's Claude licence), on the Codespace box for a box lane.
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: copilot-enterprise
+        substrate: codespace
+        note: >-
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: was FIRST until R153 (2026-10-19) moved Sonnet 5.5 ahead of it; now SECOND. ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
           transport-only; cited for date/author only, not as the evidence itself). The evidence is
           IN-REPO: `JOURNAL.md` lines 962 and 1113, merge `88dc48f4`, and the ab-828/ab-832
           receipts (`HANDBACK.json`, `copilot-usage.json`), which existed only on the transport
@@ -688,16 +708,6 @@ roles:
           decided_by: operator
           decided_on: "2026-09-23"
           evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
-      - provider: anthropic
-        model: claude-sonnet-5-5
-        note: >-
-          SECOND. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536], re-ordered the
-          chain Copilot -> Sonnet 5.5 -> Grok; this entry was FIRST (as `claude-sonnet-5`) until then.
-        admission:
-          verdict: admitted
-          decided_by: operator
-          decided_on: "2026-10-14"
-          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
         model: grok-4.7
         note: >-
@@ -726,6 +736,10 @@ roles:
     order:
       - provider: openai
         model: gpt-5.6-terra
+        # R138 (operator): review is double -- Codex terra AND Copilot on every code lane; R151: the
+        # Codex half runs on the LAPTOP against the pushed branch, never in a box.
+        substrate: local
+        paired: true
         note: >-
           R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: "Codex (terra; astra
           opt-in for structural work)". HEAD again: R82 (2026-10-05, `b2-codespace-green`) had moved
@@ -754,10 +768,15 @@ roles:
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: copilot-enterprise
-        model: gpt-6-luna
+        # R138: the Copilot half of the review pair. No model is pinned: the role names the Copilot
+        # CLI at its default, and Copilot reports the model it served (recorded verbatim in the
+        # MODELS block; not a substitution). Was pinned to `gpt-6-luna` by R104.
+        substrate: codespace
+        paired: true
         note: >-
           R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a NON-Anthropic model
-          (`gpt-6-luna`) so the reviewer is never the producer's vendor. NOT ADMITTED for review.
+          (`gpt-6-luna`) so the reviewer is never the producer's vendor. R138 (2026-10-18): the
+          pair's Copilot half, at the CLI's default model. NOT ADMITTED for review.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
@@ -779,6 +798,8 @@ roles:
     routing_table_role: null   # routing-table.yaml's fan_out is retrieval-only multi-head, a different shape
     order:
       - provider: antigravity
+        # R140: agy is laptop-only; no seeded personal token in a box.
+        substrate: local
         note: >-
           NOT ADMITTED. Licence permits (operator's own subscription) but no admission
           measurement exists -- `[#627]` records a single `analysis` admission, which is a
@@ -797,8 +818,12 @@ roles:
           verdict: unevaluated
           floors: ["AX22-1"]
       - provider: anthropic
-        model: claude-sonnet-5-5
-        note: "The live terminal fallback. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: model moved to claude-sonnet-5-5."
+        model: claude-haiku-5-5
+        substrate: codespace
+        note: >-
+          The live terminal fallback. BATCH-E2-0 v2 section 3 (2026-10-18): read-only fan-out in a
+          box is Haiku 5.5, DECLARED here so it is not a substitution. Was claude-sonnet-5-5 (R104,
+          [#1536]).
         admission:
           verdict: admitted
           decided_by: operator
@@ -813,6 +838,9 @@ roles:
     order:
       - provider: anthropic
         model: claude-sonnet-5-5
+        # R147: a FRESH process that reads only the contract and the diff, run on the laptop after
+        # harvest for a box lane.
+        substrate: local
         note: "Sonnet, alongside the lane's RED-first tests (AX21-1). R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: model moved to claude-sonnet-5-5."
         admission:
           verdict: admitted
@@ -821,13 +849,20 @@ roles:
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
   red:
     description: >-
-      Write the RED tests before the build. R104: Sonnet 5.5 writes the RED tests and never
-      produces the code it tests.
+      Write the RED tests before the build. R104 had Sonnet 5.5 write them; BATCH-E2-0 v2 section 3
+      (2026-10-18) has the Copilot CLI write and run them, and R153 has Sonnet implement the code
+      they test, so the writer is never the producer.
     routing_table_role: null
     order:
+      - provider: copilot-enterprise
+        substrate: codespace
+        note: "BATCH-E2-0 v2 section 3: Copilot CLI, default model and effort. No model is pinned; the served model is recorded verbatim in the MODELS block."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
       - provider: anthropic
         model: claude-sonnet-5-5
-        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]."
+        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. Runs only after a recorded VENDOR-FAIL of the Copilot CLI (P1, R139)."
         admission:
           verdict: admitted
           decided_by: operator
@@ -1136,6 +1171,15 @@ models:
   # `claude-sonnet-5-5` also moves seams outside this file (the `sonnet` alias in
   # `scripts/dispatch.py`, `scripts/plan_lint.py`, and the three S9/S10/S17 pins of
   # `claude-sonnet-5`), so that move is a ROWS-OWED line in the lane's handback.
+  # ADDED 2026-10-19 BY `e2-subst-gate` (BATCH-E2-0 v2 section 3): the declared model of the box's
+  # read-only fan-out (`roles.read`, anthropic entry). The row exists so the id the role table names
+  # is addressable and in the vocabulary; it is not priced and is not yet read as SERVED.
+  claude-haiku-5-5:
+    provider: anthropic
+    tier: S
+    roles: [read]
+    pinned_at: []
+
   claude-sonnet-5-5:
     provider: anthropic
     tier: M
