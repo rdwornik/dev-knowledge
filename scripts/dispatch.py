@@ -963,15 +963,26 @@ _DOIT_CHATTER = re.compile(r"^(\.\s+organ:|TaskFailed|Python Task failed|warning
 _REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
 
 
-def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
+def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT, *, repair: bool = False) -> PreLaunch:
     """Run the DECLARED `pre-launch` moment (ecosystem/harness.yaml) for this lane, from the hub.
 
     The organs are whatever the file declares -- occupancy, a live integrator, routing agreement --
     and this function names none of them: a non-zero exit is a refusal whose reason is the organs'
-    own output. Raises OSError when `uv` cannot run; the caller treats that as a refusal too."""
+    own output. Raises OSError when `uv` cannot run; the caller treats that as a refusal too.
+
+    `HARNESS_MODEL` is the model this launch will actually use, so the `model_per_role` organ judges the
+    launch and not only the contract (P1: a substitution at the CLI is a substitution). `repair=True`
+    (the `repair` verb, item 2b) sets `HARNESS_REPAIR=1`: a repair expects the lane's OWN worktree,
+    directory and branch, which `worktree_occupancy` must then not count as occupancy -- a busy session
+    in the tree still refuses. The flag is dropped from the child env otherwise, so a stale one in the
+    caller's shell cannot weaken a fresh launch."""
     env = dict(os.environ)
     env["HARNESS_LANE"] = request.slug
     env["HARNESS_CONTRACT"] = str(request.contract)
+    env["HARNESS_MODEL"] = request.model
+    env.pop("HARNESS_REPAIR", None)
+    if repair:
+        env["HARNESS_REPAIR"] = "1"
     if request.batch:
         env["HARNESS_BATCH"] = request.batch
     argv = ["uv", "run", "--locked", "doit", "-f", "scripts/dodo.py", "moment:pre-launch"]
@@ -1367,13 +1378,15 @@ def _identify(request: LaunchRequest, started: Spawned, self_identified: str,
     return job_id, "", ""
 
 
-def _write_launch_records(request: LaunchRequest, result: LaunchResult) -> None:
-    """The launch receipt (one per slug) and the job-to-lane record (one per job)."""
+def _write_launch_records(request: LaunchRequest, result: LaunchResult,
+                          extra: Optional[Mapping[str, object]] = None) -> None:
+    """The launch receipt (one per slug) and the job-to-lane record (one per job). `extra` adds fields
+    to the receipt only -- the `repair` verb passes `kind` and `attempt` (item 2b)."""
     when = _stamp()
     _write_json(_receipt_path(request.slug), {
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
-        **{k: v for k, v in asdict(result).items()}})
+        **{k: v for k, v in asdict(result).items()}, **(extra or {})})
     if result.job_id == "unresolved":
         return          # one file per job id, and there is none to name
     _write_json(_job_path(result.job_id), {
@@ -1870,6 +1883,7 @@ class RepairRequest:
     effort: str
     contract: Path
     permission_mode: str = "bypassPermissions"
+    batch: str = ""
 
     @property
     def session_name(self) -> str:
@@ -1893,16 +1907,47 @@ def repair_worktree_path(repo_root: Path, slug: str) -> Path:
 
 def repair_lane(request: RepairRequest, *, repo_root: Path,
                 spawn: Callable[..., "Spawned"] = None,
-                environ: Optional[Mapping[str, str]] = None) -> "Spawned":
+                environ: Optional[Mapping[str, str]] = None,
+                prelaunch: Optional[Callable[..., PreLaunch]] = None) -> "Spawned":
     """Spawn the repair INTO `request.slug`'s existing worktree. Refuses (never spawns) when that
-    worktree is not there: starting one is a fresh launch's job, not a repair's."""
+    worktree is not there: starting one is a fresh launch's job, not a repair's.
+
+    A repair is a hub launch too (integrator OWED-ROWS 2, S4): it runs the SAME `pre-launch` moment a
+    launch runs -- with `repair=True`, the one rule that the lane's own tree is expected -- and, once the
+    provider has started, writes the same `LAUNCH-<SLUG>.json` receipt (with `kind: repair` and the
+    attempt) so the merge gate sees it and the model-per-role organ has judged it."""
     spawn = spawn or spawn_process
+    prelaunch = prelaunch or run_prelaunch
     tree = repair_worktree_path(repo_root, request.slug)
     if not tree.is_dir():
         raise DispatchRefused(f"no existing worktree at {tree} -- a repair reuses the lane's own "
                               "worktree; it does not start one (that is launch_lane's job)")
+    launch = LaunchRequest(slug=request.slug, provider="anthropic", model=request.model,
+                           effort=request.effort, permission_mode=request.permission_mode,
+                           contract=request.contract, batch=request.batch)
+    try:
+        outcome = prelaunch(launch, repair=True)
+    except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
+        raise LaunchRefused(f"pre-launch could not run for the repair of {request.slug}: "
+                            f"{type(exc).__name__}: {exc}") from exc
+    if not outcome.passed:
+        raise LaunchRefused(f"pre-launch refused the repair of {request.slug}: {outcome.reason}")
     env = dict(environ if environ is not None else os.environ)
-    return spawn(request.argv, env, tree)
+    started = spawn(request.argv, env, tree)
+    if started.returncode == 0:
+        match = _JOB_ID.search(_ANSI.sub("", started.stdout or ""))
+        result = LaunchResult(
+            slug=request.slug, provider="anthropic", model_requested=request.model,
+            model_reported=MODEL_PENDING, job_id=match.group(1) if match else "unresolved",
+            worktree=str(tree), session_name=request.session_name, pid=started.pid,
+            argv=list(request.argv))
+        try:
+            _write_launch_records(launch, result, extra={"kind": "repair", "attempt": request.attempt})
+        except OSError as exc:
+            raise LaunchIncomplete(f"the repair of {request.slug} WAS started but its launch receipt "
+                                   f"could not be written ({exc}). It is running; nothing was stopped."
+                                   ) from exc
+    return started
 
 
 # --- watch: one bounded loop, never an orphan --------------------------------------------------
@@ -3845,6 +3890,22 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
         raise DispatchRefused("--argv-json is empty -- nothing to run in the codespace")
     if not 0 <= agy_signin_wait_s <= AGY_SIGNIN_WAIT_S:
         raise DispatchRefused(f"--agy-signin-wait-s must be between 0 and {AGY_SIGNIN_WAIT_S} seconds")
+    # P1-B04: the Codespace path runs the SAME `moment:pre-launch` the local `launch` runs, BEFORE
+    # `gh codespace create` -- a refusal here means no gh call was made and nothing is running. The
+    # model the lane will actually run is the `--model` of the planned head argv, when it names one.
+    # The request is built here, not by `request_from_contract`: that REFUSES a contract it cannot
+    # parse, whereas the contract is the organ's to judge (and its refusal names the role and models).
+    planned = (head_argv[head_argv.index("--model") + 1]
+               if "--model" in head_argv and head_argv.index("--model") + 1 < len(head_argv) else "")
+    request = LaunchRequest(slug=slug, provider="anthropic", model=planned, effort="",
+                            permission_mode="bypassPermissions", contract=Path(contract).resolve(),
+                            batch=batch)
+    try:
+        outcome = run_prelaunch(request)
+    except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
+        raise LaunchRefused(f"pre-launch could not run for {slug}: {type(exc).__name__}: {exc}") from exc
+    if not outcome.passed:
+        raise LaunchRefused(f"pre-launch refused {slug}: {outcome.reason}")
     # the launcher always mirrors the laptop's own sign-ins (R87): this verb is the launcher
     result = codespace_exec(repo, branch, slug, Path(contract), head_argv, machine=machine,
                             idle_timeout=idle_timeout, retention=retention, workdir=workdir,
@@ -4185,12 +4246,16 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 @click.option("--permission-mode", default="bypassPermissions", show_default=True)
 @click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
               show_default=True)
+@click.option("--batch", default="", help="The batch the lane belongs to; pre-launch judges it and the "
+                                          "launch receipt records it. Default: $HARNESS_BATCH.")
 def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
-              permission_mode: str, repo_root: Path) -> None:
+              permission_mode: str, repo_root: Path, batch: str) -> None:
     """Relaunch a REPAIR of SLUG into its EXISTING worktree -- never a fresh `--worktree`.
-    Refuses when that worktree is not there (starting one is a fresh launch's job)."""
+    Refuses when that worktree is not there (starting one is a fresh launch's job). Runs the same
+    `pre-launch` moment a launch runs and writes the same LAUNCH receipt (`kind: repair`)."""
     request = RepairRequest(slug=slug, attempt=attempt, model=model, effort=effort,
-                            contract=Path(contract).resolve(), permission_mode=permission_mode)
+                            contract=Path(contract).resolve(), permission_mode=permission_mode,
+                            batch=batch or os.environ.get("HARNESS_BATCH", ""))
     spawned = repair_lane(request, repo_root=Path(repo_root))
     click.echo(f"[dispatch] repair {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
 

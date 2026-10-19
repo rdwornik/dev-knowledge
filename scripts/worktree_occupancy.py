@@ -201,10 +201,14 @@ def check(slug: str, root: Path, sessions: Optional[list] = None,
     tree = _norm(str(tree_dir))
     sessions = _validated_sessions(live_sessions() if sessions is None else sessions)
     ignored = set(ignore_sessions)
+    # `dispatch.py repair` (HARNESS_REPAIR=1) expects the lane's OWN worktree, directory and branch --
+    # that is what it repairs into -- so those three legs are not occupancy for a repair. The session
+    # leg stays: a repair into a tree with a busy session is still a second writer in one checkout.
+    repair = os.environ.get("HARNESS_REPAIR") == "1"
     legs = {
-        "worktree": tree in _registered_worktrees(root),
-        "directory": _dir_exists(tree_dir),
-        "branch": _has_branch(root, f"worktree-{slug}"),
+        "worktree": False if repair else tree in _registered_worktrees(root),
+        "directory": False if repair else _dir_exists(tree_dir),
+        "branch": False if repair else _has_branch(root, f"worktree-{slug}"),
         "session": any(_session_holds(s, tree) for s in sessions
                        if s.get("id") not in ignored and s.get("sessionId") not in ignored),
     }

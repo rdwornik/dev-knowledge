@@ -51,6 +51,15 @@ def _private_receipt_homes(tmp_path_factory, monkeypatch):
         monkeypatch.setattr(mod, "_REPO_ROOT", root / "repo")
 
 
+@pytest.fixture(autouse=True)
+def _pre_launch_cleared(monkeypatch):
+    """P1-B04 (`e2-subst-gate`): `codespace-exec` now runs `moment:pre-launch` before it touches gh. The
+    tests below exercise what comes AFTER that step with stub contracts, so the moment is stubbed
+    open here; its refusal, and its ordering before `codespace_exec`, are witnessed in
+    `tests/test_dispatch_subst_prelaunch.py`."""
+    monkeypatch.setattr(d, "run_prelaunch", lambda *a, **k: d.PreLaunch(True))
+
+
 # ---------------------------------------------------------------------------------------------
 # run_gh / format_gh_line
 # ---------------------------------------------------------------------------------------------

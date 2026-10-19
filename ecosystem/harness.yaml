@@ -57,6 +57,7 @@ moments:
       - {id: worktree_occupancy, receipt: MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads live worktrees and sessions", command: [uv, run, --locked, python, scripts/worktree_occupancy.py, "{lane}"]}
       - {id: seat_refusals.refuse_no_live_integrator, receipt: MOMENT-PRE-LAUNCH-NO-LIVE-INTEGRATOR.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, scripts/seat_refusals.py, no-live-integrator, --batch, "{batch}"]}
       - {id: routing_agreement, receipt: MOMENT-PRE-LAUNCH-ROUTING-AGREEMENT.json, manual_until: 2026-10-04, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
+      - {id: model_per_role, receipt: MOMENT-PRE-LAUNCH-MODEL-PER-ROLE.json, manual_until: 2026-11-30, always: true, reason: "reads the contract and the launch model (HARNESS_MODEL) against the role table in the provider registry (P1, R139)", command: [uv, run, --locked, python, scripts/subst_gate.py, contract, --lane, "{lane}", --contract, "{contract}"]}
   - name: lane-start
     trigger: "the lane's own first turn, inside the lane (the in-lane organs only; the launcher's checks are `pre-launch`)"
     organs:
