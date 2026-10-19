@@ -209,3 +209,75 @@ def test_m3_a_busy_session_in_the_lane_tree_still_refuses_under_repair(lane_repo
     busy = [{"id": "abcd1234", "cwd": str(lane_repo / ".claude" / "worktrees" / SLUG),
              "kind": "background", "status": "busy", "state": "working"}]
     assert _occupancy(lane_repo, busy) == 1
+
+
+
+
+# --- R2: M3 wrong branch -------------------------------------------------------------------------
+
+def test_r2_m3_the_lane_own_worktree_on_its_branch_is_accepted(lane_repo, monkeypatch):
+    monkeypatch.setenv("HARNESS_REPAIR", "1")
+    assert _occupancy(lane_repo, []) == 0
+
+
+def test_r2_m3_a_lane_worktree_switched_to_another_branch_is_refused(lane_repo, monkeypatch):
+    monkeypatch.setenv("HARNESS_REPAIR", "1")
+    tree = lane_repo / ".claude" / "worktrees" / SLUG
+    _git(tree, "checkout", "-q", "-b", "other")
+    assert f"worktree-{SLUG}" in _git(lane_repo, "branch", "--list")
+    assert _occupancy(lane_repo, []) != 0
+
+
+def test_r2_m3_a_detached_lane_worktree_is_refused(lane_repo, monkeypatch):
+    monkeypatch.setenv("HARNESS_REPAIR", "1")
+    tree = lane_repo / ".claude" / "worktrees" / SLUG
+    _git(tree, "checkout", "-q", "--detach")
+    assert f"worktree-{SLUG}" in _git(lane_repo, "branch", "--list")
+    assert _occupancy(lane_repo, []) != 0
+
+
+def test_r2_m3_check_raises_for_a_wrong_branch_worktree(lane_repo, monkeypatch):
+    monkeypatch.setenv("HARNESS_REPAIR", "1")
+    tree = lane_repo / ".claude" / "worktrees" / SLUG
+    _git(tree, "checkout", "-q", "-b", "other")
+    with pytest.raises(wo.OccupancyError):
+        wo.check(SLUG, lane_repo, sessions=[])
+
+
+# --- R2: M2 malformed batch ----------------------------------------------------------------------
+
+@pytest.mark.parametrize("b", ["x", "E2.0junk", "E2.", "E2.0.1", "e2.0"])
+def test_r2_m2_a_malformed_batch_is_refused_by_grammar(b):
+    problems, _ = _problems(_contract(), batch=b, launch_model=SONNET)
+    assert any(p.startswith("REFUSED [batch-grammar]") and b in p for p in problems), problems
+
+
+def test_r2_m2_a_malformed_batch_is_refused_even_without_a_phase_table():
+    problems, _ = _problems(_contract(table=False), batch="x", launch_model=SONNET)
+    assert any(p.startswith("REFUSED [batch-grammar]") for p in problems), problems
+
+
+@pytest.mark.parametrize("b", ["x", "E2.0junk"])
+def test_r2_m2_repair_cli_refuses_a_malformed_batch(tmp_path, repo_root, monkeypatch, b):
+    out, seen, spawned = _repair_cli(tmp_path, repo_root, monkeypatch, ["--batch", b])
+    assert out.exit_code != 0
+    assert "batch" in out.output.lower()
+    assert seen == [] and spawned == []
+
+
+def test_r2_m2_a_well_formed_batch_is_accepted(tmp_path, repo_root, monkeypatch):
+    problems, _ = _problems(_contract(), batch="E2.0", launch_model=SONNET)
+    assert problems == []
+    out, _seen, _spawned = _repair_cli(tmp_path, repo_root, monkeypatch, ["--batch", "E2.0"])
+    assert out.exit_code == 0, out.output
+
+
+def test_r2_m2_an_older_grammatical_batch_is_not_applicable():
+    problems, notes = _problems(_contract(table=False), batch="E1.0")
+    assert problems == []
+    assert any("not applicable" in n for n in notes), notes
+
+
+def test_r2_m2_batch_applies_rejects_junk_and_accepts_e2():
+    assert sg.batch_applies("E2.0junk") is False
+    assert sg.batch_applies("E2.0") is True
