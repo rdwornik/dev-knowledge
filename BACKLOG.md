@@ -918,6 +918,27 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1647] [P2][S] transport_lint wants $CLAUDE_PROMPTS_DIR on transport paths · tasks/1647-transport-lint-prompts-dir.md
 - [#1648] [P1][S] plan_lint: a code lane needs an integrator · tasks/1648-plan-lint-code-lane-needs-integrator.md
 - [#1649] [P1][S] plan_lint: a row birth needs a ratifying act · tasks/1649-plan-lint-row-birth-needs-ratifying-act.md
+- [#1650] [P3][S] Architekt Jutra module review (deferred, R137 Q4) · tasks/1650-aj-module-review-deferred.md
+- [#1651] [P2][S] agy official headless route re-check on every agy pin bump (R140) · tasks/1651-agy-recheck-on-pin-bump.md
+- [#1652] [P2][M] Review-findings scoreboard computed from receipts (R138, P2) · tasks/1652-review-findings-scoreboard.md
+- [#1653] [P1][M] ADR-delta PhaseReceipt contract: role, effort, USD, usage, findings (R141, P3) · tasks/1653-adr-delta-phasereceipt-contract.md
+- [#1654] [P2][S] Hypercare register: a defect found in real use becomes a row (R143) · tasks/1654-hypercare-register.md
+- [#1655] [P2][M] Cost telemetry per vendor in every phase receipt (R144) · tasks/1655-cost-telemetry-per-vendor.md
+- [#1656] [P2][S] TODAY-GLUE count in every close digest (R145) · tasks/1656-today-glue-count-in-close-digest.md
+- [#1657] [P2][S] Harvest copies the lane SESSION file back (R145 hand step) · tasks/1657-harvest-copies-the-lane-session-file.md
+- [#1658] [P2][S] `codespace-delete` writes its close row (R144; true for the verb since 2026-10-19) · tasks/1658-codespace-delete-writes-close-row.md
+- [#1659] [P3][S] agy pin tolerance: 1.3.5 -> 1.4.2 must not block a launch (R140) · tasks/1659-agy-pin-tolerance.md
+- [#1660] [P2][M] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) · tasks/1660-groom-view-back-under-150000.md
+- [#1661] [P2][S] A Codespace handback fires a Monitor WAKE (R145 hand step; defect 4) · tasks/1661-codespace-handback-fires-monitor-wake.md
+- [#1662] [P1][S] The runner and the lane both write `/workspaces/dispatch/handback.json` (SEV-1; defect 1) · tasks/1662-runner-and-lane-share-handback-json.md
+- [#1663] [P2][S] Codex review of a box lane runs on the laptop against the pushed branch (defect 2; R151) · tasks/1663-codex-review-of-box-lanes-runs-on-the-laptop.md
+- [#1664] [P2][S] The pins gate blocks every box launch on each laptop CLI patch bump (defect 3) · tasks/1664-pins-gate-blocks-box-launch-on-cli-patch-bump.md
+- [#1665] [P2][S] `merge_receipt` has no abandon verb for a refused land (defect 5) · tasks/1665-merge-receipt-has-no-abandon-verb.md
+- [#1666] [P2][S] `ship_gate_diff.py` fails on a relative `--repo` and runs the caller's organ code on the target tree (defect 6) · tasks/1666-ship-gate-diff-relative-repo-and-caller-organs.md
+- [#1667] [P1][S] Handback text is lost in transport: the handback becomes a checked file, not a rendered one (defect 7) · tasks/1667-handback-text-lost-in-transport.md
+- [#1668] [P2][L] The laptop slept 02:00-15:00: 13 h of no progress (the off-the-laptop goal, defect 8) · tasks/1668-off-the-laptop-goal-13h-sleep.md
+- [#1669] [P2][S] The distiller reads none of an R130 integrator's refusals (defect 9) · tasks/1669-distiller-reads-no-r130-integrator-refusal.md
+- [#1670] [P1][M] No silent substitution: the launcher and contract lint refuse a model not in the phase or role table (R139, P1) · tasks/1670-no-silent-substitution-launcher-and-lint.md
 
 ---
 
