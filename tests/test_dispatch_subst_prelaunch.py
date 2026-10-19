@@ -104,6 +104,21 @@ def test_codespace_exec_runs_pre_launch_first_then_codespace_exec_once(contract,
     assert order == ["run_prelaunch", "codespace_exec"]
 
 
+def test_codespace_exec_really_runs_the_pre_launch_moment_with_nothing_stubbed(contract, monkeypatch):
+    """Repair 1 (item 5): `test_dispatch_codespace.py` stubs `run_prelaunch` for the whole file, so THIS is
+    the witness that the verb runs the real moment -- the real `doit moment:pre-launch` refuses this
+    launch (which organ speaks first depends on the box: no live integrator, or model-per-role on the
+    head row `sonnet`), and `codespace_exec` is never reached."""
+    def must_not_run(*a, **k):
+        raise AssertionError("codespace_exec ran although the real pre-launch refused the contract")
+    monkeypatch.setattr(d, "codespace_exec", must_not_run)
+
+    out = _invoke_codespace_exec(contract)
+
+    assert out.exit_code == d.EXIT_REFUSED == 5, out.output
+    assert "pre-launch refused lane-subst: REFUSED [" in out.output, out.output
+
+
 # --- launch_lane: the existing shape, shown beside the new refusal ------------------------------
 
 class _FakeClaude:
