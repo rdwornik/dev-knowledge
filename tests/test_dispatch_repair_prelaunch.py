@@ -177,3 +177,25 @@ def test_the_repair_flag_does_not_let_a_busy_session_through(lane_repo, monkeypa
     busy = [{"id": "abcd1234", "cwd": str(lane_repo / ".claude" / "worktrees" / SLUG),
              "kind": "background", "status": "busy", "state": "working"}]
     assert _occupancy(lane_repo, busy) == 1
+
+
+# --- review-fix witness: a repair keeps the lane's batch --------------------------------------------
+
+def test_a_repair_with_no_batch_given_inherits_the_batch_of_the_lanes_launch_receipt(tmp_path, receipts, monkeypatch):
+    from click.testing import CliRunner
+    monkeypatch.delenv("HARNESS_BATCH", raising=False)
+    receipts.mkdir(parents=True)
+    (receipts / f"LAUNCH-{SLUG.upper()}.json").write_text(json.dumps({"organ": "launch", "batch": BATCH}),
+                                                         encoding="utf-8")
+    repo = tmp_path / "repo"
+    (repo / ".claude" / "worktrees" / SLUG).mkdir(parents=True)
+    contract = tmp_path / "LANE.md"
+    contract.write_text("# LANE\n", encoding="utf-8")
+    seen = []
+    monkeypatch.setattr(d, "run_prelaunch", lambda request, repair=False: seen.append(request.batch) or d.PreLaunch(True))
+    monkeypatch.setattr(d, "spawn_process", lambda argv, env, cwd, log_path=None: d.Spawned(0, "backgrounded abcd1234\n", 1))
+    out = CliRunner().invoke(d.cli, ["repair", SLUG, str(contract), "--model", "claude-sonnet-5-5",
+                                     "--effort", "high", "--repo-root", str(repo)])
+    assert out.exit_code == 0, out.output
+    assert seen == [BATCH]
+    assert json.loads((receipts / f"LAUNCH-{SLUG.upper()}.json").read_text(encoding="utf-8"))["batch"] == BATCH

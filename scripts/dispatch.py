@@ -1378,6 +1378,17 @@ def _identify(request: LaunchRequest, started: Spawned, self_identified: str,
     return job_id, "", ""
 
 
+def planned_model(argv: Sequence[str]) -> str:
+    """The model a planned head argv names -- `--model X`, `--model=X`, `-m X` or `-m=X` -- else ""."""
+    for i, tok in enumerate(argv):
+        for flag in ("--model", "-m"):
+            if tok == flag and i + 1 < len(argv):
+                return argv[i + 1]
+            if tok.startswith(flag + "="):
+                return tok[len(flag) + 1:]
+    return ""
+
+
 def _write_launch_records(request: LaunchRequest, result: LaunchResult,
                           extra: Optional[Mapping[str, object]] = None) -> None:
     """The launch receipt (one per slug) and the job-to-lane record (one per job). `extra` adds fields
@@ -1899,6 +1910,15 @@ class RepairRequest:
     def argv(self) -> list[str]:
         return build_repair_plan(self.model, self.slug, self.attempt, self.effort, self.prompt,
                                  self.permission_mode).argv
+
+
+def _launched_batch(slug: str) -> str:
+    """The batch the lane's own LAUNCH receipt recorded, else "": a repair that is not told the batch
+    keeps the lane's, so the receipt it rewrites still matches the merge gate's batch check."""
+    try:
+        return str(json.loads(_receipt_path(slug).read_text(encoding="utf-8")).get("batch") or "")
+    except (OSError, ValueError, AttributeError):
+        return ""
 
 
 def repair_worktree_path(repo_root: Path, slug: str) -> Path:
@@ -3895,8 +3915,7 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
     # model the lane will actually run is the `--model` of the planned head argv, when it names one.
     # The request is built here, not by `request_from_contract`: that REFUSES a contract it cannot
     # parse, whereas the contract is the organ's to judge (and its refusal names the role and models).
-    planned = (head_argv[head_argv.index("--model") + 1]
-               if "--model" in head_argv and head_argv.index("--model") + 1 < len(head_argv) else "")
+    planned = planned_model(head_argv)
     request = LaunchRequest(slug=slug, provider="anthropic", model=planned, effort="",
                             permission_mode="bypassPermissions", contract=Path(contract).resolve(),
                             batch=batch)
@@ -4255,7 +4274,8 @@ def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
     `pre-launch` moment a launch runs and writes the same LAUNCH receipt (`kind: repair`)."""
     request = RepairRequest(slug=slug, attempt=attempt, model=model, effort=effort,
                             contract=Path(contract).resolve(), permission_mode=permission_mode,
-                            batch=batch or os.environ.get("HARNESS_BATCH", ""))
+                            batch=batch or os.environ.get("HARNESS_BATCH", "")
+                            or _launched_batch(slug))
     spawned = repair_lane(request, repo_root=Path(repo_root))
     click.echo(f"[dispatch] repair {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
 

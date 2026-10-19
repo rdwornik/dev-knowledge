@@ -311,3 +311,49 @@ def test_the_cli_accepts_an_old_batch_contract_and_says_not_applicable(tmp_path)
     done = _cli(tmp_path, _contract(table=False, head="sonnet", dispatch="sonnet"), batch="Y")
     assert done.returncode == 0, done.stdout + done.stderr
     assert "not applicable" in done.stdout + done.stderr
+
+
+# --- review-fix witnesses (Copilot review of the branch, e2-subst-gate) -------------------------------
+
+def test_a_blank_line_inside_the_models_block_does_not_hide_the_lines_after_it():
+    text = (f"MODELS:\n  a: requested={SONNET}/high served={SONNET}\n\n"
+            f"  b: requested={SONNET}/high served=claude-opus-5-5\n")
+    problems, _ = sg.check_models_block(text)
+    assert len(problems) == 1 and "'b'" in problems[0]
+
+
+def test_an_unindented_line_still_ends_the_models_block():
+    text = (f"MODELS:\n  a: requested={SONNET}/high served={SONNET}\n"
+            f"HANDBACK x @ y\n  b: requested={SONNET}/high served=claude-opus-5-5\n")
+    assert sg.check_models_block(text) == ([], [])
+
+
+def test_a_json_handback_list_of_unindented_lines_is_normalised(tmp_path):
+    path = tmp_path / "h.json"
+    path.write_text(json.dumps({"models": [f"implement: requested={SONNET}/high served={SONNET}"]}),
+                    encoding="utf-8")
+    assert sg.check_models_block(sg.read_handback_models(path)) == ([], [])
+
+
+def test_a_json_handback_dict_of_dicts_is_normalised(tmp_path):
+    path = tmp_path / "h.json"
+    path.write_text(json.dumps({"models": {"implement": {
+        "requested": f"{SONNET}/high", "served": "claude-opus-5-5", "vendor_fail": "INC-9"}}}),
+        encoding="utf-8")
+    problems, subs = sg.check_models_block(sg.read_handback_models(path))
+    assert problems == [] and len(subs) == 1 and "VENDOR-FAIL: INC-9" in subs[0]
+
+
+def test_a_ledger_row_that_is_not_a_codespace_creation_is_not_a_launch_receipt(tmp_path):
+    ledger = tmp_path / "logs" / "CODESPACE-RECEIPTS.jsonl"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text(json.dumps({"kind": "codespace-fate", "slug": "lane-x", "batch": "E2.0"}) + "\n",
+                      encoding="utf-8")
+    assert sg.launch_receipt_problems(tmp_path, "lane-x", "E2.0")
+
+
+def test_a_slug_that_climbs_out_of_the_receipts_dir_is_refused_not_read(tmp_path):
+    outside = tmp_path / "X.json"
+    outside.write_text(json.dumps({"organ": "launch", "batch": "E2.0"}), encoding="utf-8")
+    problems = sg.launch_receipt_problems(tmp_path, "../X", "E2.0", receipts_dir=tmp_path / "r")
+    assert problems and "not a lane slug" in problems[0]

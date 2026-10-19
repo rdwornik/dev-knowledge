@@ -58,6 +58,7 @@ _BATCH_RE = re.compile(r"^E(\d+)\.(\d+)")
 #: The head of a lane is the implementer (R153); the registry has no separate lane-head role.
 HEAD_ROLE = "implement"
 
+_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")      # dispatch.py's own slug grammar
 _PHASE_HEAD = re.compile(r"^\|\s*Phase\s*\|\s*Model\s*\|\s*Substrate\s*\|\s*$", re.IGNORECASE)
 
 #: Phase name -> (role, provider the row must name). First match wins; order matters ("write the RED /
@@ -206,7 +207,7 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
     seen = 0
     for ln in lines[start + 1:]:
         if not ln.strip():
-            break
+            continue                                  # a blank line does not end the block
         m = _PHASE_LINE.match(ln)
         if m is None:
             break                                     # first un-indented line ends the block
@@ -236,6 +237,15 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
     return problems, subs
 
 
+def _phase_text(value: object) -> str:
+    """One phase of a dict-shaped JSON `models` value, rendered in the block's own grammar."""
+    if not isinstance(value, dict):
+        return str(value)
+    text = f"requested={value.get('requested', '')} served={value.get('served', '')}"
+    fail = value.get("vendor_fail") or value.get("VENDOR-FAIL")
+    return f"{text} VENDOR-FAIL: {fail}" if fail else text
+
+
 def read_handback_models(path) -> str:
     """The text holding the MODELS block: a JSON handback's `models`/`MODELS` value, else the raw text."""
     raw = Path(path).read_text(encoding="utf-8", errors="replace")
@@ -249,9 +259,12 @@ def read_handback_models(path) -> str:
             if isinstance(value, str):
                 return value
             if isinstance(value, list):
-                return "\n".join(str(v) for v in value)
+                lines = [str(v).rstrip() for v in value]
+                if not any(ln.strip() == "MODELS:" for ln in lines):
+                    lines = ["MODELS:"] + [ln if ln[:1].isspace() else "  " + ln for ln in lines]
+                return "\n".join(lines)
             if isinstance(value, dict):
-                return "MODELS:\n" + "\n".join(f"  {k}: {v}" for k, v in value.items())
+                return "MODELS:\n" + "\n".join(f"  {k}: {_phase_text(v)}" for k, v in value.items())
     return raw
 
 
@@ -259,6 +272,9 @@ def read_handback_models(path) -> str:
 
 def launch_receipt_problems(root, slug: str, batch: str, receipts_dir=None) -> list[str]:
     """Empty when the lane has a `dispatch.py` LAUNCH receipt for `batch`, local or Codespace."""
+    if not _SLUG_RE.match(slug or ""):
+        return [f"REFUSED [launch-receipt]: {slug!r} is not a lane slug (letters, digits, `.`, `_`, `-`) "
+                f"-- it is never put into a receipt path"]
     root = Path(root)
     local = Path(receipts_dir) if receipts_dir else root / "logs" / "receipts"
     path = local / f"LAUNCH-{slug.upper()}.json"
@@ -282,7 +298,8 @@ def launch_receipt_problems(root, slug: str, batch: str, receipts_dir=None) -> l
                 rec = json.loads(row)
             except ValueError:
                 continue
-            if isinstance(rec, dict) and rec.get("slug") == slug and rec.get("batch") == batch:
+            if (isinstance(rec, dict) and rec.get("kind", "codespace") == "codespace"
+                    and rec.get("slug") == slug and rec.get("batch") == batch):
                 return []
         ledger_why = f"{ledger} has no row for slug {slug} in batch {batch}"
     except OSError:

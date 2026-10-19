@@ -156,3 +156,26 @@ def test_run_prelaunch_passes_the_launch_model_to_the_organs(contract, monkeypat
 
     assert request.model
     assert seen["env"]["HARNESS_MODEL"] == request.model
+
+
+# --- review-fix witnesses: the launch model is read from every spelling of the flag -----------------
+
+@pytest.mark.parametrize("argv,expected", [
+    (["claude", "--model", "grok-4.7"], "grok-4.7"),
+    (["claude", "--model=grok-4.7"], "grok-4.7"),
+    (["codex", "exec", "-m", "gpt-5.6-terra"], "gpt-5.6-terra"),
+    (["claude", "-p"], ""),
+])
+def test_the_planned_launch_model_is_read_from_every_spelling(argv, expected):
+    assert d.planned_model(argv) == expected
+
+
+def test_codespace_exec_hands_pre_launch_the_equals_form_model(contract, monkeypatch):
+    seen = []
+    monkeypatch.setattr(d, "run_prelaunch", lambda request, *a, **k: seen.append(request.model) or d.PreLaunch(True))
+    monkeypatch.setattr(d, "codespace_exec", lambda *a, **k: d.ExecResult(ok=True, name="cs-1"))
+    out = CliRunner().invoke(d.cli, [
+        "codespace-exec", str(contract), "--repo", "me/repo", "--branch", "main", "--slug", "lane-subst",
+        "--argv-json", '["claude","--model=grok-4.7"]', "--batch", "E2.0"])
+    assert out.exit_code == 0, out.output
+    assert seen == ["grok-4.7"]
