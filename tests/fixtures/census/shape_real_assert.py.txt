@@ -1,0 +1,5 @@
+from scripts import mod
+
+
+def test_real():
+    assert mod.compute(1) == 2

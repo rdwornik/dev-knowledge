@@ -1,0 +1,8 @@
+import pytest
+
+from scripts import mod
+
+
+def test_raises():
+    with pytest.raises(ValueError):
+        mod.compute(-1)

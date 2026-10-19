@@ -1,0 +1,7 @@
+import subprocess
+import sys
+
+
+def test_cli():
+    r = subprocess.run([sys.executable, "-c", "pass"])
+    assert r.returncode == 0

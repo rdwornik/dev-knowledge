@@ -1,0 +1,7 @@
+from unittest.mock import MagicMock
+
+
+def test_mock_only():
+    m = MagicMock()
+    m(1)
+    m.assert_called_once()
