@@ -331,3 +331,248 @@ def test_edges_from_data_roundtrip(census, tmp_path):
     cd.add_lines({str(src): [1, 2, 3, 7]})
     cd.write()
     assert census.edges_from_data(str(data)) == {"tests/t.py::test_a": {str(src): ["1-3", "7-7"]}}
+
+
+# ---- UNCLASSIFIED / fixture-aware DUPLICATE (RED) -----------------------
+
+def test_unclassified_no_edges(census):
+    rows = census.classify({"t/a": T({})}, set(), set(), None)
+    assert "UNCLASSIFIED" in rows[0]["classes"]
+    assert isinstance(rows[0]["evidence"]["UNCLASSIFIED"], str)
+    assert rows[0]["evidence"]["UNCLASSIFIED"]
+
+
+def test_unclassified_only_tests_and_conftest_edges(census):
+    tests = {"t/a": T({"tests/helper.py": [1], "conftest.py": [2], "tests/conftest.py": [3]})}
+    rows = census.classify(tests, set(), {"tests/helper.py", "conftest.py"}, None)
+    assert "UNCLASSIFIED" in rows[0]["classes"]
+    assert rows[0]["evidence"]["UNCLASSIFIED"]
+
+
+def test_unclassified_no_edges_is_never_orphan(census):
+    assert "ORPHAN" not in labels(census, {"t/a": T({})})["t/a"]
+
+
+def test_live_edge_is_not_unclassified_and_unchanged(census):
+    assert labels(census, {"t/a": T({"m.py": [1]})}, files={"m.py"})["t/a"] == ["UNKNOWN"]
+
+
+def test_live_edge_to_dead_module_is_orphan_not_unclassified(census):
+    got = labels(census, {"t/a": T({"m.py": [1]})}, dead={"m.py"}, files={"m.py"})["t/a"]
+    assert "ORPHAN" in got
+    assert "UNCLASSIFIED" not in got
+
+
+def test_unclassified_evidence_only_for_unclassified_rows(census):
+    tests = {"t/a": T({}), "t/b": T({"m.py": [1]})}
+    rows = {r["id"]: r for r in census.classify(tests, set(), {"m.py"}, None)}
+    assert "UNCLASSIFIED" in rows["t/a"]["evidence"]
+    assert "UNCLASSIFIED" not in rows["t/b"]["evidence"]
+
+
+def test_report_lists_unclassified_ids(census):
+    rep = census.report([row("u", "UNCLASSIFIED"), row("clean"), row("k", "UNKNOWN")])
+    assert rep["UNCLASSIFIED"] == ["u"]
+
+
+def test_report_unclassified_alone_not_in_keep(census):
+    rep = census.report([row("u", "UNCLASSIFIED"), row("clean")])
+    assert "u" not in rep["KEEP"]
+    assert "clean" in rep["KEEP"]
+
+
+def test_report_unclassified_with_no_outcome_is_strengthen_and_listed(census):
+    rep = census.report([row("u", "UNCLASSIFIED", "NO-OUTCOME")])
+    assert "u" in rep["STRENGTHEN"]
+    assert rep["UNCLASSIFIED"] == ["u"]
+
+
+def test_report_unclassified_empty_when_none(census):
+    rep = census.report([row("clean"), row("z", "ZERO-KILL")])
+    assert rep["UNCLASSIFIED"] == []
+    assert rep["STRENGTHEN"] == ["z"]
+    assert rep["KEEP"] == ["clean"]
+
+
+def test_report_reason_and_orphan_note(census):
+    rep = census.report([row("clean")])
+    assert isinstance(rep["unclassified_reason"], str) and rep["unclassified_reason"]
+    assert isinstance(rep["orphan_note"], str)
+    assert "ORPHAN cannot fire" in rep["orphan_note"]
+
+
+def test_report_existing_buckets_unchanged_without_unclassified(census):
+    rep = census.report([row("o", "ORPHAN"), row("n", "NO-OUTCOME"), row("d", "DUPLICATE")])
+    assert rep["REMOVE"] == ["o"]
+    assert rep["STRENGTHEN"] == ["n"]
+    assert rep["KEEP"] == ["d"]
+    assert rep["DUPLICATE_CANDIDATES"] == ["d"]
+
+
+def _census_file(tmp_path, rows):
+    p = tmp_path / "census.jsonl"
+    p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return p
+
+
+def test_cli_report_prints_unclassified_count(tmp_path):
+    p = _census_file(tmp_path, [row("u1", "UNCLASSIFIED"), row("u2", "UNCLASSIFIED", "UNKNOWN"), row("c")])
+    res = run_cli("report", "--census", p)
+    assert res.returncode == 0
+    assert any(ln.startswith("UNCLASSIFIED: 2") for ln in res.stdout.splitlines())
+
+
+def test_cli_report_orphan_cannot_fire_near_remove(tmp_path):
+    p = _census_file(tmp_path, [row("u1", "UNCLASSIFIED")])
+    res = run_cli("report", "--census", p)
+    lines = res.stdout.splitlines()
+    i = next(n for n, ln in enumerate(lines) if ln.startswith("REMOVE: "))
+    assert "ORPHAN cannot fire" in " ".join(lines[i:i + 2])
+
+
+def test_cli_report_remove_zero_has_sentence(tmp_path):
+    p = _census_file(tmp_path, [row("c")])
+    res = run_cli("report", "--census", p)
+    lines = res.stdout.splitlines()
+    i = lines.index("REMOVE: 0")
+    assert "ORPHAN cannot fire" in " ".join(lines[i:i + 2])
+
+
+def _classify_cli(tmp_path, edges, collected_ids):
+    e = tmp_path / "E.json"
+    e.write_text(json.dumps(edges))
+    d = tmp_path / "dead.txt"
+    d.write_text("")
+    c = tmp_path / "collected.txt"
+    c.write_text("".join(i + "\n" for i in collected_ids))
+    out = tmp_path / "out.jsonl"
+    res = run_cli("classify", "--edges", e, "--dead", d, "--collected", c,
+                  "--root", tmp_path, "--out", out)
+    assert res.returncode == 0, res.stderr
+    return {json.loads(ln)["id"]: json.loads(ln) for ln in out.read_text().splitlines() if ln.strip()}
+
+
+def test_cli_classify_collected_id_without_edge_is_unclassified(tmp_path):
+    rows = _classify_cli(tmp_path, {"tests/t.py::a": {}}, ["tests/t.py::a", "tests/t.py::b"])
+    assert "UNCLASSIFIED" in rows["tests/t.py::b"]["classes"]
+    assert rows["tests/t.py::b"]["evidence"]["UNCLASSIFIED"]
+
+
+def test_cli_classify_rows_are_union_of_edges_and_collected(tmp_path):
+    edges = {"tests/t.py::a": {}, "tests/t.py::only_edges": {}}
+    rows = _classify_cli(tmp_path, edges, ["tests/t.py::a", "tests/t.py::only_collected"])
+    assert set(rows) == {"tests/t.py::a", "tests/t.py::only_edges", "tests/t.py::only_collected"}
+
+
+def test_cli_classify_collected_id_is_not_orphan(tmp_path):
+    rows = _classify_cli(tmp_path, {}, ["tests/t.py::b"])
+    assert "ORPHAN" not in rows["tests/t.py::b"]["classes"]
+
+
+# ---- DUPLICATE fixture key ---------------------------------------------
+
+_BODY = "    assert 1 == 1\n"
+
+
+def _write(root, rel, text):
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+
+
+@pytest.fixture
+def dup(census, tmp_path):
+    def run(edges):
+        tests, files = census.build_tests(edges, tmp_path)
+        rows = census.classify(tests, set(), {"m.py"} | files, None)
+        return {r["id"]: r["classes"] for r in rows}
+    return run
+
+
+A_EDGE = {"m.py": ["1-2"]}
+B_EDGE = {"m.py": ["1-3"]}
+
+
+def test_dup_baseline_equal_fixtures_subset_is_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py",
+           "def test_a():\n" + _BODY + "\ndef test_b():\n" + _BODY)
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" in got["tests/test_x.py::test_a"]
+    assert "DUPLICATE" not in got["tests/test_x.py::test_b"]
+
+
+def test_dup_usefixtures_on_one_test_blocks_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py",
+           "import pytest\n\n"
+           "def test_a():\n" + _BODY + "\n"
+           "@pytest.mark.usefixtures(\"db\")\n"
+           "def test_b():\n" + _BODY)
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" not in got["tests/test_x.py::test_a"]
+    assert "DUPLICATE" not in got["tests/test_x.py::test_b"]
+
+
+def test_dup_identical_usefixtures_still_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py",
+           "import pytest\n\n"
+           "@pytest.mark.usefixtures(\"db\")\n"
+           "def test_a():\n" + _BODY + "\n"
+           "@pytest.mark.usefixtures(\"db\")\n"
+           "def test_b():\n" + _BODY)
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" in got["tests/test_x.py::test_a"]
+
+
+def test_dup_module_autouse_fixture_applies_to_both_still_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py",
+           "import pytest\n\n"
+           "@pytest.fixture(autouse=True)\n"
+           "def _auto():\n    yield\n\n"
+           "def test_a():\n" + _BODY + "\n"
+           "def test_b():\n" + _BODY)
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" in got["tests/test_x.py::test_a"]
+
+
+def test_dup_class_level_usefixtures_on_one_class_blocks_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py",
+           "import pytest\n\n"
+           "class TestC:\n"
+           "    def test_a(self):\n    " + _BODY + "\n"
+           "@pytest.mark.usefixtures(\"db\")\n"
+           "class TestD:\n"
+           "    def test_a(self):\n    " + _BODY)
+    got = dup({"tests/test_x.py::TestC::test_a": A_EDGE, "tests/test_x.py::TestD::test_a": B_EDGE})
+    assert "DUPLICATE" not in got["tests/test_x.py::TestC::test_a"]
+    assert "DUPLICATE" not in got["tests/test_x.py::TestD::test_a"]
+
+
+def test_dup_conftest_autouse_in_one_directory_blocks_duplicate(tmp_path, dup):
+    _write(tmp_path, "tests/a/conftest.py",
+           "import pytest\n\n@pytest.fixture(autouse=True)\ndef _auto():\n    yield\n")
+    _write(tmp_path, "tests/a/test_x.py", "def test_a():\n" + _BODY)
+    _write(tmp_path, "tests/b/test_x.py", "def test_a():\n" + _BODY)
+    got = dup({"tests/a/test_x.py::test_a": A_EDGE, "tests/b/test_x.py::test_a": B_EDGE})
+    assert "DUPLICATE" not in got["tests/a/test_x.py::test_a"]
+    assert "DUPLICATE" not in got["tests/b/test_x.py::test_a"]
+
+
+def test_dup_fail_closed_when_test_file_missing(tmp_path, dup):
+    (tmp_path / "tests").mkdir()
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" not in got["tests/test_x.py::test_a"]
+    assert "DUPLICATE" not in got["tests/test_x.py::test_b"]
+
+
+def test_dup_fail_closed_when_test_file_has_syntax_error(tmp_path, dup):
+    _write(tmp_path, "tests/test_x.py", "def test_a(:\n" + _BODY + "def test_b():\n" + _BODY)
+    got = dup({"tests/test_x.py::test_a": A_EDGE, "tests/test_x.py::test_b": B_EDGE})
+    assert "DUPLICATE" not in got["tests/test_x.py::test_a"]
+    assert "DUPLICATE" not in got["tests/test_x.py::test_b"]
+
+
+def test_build_tests_collected_param_is_accepted(census, tmp_path):
+    _write(tmp_path, "tests/test_x.py", "def test_a():\n" + _BODY)
+    tests, files = census.build_tests({"tests/test_x.py::test_a": {}}, tmp_path, collected=None)
+    assert "tests/test_x.py::test_a" in tests
+    assert isinstance(files, set)
