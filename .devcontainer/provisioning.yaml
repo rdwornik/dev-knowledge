@@ -208,7 +208,7 @@ features:
 # name instead of being hidden by a tool that floats.
 tools:
   claude:
-    version: "2.1.303"
+    version: "2.1.304"
     method: >-
       native installer with a version argument: curl -fsSL https://claude.ai/install.sh | bash -s <version>;
       auto-update off via DISABLE_AUTOUPDATER in settings.json env
@@ -248,7 +248,7 @@ tools:
       GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
     doc: https://github.com/xai-org/grok-build
   copilot:
-    version: "1.0.98"
+    version: "1.0.100"
     method: npm install -g @github/copilot@<version>
     doc: https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
     reason: >-
@@ -417,14 +417,14 @@ prebuild:
 # ---- BEGIN generated: pins_record (scripts/codespace_parity.py pin write) -- do not hand-edit ----
 pins_record:
   source: laptop
-  measured_at: "2026-10-19T17:30:32Z"
+  measured_at: "2026-10-19T22:05:51Z"
   versions:
     agy: "1.4.2"
-    claude: "2.1.303"
+    claude: "2.1.304"
     codex: "0.155.0"
-    copilot: "1.0.98"
+    copilot: "1.0.100"
     gh: "2.93.0"
     grok: "1.0.52"
     rclone: "1.73.2"
-  sha256: "e4f41b0af580f882cc73854484dedf3cd538c7890c6897aa9293ae6026dfbaa0"
+  sha256: "50eaff5c14302aa336c324d2680e8f813dc293a090ffc0173c03981450deaed1"
 # ---- END generated: pins_record ----
