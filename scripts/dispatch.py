@@ -973,8 +973,8 @@ def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT, *, repair: bool 
     `HARNESS_MODEL` is the model this launch will actually use, so the `model_per_role` organ judges the
     launch and not only the contract (P1: a substitution at the CLI is a substitution). `repair=True`
     (the `repair` verb, item 2b) sets `HARNESS_REPAIR=1`: a repair expects the lane's OWN worktree,
-    directory and branch, which `worktree_occupancy` must then not count as occupancy -- a busy session
-    in the tree still refuses. The flag is dropped from the child env otherwise, so a stale one in the
+    directory and branch, which `worktree_occupancy` must then not count as occupancy but MUST find
+    (a repair into a hand-made directory is refused) -- a busy session in the tree still refuses. The flag is dropped from the child env otherwise, so a stale one in the
     caller's shell cannot weaken a fresh launch."""
     env = dict(os.environ)
     env["HARNESS_LANE"] = request.slug
@@ -1935,7 +1935,8 @@ def repair_lane(request: RepairRequest, *, repo_root: Path,
     A repair is a hub launch too (integrator OWED-ROWS 2, S4): it runs the SAME `pre-launch` moment a
     launch runs -- with `repair=True`, the one rule that the lane's own tree is expected -- and, once the
     provider has started, writes the same `LAUNCH-<SLUG>.json` receipt (with `kind: repair` and the
-    attempt) so the merge gate sees it and the model-per-role organ has judged it."""
+    attempt) so the merge gate sees it and the model-per-role organ has judged it. A request with no
+    batch is refused (`--batch` is required): an unknown batch would read as "not applicable"."""
     spawn = spawn or spawn_process
     prelaunch = prelaunch or run_prelaunch
     if not (request.batch or "").strip():
@@ -4270,7 +4271,8 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 @click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
               show_default=True)
 @click.option("--batch", default="", help="The batch the lane belongs to; pre-launch judges it and the "
-                                          "launch receipt records it. Default: $HARNESS_BATCH.")
+                                          "launch receipt records it. Default: $HARNESS_BATCH, then the "
+                                          "lane's LAUNCH receipt; none of the three is a refusal.")
 def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
               permission_mode: str, repo_root: Path, batch: str) -> None:
     """Relaunch a REPAIR of SLUG into its EXISTING worktree -- never a fresh `--worktree`.
