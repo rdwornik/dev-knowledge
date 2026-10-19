@@ -1,0 +1,970 @@
+# ecosystem/process-binding.yaml -- the data P1DispatchLane (scripts/gen_process_diagrams.py) is CHECKED AGAINST.
+# The machine is the code (R131); this file binds each state and transition to today's file:line or to a HOLE,
+# and carries the zone of every state (R129). SPIKE DRAFT (lane e21-p1-spike): not landed, not an ADR.
+# `today_glue` is derived (scripts/gen_process_diagrams.py::today_glue), never typed.
+# The `diagram_mermaid` block at the end is GENERATED: `uv run --locked python scripts/gen_process_diagrams.py --write`.
+schema: process-binding/1
+basis: 09123ce5e08e
+legend:
+  BROWSER: blue
+  HARNESS: green
+  BOTH: amber
+processes:
+  P1:
+    machine: scripts/gen_process_diagrams.py::P1DispatchLane
+    states:
+    - id: S01
+      name: drafted
+      zone: BROWSER
+      zone_asis: BROWSER
+      diff: false
+      actor_today: browser+operator
+      today_glue: false
+      hole: no BATCH-PREP template; the browser writes the plan and the operator pastes it (AS-IS P1-A04)
+      asis:
+      - P1-A04
+    - id: S02
+      name: emitted
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat+operator
+      today_glue: true
+      binding:
+        emit:
+          file_line: scripts/gen_lane_contract.py:2310
+          anchor: '@cli.command("emit")'
+      hole: trigger is an operator paste of the prep order (glue)
+      asis:
+      - P1-A05
+    - id: S03
+      name: checked
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        check:
+          file_line: scripts/gen_lane_contract.py:2384
+          anchor: '@cli.command("check")'
+        lint:
+          file_line: scripts/plan_lint.py:891
+          anchor: if any(f.severity == BLOCKING
+      hole: 'guard tier_within_role: R101(a) tier refusal owed, no code enforces it (protocols/STANDING_RULINGS.md:6551)'
+      asis:
+      - P1-A06
+      - P1-A07
+      - P1-B27
+      - P1-B30
+    - id: S04
+      name: planned
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        plan:
+          file_line: scripts/dispatch.py:2085
+          anchor: '@cli.command("plan")'
+      asis:
+      - P1-A08
+      - P1-A09a
+    - id: S05
+      name: queued
+      zone: HARNESS
+      zone_asis: BOTH
+      diff: true
+      actor_today: CC-seat+operator
+      today_glue: true
+      binding:
+        load_queue:
+          file_line: scripts/dispatch.py:1621
+          anchor: def load_queue
+        launch_order:
+          file_line: scripts/dispatch.py:1639
+          anchor: def launch_order
+      hole: 'trigger: nothing fires the pass on an event; today a seat runs `queue --watch` (templates/dispatcher-order-template.md:49)'
+      asis:
+      - P1-A10
+      - P1-A11
+      - P1-A19
+      - P1-A20
+      - P1-A30
+      - P1-B01
+    - id: S06
+      name: held_dependency
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: code
+      today_glue: false
+      binding:
+        dependency:
+          file_line: scripts/dispatch.py:1796
+          anchor: 'if dep == DEP_WAITING:'
+        serialize:
+          file_line: scripts/dispatch.py:1800
+          anchor: if not serialize_group_clear(
+      hole: the live set excludes codespace lanes (dispatch.py:1555-1559)
+      asis:
+      - P1-A12
+      - P1-A13
+      - P1-A14
+    - id: S07
+      name: held_capacity
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: code
+      today_glue: false
+      binding:
+        cap:
+          file_line: scripts/dispatch.py:1807
+          anchor: 'if local_live_count >= local_cap:'
+        ram:
+          file_line: scripts/dispatch.py:1810
+          anchor: 'if free_mb < floor_mb:'
+      hole: 'box slot: no read of running Codespaces against the account limit'
+      asis:
+      - P1-A16
+      - P1-A17
+      - P1-A18a
+    - id: S08
+      name: prelaunch
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: code
+      today_glue: false
+      binding:
+        call:
+          file_line: scripts/dispatch.py:1281
+          anchor: outcome = prelaunch(request)
+        run:
+          file_line: scripts/dispatch.py:966
+          anchor: def run_prelaunch
+      hole: the codespace and cloud legs never run moment:pre-launch (AS-IS P1-B04)
+      asis:
+      - P1-A15
+      - P1-A23
+      - P1-A24
+      - P1-B02
+      - P1-B04
+    - id: S09
+      name: launching_local
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: code
+      today_glue: false
+      binding:
+        launch_lane:
+          file_line: scripts/dispatch.py:1251
+          anchor: def launch_lane(
+      asis:
+      - P1-A18
+      - P1-A21
+      - P1-A22
+      - P1-A25
+      - P1-A26
+      - P1-A26a
+      - P1-A27
+      - P1-A28
+    - id: S10
+      name: launching_codespace
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat+operator
+      today_glue: true
+      binding:
+        codespace:
+          file_line: scripts/dispatch.py:3093
+          anchor: def codespace_exec(
+      hole: 'auto-fire: queue only reports ROUTE-CODESPACE (dispatch.py:1803-1806); the argv is copied by hand'
+      asis:
+      - P1-B03
+      - P1-B05
+      - P1-B06
+      - P1-B07
+      - P1-B08
+      - P1-B09
+      - P1-B10
+      - P1-B11
+    - id: S11
+      name: launching_cloud
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: operator
+      today_glue: true
+      hole: no hub cloud verb; SUBSTRATES = (local, codespace) at dispatch.py:139; carried by [#1643]
+      asis:
+      - P1-B18
+      - P1-B19
+    - id: S12
+      name: launch_incomplete
+      zone: BOTH
+      zone_asis: null
+      diff: true
+      actor_today: code
+      today_glue: false
+      binding:
+        unresolved:
+          file_line: scripts/dispatch.py:1331
+          anchor: 'if result.job_id == "unresolved":'
+      hole: 'retry: no re-identification after exit 8'
+      asis: []
+    - id: S13
+      name: running
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: operator
+      today_glue: true
+      binding:
+        govern:
+          file_line: scripts/dispatch.py:3932
+          anchor: '@cli.command("govern")'
+        monitor:
+          file_line: scripts/dispatch.py:1403
+          anchor: def monitor(
+        observe:
+          file_line: scripts/dispatch.py:3492
+          anchor: def codespace_observe(
+      hole: cloud observe has no code
+      asis:
+      - P1-A29
+      - P1-A32
+      - P1-B15
+    - id: S14
+      name: running_cloud
+      zone: HARNESS
+      zone_asis: null
+      diff: true
+      actor_today: operator
+      today_glue: true
+      hole: no cloud observe and no result collector ([#1643])
+      asis: []
+    - id: S15
+      name: stalled
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        template:
+          file_line: templates/dispatcher-order-template.md:84
+          anchor: idle over <30> min
+      hole: 'no timer code: liveness is a prose sweep by a seat'
+      asis:
+      - P1-A33
+    - id: S16
+      name: resuming
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      hole: no resume verb (AS-IS P1-A33)
+      asis: []
+    - id: S17
+      name: handed_back
+      zone: HARNESS
+      zone_asis: BOTH
+      diff: true
+      actor_today: code+CC-seat+operator
+      today_glue: true
+      binding:
+        wake:
+          file_line: scripts/lane_end_guard.py:381
+          anchor: emit(f"WAKE
+        codespace:
+          file_line: scripts/dispatch.py:3449
+          anchor: cat", f"{workdir}/handback.json"
+      hole: 'consumer: nothing forces a reader of the WAKE (AS-IS P1-B35); cloud has no handback'
+      asis:
+      - P1-B31
+      - P1-B32
+      - P1-B33
+      - P1-B34
+      - P1-B35
+    - id: S18
+      name: harvesting
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat+operator
+      today_glue: true
+      binding:
+        harvest:
+          file_line: scripts/dispatch.py:3623
+          anchor: def codespace_harvest(
+        verify:
+          file_line: scripts/dispatch.py:3705
+          anchor: def verify_harvest_manifest(
+        delete:
+          file_line: scripts/dispatch.py:3773
+          anchor: def codespace_delete(
+      hole: 'chain: codespace_exec never calls harvest then delete; run by hand (AS-IS P1-B12/B14)'
+      asis:
+      - P1-B12
+      - P1-B13
+      - P1-B14
+      - P1-X01
+    - id: S19
+      name: integrating
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        land:
+          file_line: scripts/merge_path.py:273
+          anchor: 'def land(root: Path, *, slug: str'
+      hole: P11 owns the inside
+      asis: []
+    - id: S20
+      name: merged
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        landable:
+          file_line: scripts/merge_path.py:353
+          anchor: 'if not is_landable(verdict):'
+        echo:
+          file_line: scripts/merge_path.py:658
+          anchor: '''LANDED'' if result.landed'
+      hole: 'writer: the `STATE <lane> MERGED` line `queue` reads (dispatch.py:1698) is typed by the integrator; no code writes
+        it'
+      asis: []
+    - id: S21
+      name: refused
+      zone: BOTH
+      zone_asis: BOTH
+      diff: false
+      actor_today: CC-seat
+      today_glue: false
+      binding:
+        refuse:
+          file_line: scripts/merge_path.py:298
+          anchor: 'def refuse(state: str'
+        template:
+          file_line: templates/integrator-order-template.md:95
+          anchor: to-browser/REFUSED-<slug>.md
+      hole: the REFUSED file is hand-written
+      asis:
+      - P1-A31
+    - id: S22
+      name: repairing
+      zone: HARNESS
+      zone_asis: BROWSER
+      diff: true
+      actor_today: CC-seat
+      today_glue: true
+      binding:
+        repair:
+          file_line: scripts/dispatch.py:1894
+          anchor: def repair_lane(
+      hole: trigger is prose (templates/dispatcher-order-template.md:94); no pre-launch and no receipt on this path
+      asis:
+      - P1-A31a
+      - P1-A31b
+    - id: S23
+      name: reported
+      zone: BOTH
+      zone_asis: null
+      diff: true
+      actor_today: null
+      today_glue: false
+      hole: no writer of REPORTED; no cloud result collector (grammar only at dispatch.py:1699)
+      asis: []
+    - id: S24
+      name: blocked_failed
+      zone: HARNESS
+      zone_asis: HARNESS
+      diff: false
+      actor_today: code
+      today_glue: false
+      binding:
+        dep:
+          file_line: scripts/dispatch.py:1793
+          anchor: 'if dep == DEP_BLOCKED_FAILED:'
+      asis: []
+    - id: S25
+      name: failed
+      zone: BOTH
+      zone_asis: BOTH
+      diff: false
+      actor_today: CC-seat
+      today_glue: false
+      binding:
+        template:
+          file_line: templates/integrator-order-template.md:97
+          anchor: A lane refused twice is
+      hole: the cap of 2 is prose; no counter
+      asis: []
+    transitions:
+    - event: emit
+      source: drafted
+      target: emitted
+      guard: null
+      r130: false
+      file_line: scripts/gen_lane_contract.py:2310
+      anchor: '@cli.command("emit")'
+    - event: check
+      source: emitted
+      target: checked
+      guard: contract_ok, lint_clear, tier_within_role
+      r130: false
+      file_line: scripts/gen_lane_contract.py:2384
+      anchor: '@cli.command("check")'
+    - event: check
+      source: emitted
+      target: drafted
+      guard: checks_failed
+      r130: false
+      hole: no code returns the lane to the browser; the operator reads the failure
+    - event: plan
+      source: checked
+      target: planned
+      guard: token_cap_set
+      r130: false
+      file_line: scripts/dispatch.py:2085
+      anchor: '@cli.command("plan")'
+    - event: enqueue
+      source: planned
+      target: queued
+      guard: no_cycle
+      r130: false
+      file_line: scripts/dispatch.py:1655
+      anchor: cycle = pl.find_cycle(contracts, edges)
+    - event: evaluate
+      source: queued
+      target: merged
+      guard: is_merged
+      r130: false
+      file_line: scripts/dispatch.py:1785
+      anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
+    - event: evaluate
+      source: queued
+      target: running
+      guard: is_live
+      r130: false
+      file_line: scripts/dispatch.py:1790
+      anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
+    - event: evaluate
+      source: queued
+      target: blocked_failed
+      guard: dep_failed
+      r130: false
+      file_line: scripts/dispatch.py:1793
+      anchor: 'if dep == DEP_BLOCKED_FAILED:'
+    - event: evaluate
+      source: queued
+      target: held_dependency
+      guard: blocked_by_dependency
+      r130: false
+      file_line: scripts/dispatch.py:1796
+      anchor: 'if dep == DEP_WAITING:'
+    - event: evaluate
+      source: queued
+      target: held_capacity
+      guard: blocked_by_capacity
+      r130: false
+      file_line: scripts/dispatch.py:1807
+      anchor: 'if local_live_count >= local_cap:'
+    - event: evaluate
+      source: queued
+      target: prelaunch
+      guard: clear
+      r130: false
+      file_line: scripts/dispatch.py:1778
+      anchor: def decide_lane
+    - event: evaluate
+      source: held_dependency
+      target: merged
+      guard: is_merged
+      r130: false
+      file_line: scripts/dispatch.py:1785
+      anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
+    - event: evaluate
+      source: held_dependency
+      target: running
+      guard: is_live
+      r130: false
+      file_line: scripts/dispatch.py:1790
+      anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
+    - event: evaluate
+      source: held_dependency
+      target: blocked_failed
+      guard: dep_failed
+      r130: false
+      file_line: scripts/dispatch.py:1793
+      anchor: 'if dep == DEP_BLOCKED_FAILED:'
+    - event: evaluate
+      source: held_dependency
+      target: held_dependency
+      guard: blocked_by_dependency
+      r130: false
+      file_line: scripts/dispatch.py:1796
+      anchor: 'if dep == DEP_WAITING:'
+    - event: evaluate
+      source: held_dependency
+      target: held_capacity
+      guard: blocked_by_capacity
+      r130: false
+      file_line: scripts/dispatch.py:1807
+      anchor: 'if local_live_count >= local_cap:'
+    - event: evaluate
+      source: held_dependency
+      target: prelaunch
+      guard: clear
+      r130: false
+      file_line: scripts/dispatch.py:1778
+      anchor: def decide_lane
+    - event: evaluate
+      source: held_capacity
+      target: merged
+      guard: is_merged
+      r130: false
+      file_line: scripts/dispatch.py:1785
+      anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
+    - event: evaluate
+      source: held_capacity
+      target: running
+      guard: is_live
+      r130: false
+      file_line: scripts/dispatch.py:1790
+      anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
+    - event: evaluate
+      source: held_capacity
+      target: blocked_failed
+      guard: dep_failed
+      r130: false
+      file_line: scripts/dispatch.py:1793
+      anchor: 'if dep == DEP_BLOCKED_FAILED:'
+    - event: evaluate
+      source: held_capacity
+      target: held_dependency
+      guard: blocked_by_dependency
+      r130: false
+      file_line: scripts/dispatch.py:1796
+      anchor: 'if dep == DEP_WAITING:'
+    - event: evaluate
+      source: held_capacity
+      target: held_capacity
+      guard: blocked_by_capacity
+      r130: false
+      file_line: scripts/dispatch.py:1807
+      anchor: 'if local_live_count >= local_cap:'
+    - event: evaluate
+      source: held_capacity
+      target: prelaunch
+      guard: clear
+      r130: false
+      file_line: scripts/dispatch.py:1778
+      anchor: def decide_lane
+    - event: prelaunch_passed
+      source: prelaunch
+      target: launching_local
+      guard: substrate_is_local
+      r130: false
+      file_line: scripts/dispatch.py:1281
+      anchor: outcome = prelaunch(request)
+    - event: prelaunch_passed
+      source: prelaunch
+      target: launching_codespace
+      guard: substrate_is_codespace
+      r130: false
+      hole: moment:pre-launch never runs on the codespace path (AS-IS P1-B04)
+    - event: prelaunch_passed
+      source: prelaunch
+      target: launching_cloud
+      guard: substrate_is_cloud_read_only
+      r130: false
+      hole: no hub cloud verb (R132, [#1643])
+    - event: prelaunch_refused
+      source: prelaunch
+      target: failed
+      guard: substrate_is_cloud_writing
+      r130: false
+      hole: 'R132: a cloud lane that writes is refused; no code enforces it'
+    - event: prelaunch_refused
+      source: prelaunch
+      target: queued
+      guard: '!substrate_is_cloud_writing'
+      r130: false
+      file_line: scripts/dispatch.py:1281
+      anchor: outcome = prelaunch(request)
+    - event: spawned
+      source: launching_local
+      target: running
+      guard: job_identified
+      r130: false
+      file_line: scripts/dispatch.py:1316
+      anchor: _identify(request, started, self_identified, agents, sleep, began)
+    - event: spawn_incomplete
+      source: launching_local
+      target: launch_incomplete
+      guard: null
+      r130: false
+      file_line: scripts/dispatch.py:1331
+      anchor: 'if result.job_id == "unresolved":'
+    - event: launch_refused
+      source: launching_local
+      target: queued
+      guard: launch_attempts_left
+      r130: false
+      file_line: scripts/dispatch.py:1251
+      anchor: def launch_lane(
+    - event: launch_refused
+      source: launching_local
+      target: refused
+      guard: '!launch_attempts_left'
+      r130: false
+      hole: no launch-attempt counter
+    - event: box_started
+      source: launching_codespace
+      target: running
+      guard: null
+      r130: false
+      file_line: scripts/dispatch.py:3302
+      anchor: rec("create", True
+    - event: box_limit
+      source: launching_codespace
+      target: held_capacity
+      guard: null
+      r130: false
+      hole: HTTP 400 too many codespaces is FAILED at step create today (dispatch.py:3284-3290), not a wait
+    - event: launch_refused
+      source: launching_codespace
+      target: queued
+      guard: launch_attempts_left
+      r130: false
+      file_line: scripts/dispatch.py:1251
+      anchor: def launch_lane(
+    - event: launch_refused
+      source: launching_codespace
+      target: refused
+      guard: '!launch_attempts_left'
+      r130: false
+      hole: no launch-attempt counter
+    - event: cloud_started
+      source: launching_cloud
+      target: running_cloud
+      guard: null
+      r130: false
+      hole: no hub cloud verb (R132, [#1643])
+    - event: launch_refused
+      source: launching_cloud
+      target: failed
+      guard: null
+      r130: false
+      hole: no hub cloud verb (R132, [#1643])
+    - event: identified
+      source: launch_incomplete
+      target: running
+      guard: null
+      r130: false
+      hole: no re-identification after exit 8
+    - event: give_up
+      source: launch_incomplete
+      target: failed
+      guard: '!identify_tries_left'
+      r130: false
+      hole: no retry or resume counter in code
+    - event: idle
+      source: running
+      target: stalled
+      guard: is_idle
+      r130: false
+      hole: prose sweep by a seat (templates/dispatcher-order-template.md:84), no timer code
+    - event: handback
+      source: running
+      target: handed_back
+      guard: handback_on_local
+      r130: true
+      file_line: scripts/lane_end_guard.py:381
+      anchor: emit(f"WAKE
+    - event: box_done
+      source: running
+      target: harvesting
+      guard: substrate_is_codespace
+      r130: false
+      file_line: scripts/dispatch.py:3449
+      anchor: '"cat", f"{workdir}/handback.json"'
+    - event: cloud_done
+      source: running_cloud
+      target: reported
+      guard: null
+      r130: false
+      hole: no cloud result collector
+    - event: cloud_failed
+      source: running_cloud
+      target: failed
+      guard: null
+      r130: false
+      hole: no cloud observe
+    - event: give_up
+      source: stalled
+      target: failed
+      guard: '!resumes_left'
+      r130: false
+      hole: no retry or resume counter in code
+    - event: resume
+      source: stalled
+      target: resuming
+      guard: resumes_left
+      r130: false
+      hole: no resume verb (AS-IS P1-A33)
+    - event: give_up
+      source: resuming
+      target: failed
+      guard: '!resumes_left'
+      r130: false
+      hole: no retry or resume counter in code
+    - event: resumed
+      source: resuming
+      target: running
+      guard: null
+      r130: false
+      hole: no resume verb (AS-IS P1-A33)
+    - event: to_integrator
+      source: handed_back
+      target: integrating
+      guard: '!read_only'
+      r130: false
+      hole: hand-off into P11 (the integrate machine); nothing forces it (AS-IS P1-B35)
+    - event: report
+      source: handed_back
+      target: reported
+      guard: read_only
+      r130: false
+      hole: no writer of REPORTED and no cloud result collector
+    - event: report
+      source: harvesting
+      target: reported
+      guard: harvest_clean_read_only
+      r130: false
+      hole: no writer of REPORTED and no cloud result collector
+    - event: harvested
+      source: harvesting
+      target: integrating
+      guard: harvest_clean_writing
+      r130: false
+      file_line: scripts/dispatch.py:3705
+      anchor: def verify_harvest_manifest(
+    - event: refusal
+      source: harvesting
+      target: refused
+      guard: '!harvest_clean'
+      r130: true
+      file_line: scripts/dispatch.py:3705
+      anchor: def verify_harvest_manifest(
+    - event: refusal
+      source: integrating
+      target: refused
+      guard: '!landed'
+      r130: true
+      file_line: scripts/merge_path.py:298
+      anchor: 'def refuse(state: str'
+    - event: merge
+      source: integrating
+      target: merged
+      guard: landed
+      r130: true
+      file_line: scripts/merge_path.py:353
+      anchor: 'if not is_landable(verdict):'
+    - event: repair
+      source: refused
+      target: repairing
+      guard: repair_allowed
+      r130: false
+      file_line: scripts/dispatch.py:1894
+      anchor: def repair_lane(
+    - event: fail
+      source: refused
+      target: failed
+      guard: '!repair_allowed'
+      r130: false
+      file_line: templates/integrator-order-template.md:97
+      anchor: A lane refused twice is
+    - event: repaired
+      source: repairing
+      target: running
+      guard: null
+      r130: false
+      file_line: scripts/dispatch.py:1905
+      anchor: return spawn(request.argv, env, tree)
+    - event: fail
+      source: repairing
+      target: failed
+      guard: '!worktree_exists'
+      r130: false
+      file_line: templates/integrator-order-template.md:97
+      anchor: A lane refused twice is
+    retired:
+    - asis: P1-A01
+      reason: 'operator pastes the dispatcher order: the dispatcher seat retires (R130)'
+    - asis: P1-A02
+      reason: dispatcher seat claim sentinel retires with the seat (R130)
+    - asis: P1-A02a
+      reason: dispatcher claim collision retires with the seat (R130)
+    - asis: P1-A03
+      reason: 'seat binds role dispatcher: retires with the seat (R130)'
+    - asis: P1-A03a
+      reason: 'alternate single-lane launcher (lane-boot): duplicates launch_lane'
+    - asis: P1-A09
+      reason: queue --dry-run is a prep view, not a state
+    - asis: P1-B16
+      reason: SUBSTRATES tuple becomes registry data (digest proposal)
+    - asis: P1-B17
+      reason: registry vs SUBSTRATES mismatch becomes registry data (digest proposal)
+    - asis: P1-B20
+      reason: 'PATH shim: a duplicate of launch_lane'
+    - asis: P1-B21
+      reason: 'Invoke-Dispatch legacy launcher: a duplicate of launch_lane'
+    - asis: P1-B22
+      reason: '/lane-boot preflight: duplicate of the launcher''s own refusals'
+    - asis: P1-B23
+      reason: 'seat types the dispatch verb: retires with the seat (R130)'
+    - asis: P1-B24
+      reason: 'handback token verdict: P11 (integrate) machine'
+    - asis: P1-B25
+      reason: 'merge into the integration worktree: P11 machine'
+    - asis: P1-B26
+      reason: 'CI verdict gate: P11 machine'
+    - asis: P1-B28
+      reason: 'generator default model: data, not a state'
+    - asis: P1-B29
+      reason: 'seat tier table: data, not a state'
+diagram_mermaid: |
+  stateDiagram-v2
+      direction LR
+      state "Drafted" as drafted
+      state "Emitted" as emitted
+      state "Checked" as checked
+      state "Planned" as planned
+      state "Queued" as queued
+      state "Held dependency" as held_dependency
+      state "Held capacity" as held_capacity
+      state "Prelaunch" as prelaunch
+      state "Launching local" as launching_local
+      state "Launching codespace" as launching_codespace
+      state "Launching cloud" as launching_cloud
+      state "Launch incomplete" as launch_incomplete
+      state "Running" as running
+      state "Running cloud" as running_cloud
+      state "Stalled" as stalled
+      state "Resuming" as resuming
+      state "Handed back" as handed_back
+      state "Harvesting" as harvesting
+      state "Integrating" as integrating
+      state "Merged" as merged
+      state "Refused" as refused
+      state "Repairing" as repairing
+      state "Reported" as reported
+      state "Blocked failed" as blocked_failed
+      state "Failed" as failed
+      [*] --> drafted
+      merged --> [*]
+      reported --> [*]
+      blocked_failed --> [*]
+      failed --> [*]
+      drafted --> emitted : Emit
+      emitted --> checked : Check [contract_ok, lint_clear, tier_within_role]
+      emitted --> drafted : Check [checks_failed]
+      checked --> planned : Plan [token_cap_set]
+      planned --> queued : Enqueue [no_cycle]
+      queued --> merged : Evaluate [is_merged]
+      queued --> running : Evaluate [is_live]
+      queued --> blocked_failed : Evaluate [dep_failed]
+      queued --> held_dependency : Evaluate [blocked_by_dependency]
+      queued --> held_capacity : Evaluate [blocked_by_capacity]
+      queued --> prelaunch : Evaluate [clear]
+      held_dependency --> merged : Evaluate [is_merged]
+      held_dependency --> running : Evaluate [is_live]
+      held_dependency --> blocked_failed : Evaluate [dep_failed]
+      held_dependency --> held_dependency : Evaluate [blocked_by_dependency]
+      held_dependency --> held_capacity : Evaluate [blocked_by_capacity]
+      held_dependency --> prelaunch : Evaluate [clear]
+      held_capacity --> merged : Evaluate [is_merged]
+      held_capacity --> running : Evaluate [is_live]
+      held_capacity --> blocked_failed : Evaluate [dep_failed]
+      held_capacity --> held_dependency : Evaluate [blocked_by_dependency]
+      held_capacity --> held_capacity : Evaluate [blocked_by_capacity]
+      held_capacity --> prelaunch : Evaluate [clear]
+      prelaunch --> launching_local : Prelaunch passed [substrate_is_local]
+      prelaunch --> launching_codespace : Prelaunch passed [substrate_is_codespace]
+      prelaunch --> launching_cloud : Prelaunch passed [substrate_is_cloud_read_only]
+      prelaunch --> failed : Prelaunch refused [substrate_is_cloud_writing]
+      prelaunch --> queued : Prelaunch refused [!substrate_is_cloud_writing]
+      launching_local --> running : Spawned [job_identified]
+      launching_local --> launch_incomplete : Spawn incomplete
+      launching_local --> queued : Launch refused [launch_attempts_left]
+      launching_local --> refused : Launch refused [!launch_attempts_left]
+      launching_codespace --> running : Box started
+      launching_codespace --> held_capacity : Box limit
+      launching_codespace --> queued : Launch refused [launch_attempts_left]
+      launching_codespace --> refused : Launch refused [!launch_attempts_left]
+      launching_cloud --> running_cloud : Cloud started
+      launching_cloud --> failed : Launch refused
+      launch_incomplete --> running : Identified
+      launch_incomplete --> failed : Give up [!identify_tries_left]
+      running --> stalled : Idle [is_idle]
+      running --> handed_back : Handback [handback_on_local]
+      running --> harvesting : Box done [substrate_is_codespace]
+      running_cloud --> reported : Cloud done
+      running_cloud --> failed : Cloud failed
+      stalled --> failed : Give up [!resumes_left]
+      stalled --> resuming : Resume [resumes_left]
+      resuming --> failed : Give up [!resumes_left]
+      resuming --> running : Resumed
+      handed_back --> integrating : To integrator [!read_only]
+      handed_back --> reported : Report [read_only]
+      harvesting --> reported : Report [harvest_clean_read_only]
+      harvesting --> integrating : Harvested [harvest_clean_writing]
+      harvesting --> refused : Refusal [!harvest_clean]
+      integrating --> refused : Refusal [!landed]
+      integrating --> merged : Merge [landed]
+      refused --> repairing : Repair [repair_allowed]
+      refused --> failed : Fail [!repair_allowed]
+      repairing --> running : Repaired
+      repairing --> failed : Fail [!worktree_exists]
+
+      classDef browser fill:#a5d8ff,stroke:#1971c2,color:#111
+      classDef harness fill:#b2f2bb,stroke:#2f9e44,color:#111
+      classDef both fill:#ffd8a8,stroke:#e8590c,color:#111
+      class drafted browser
+      class emitted harness
+      class checked harness
+      class planned harness
+      class queued harness
+      class held_dependency harness
+      class held_capacity harness
+      class prelaunch harness
+      class launching_local harness
+      class launching_codespace harness
+      class launching_cloud harness
+      class launch_incomplete both
+      class running harness
+      class running_cloud harness
+      class stalled harness
+      class resuming harness
+      class handed_back harness
+      class harvesting harness
+      class integrating harness
+      class merged harness
+      class refused both
+      class repairing harness
+      class reported both
+      class blocked_failed harness
+      class failed both
