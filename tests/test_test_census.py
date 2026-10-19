@@ -123,7 +123,7 @@ def test_not_orphan_mixed_edges(census):
 
 
 def test_not_orphan_no_edges(census):
-    assert labels(census, {"t": T({})}, files={"m.py"})["t"] == ["UNKNOWN"]
+    assert labels(census, {"t": T({})}, files={"m.py"})["t"] == ["UNCLASSIFIED", "UNKNOWN"]
 
 
 def test_duplicate_strict_subset_same_asserts(census):

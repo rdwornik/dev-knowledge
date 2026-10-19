@@ -4,6 +4,7 @@ No model decides a class. Edges come from coverage.py (`coverage json --show-con
 recorded with `pytest --cov-context=test`), assertions from stdlib `ast`, kill data from mutmut.
 
 Classes (R120.3 / row [#1566] Done-when 2):
+  UNCLASSIFIED a test with no live coverage edge: ORPHAN and DUPLICATE cannot be decided for it.
   ORPHAN      every edge points to a DEAD or missing module (a test with no edge is NOT orphan).
   DUPLICATE   CANDIDATE only: covered (module, line) set is a strict subset of another test's,
               equal normalised assert expressions, equal fixtures, neither parametrized.
@@ -157,6 +158,72 @@ def no_outcome(source: str, func_name: str, class_name: str | None = None) -> di
             "reason": "every assertion targets a Mock" if anything else "no assertion-bearing call"}
 
 
+def _is_fixture_decorator(d: ast.AST) -> bool:
+    return isinstance(d, ast.Call) and _callee(d) == "fixture" and any(
+        k.arg == "autouse" and isinstance(k.value, ast.Constant) and k.value.value is True
+        for k in d.keywords)
+
+
+def _usefixtures(nodes) -> list[str]:
+    """String arguments of every `*.usefixtures("a", "b")` call in the given decorator/expr nodes."""
+    out: list[str] = []
+    for node in nodes:
+        for n in ast.walk(node):
+            if isinstance(n, ast.Call) and _callee(n) == "usefixtures":
+                out += [f"usefixtures:{a.value}" for a in n.args
+                        if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+    return out
+
+
+def _autouse(body, where: str) -> list[str]:
+    return [f"autouse:{where}:{n.name}" for n in body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and any(_is_fixture_decorator(d) for d in n.decorator_list)]
+
+
+def _module_marks(tree: ast.Module) -> list[ast.AST]:
+    """Right-hand sides of module-level `pytestmark = ...`."""
+    return [n.value for n in tree.body if isinstance(n, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in n.targets)]
+
+
+def scope_fixtures(tree: ast.Module, fpath: str, cls: str | None, fn: ast.AST,
+                   root: Path) -> tuple[list[str], bool]:
+    """Fixtures a test is subject to beyond its arguments: (names, readable).
+
+    `usefixtures` on the test / its class / module `pytestmark`, autouse fixtures defined in the
+    module, the class, and every `conftest.py` from the root down to the test's directory.
+    readable is False when a scope cannot be read (unparsable conftest, class with an unreadable
+    base): the duplicate bucket then fails closed.
+    """
+    names = _usefixtures(fn.decorator_list)  # type: ignore[attr-defined]
+    names += _usefixtures(_module_marks(tree))
+    names += _autouse(tree.body, fpath)
+    readable = True
+    if cls is not None:
+        node = next((n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == cls), None)
+        if node is None:
+            readable = False
+        else:
+            names += _usefixtures(node.decorator_list) + _autouse(node.body, f"{fpath}::{cls}")
+            for b in node.bases:
+                if ast.unparse(b) not in {"object", "TestCase", "unittest.TestCase"}:
+                    readable = False
+    parts = Path(fpath).parent.parts
+    for i in range(len(parts) + 1):
+        d = "/".join(parts[:i])
+        conf = root / d / "conftest.py" if d else root / "conftest.py"
+        if not conf.is_file():
+            continue
+        try:
+            ctree = ast.parse(conf.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            readable = False
+            continue
+        names += _autouse(ctree.body, f"conftest:{d}") + _usefixtures(_module_marks(ctree))
+    return names, readable
+
+
 def _fn_facts(fn: ast.AST) -> tuple[list[str], tuple[str, ...], bool]:
     """(normalised asserts, fixture arg names, parametrized) for a test function node."""
     asserts: list[str] = []
@@ -198,7 +265,7 @@ def _duplicates(tests: dict[str, dict]) -> dict[str, str]:
     groups: dict[tuple, list[str]] = defaultdict(list)
     masks: dict[str, dict[str, int]] = {}
     for tid, t in tests.items():
-        if t.get("parametrized") or not t.get("asserts"):
+        if t.get("parametrized") or not t.get("asserts") or t.get("fixtures_unreadable"):
             continue
         mk = {m: _mask(ls) for m, ls in _live_edges(t.get("edges", {})).items()}
         mk = {m: v for m, v in mk.items() if v}
@@ -254,6 +321,9 @@ def classify(tests: dict, dead: set[str], repo_files: set[str], mutmut_stats: di
         t = tests[tid]
         classes: dict[str, str] = {}
         mods = list(_live_edges(t.get("edges", {})))
+        if not mods:
+            classes["UNCLASSIFIED"] = ("no live coverage edge (no coverage context recorded, or only "
+                                       "tests/conftest edges): ORPHAN and DUPLICATE cannot be decided")
         if mods and all(m in dead or m not in repo_files for m in mods):
             gone = sorted(m for m in mods if m not in repo_files)
             classes["ORPHAN"] = f"all {len(mods)} edge modules dead or missing" + (f" (missing: {', '.join(gone[:3])})" if gone else "")
@@ -270,13 +340,21 @@ def classify(tests: dict, dead: set[str], repo_files: set[str], mutmut_stats: di
 
 def report(rows: list[dict]) -> dict[str, Any]:
     """KEEP / STRENGTHEN / REMOVE. Deletes nothing."""
-    rep: dict[str, Any] = {"KEEP": [], "STRENGTHEN": [], "REMOVE": [], "DUPLICATE_CANDIDATES": []}
+    rep: dict[str, Any] = {"KEEP": [], "STRENGTHEN": [], "REMOVE": [], "UNCLASSIFIED": [],
+                           "DUPLICATE_CANDIDATES": []}
     for r in rows:
         c = set(r["classes"])
-        bucket = "REMOVE" if "ORPHAN" in c else "STRENGTHEN" if c & {"NO-OUTCOME", "ZERO-KILL"} else "KEEP"
+        bucket = ("REMOVE" if "ORPHAN" in c else "STRENGTHEN" if c & {"NO-OUTCOME", "ZERO-KILL"}
+                  else "UNCLASSIFIED" if "UNCLASSIFIED" in c else "KEEP")
         rep[bucket].append(r["id"])
+        if "UNCLASSIFIED" in c and bucket != "UNCLASSIFIED":
+            rep["UNCLASSIFIED"].append(r["id"])  # also listed: UNCLASSIFIED counts every row with that class
         if "DUPLICATE" in c:
             rep["DUPLICATE_CANDIDATES"].append(r["id"])
+    rep["unclassified_reason"] = ("no live coverage edge: the test recorded no coverage context on a "
+                                  "non-test module, so ORPHAN and DUPLICATE could not be decided for it")
+    rep["orphan_note"] = ("ORPHAN cannot fire for a test with no coverage edge (a test of a deleted module "
+                          "has none), so REMOVE is a lower bound, not a finding of absence")
     rep["deleted"] = 0
     rep["note"] = "report only: deletes nothing; every bucket is a proposal for the operator's GO"
     return rep
@@ -311,13 +389,16 @@ def load_mutmut(path: Path) -> dict:
     return {"tests_by_function": tbf, "kills_by_function": kills}
 
 
-def build_tests(edges: dict, root: Path) -> tuple[dict, set[str]]:
+def build_tests(edges: dict, root: Path, collected=None) -> tuple[dict, set[str]]:
+    """One entry per test in `edges` UNION `collected`: a collected test with no edge is still a row."""
     repo_files = {m for mods in edges.values() for m in mods if (root / m).exists()}
     asts: dict[str, ast.Module | None] = {}
     sources: dict[str, str] = {}
     tests: dict[str, dict] = {}
-    for tid, mods in edges.items():
-        t: dict[str, Any] = {"edges": mods, "asserts": [], "fixtures": (), "parametrized": "[" in tid}
+    for tid in sorted(set(edges) | set(collected or ())):
+        mods = edges.get(tid, {})
+        t: dict[str, Any] = {"edges": mods, "asserts": [], "fixtures": (), "parametrized": "[" in tid,
+                             "fixtures_unreadable": True}
         fpath, cls, func = _split_id(tid)
         if fpath not in asts:
             p = root / fpath
@@ -331,6 +412,9 @@ def build_tests(edges: dict, root: Path) -> tuple[dict, set[str]]:
         if fn is not None:
             t["asserts"], t["fixtures"], param = _fn_facts(fn)
             t["parametrized"] = t["parametrized"] or param
+            extra, readable = scope_fixtures(tree, fpath, cls, fn, root)
+            t["fixtures"] = tuple(sorted({*t["fixtures"], *extra}))
+            t["fixtures_unreadable"] = not readable
             res = no_outcome(sources[fpath], func, cls)
             t["no_outcome"], t["no_outcome_reason"] = res["no_outcome"], res["reason"]
         tests[tid] = t
@@ -375,7 +459,9 @@ def _cmd_classify(a) -> int:
     edges = json.loads(Path(a.edges).read_text(encoding="utf-8"))
     dead = {ln.strip() for ln in Path(a.dead).read_text(encoding="utf-8").splitlines() if ln.strip()}
     mm = load_mutmut(Path(a.mutmut)) if a.mutmut and a.mutmut != "none" else None
-    tests, repo_files = build_tests(edges, Path(a.root))
+    collected = ([ln.strip() for ln in Path(a.collected).read_text(encoding="utf-8").splitlines() if ln.strip()]
+                 if a.collected else None)
+    tests, repo_files = build_tests(edges, Path(a.root), collected)
     rows = classify(tests, dead, repo_files, mm)
     with open(a.out, "w", encoding="utf-8") as fh:
         fh.writelines(json.dumps(r, sort_keys=True) + "\n" for r in rows)
@@ -390,8 +476,11 @@ def _cmd_report(a) -> int:
         for c in r["classes"]:
             cls[c] += 1
     print(f"{len(rows)} tests; classes: " + ", ".join(f"{k}={v}" for k, v in sorted(cls.items())))
-    for b in ("REMOVE", "STRENGTHEN", "KEEP"):
+    print(f"UNCLASSIFIED: {len(rep['UNCLASSIFIED'])} -- {rep['unclassified_reason']}")
+    for b in ("REMOVE", "STRENGTHEN", "KEEP", "UNCLASSIFIED"):
         print(f"{b}: {len(rep[b])}")
+        if b == "REMOVE":
+            print(f"  {rep['orphan_note']}")
         for tid in rep[b][: a.top]:
             ev = next(r["evidence"] for r in rows if r["id"] == tid)
             print(f"  {tid}  {'; '.join(f'{k}: {v}' for k, v in ev.items())}")
@@ -411,6 +500,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--edges", required=True)
     c.add_argument("--dead", required=True)
     c.add_argument("--mutmut", default=None)
+    c.add_argument("--collected", default=None,
+                   help="pytest --collect-only -q node ids, one per line: every one gets a row")
     c.add_argument("--out", required=True)
     c.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
     r = sub.add_parser("report")
