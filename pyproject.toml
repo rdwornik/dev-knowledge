@@ -182,6 +182,7 @@ dev = [
     # NO ecosystem/dependency-baseline.yaml row -- system_map.py is HUB-ONLY, ships in no
     # carrier, same reasoning as psutil/filelock/platformdirs/pdfplumber above.
     "grimp==3.17",
+    "python-statemachine==3.2.2",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
