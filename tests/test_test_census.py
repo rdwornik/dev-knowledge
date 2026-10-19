@@ -298,3 +298,36 @@ def test_cli_mutmut_optional(tmp_path, mm_args):
     assert r.returncode == 0, r.stderr
     row_ = json.loads(out.read_text().splitlines()[0])
     assert row_["classes"] == ["UNKNOWN"]
+
+
+def test_mask_accepts_ints_and_ranges(census):
+    assert census._mask([1, 3]) == census._mask(["1-1", "3-3"]) == 0b1010
+    assert census._mask(["2-4"]) == 0b11100
+
+
+def test_tests_dir_edges_never_prevent_orphan(census):
+    t = {"t": {"edges": {"scripts/dead.py": [1], "tests/test_x.py": [1], "tests/conftest.py": [2]}}}
+    rows = census.classify(t, {"scripts/dead.py"}, {"scripts/dead.py", "tests/test_x.py", "tests/conftest.py"}, None)
+    assert rows[0]["classes"] == ["ORPHAN", "UNKNOWN"]
+
+
+def test_dict_call_is_not_a_mock(census):
+    code = "def test_a():\n    r = dict(a=1)\n    assert r == {'a': 1}\n"
+    assert census.no_outcome(code, "test_a")["no_outcome"] is False
+
+
+def test_pytest_fail_counts_as_assertion(census):
+    code = "import pytest\ndef test_a():\n    if f():\n        pytest.fail('x')\n"
+    assert census.no_outcome(code, "test_a")["no_outcome"] is False
+
+
+def test_edges_from_data_roundtrip(census, tmp_path):
+    import coverage
+    src = tmp_path / "mod.py"
+    src.write_text("a = 1\nb = 2\nc = 3\n")
+    data = tmp_path / ".cov"
+    cd = coverage.CoverageData(basename=str(data))
+    cd.set_context("tests/t.py::test_a|run")
+    cd.add_lines({str(src): [1, 2, 3, 7]})
+    cd.write()
+    assert census.edges_from_data(str(data)) == {"tests/t.py::test_a": {str(src): ["1-3", "7-7"]}}

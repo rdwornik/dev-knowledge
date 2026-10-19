@@ -38,7 +38,7 @@ _MUTANT_SUFFIX = re.compile(r"__mutmut_\d+$")
 _MOCK_ASSERT = re.compile(r"^assert_(called|not_called|any_call|has_calls|awaited|not_awaited|"
                           r"called_once|called_with|called_once_with|awaited_once|awaited_with)")
 _MOCK_FACTORIES = {"Mock", "MagicMock", "AsyncMock", "NonCallableMock", "PropertyMock",
-                   "create_autospec", "patch", "mocker", "object", "dict", "multiple"}
+                   "create_autospec", "patch"}
 _RAISES = {"raises", "warns", "deprecated_call"}
 #: mutmut exit codes that are NOT a kill: survived, not checked, no tests, skipped, suspicious, timeout.
 _NOT_KILL = {0, None, 5, 24, 33, 34, 35, 36, 152}
@@ -83,13 +83,11 @@ def _names_in(node: ast.AST) -> set[str]:
 def _mock_names(fn: ast.AST) -> set[str]:
     names: set[str] = set()
     args = fn.args  # type: ignore[attr-defined]
-    for a in [*args.posonlyargs, *args.args, *args.kwonlyargs]:
-        if a.arg.startswith(("mock", "m_")) or a.arg == "mocker":
-            names.add(a.arg)
-    if any(isinstance(d, ast.Call) and _callee(d) == "patch" or
-           isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute) and d.func.attr == "patch"
-           for d in fn.decorator_list):  # type: ignore[attr-defined]
-        names |= {a.arg for a in args.args if a.arg != "self"}
+    positional = [a.arg for a in [*args.posonlyargs, *args.args] if a.arg != "self"]
+    n_patch = sum(1 for d in fn.decorator_list  # type: ignore[attr-defined]
+                  if "patch" in ast.dump(d.func if isinstance(d, ast.Call) else d)
+                  and "new=" not in ast.dump(d) and len(getattr(d, "args", ())) < 2)
+    names |= set(positional[:n_patch])
     for n in ast.walk(fn):
         if isinstance(n, ast.Assign) and _is_mock_call(n.value):
             names |= {t.id for t in n.targets if isinstance(t, ast.Name)}
@@ -127,7 +125,7 @@ def _real_assertion(fn: ast.AST, helpers: dict[str, ast.AST], depth: int) -> str
         name = _callee(n)
         if name is None:
             continue
-        if name in _RAISES:
+        if name in _RAISES or name == "fail":
             return f"pytest.{name}"
         if name.startswith("assert") and not _MOCK_ASSERT.match(name):
             roots = set().union(*(_names_in(a) for a in n.args), set()) if n.args else set()
@@ -177,42 +175,61 @@ def _fn_facts(fn: ast.AST) -> tuple[list[str], tuple[str, ...], bool]:
 
 # ---------------------------------------------------------------- classify
 
+def _mask(lines) -> int:
+    """Line numbers (ints) or 'a-b' range strings -> one int bitmask."""
+    m = 0
+    for ln in lines:
+        if isinstance(ln, str):
+            a, _, b = ln.partition("-")
+            a, b = int(a), int(b or a)
+            m |= (1 << (b + 1)) - (1 << a)
+        else:
+            m |= 1 << ln
+    return m
+
+
+def _live_edges(edges: dict) -> dict:
+    """Edge modules that can decide a class: the test files and conftest are always live."""
+    return {m: v for m, v in edges.items() if not (m.startswith("tests/") or m.endswith("conftest.py"))}
+
+
 def _duplicates(tests: dict[str, dict]) -> dict[str, str]:
     """test id -> evidence, for strict-subset candidates within equal (asserts, fixtures) groups."""
     groups: dict[tuple, list[str]] = defaultdict(list)
-    sets: dict[str, frozenset] = {}
+    masks: dict[str, dict[str, int]] = {}
     for tid, t in tests.items():
         if t.get("parametrized") or not t.get("asserts"):
             continue
-        s = frozenset((m, ln) for m, lines in t.get("edges", {}).items() for ln in lines)
-        if not s:
+        mk = {m: _mask(ls) for m, ls in _live_edges(t.get("edges", {})).items()}
+        mk = {m: v for m, v in mk.items() if v}
+        if not mk:
             continue
-        sets[tid] = s
+        masks[tid] = mk
         groups[(tuple(t["asserts"]), tuple(t.get("fixtures", ())))].append(tid)
+
+    def strict_subset(a: dict[str, int], b: dict[str, int]) -> bool:
+        if any(m not in b or v & ~b[m] for m, v in a.items()):
+            return False
+        return a != b
+
     out: dict[str, str] = {}
     for ids in groups.values():
         if len(ids) < 2:
             continue
-        posting: dict[Any, list[str]] = defaultdict(list)
-        for tid in ids:
-            for e in sets[tid]:
-                posting[e].append(tid)
         for tid in sorted(ids):
-            s = sets[tid]
-            rare = min(s, key=lambda e: len(posting[e]))
-            supers = sorted(o for o in posting[rare] if o != tid and len(sets[o]) > len(s) and s < sets[o])
+            supers = [o for o in sorted(ids) if o != tid and strict_subset(masks[tid], masks[o])]
             if supers:
                 more = f" (+{len(supers) - 1} more)" if len(supers) > 1 else ""
                 out[tid] = f"strict subset of {supers[0]}{more}; equal asserts, candidate only"
     return out
 
 
-def _kill_class(tid: str, mutmut: dict | None) -> tuple[str | None, str]:
+def _kill_class(tid: str, mutmut: dict | None, covered_by: dict | None = None) -> tuple[str | None, str]:
     if not mutmut:
         return "UNKNOWN", "no mutmut data"
     tbf = mutmut.get("tests_by_function") or {}
     kills = mutmut.get("kills_by_function") or {}
-    covered = sorted(f for f, ts in tbf.items() if tid in ts)
+    covered = sorted(covered_by.get(tid, ())) if covered_by is not None else sorted(f for f, ts in tbf.items() if tid in ts)
     if not covered:
         return "UNKNOWN", "covers no mutated function in the mutmut slice"
     unreached = [f for f in covered if f not in kills]
@@ -226,17 +243,23 @@ def _kill_class(tid: str, mutmut: dict | None) -> tuple[str | None, str]:
 
 def classify(tests: dict, dead: set[str], repo_files: set[str], mutmut_stats: dict | None) -> list[dict]:
     dups = _duplicates(tests)
+    covered_by: dict[str, set[str]] | None = None
+    if mutmut_stats:
+        covered_by = defaultdict(set)
+        for f, ts in (mutmut_stats.get("tests_by_function") or {}).items():
+            for x in ts:
+                covered_by[x].add(f)
     rows = []
     for tid in sorted(tests):
         t = tests[tid]
         classes: dict[str, str] = {}
-        mods = list(t.get("edges", {}))
+        mods = list(_live_edges(t.get("edges", {})))
         if mods and all(m in dead or m not in repo_files for m in mods):
             gone = sorted(m for m in mods if m not in repo_files)
             classes["ORPHAN"] = f"all {len(mods)} edge modules dead or missing" + (f" (missing: {', '.join(gone[:3])})" if gone else "")
         if tid in dups:
             classes["DUPLICATE"] = dups[tid]
-        label, why = _kill_class(tid, mutmut_stats)
+        label, why = _kill_class(tid, mutmut_stats, covered_by)
         if label:
             classes[label] = why
         if t.get("no_outcome"):
@@ -263,7 +286,7 @@ def report(rows: list[dict]) -> dict[str, Any]:
 
 def _split_id(tid: str) -> tuple[str, str | None, str]:
     parts = _PARAM_SUFFIX.sub("", tid).split("::")
-    return parts[0], (parts[1] if len(parts) > 2 else None), parts[-1]
+    return parts[0], (parts[-2] if len(parts) > 2 else None), parts[-1]
 
 
 def load_mutmut(path: Path) -> dict:
@@ -314,9 +337,37 @@ def build_tests(edges: dict, root: Path) -> tuple[dict, set[str]]:
     return tests, repo_files
 
 
+def edges_from_data(data_file: str) -> dict[str, dict[str, list[str]]]:
+    """Read the `.coverage` database directly (the JSON report is multi-GB on this suite).
+
+    Lines are stored as 'a-b' range strings, which `classify` expands to bitmasks.
+    """
+    from coverage import CoverageData
+
+    cd = CoverageData(basename=data_file)
+    cd.read()
+    acc: dict[str, dict[str, int]] = defaultdict(dict)
+    for path in cd.measured_files():
+        for ln, ctxs in cd.contexts_by_lineno(path).items():
+            for ctx in ctxs:
+                if ctx:
+                    d = acc[_PHASE.sub("", ctx)]
+                    d[path] = d.get(path, 0) | (1 << ln)
+    out: dict[str, dict[str, list[str]]] = {}
+    for tid, mods in acc.items():
+        out[tid] = {}
+        for m, mask in mods.items():
+            bits = bin(mask)[:1:-1]  # bit n of mask == character n
+            out[tid][m] = [f"{r.start()}-{r.end() - 1}" for r in re.finditer("1+", bits)]
+    return out
+
+
 def _cmd_edges(a) -> int:
-    cov = json.loads(Path(a.cov).read_text(encoding="utf-8"))
-    Path(a.out).write_text(json.dumps(edges_from_coverage(cov), sort_keys=True), encoding="utf-8")
+    if a.data:
+        edges = edges_from_data(a.data)
+    else:
+        edges = edges_from_coverage(json.loads(Path(a.cov).read_text(encoding="utf-8")))
+    Path(a.out).write_text(json.dumps(edges, sort_keys=True), encoding="utf-8")
     return 0
 
 
@@ -353,14 +404,15 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     e = sub.add_parser("edges")
-    e.add_argument("--cov", required=True)
+    e.add_argument("--cov", default=None, help="coverage json --show-contexts output (small suites)")
+    e.add_argument("--data", default=None, help="a .coverage database (large suites)")
     e.add_argument("--out", required=True)
     c = sub.add_parser("classify")
     c.add_argument("--edges", required=True)
     c.add_argument("--dead", required=True)
     c.add_argument("--mutmut", default=None)
     c.add_argument("--out", required=True)
-    c.add_argument("--root", default=".")
+    c.add_argument("--root", default=str(Path(__file__).resolve().parent.parent))
     r = sub.add_parser("report")
     r.add_argument("--census", required=True)
     r.add_argument("--top", type=int, default=20)
