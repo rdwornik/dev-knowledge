@@ -86,3 +86,12 @@ def test_legacy_heading_still_yields_unverified_refusal(tmp_path):
 
 def test_legacy_state_merged_line_still_read():
     assert ld.lane_terminal_state("STATE lane-x MERGED abc1234\n", "lane-x") == ("MERGED", "abc1234")
+
+
+def test_front_matter_lane_with_an_origin_prefix_still_yields_the_bare_slug(tmp_path):
+    f = tmp_path / "REFUSED-x.md"
+    f.write_text(
+        "from: the INTEGRATOR\nrepair 1 of 2\nlane: origin/worktree-lane-x @ abc1234\n\n"
+        "# REFUSAL 2026-10-19 -- repair 1 of 2 (a regression)\n\nbody\n", encoding="utf-8")
+    rows = ld.parse_refused_events(f.read_text(encoding="utf-8"), f)
+    assert [r.slug for r in rows] == ["lane-x"]

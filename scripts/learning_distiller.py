@@ -206,7 +206,7 @@ _REFUSAL_HEADING_RE = re.compile(r"^#{1,2}[ \t]*(?:REFUSED|REFUSAL)\b(?P<rest>[^
 _HEADING_LEGACY_SLUG_RE = re.compile(r"^\s*[—-]+\s*(?P<slug>\S+?),\s*repair\s+\d+\s+of\s+\d+")
 _HEADING_PAREN_SLUG_RE = re.compile(r"\((?P<slug>[\w.-]+)\)")
 _REPAIR_OF_RE = re.compile(r"\brepair\s+(?P<n>\d+)\s+of\s+(?P<m>\d+)")
-_FRONTMATTER_LANE_RE = re.compile(r"^lane:\s*(?:worktree-)?(?P<slug>[\w.-]+)", re.M)
+_FRONTMATTER_LANE_RE = re.compile(r"^lane:\s*(?:origin/)?(?:worktree-)?(?P<slug>[\w.-]+)", re.M)
 _EVENT_DETAIL_CAP = 1200
 
 
