@@ -53,7 +53,8 @@ import provider_registry as pr  # noqa: E402
 
 #: The first batch the gate applies to: BATCH-E2-0 onward (history does not turn red).
 FIRST_BATCH = (2, 0)
-_BATCH_RE = re.compile(r"^E(\d+)\.(\d+)")
+#: The batch-id grammar, anchored at both ends: `E2.0junk` and `x` are not batch ids.
+_BATCH_RE = re.compile(r"^E(\d+)\.(\d+)$")
 
 #: The head of a lane is the implementer (R153); the registry has no separate lane-head role.
 HEAD_ROLE = "implement"
@@ -71,6 +72,18 @@ _PHASE_RULES: tuple[tuple[re.Pattern, str, Optional[str]], ...] = (
     (re.compile(r"implement|orchestrat"), HEAD_ROLE, None),
     (re.compile(r"\bread\b"), "read", "anthropic"),
 )
+
+
+def batch_malformed(batch: str) -> bool:
+    """True for a NON-EMPTY batch id outside the grammar (`x`, `E2.0junk`). An empty id is "no batch",
+    which is a different case; a malformed one must never read as "not applicable" (P1, fail closed)."""
+    b = (batch or "").strip()
+    return bool(b) and not _BATCH_RE.match(b)
+
+
+def batch_grammar_refusal(lane: str, batch: str) -> str:
+    return (f"REFUSED [batch-grammar]: lane {lane}: batch {batch!r} is not a batch id (expected "
+            f"`E<major>.<minor>`, e.g. E2.0) -- an unresolvable batch would skip the model-per-role check")
 
 
 def batch_applies(batch: str) -> bool:

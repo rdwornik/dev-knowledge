@@ -963,6 +963,16 @@ _DOIT_CHATTER = re.compile(r"^(\.\s+organ:|TaskFailed|Python Task failed|warning
 _REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
 
 
+def _refuse_malformed_batch(slug: str, batch: str) -> None:
+    """P1, fail closed: a NON-EMPTY batch id outside `E<major>.<minor>` (`x`, `E2.0junk`) is refused by
+    `repair`, not read as "not applicable". Only `repair` calls this: `launch` and `codespace-exec` still
+    accept the fleet's older non-E ids (`B1`, `wave3`, `WAVE5B-N1`) -- eight existing launch and codespace-exec tests pin that,
+    and widening the refusal there is an open decision. An empty batch is the callers' own case."""
+    import subst_gate                                 # lazy: subst_gate imports this module lazily too
+    if subst_gate.batch_malformed(batch):
+        raise LaunchRefused(subst_gate.batch_grammar_refusal(slug, batch.strip()))
+
+
 def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT, *, repair: bool = False) -> PreLaunch:
     """Run the DECLARED `pre-launch` moment (ecosystem/harness.yaml) for this lane, from the hub.
 
@@ -1943,6 +1953,7 @@ def repair_lane(request: RepairRequest, *, repo_root: Path,
         raise DispatchRefused(f"the repair of {request.slug} names no batch (--batch, $HARNESS_BATCH and "
                               "the slug's LAUNCH receipt are all absent): `--batch` is required -- a "
                               "repair whose batch is unknown would skip the model-per-role check")
+    _refuse_malformed_batch(request.slug, request.batch)
     tree = repair_worktree_path(repo_root, request.slug)
     if not tree.is_dir():
         raise DispatchRefused(f"no existing worktree at {tree} -- a repair reuses the lane's own "
@@ -2108,7 +2119,8 @@ def cli() -> None:
 @click.option("--model", default="", help="Overrides the contract's model. No default.")
 @click.option("--effort", default="", help="Overrides the contract's effort. No default.")
 @click.option("--batch", default="", help="The batch the lane joins; pre-launch checks its integrator "
-                                          "is live. Default: $HARNESS_BATCH.")
+                                          "is live. The model-per-role gate applies to ids of the form "
+                                          "`E<major>.<minor>` from E2.0 on. Default: $HARNESS_BATCH.")
 @click.option("--token-cap", "token_cap", type=int, default=None,
               help="Optional. Written into the launch receipt as the cap FIELD `govern` records "
                    "spend against. It stops nothing.")
@@ -4270,9 +4282,10 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 @click.option("--permission-mode", default="bypassPermissions", show_default=True)
 @click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
               show_default=True)
-@click.option("--batch", default="", help="The batch the lane belongs to; pre-launch judges it and the "
-                                          "launch receipt records it. Default: $HARNESS_BATCH, then the "
-                                          "lane's LAUNCH receipt; none of the three is a refusal.")
+@click.option("--batch", default="", help="The batch the lane belongs to, `E<major>.<minor>` (e.g. E2.0); "
+                                          "pre-launch judges it and the launch receipt records it. Default: "
+                                          "$HARNESS_BATCH, then the lane's LAUNCH receipt; none of the three, "
+                                          "or an id outside that grammar, is a refusal.")
 def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
               permission_mode: str, repo_root: Path, batch: str) -> None:
     """Relaunch a REPAIR of SLUG into its EXISTING worktree -- never a fresh `--worktree`.

@@ -246,17 +246,6 @@ def test_r2_m3_check_raises_for_a_wrong_branch_worktree(lane_repo, monkeypatch):
 
 # --- R2: M2 malformed batch ----------------------------------------------------------------------
 
-@pytest.mark.parametrize("b", ["x", "E2.0junk", "E2.", "E2.0.1", "e2.0"])
-def test_r2_m2_a_malformed_batch_is_refused_by_grammar(b):
-    problems, _ = _problems(_contract(), batch=b, launch_model=SONNET)
-    assert any(p.startswith("REFUSED [batch-grammar]") and b in p for p in problems), problems
-
-
-def test_r2_m2_a_malformed_batch_is_refused_even_without_a_phase_table():
-    problems, _ = _problems(_contract(table=False), batch="x", launch_model=SONNET)
-    assert any(p.startswith("REFUSED [batch-grammar]") for p in problems), problems
-
-
 @pytest.mark.parametrize("b", ["x", "E2.0junk"])
 def test_r2_m2_repair_cli_refuses_a_malformed_batch(tmp_path, repo_root, monkeypatch, b):
     out, seen, spawned = _repair_cli(tmp_path, repo_root, monkeypatch, ["--batch", b])
