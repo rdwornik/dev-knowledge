@@ -859,3 +859,21 @@ def test_an_empty_selection_for_a_code_diff_is_never_allowed_to_pass(orphan_repo
     assert sel.pytest_args() == []
     rule_names = {rule.name for rule in impacted_tests.RULES} | {"unmapped"}
     assert sel.reasons["scripts/orphan.py"][0] in rule_names
+
+
+def test_a_mixed_docs_and_uncovered_code_diff_still_fails_closed_to_the_full_suite(orphan_repo):
+    """[#703]: the docs path sets `marker`, which must not mask an uncovered code path."""
+    sel = impacted_tests.select(orphan_repo, ["JOURNAL.md", "scripts/orphan.py"])
+    assert sel.full_suite is True
+
+
+def test_a_mixed_docs_and_covered_code_diff_stays_targeted(tmp_path):
+    """The guard is per-path, not blanket: a covered code file keeps the diff targeted."""
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        "scripts/covered.py": "def value():\n    return 1\n",
+        "tests/test_covered.py": "import covered\n\n\ndef test_value():\n    assert covered.value() == 1\n",
+    })
+    sel = impacted_tests.select(tmp_path, ["JOURNAL.md", "scripts/covered.py"])
+    assert sel.full_suite is False
+    assert "tests/test_covered.py" in sel.test_files

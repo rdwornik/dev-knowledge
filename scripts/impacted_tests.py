@@ -663,22 +663,28 @@ def select(
         for rel in unclaimed:
             reasons[rel] = ("unmapped", "no rule claims this path; failing safe")
 
+    uncovered: list[str] = []
     if need_covering:
         table = covering_tests(root, depth=depth)
         removed = [rel for rel in need_covering if _is_source(rel) and not (root / rel).exists()]
         base_table = _covering_from_base(root, base_ref, depth) if removed and base_ref else {}
         for rel in need_covering:
-            selected.update(table.get(rel, ()))
+            found = set(table.get(rel, ()))
             if rel in removed:
                 # Only tests still on disk can run; a deleted test is not a selection.
-                selected.update(t for t in base_table.get(rel, ()) if (root / t).exists())
+                found.update(t for t in base_table.get(rel, ()) if (root / t).exists())
+            if not found:
+                uncovered.append(rel)
+            selected.update(found)
 
-    if not full and paths and not selected and marker is None:
-        # [#703]: an empty selection for a non-empty diff is "the selector failed to
-        # resolve it" far more often than "nothing is impacted". A docs-only diff never
-        # lands here (it sets `marker`), and an all-regenerated diff never reaches select().
+    if not full and not selected and (uncovered or (paths and marker is None)):
+        # [#703]: an empty selection is "the selector failed to resolve it" far more often
+        # than "nothing is impacted". A path that asked for covering tests and got none, with
+        # nothing else selected, fails closed even beside a docs path (which sets `marker`)
+        # (the docs path does not excuse it). A docs-only diff never lands
+        # here (it sets `marker`), and an all-regenerated diff never reaches `select()`.
         full = True
-        for rel in paths:
+        for rel in (uncovered or paths):
             name, why = reasons.get(rel, ("unmapped", ""))
             reasons[rel] = (name, f"{why} -- selected no test, failing closed to the full "
                                   "suite ([#703])")
