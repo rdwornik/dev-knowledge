@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import organ_usage_metric as oum
 
@@ -652,6 +653,120 @@ def test_an_unreadable_store_degrades_to_stale_not_a_crash(tmp_path):
         now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
     assert report["graph_stale"] is True
     assert report["wiring_reachable"] == []
+
+
+# --- re-homed vocabulary (retired deny_and_point guard) --------------------------------
+#
+# Moved from tests/test_deny_and_point.py when the guard was retired. These pin only the
+# behaviour that now lives here: SEARCH_HEADS membership, SHELL_TOOLS, and load_processes
+# (absent store allows/empty, present store loads, corrupt store raises). The guard's
+# predicate, wire, and UNWIRED/KEPT pins retired with the hook.
+
+_REHOMED_SEARCH_HEADS = frozenset({
+    "grep", "egrep", "fgrep", "zgrep",
+    "rg", "ripgrep",
+    "ag", "ack",
+    "find",
+    "select-string", "sls",
+})
+
+
+def test_search_heads_membership_is_the_rehomed_vocabulary():
+    """The retired guard recognised a search only as the HEAD of a command segment, and only
+    for this set. Membership is the whole contract that moved; the predicate that used it
+    did not."""
+    assert oum.SEARCH_HEADS == _REHOMED_SEARCH_HEADS
+    assert oum.RAW_SEARCH_HEADS is oum.SEARCH_HEADS
+    assert "grep" in oum.SEARCH_HEADS and "ls" not in oum.SEARCH_HEADS
+    assert "select-string" in oum.SEARCH_HEADS and "Select-String" not in oum.SEARCH_HEADS
+
+
+def test_shell_tools_are_bash_and_powershell():
+    """Re-homed verbatim: only these two shell tools are judged. Grep is a separate tool
+    name, not a member of this tuple."""
+    assert oum.SHELL_TOOLS == ("Bash", "PowerShell")
+    assert "Grep" not in oum.SHELL_TOOLS
+
+
+def _write_process_store(db, processes: dict[str, str]):
+    """A persisted-store file shaped like FPG-1's, holding only what `load_processes` reads:
+    `nodes(path, process_class)`. Moved from the retired guard's tests."""
+    import sqlite3
+
+    db.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(db)
+    try:
+        con.execute("CREATE TABLE nodes (key TEXT PRIMARY KEY, kind TEXT NOT NULL, "
+                    "label TEXT NOT NULL, path TEXT, process_class TEXT)")
+        con.executemany("INSERT INTO nodes VALUES (?, 'file', ?, ?, ?)",
+                        [(p, p, p, k) for p, k in processes.items()])
+        con.commit()
+    finally:
+        con.close()
+    return db
+
+
+def test_an_absent_store_loads_empty(tmp_path, monkeypatch):
+    """An absent store is 'not governed yet' and ALLOWS: `load_processes` returns {} without
+    raising. Same property the retired guard pinned as
+    test_an_ABSENT_store_still_ALLOWS_a_fresh_clone_is_not_governed_yet, now on the function
+    itself rather than through the deleted decide_with_store wrapper."""
+    import graph_store as gs
+
+    missing = tmp_path / "absent" / "FPG.db"
+    monkeypatch.setattr(gs, "store_path", lambda *_a, **_k: missing)
+    assert oum.load_processes(tmp_path) == {}
+
+
+def test_a_present_store_loads_the_process_set(tmp_path, monkeypatch):
+    """A present store loads path -> process_class, dropping a row whose path is empty.
+    Same read the retired guard's test_the_live_store_answers_with_the_repos_real_processes
+    and owned_store fixture exercised, against a store this test owns."""
+    import graph_store as gs
+
+    processes = {
+        "scripts/graph_queries.py": "script",
+        "scripts/gen_task_tree.py": "script",
+        ".claude/commands/ship.md": "command",
+        ".claude/skills/verify/SKILL.md": "skill",
+    }
+    db = _write_process_store(tmp_path / "owned" / "FPG.db", processes)
+    # an empty path is dropped, the same filter the retired loader applied
+    import sqlite3
+    con = sqlite3.connect(db)
+    try:
+        con.execute("INSERT INTO nodes VALUES ('', 'file', '', '', 'script')")
+        con.execute("INSERT INTO nodes VALUES ('no-class', 'file', 'no-class', "
+                    "'scripts/no_class.py', NULL)")
+        con.commit()
+    finally:
+        con.close()
+    monkeypatch.setattr(gs, "store_path", lambda *_a, **_k: db)
+    assert oum.load_processes(tmp_path) == processes
+
+
+def test_a_corrupt_store_raises(tmp_path, monkeypatch):
+    """A file that exists but is not a readable SQLite store raises. The retired guard
+    treated that as fail-closed (test_an_UNREACHABLE_STORE_ENGINE_fails_CLOSED monkeypatched
+    the raise); the raise itself is what moved. An absent file stays empty -- that case is
+    the test above, not this one."""
+    import sqlite3
+
+    import graph_store as gs
+
+    db = tmp_path / "owned" / "FPG.db"
+    db.parent.mkdir(parents=True, exist_ok=True)
+    db.write_bytes(b"this is not a sqlite database")
+    monkeypatch.setattr(gs, "store_path", lambda *_a, **_k: db)
+    with pytest.raises(sqlite3.DatabaseError):
+        oum.load_processes(tmp_path)
+
+
+def test_repo_root_is_the_checkout_root():
+    """The retired guard lived at scripts/hooks/ and used parents[2]. This module lives at
+    scripts/, so parents[1] is the same checkout root."""
+    assert oum.REPO_ROOT == Path(__file__).resolve().parent.parent
+    assert (oum.REPO_ROOT / "scripts" / "organ_usage_metric.py").is_file()
 
 
 def test_a_deleted_or_added_process_file_makes_the_graph_stale(tmp_path):

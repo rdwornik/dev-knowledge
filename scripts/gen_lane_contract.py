@@ -1615,8 +1615,8 @@ def missing_required_tools(required: "tuple[str, ...]",
     """The declared entries no call in `calls` (`(tool_name, tool_input)`) satisfies, in
     declaration order. Matching is per KIND (`REQUIRED_TOOL_KINDS`), never a substring of the
     whole record: `echo skill:why` is not a Skill call, and `--json-schemaX` is not the flag."""
-    from organ_usage_metric import _dap  # the shell-tool vocabulary, one source
-    shell_tools = frozenset(_dap.SHELL_TOOLS)
+    from organ_usage_metric import SHELL_TOOLS  # the shell-tool vocabulary, one source
+    shell_tools = frozenset(SHELL_TOOLS)
     names = {name for name, _ in calls}
     skills: set[str] = set()
     commands: list[str] = []

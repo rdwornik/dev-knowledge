@@ -80,8 +80,6 @@ def scan(root: Path, ids: Iterable[str]) -> Counter:
 # grandfathered, may only shrink.
 UNREGISTERED_BASELINE: dict[tuple[str, str], int] = {
     ("scripts/gen_seat_boot.py", "gpt-5.6"): 1,
-    ("scripts/offload_admission.py", "claude-sonnet-4.5"): 2,
-    ("scripts/offload_admission.py", "gpt-5.4"): 1,
     ("scripts/provider_bench.py", "claude-fable-5.1"): 1,
     ("scripts/provider_bench.py", "gpt-5"): 1,
 }
