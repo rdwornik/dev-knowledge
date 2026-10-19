@@ -687,3 +687,216 @@ def test_docs_tier_args_matches_pytest_args_in_the_pure_docs_case():
     """The already-declared `/ship` docs-only tier is unchanged by this fix."""
     sel = impacted_tests.select(REPO_ROOT, ["JOURNAL.md"])
     assert sel.docs_tier_args() == sel.pytest_args() == ["-m", "live_repo"]
+
+
+# =============================================================================================
+# [#1561] / [#703]: the workflow and ecosystem-data holes, deleted/renamed-away modules, and
+# the empty selection failing closed. RED-first: the production change comes after these.
+# =============================================================================================
+
+_PYPROJECT = '[tool.pytest.ini_options]\npythonpath = ["scripts"]\n'
+
+
+@pytest.mark.live_repo
+def test_a_workflow_edit_selects_the_test_that_names_it_and_is_not_the_full_suite():
+    """Before the `workflow-reference` rule a `.yml` under `.github/` fell to the doc tier and
+    the governance test that reads conductor.yml was never selected."""
+    sel = impacted_tests.select(REPO_ROOT, [".github/workflows/conductor.yml"])
+    assert "tests/test_conductor_governance_jobs.py" in sel.test_files
+    assert not sel.full_suite
+    assert sel.reasons[".github/workflows/conductor.yml"][0] == "workflow-reference"
+
+
+def test_a_workflow_file_selects_only_the_test_that_names_its_basename(tmp_path):
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        ".github/workflows/ci.yml": "name: ci\n",
+        "tests/test_names_it.py": "WF = '.github/workflows/ci.yml'\n\n\ndef test_a():\n    pass\n",
+        "tests/test_silent.py": "def test_b():\n    pass\n",
+    })
+    sel = impacted_tests.select(tmp_path, [".github/workflows/ci.yml"])
+    assert sel.test_files == ("tests/test_names_it.py",)
+    assert not sel.full_suite
+
+
+def test_an_ecosystem_data_file_selects_the_test_that_names_it(tmp_path):
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        "ecosystem/harness.yaml": "a: 1\n",
+        "tests/test_x.py": "P = 'ecosystem/harness.yaml'\n\n\ndef test_x():\n    pass\n",
+        "tests/test_y.py": "def test_y():\n    pass\n",
+    })
+    sel = impacted_tests.select(tmp_path, ["ecosystem/harness.yaml"])
+    assert sel.test_files == ("tests/test_x.py",)
+    assert not sel.full_suite and sel.marker is None
+    assert sel.reasons["ecosystem/harness.yaml"][0] == "ecosystem-data-reference"
+
+
+def test_an_ecosystem_data_file_no_test_names_is_the_full_suite(tmp_path):
+    """Else FULL SUITE: a data file nothing references cannot be narrowed honestly."""
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        "ecosystem/foo.yaml": "a: 1\n",
+        "tests/test_y.py": "def test_y():\n    pass\n",
+    })
+    sel = impacted_tests.select(tmp_path, ["ecosystem/foo.yaml"])
+    assert sel.full_suite, "an unreferenced ecosystem data file must fail closed"
+
+
+@pytest.mark.live_repo
+def test_ecosystem_harness_yaml_is_not_marker_only_on_the_real_repo():
+    sel = impacted_tests.select(REPO_ROOT, ["ecosystem/harness.yaml"])
+    assert sel.marker is None, "the prose tier must not swallow an ecosystem data file"
+
+
+@pytest.fixture
+def chain_repo(lane_repo: pathlib.Path) -> pathlib.Path:
+    """lane_repo plus a direct importer and a transitive one, all on main; lane == main."""
+    _git(lane_repo, "checkout", "main")
+    _commit(lane_repo, {
+        "scripts/helper.py": "import mod\n\n\ndef h():\n    return mod.value()\n",
+        "tests/test_uses_mod.py": "import mod\n\n\ndef test_u():\n    assert mod.value() == 1\n",
+        "tests/test_helper_chain.py": "import helper\n\n\ndef test_c():\n    assert helper.h() == 1\n",
+    }, "importers")
+    _git(lane_repo, "checkout", "lane")
+    _git(lane_repo, "merge", "--ff-only", "main")
+    return lane_repo
+
+
+_MOD_IMPORTERS = {"tests/test_mod.py", "tests/test_uses_mod.py", "tests/test_helper_chain.py"}
+
+
+def test_a_deleted_module_selects_its_importers_through_the_base_tree(chain_repo):
+    """The current tree no longer resolves `import mod`, so the graph must come from the base."""
+    _git(chain_repo, "rm", "scripts/mod.py")
+    _git(chain_repo, "commit", "--no-verify", "-m", "delete mod")
+    sel = impacted_tests.select_lane_diff(chain_repo, main_ref="main", lane_ref="HEAD")
+    assert not sel.full_suite
+    assert _MOD_IMPORTERS <= set(sel.test_files), sel.test_files
+
+
+def test_a_renamed_away_module_selects_the_old_names_importers(chain_repo):
+    _git(chain_repo, "mv", "scripts/mod.py", "scripts/mod2.py")
+    _git(chain_repo, "commit", "--no-verify", "-m", "rename mod away")
+    changed = impacted_tests.changed_from_lane_diff(chain_repo, "main")
+    assert "scripts/mod.py" in changed and "scripts/mod2.py" in changed, (
+        f"--no-renames must list both paths of a rename: {changed}"
+    )
+    sel = impacted_tests.select_lane_diff(chain_repo, main_ref="main", lane_ref="HEAD")
+    assert not sel.full_suite
+    assert _MOD_IMPORTERS <= set(sel.test_files), sel.test_files
+
+
+def test_a_deleted_test_file_is_never_listed_as_runnable(lane_repo):
+    """A deleted `tests/test_x.py` cannot be run; naming it would make pytest error."""
+    _git(lane_repo, "rm", "tests/test_mod.py")
+    _git(lane_repo, "commit", "--no-verify", "-m", "delete the test")
+    sel = impacted_tests.select_lane_diff(lane_repo, main_ref="main", lane_ref="HEAD")
+    assert "tests/test_mod.py" not in sel.test_files
+    assert sel.full_suite, "nothing runnable is left, so the empty selection fails closed"
+
+
+@pytest.fixture
+def orphan_repo(tmp_path: pathlib.Path) -> pathlib.Path:
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        "scripts/orphan.py": "X = 1\n",
+        "tests/test_other.py": "def test_other():\n    pass\n",
+    })
+    return tmp_path
+
+
+def test_a_code_diff_no_test_covers_falls_to_the_full_suite(orphan_repo):
+    sel = impacted_tests.select(orphan_repo, ["scripts/orphan.py"])
+    assert sel.full_suite is True, "an empty non-full selection for code must never be returned"
+
+
+def test_a_docs_only_diff_is_not_full_suite_and_carries_the_live_repo_marker():
+    """EXPECTED-GREEN today: the legitimate non-full answer for prose."""
+    sel = impacted_tests.select(REPO_ROOT, ["JOURNAL.md"])
+    assert not sel.full_suite and sel.marker == "live_repo"
+
+
+def test_an_all_regenerated_lane_diff_is_the_one_legitimate_empty_selection(lane_repo):
+    """EXPECTED-GREEN today: nothing here is the lane's to answer for."""
+    for rel in impacted_tests.INTEGRATOR_REGENERATED_FILES:
+        _write(lane_repo, {rel: "stale copy\n"})
+    _git(lane_repo, "add", "-A")
+    _git(lane_repo, "commit", "--no-verify", "-m", "stale regenerated copies")
+    sel = impacted_tests.select_lane_diff(lane_repo, main_ref="main", lane_ref="HEAD")
+    assert sel.full_suite is False and sel.test_files == () and sel.marker is None
+
+
+def test_the_select_cli_prints_full_suite_for_an_uncovered_code_diff(orphan_repo):
+    from click.testing import CliRunner
+
+    result = CliRunner().invoke(
+        impacted_tests.cli,
+        ["select", "--repo-root", str(orphan_repo), "--changed", "scripts/orphan.py"],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.output.lstrip().startswith("# FULL SUITE"), result.output
+
+
+def test_select_lane_says_nothing_impacted_explicitly_never_an_empty_line(lane_repo):
+    from click.testing import CliRunner
+
+    _commit(lane_repo, {"docs/audits/README.md": "stale copy\n"}, "regenerated index only")
+    result = CliRunner().invoke(
+        impacted_tests.cli,
+        ["select-lane", "--repo-root", str(lane_repo), "--main-ref", "main", "--lane-ref", "HEAD"],
+    )
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    assert len(lines) == 1 and lines[0].startswith("# NOTHING IMPACTED"), result.output
+
+
+def test_an_empty_selection_for_a_code_diff_is_never_allowed_to_pass(orphan_repo):
+    """ADR-108 section B witness for [#703]: an empty selection reads as "nothing to run" and a
+    green check, so for code it must be the full suite, with an auditable reason."""
+    sel = impacted_tests.select(orphan_repo, ["scripts/orphan.py"])
+    assert sel.full_suite is True
+    assert sel.pytest_args() == []
+    rule_names = {rule.name for rule in impacted_tests.RULES} | {"unmapped"}
+    assert sel.reasons["scripts/orphan.py"][0] in rule_names
+
+
+def test_a_mixed_docs_and_uncovered_code_diff_still_fails_closed_to_the_full_suite(orphan_repo):
+    """[#703]: the docs path sets `marker`, which must not mask an uncovered code path."""
+    sel = impacted_tests.select(orphan_repo, ["JOURNAL.md", "scripts/orphan.py"])
+    assert sel.full_suite is True
+
+
+def test_a_mixed_docs_and_covered_code_diff_stays_targeted(tmp_path):
+    """The guard is per-path, not blanket: a covered code file keeps the diff targeted."""
+    _write(tmp_path, {
+        "pyproject.toml": _PYPROJECT,
+        "scripts/covered.py": "def value():\n    return 1\n",
+        "tests/test_covered.py": "import covered\n\n\ndef test_value():\n    assert covered.value() == 1\n",
+    })
+    sel = impacted_tests.select(tmp_path, ["JOURNAL.md", "scripts/covered.py"])
+    assert sel.full_suite is False
+    assert "tests/test_covered.py" in sel.test_files
+
+
+def test_select_keeps_a_changed_test_that_is_absent_from_the_checkout(tmp_path):
+    """A changed test the caller names must be selected even if the checked-out tree lacks it."""
+    root = tmp_path / "absent-src"
+    root.mkdir()
+    _git(root, "init", "-b", "main")
+    _commit(root, {
+        "pyproject.toml": '[tool.pytest.ini_options]\npythonpath = ["scripts"]\n',
+        "scripts/mod.py": "def value():\n    return 1\n",
+    }, "base")
+    _git(root, "checkout", "-b", "lane")
+    _commit(root, {"scripts/mod.py": "def value():\n    return 2\n"}, "lane touches mod")
+    _git(root, "checkout", "main")
+    _commit(root, {"scripts/other.py": "Y = 1\n",
+                   "tests/test_other.py": "def test_other():\n    assert True\n"},
+            "main adds a test after the lane branched")
+    _git(root, "checkout", "lane")
+    assert not (root / "tests" / "test_other.py").exists()
+
+    sel = impacted_tests.select(root, ["scripts/other.py", "tests/test_other.py"])
+
+    assert "tests/test_other.py" in sel.test_files

@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (a) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-4, batch E2.0): lane e2-tier1 lands (repair 1 of 2) -- the conductor `tier1` job and one `if: always()` gate, the lane-diff selector holes closed, an empty selection on a code diff runs the full suite; the reuse-check regression of the first handback fixed
+
+**Anchors:** `0dfabdb4` (RED first), `445c753e`, `81e440f6` (tier1 job + gate + selector holes), `ae2445e6` (repair 1: `select(..., existing_only=False)`; only `select_lane_diff` opts in), `fe4aace3` (the e2-rulings merge, anchored here: the ship-gate read it as unanchored).
+
+**Did:** the integrator merged the lane `--no-ff` on `fe4aace3` after the hand gate (REUSE CHECK quoted; no process change, since `gate`/`tier1` are not required checks; author claude-sonnet-5-5; RED-first shown by a run of the new test against `81e440f6`'s selector; reviews Codex gpt-5.6-terra + Copilot on the repair delta, run by the orchestrator because the lane ran none; isolated verify claude-sonnet-5-5). Repair 1 answers the 00:03 refusal: `tests/test_test_pairing.py::test_reuse_check_reports_the_rerun_subset_when_only_origin_main_moved` passes again, unedited. In the same session e2-subst-gate was refused a third time (FAILED): three repair-verb tests red on its tip and green on main.
+
+**Result:** the Linux land run is the verdict. Rows `[#1560]` (remainder) and `[#1563]` stay open. Owed row: the select CLI should keep the deleted-test guard (Codex + Copilot major; not a regression vs main).
+
+**Changes:** `.github/workflows/conductor.yml`, `scripts/impacted_tests.py`, `tests/test_conductor_tier1_gate.py`, `tests/test_impacted_tests.py`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-rulings line) and 5 `logs/CODESPACE-RECEIPTS.jsonl` rows.
+
+**Next:** e2-census repair 1 (box), the e2-distill-pilot ruling, a successor for e2-subst-gate after the operator rules A/B/C; e2-cliff stays blocked.
+
 ### 2026-10-19 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-3, batch E2.0): lane e2-rulings lands (repair 2 of 2) -- R137-R147 and P1-P3 in STANDING_RULINGS AX, intake 118 restored and now implemented by four rows, the BACKLOG view budget raised to 160,000 B by R148, 21 owed rows filed
 
 **Anchors:** `e8001689` (close rows for the 4 D0 Codespaces, ESTIMATED), `cdc3cab8` (R137-R147 + P1-P3 in section AX), `21907bf7` (Q5: intake 118 on R137, [#1629] [#1637] [#1638] [#1642] decided-by R137, [#1644] under R140), `da23955e` (gate repairs), `2e5dc7bb` (repair 1, R148: `scripts/view_budget.yaml` 150,000 -> 160,000 B, `manual_until` 2026-11-15, groom row [#1660]), `99c6e9a8` (rows [#1650]-[#1670]; (k) deduped to [#982]), `064108a6` (six `Carried by:` lines in AX), `c83f4320` (landed-count pin through R147), `e5a67d21` (rows cite an in-repo provenance token), `b357c111` (main 4a467883 merged into the lane), `e29a3091` (repair 2: `· implements: intake-118` on [#1629] [#1637] [#1638] [#1642]); branch `worktree-e2-rulings`, introduced by this merge. Launched by `scripts/dispatch.py launch`, repaired by `scripts/dispatch.py repair` (jobs e167e58b, 1a69029e).

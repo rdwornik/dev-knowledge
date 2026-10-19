@@ -414,6 +414,100 @@ jobs:
         # non-zero when a platform-conditioned skip is added above the committed baseline.
         run: uv run --locked python scripts/platform_skip_ratchet.py
 
+  tier1:
+    # [#1560] (BUILD-2a slot 1, R155): a lane push gets a fast Linux verdict -- ruff, then the
+    # tests the LANE'S OWN diff impacts (`impacted_tests.py select-lane`, the triple-dot diff
+    # against origin/main), at the same `-n 4 --dist loadgroup` the full leg uses. Scoped to a
+    # push to `worktree-<x>`; the integrator's `worktree-integrate-*` branches, `main`,
+    # `schedule` and `workflow_dispatch` skip it and keep the full legs. The `gate` job below
+    # lists it among the skips it tolerates ONLY off a lane branch, so on a lane push a skipped
+    # `tier1` is red.
+    # NARROWING (night lane e2-tier1): the shards of [#1562] are not built, and the existing
+    # `pytest` legs are left exactly as they are (see the lane handback for why they are not
+    # yet skipped on a lane push). A `# FULL SUITE` answer is therefore reported, not re-run
+    # here: the unchanged `pytest` leg is the full run.
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/worktree-') && !startsWith(github.ref, 'refs/heads/worktree-integrate-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # `select-lane` diffs `origin/main...HEAD`: it needs the merge-base.
+      - name: Local `main` ref (the full leg's seed; no `refs/heads/main` on a non-main checkout)
+        run: |
+          git rev-parse --verify --quiet refs/heads/main >/dev/null 2>&1 || git branch main origin/main
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19" # MUST equal pyproject.toml [tool.uv] required-version EXACTLY.
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics
+      - name: ruff
+        # `check`, never `check --fix`: a gate that edits the tree is not a gate.
+        run: uv run --locked ruff check
+      - name: Select the impacted tests (merge-base with origin/main)
+        id: select
+        # FAILS CLOSED ([#703]): only the two marker lines the selector prints on purpose are
+        # understood. `# NOTHING IMPACTED` is the one legitimate empty answer; `# FULL SUITE`
+        # widens; a non-zero exit, empty output or any other line is treated as FULL SUITE,
+        # never as "nothing to run".
+        run: |
+          set +e
+          uv run --locked python scripts/impacted_tests.py select-lane --main-ref origin/main \
+            --explain > select.out 2> select.explain
+          rc=$?
+          set -e
+          cat select.explain || true
+          first=$(head -n 1 select.out)
+          if [ "$rc" -ne 0 ]; then
+            mode=full; args=""
+          else
+            case "$first" in
+              "# NOTHING IMPACTED"*) mode=none; args="" ;;
+              "# FULL SUITE"*) mode=full; args="" ;;
+              "#"*|"") mode=full; args="" ;;
+              *) mode=args; args="$first" ;;
+            esac
+          fi
+          echo "selector rc=$rc mode=$mode: ${first:-<empty>}"
+          {
+            echo "mode=$mode"
+            echo "args=$args"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "## tier1 selection -- \`${{ github.sha }}\`"
+            echo
+            echo "mode: \`$mode\`  args: \`${args:-none}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: pytest over the selection, -n 4 --dist loadgroup
+        id: run
+        if: steps.select.outputs.mode == 'args'
+        continue-on-error: true   # judged by the known-reds compare below, as the full leg does
+        env:
+          SELECTED: ${{ steps.select.outputs.args }}
+        run: |
+          set +e
+          # `-m live_repo` (the docs-only tier) must not be followed by a second `-m`: the last
+          # one wins and would silently widen the run, so the operator_host exclusion is
+          # folded into the same expression.
+          case "$SELECTED" in
+            "-m live_repo") set -- -m "live_repo and not operator_host" ;;
+            *) set -- -m "not operator_host" $SELECTED ;;
+          esac
+          start=$(date +%s)
+          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup "$@" 2>&1 | tee pytest.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          echo "wall_seconds=$(( $(date +%s) - start ))" >> "$GITHUB_STEP_SUMMARY"
+      - name: Compare against the committed known-reds registry
+        if: steps.select.outputs.mode == 'args'
+        run: |
+          set +e
+          uv run --locked python scripts/known_reds.py compare \
+            --pytest-output pytest.out --workers 4 --pytest-exit "${{ steps.run.outputs.exit }}" \
+            --registry logs/KNOWN-REDS-REGISTRY.json --out known-reds-compare.out
+          rc=$?
+          cat known-reds-compare.out
+          exit $rc
+
   seal:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1028,3 +1122,29 @@ jobs:
           path: handoff-manifest.out
           retention-days: 90
           if-no-files-found: warn
+
+  # --- the one verdict --------------------------------------------------------------------
+  # `gate` needs commit-gate, so it reads red on main until commit-gate is green (intended); it is not a required check today (no branch protection on main; the ruleset is `enforcement: disabled` and omits it).
+  gate:
+    # [#1560] (R155 OQ1): ONE always-run job that judges the whole run. `if: always()` because a
+    # job skipped by `if:` reports Success to a required check (GitHub docs, troubleshooting
+    # required status checks) and a workflow-level `paths:` filter would leave it Pending
+    # forever -- so there is no path filter on any trigger and this job cannot be skipped by a
+    # failed need. `needs` lists EVERY other job (tests/test_conductor_tier1_gate.py pins that,
+    # so a job added later cannot be forgotten). alls-green is red on a failed, cancelled or
+    # skipped need except the names in `allowed-skips`: on a lane push `pytest` (the full legs
+    # are the integration run's), off a lane push `tier1`; `windows-nightly-triage` runs only
+    # on `schedule` and is legitimately skipped on every push. Not in the ruleset's required
+    # contexts: arming it is a separate, operator-owned act. (`startsWith(..., 'PUSH')` is the
+    # case-insensitive spelling of `== 'push'`, so the quoted-list reader in the tests sees
+    # only the two skip lists.)
+    if: ${{ always() }}
+    needs: [plan, pytest, windows-gate, windows-nightly-triage, ruff, tier1, seal, spine, anchor, commit-gate, ship-gate, terra, phase-gate, handoff-manifest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Judge every job of this run
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: ${{ (startsWith(github.event_name, 'PUSH') && startsWith(github.ref, 'refs/heads/worktree-') && !startsWith(github.ref, 'refs/heads/worktree-integrate-')) && 'pytest, windows-nightly-triage' || 'tier1, windows-nightly-triage' }}

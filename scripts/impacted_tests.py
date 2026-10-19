@@ -235,6 +235,23 @@ def _is_fixture(rel: str) -> bool:
     return any(rel.startswith(f"{root}/fixtures/") for root in TEST_ROOTS)
 
 
+#: Workflow files and `ecosystem/` data (yaml) are not Python and sit outside every source
+#: root, so they fell to the prose tier (`-m live_repo`), which skips tests such as
+#: `tests/test_conductor_governance_jobs.py` that carry no marker ([#1561]). Like templates
+#: and fixtures they are connected to their tests only by a literal name a test writes.
+WORKFLOW_ROOT = ".github/workflows/"
+ECOSYSTEM_ROOT = "ecosystem/"
+DATA_SUFFIXES = (".yaml", ".yml")
+
+
+def _is_workflow(rel: str) -> bool:
+    return rel.startswith(WORKFLOW_ROOT) and rel.endswith(DATA_SUFFIXES)
+
+
+def _is_ecosystem_data(rel: str) -> bool:
+    return rel.startswith(ECOSYSTEM_ROOT) and rel.endswith(DATA_SUFFIXES)
+
+
 #: THE MAPPING. Order matters: the first rule that claims a path wins, and the
 #: environment rule is deliberately ahead of the doc rule so `pyproject.toml` reaches the
 #: full suite rather than the markdown tier. Emptying this tuple is what the RED-first
@@ -258,6 +275,14 @@ RULES: tuple[Rule, ...] = (
          "a `tests/fixtures/**` file is data, not an import; the connection is the "
          "literal fixture directory name a test uses to find it",
          _is_fixture),
+    Rule("workflow-reference", "covering",
+         "a `.github/workflows/*.yml` file is not Python; the connection is the literal "
+         "filename a test uses to find it ([#1561]); no test naming it means the full suite",
+         _is_workflow),
+    Rule("ecosystem-data-reference", "covering",
+         "an `ecosystem/**/*.yaml` data file is read by name, not imported; the connection "
+         "is the literal filename a test uses to find it ([#1561]); none means the full suite",
+         _is_ecosystem_data),
     Rule("task-row", "fixed",
          "a tasks/*.md row is BACKLOG/decision-coverage source; the funnel detector "
          "needs its own coverage independent of the live_repo marker tier (finding 3, "
@@ -512,6 +537,22 @@ def fixture_covering_tests(repo_root: pathlib.Path) -> dict[str, list[str]]:
     return covers
 
 
+def _named_file_covering_tests(
+    repo_root: pathlib.Path, predicate: Callable[[str], bool], roots: Sequence[str]
+) -> dict[str, list[str]]:
+    """Data file relpath (under `roots`, matching `predicate`) -> tests naming its basename."""
+    covers: dict[str, list[str]] = {}
+    for root in roots:
+        directory = repo_root / root
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            rel = path.relative_to(repo_root).as_posix()
+            if path.is_file() and predicate(rel):
+                covers[rel] = sorted(set(_grep_referencing_tests(repo_root, path.name)))
+    return covers
+
+
 def covering_tests(repo_root: pathlib.Path, depth: int = DEFAULT_DEPTH) -> dict[str, list[str]]:
     """source relpath -> the test files that cover it. The mapping's core table."""
     modules = _module_map(repo_root)
@@ -526,7 +567,48 @@ def covering_tests(repo_root: pathlib.Path, depth: int = DEFAULT_DEPTH) -> dict[
         covers.setdefault(src, set()).update(tests)
     for src, tests in fixture_covering_tests(repo_root).items():
         covers.setdefault(src, set()).update(tests)
+    for predicate, roots in ((_is_workflow, (".github/workflows",)),
+                             (_is_ecosystem_data, ("ecosystem",))):
+        for src, tests in _named_file_covering_tests(repo_root, predicate, roots).items():
+            covers.setdefault(src, set()).update(tests)
     return {k: sorted(v) for k, v in covers.items()}
+
+
+#: Top-level trees the covering table reads; the base-tree extract is limited to these.
+BASE_TREE_ROOTS = (*SOURCE_ROOTS, "tests", ".claude", "templates", "ecosystem", ".github")
+
+
+def _covering_from_base(repo_root: pathlib.Path, base_ref: str, depth: int) -> dict[str, list[str]]:
+    """The covering table of the tree at `base_ref`, for modules the diff removed.
+
+    A deleted `scripts/<m>.py` is absent from the working tree, so the table built from disk
+    has no row for it and the tests that imported it select nothing ([#1561]). The base
+    tree still has the edge, so the table is rebuilt there (extracted to a temp dir).
+    Raises on a git failure: an unreadable base must not read as "nothing covered it".
+    """
+    import io
+    import subprocess
+    import tarfile
+    import tempfile
+
+    listing = subprocess.run(
+        ["git", "ls-tree", "--name-only", base_ref], cwd=repo_root,
+        capture_output=True, text=True, check=False)
+    if listing.returncode != 0:
+        raise RuntimeError(f"git ls-tree {base_ref} failed: {listing.stderr.strip()}")
+    tops = [t for t in listing.stdout.split() if t in BASE_TREE_ROOTS]
+    if not tops:
+        return {}
+    archive = subprocess.run(
+        ["git", "archive", "--format=tar", base_ref, "--", *tops], cwd=repo_root,
+        capture_output=True, check=False)
+    if archive.returncode != 0:
+        raise RuntimeError(
+            f"git archive {base_ref} failed: {archive.stderr.decode(errors='replace').strip()}")
+    with tempfile.TemporaryDirectory(prefix="impacted-base-") as tmp:
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+            tar.extractall(tmp, filter="data")
+        return covering_tests(pathlib.Path(tmp), depth=depth)
 
 
 def select(
@@ -534,8 +616,14 @@ def select(
     changed: Iterable[str],
     depth: int = DEFAULT_DEPTH,
     rules: Sequence[Rule] | None = None,
+    base_ref: str | None = None,
+    existing_only: bool = False,
 ) -> Selection:
     """Select the tests impacted by `changed`.
+
+    `existing_only` drops a changed test absent from the checkout. Only the lane-diff
+    entry point sets it (the lane's own deletion cannot be run); a caller naming main's
+    changes from a lane checkout (the reuse check) needs the file kept.
 
     `rules=()` is not a trick parameter -- it is how the RED-first witness proves the
     mapping is load-bearing. With no rules, nothing is claimed and the selector reports
@@ -560,7 +648,9 @@ def select(
             if rule.kind == "full":
                 full = True
             elif rule.kind == "self":
-                selected.add(rel)
+                # A deleted test cannot be run; naming it would make pytest exit 4.
+                if not existing_only or (root / rel).exists():
+                    selected.add(rel)
             elif rule.kind == "fixed":
                 selected.update(rule.targets)
             elif rule.kind == "marker":
@@ -578,10 +668,31 @@ def select(
         for rel in unclaimed:
             reasons[rel] = ("unmapped", "no rule claims this path; failing safe")
 
+    uncovered: list[str] = []
     if need_covering:
         table = covering_tests(root, depth=depth)
+        removed = [rel for rel in need_covering if _is_source(rel) and not (root / rel).exists()]
+        base_table = _covering_from_base(root, base_ref, depth) if removed and base_ref else {}
         for rel in need_covering:
-            selected.update(table.get(rel, ()))
+            found = set(table.get(rel, ()))
+            if rel in removed:
+                # Only tests still on disk can run; a deleted test is not a selection.
+                found.update(t for t in base_table.get(rel, ()) if (root / t).exists())
+            if not found:
+                uncovered.append(rel)
+            selected.update(found)
+
+    if not full and not selected and (uncovered or (paths and marker is None)):
+        # [#703]: an empty selection is "the selector failed to resolve it" far more often
+        # than "nothing is impacted". A path that asked for covering tests and got none, with
+        # nothing else selected, fails closed even beside a docs path (which sets `marker`)
+        # (the docs path does not excuse it). A docs-only diff never lands
+        # here (it sets `marker`), and an all-regenerated diff never reaches `select()`.
+        full = True
+        for rel in (uncovered or paths):
+            name, why = reasons.get(rel, ("unmapped", ""))
+            reasons[rel] = (name, f"{why} -- selected no test, failing closed to the full "
+                                  "suite ([#703])")
 
     if full:
         return Selection(full_suite=True, reasons=reasons)
@@ -638,7 +749,7 @@ def changed_from_lane_diff(
     import subprocess
 
     out = subprocess.run(
-        ["git", "diff", "--name-only", f"{main_ref}...{lane_ref}"],
+        ["git", "diff", "--name-only", "--no-renames", f"{main_ref}...{lane_ref}"],
         cwd=repo_root, capture_output=True, text=True, check=False,
     )
     if out.returncode != 0:
@@ -664,6 +775,8 @@ def select_lane_diff(
     ever reaches `select()`, with the exclusion recorded in `reasons` exactly like every
     other rule's verdict, so `--explain` still accounts for every path in the diff.
     """
+    import subprocess
+
     root = pathlib.Path(repo_root).resolve()
     raw = changed_from_lane_diff(root, main_ref, lane_ref)
     excluded = [c for c in raw if c in INTEGRATOR_REGENERATED_FILES]
@@ -679,7 +792,13 @@ def select_lane_diff(
         # that is ENTIRELY regenerated indices means the mechanism knows exactly what it
         # saw and has already decided none of it is the lane's to run.
         return Selection(reasons=exclusion_reasons)
-    sel = select(root, changed, depth=depth)
+    base = subprocess.run(
+        ["git", "merge-base", main_ref, lane_ref], cwd=root, capture_output=True, text=True,
+        check=False)
+    if base.returncode != 0:
+        raise RuntimeError(f"git merge-base {main_ref} {lane_ref} failed: {base.stderr.strip()}")
+    sel = select(root, changed, depth=depth, base_ref=base.stdout.strip(),
+                 existing_only=True)
     return replace(sel, reasons={**exclusion_reasons, **sel.reasons})
 
 
@@ -862,7 +981,13 @@ def select_lane_cmd(repo_root: str, main_ref: str, lane_ref: str, depth: int,
     if sel.full_suite:
         click.echo("# FULL SUITE -- the selector declined to narrow")
         return
-    click.echo(" ".join(sel.pytest_args()))
+    args = sel.pytest_args()
+    if not args:
+        # The one legitimate empty selection (every changed path is integrator-regenerated)
+        # is stated positively; a caller must never have to read an empty line as "skip".
+        click.echo("# NOTHING IMPACTED -- every changed path is integrator-regenerated")
+        return
+    click.echo(" ".join(args))
 
 
 if __name__ == "__main__":
