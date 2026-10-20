@@ -927,9 +927,9 @@ def _implements_scan_paths(root: Path) -> list[Path]:
         if not directory.is_dir():
             continue
         # ONE `os.walk` with the skip dirs pruned IN PLACE, not `rglob` + a filter afterwards:
-        # `rglob` enumerated every entry of every `.claude/worktrees/<lane>` checkout (56k of
-        # 56k `.claude` entries on a 13-worktree primary, 25.8 s) only for the filter to drop
-        # them. Stdlib; the final `sorted` keeps the order `sorted(rglob)` produced.
+        # `rglob` enumerated every entry of every `.claude/worktrees/<lane>` checkout (a full
+        # second corpus per live lane) only for the filter to drop them. Stdlib; the final
+        # `sorted` keeps the order `sorted(rglob)` produced.
         found: list[Path] = []
         for dirpath, dirnames, filenames in os.walk(directory):
             dirnames[:] = [d for d in dirnames if d not in IMPLEMENTS_SKIP_DIRS]
