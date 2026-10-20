@@ -75,6 +75,14 @@ def test_load_ceilings_rejects_bad_shapes(tmp_path, doc):
         tfm.load_ceilings(p)
 
 
+def test_load_ceilings_rejects_a_nan_ceiling(tmp_path):
+    # review follow-up: `.nan` makes both `value > ceiling` and the ratchet comparison False
+    p = tmp_path / "c.yaml"
+    p.write_text("armed: false\nceilings:\n  m1_push_to_main_median_hours: .nan\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        tfm.load_ceilings(p)
+
+
 def test_ceiling_keys_exact():
     assert tuple(tfm.CEILING_KEYS) == EXPECTED_KEYS
 

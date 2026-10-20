@@ -32,6 +32,7 @@ PERSISTENCE. No scheduled job in this repo persists a record into the tree (`rep
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import statistics
@@ -198,7 +199,8 @@ def extract_reap_events(lines: Iterable[str], source_name: str) -> list[dict]:
             continue
         if not isinstance(obj, dict) or not obj.get("timestamp"):
             continue
-        blob = next((s for s in _strings(obj) if REAP_PHRASE in s), None)
+        # only the harness's own notice: a seat that merely quotes or greps the phrase is not a reap
+        blob = next((s for s in _strings(obj) if REAP_PHRASE in s and "<task-notification>" in s), None)
         if blob is None:
             continue
         summary = re.search(r"<summary>(.*?)</summary>", blob, re.DOTALL)
@@ -305,7 +307,7 @@ def load_ceilings(path) -> dict:
     ceilings = doc.get("ceilings")
     if not isinstance(ceilings, dict) or not all(
             isinstance(k, str) and isinstance(v, (int, float)) and not isinstance(v, bool)
-            for k, v in ceilings.items()):
+            and math.isfinite(v) for k, v in ceilings.items()):
         raise ValueError("ceilings file: `ceilings` must map str -> number")
     return doc
 
@@ -354,8 +356,15 @@ def newest_record(path) -> Optional[dict]:
     path = Path(path)
     if not path.is_file():
         return None
-    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    return json.loads(lines[-1]) if lines else None
+    lines = [ln for ln in path.read_text(encoding="utf-8").split("\n") if ln.strip()]
+    if not lines:
+        return None
+    records = [json.loads(ln) for ln in lines]
+    # latest by `recorded_at`, not by position: `record --from-run <old id>` appends an older record
+    try:
+        return max(records, key=lambda r: parse_ts(r["recorded_at"]))
+    except (KeyError, ValueError, TypeError):
+        return records[-1]
 
 
 def record_is_stale(record: dict, now: datetime, max_age_days: float = 3) -> bool:
@@ -435,14 +444,16 @@ def fetch_jobs_many(run_ids: Iterable[int], *, fetch: Callable = fetch_jobs) -> 
 
 
 def failed_count_from_pytest_out(text: str) -> Optional[int]:
-    hits = re.findall(r"(\d+) failed", text)
+    # the summary line only ("38 failed, 10807 passed ... in 1029.37s"), not a stray "N failed" in a log
+    hits = re.findall(r"^=*\s*(\d+) failed.* in [\d.]+s", text, re.MULTILINE)
     return int(hits[-1]) if hits else None
 
 
 def latest_main_failed_count(main_runs: list[dict]) -> Optional[int]:
     """Failed tests in the newest judged main push run's ubuntu `pytest.out` artifact (the digest's
     '38 known reds'). None when no artifact can be read -- never a guess."""
-    for run in sorted((r for r in main_runs if r.get("conclusion")), key=lambda r: r["createdAt"], reverse=True):
+    newest = sorted((r for r in main_runs if r.get("conclusion")), key=lambda r: r["createdAt"], reverse=True)
+    for run in newest[:3]:                      # a bounded look: each miss is a full gh round trip
         with tempfile.TemporaryDirectory() as tmp:
             try:
                 _gh(["run", "download", str(run["databaseId"]), "-n", f"pytest-ubuntu-latest-{run['headSha']}",
@@ -451,7 +462,10 @@ def latest_main_failed_count(main_runs: list[dict]) -> Optional[int]:
                 continue
             out = Path(tmp) / "pytest.out"
             if out.is_file():
-                count = failed_count_from_pytest_out(out.read_text(encoding="utf-8", errors="replace"))
+                text = out.read_text(encoding="utf-8", errors="replace")
+                count = failed_count_from_pytest_out(text)
+                if count is None and re.search(r"\d+ passed", text):
+                    count = 0                   # a green run has no "N failed": that is 0, not unknown
                 if count is not None:
                     return count
     return None
@@ -470,7 +484,7 @@ def load_receipts(repo_root: Path) -> list[dict]:
     if not path.is_file():
         return []
     rows = []
-    for ln in path.read_text(encoding="utf-8").splitlines():
+    for ln in path.read_text(encoding="utf-8").split("\n"):
         if ln.strip():
             try:
                 rows.append(json.loads(ln))
@@ -533,6 +547,7 @@ def compute(*, repo_root: Path, since: str, until: str, laptop: Optional[bool] =
     m1 = m1_push_to_main(receipts, first_run, since=since, until=until)
     m2 = m2_runs_per_landing(receipts, runs, jobs_by_run, since=since, until=until)
     on_laptop = (os.environ.get("GITHUB_ACTIONS") != "true") if laptop is None else laptop
+    m2["jobs_unread_runs"] = len(wanted) - len(jobs_by_run)   # runs whose jobs gh would not give: not "0 suite runs"
     m3 = (m3_laptop_reaps(scan_transcripts(Path.home() / ".claude" / "projects", since),
                           since=since, until=until) if on_laptop else m3_unavailable())
     m4 = m4_red_on_main(main_runs, jobs_by_run, window_conductor,
@@ -587,7 +602,12 @@ def _run(command: str, since, until, from_run, repo_root, out) -> None:
         click.echo(f"test_flow_metrics: {exc}", err=True)
         raise SystemExit(2)
     if command == "record":
-        append_record(root / RECORDS_PATH, record)
+        target = root / RECORDS_PATH
+        # re-ingesting the same run must not duplicate its line
+        already = from_run is not None and target.is_file() and record_line(record) in target.read_text(
+            encoding="utf-8").split("\n")
+        if not already:
+            append_record(target, record)
     if out:
         Path(out).write_text(record_line(record) + "\n", encoding="utf-8", newline="\n")
     click.echo(record_line(record))

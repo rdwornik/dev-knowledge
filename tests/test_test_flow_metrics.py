@@ -231,8 +231,11 @@ def test_extract_reap_events_realistic_line():
 
 
 def test_extract_reap_events_key_fallbacks():
-    no_task = json.dumps({"timestamp": "2026-01-02T10:00:00Z", "uuid": "uu-9", "text": f"x {PHRASE}"})
-    no_uuid = json.dumps({"timestamp": "2026-01-02T10:00:00Z", "text": f"x {PHRASE}"})
+    # edited after review: a bare phrase is not a reap, so the fallbacks need the notice wrapper
+    no_task = json.dumps({"timestamp": "2026-01-02T10:00:00Z", "uuid": "uu-9",
+                          "text": f"<task-notification>x {PHRASE}</task-notification>"})
+    no_uuid = json.dumps({"timestamp": "2026-01-02T10:00:00Z",
+                          "text": f"<task-notification>x {PHRASE}</task-notification>"})
     events = tfm.extract_reap_events(["", no_task, no_uuid], "s.jsonl")
     assert events[0]["key"] == "s.jsonl:uu-9"
     assert events[1]["key"] == "s.jsonl:3"
@@ -392,3 +395,24 @@ def test_cli_help_lists_commands():
     result = CliRunner().invoke(tfm.cli, ["--help"])
     assert result.exit_code == 0
     assert "compute" in result.output and "record" in result.output
+
+
+# ---- review follow-ups (written by the implementing head after the R138/R147 reviews) ----
+
+def test_a_quoted_phrase_is_not_a_reap():
+    line = json.dumps({"timestamp": "2026-10-19T01:00:00Z", "uuid": "u1",
+                       "content": f"grep hit: {tfm.REAP_PHRASE}"})
+    assert tfm.extract_reap_events([line], "s") == []
+
+
+def test_failed_count_reads_the_summary_line_only():
+    text = "FAILED x - 3 failed assertions\n38 failed, 10807 passed, 45 skipped in 1029.37s (0:17:09)\n"
+    assert tfm.failed_count_from_pytest_out(text) == 38
+    assert tfm.failed_count_from_pytest_out("10 passed in 1.00s\n") is None
+
+
+def test_newest_record_is_the_latest_recorded_at_not_the_last_line(tmp_path):
+    path = tmp_path / "r.jsonl"
+    tfm.append_record(path, {"recorded_at": "2026-10-20T05:00:00Z", "m": "new"})
+    tfm.append_record(path, {"recorded_at": "2026-10-18T05:00:00Z", "m": "old"})
+    assert tfm.newest_record(path)["m"] == "new"
