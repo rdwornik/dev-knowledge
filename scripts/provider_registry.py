@@ -351,6 +351,11 @@ def priced_models(path: Optional[Path] = None) -> list[str]:
     return sorted(mid for mid, row in models(path).items() if isinstance(row.get("rates"), dict))
 
 
+def copilot_gateway_served(path: Optional[Path] = None) -> frozenset[str]:
+    """Model ids the Copilot gateway serves under `requested=default` (BATCH-E2-0 section 3)."""
+    return frozenset(str(m) for m in (load_registry(path).get("copilot_gateway_served") or []))
+
+
 def attribution_tokens(path: Optional[Path] = None) -> dict[str, str]:
     """`{model_id: the literal string that model is attributed by on disk}`.
 

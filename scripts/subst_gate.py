@@ -219,7 +219,7 @@ _VENDOR_FAIL = re.compile(r"\[?\s*VENDOR-FAIL:\s*([^\]\s][^\]]*?)\s*\]?\s*$")
 _PHASE_LINE = re.compile(r"^(?:\s*[-*]\s+|\s+)([^:\s][^:]*?)\s*:\s*(.*\S)\s*$")
 # BATCH-E2-0 section 3: the Copilot gateway serves a Claude model; the role names Copilot, so a served
 # id listed here on a Copilot role is not a substitution.
-COPILOT_GATEWAY_SERVED = frozenset({"claude-sonnet-5.5"})
+COPILOT_GATEWAY_SERVED = frozenset(pr.copilot_gateway_served())
 # A phase line with no `requested=` that says it did not run (one definition, used once below).
 _NOT_RUN = re.compile(r"\bnot run\b|\bnot applicable\b|^this contract\b", re.IGNORECASE)
 _COPILOT_PHASE = re.compile(r"(?i:copilot)|\bRED\b")
