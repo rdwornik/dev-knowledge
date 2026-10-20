@@ -472,7 +472,7 @@ def _cmd_edges(a) -> int:
     else:
         edges = edges_from_coverage(json.loads(Path(a.cov).read_text(encoding="utf-8")))
     edges = relativize(edges, Path(a.root))
-    Path(a.out).write_text(json.dumps(edges, sort_keys=True), encoding="utf-8")
+    Path(a.out).write_text(json.dumps(edges, sort_keys=True), encoding="utf-8", newline="\n")
     return 0
 
 
@@ -484,7 +484,7 @@ def _cmd_classify(a) -> int:
                  if a.collected else None)
     tests, repo_files = build_tests(edges, Path(a.root), collected)
     rows = classify(tests, dead, repo_files, mm)
-    with open(a.out, "w", encoding="utf-8") as fh:
+    with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
         fh.writelines(json.dumps(r, sort_keys=True) + "\n" for r in rows)
     return 0
 
