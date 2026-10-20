@@ -971,6 +971,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1703] [P2][S] Every lane branch CI shows five main-state reds that hide real regressions · tasks/1703-lane-branch-ci-goes-red-on-five-main-state-tests.md
 - [#1704] [P2][S] The merge receipt reads 'FAILED step(s): suite' on a green run after a crashed first land call · tasks/1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md
 - [#1705] [P2][S] The start-up token probe runs on a dirty tree and prints sum, not calls = sum / iterations[0] · tasks/1705-start-up-token-probe-must-refuse-a-dirty-tree.md
+- [#1706] [P2][S] CODESPACE-RECEIPTS.jsonl keeps every seat's tree dirty and the Stop hook says commit it · tasks/1706-codespace-receipts-ledger-is-dirty-on-every-seat.md
 
 ---
 

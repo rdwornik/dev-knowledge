@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ff733ec31198f9a751dfdd6b02d8a4960b0cfe4a87fcb021bbc597a40eb45423",
+  "generated_sha256": "064e1b111337d4bc40e63fce26bba2fac2a886666f00a85fee8bd4e85186477a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3726,6 +3726,10 @@
     {
       "task": 1705,
       "file": "1705-start-up-token-probe-must-refuse-a-dirty-tree.md"
+    },
+    {
+      "task": 1706,
+      "file": "1706-codespace-receipts-ledger-is-dirty-on-every-seat.md"
     },
     {
       "prose": ""
