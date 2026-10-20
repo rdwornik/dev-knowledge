@@ -38,6 +38,17 @@ HONEST LIMITS:
     row, whose cause this module cannot read a test id out of). `render()` and the JSON
     output both say `proposed` explicitly rather than let the command line alone imply it
     passes today (terra HIGH x2, 2026-09-25).
+  * `parse_refused_events` reads every refusal heading in a REFUSED file (`# REFUSED -- <slug>,
+    repair N of M`, `# REFUSED -- worktree-<slug> (<slug>), ...`, `# REFUSAL <date> -- repair
+    N of M`): a section runs to the next such heading, `repair N of M` is taken from the
+    heading, else the section, else the file's front matter (`?` when none), and the slug
+    from the heading, else a `lane:` line (`worktree-` stripped). A refusal with no
+    `## What failed` is read from its whole section, and its `detail` is that section capped
+    at 1200 characters -- a cause that only a later paragraph states may be cut.
+  * `find_refused_states` reads `STATE <slug> REFUSED - HH:MM - (repair N of M; ...)`; such a
+    row carries no cause prose and a proposed check. When a REFUSED file already holds the
+    same (slug, repair N) the file's row wins and the STATE line is not emitted twice;
+    `lane_terminal_state` reads that line as `("REFUSED", "-")`.
   * `find_failed_lanes` reads `STATE <slug> FAILED <sha>` lines; no batch fixture exercises
     it yet (N1 had no outright FAILED lane), so it is unit-tested against a synthetic
     string rather than pinned to a fixture.
@@ -160,32 +171,70 @@ def _title_from_what_failed(slug: str, body: str) -> str:
 
 
 def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
-    """One `repair` row from a `REFUSED-<slug>.md` file's own `## What failed`."""
-    heading = _REFUSED_HEADING_RE.search(text)
-    if not heading:
-        return None
-    slug, n, m = heading.group("slug"), heading.group("n"), heading.group("m")
-    from_m = _FRONTMATTER_FROM_RE.search(text)
-    batch_m = _FRONTMATTER_BATCH_RE.search(text)
-    date_m = _FRONTMATTER_DATE_RE.search(text)
-    what_failed_m = _WHAT_FAILED_RE.search(text)
-    body = what_failed_m.group("body").strip() if what_failed_m else ""
+    """The first `repair` row of a REFUSED file (see `parse_refused_events` for all of them)."""
+    rows = parse_refused_events(text, path)
+    return rows[0] if rows else None
 
-    test_files = _test_files(body)
-    proposed = not test_files
-    check = (f"uv run --locked pytest {' '.join(test_files)} -q" if test_files
-             else f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
-                  f"# proposed regression test (not yet written) -- {path.name}'s "
-                  f"'What failed' named no `tests/*.py::test_*` node id")
-    provenance = (
-        f"{_relpath(path)} (from: {from_m.group(1).strip() if from_m else '?'}, "
-        f"repair {n} of {m}, batch {batch_m.group(1).strip() if batch_m else '?'}, "
-        f"{date_m.group(1).strip() if date_m else '?'})"
-    )
-    return CandidateRow(
-        kind="repair", slug=slug, title=_title_from_what_failed(slug, body),
-        provenance=provenance, check=check, detail=body[:600], proposed=proposed,
-    )
+
+# A real integrator's REFUSED file is not one heading shape: `# REFUSED -- <slug>, repair N of M`
+# (legacy), `# REFUSED -- worktree-<slug> (<slug>), ...`, `# REFUSAL <date> <time> -- repair N of M
+# (...)`; one file may hold several events, each running to the next such heading.
+_REFUSAL_HEADING_RE = re.compile(r"^#{1,2}[ \t]*(?:REFUSED|REFUSAL)\b(?P<rest>[^\n]*)$", re.M)
+_HEADING_LEGACY_SLUG_RE = re.compile(r"^\s*[—-]+\s*(?P<slug>\S+?),\s*repair\s+\d+\s+of\s+\d+")
+# Only the `worktree-<slug> (<slug>)` shape: a bare `(word)` in a REFUSAL heading is prose, not a lane.
+_HEADING_PAREN_SLUG_RE = re.compile(r"worktree-[\w.-]+\s*\((?P<slug>[\w.-]+)\)")
+_REPAIR_OF_RE = re.compile(r"\brepair\s+(?P<n>\d+)\s+of\s+(?P<m>\d+)")
+_FRONTMATTER_LANE_RE = re.compile(r"^lane:\s*(?:origin/)?(?:worktree-)?(?P<slug>[\w.-]+)", re.M)
+_EVENT_DETAIL_CAP = 1200
+
+
+def _first_group(pattern: "re.Pattern[str]", *texts: str) -> Optional["re.Match[str]"]:
+    """First match of `pattern` across `texts`, tried in order (section before file)."""
+    for t in texts:
+        m = pattern.search(t)
+        if m:
+            return m
+    return None
+
+
+def parse_refused_events(text: str, path: Path) -> list[CandidateRow]:
+    """One `repair` row per refusal heading in a REFUSED file (legacy shape included)."""
+    headings = list(_REFUSAL_HEADING_RE.finditer(text))
+    rows: list[CandidateRow] = []
+    preamble = text[:headings[0].start()] if headings else ""
+    for i, h in enumerate(headings):
+        end = headings[i + 1].start() if i + 1 < len(headings) else len(text)
+        section = text[h.end():end].strip()
+        rest = h.group("rest")
+        slug_m = _HEADING_LEGACY_SLUG_RE.match(rest) or _HEADING_PAREN_SLUG_RE.search(rest)
+        if slug_m is None:
+            slug_m = _first_group(_FRONTMATTER_LANE_RE, section, preamble, text)
+        slug = (slug_m.group("slug").removeprefix("worktree-") if slug_m
+                else path.stem.removeprefix("REFUSED-"))
+        rep = _first_group(_REPAIR_OF_RE, rest, section, preamble)
+        n, m = (rep.group("n"), rep.group("m")) if rep else ("?", "?")
+        from_m = _first_group(_FRONTMATTER_FROM_RE, section, text)
+        batch_m = _first_group(_FRONTMATTER_BATCH_RE, section, text)
+        date_m = _first_group(_FRONTMATTER_DATE_RE, section, text)
+        what_failed_m = _WHAT_FAILED_RE.search(section)
+        body = what_failed_m.group("body").strip() if what_failed_m else section
+
+        test_files = _test_files(body)
+        check = (f"uv run --locked pytest {' '.join(test_files)} -q" if test_files
+                 else f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
+                      f"# proposed regression test (not yet written) -- {path.name}'s "
+                      f"refusal named no `tests/*.py::test_*` node id")
+        provenance = (
+            f"{_relpath(path)} (from: {from_m.group(1).strip() if from_m else '?'}, "
+            f"repair {n} of {m}, batch {batch_m.group(1).strip() if batch_m else '?'}, "
+            f"{date_m.group(1).strip() if date_m else '?'})"
+        )
+        rows.append(CandidateRow(
+            kind="repair", slug=slug, title=_title_from_what_failed(slug, body),
+            provenance=provenance, check=check, detail=section[:_EVENT_DETAIL_CAP],
+            proposed=not test_files,
+        ))
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -194,20 +243,28 @@ def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
 
 _STATE_FAILED_RE = re.compile(r"^STATE\s+(?P<slug>\S+)\s+FAILED\s+(?P<sha>\S+)?", re.M)
 _STATE_LINE_RE = re.compile(r"^STATE\s+(?P<slug>\S+)\s+(?P<state>MERGED|FAILED)\s+(?P<sha>\S+)", re.M)
+# `STATE <slug> REFUSED - HH:MM - (repair N of M; ...)` -- a refusal carries a time, not a sha.
+_STATE_REFUSED_RE = re.compile(
+    r"^STATE\s+(?P<slug>\S+)\s+REFUSED\s+-\s+(?P<time>\d{1,2}:\d{2})\s+-\s*(?P<rest>.*)$", re.M)
+_STATE_ANY_RE = re.compile(
+    r"^STATE\s+(?P<slug>\S+)\s+(?:(?P<state>MERGED|FAILED)\s+(?P<sha>\S+)|(?P<refused>REFUSED)\b)",
+    re.M)
+_STATE_FOLLOWER_RE = re.compile(r"^(?:DISTILL|HYPERCARE land)\b")
 
 
 def lane_terminal_state(integrator_text: str, slug: str) -> Optional[tuple]:
-    """`(state, sha)` of the LAST `STATE <slug> (MERGED|FAILED) <sha>` line for `slug` in an
-    integrator session, or `None` if that exact slug never appears with either state.
+    """`(state, sha)` of the LAST `STATE <slug> (MERGED|FAILED) <sha>` or `STATE <slug> REFUSED`
+    line for `slug` in an integrator session (a REFUSED line has no sha: `("REFUSED", "-")`),
+    or `None` if that exact slug never appears with any of the three states.
 
     LAST, not first: a repaired-then-re-refused lane can carry more than one `STATE` line for
     the same slug (REFUSED, then a repair's own MERGED, or another REFUSED), and only the
     final one says what actually landed on main.
     """
     result = None
-    for m in _STATE_LINE_RE.finditer(integrator_text):
+    for m in _STATE_ANY_RE.finditer(integrator_text):
         if m.group("slug") == slug:
-            result = (m.group("state"), m.group("sha"))
+            result = ("REFUSED", "-") if m.group("refused") else (m.group("state"), m.group("sha"))
     return result
 
 
@@ -225,6 +282,33 @@ def find_failed_lanes(text: str, path: Path) -> list[CandidateRow]:
             kind="failed", slug=slug, title=f"{slug}: lane FAILED at {sha}",
             provenance=f"{_relpath(path)} (STATE {slug} FAILED {sha})",
             check=check, detail=context[-600:], proposed=True,
+        ))
+    return rows
+
+
+def find_refused_states(text: str, path: Path) -> list[CandidateRow]:
+    """One `repair` row per `STATE <slug> REFUSED - HH:MM - (...)` line in an integrator
+    session, carrying the line plus any `DISTILL` / `HYPERCARE land` lines right after it."""
+    lines = text.splitlines()
+    rows: list[CandidateRow] = []
+    for i, line in enumerate(lines):
+        m = _STATE_REFUSED_RE.match(line)
+        if not m:
+            continue
+        slug, time = m.group("slug"), m.group("time")
+        rep = _REPAIR_OF_RE.search(m.group("rest"))
+        which = f" (repair {rep.group('n')} of {rep.group('m')})" if rep else ""
+        block = [line]
+        for follower in lines[i + 1:]:
+            if not _STATE_FOLLOWER_RE.match(follower):
+                break
+            block.append(follower)
+        check = (f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
+                 f"# proposed regression test (not yet written) for {slug}'s refusal at {time}")
+        rows.append(CandidateRow(
+            kind="repair", slug=slug, title=f"{slug}: refused{which} at {time}",
+            provenance=f"{_relpath(path)} @ {time} (STATE {slug} REFUSED)",
+            check=check, detail="\n".join(block)[:_EVENT_DETAIL_CAP], proposed=True,
         ))
     return rows
 
@@ -321,10 +405,18 @@ def distill(integrator_path: Path, dispatcher_path: Path,
     """Every candidate row across one batch's receipts. Read-only."""
     integrator_text = Path(integrator_path).read_text(encoding="utf-8", errors="replace")
     rows: list[CandidateRow] = []
+    covered: set[tuple[str, str]] = set()
     for p in refused_paths:
         p = Path(p)
-        row = parse_refused(p.read_text(encoding="utf-8", errors="replace"), p)
-        if row is not None:
+        for row in parse_refused_events(p.read_text(encoding="utf-8", errors="replace"), p):
+            rep = _REPAIR_OF_RE.search(row.provenance)
+            covered.add((row.slug, rep.group("n") if rep else "?"))
+            rows.append(_verify_refused_row(row, integrator_text))
+    # A STATE-REFUSED line whose (slug, repair N) a REFUSED file already described is the same
+    # event told twice -- the file's row (with its cause prose) wins.
+    for row in find_refused_states(integrator_text, Path(integrator_path)):
+        rep = _REPAIR_OF_RE.search(row.title)
+        if (row.slug, rep.group("n") if rep else "?") not in covered:
             rows.append(_verify_refused_row(row, integrator_text))
     rows.extend(find_failed_lanes(integrator_text, Path(integrator_path)))
     dispatcher_text = Path(dispatcher_path).read_text(encoding="utf-8", errors="replace")

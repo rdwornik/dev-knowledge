@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-distill-pilot lands on its own merits (R162, interim per R166) -- the learning distiller now reads an R130 integrator's refusals (defect 9)
+
+**Anchors:** `9f771eaf` (fixtures from the three real E2.0 inputs), `39207110` (RED first, Copilot-authored via `run_phase.py`), `0b5159b0` (fix: integrator REFUSED headings and `STATE <slug> REFUSED` lines are events), `bf1e12e4` (`lane: origin/worktree-X` yields slug X, found in real use), `877bd4ce` (`parse_refused` delegates to `parse_refused_events`, no second parser), `b1b47269` (paren slug only from the `worktree-X (X)` shape); branch `worktree-e2-distill-pilot`, introduced by this merge. Launched by `scripts/dispatch.py launch` (job 101be7b4).
+
+**Did:** the integrator merged the lane `--no-ff` on `ac42fbdf` after the hand gate (REUSE CHECK quoted, no process change, real-use witness `4 candidate row(s) -- 2 repair, 2 unverified_refusal` on the real E2.0 files where main found none). The operator ruled R162: the lane lands on its own merits; the chain verdict ("run_phase yes, conductor no") stays the pilot's finding and its 7 chain defects become rows; the CLI `model:` banner is the served id (Codex review banner `gpt-5.6-terra`). The post-review delta `877bd4ce..b1b47269` got its own review pair (Codex terra + Copilot) and isolated verify, run by the orchestrator. Ship-gate diff on the merged tree before land: introduced none.
+
+**Result:** the Linux land run is the verdict. Owed rows: the 7 chain defects (receipts have no admissible home under hermetization; `--json-schema` rejects PhasePayload's `$schema`; `run_phase` records `served_model` null; stdin hard-wired to DEVNULL; the conductor phases table disagrees with the lane contract; hand work after P2; `codex exec` waits on open stdin); the file-stem fallback keeps a `worktree-` prefix (Codex major, latent); `[#1669]` clause 2 (`gen_lane_contract.py` quotes the refusal) stays open.
+
+**Changes:** `scripts/learning_distiller.py`, `tests/test_learning_distiller_integrator_refusals.py`, `tests/fixtures/distiller/` (3 files); carried `logs/MERGE-RECEIPTS.jsonl` (the e2-tier1 line) and 1 `logs/CODESPACE-RECEIPTS.jsonl` row (e2-census-repair-1 close).
+
+**Next:** e2-subst-gate-2 (R160) and e2-census-2 (R161) as they hand back; e2-cliff after e2-subst-gate-2 (R163).
+
 ### 2026-10-20 (a) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-4, batch E2.0): lane e2-tier1 lands (repair 1 of 2) -- the conductor `tier1` job and one `if: always()` gate, the lane-diff selector holes closed, an empty selection on a code diff runs the full suite; the reuse-check regression of the first handback fixed
 
 **Anchors:** `0dfabdb4` (RED first), `445c753e`, `81e440f6` (tier1 job + gate + selector holes), `ae2445e6` (repair 1: `select(..., existing_only=False)`; only `select_lane_diff` opts in), `fe4aace3` (the e2-rulings merge, anchored here: the ship-gate read it as unanchored).
