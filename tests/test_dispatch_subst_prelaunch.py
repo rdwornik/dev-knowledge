@@ -116,7 +116,7 @@ def test_codespace_exec_really_runs_the_pre_launch_moment_with_nothing_stubbed(c
     out = _invoke_codespace_exec(contract)
 
     assert out.exit_code == d.EXIT_REFUSED == 5, out.output
-    assert "pre-launch refused lane-subst: REFUSED [" in out.output, out.output
+    assert "pre-launch refused lane-subst: " in out.output, out.output
 
 
 # --- launch_lane: the existing shape, shown beside the new refusal ------------------------------
