@@ -965,6 +965,12 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1694] [P3][S] The census writes an edge that has no contexts without a warning · tasks/1694-census-edges-with-no-contexts-are-written-silently.md
 - [#1695] [P2][S] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced · tasks/1695-census-unknown-falls-to-keep.md
 - [#1696] [P3][M] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) · tasks/1696-census-eight-deferred-minor-findings.md
+- [#1700] [P1][S] The Stop hook continues the turn in headless (-p) sessions: +~45k tokens per dirty-ended turn · tasks/1700-stop-hook-continues-the-turn-in-headless-sessions.md
+- [#1701] [P2][S] A lane may kill only its own process group: the contract template says nothing about pkill · tasks/1701-a-lane-may-kill-only-its-own-processes.md
+- [#1702] [P2][S] The Codex served model is read from the CLI banner by code, not from the model's own MODEL= line · tasks/1702-codex-served-model-is-read-from-the-banner-by-code.md
+- [#1703] [P2][S] Every lane branch CI shows five main-state reds that hide real regressions · tasks/1703-lane-branch-ci-goes-red-on-five-main-state-tests.md
+- [#1704] [P2][S] The merge receipt reads 'FAILED step(s): suite' on a green run after a crashed first land call · tasks/1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md
+- [#1705] [P2][S] The start-up token probe runs on a dirty tree and prints sum, not calls = sum / iterations[0] · tasks/1705-start-up-token-probe-must-refuse-a-dirty-tree.md
 
 ---
 

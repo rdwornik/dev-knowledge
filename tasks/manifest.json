@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f8ba36ac81cdae258f5b12c9c8b94be3cba216a362b92a843a261096cf6b3847",
+  "generated_sha256": "ff733ec31198f9a751dfdd6b02d8a4960b0cfe4a87fcb021bbc597a40eb45423",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3702,6 +3702,30 @@
     {
       "task": 1696,
       "file": "1696-census-eight-deferred-minor-findings.md"
+    },
+    {
+      "task": 1700,
+      "file": "1700-stop-hook-continues-the-turn-in-headless-sessions.md"
+    },
+    {
+      "task": 1701,
+      "file": "1701-a-lane-may-kill-only-its-own-processes.md"
+    },
+    {
+      "task": 1702,
+      "file": "1702-codex-served-model-is-read-from-the-banner-by-code.md"
+    },
+    {
+      "task": 1703,
+      "file": "1703-lane-branch-ci-goes-red-on-five-main-state-tests.md"
+    },
+    {
+      "task": 1704,
+      "file": "1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md"
+    },
+    {
+      "task": 1705,
+      "file": "1705-start-up-token-probe-must-refuse-a-dirty-tree.md"
     },
     {
       "prose": ""
