@@ -28,6 +28,9 @@ required-version = "==0.11.19"
 dev = [
     "pytest>=9.0",
     "pytest-xdist>=3.8",   # /ship pre-flight parallel runs (-n auto), #256
+    "pytest-cov>=6.0",     # [#1566] test census edges: --cov-context=test (R155 OQ1); pulls coverage
+    "coverage>=7.6",       # [#1566] `coverage json --show-contexts` is the census edge source (R155 OQ1)
+    "mutmut>=3.7,<4",      # [#1566] census kill data (R155 OQ1); fork() needed, so Linux/CI/Codespace only, same as the [#502] pilot
     "ruff==0.15.5",        # EXACT == the pinned pre-commit rev (v0.15.5) so the venv ruff and the hook ruff render one verdict; [tool.ruff] required-version stays the fleet floor
     "pre-commit>=4.5",
     "pyyaml>=6.0",         # scripts/ validators (audit.py etc.)

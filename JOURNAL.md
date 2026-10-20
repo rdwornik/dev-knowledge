@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-census-2 lands the test census TOOL ([#1566]; R161, interim per R166) -- the two missing `newline=` pins fixed; the census re-run is WAITING for memory and no test removal is approved
+
+**Anchors:** `0e3215ce` (R161: `newline="\n"` on `scripts/test_census.py:475` and `:487`), on top of the census branch the integrator gated through repair 2 (`8ff5aaf4` RED, `e902ce0b` tool, `b4fe1ead`, `cc2a3cf8`, `fc5a4053`, `f7a17e83`, `e8a04fbb` fates line `manual_until` 2026-11-09 naming [#1566]); carriers `b2defc4b` (pytest-cov, coverage, mutmut locked, R155 OQ1) and `27b6c324` (CLI pin); branch `worktree-e2-census-2`, introduced by this merge. Repaired by `scripts/dispatch.py repair` (jobs fc6ea15f, e375e11e).
+
+**Did:** the integrator merged the lane `--no-ff` on `cf1fcd64` after the hand gate. The e2-census land of `94e6c41f` was refused (REGRESSED on `test_generator_newlines`); R161 named the fix. The lane read all 45 ids of the earlier failing list against main (green both 11, red on main too 30, red on the lagging tip only 4, green on the merge). Codex terra and Copilot reviewed; their findings on the cumulative tool are deferred to rows (relativize separators, BOM, silent no-context edges, UNKNOWN to KEEP).
+
+**Result:** the Linux land run is the verdict. The census re-run was killed by the memory reaper at ~5 % (R156: WAITING, not done); `scripts/read_gate.py` stays live and no list exists from this run. Owed rows: the census re-run on a box with memory; the deferred tool findings; dead.txt built from the fates.
+
+**Changes:** `scripts/test_census.py`, `tests/test_test_census.py`, `tests/fixtures/census/` (7), `ecosystem/harness.yaml`, `pyproject.toml`, `uv.lock`, `.devcontainer/provisioning.yaml`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-rows-r164 line).
+
+**Next:** e2-subst-gate-2 (refused, repair 1 of 2: `tests/test_merge_path.py` 27 red under option A); e2-cliff after it lands.
+
 ### 2026-10-20 (c) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-rows-r164 lands -- rows [#1671] (pins gate tolerates a patch bump, R164) and [#1672] (the next tier1 lane owns the e2-tier1 STOPs, R165), both interim under R166
 
 **Anchors:** `73222c6b` (two rows, manifest nodes, BACKLOG regenerated); branch `worktree-e2-rows-r164`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 20745ef9).

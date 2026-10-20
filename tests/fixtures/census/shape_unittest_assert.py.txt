@@ -1,0 +1,8 @@
+import unittest
+
+from scripts import mod
+
+
+class TestX(unittest.TestCase):
+    def test_value(self):
+        self.assertEqual(mod.compute(1), 2)

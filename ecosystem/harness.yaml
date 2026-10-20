@@ -165,6 +165,7 @@ fates:
   - {path: .claude/commands/map.md, manual_until: 2026-10-19, reason: "BW lane C6's second new organ, recorded by the same land repair (same shape as the decide.md and aj-scan skill precedents above): on-demand by the operator -- no event fires a command (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/harness_probes.py, manual_until: 2026-10-19, reason: "BW lane D6 (lane-bw-670-harness-probes, [#670] nearest): ADR-123 step 0 -- `remote` is run by hand inside a throwaway codespace of the consumer and `check` by hand over the committed receipts audit; a one-shot probe, no event triggers it, and ADR-123 step 1 replaces it with the real harness (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/run_phase.py, manual_until: 2026-11-15, reason: "common rules ruling (a): the [#1535] adapter, called by dodo.py's phase tasks; dated until the lane phases run it live"}
+  - {path: scripts/test_census.py, manual_until: 2026-11-09, reason: "the test census is run by hand from a lane contract and the test-strategy digest (docs/audits/2026-10-15-technical-test-strategy-decision.md) until a moment or conductor job calls it; [#1566] owns who initiates"}
 # phases ([#1535]): `doit -f scripts/dodo.py round` runs these in order, one doit task each (`phase:<id>`), HARNESS_ROUND picks the
 # round. A phase is one vendor CLI process the harness owns (scripts/run_phase.py): it ends on a fresh nonce-bound payload, the
 # root's exit or `timeout_s`, and leaves one PhaseReceipt under <receipts>/LANE-<lane>/r<round>/<id>.json. `gate: payload` means the

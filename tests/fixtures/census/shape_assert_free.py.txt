@@ -1,0 +1,6 @@
+from scripts import mod
+
+
+def test_runs():
+    mod.compute(1)
+    mod.compute(2)
