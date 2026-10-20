@@ -154,12 +154,13 @@ def test_a_matching_block_and_a_codespace_receipt_row_lands(tmp_path, receipts_d
     assert result.landed
 
 
-def test_a_batch_the_gate_does_not_apply_to_lands_as_before(tmp_path, receipts_dir):
+def test_the_gate_refuses_a_malformed_batch(tmp_path, receipts_dir):
     rig = Rig()
 
     result = _land(tmp_path, rig, batch="Y", handback=None)
 
-    assert result.landed and len(rig.pushes()) == 2
+    assert not result.landed and result.state == "SUBST-GATE-REFUSED"
+    assert "REFUSED [batch-grammar]" in result.reason and rig.pushes() == []
 
 
 # --- CLI ----------------------------------------------------------------------------------------

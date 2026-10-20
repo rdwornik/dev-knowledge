@@ -279,6 +279,6 @@ def test_r2_m2_repair_cli_refuses_a_whitespace_only_batch(tmp_path, repo_root, m
     assert seen == [] and spawned == []
 
 
-def test_r2_m2_batch_grammar_judges_the_stripped_id():
-    assert sg.batch_malformed("E2.0\n") is False   # callers strip; a stripped id is the grammar's input
+def test_r2_m2_batch_grammar_judges_the_raw_id():
+    assert sg.batch_malformed("E2.0\n") is True    # no strip: the id is judged as supplied (R160 option A)
     assert sg.batch_malformed("E2.0 junk") is True
