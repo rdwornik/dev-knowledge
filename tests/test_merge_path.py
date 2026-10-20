@@ -211,7 +211,7 @@ class Rig:
 
 
 def _land(rig, **kw):
-    return mp.land(Path("."), slug="m", batch="b", sha=TIP, base=BASE, git=rig.git,
+    return mp.land(Path("."), slug="m", batch="E1.0", sha=TIP, base=BASE, git=rig.git,
                    verdict_fn=rig.verdict_fn, record_push_fn=rig.record_push,
                    record_suite_fn=rig.record_suite, **kw)
 
@@ -222,7 +222,7 @@ def test_land_pushes_the_integration_branch_first_then_the_SAME_sha_to_main():
     result = _land(rig)
 
     assert result.landed and result.state == "PASS"
-    assert [c[2] for c in rig.pushes()] == [f"{TIP}:refs/heads/worktree-integrate-b",
+    assert [c[2] for c in rig.pushes()] == [f"{TIP}:refs/heads/worktree-integrate-e1.0",
                                             f"{TIP}:refs/heads/main"]
     assert [r for r in rig.recorded if r[0] == "push"] == [("push", "integration", TIP),
                                                            ("push", "main", TIP)]
@@ -329,7 +329,7 @@ def test_land_refuses_a_base_that_is_not_a_full_sha_and_pushes_nothing(short):
     the full 40-hex sha, compared exactly."""
     rig = Rig()
 
-    result = mp.land(Path("."), slug="m", batch="b", sha=TIP, base=short, git=rig.git,
+    result = mp.land(Path("."), slug="m", batch="E1.0", sha=TIP, base=short, git=rig.git,
                      verdict_fn=rig.verdict_fn, record_push_fn=rig.record_push,
                      record_suite_fn=rig.record_suite)
 
@@ -429,7 +429,7 @@ def test_b2_the_land_verb_prints_every_flagged_bucket_and_the_rows_it_owes(monke
         False, "PRE-EXISTING", "flagged only", sha=TIP, branch="b", would_land=True,
         verdict=_FlaggedVerdict("PRE-EXISTING", flagged=(flag,))))
 
-    result = CliRunner().invoke(mp.cli, ["land", "--slug", "m", "--batch", "b", "--sha", TIP,
+    result = CliRunner().invoke(mp.cli, ["land", "--slug", "m", "--batch", "E1.0", "--sha", TIP,
                                          "--base", BASE, "--no-push"])
 
     assert result.exit_code == 0, result.output

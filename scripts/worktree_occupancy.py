@@ -106,6 +106,21 @@ def _registered_worktrees(root: Path) -> set:
             if line.startswith("worktree ")}
 
 
+def _worktree_branch(root: Path, tree: str) -> Optional[str]:
+    """The branch checked out in the registered worktree `tree` (a `_norm`ed path), from the same
+    `git worktree list --porcelain` read as `_registered_worktrees`: the record's `branch
+    refs/heads/<name>` line, else None (detached HEAD, bare, or not registered)."""
+    out = _run(["git", "-C", str(root), "worktree", "list", "--porcelain"])
+    in_record = False
+    for line in out.splitlines():
+        if line.startswith("worktree "):
+            in_record = _norm(line[len("worktree "):]) == tree
+        elif in_record and line.startswith("branch "):
+            ref = line[len("branch "):].strip()
+            return ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+    return None
+
+
 def _has_branch(root: Path, branch: str) -> bool:
     out = _run(["git", "-C", str(root), "branch", "--list", "--format=%(refname:short)", branch])
     return branch in {ln.strip() for ln in out.splitlines()}
@@ -201,6 +216,12 @@ def check(slug: str, root: Path, sessions: Optional[list] = None,
     tree = _norm(str(tree_dir))
     sessions = _validated_sessions(live_sessions() if sessions is None else sessions)
     ignored = set(ignore_sessions)
+    # `dispatch.py repair` (HARNESS_REPAIR=1) expects the lane's OWN worktree, directory and branch --
+    # that is what it repairs into -- so those three legs are not occupancy for a repair. They are
+    # PROOF, though: a repair into a tree that is not a registered worktree, or whose `worktree-<slug>`
+    # branch is gone, is refused (a hand-made directory is not a lane). The session leg stays: a repair
+    # into a tree with a busy session is still a second writer in one checkout.
+    repair = os.environ.get("HARNESS_REPAIR") == "1"
     legs = {
         "worktree": tree in _registered_worktrees(root),
         "directory": _dir_exists(tree_dir),
@@ -208,6 +229,21 @@ def check(slug: str, root: Path, sessions: Optional[list] = None,
         "session": any(_session_holds(s, tree) for s in sessions
                        if s.get("id") not in ignored and s.get("sessionId") not in ignored),
     }
+    if repair:
+        missing = [leg for leg in ("worktree", "directory", "branch") if not legs[leg]]
+        if missing:
+            raise OccupancyError(f"repair of {slug}: the lane's own {', '.join(missing)} "
+                                 f"{'is' if len(missing) == 1 else 'are'} not there (expected a registered "
+                                 f"worktree at {tree_dir} on branch worktree-{slug}); a repair reuses a "
+                                 f"lane, it does not accept a hand-made directory")
+        # The branch must be CHECKED OUT in that tree, not merely exist somewhere: a lane worktree
+        # switched to `main` (or detached) has the branch and the directory and is still not the lane.
+        on_branch = _worktree_branch(root, tree)
+        if on_branch != f"worktree-{slug}":
+            raise OccupancyError(f"repair of {slug}: the registered worktree at {tree_dir} is on "
+                                 f"{on_branch or 'no branch (detached HEAD)'}, not worktree-{slug}; a repair "
+                                 f"reuses the lane's own branch")
+        legs.update(worktree=False, directory=False, branch=False)
     return Occupancy(slug, legs)
 
 

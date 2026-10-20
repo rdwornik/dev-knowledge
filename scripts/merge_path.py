@@ -268,14 +268,22 @@ class LandResult:
     #: NO-PUSH MODE ONLY: whether the verdict read WOULD have let `sha` land. `landed` is always
     #: False in that mode; this is the answer it exists to give.
     would_land: bool = False
+    #: The `MODELS:` lines the handback carries with a `VENDOR-FAIL: <ref>` -- a substitution the gate
+    #: accepted because it was recorded. Printed by `land`'s verb so it reaches the handback and LEDGER.
+    substitutions: list = field(default_factory=list)
 
 
 def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
          timeout_s: int = 900, interval_s: int = 20, git: Optional[Runner] = None,
          verdict_fn: Optional[Callable] = None, record_push_fn: Optional[Callable] = None,
          record_suite_fn: Optional[Callable] = None, no_push: bool = False,
-         run_id: Optional[int] = None) -> LandResult:
+         run_id: Optional[int] = None, handback: Optional[Path] = None) -> LandResult:
     """Integration branch first, then the SAME sha to main. See the module docstring.
+
+    For a batch from E2.0 on (`subst_gate.batch_applies`) `handback` is REQUIRED and is read BEFORE
+    anything is pushed: no `MODELS:` block, a phase served != requested with no `VENDOR-FAIL: <ref>`,
+    or no `dispatch.py` LAUNCH receipt for the lane (S4) refuses with state `SUBST-GATE-REFUSED` and
+    the problem lines as the reason (P1, R139). An older batch lands exactly as before.
 
     Refuses (never lands) when: `sha` is not a merge commit whose first parent is `base`;
     `origin/main` is no longer `base` (before the integration push AND again before the push to
@@ -309,6 +317,11 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                       f"{sha} is not a two-parent merge commit whose first parent is the "
                       f"integration base {base} (git said: {out.strip()[:160]!r})")
     sha = parts[0]
+    import subst_gate
+    problems, substitutions = subst_gate.handback_problems(
+        root, slug, batch, handback, receipts_dir=os.environ.get("HARNESS_RECEIPTS_DIR") or None)
+    if problems:
+        return refuse("SUBST-GATE-REFUSED", " | ".join(problems))
     # ADR-127 AMENDMENT 2: Linux alone judges this merge unless its diff is Windows-sensitive.
     # Read ONCE, here, so the verdict and the receipt's second read of the run judge the same set.
     contexts = required_contexts(windows_required_for(git, base, sha))
@@ -320,7 +333,7 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         state = getattr(verdict, "state", "UNKNOWN") or "UNKNOWN"
         return LandResult(False, state, getattr(verdict, "reason", "") or "", sha=sha,
                           branch=branch, verdict=verdict, commands=commands,
-                          would_land=is_landable(verdict))
+                          would_land=is_landable(verdict), substitutions=substitutions)
 
     def origin_main() -> "tuple[bool, str]":
         c, o = git(["ls-remote", "origin", "refs/heads/main"])
@@ -369,7 +382,7 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
     record_push_fn(root, slug=slug, target="main", branch="main", sha=sha, seconds=main_s)
     return LandResult(True, getattr(verdict, "state", "PASS"),
                       f"{sha[:12]} landed on main after CI on {branch}", sha=sha, branch=branch,
-                      verdict=verdict, commands=commands)
+                      verdict=verdict, commands=commands, substitutions=substitutions)
 
 
 # --- the ruleset (items 7, 13, 14) ------------------------------------------------------------
@@ -639,16 +652,22 @@ def cmd_verdict(ctx: click.Context, sha: str, base: str, timeout_s: int, interva
                    "Exit 0 when the sha WOULD land")
 @click.option("--run-id", "run_id", default=None, type=int,
               help="read THIS run alone instead of the newest push run for the sha")
+@click.option("--handback", "handback", default=None, type=click.Path(path_type=Path),
+              help="the lane's handback file (`lane-handback.json`): REQUIRED for a batch from E2.0 on "
+                   "-- its `MODELS:` block is read, and the lane's LAUNCH receipt is looked up (P1, S4)")
 @click.pass_context
 def cmd_land(ctx: click.Context, slug: str, batch: str, sha: str, base: str, timeout_s: int,
-             interval_s: int, no_push: bool, run_id: Optional[int]) -> None:
+             interval_s: int, no_push: bool, run_id: Optional[int], handback: Optional[Path]) -> None:
     """Integration branch first, CI there, then the same sha to main."""
     if not no_push and not slug:
         raise click.UsageError("--slug is required unless --no-push")
     started = time.monotonic()
     result = land(ctx.obj["root"], slug=slug, batch=batch, sha=sha, base=base,
-                  timeout_s=timeout_s, interval_s=interval_s, no_push=no_push, run_id=run_id)
+                  timeout_s=timeout_s, interval_s=interval_s, no_push=no_push, run_id=run_id,
+                  handback=handback)
     ok = result.would_land if no_push else result.landed
+    for line in result.substitutions:
+        click.echo(f"land: SUBSTITUTION (VENDOR-FAIL recorded) -- {line}")
     emit_run_event("merge_path.land", "ok" if ok else "fail", time.monotonic() - started,
                    state=result.state, sha=result.sha[:12], no_push=no_push)
     if no_push:

@@ -162,7 +162,8 @@ def _fixture_primary(tmp: Path) -> tuple[Path, dict[str, str]]:
 
 # --- Done-contract 2: `pre-launch` -----------------------------------------------------------------
 
-_PRE_LAUNCH = ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement"]
+_PRE_LAUNCH = ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement",
+               "model_per_role"]   # `e2-subst-gate` (P1): the model the contract names == the role table
 
 
 def test_pre_launch_moment_declares_occupancy_live_integrator_and_routing():

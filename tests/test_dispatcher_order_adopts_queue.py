@@ -158,7 +158,7 @@ def test_the_templates_own_queue_line_renders_and_computes_a_dry_batch_order(tmp
 
 # --- the repair line is executable, not only prose ------------------------------------------------
 
-def test_the_templates_repair_line_relaunches_into_the_existing_worktree(tmp_path):
+def test_the_templates_repair_line_relaunches_into_the_existing_worktree(tmp_path, monkeypatch):
     command_line = [ln for ln in _template_text().splitlines()
                     if "dispatch.py repair <slug>" in ln][0]
     filled = (command_line.strip()
@@ -179,7 +179,11 @@ def test_the_templates_repair_line_relaunches_into_the_existing_worktree(tmp_pat
         return d.Spawned(0, "backgrounded deadbeef", None)
 
     request = d.RepairRequest(slug=argv[1], attempt=1, model="claude-sonnet-5", effort="high",
-                              contract=tmp_path / "LANE-dry-a.md")
-    result = d.repair_lane(request, repo_root=tmp_path, spawn=fake_spawn, environ={})
+                              contract=tmp_path / "LANE-dry-a.md", batch="E2.0")
+    # `repair` runs `moment:pre-launch` and writes a LAUNCH receipt now (`e2-subst-gate`, item 2b):
+    # cleared here and written to a private dir; witnessed in `tests/test_dispatch_repair_prelaunch.py`.
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))
+    result = d.repair_lane(request, repo_root=tmp_path, spawn=fake_spawn, environ={},
+                           prelaunch=lambda r, repair=False: d.PreLaunch(True))
     assert result.returncode == 0
     assert calls == [tree]

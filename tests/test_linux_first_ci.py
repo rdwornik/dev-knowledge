@@ -142,7 +142,7 @@ class Rig:
 
 
 def _land(rig):
-    return mp.land(Path("."), slug="m", batch="b", sha=TIP, base=BASE, git=rig.git,
+    return mp.land(Path("."), slug="m", batch="E1.0", sha=TIP, base=BASE, git=rig.git,
                    verdict_fn=rig.verdict_fn, record_push_fn=lambda root, **kw: None,
                    record_suite_fn=rig.record_suite)
 

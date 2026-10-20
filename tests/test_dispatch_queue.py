@@ -505,23 +505,28 @@ def test_build_repair_plan_refuses_an_unknown_effort():
 
 def test_repair_lane_refuses_when_the_worktree_is_missing(tmp_path):
     request = d.RepairRequest(slug="lane-ghost", attempt=1, model="claude-sonnet-5",
-                              effort="high", contract=tmp_path / "LANE-ghost.md")
+                              effort="high", contract=tmp_path / "LANE-ghost.md", batch="E2.0")
     with pytest.raises(d.DispatchRefused, match="existing worktree"):
         d.repair_lane(request, repo_root=tmp_path)
 
 
-def test_repair_lane_spawns_into_the_existing_worktree_with_no_fresh_worktree_flag(tmp_path):
+def test_repair_lane_spawns_into_the_existing_worktree_with_no_fresh_worktree_flag(tmp_path, monkeypatch):
     tree = tmp_path / ".claude" / "worktrees" / "lane-a"
     tree.mkdir(parents=True)
     request = d.RepairRequest(slug="lane-a", attempt=2, model="claude-sonnet-5", effort="high",
-                              contract=tmp_path / "LANE-a.md")
+                              contract=tmp_path / "LANE-a.md", batch="E2.0")
     calls = []
 
     def fake_spawn(argv, env, cwd, log_path=None):
         calls.append((list(argv), Path(cwd)))
         return d.Spawned(0, "backgrounded 1a2b3c4d", None)
 
-    result = d.repair_lane(request, repo_root=tmp_path, spawn=fake_spawn, environ={})
+    # `repair` runs `moment:pre-launch` and writes a LAUNCH receipt now (`e2-subst-gate`, item 2b):
+    # both are stubbed here (cleared pre-launch, private receipts dir); their witnesses are in
+    # `tests/test_dispatch_repair_prelaunch.py`.
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))
+    result = d.repair_lane(request, repo_root=tmp_path, spawn=fake_spawn, environ={},
+                           prelaunch=lambda r, repair=False: d.PreLaunch(True))
     assert result.returncode == 0
     [(argv, cwd)] = calls
     assert cwd == tree

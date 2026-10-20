@@ -114,9 +114,9 @@ def test_order_is_a_list_not_a_set_so_position_is_meaningful(live):
     """
     registry = ProviderRegistry.model_validate(live)
     implement = [e.provider for e in registry.roles["implement"].order]
-    assert implement[0] == "copilot-enterprise", (
-        "R104 (operator, 2026-10-14; [#1536]): Copilot implements first, Sonnet 5.5 is the "
-        "fallback and Grok the alternative -- superseding AX22-1's Sonnet-first order")
+    assert implement[0] == "anthropic", (
+        "R153 (operator, 2026-10-19; `e2-subst-gate`): Sonnet 5.5 implements first, Copilot is "
+        "the next entry and Grok the third -- reversing the order R104 (2026-10-14; [#1536]) set")
     assert len(implement) > 1, "a fallback chain needs somewhere to fall back to"
 
 
@@ -149,8 +149,8 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
     admission check disagree about which vendor is being routed to — one keys on `provider`,
     the other resolves through the model row."""
     def mutate(d):
-        # order[1] is the anthropic entry since R104 put copilot (provider-only) first.
-        d["roles"]["implement"]["order"][1]["model"] = "gpt-5.6-terra"
+        # order[0] is the anthropic entry since R153 put Sonnet 5.5 first (R104 had copilot first).
+        d["roles"]["implement"]["order"][0]["model"] = "gpt-5.6-terra"
 
     message = _refuses(_mutated(live, mutate))
     assert "openai" in message and "anthropic" in message
@@ -524,8 +524,11 @@ def test_r1536_red_qa_judge_are_registered_and_in_the_vocabulary(live):
 
 def test_r1536_role_pins(live):
     roles = live["roles"]
-    assert roles["red"]["order"][0]["provider"] == "anthropic"
-    assert roles["red"]["order"][0]["model"] == "claude-sonnet-5-5"
+    # BATCH-E2-0 v2 section 3 (`e2-subst-gate`): the Copilot CLI writes the RED tests; Sonnet 5.5
+    # (R104's writer) is now the entry after it, used only after a recorded VENDOR-FAIL (P1).
+    assert roles["red"]["order"][0]["provider"] == "copilot-enterprise"
+    assert roles["red"]["order"][1]["provider"] == "anthropic"
+    assert roles["red"]["order"][1]["model"] == "claude-sonnet-5-5"
     assert roles["judge"]["order"][0]["model"] == "claude-opus-5-5"
     assert roles["judge"].get("rerankable") is False
     assert roles["qa"]["order"][0]["provider"] == "copilot-enterprise"

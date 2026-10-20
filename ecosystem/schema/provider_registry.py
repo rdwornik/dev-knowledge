@@ -39,6 +39,10 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
+#: 1.6.0 — `e2-subst-gate` (R138, R140, R153; P1) adds `RoleEntry.substrate` (where the entry runs:
+#: `local` or `codespace`) and `RoleEntry.paired` (the entry runs TOGETHER with the other paired
+#: entries of its role rather than as a fallback). MINOR: both are optional with inert defaults, so
+#: every earlier registry validates unchanged.
 #: 1.5.0 — `lane-bu-1536-routing` ([#1536], R104) adds `RoleEntry.max_turns_floor` (a reviewer entry
 #: declares the minimum `--max-turns` its CLI needs) and the `red`/`qa`/`judge` role names. MINOR:
 #: the field is optional, so every earlier registry validates unchanged.
@@ -59,7 +63,7 @@ from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 #: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
 #: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
 #: reconciliation obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.5.0"
+SCHEMA_VERSION = "1.6.0"
 
 #: The prefix that marks an evidence reference as living on the operator's transport rather than
 #: in this repository. CI cannot read the transport, so such a reference may ride beside an
@@ -615,6 +619,13 @@ class RoleEntry(_Contract):
     #: R104 / common rules section 7.6b: `grok -p` returns nothing at `--max-turns 1`, so a
     #: reviewer entry declares the minimum its CLI needs. `None` means no floor is declared.
     max_turns_floor: Optional[int] = None
+    #: Where this entry runs: the operator's laptop (`local`) or a Codespace box (`codespace`).
+    #: R140: agy is laptop-only, so a role entry for it must say `local`; R151: Codex reviews on the
+    #: laptop. `None` means the entry declares no substrate (every pre-1.6.0 entry).
+    substrate: Optional[Literal["local", "codespace"]] = None
+    #: R138: the entry runs TOGETHER with the other `paired` entries of its role (review is a pair,
+    #: Codex terra AND Copilot on every code lane) instead of being a fallback for the one before it.
+    paired: bool = False
 
     @model_validator(mode="after")
     def _max_turns_floor_is_at_least_one(self) -> "RoleEntry":

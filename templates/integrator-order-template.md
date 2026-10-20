@@ -64,7 +64,13 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
      the merge's own diff — record the stop; it does not stand in for a refusal.
    - <documentation tier / memory gate — as merged organs make them available>
 4. **Land: the integration branch first.** `merge_path.py land --slug <lane> --batch <BATCH> --sha
-   <merge> --base <origin/main as fetched before the merge>` pushes the merge to
+   <merge> --base <origin/main as fetched before the merge> --handback <the lane's lane-handback.json>`
+   first reads the handback (a batch from E2.0 on REQUIRES it) and refuses, with state
+   `SUBST-GATE-REFUSED` and nothing pushed, a lane whose handback has no `MODELS:` block, whose
+   `served` differs from `requested` with no `VENDOR-FAIL: <ref>`, or which has no `dispatch.py` LAUNCH
+   receipt (`REFUSED [launch-receipt]`) — what the hand gate used to check by eye. A substitution it
+   accepts (a recorded `VENDOR-FAIL`) is printed as `land: SUBSTITUTION ...`: carry that line into the
+   digest and the LEDGER. Then it pushes the merge to
    `worktree-integrate-<batch>`, reads CI's verdict for that sha (push runs only, completed runs
    only; per-OS, test by test against the base run), re-checks that `origin/main` is
    still the base, and only then pushes the same sha to `main`. Two classes refuse and leave

@@ -965,6 +965,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1694] [P3][S] The census writes an edge that has no contexts without a warning · tasks/1694-census-edges-with-no-contexts-are-written-silently.md
 - [#1695] [P2][S] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced · tasks/1695-census-unknown-falls-to-keep.md
 - [#1696] [P3][M] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) · tasks/1696-census-eight-deferred-minor-findings.md
+- [#1699] [P2][S] The R160 merge gate has no recorded-exception mechanism, so its one bootstrap exception was a chat decision · tasks/1699-subst-gate-recorded-exception-mechanism.md
 
 ---
 

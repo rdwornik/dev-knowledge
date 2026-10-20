@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-20 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-6, batch E2.0): lane e2-subst-gate-2 lands the substitution and LAUNCH-receipt gates with one batch grammar `E<n>.<n>` enforced at launch, codespace-exec, repair and the merge gate (R160 option A, interim per R166), after repair 1 of 2
+
+**Anchors:** `2122d034` (repair 1: non-grammar batch fixtures re-id'd to `E1.0`/`E1.9`, batch value only; prelaunch witness given a stub `claude` on PATH), on top of the successor `18509e52` (RED) / `78456d14` (fix) / `8758347b` (STOP list flipped per R160 option A) and the failed lane's tip `7c279f4b`; branch `worktree-e2-subst-gate-2`, introduced by this merge. Repaired by `scripts/dispatch.py repair` (job e91ab356).
+
+**Did:** the integrator refused `8758347b` (27 red in `tests/test_merge_path.py`, batch `b` refused by the new grammar). The repair re-id'd every lane-caused red of branch run #1122 (53 regressions). The integrator merged it `--no-ff` on `10d21de9`; the generated pins block and `ecosystem/doc-counts.md` conflicted and were taken from main, then regenerated.
+
+**Bootstrap exception, R160 gate, lane e2-subst-gate-2 only** (operator ruling 2026-10-20, option A bounded): the lane's own merge gate refused its land (no `dispatch.py` LAUNCH receipt: the lane was only ever started by the pre-gate `repair`, which wrote none), so this one merge lands under main's pre-gate `merge_path.py`. Evidence: the hand-gate CHECK lines (integrator receipt 825-828) and the R172 review chain (Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5). No other lane inherits it; [#1699] files the recorded-exception mechanism the gate lacks.
+
+**Result:** branch run #1129 shows only the five branch-state regressions on both OS legs; a Windows race test that failed once passed on the re-run of the same sha (a runner-load flake). The integration branch's CI run is the verdict (operator ruling, LEDGER v252). Owed rows: `dispatch.py queue` not grammar-checked ([#1674]); E1.x not-applicable coverage; `ship_gate_diff --repo` judges with the caller's code ([#1666]).
+
+**Changes:** `scripts/subst_gate.py`, `scripts/dispatch.py`, `scripts/merge_path.py`, `scripts/worktree_occupancy.py`, `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `ecosystem/harness.yaml`, four `templates/*` order and contract templates (R159 teaching), `tasks/1699-*.md` + `tasks/manifest.json` + `BACKLOG.md` (the exception-mechanism row), tests (7 new files, fixtures re-id'd in 10); carried `logs/MERGE-RECEIPTS.jsonl` (the e2-rows-map line).
+
+**Next:** e2-cliff (R163) launches from the new main; e2-graph-hotspot handed back and is next in the queue.
+
 ### 2026-10-20 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-6, batch E2.0): lane e2-rows-map files 24 owed rows ([#1673]-[#1696]) and 43 one-sentence ADJACENT appends on 31 open rows (operator GO P8, LEDGER v248; interim per R166) -- docs only, BACKLOG view 158,094 B under the 160,000 B ceiling
 
 **Anchors:** `6a8188a7` ([#1673]-[#1675]), `e106fd1a` ([#1676]-[#1696]), `6a1fdb38` (43 sentences), `df5dc12a`, `85c5af09` (review fixes); branch `worktree-e2-rows-map`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 1f5bec85).
