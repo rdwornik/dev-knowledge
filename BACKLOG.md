@@ -941,6 +941,9 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1670] [P1][M] No silent substitution: the launcher and contract lint refuse a model not in the phase or role table (R139, P1) · tasks/1670-no-silent-substitution-launcher-and-lint.md
 - [#1671] [P2][M] The pins gate tolerates a patch bump within the same major.minor with a recorded line; a minor or major bump still refuses (R164, interim) · tasks/1671-pins-gate-tolerates-a-patch-bump-within-the-same-minor-r164.md
 - [#1672] [P1][M] The next tier1 lane owns tests/test_conductor.py and scripts/gen_handback.py to finish the [#1560] remainder and the [#1563] removal (R165, interim) · tasks/1672-the-next-tier1-lane-owns-the-e2-tier1-stops-r165.md
+- [#1673] [P1][M] `dispatch.py` has no successor verb: `repair` frames a fresh successor lane as a repair of a refusal, and a `claude stop` is not verified (G29) · tasks/1673-dispatch-has-no-successor-verb-g29.md
+- [#1674] [P2][S] `dispatch.py queue --batch` launches without the contract grammar checks that `launch`, `codespace-exec` and `repair` run · tasks/1674-dispatch-queue-batch-is-not-grammar-checked.md
+- [#1675] [P3][S] A finished bg lane leaves its worktree locked by a dead pid, so teardown needs a hand unlock · tasks/1675-finished-lane-leaves-its-worktree-locked.md
 
 ---
 

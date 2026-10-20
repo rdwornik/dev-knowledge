@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7c4d711b8a94587ae0bdd16b80964c8b4c04a9d0b086832aefe3d64bbeaab94c",
+  "generated_sha256": "637bfd1902721f316e09260704fd0579acbb100b22f60a64c61cd0f9751d55d5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3606,6 +3606,18 @@
     {
       "task": 1672,
       "file": "1672-the-next-tier1-lane-owns-the-e2-tier1-stops-r165.md"
+    },
+    {
+      "task": 1673,
+      "file": "1673-dispatch-has-no-successor-verb-g29.md"
+    },
+    {
+      "task": 1674,
+      "file": "1674-dispatch-queue-batch-is-not-grammar-checked.md"
+    },
+    {
+      "task": 1675,
+      "file": "1675-finished-lane-leaves-its-worktree-locked.md"
     },
     {
       "prose": ""
