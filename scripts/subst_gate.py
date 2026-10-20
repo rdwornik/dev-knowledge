@@ -89,7 +89,7 @@ def batch_malformed(batch: str) -> bool:
 
 
 def batch_grammar_refusal(lane: str, batch: str) -> str:
-    return (f"REFUSED [batch-grammar]: lane {lane}: batch {batch!r} is not a batch id (expected "
+    return (f"REFUSED [batch-grammar]: lane {lane}: batch {batch!r} is not a batch id (`--batch` expects "
             f"`E<major>.<minor>`, e.g. E2.0) -- an unresolvable batch would skip the model-per-role check")
 
 
