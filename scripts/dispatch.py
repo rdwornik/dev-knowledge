@@ -2064,43 +2064,63 @@ def successor_lane(request: SuccessorRequest, *, repo_root: Path,
     if resolved.returncode != 0 or not sha:
         raise DispatchRefused(f"base {request.base!r} does not resolve to a commit in {repo_root}: "
                               f"{_tail(resolved.stderr, 300)}")
+    argv = request.argv
     tree = repair_worktree_path(repo_root, request.slug)
-    existed = tree.exists()
-    if existed:
-        head = _git_out(tree, "rev-parse", "HEAD").stdout.strip()
-        if head != sha:
-            raise DispatchRefused(f"the worktree of {request.slug} is at {head}, not the base {sha}: "
-                                  "refusing to reuse it for a successor of another commit")
+    branch = f"worktree-{request.slug}"
     launch = request._launch
-    try:
-        outcome = prelaunch(launch, repair=existed)
-    except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
-        raise LaunchRefused(f"pre-launch could not run for the successor {request.slug}: "
-                            f"{type(exc).__name__}: {exc}") from exc
-    if not outcome.passed:
-        raise LaunchRefused(f"pre-launch refused the successor {request.slug}: {outcome.reason}")
 
-    def undo() -> None:
+    with _SlugLock(request.slug):
+        existed = tree.exists()
         if not existed:
-            _git_out(repo_root, "worktree", "remove", "--force", str(tree))
-            _git_out(repo_root, "branch", "-D", f"worktree-{request.slug}")
+            if _git_out(repo_root, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+                raise DispatchRefused(f"the branch {branch} already exists and the worktree of "
+                                      f"{request.slug} does not: refusing to reuse or delete a branch "
+                                      "this call did not create")
+        else:
+            top = _git_out(tree, "rev-parse", "--show-toplevel")
+            on_branch = _git_out(tree, "symbolic-ref", "--short", "HEAD")
+            try:
+                is_tree = top.returncode == 0 and Path(top.stdout.strip()).resolve() == tree.resolve()
+            except OSError:
+                is_tree = False
+            if not is_tree or on_branch.returncode != 0 or on_branch.stdout.strip() != branch:
+                raise DispatchRefused(f"{tree} is not a worktree of {repo_root} on branch {branch}: "
+                                      "refusing to reuse it for the successor")
+            head = _git_out(tree, "rev-parse", "HEAD").stdout.strip()
+            if head != sha:
+                raise DispatchRefused(f"the worktree of {request.slug} is at {head}, not the base {sha}: "
+                                      "refusing to reuse it for a successor of another commit")
+        try:
+            outcome = prelaunch(launch, repair=existed)
+        except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
+            raise LaunchRefused(f"pre-launch could not run for the successor {request.slug}: "
+                                f"{type(exc).__name__}: {exc}") from exc
+        if not outcome.passed:
+            raise LaunchRefused(f"pre-launch refused the successor {request.slug}: {outcome.reason}")
 
-    if not existed:
-        added = _git_out(repo_root, "worktree", "add", "-b", f"worktree-{request.slug}", str(tree), sha)
-        if added.returncode != 0:
+        created = False
+
+        def undo() -> None:
+            if created:
+                _git_out(repo_root, "worktree", "remove", "--force", str(tree))
+                _git_out(repo_root, "branch", "-D", branch)
+
+        if not existed:
+            added = _git_out(repo_root, "worktree", "add", "-b", branch, str(tree), sha)
+            if added.returncode != 0:
+                raise DispatchRefused(f"could not create the worktree of {request.slug} at {sha}: "
+                                      f"{_tail(added.stderr, 300)}")
+            created = True
+        try:
+            env = dict(environ if environ is not None else os.environ)
+            started = spawn(argv, env, tree)
+        except Exception:
             undo()
-            raise DispatchRefused(f"could not create the worktree of {request.slug} at {sha}: "
-                                  f"{_tail(added.stderr, 300)}")
-    try:
-        env = dict(environ if environ is not None else os.environ)
-        started = spawn(request.argv, env, tree)
-    except BaseException:
-        undo()
-        raise
-    if started.returncode != 0:
-        undo()
-        raise LaunchRefused(f"the successor {request.slug} failed to start (exit {started.returncode}): "
-                            f"{_tail(started.stdout, 300)} -- no lane was started")
+            raise
+        if started.returncode != 0:
+            undo()
+            raise LaunchRefused(f"the successor {request.slug} failed to start (exit {started.returncode}): "
+                                f"{_tail(started.stdout, 300)} -- no lane was started")
     match = _JOB_ID.search(_ANSI.sub("", started.stdout or ""))
     result = LaunchResult(
         slug=request.slug, provider="anthropic", model_requested=request.model,
