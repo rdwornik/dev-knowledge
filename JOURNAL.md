@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (g) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-7, batch E2.0): lane e2-models-gate-fix repairs the MODELS gate (operator ruling 2026-10-20 'Fix gate, then lanes'; interim per R166) -- the Copilot gateway rule of BATCH §3, the first token after `served=` is the id, `- ` bullets and `NOT run` accepted, after repair 1 of 2
+
+**Anchors:** `4769e6bd` (the real MODELS blocks of graph-hotspot, rows-t5 and rows-r5 as fixtures), `e9b38c56` (RED), `5a9d0ca5` (fix), `ed70fbcb` (review majors: Copilot role tightened to `requested=default`, a `NOT run` line carries no `served=`), `7e0f91de` (repair 1: the gateway-served id moves into `ecosystem/provider-registry.yaml`); branch `worktree-e2-models-gate-fix`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 8bebbeed).
+
+**Did:** the landed R160 gate refused the honest MODELS blocks of every queued lane (bulleted lines, a note after the served id, Copilot serving claude-sonnet-5.5 read as a substitution, contrary to BATCH-E2-0 v2 §3). The lane fixed the gate RED-first on those real blocks and taught the `NOT run` token in the batch and lane-contract templates (R159). The integrator refused its first handback: the literal `claude-sonnet-5.5` in `scripts/subst_gate.py` broke `tests/test_model_id_single_source.py` (3 regressions). The repair reads it from the registry's new `copilot_gateway_served` key through a `provider_registry.copilot_gateway_served()` accessor, with no baseline raised and no other registry key changed.
+
+**Result:** `subst_gate` now loads the provider registry at import, so a broken registry file breaks the gate -- it fails closed, which is accepted. The integration branch's CI run is the verdict (operator ruling, LEDGER v252). Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5.
+
+**Changes:** `scripts/subst_gate.py`, `scripts/provider_registry.py`, `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `templates/batch-common-rules-template.md`, `templates/lane-contract-template.md`, tests (`tests/test_subst_gate_models_grammar.py` new, three fixtures under `tests/fixtures/models_blocks/`, `tests/test_provider_registry.py` key set); carried `logs/MERGE-RECEIPTS.jsonl` (the e2-subst-gate-2 line) and `logs/HOOK-WATCHDOG-KILLS.jsonl` (one row).
+
+**Next:** the four lanes refused for their MODELS block land in order (e2-graph-hotspot, e2-rows-t5, e2-rows-r5, e2-test-flow-metrics), then e2-dispatch-close; e2-cliff waits for the operator's BACKLOG-budget GO.
+
 ### 2026-10-20 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-6, batch E2.0): lane e2-subst-gate-2 lands the substitution and LAUNCH-receipt gates with one batch grammar `E<n>.<n>` enforced at launch, codespace-exec, repair and the merge gate (R160 option A, interim per R166), after repair 1 of 2
 
 **Anchors:** `2122d034` (repair 1: non-grammar batch fixtures re-id'd to `E1.0`/`E1.9`, batch value only; prelaunch witness given a stub `claude` on PATH), on top of the successor `18509e52` (RED) / `78456d14` (fix) / `8758347b` (STOP list flipped per R160 option A) and the failed lane's tip `7c279f4b`; branch `worktree-e2-subst-gate-2`, introduced by this merge. Repaired by `scripts/dispatch.py repair` (job e91ab356).

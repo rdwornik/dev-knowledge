@@ -3,3 +3,4 @@
 {"ts": "2026-10-16T05:42:27Z", "hook_id": "lane-end-guard", "pid": 43320, "age_s": 227.362, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
 {"ts": "2026-10-20T10:26:09Z", "hook_id": "scope-guard", "pid": 20408, "age_s": 126.204, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
 {"ts": "2026-10-20T10:26:09Z", "hook_id": "scope-guard", "pid": 37176, "age_s": 128.16, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
+{"ts": "2026-10-20T15:40:13Z", "hook_id": "scope-guard", "pid": 11040, "age_s": 145.064, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}

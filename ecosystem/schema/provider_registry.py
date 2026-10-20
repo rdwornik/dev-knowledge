@@ -740,6 +740,8 @@ class ProviderRegistry(_Contract):
     #: loadable; NOT part of `roles:` (see `DispatcherPin`'s docstring for why the two vocabularies
     #: stay separate).
     dispatcher: Optional[DispatcherPin] = None
+    #: ids the Copilot gateway serves under requested=default, BATCH-E2-0 section 3.
+    copilot_gateway_served: list[StrictStr] = []
 
     @model_validator(mode="after")
     def _the_dispatcher_pin_names_a_declared_provider_and_model(self) -> "ProviderRegistry":

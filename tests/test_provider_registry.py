@@ -67,7 +67,7 @@ def test_registry_has_the_three_declared_collections_and_the_rate_card():
     and on `dispatcher`'s, exactly as designed; updating it is the announcement.
     """
     data = preg.load_registry()
-    assert set(data) == {"providers", "models", "roles", "rate_card", "dispatcher"}
+    assert set(data) == {"providers", "models", "roles", "rate_card", "dispatcher", "copilot_gateway_served"}
     assert all(isinstance(v, dict) for v in data["providers"].values())
     assert all(isinstance(v, dict) for v in data["models"].values())
     assert all(isinstance(v, dict) for v in data["roles"].values())

@@ -1,0 +1,9 @@
+# source: to-browser/SESSION-e2-rows-r5.md lines 52-59 (copied byte-for-byte from the transport drive on 2026-10-20; the source is left alone)
+MODELS:
+ plan: this contract (no plan session)
+ implement: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5
+ RED tests: not applicable (docs-only, no code)
+ review Codex: requested=gpt-5.6-terra served=gpt-5.6-terra (banner)
+ review Copilot: requested=default served=claude-sonnet-5.5
+ isolated verify: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5
+ VENDOR-FAIL: none
