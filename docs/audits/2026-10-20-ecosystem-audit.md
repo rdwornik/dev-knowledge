@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-20  
-**Generated:** 2026-10-20T17:20:46  
+**Generated:** 2026-10-20T18:01:26  
 **Repos audited:** 6  
 **Checks:** 925 total — 161 pass, 14 fail, 554 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-cs24aie3\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-4blo_lof\wt`  
 **Last audit:** 2026-10-20
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 0d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-20, newest input BACKLOG.md committed 2026-10-20 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-16, newest input docs/audits committed 2026-10-16 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 11 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 10 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -60,7 +60,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#927 (4 history dates spanning 43d, 2337 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1601 (5 history dates spanning 33d, 1137 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1627 (4 history dates spanning 111d, 1380 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (372 of 800 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13740 chars; row-length p50/p75/p90 over all 800 rows = 1292/2049/3102 chars; trend: +125 vs previous run (247 -> 372)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (373 of 801 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13740 chars; row-length p50/p75/p90 over all 801 rows = 1293/2049/3102 chars; trend: +126 vs previous run (247 -> 373)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-09-14, 36d ago (> 21d cadence, ADR-41)) |
 | `doc_structure` | PASS | no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme) |
 | `doc_code_edge` | WARN | governance-backlog-implements-grammar: code_orphan (code sites=1, no declaration) |
@@ -99,7 +99,7 @@
 | `fleet_parity` | WARN | ai-council claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `fleet_parity` | WARN | corp-monorepo claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
-| `silent_rule_ratchet` | PASS | live 443 <= baseline 452 under detector silent-rule-v5 (78 file(s) in scope); 9 below baseline — ratchet-down available |
+| `silent_rule_ratchet` | PASS | live 445 <= baseline 452 under detector silent-rule-v5 (78 file(s) in scope); 7 below baseline — ratchet-down available |
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (402 node(s), 31357 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17961 bytes, within its 18000-byte budget |
@@ -107,10 +107,10 @@
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 6043eaf appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: cf1fcd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: adeb8b1 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: ac42fbd appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: ade16f3 appears outside an explicit 'Anchors:' record line (+1170 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: 10d21de appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 6043eaf appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: cf1fcd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: adeb8b1 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: ac42fbd appears outside an explicit 'Anchors:' record line (+1171 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 250 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 6043eaf5 worktree-e2-census-2, adeb8b1c worktree-e2-distill-pilot, ac42fbdf worktree-e2-tier1, fe4aace3 worktree-e2-rulings, 4a467883 worktree-e2-fates (+245 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 251 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 41be6853 worktree-e2-subst-gate-2, 6043eaf5 worktree-e2-census-2, adeb8b1c worktree-e2-distill-pilot, ac42fbdf worktree-e2-tier1, fe4aace3 worktree-e2-rulings (+246 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -460,7 +460,7 @@
 | `substrate_declaration` | PASS | 1 leg-8 refusal(s) on post-launch contracts (batch closed) scoped out under [#926] until 2026-11-18: docs/audits/2026-09-17-technical-batchac-launch-contracts/LANE-ac-694-cloud-census.md |
 | `routing_agreement` | PASS | 4 role(s) in ecosystem/routing-table.yaml corroborated by ~/.claude/ROUTING.md |
 | `dispatch_drift` | PASS | tier host: 14 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
-| `consumer_at_landing` | PASS | 1493 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (802) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1335 files) |
+| `consumer_at_landing` | PASS | 1493 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (802) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1336 files) |
 | `platform_matrix` | PASS | 1 declared platform matrix/matrices under .github/workflows/: .github/workflows/conductor.yml: ['${{ fromJSON(needs.plan.outputs.os) }}'] |
 | `proof_layer` | WARN | test_batch_manifest.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_batch_manifest.py::test_809_a_batch_ab_lane_merge_receives_the_exemption_under_an_open_manifest — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_block_commit_on_main_replay.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_block_commit_on_main_replay.py::test_the_integrator_replay_never_refuses_its_own_path — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
@@ -602,7 +602,7 @@
 | `organ_truth` | FAIL | 36 organ(s) carry a `manual_until` fate that has PASSED -- dated debt is now due: .claude/commands/boot-session.md (manual_until 2026-10-19), .claude/commands/changelog-review.md (manual_until 2026-10-19), .claude/commands/decide.md (manual_until 2026-10-19), .claude/commands/lane-boot.md (manual_until 2026-10-19), .claude/commands/lane-integrate.md (manual_until 2026-10-19), .claude/commands/map.md (manual_until 2026-10-19), .claude/commands/preflight.md (manual_until 2026-10-19), .claude/commands/spine.md (manual_until 2026-10-19), .claude/commands/why.md (manual_until 2026-10-19), .claude/skills/check-against-spec/SKILL.md (manual_until 2026-10-19), .claude/skills/verify/SKILL.md (manual_until 2026-10-19), plugins/tier1-lifecycle/commands/review-closures.md (manual_until 2026-10-19), plugins/tier1-lifecycle/commands/ship.md (manual_until 2026-10-19), plugins/tier1-lifecycle/scripts/review_closures.py (manual_until 2026-10-19), scripts/batch_janitor.py (manual_until 2026-10-19), scripts/check_post_merge.py (manual_until 2026-10-19), scripts/context_reclamation.py (manual_until 2026-10-19), scripts/cost_usage_telemetry.py (manual_until 2026-10-19), scripts/decision_carriage.py (manual_until 2026-10-19), scripts/gen_ledger.py (manual_until 2026-10-19), scripts/handback.py (manual_until 2026-10-19), scripts/harness_probes.py (manual_until 2026-10-19), scripts/id_allocator.py (manual_until 2026-10-19), scripts/lane_boot.py (manual_until 2026-10-19), scripts/propose_closures.py (manual_until 2026-10-19), scripts/propose_row_closures.py (manual_until 2026-10-19), scripts/provider_bench.py (manual_until 2026-10-19), scripts/provider_router.py (manual_until 2026-10-19), scripts/read_gate.py (manual_until 2026-10-19), scripts/review_closures.py (manual_until 2026-10-19), scripts/row_close.py (manual_until 2026-10-19), scripts/setup-fleet-scheduler.ps1 (manual_until 2026-10-19), scripts/ship_gate_diff.py (manual_until 2026-10-19), scripts/system_map.py (manual_until 2026-10-19), scripts/task_record.py (manual_until 2026-10-19), scripts/worktree_import_proof.py (manual_until 2026-10-19). Arm each one, re-date it with a fresh reason, or record a RETIRE-CANDIDATE fate. |
 | `organ_truth` | WARN | 1 organ(s) carry a `manual_until` fate not yet due: scripts/test_census.py (manual_until 2026-11-09) |
 | `organ_truth` | WARN | 1 organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: scripts/desired_state_loader.py |
-| `model_currency` | WARN | 14 flag(s) over 15 pinned ids -- stale x6: claude-opus-5-5, claude-sonnet-5-5, gemini-3.8-flash, gpt-5.6-terra +2 more; unverified x8: claude-haiku-4-5-20251001, claude-opus-4-8, claude-opus-5, claude-sonnet-5 +4 more (list: uv run --locked python scripts/check_model_currency.py) |
+| `model_currency` | WARN | 15 flag(s) over 16 pinned ids -- stale x6: claude-opus-5-5, claude-sonnet-5-5, gemini-3.8-flash, gpt-5.6-terra +2 more; unverified x9: claude-haiku-4-5-20251001, claude-haiku-5-5, claude-opus-4-8, claude-opus-5 +5 more (list: uv run --locked python scripts/check_model_currency.py) |
 | `rulings_carried` | PASS | 92 of 92 gated ruling(s) (R55 on) carried by a row or a written 'no implementation required'; 60 older entries counted, not refused (decision_coverage.py rulings) |
 | `rulings_carried` | PASS | every ruling in 34 non-superseded RATIFICATION file(s) (105 read) is landed or inside the 1-batch grace period |
 
