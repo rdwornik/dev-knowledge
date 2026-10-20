@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-6, batch E2.0): lane e2-rows-map files 24 owed rows ([#1673]-[#1696]) and 43 one-sentence ADJACENT appends on 31 open rows (operator GO P8, LEDGER v248; interim per R166) -- docs only, BACKLOG view 158,094 B under the 160,000 B ceiling
+
+**Anchors:** `6a8188a7` ([#1673]-[#1675]), `e106fd1a` ([#1676]-[#1696]), `6a1fdb38` (43 sentences), `df5dc12a`, `85c5af09` (review fixes); branch `worktree-e2-rows-map`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 1f5bec85).
+
+**Did:** the integrator merged the lane `--no-ff` on `6043eaf5` after the hand gate: ids unique across every origin ref, every row with owner, executable Done-when with a real-use witness, decided-by and an in-repo source; the ship_gate_diff owed item is EXACT on [#1666] and not refiled. Codex terra, Copilot and a fresh isolated verify reviewed; their "over budget" finding is a false positive (the view carries one line per row; measured 153,473 -> 158,094 B).
+
+**Result:** the integration branch's Linux CI run is the verdict (operator ruling, LEDGER v252). Four ADJACENT sentences (H10-H13) have no open area row and go to the close digest as ready text. The lane renamed a zero-byte `.git/hooks/pre-commit.legacy` aside (reversible) so commits could run; owed row: concurrent hook arming writes that file.
+
+**Changes:** `tasks/` (24 new rows, 31 one-sentence appends), `tasks/manifest.json`, `BACKLOG.md`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-census-2 line).
+
+**Next:** e2-subst-gate-2 (repair 1 of 2, held for its Windows CI leg); e2-cliff after it lands; e2-graph-hotspot and e2-startup-bisect in flight.
+
 ### 2026-10-20 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-census-2 lands the test census TOOL ([#1566]; R161, interim per R166) -- the two missing `newline=` pins fixed; the census re-run is WAITING for memory and no test removal is approved
 
 **Anchors:** `0e3215ce` (R161: `newline="\n"` on `scripts/test_census.py:475` and `:487`), on top of the census branch the integrator gated through repair 2 (`8ff5aaf4` RED, `e902ce0b` tool, `b4fe1ead`, `cc2a3cf8`, `fc5a4053`, `f7a17e83`, `e8a04fbb` fates line `manual_until` 2026-11-09 naming [#1566]); carriers `b2defc4b` (pytest-cov, coverage, mutmut locked, R155 OQ1) and `27b6c324` (CLI pin); branch `worktree-e2-census-2`, introduced by this merge. Repaired by `scripts/dispatch.py repair` (jobs fc6ea15f, e375e11e).

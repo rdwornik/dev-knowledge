@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-10-20 · **HEAD:** `cf1fcd6457c0` · **window:** 2026-10-13 → 2026-10-20 (7 days)
+- **As of:** 2026-10-20 · **HEAD:** `6043eaf5f05f` · **window:** 2026-10-13 → 2026-10-20 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -29,7 +29,7 @@ _Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. Th
 
 | Theme | Open | Deferred | Closed | Size mix (live rows) |
 |---|---:|---:|---:|---|
-| [E10] Batch convergence | 282 | 0 | 21 | L 21 · M 85 · S 176 |
+| [E10] Batch convergence | 306 | 0 | 21 | L 21 · M 92 · S 193 |
 | [E1] Handoff continuity | 20 | 1 | 10 | M 8 · S 13 |
 | [E2] Enforced governance | 224 | 24 | 61 | L 15 · M 129 · S 104 |
 | [E3] Lessons feedback loop | 5 | 2 | 6 | M 5 · S 2 |
@@ -40,7 +40,7 @@ _Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. Th
 | [E8] ARC-5 execution | 13 | 0 | 11 | M 4 · S 9 |
 | [E9] Fleet Desired-State System (North Star) | 5 | 1 | 8 | L 1 · M 2 · S 3 |
 
-**Total live rows: 776** (+143 over 7 days; 633 at the window start).
+**Total live rows: 800** (+167 over 7 days; 633 at the window start).
 
 Closed this window (7): [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332] · [#1103]
 
