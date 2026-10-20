@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-20  
-**Generated:** 2026-10-20T03:28:14  
+**Generated:** 2026-10-20T11:54:45  
 **Repos audited:** 5  
 **Checks:** 336 total — 88 pass, 13 fail, 44 warn, 0 unavailable, 191 n/a
 
@@ -350,7 +350,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 34d ago]; worktree-lane-ab-810-substrate-repair [last commit 33d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 35d ago]; worktree-lane-ab-810-substrate-repair [last commit 33d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
