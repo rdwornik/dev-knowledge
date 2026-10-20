@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e37be1cfe6c1c427e6dca4d8f5b80cde162886619439d2b1cd877c8cfc03dbf2",
+  "generated_sha256": "eb66e0423be041e2f166a1f813efc41e1dc14e99db913c05da22a03478e51bb0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3706,6 +3706,30 @@
     {
       "task": 1699,
       "file": "1699-subst-gate-recorded-exception-mechanism.md"
+    },
+    {
+      "task": 1710,
+      "file": "1710-g-stale-fates-lines-name-a-caller-the-census-cannot-see.md"
+    },
+    {
+      "task": 1711,
+      "file": "1711-g-edge-a-command-or-template-caller-is-a-wiring-edge.md"
+    },
+    {
+      "task": 1712,
+      "file": "1712-g-install-record-the-fleet-scheduler-installer.md"
+    },
+    {
+      "task": 1713,
+      "file": "1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md"
+    },
+    {
+      "task": 1714,
+      "file": "1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md"
+    },
+    {
+      "task": 1715,
+      "file": "1715-actions-verdict-reads-only-mains-push-run.md"
     },
     {
       "prose": ""

@@ -966,6 +966,12 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1695] [P2][S] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced · tasks/1695-census-unknown-falls-to-keep.md
 - [#1696] [P3][M] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) · tasks/1696-census-eight-deferred-minor-findings.md
 - [#1699] [P2][S] The R160 merge gate has no recorded-exception mechanism, so its one bootstrap exception was a chat decision · tasks/1699-subst-gate-recorded-exception-mechanism.md
+- [#1710] [P3][S] G-STALE: 14 fates lines name organs that already have a real caller (R149) · tasks/1710-g-stale-fates-lines-name-a-caller-the-census-cannot-see.md
+- [#1711] [P3][M] G-EDGE: organs called only from a command or an order template have no wiring edge (R149) · tasks/1711-g-edge-a-command-or-template-caller-is-a-wiring-edge.md
+- [#1712] [P3][S] G-INSTALL: record setup-fleet-scheduler.ps1 as an installer, not a recurring process (R149) · tasks/1712-g-install-record-the-fleet-scheduler-installer.md
+- [#1713] [P2][S] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) · tasks/1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md
+- [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
+- [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
 
 ---
 

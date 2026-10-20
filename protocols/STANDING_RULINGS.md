@@ -7183,7 +7183,7 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
 
 **Not landed here:** the file's "Still open" list and the seat rulings D4, D5, D6 (technical seat rulings, as in AW).
 
-**Owed rows not yet filed.** The twelve rows this section names as "owed row (a)" to "(l)" (ids 1650–1661 are reserved for them on origin) are drafted in `to-browser/SESSION-e2-rulings.md` and are not filed: the BACKLOG.md view stands at 149,990 of the 150,000-byte ceiling (`scripts/view_budget.yaml`), so filing them is refused by `gen_task_tree.py --emit-source` until the budget is ruled or the queue is groomed. Each is to be filed with `decided-by` citing the ruling it is listed under.
+**Owed rows filed.** The twelve rows this section names as "owed row (a)" to "(l)" were filed as [#1650]–[#1670] when lane e2-rulings landed (`tasks/165*`–`tasks/167*` hold them; the R148 ceiling raise in `scripts/view_budget.yaml` removed the refusal).
 
 **Supersession recorded.** R140 supersedes R135 (section AW): agy is laptop-only, so "fix agy in boxes" no longer stands. R135's entry above is left as landed (the file is append-only in practice); [#1644] is rewritten under R140. R138 amends R134's review roles. R137 closes the Q1–Q9 package of `to-browser/DIGEST-E1-REVIEW-2026-10-18.md` §7 as recommended.
 
