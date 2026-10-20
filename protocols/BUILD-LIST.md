@@ -39,6 +39,7 @@ Commands (run at the ref; WITNESSED 2026-09-18):
 - doc bytes — `git ls-tree -r -l <ref>` filtered to `*.md`, size column summed
 - organs — headline line of `ecosystem/organ-index.md` (`**N organs across M classes.**`)
 - uncalled organs — `uv run --locked python scripts/organ_usage_metric.py census` → the `states over 30 days, of M observable: CALLED a / REACHABLE-BUT-UNOBSERVED b / UNREACHABLE c` line (B2 lane 2, replacing week 0's no-trigger PROXY; the two are not comparable). THREE STATES, not a binary (operator ruling 2026-09-19, night wave 2 L4): a transcript cannot see a hook, CI or import firing, and reachable is not called, so every two-state reading was wrong (36, 90, 13). Record all three; the column ratchets on UNREACHABLE only (operator ruling 2026-09-19, Decisions above). Measured 2026-09-19 over the primary: 70 / 76 / 13 of 159, FPG-1 store reported stale
+- test flow (how long landing took, suite runs per landing, laptop reaps, red on main) — `uv run --locked python scripts/test_flow_metrics.py compute` (M1-M4; the nightly record is the `test-flow-metrics-record` artifact of `conductor.yml`'s `windows-nightly-triage` job, ingest it with `record --from-run <id>`) — read it, never re-derive it by hand (e2-test-flow-metrics)
 - open rows — `uv run --locked python scripts/gen_task_tree.py --rank`: `N open task(s) ranked` (334) + `N deferred row(s) excluded` (52)
 
 ## Rows
