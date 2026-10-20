@@ -944,6 +944,27 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1673] [P1][M] `dispatch.py` has no successor verb: `repair` frames a fresh successor lane as a repair of a refusal, and a `claude stop` is not verified (G29) · tasks/1673-dispatch-has-no-successor-verb-g29.md
 - [#1674] [P2][S] `dispatch.py queue --batch` launches without the contract grammar checks that `launch`, `codespace-exec` and `repair` run · tasks/1674-dispatch-queue-batch-is-not-grammar-checked.md
 - [#1675] [P3][S] A finished bg lane leaves its worktree locked by a dead pid, so teardown needs a hand unlock · tasks/1675-finished-lane-leaves-its-worktree-locked.md
+- [#1676] [P2][M] Human-head work happens outside the phase chain (P6): the `origin/` slug fix, the F1 delegation and the review fix leave no receipt · tasks/1676-human-head-work-outside-the-phase-chain-p6.md
+- [#1677] [P3][S] `read_rehearsal` and `ci_red_age` call `gh` directly instead of through the shared reader (H2) · tasks/1677-read-rehearsal-and-ci-red-age-call-gh-directly-h2.md
+- [#1678] [P3][S] `write_fate` and `write_step(fate=)` are duplicate writers of the same fate record (H6) · tasks/1678-write-fate-and-write-step-fate-are-duplicate-writers-h6.md
+- [#1679] [P3][S] `build_plan` and `build_repair_plan` are two argv builders for one launch (H7) · tasks/1679-build-plan-and-build-repair-plan-are-two-argv-builders-h7.md
+- [#1680] [P2][M] The learning distiller is built but its run output is absent: nothing runs it and no contract reads it (H18) · tasks/1680-learning-distiller-built-run-output-absent-h18.md
+- [#1681] [P2][S] R143, R147 and R156 (hypercare, the junior rule, a killed run is failed) are not taught in the seat templates (H26) · tasks/1681-r143-r147-r156-isolated-checks-and-junior-rule-not-taught-h26.md
+- [#1682] [P2][S] R158 (REUSE CHECK before building) is not taught in the seat templates or the lane-contract generator (H29) · tasks/1682-r158-reuse-check-not-taught-h29.md
+- [#1683] [P2][S] R159 (update what teaches a process in the SAME change) is not taught in the seat templates or the lane-contract generator (H30) · tasks/1683-r159-teaching-in-the-same-change-not-taught-h30.md
+- [#1684] [P2][S] PLAN r6 carries 13 wrong goal cells (G1, G2, G4-G13, G17, G18; G2 and G8 outright wrong) (H35) · tasks/1684-plan-r6-has-13-wrong-cells-h35.md
+- [#1685] [P2][M] ADR-101 hermetization has no admissible home for a phase receipt, so the chain's own output cannot be committed (P1) · tasks/1685-hermetization-has-no-home-for-a-phase-receipt-p1.md
+- [#1686] [P3][S] `claude --json-schema` rejects the `PhasePayload` schema because `--payload-schema` prints a `$schema` key (P2) · tasks/1686-claude-json-schema-rejects-the-payload-schema-key-p2.md
+- [#1687] [P2][M] `run_phase.py run` never passes `cli_record`/`model_requested`, so `served_model` is always null, and `--stdout` merges stderr into the CLI JSON (P3) · tasks/1687-run-phase-records-no-served-model-and-merges-stderr-p3.md
+- [#1688] [P2][S] `run_phase` hard-wires `stdin=DEVNULL`, so R147's 'prompt on stdin' verify is impossible (P4) · tasks/1688-run-phase-hard-wires-stdin-devnull-p4.md
+- [#1689] [P2][M] `conductor.py lane` runs the harness `phases:` table, which disagrees with the lane contract's own phases (P5) · tasks/1689-conductor-phase-table-disagrees-with-the-lane-contract-p5.md
+- [#1690] [P3][S] `codex exec` waits on an open stdin on Windows unless launched with `< /dev/null` (P7) · tasks/1690-codex-exec-waits-on-open-stdin-on-windows-p7.md
+- [#1691] [P2][S] The census `relativize` uses a platform-specific `is_absolute`, and backslash relative paths slip through (test_census.py:462) · tasks/1691-census-relativize-uses-a-platform-specific-is-absolute.md
+- [#1692] [P2][S] The census `_live_edges` and `classify` compare with posix separators, so Windows paths do not match · tasks/1692-census-live-edges-and-classify-use-posix-separators.md
+- [#1693] [P3][S] The census reads the dead and collected files without handling a BOM, so the first id is corrupted · tasks/1693-census-dead-and-collected-files-fail-on-a-bom.md
+- [#1694] [P3][S] The census writes an edge that has no contexts without a warning · tasks/1694-census-edges-with-no-contexts-are-written-silently.md
+- [#1695] [P2][S] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced · tasks/1695-census-unknown-falls-to-keep.md
+- [#1696] [P3][M] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) · tasks/1696-census-eight-deferred-minor-findings.md
 
 ---
 

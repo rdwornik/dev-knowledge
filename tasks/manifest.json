@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "637bfd1902721f316e09260704fd0579acbb100b22f60a64c61cd0f9751d55d5",
+  "generated_sha256": "f8ba36ac81cdae258f5b12c9c8b94be3cba216a362b92a843a261096cf6b3847",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3618,6 +3618,90 @@
     {
       "task": 1675,
       "file": "1675-finished-lane-leaves-its-worktree-locked.md"
+    },
+    {
+      "task": 1676,
+      "file": "1676-human-head-work-outside-the-phase-chain-p6.md"
+    },
+    {
+      "task": 1677,
+      "file": "1677-read-rehearsal-and-ci-red-age-call-gh-directly-h2.md"
+    },
+    {
+      "task": 1678,
+      "file": "1678-write-fate-and-write-step-fate-are-duplicate-writers-h6.md"
+    },
+    {
+      "task": 1679,
+      "file": "1679-build-plan-and-build-repair-plan-are-two-argv-builders-h7.md"
+    },
+    {
+      "task": 1680,
+      "file": "1680-learning-distiller-built-run-output-absent-h18.md"
+    },
+    {
+      "task": 1681,
+      "file": "1681-r143-r147-r156-isolated-checks-and-junior-rule-not-taught-h26.md"
+    },
+    {
+      "task": 1682,
+      "file": "1682-r158-reuse-check-not-taught-h29.md"
+    },
+    {
+      "task": 1683,
+      "file": "1683-r159-teaching-in-the-same-change-not-taught-h30.md"
+    },
+    {
+      "task": 1684,
+      "file": "1684-plan-r6-has-13-wrong-cells-h35.md"
+    },
+    {
+      "task": 1685,
+      "file": "1685-hermetization-has-no-home-for-a-phase-receipt-p1.md"
+    },
+    {
+      "task": 1686,
+      "file": "1686-claude-json-schema-rejects-the-payload-schema-key-p2.md"
+    },
+    {
+      "task": 1687,
+      "file": "1687-run-phase-records-no-served-model-and-merges-stderr-p3.md"
+    },
+    {
+      "task": 1688,
+      "file": "1688-run-phase-hard-wires-stdin-devnull-p4.md"
+    },
+    {
+      "task": 1689,
+      "file": "1689-conductor-phase-table-disagrees-with-the-lane-contract-p5.md"
+    },
+    {
+      "task": 1690,
+      "file": "1690-codex-exec-waits-on-open-stdin-on-windows-p7.md"
+    },
+    {
+      "task": 1691,
+      "file": "1691-census-relativize-uses-a-platform-specific-is-absolute.md"
+    },
+    {
+      "task": 1692,
+      "file": "1692-census-live-edges-and-classify-use-posix-separators.md"
+    },
+    {
+      "task": 1693,
+      "file": "1693-census-dead-and-collected-files-fail-on-a-bom.md"
+    },
+    {
+      "task": 1694,
+      "file": "1694-census-edges-with-no-contexts-are-written-silently.md"
+    },
+    {
+      "task": 1695,
+      "file": "1695-census-unknown-falls-to-keep.md"
+    },
+    {
+      "task": 1696,
+      "file": "1696-census-eight-deferred-minor-findings.md"
     },
     {
       "prose": ""
