@@ -54,7 +54,7 @@ import provider_registry as pr  # noqa: E402
 #: The first batch the gate applies to: BATCH-E2-0 onward (history does not turn red).
 FIRST_BATCH = (2, 0)
 #: The batch-id grammar, anchored at both ends: `E2.0junk` and `x` are not batch ids.
-_BATCH_RE = re.compile(r"^E(\d+)\.(\d+)$")
+_BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 
 #: The head of a lane is the implementer (R153); the registry has no separate lane-head role.
 HEAD_ROLE = "implement"
@@ -74,11 +74,18 @@ _PHASE_RULES: tuple[tuple[re.Pattern, str, Optional[str]], ...] = (
 )
 
 
+def batch_grammar_ok(batch: str) -> bool:
+    """THE batch grammar, one definition: `E<n>.<n>`, `fullmatch` on the RAW value (no strip, no
+    normalisation -- `E2.0 ` and `E2.0\n` are not batch ids). Launch, codespace-exec, repair and the
+    merge gate all ask this and nothing else."""
+    return isinstance(batch, str) and _BATCH_RE.fullmatch(batch) is not None
+
+
 def batch_malformed(batch: str) -> bool:
-    """True for a NON-EMPTY batch id outside the grammar (`x`, `E2.0junk`). An empty id is "no batch",
-    which is a different case; a malformed one must never read as "not applicable" (P1, fail closed)."""
-    b = (batch or "").strip()
-    return bool(b) and not _BATCH_RE.fullmatch(b)
+    """True for a NON-EMPTY batch id outside the grammar (`x`, `B1`, `E2.0junk`, `E2.0 `). An empty id is
+    "no batch", which is a different case; a malformed one must never read as "not applicable"
+    (P1, fail closed)."""
+    return bool(batch) and not batch_grammar_ok(batch)
 
 
 def batch_grammar_refusal(lane: str, batch: str) -> str:
@@ -88,7 +95,7 @@ def batch_grammar_refusal(lane: str, batch: str) -> str:
 
 def batch_applies(batch: str) -> bool:
     """True for a batch id from E2.0 on (`E2.0`, `E2.1`, `E3.0`, ...); False for older ids and for none."""
-    m = _BATCH_RE.fullmatch((batch or "").strip())
+    m = _BATCH_RE.fullmatch(batch or "")
     return bool(m) and (int(m.group(1)), int(m.group(2))) >= FIRST_BATCH
 
 
@@ -328,7 +335,9 @@ def launch_receipt_problems(root, slug: str, batch: str, receipts_dir=None) -> l
 def handback_problems(root, slug: str, batch: str, handback: Optional[Path],
                       receipts_dir=None) -> tuple[list[str], list[str]]:
     """The merge gate as `merge_path.land` runs it: `(problems, substitution_lines)`. Not applicable
-    (`([], [])`) for a batch before E2.0."""
+    (`([], [])`) for an empty batch or a well-formed one before E2.0; a malformed batch is a PROBLEM."""
+    if batch_malformed(batch):
+        return [batch_grammar_refusal(slug, batch)], []
     if not batch_applies(batch):
         return [], []
     if handback is None or not Path(handback).is_file():

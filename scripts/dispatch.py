@@ -964,13 +964,13 @@ _REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
 
 
 def _refuse_malformed_batch(slug: str, batch: str) -> None:
-    """P1, fail closed: a NON-EMPTY batch id outside `E<major>.<minor>` (`x`, `E2.0junk`) is refused by
-    `repair`, not read as "not applicable". Only `repair` calls this: `launch` and `codespace-exec` still
-    accept the fleet's older non-E ids (`B1`, `wave3`, `WAVE5B-N1`) -- eight existing launch and codespace-exec tests pin that,
-    and widening the refusal there is an open decision. An empty batch is the callers' own case."""
+    """P1, fail closed: a NON-EMPTY batch id outside `E<n>.<n>` (`x`, `B1`, `E2.0junk`, `E2.0 `) is
+    refused (rc 5, `REFUSED [batch-grammar]`) by `launch`, `codespace-exec` and `repair` alike, BEFORE
+    any spawn, box create, `gh` call or spend. One grammar, `subst_gate.batch_grammar_ok`, no
+    normalisation of the value as supplied. An empty batch is the callers' own case."""
     import subst_gate                                 # lazy: subst_gate imports this module lazily too
     if subst_gate.batch_malformed(batch):
-        raise LaunchRefused(subst_gate.batch_grammar_refusal(slug, batch.strip()))
+        raise LaunchRefused(subst_gate.batch_grammar_refusal(slug, batch))
 
 
 def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT, *, repair: bool = False) -> PreLaunch:
@@ -2138,6 +2138,7 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
     `codex exec ...`) and writes the launch receipt and a job-to-lane record under
     logs/receipts/. On a refusal it spawns nothing, prints the reason and exits 5. Nothing here can
     stop a lane that is already running."""
+    _refuse_malformed_batch(slug or Path(contract).stem, batch or os.environ.get("HARNESS_BATCH", ""))
     path = (Path(contract).resolve() if Path(contract).is_file()
             else resolve_contract(contract, prompts_dir()))
     request = request_from_contract(path, slug=slug, provider=provider, model=model, effort=effort,
@@ -3917,6 +3918,7 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
     --substrate codespace` already computes it (model/effort table, provider) and this command
     executes what that one planned, matching the file's own "plan starts nothing, exec does"
     split."""
+    _refuse_malformed_batch(slug, batch)
     try:
         head_argv = json.loads(argv_json)
     except json.JSONDecodeError as exc:
