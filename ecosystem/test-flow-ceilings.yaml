@@ -8,6 +8,8 @@
 # ARMED: while `armed: false`, an absent or empty logs/TEST-FLOW-METRICS.jsonl is a pass that prints
 # why. `armed: true` makes an absent or stale (> 3 days) record RED. The orchestrator flips it after
 # the first scheduled record exists -- the lane that built this file does not.
+# While `armed: false` a record that breaks a ceiling is reported as UNARMED findings and the live test
+# PASSES; only `armed: true` makes a broken ceiling RED.
 #
 # A metric the record cannot supply (M3 on Actions says `available: false`) is UNAVAILABLE, not RED.
 # Source of the numbers: to-browser/DIGEST-TEST-EXECUTION-EVAL-2026-10-20.md section 4 baselines.

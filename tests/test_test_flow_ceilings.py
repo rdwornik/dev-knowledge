@@ -203,13 +203,27 @@ def test_live_unarmed_without_record(tmp_path):
     assert tfm.live_check(doc(False), empty, NOW)["state"] == "UNARMED"
 
 
-def test_live_unarmed_with_record_still_checks(tmp_path):
+def test_live_unarmed_with_broken_ceiling_passes_and_reports_unarmed(tmp_path):
     p = write_records(tmp_path / "r.jsonl", record(always=5))
-    red = tfm.live_check(doc(False, {"m4_always_red_jobs": 1}), p, NOW)
-    assert red["ok"] is False and red["state"] == "RED"
-    assert any(f["state"] == "RED" for f in red["findings"])
+    res = tfm.live_check(doc(False, {"m4_always_red_jobs": 1}), p, NOW)
+    assert res["ok"] is True and res["state"] == "UNARMED"
+    broken = [f for f in res["findings"] if f["state"] == "UNARMED"]
+    assert [f["metric"] for f in broken] == ["m4_always_red_jobs"]
+    assert "m4_always_red_jobs" in res["message"] and "UNARMED" in res["message"]
+    assert not any(f["state"] == "RED" for f in res["findings"])
+
+
+def test_live_unarmed_within_ceilings_is_ok(tmp_path):
+    p = write_records(tmp_path / "r.jsonl", record(always=5))
     ok = tfm.live_check(doc(False), p, NOW)
     assert ok["ok"] is True and ok["state"] == "OK"
+
+
+def test_live_armed_broken_ceiling_is_red(tmp_path):
+    fresh = (NOW - timedelta(hours=1)).isoformat()
+    p = write_records(tmp_path / "r.jsonl", record(recorded_at=fresh, always=5))
+    res = tfm.live_check(doc(True, {"m4_always_red_jobs": 1}), p, NOW)
+    assert res["ok"] is False and res["state"] == "RED"
 
 
 def test_live_armed_no_record_is_red(tmp_path):

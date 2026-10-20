@@ -388,9 +388,15 @@ def live_check(ceilings_doc: dict, records_path, now: datetime) -> dict:
     findings = check_record(record, ceilings_doc["ceilings"])
     red = [f for f in findings if f["state"] == "RED"]
     if red:
+        broken = ", ".join(f"{f['metric']}={f['value']} > {f['ceiling']}" for f in red)
+        if not armed:
+            # reported, not enforced: arming is the operator's follow-up after the first scheduled record
+            for f in red:
+                f["state"] = "UNARMED"
+            return {"ok": True, "state": "UNARMED", "findings": findings,
+                    "message": "UNARMED (armed: false) ceiling broken: " + broken}
         return {"ok": False, "state": "RED", "findings": findings,
-                "message": "ceiling broken: " + ", ".join(
-                    f"{f['metric']}={f['value']} > {f['ceiling']}" for f in red)}
+                "message": "ceiling broken: " + broken}
     return {"ok": True, "state": "OK", "findings": findings,
             "message": f"newest record {record['recorded_at']} is within every available ceiling"}
 
