@@ -194,3 +194,63 @@ def test_codespace_exec_hands_pre_launch_the_equals_form_model(contract, monkeyp
         "--argv-json", '["claude","--model=grok-4.7"]', "--batch", "E2.0"])
     assert out.exit_code == 0, out.output
     assert seen == ["grok-4.7"]
+
+
+# --- E2-SG-2: one strict batch grammar `E<n>.<n>` enforced at the CLI ----------------------------
+
+def _no_spawn(monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("spawned / ran a subprocess before the batch grammar refusal")
+    monkeypatch.setattr(subprocess, "run", boom)
+    monkeypatch.setattr(subprocess, "Popen", boom)
+
+
+@pytest.mark.parametrize("batch", ["E2.0junk", "B1", "E2.0 "])
+def test_e2sg2_launch_refuses_a_malformed_batch_before_the_contract(batch, tmp_path, monkeypatch):
+    monkeypatch.delenv("HARNESS_BATCH", raising=False)
+    _no_spawn(monkeypatch)
+    out = CliRunner().invoke(d.cli, ["launch", str(tmp_path / "NOPE.md"), "--batch", batch])
+    assert out.exit_code == 5, out.output
+    assert "REFUSED [batch-grammar]" in out.output
+
+
+def test_e2sg2_launch_accepts_a_well_formed_batch_grammar(tmp_path, monkeypatch):
+    monkeypatch.delenv("HARNESS_BATCH", raising=False)
+    out = CliRunner().invoke(d.cli, ["launch", str(tmp_path / "NOPE.md"), "--batch", "E2.0"])
+    assert "batch-grammar" not in out.output
+
+
+def test_e2sg2_launch_with_no_batch_is_not_a_grammar_refusal(tmp_path, monkeypatch):
+    monkeypatch.delenv("HARNESS_BATCH", raising=False)
+    out = CliRunner().invoke(d.cli, ["launch", str(tmp_path / "NOPE.md")])
+    assert "batch-grammar" not in out.output
+
+
+def test_e2sg2_launch_refuses_a_malformed_env_batch(tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_BATCH", "junk")
+    _no_spawn(monkeypatch)
+    out = CliRunner().invoke(d.cli, ["launch", str(tmp_path / "NOPE.md")])
+    assert out.exit_code == 5, out.output
+    assert "REFUSED [batch-grammar]" in out.output
+
+
+@pytest.mark.parametrize("batch", ["B1", "E2.0junk"])
+def test_e2sg2_codespace_exec_refuses_a_malformed_batch_and_runs_nothing(batch, contract, monkeypatch):
+    def must_not_run(*a, **k):
+        raise AssertionError("ran after a batch-grammar refusal")
+    monkeypatch.setattr(d, "run_prelaunch", must_not_run)
+    monkeypatch.setattr(d, "codespace_exec", must_not_run)
+    _no_spawn(monkeypatch)
+    out = CliRunner().invoke(d.cli, [
+        "codespace-exec", str(contract), "--repo", "me/repo", "--branch", "main", "--slug", "lane-subst",
+        "--argv-json", '["claude","-p"]', "--batch", batch])
+    assert out.exit_code == 5, out.output
+    assert "REFUSED [batch-grammar]" in out.output
+
+
+def test_e2sg2_codespace_exec_good_batch_still_reaches_run_prelaunch(contract, monkeypatch):
+    reached = []
+    monkeypatch.setattr(d, "run_prelaunch", lambda *a, **k: reached.append(1) or d.PreLaunch(False, "x"))
+    out = _invoke_codespace_exec(contract)
+    assert reached == [1], out.output
+    assert "batch-grammar" not in out.output

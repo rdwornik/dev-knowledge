@@ -357,3 +357,24 @@ def test_a_slug_that_climbs_out_of_the_receipts_dir_is_refused_not_read(tmp_path
     outside.write_text(json.dumps({"organ": "launch", "batch": "E2.0"}), encoding="utf-8")
     problems = sg.launch_receipt_problems(tmp_path, "../X", "E2.0", receipts_dir=tmp_path / "r")
     assert problems and "not a lane slug" in problems[0]
+
+
+# --- E2-SG-2: the strict batch grammar ----------------------------------------------------------
+
+@pytest.mark.parametrize("batch", ["Y", "E2.0junk", "B1", "E2.0 "])
+def test_e2sg2_handback_problems_refuses_a_malformed_batch(tmp_path, batch):
+    problems, _subs = sg.handback_problems(tmp_path, "lane-x", batch, None)
+    assert any(p.startswith("REFUSED [batch-grammar]") for p in problems), problems
+
+
+def test_e2sg2_handback_problems_empty_and_pre_e2_batches_stay_not_applicable(tmp_path):
+    assert sg.handback_problems(tmp_path, "lane-x", "", None) == ([], [])
+    assert sg.handback_problems(tmp_path, "lane-x", "E1.0", None) == ([], [])
+
+
+@pytest.mark.parametrize("batch,expected", [
+    ("E2.0", True), ("E10.14", True), ("", False), ("E2.0 ", False), ("E2.0\n", False),
+    ("E2.0junk", False), ("B1", False),
+])
+def test_e2sg2_batch_grammar_ok_is_strict(batch, expected):
+    assert sg.batch_grammar_ok(batch) is expected
