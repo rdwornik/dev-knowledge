@@ -94,7 +94,7 @@ class _CountingScandir:
 
 def test_no_entries_visited_under_worktrees(tmp_path, monkeypatch):
     _build(tmp_path)
-    prefix = (tmp_path / ".claude" / "worktrees").as_posix()
+    prefix = (tmp_path / ".claude" / "worktrees").as_posix() + "/"
     hits: list[str] = []
 
     real_scandir = os.scandir
