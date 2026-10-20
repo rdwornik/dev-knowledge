@@ -963,6 +963,13 @@ _DOIT_CHATTER = re.compile(r"^(\.\s+organ:|TaskFailed|Python Task failed|warning
 _REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
 
 
+def _require_contract_file(contract: Path) -> None:
+    """The check click's `exists=True` made, run AFTER the batch grammar so a malformed batch is refused
+    (rc 5) before a missing contract is (rc 2). Same message, same rc."""
+    if not Path(contract).exists():
+        raise click.BadParameter(f"Path '{contract}' does not exist.", param_hint="'CONTRACT'")
+
+
 def _refuse_malformed_batch(slug: str, batch: str) -> None:
     """P1, fail closed: a NON-EMPTY batch id outside `E<n>.<n>` (`x`, `B1`, `E2.0junk`, `E2.0 `) is
     refused (rc 5, `REFUSED [batch-grammar]`) by `launch`, `codespace-exec` and `repair` alike, BEFORE
@@ -3896,7 +3903,7 @@ def codespace_delete(name: str, *, out_dir: Path,
 
 
 @cli.command("codespace-exec")
-@click.argument("contract", type=click.Path(exists=True, path_type=Path))
+@click.argument("contract", type=click.Path(path_type=Path))
 @click.option("--repo", required=True, help="owner/name.")
 @click.option("--branch", default="main", show_default=True)
 @click.option("--slug", required=True, help="Lane slug; also the codespace's -d display name.")
@@ -3919,6 +3926,7 @@ def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_j
     executes what that one planned, matching the file's own "plan starts nothing, exec does"
     split."""
     _refuse_malformed_batch(slug, batch)
+    _require_contract_file(contract)
     try:
         head_argv = json.loads(argv_json)
     except json.JSONDecodeError as exc:
@@ -4277,7 +4285,7 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 
 @cli.command("repair")
 @click.argument("slug")
-@click.argument("contract", type=click.Path(exists=True, path_type=Path))
+@click.argument("contract", type=click.Path(path_type=Path))
 @click.option("--attempt", type=int, default=1, show_default=True)
 @click.option("--model", required=True)
 @click.option("--effort", required=True)
@@ -4293,10 +4301,12 @@ def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
     """Relaunch a REPAIR of SLUG into its EXISTING worktree -- never a fresh `--worktree`.
     Refuses when that worktree is not there (starting one is a fresh launch's job). Runs the same
     `pre-launch` moment a launch runs and writes the same LAUNCH receipt (`kind: repair`)."""
+    batch = batch or os.environ.get("HARNESS_BATCH", "") or _launched_batch(slug)
+    _refuse_malformed_batch(slug, batch)
+    _require_contract_file(contract)
     request = RepairRequest(slug=slug, attempt=attempt, model=model, effort=effort,
                             contract=Path(contract).resolve(), permission_mode=permission_mode,
-                            batch=batch or os.environ.get("HARNESS_BATCH", "")
-                            or _launched_batch(slug))
+                            batch=batch)
     spawned = repair_lane(request, repo_root=Path(repo_root))
     click.echo(f"[dispatch] repair {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
 
