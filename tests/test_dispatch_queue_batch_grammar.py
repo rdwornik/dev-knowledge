@@ -1,7 +1,8 @@
 """RED-first witnesses for [#1674]: `queue --batch` obeys the same `E<n>.<n>` grammar as `launch`.
 
 A malformed batch (`bogus`, `E2.0junk`, `B1`) -- from `--batch` or `$HARNESS_BATCH` -- is refused (rc 5,
-`REFUSED [batch-grammar]`) BEFORE any launch or spawn, with and without `--dry-run`. A well-formed batch
+`REFUSED [batch-grammar]`) BEFORE any launch or spawn. `--dry-run` only prints a static order and
+spawns nothing, so it is not gated (the order template renders it with a placeholder batch). A well-formed batch
 passes through to `launch_lane`; an empty one stays the callers' own case.
 """
 from __future__ import annotations
@@ -62,12 +63,11 @@ def _queue(contract, tmp_path, *extra):
 
 
 @pytest.mark.parametrize("batch", ["bogus", "E2.0junk", "B1"])
-@pytest.mark.parametrize("dry", [False, True])
-def test_queue_refuses_a_malformed_batch_before_any_launch(tmp_path, monkeypatch, batch, dry):
+def test_queue_refuses_a_malformed_batch_before_any_launch(tmp_path, monkeypatch, batch):
     rec = _Recorder(monkeypatch)
     contract = _contract(tmp_path)
 
-    out = _queue(contract, tmp_path, "--batch", batch, *(["--dry-run"] if dry else []))
+    out = _queue(contract, tmp_path, "--batch", batch,)
 
     assert out.exit_code == 5, out.output
     assert "batch-grammar" in out.output
