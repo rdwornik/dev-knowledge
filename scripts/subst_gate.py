@@ -246,7 +246,7 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
         if phase == "VENDOR-FAIL" and rest.lower() == "none":
             continue                                  # the no-failure marker, not a phase
         seen += 1
-        if _NOT_RUN.search(rest) and "requested=" not in rest:
+        if _NOT_RUN.search(rest) and "requested=" not in rest and "served=" not in rest:
             continue
         req = re.search(r"requested=(.+?)\s+served=", rest)
         srv = re.search(r"served=(.*)$", rest)
@@ -262,8 +262,7 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             continue
         token = served.split()[0].lower()             # the served id is the first token; the rest is a note
         requested = req.group(1).strip().split("/")[0].strip().lower()
-        copilot_role = "copilot" in req.group(1).lower() or (
-            requested == "default" and bool(_COPILOT_PHASE.search(phase)))
+        copilot_role = requested == "default" and bool(_COPILOT_PHASE.search(phase))
         if (requested.startswith("copilot") or token == requested
                 or (copilot_role and token in COPILOT_GATEWAY_SERVED)):
             continue                                  # Copilot's served model is recorded, not compared

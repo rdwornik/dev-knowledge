@@ -175,3 +175,13 @@ def test_empty_block_refused():
 
 def test_copilot_requested_phase_stays_accepted():
     assert check("RED tests: requested=Copilot CLI default served=anything") == ([], [])
+
+
+def test_copilot_word_in_requested_text_is_not_a_role():
+    assert refused(block(
+        "implement: requested=gpt-5.6-terra (copilot fallback) served=claude-sonnet-5.5"))
+
+
+def test_served_only_not_applicable_refused():
+    assert refused(block("implement: served=claude-haiku-5-5 (not applicable)"))
+    assert check("plan: NOT run (reason)") == ([], [])
