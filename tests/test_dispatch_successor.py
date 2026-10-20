@@ -244,8 +244,67 @@ def test_a_failed_spawn_raises_and_leaves_no_success_receipt(repo, shas, contrac
         _run(_request(contract, a), repo, _Spawn(returncode=1))
 
     path = d.receipts_dir() / f"LAUNCH-{SLUG.upper()}.json"
-    if path.exists():
-        assert json.loads(path.read_text(encoding="utf-8")).get("exit_code") != 0
+    assert not path.exists()
+    assert not _tree(repo).exists()
+    assert _branches(repo) == ""
+
+
+def test_a_prelaunch_that_raises_becomes_a_launch_refusal_and_leaves_nothing(repo, shas, contract):
+    a, _ = shas
+    spawn = _Spawn()
+
+    def boom(request, repair=False):
+        raise RuntimeError("prelaunch exploded")
+
+    with pytest.raises(d.LaunchRefused):
+        d.successor_lane(_request(contract, a), repo_root=repo, spawn=spawn, environ={}, prelaunch=boom)
+
+    assert spawn.calls == []
+    assert not _tree(repo).exists()
+    assert _branches(repo) == ""
+
+
+# --- pre-existing branch / directory, bad effort ------------------------------------------------
+
+def test_a_preexisting_branch_without_a_worktree_is_refused_and_left_untouched(repo, shas, contract):
+    a, _ = shas
+    _git(repo, "branch", f"worktree-{SLUG}", a)
+    _git(repo, "checkout", "-q", f"worktree-{SLUG}")
+    tip = _commit(repo, "unique.txt", "unique work")
+    _git(repo, "checkout", "-q", "main")
+    spawn, pre = _Spawn(), _Prelaunch()
+
+    with pytest.raises(d.DispatchRefused) as refused:
+        _run(_request(contract, a), repo, spawn, pre)
+
+    assert f"worktree-{SLUG}" in str(refused.value.message)
+    assert spawn.calls == [] and pre.calls == []
+    assert not _tree(repo).exists()
+    assert _git(repo, "rev-parse", f"worktree-{SLUG}") == tip
+
+
+def test_a_plain_directory_at_the_worktree_path_is_refused_even_when_base_is_the_repo_head(
+        repo, shas, contract):
+    head = _git(repo, "rev-parse", "HEAD")
+    _tree(repo).mkdir(parents=True)
+    spawn, pre = _Spawn(), _Prelaunch()
+
+    with pytest.raises(d.DispatchRefused):
+        _run(_request(contract, head), repo, spawn, pre)
+
+    assert spawn.calls == [] and pre.calls == []
+
+
+def test_a_bad_effort_is_refused_before_prelaunch_and_before_any_worktree_or_branch(repo, shas, contract):
+    a, _ = shas
+    spawn, pre = _Spawn(), _Prelaunch()
+
+    with pytest.raises(d.DispatchRefused):
+        _run(_request(contract, a, effort="bogus"), repo, spawn, pre)
+
+    assert pre.calls == [] and spawn.calls == []
+    assert not _tree(repo).exists()
+    assert _branches(repo) == ""
 
 
 # --- CLI ----------------------------------------------------------------------------------------
@@ -265,6 +324,22 @@ def test_cli_successor_with_a_bogus_batch_exits_nonzero_and_spawns_nothing(repo,
 
     assert out.exit_code != 0
     assert not _tree(repo).exists()
+
+
+def test_cli_successor_happy_path_creates_the_worktree_at_base_and_writes_a_successor_receipt(
+        repo, shas, contract, monkeypatch):
+    a, _ = shas
+    monkeypatch.setattr(d, "spawn_process", lambda *args, **kw: d.Spawned(
+        returncode=0, stdout="backgrounded abcd1234\n", pid=1))
+    monkeypatch.setattr(d, "run_prelaunch", lambda request, repair=False: d.PreLaunch(True, ""))
+
+    out = CliRunner().invoke(d.cli, ["successor", SLUG, str(contract), "--base", a, "--batch", BATCH,
+                                     "--model", MODEL, "--effort", "high", "--repo-root", str(repo)])
+
+    assert out.exit_code == 0, out.output
+    assert _git(_tree(repo), "rev-parse", "HEAD") == a
+    body = json.loads((d.receipts_dir() / f"LAUNCH-{SLUG.upper()}.json").read_text(encoding="utf-8"))
+    assert body["kind"] == "successor"
 
 
 def test_cli_successor_command_exposes_base_batch_model_and_effort():

@@ -85,6 +85,17 @@ def test_queue_refuses_what_launch_refuses(tmp_path, monkeypatch):
     assert "batch-grammar" in launched.output and "batch-grammar" in queued.output
 
 
+def test_queue_dry_run_with_a_malformed_batch_exits_zero_and_launches_nothing(tmp_path, monkeypatch):
+    # deliberate, documented deviation: a dry run only prints a static order and spawns nothing
+    rec = _Recorder(monkeypatch)
+    contract = _contract(tmp_path)
+
+    out = _queue(contract, tmp_path, "--dry-run", "--batch", "bogus")
+
+    assert out.exit_code == 0, out.output
+    assert rec.launches == [] and rec.spawns == []
+
+
 def test_queue_passes_a_well_formed_batch_to_launch_lane(tmp_path, monkeypatch):
     rec = _Recorder(monkeypatch, allow_launch=True)
     contract = _contract(tmp_path)
