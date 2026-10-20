@@ -122,7 +122,7 @@ def test_the_cli_exits_non_zero_with_the_reason_and_spawns_nothing(contract, tmp
     monkeypatch.setattr(d, "run_prelaunch", _refuse)
     monkeypatch.setattr(d, "spawn_process", lambda *a, **k: spawned.append(a))
     monkeypatch.setattr(d, "list_agents", lambda: [])
-    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", "wave3"])
+    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", "E9.3"])
     assert out.exit_code == d.EXIT_REFUSED
     assert "OCCUPIED lane-launch-adapter" in out.output
     assert spawned == []
@@ -555,7 +555,7 @@ def test_the_launch_cli_prints_the_exact_bind_command_and_exits_non_zero(contrac
     monkeypatch.setattr(d, "list_agents", lambda: [])
     spawned = []
     monkeypatch.setattr(d, "spawn_process", lambda *a, **k: spawned.append(a))
-    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", "WAVE5B-N1"])
+    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", "E9.5"])
     assert out.exit_code == d.EXIT_REFUSED != 0
     assert _REMEDY_CMD in out.output
     assert spawned == [], "a refused launch must not reach the process boundary"

@@ -179,7 +179,7 @@ def test_the_templates_repair_line_relaunches_into_the_existing_worktree(tmp_pat
         return d.Spawned(0, "backgrounded deadbeef", None)
 
     request = d.RepairRequest(slug=argv[1], attempt=1, model="claude-sonnet-5", effort="high",
-                              contract=tmp_path / "LANE-dry-a.md")
+                              contract=tmp_path / "LANE-dry-a.md", batch="E2.0")
     # `repair` runs `moment:pre-launch` and writes a LAUNCH receipt now (`e2-subst-gate`, item 2b):
     # cleared here and written to a private dir; witnessed in `tests/test_dispatch_repair_prelaunch.py`.
     monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))

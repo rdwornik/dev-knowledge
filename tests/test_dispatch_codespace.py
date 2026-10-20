@@ -1560,7 +1560,7 @@ def test_the_codespace_exec_verb_builds_a_real_mirror_by_default(tmp_path, monke
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# c\n", encoding="utf-8")
     res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
-                                     "--argv-json", '["claude"]', "--batch", "B1"])
+                                     "--argv-json", '["claude"]', "--batch", "E9.1"])
     assert res.exit_code == 0, res.output
     assert isinstance(seen.get("mirror"), d.MirrorConfig)
 
@@ -1865,9 +1865,9 @@ def test_the_codespace_exec_cli_requires_batch(tmp_path, monkeypatch):
     missing = CliRunner().invoke(d.cli, base)
     assert missing.exit_code == 2 and "--batch" in missing.output, missing.output
     assert not seen, "a usage error launches nothing"
-    given = CliRunner().invoke(d.cli, [*base, "--batch", "B9"])
+    given = CliRunner().invoke(d.cli, [*base, "--batch", "E9.9"])
     assert given.exit_code == 0, given.output
-    assert seen.get("batch") == "B9"
+    assert seen.get("batch") == "E9.9"
 
 
 # ----- 5-6, 12-14: the credentials step ------------------------------------------------------------
@@ -2252,7 +2252,7 @@ def test_the_codespace_exec_cli_exits_no_commit_when_the_fate_is_the_commit_step
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# c\n", encoding="utf-8")
     res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
-                                     "--argv-json", '["claude"]', "--batch", "B1"])
+                                     "--argv-json", '["claude"]', "--batch", "E9.1"])
     assert res.exit_code == d.EXIT_NO_COMMIT == 6, res.output
 
 
@@ -2571,7 +2571,7 @@ def test_the_cli_verb_wires_the_real_smoke_and_pin_gate(tmp_path, monkeypatch):
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# c\n", encoding="utf-8")
     res = CliRunner().invoke(d.cli, ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x",
-                                     "--argv-json", '["claude"]', "--batch", "B1"])
+                                     "--argv-json", '["claude"]', "--batch", "E9.1"])
     assert res.exit_code == 0, res.output
     assert seen.get("schema_smoke") is d.run_schema_smoke
     assert seen.get("pins") is not None and callable(seen["pins"])
@@ -3026,7 +3026,7 @@ def test_the_cli_verb_waits_600s_by_default_and_refuses_more(tmp_path, monkeypat
     contract = tmp_path / "LANE-x.md"
     contract.write_text("# c\n", encoding="utf-8")
     base = ["codespace-exec", str(contract), "--repo", "o/r", "--slug", "x", "--argv-json", '["claude"]',
-            "--batch", "B1"]
+            "--batch", "E9.1"]
     default = CliRunner().invoke(d.cli, base)
     assert default.exit_code == 0, default.output
     assert seen[-1]["agy_wait_s"] == 600
