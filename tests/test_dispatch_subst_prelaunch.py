@@ -104,7 +104,24 @@ def test_codespace_exec_runs_pre_launch_first_then_codespace_exec_once(contract,
     assert order == ["run_prelaunch", "codespace_exec"]
 
 
-def test_codespace_exec_really_runs_the_pre_launch_moment_with_nothing_stubbed(contract, monkeypatch):
+def _fake_claude_on_path(tmp_path, monkeypatch):
+    """The real moment reads `claude agents --json` (the live-session leg). CI has no `claude`, so the
+    moment would ERROR before the organ under test speaks; a stub binary answering `[]` makes the test
+    independent of the box while leaving every organ real."""
+    import os
+    import sys
+    bindir = tmp_path / "fakebin"
+    bindir.mkdir()
+    if sys.platform == "win32":
+        (bindir / "claude.cmd").write_text("@echo []\r\n", encoding="utf-8")
+    else:
+        exe = bindir / "claude"
+        exe.write_text("#!/bin/sh\necho '[]'\n", encoding="utf-8")
+        exe.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bindir) + os.pathsep + os.environ.get("PATH", ""))
+
+
+def test_codespace_exec_really_runs_the_pre_launch_moment_with_nothing_stubbed(contract, monkeypatch, tmp_path):
     """Repair 1 (item 5): `test_dispatch_codespace.py` stubs `run_prelaunch` for the whole file, so THIS is
     the witness that the verb runs the real moment -- the real `doit moment:pre-launch` refuses this
     launch (which organ speaks first depends on the box: no live integrator, or model-per-role on the
@@ -112,11 +129,12 @@ def test_codespace_exec_really_runs_the_pre_launch_moment_with_nothing_stubbed(c
     def must_not_run(*a, **k):
         raise AssertionError("codespace_exec ran although the real pre-launch refused the contract")
     monkeypatch.setattr(d, "codespace_exec", must_not_run)
+    _fake_claude_on_path(tmp_path, monkeypatch)
 
     out = _invoke_codespace_exec(contract)
 
     assert out.exit_code == d.EXIT_REFUSED == 5, out.output
-    assert "pre-launch refused lane-subst: " in out.output, out.output
+    assert "pre-launch refused lane-subst: REFUSED [" in out.output, out.output
 
 
 # --- launch_lane: the existing shape, shown beside the new refusal ------------------------------

@@ -55,7 +55,7 @@ _FIXTURES = Path(__file__).resolve().parent / "fixtures" / "connection_loop"
 _HARNESS = _HUB / "ecosystem" / "harness.yaml"
 _LIGHT_TREE = ("scripts", "ecosystem", "pyproject.toml", "uv.lock", ".python-version", ".gitignore")
 
-BATCH = "TOYBATCH"
+BATCH = "E1.9"
 SUBJECT = "toy-connection"
 FEATURE_COMMIT = f"feat: {SUBJECT} -- the toy change"
 INTEGRATOR_SESSION = "toy-integrator"

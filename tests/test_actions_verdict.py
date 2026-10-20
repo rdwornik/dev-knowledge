@@ -1161,7 +1161,7 @@ def _install_ci(monkeypatch, *, tip, base, kind="both-red", tip_ids=(), base_ids
 
 
 def _cli_land(repo, a, m):
-    return CliRunner().invoke(_mp.cli, ["--repo-root", str(repo), "land", "--batch", "b",
+    return CliRunner().invoke(_mp.cli, ["--repo-root", str(repo), "land", "--batch", "E1.0",
                                         "--sha", m, "--base", a, "--no-push"])
 
 
@@ -1185,7 +1185,7 @@ def test_T1a_land_returns_a_verdict_when_the_BASE_registry_holds_an_expired_entr
     repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1), head=_registry_text(30))
     _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN], base_ids=[_KNOWN])
 
-    result = _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+    result = _mp.land(repo, slug="x", batch="E1.0", sha=m, base=a, no_push=True)
 
     assert result.state == "PRE-EXISTING", result.reason      # the control: the registry WAS read
     assert result.would_land is True
@@ -1212,7 +1212,7 @@ def test_T1b_land_names_the_NEW_tests_against_an_expired_base(tmp_path, monkeypa
     repo, a, m = _merge_fixture(tmp_path, base=_registry_text(-1), head=_registry_text(30))
     _install_ci(monkeypatch, tip=m, base=a, tip_ids=[_KNOWN, _NEW], base_ids=[_KNOWN])
 
-    result = _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+    result = _mp.land(repo, slug="x", batch="E1.0", sha=m, base=a, no_push=True)
 
     assert result.state == "REGRESSED", result.reason
     assert result.would_land is False
@@ -1338,7 +1338,7 @@ def _land_case(tmp_path, monkeypatch, *, base, head=None, kind="both-red",
                tip_ids=(_KNOWN,), base_ids=(_KNOWN,)):
     repo, a, m = _merge_fixture(tmp_path, base=base, head=head)
     _install_ci(monkeypatch, tip=m, base=a, kind=kind, tip_ids=tip_ids, base_ids=base_ids)
-    return _mp.land(repo, slug="x", batch="b", sha=m, base=a, no_push=True)
+    return _mp.land(repo, slug="x", batch="E1.0", sha=m, base=a, no_push=True)
 
 
 def test_T2ba_land_refuses_a_merge_whose_HEAD_registry_has_an_expired_entry(
