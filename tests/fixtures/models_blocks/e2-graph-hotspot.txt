@@ -1,0 +1,8 @@
+# source: to-browser/SESSION-e2-graph-hotspot.md lines 59-65 (copied byte-for-byte from the transport drive on 2026-10-20; the source is left alone)
+MODELS:
+- plan: orchestrator contract (not run here)
+- implement: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5
+- RED tests: requested=Copilot CLI default served=not reported by the CLI output (the Copilot usage file for the RED run was not inspected for a model id)
+- review codex: requested=gpt-5.6-terra served=gpt-5 (as the CLI reported) -- reviewer did not serve the requested model; recorded, not substituted
+- review copilot: requested=Copilot CLI default served=claude-sonnet-5.5
+- isolated verify: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5

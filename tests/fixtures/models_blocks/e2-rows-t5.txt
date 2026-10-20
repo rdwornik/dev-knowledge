@@ -1,0 +1,7 @@
+# source: to-browser/SESSION-e2-rows-t5.md lines 27-32 (copied byte-for-byte from the transport drive on 2026-10-20; the source is left alone)
+MODELS:
+- implement: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5
+- review codex: requested=gpt-5.6-terra served=gpt-5.6-terra
+- review copilot: requested=default served=claude-sonnet-5.5
+- verify: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5
+- RED tests: not applicable (docs-only; no code)
