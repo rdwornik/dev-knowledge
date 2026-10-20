@@ -939,6 +939,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1668] [P2][L] The laptop slept 02:00-15:00: 13 h of no progress (the off-the-laptop goal, defect 8) · tasks/1668-off-the-laptop-goal-13h-sleep.md
 - [#1669] [P2][S] The distiller reads none of an R130 integrator's refusals (defect 9) · tasks/1669-distiller-reads-no-r130-integrator-refusal.md
 - [#1670] [P1][M] No silent substitution: the launcher and contract lint refuse a model not in the phase or role table (R139, P1) · tasks/1670-no-silent-substitution-launcher-and-lint.md
+- [#1671] [P2][M] The pins gate tolerates a patch bump within the same major.minor with a recorded line; a minor or major bump still refuses (R164, interim) · tasks/1671-pins-gate-tolerates-a-patch-bump-within-the-same-minor-r164.md
+- [#1672] [P1][M] The next tier1 lane owns tests/test_conductor.py and scripts/gen_handback.py to finish the [#1560] remainder and the [#1563] removal (R165, interim) · tasks/1672-the-next-tier1-lane-owns-the-e2-tier1-stops-r165.md
 
 ---
 

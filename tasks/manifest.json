@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "95b2776e298ef5e4e26c66d3f42afd6bb14b247a8d60a3ebc14c34d10ef6bcef",
+  "generated_sha256": "7c4d711b8a94587ae0bdd16b80964c8b4c04a9d0b086832aefe3d64bbeaab94c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3598,6 +3598,14 @@
     {
       "task": 1670,
       "file": "1670-no-silent-substitution-launcher-and-lint.md"
+    },
+    {
+      "task": 1671,
+      "file": "1671-pins-gate-tolerates-a-patch-bump-within-the-same-minor-r164.md"
+    },
+    {
+      "task": 1672,
+      "file": "1672-the-next-tier1-lane-owns-the-e2-tier1-stops-r165.md"
     },
     {
       "prose": ""
