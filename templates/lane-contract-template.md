@@ -102,7 +102,10 @@ n. **Close-out:** targeted tests for this diff; Codex review record citing its c
    `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`. A box lane writes
    `/workspaces/dispatch/lane-handback.json` (not `handback.json`, S5) carrying a `MODELS:` block
    — `<phase>: requested=<model/effort> served=<model as the CLI reported it> [VENDOR-FAIL: <ref>]`
-   — that the merge gate reads; served != requested with no `VENDOR-FAIL` is refused.
+   — that the merge gate reads; served != requested with no `VENDOR-FAIL` is refused. The served id is
+   the first token after `served=` (trailing words are a note); Copilot roles may record
+   `requested=default served=claude-sonnet-5.5` (not a substitution); a phase that did not run is
+   written `<phase>: NOT run (<reason>)`; phase lines may be `- ` bullets.
 
 ## Do not
 

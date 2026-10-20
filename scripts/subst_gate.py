@@ -18,7 +18,9 @@ the launch receipt is the one `dispatch._write_launch_records` writes):
                          new role, no change to `orchestrate` (Opus-only, AX21-1).
   check_models_block     merge gate: a handback must carry a `MODELS:` block, and every phase line
                          with served != requested must carry a `VENDOR-FAIL: <ref>` (the substitution
-                         is then printed, so it reaches the handback and the ledger).
+                         is then printed, so it reaches the handback and the ledger). Grammar: served
+                         is the first token after `served=` (the rest is a note); a Copilot role may
+                         serve a `COPILOT_GATEWAY_SERVED` id; `- `/`* ` bullets and `NOT run` count.
   launch_receipt_problems merge gate (S4): a lane with no `dispatch.py` LAUNCH receipt is refused --
                          local: `logs/receipts/LAUNCH-<SLUG>.json` with `"organ": "launch"` and the
                          batch; Codespace: a `logs/CODESPACE-RECEIPTS.jsonl` row for the slug in the
@@ -214,7 +216,13 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
 # --- merge gate: the MODELS block -------------------------------------------------------------------
 
 _VENDOR_FAIL = re.compile(r"\[?\s*VENDOR-FAIL:\s*([^\]\s][^\]]*?)\s*\]?\s*$")
-_PHASE_LINE = re.compile(r"^\s+([^:\s][^:]*?)\s*:\s*(.*\S)\s*$")
+_PHASE_LINE = re.compile(r"^(?:\s*[-*]\s+|\s+)([^:\s][^:]*?)\s*:\s*(.*\S)\s*$")
+# BATCH-E2-0 section 3: the Copilot gateway serves a Claude model; the role names Copilot, so a served
+# id listed here on a Copilot role is not a substitution.
+COPILOT_GATEWAY_SERVED = frozenset({"claude-sonnet-5.5"})
+# A phase line with no `requested=` that says it did not run (one definition, used once below).
+_NOT_RUN = re.compile(r"\bnot run\b|\bnot applicable\b|^this contract\b", re.IGNORECASE)
+_COPILOT_PHASE = re.compile(r"(?i:copilot)|\bRED\b")
 
 
 def check_models_block(text: str) -> tuple[list[str], list[str]]:
@@ -234,9 +242,11 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
         m = _PHASE_LINE.match(ln)
         if m is None:
             break                                     # first un-indented line ends the block
-        seen += 1
         phase, rest = m.group(1), m.group(2)
-        if re.search(r"\bnot run\b", rest, re.IGNORECASE) and "requested=" not in rest:
+        if phase == "VENDOR-FAIL" and rest.lower() == "none":
+            continue                                  # the no-failure marker, not a phase
+        seen += 1
+        if _NOT_RUN.search(rest) and "requested=" not in rest:
             continue
         req = re.search(r"requested=(.+?)\s+served=", rest)
         srv = re.search(r"served=(.*)$", rest)
@@ -246,8 +256,16 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             continue
         fail = _VENDOR_FAIL.search(srv.group(1))
         served = (srv.group(1)[:fail.start()] if fail else srv.group(1)).strip()
+        if not served:
+            problems.append(f"REFUSED [models-block]: phase {phase!r} has an empty `served=` -- the model "
+                            f"the CLI reported must be recorded (P1)")
+            continue
+        token = served.split()[0].lower()             # the served id is the first token; the rest is a note
         requested = req.group(1).strip().split("/")[0].strip().lower()
-        if requested.startswith("copilot") or served.lower() == requested:
+        copilot_role = "copilot" in req.group(1).lower() or (
+            requested == "default" and bool(_COPILOT_PHASE.search(phase)))
+        if (requested.startswith("copilot") or token == requested
+                or (copilot_role and token in COPILOT_GATEWAY_SERVED)):
             continue                                  # Copilot's served model is recorded, not compared
         if fail:
             subs.append(ln.strip())

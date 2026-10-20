@@ -89,7 +89,10 @@ Record the model that actually served each step you ran, as the handback's `MODE
 (`<phase>: requested=<model/effort> served=<model> [VENDOR-FAIL: <ref>]`). A routed tool that did not
 answer is a **SUBSTITUTION** — record it, do not hide it, and do not run another model in its place
 (P1): write `VENDOR-FAIL: <phase> <model> <error>` and stop that phase. The merge gate refuses a
-handback with no `MODELS:` block, or served != requested with no `VENDOR-FAIL`. Routing:
+handback with no `MODELS:` block, or served != requested with no `VENDOR-FAIL`. The served id is the
+first token after `served=` (trailing words are a note); Copilot roles may record
+`requested=default served=claude-sonnet-5.5` (not a substitution); a phase that did not run is written
+`<phase>: NOT run (<reason>)`; phase lines may be `- ` bullets. Routing:
 `ecosystem/provider-registry.yaml`.
 
 ## 6. Files

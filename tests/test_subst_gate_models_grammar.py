@@ -66,7 +66,7 @@ def test_gateway_constant_lists_sonnet():
 
 @pytest.mark.parametrize("line", [
     "review copilot: requested=Copilot CLI default served=claude-sonnet-5.5",
-    "review: requested=default served=claude-sonnet-5.5 note",
+    "review copilot: requested=default served=claude-sonnet-5.5 note",
     "RED tests: requested=default served=claude-sonnet-5.5",
     "copilot pass: requested=default served=claude-sonnet-5.5",
 ])
@@ -77,6 +77,7 @@ def test_copilot_phase_gateway_served_accepted(line):
 @pytest.mark.parametrize("line", [
     "review codex: requested=gpt-5.6-terra served=claude-sonnet-5.5",
     "implement: requested=default served=claude-sonnet-5.5",
+    "review codex: requested=default served=claude-sonnet-5.5",
 ])
 def test_non_copilot_phase_gateway_served_refused(line):
     assert refused(block(line))
