@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-20 (c) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-rows-r164 lands -- rows [#1671] (pins gate tolerates a patch bump, R164) and [#1672] (the next tier1 lane owns the e2-tier1 STOPs, R165), both interim under R166
+
+**Anchors:** `73222c6b` (two rows, manifest nodes, BACKLOG regenerated); branch `worktree-e2-rows-r164`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 20745ef9).
+
+**Did:** the integrator merged the docs lane `--no-ff` on `adeb8b1c` after the hand gate (REUSE CHECK quoted [#1664] and [#1659] as the nearest rows; docs only; ids unique on every origin branch; each row has an owner, a Done-when with a real-use witness and `decided-by` R164 / R165 with the R166 interim tag). Copilot served claude-sonnet-5.5; the Codex banner was not captured (the lane tailed its output), recorded as a note for a docs lane.
+
+**Result:** the Linux land run is the verdict. The R166 harness map grades both rulings.
+
+**Changes:** `tasks/1671-*.md`, `tasks/1672-*.md`, `tasks/manifest.json`, `BACKLOG.md`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-distill-pilot line) and 2 `logs/HOOK-WATCHDOG-KILLS.jsonl` rows.
+
+**Next:** e2-subst-gate-2 (STOP list: two assertions reversed by R160) and e2-census-2 as they hand back; e2-cliff after e2-subst-gate-2.
+
 ### 2026-10-20 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-5, batch E2.0): lane e2-distill-pilot lands on its own merits (R162, interim per R166) -- the learning distiller now reads an R130 integrator's refusals (defect 9)
 
 **Anchors:** `9f771eaf` (fixtures from the three real E2.0 inputs), `39207110` (RED first, Copilot-authored via `run_phase.py`), `0b5159b0` (fix: integrator REFUSED headings and `STATE <slug> REFUSED` lines are events), `bf1e12e4` (`lane: origin/worktree-X` yields slug X, found in real use), `877bd4ce` (`parse_refused` delegates to `parse_refused_events`, no second parser), `b1b47269` (paren slug only from the `worktree-X (X)` shape); branch `worktree-e2-distill-pilot`, introduced by this merge. Launched by `scripts/dispatch.py launch` (job 101be7b4).

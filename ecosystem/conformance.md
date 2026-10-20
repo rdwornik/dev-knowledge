@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-09-05 · **HEAD:** `c579e3e777fe` · **window:** 2026-08-29 → 2026-09-05 (7 days)
+- **As of:** 2026-10-20 · **HEAD:** `20abcf130526` · **window:** 2026-10-13 → 2026-10-20 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -15,35 +15,40 @@
 
 ## Section 0 — Release notes (last 7 days)
 
-_Rows that left `BACKLOG.md` between 2026-08-29 and 2026-09-05, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
+_Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
-- **Manifest lane enum must equal contract slug at freeze** [#630] → the freeze gate REFUSES unless the set of lane slugs in the manifest's lane table equals the set of contract slugs in the batch's contract directory — set equality both ways, so a manifest naming a lane with no contract fails as loudly as a contract no manifest names; the refusal names both sides of the mismatch rather than only the count; and a test freezes a batch with a renumbered slug and asserts the refusal · closed 2026-09-04 · `b3023108ccca`
-- **D2 per-consumer waiver-honoring** [#276] → a consumer-declared divergence for a component causes BOTH the prune sweep to SKIP it (no REFUSE-abort) AND the add/converge leg to NOT re-append it (no re-break) on a previously-deployed consumer, with tests · closed 2026-09-04 · `b3023108ccca`
-- **VISION.md superseded by a recreated root README.md** [#614] → a frozen contract names all four acts, enumerates every gate-coupled consumer from the census, names the three coupled edits, and prices the freshness and nine-member parity consequences ex-ante · closed 2026-09-03 · `a436545adfd4`
+- **The architect reads an inbox and request status is derived, not typed** [#1539] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
+- **Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file** [#1538] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `52b9a90bc75c`
+- **The outer loop runs in code** [#1535] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `a3d0ae31226f`
+- **The generated transport index is built first in B2 W2 and groups files by the seat that wrote them** [#1454] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
+- **HANDOFF_BOOT teaches the browser's triage-then-sequence order** [#1450] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `52b9a90bc75c`
+- **P11 and the paste builder treat superseded decision files as discharged Â· tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md** [#1332] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
+- **conductor.yml does not yet exclude operator_host from the CI pytest invocation Â· tasks/1103-conductor-yml-does-not-yet-exclude-operator-host-from.md** [#1103] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-13 · `8e00b78d36cc`
 
 ## Section 1 — Backlog at a glance
 
 | Theme | Open | Deferred | Closed | Size mix (live rows) |
 |---|---:|---:|---:|---|
-| [E1] Handoff continuity | 15 | 1 | 8 | M 7 · S 9 |
-| [E2] Enforced governance | 52 | 24 | 40 | L 2 · M 35 · S 39 |
-| [E3] Lessons feedback loop | 4 | 2 | 6 | M 4 · S 2 |
-| [E4] Decision management | 6 | 3 | 2 | M 3 · S 6 |
-| [E5] Canonical-file integrity | 18 | 4 | 12 | L 2 · M 8 · S 12 |
-| [E6] Cross-repo universalization | 9 | 9 | 14 | L 4 · M 7 · S 7 |
-| [E7] Tooling & evaluation | 52 | 9 | 39 | L 6 · M 27 · S 28 |
+| [E10] Batch convergence | 282 | 0 | 21 | L 21 · M 85 · S 176 |
+| [E1] Handoff continuity | 20 | 1 | 10 | M 8 · S 13 |
+| [E2] Enforced governance | 224 | 24 | 61 | L 15 · M 129 · S 104 |
+| [E3] Lessons feedback loop | 5 | 2 | 6 | M 5 · S 2 |
+| [E4] Decision management | 18 | 3 | 3 | M 7 · S 14 |
+| [E5] Canonical-file integrity | 30 | 4 | 12 | L 3 · M 14 · S 17 |
+| [E6] Cross-repo universalization | 15 | 9 | 14 | L 4 · M 10 · S 10 |
+| [E7] Tooling & evaluation | 112 | 8 | 54 | L 6 · M 53 · S 61 |
 | [E8] ARC-5 execution | 13 | 0 | 11 | M 4 · S 9 |
-| [E9] Fleet Desired-State System (North Star) | 4 | 1 | 8 | L 1 · M 1 · S 3 |
+| [E9] Fleet Desired-State System (North Star) | 5 | 1 | 8 | L 1 · M 2 · S 3 |
 
-**Total live rows: 226** (+10 over 7 days; 216 at the window start).
+**Total live rows: 776** (+143 over 7 days; 633 at the window start).
 
-Closed this window (3): [#630] · [#276] · [#614]
+Closed this window (7): [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332] · [#1103]
 
 ## Section 2 — Intake lifecycle gate
 
 _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a live BACKLOG row, or be explicitly parked with a trigger / review date. Neither is a **VIOLATION** — reported here, repaired elsewhere._
 
-> **4 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #65 `2026-09-01-tech-consumer-at-landing-identifier-gap.md`
+> **5 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #65 `2026-09-01-tech-consumer-at-landing-identifier-gap.md` · #118 `2026-10-18-tech-d0-rows-without-a-ratified-ruling.md`
 
 | Intake | Status | Doc | Anti-orphan | Detail | Archived |
 |---|---|---|---|---|---|
@@ -57,6 +62,17 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #22 | SEED | `2026-07-30-func-operator-decision-routing-and-standards.md` | — | — | — |
 | #23 | SEED | `2026-08-01-func-distillation-and-library-first.md` | — | — | — |
 | #67 | SEED | `2026-09-01-tech-lane-packet-artifacts-block.md` | — | — | — |
+| #103 | SEED | `2026-09-16-tech-browser-seat-findings-off-the-transport.md` | — | — | — |
+| #105 | SEED | `2026-09-23-changelog-review-seeds.md` | — | — | — |
+| #106 | SEED | `2026-10-10-tech-b2w2-session-review-seeds.md` | — | — | — |
+| #107 | SEED | `2026-10-14-tech-bw-rows-owed-consumers.md` | — | — | — |
+| #108 | SEED | `2026-10-15-tech-map-refresh-closed-loop.md` | — | — | — |
+| #109 | SEED | `2026-10-15-tech-ci-verdict-step-window-overlap.md` | — | — | — |
+| #110 | SEED | `2026-10-15-tech-build1-owed-rows.md` | — | — | — |
+| #112 | SEED | `2026-10-15-tech-outcome-scoreboard-rows.md` | — | — | — |
+| #115 | SEED | `2026-10-15-tech-test-strategy-rows.md` | — | — | — |
+| #116 | SEED | `2026-10-16-tech-harness-defect-register.md` | — | — | — |
+| #117 | SEED | `2026-10-16-tech-process-matrix-and-token-baseline.md` | — | — | — |
 | #34 | DRAFT | `2026-08-16-code-architecture-enforcement.md` | — | — | — |
 | #35 | DRAFT | `2026-08-17-tech-agent-instruction-layers-and-distillation.md` | — | — | — |
 | #36 | DRAFT | `2026-08-17-tech-repository-autonomy-and-gate-liveness.md` | — | — | — |
@@ -68,9 +84,38 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #63 | DRAFT | `2026-08-29-func-universal-per-repo-learning-loop.md` | — | — | — |
 | #68 | DRAFT | `2026-09-05-tech-handoff-process-v71-amendment-pack.md` | — | — | — |
 | #69 | DRAFT | `2026-09-05-tech-boot-frontier-prioritisation-weights.md` | — | — | — |
-| #70 | DRAFT | `2026-09-05-tech-aj-second-pass.md` | — | — | — |
-| #70 | DRAFT | `2026-09-05-tech-session-roles-with-a-carrier.md` | — | — | — |
 | #71 | DRAFT | `2026-09-05-tech-batch-p-audit-gate-speed.md` | — | — | — |
+| #72 | DRAFT | `2026-09-06-tech-derived-copies-registry.md` | — | — | — |
+| #73 | DRAFT | `2026-09-05-tech-shape-spec-tree-seal-to-consumers.md` | — | — | — |
+| #74 | DRAFT | `2026-09-06-tech-cross-session-communication-protocol.md` | — | — | — |
+| #75 | DRAFT | `2026-09-06-tech-copilot-offload-role-and-account-map.md` | — | — | — |
+| #76 | DRAFT | `2026-09-06-tech-browser-window-shape-and-decision-carriage.md` | — | — | — |
+| #77 | DRAFT | `2026-09-05-tech-session-roles-with-a-carrier.md` | — | — | — |
+| #78 | DRAFT | `2026-09-07-tech-reference-implementations-in-lane-contracts.md` | — | — | — |
+| #79 | DRAFT | `2026-09-07-tech-reviewer-re-executes-the-tests.md` | — | — | — |
+| #80 | DRAFT | `2026-09-07-tech-per-lane-resumable-state-file.md` | — | — | — |
+| #81 | DRAFT | `2026-09-07-tech-batch-board-rendered-from-lane-files.md` | — | — | — |
+| #82 | DRAFT | `2026-09-07-tech-retry-caps-as-hook-exit-codes.md` | — | — | — |
+| #83 | DRAFT | `2026-09-07-tech-per-lane-cost-from-receipts.md` | — | — | — |
+| #84 | DRAFT | `2026-09-07-tech-standards-mined-from-review-history.md` | — | — | — |
+| #85 | DRAFT | `2026-09-07-tech-scenario-response-measure-link.md` | — | — | — |
+| #86 | DRAFT | `2026-09-07-tech-orphan-census-organ.md` | — | — | — |
+| #87 | DRAFT | `2026-09-07-tech-repo-catalog-and-id-resolver.md` | — | — | — |
+| #88 | DRAFT | `2026-09-07-tech-aj-tools-and-evals-extraction.md` | — | — | — |
+| #89 | DRAFT | `2026-09-09-tech-recovery-plan.md` | — | — | — |
+| #90 | DRAFT | `2026-09-09-tech-window-close-rulings.md` | — | — | — |
+| #91 | DRAFT | `2026-09-10-tech-review-consumption.md` | — | — | — |
+| #92 | DRAFT | `2026-09-10-tech-harness-is-process.md` | — | — | — |
+| #93 | DRAFT | `2026-09-11-tech-batch-x-roster.md` | — | — | — |
+| #95 | DRAFT | `2026-09-15-tech-preflight-cannot-evaluate-verdict.md` | — | — | — |
+| #96 | DRAFT | `2026-09-15-tech-corpus-wide-locator-resolution.md` | — | — | — |
+| #97 | DRAFT | `2026-09-15-tech-command-declares-the-module-it-runs.md` | — | — | — |
+| #98 | DRAFT | `2026-09-15-tech-provider-agreement-over-behaviour.md` | — | — | — |
+| #99 | DRAFT | `2026-09-15-tech-locator-verifier-skips-an-all-digit-sha.md` | — | — | — |
+| #100 | DRAFT | `2026-09-15-tech-floor-repin-reds-every-historical-manifest.md` | — | — | — |
+| #101 | DRAFT | `2026-09-15-tech-runtime-resource-lifecycle.md` | — | — | — |
+| #102 | DRAFT | `2026-09-15-tech-codespace-lane-state-observability.md` | — | — | — |
+| #104 | DRAFT | `2026-09-17-tech-what-makes-a-seat-use-the-organs.md` | — | — | — |
 | #43 | READY | `2026-08-24-tech-ruling-register-landing-gap.md` | — | — | — |
 | #44 | READY | `2026-08-24-tech-disposition-register-schema.md` | — | — | — |
 | #45 | READY | `2026-08-24-tech-substrate-router.md` | — | — | — |
@@ -109,6 +154,9 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #38 | ACCEPTED | `2026-08-17-tech-fleet-config-standardization.md` | carried | [#559] | — |
 | #39 | ACCEPTED | `2026-08-17-tech-off-machine-agent-substrate.md` | carried | [#554] · [#561] | — |
 | #65 | ACCEPTED | `2026-09-01-tech-consumer-at-landing-identifier-gap.md` | VIOLATION (no carrier) | — | — |
+| #70 | ACCEPTED | `2026-09-05-tech-aj-second-pass.md` | carried | [#695] · [#696] | — |
+| #94 | ACCEPTED | `2026-09-13-tech-command-files-as-a-wiring-surface.md` | carried | [#747] | — |
+| #118 | ACCEPTED | `2026-10-18-tech-d0-rows-without-a-ratified-ruling.md` | VIOLATION (no carrier) | — | — |
 | #1 | CONSUMED | `2026-07-06-functional-architect-nightly-loop.md` | — | — | yes |
 | #2 | CONSUMED | `2026-07-06-platform-feature-scan.md` | — | — | yes |
 | #3 | CONSUMED | `2026-07-07-test-suite-hygiene.md` | — | — | yes |
@@ -128,9 +176,9 @@ _Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in `docs/intake/archive
 
 _Status per ADR, plus the archival candidates. In this repo **Accepted is not an archive trigger** — `docs/decisions/README.md` keys the bar on `Superseded` / `Deprecated` only, so an implemented-and-still-binding ADR correctly stays put. The flag below is a report; no file is moved._
 
-**Status mix:** (unparsed) 1 · Accepted 82 · Deprecated 1 · Explored, not adopted 1 · Partially superseded 3 · Proposed 1 · Superseded 1 · open | in-progress | blocked | done 1
+**Status mix:** (unparsed) 1 · Accepted 90 · Deprecated 1 · Explored, not adopted 2 · Partially superseded 3 · Proposed 6 · Superseded 1 · open | in-progress | blocked | done 1
 
-**Header coverage:** 56 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
+**Header coverage:** 70 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
 
 | ADR | Status | Date | Flag | Title |
 |---|---|---|---|---|
@@ -138,7 +186,7 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-43 | Accepted | (unparsed) | **OFF-GRAMMAR-FILENAME** | Cross-project transcript routing |
 | ADR-61 | (unparsed) | (unparsed) | **UNPARSED** | Git Worktree Pattern for Parallel Claude Code Sessions |
 
-<details><summary>Full ledger (91 ADRs)</summary>
+<details><summary>Full ledger (105 ADRs)</summary>
 
 | ADR | Status | Date | Home | Read as | Title |
 |---|---|---|---|---|---|
@@ -232,7 +280,21 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-113 | Accepted | 2026-08-19 | decisions/ | shared | The L0–L5 maturity ladder is ratified vocabulary — and it is one of three "L" namespaces, not the only one |
 | ADR-114 | **Accepted** | 2026-08-22 | decisions/ | shared | May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost? |
 | ADR-115 | Accepted | 2026-08-25 | decisions/ | shared | `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act |
-| ADR-116 | Proposed | 2026-08-29 | decisions/ | shared | The fuzzy-band acceptance shape — non-binary closure for decks, prose and judgment artifacts |
+| ADR-116 | Explored, not adopted | 2026-08-29 | decisions/ | shared | The fuzzy-band acceptance shape — non-binary closure for decks, prose and judgment artifacts |
+| ADR-117 | Proposed | 2026-09-06 | decisions/ | shared | Carrier split by divergence — push for pinnable/waivable, pull for fleet-uniform |
+| ADR-118 | Proposed <!-- The operator's ruling and the filing prompt call this state "DRAFT"; `Proposed` is the enum's spelling of it. NOT ratified. See "Status wording" below. --> | 2026-09-07 | decisions/ | shared | One graph — `file_purpose_graph.py` is the repo graph; organs are views; LLMs are methods on the structure, never its judge |
+| ADR-119 | Accepted | 2026-09-13 | decisions/ | shared | A command file counts as a `[#664]` wiring surface only while invocations are recorded — adoption decays, it is not conferred |
+| ADR-120 | Accepted | 2026-09-20 | decisions/ | shared | The spine is the whole loop — `harness.yaml` runs stages 1-16, evaluation before build |
+| ADR-121 | Proposed | 2026-09-23 | decisions/ | shared | Operational state is a single-writer event log on a git state ref; SQLite is a disposable projection |
+| ADR-122 | Accepted | 2026-09-24 | decisions/ | shared | A task is a typed record in git; every backlog view is a projection |
+| ADR-123 | Accepted | 2026-09-25 | decisions/ | shared | The harness ships as one versioned artefact, pinned in each consumer and upgraded by pull request |
+| ADR-124 | Accepted | 2026-09-25 | decisions/ | shared | One code standard, enforced by existing tools adopted one at a time; every ADR carries its quality attributes |
+| ADR-125 | Proposed | 2026-09-25 | decisions/ | shared | Governing prose is replaced by code and data, file by file, and removed only after every reader is re-pointed |
+| ADR-126 | Proposed | 2026-09-25 | decisions/ | shared | Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits |
+| ADR-127 | Accepted | 2026-09-27 | decisions/ | shared | CI on Windows and Linux is the verification verdict; the harness and its consumers are OS-agnostic, checked |
+| ADR-128 | Accepted | 2026-09-29 | decisions/ | shared | The handoff system, second pass — paste shape and BD-manifest ratified; HANDOFF_BOOT rewritten to teach dispatch and carry R30; B1 stays first |
+| ADR-129 | Accepted | 2026-10-01 | decisions/ | shared | The handoff cut is gated by handoff-relevant checks only; the whole-repository verdict is reported, and the preflight moves to batch close |
+| ADR-130 | Proposed | 2026-10-15 | decisions/ | shared | The outer loop runs in code — Conductor E completion |
 
 </details>
 

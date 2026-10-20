@@ -1,3 +1,5 @@
 {"ts": "2026-10-16T01:11:06Z", "hook_id": "cmd:hook_launcher.py", "pid": 28844, "age_s": 131.565, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
 {"ts": "2026-10-16T05:42:27Z", "hook_id": "lane-handback-gate", "pid": 25824, "age_s": 227.939, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
 {"ts": "2026-10-16T05:42:27Z", "hook_id": "lane-end-guard", "pid": 43320, "age_s": 227.362, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
+{"ts": "2026-10-20T10:26:09Z", "hook_id": "scope-guard", "pid": 20408, "age_s": 126.204, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
+{"ts": "2026-10-20T10:26:09Z", "hook_id": "scope-guard", "pid": 37176, "age_s": 128.16, "session_id": "1", "threshold_s": 30.0, "reason": "zero-cpu-after-threshold"}
