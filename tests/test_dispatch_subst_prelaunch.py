@@ -254,3 +254,39 @@ def test_e2sg2_codespace_exec_good_batch_still_reaches_run_prelaunch(contract, m
     out = _invoke_codespace_exec(contract)
     assert reached == [1], out.output
     assert "batch-grammar" not in out.output
+
+
+# --- E2-SG-2: batch grammar precedes click's own contract-path validation ---------------------
+
+def _codespace_exec_missing(tmp_path, batch):
+    return CliRunner().invoke(d.cli, [
+        "codespace-exec", str(tmp_path / "NOPE.md"), "--repo", "o/r", "--slug", "x",
+        "--argv-json", '["claude"]', "--batch", batch])
+
+
+def _repair_missing(tmp_path, batch):
+    return CliRunner().invoke(d.cli, [
+        "repair", "x", str(tmp_path / "NOPE.md"), "--attempt", "1", "--model", "claude-sonnet-5-5",
+        "--effort", "medium", "--batch", batch])
+
+
+@pytest.mark.parametrize("batch", ["B1", "E2.0junk"])
+def test_e2sg2_missing_contract_codespace_exec_refuses_batch_grammar_first(batch, tmp_path):
+    out = _codespace_exec_missing(tmp_path, batch)
+    assert out.exit_code == 5, out.output
+    assert "REFUSED [batch-grammar]" in out.output
+
+
+def test_e2sg2_missing_contract_repair_refuses_batch_grammar_first(tmp_path):
+    out = _repair_missing(tmp_path, "x")
+    assert out.exit_code == 5, out.output
+    assert "REFUSED [batch-grammar]" in out.output
+
+
+@pytest.mark.parametrize("verb", [_codespace_exec_missing, _repair_missing])
+def test_e2sg2_missing_contract_good_batch_still_fails_on_the_contract(verb, tmp_path):
+    out = verb(tmp_path, "E2.0")
+    assert out.exit_code == 2, out.output
+    assert "does not exist" in out.output
+    assert "batch-grammar" not in out.output
+
