@@ -117,3 +117,25 @@ def test_lint_flags_missing_or_unparseable_head_row(tmp_path):
     assert any("Head row" in d for d in sc.lint_handover(text[:start] + text[end:]))
     broken = text[:start] + "## Head row\n\nno table here\n\n" + text[end:]
     assert any("head row" in d for d in sc.lint_handover(broken))
+
+
+def _stop(state):
+    t = [0.0]
+
+    def sleep(s):
+        t[0] += s
+    return sc.verify_stop("job-1234567890", "/wt/x", list_agents=lambda: [],
+                          read_job=lambda j: {"state": state, "inFlight": {"queued": 0}},
+                          find_processes=lambda k: [], window=2.0, interval=1.0,
+                          sleep=sleep, clock=lambda: t[0])
+
+
+def test_verify_stop_accepts_done_state():
+    verdict = _stop("done")
+    assert verdict.verified is True and verdict.reasons == []
+
+
+def test_verify_stop_rejects_working_state_naming_it():
+    verdict = _stop("working")
+    assert verdict.verified is False
+    assert any("working" in r for r in verdict.reasons)

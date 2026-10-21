@@ -240,8 +240,8 @@ def verify_stop(job_id: str, worktree: str, *, list_agents: Optional[Callable[[]
                 break
         job = read_job(job_id)
         if job is not None:
-            if job.get("state") != "stopped":
-                reasons.append(f"job state is {job.get('state')!r}, not 'stopped'")
+            if job.get("state") not in ("stopped", "done"):
+                reasons.append(f"job state is {job.get('state')!r}, not 'stopped' or 'done'")
             queued = int((job.get("inFlight") or {}).get("queued") or 0)
             if queued:
                 reasons.append(f"{queued} message(s) still queued for the stopped seat")
