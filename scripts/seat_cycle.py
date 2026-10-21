@@ -33,7 +33,8 @@ import click
 import yaml
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "ecosystem" / "seat-cycle.yaml"
-SECTIONS = ("State", "Next steps", "Open decisions", "Live children", "Seat bookkeeping")
+SECTIONS = ("State", "Next steps", "Open decisions", "Live children", "Seat bookkeeping",
+            "First act (successor)")
 _BOUND = re.compile(r"(?m)^BOUND seat=\S+ cycle=\S+ job=(\S+) model=\S+\s*$")
 
 
@@ -117,14 +118,19 @@ def successor_model(role: str, registry: Optional[Path] = None) -> str:
 
 def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, next_steps: Sequence[str],
                    open_decisions: Sequence[str], live_children: Sequence[str], bookkeeping: str,
-                   by: str) -> Path:
+                   by: str, successor_slug: Optional[str] = None) -> Path:
     steps = "\n".join(f"{i}. {s}" for i, s in enumerate(next_steps, 1))
     bullets = lambda items: "\n".join(f"- {x}" for x in items)   # noqa: E731
+    path = Path(path)
+    slug = successor_slug or f"{seat}-c{cycle + 1}"
+    command = (f"uv run --locked python scripts/seat_cycle.py bound --handover {path.resolve()} "
+               f"--name {slug} --seat {seat} --cycle {cycle}")
     text = (f"carried-by: OPEN\nkind: HANDOVER\nseat: {seat} role={role} cycle={cycle}\nby: {by}\n\n"
             f"# Handover {seat} cycle {cycle}\n\n## State\n\n{state}\n\n## Next steps\n\n{steps}\n\n"
             f"## Open decisions\n\n{bullets(open_decisions)}\n\n## Live children\n\n{bullets(live_children)}\n\n"
-            f"## Seat bookkeeping\n\n{bookkeeping}\n")
-    path = Path(path)
+            f"## Seat bookkeeping\n\n{bookkeeping}\n\n"
+            f"## First act (successor)\n\nAs your FIRST action, before anything else, run exactly:\n\n"
+            f"```\n{command}\n```\n\nThen read the sections above.\n")
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -302,11 +308,12 @@ def cycle(seat: str, *, role: str, transcript: Path, bound_age_hours: float, con
                                               interval=poll["interval_seconds"]))
     wait_bound = wait_bound or (lambda h, j: await_bound(h, job_id=j, timeout=wait["timeout_seconds"],
                                                          interval=wait["interval_seconds"]))
+    slug = f"{seat}-c{cycle_no + 1}"
     handover = write_handover(Path(handover_dir) / f"HANDOVER-{seat}-cycle-{cycle_no}.md", seat=seat,
                               role=role, cycle=cycle_no, state=state, next_steps=next_steps,
                               open_decisions=open_decisions, live_children=live_children,
-                              bookkeeping=bookkeeping, by=seat)
-    successor = launch_successor(handover, role=role, slug=f"{seat}-c{cycle_no + 1}", batch=batch,
+                              bookkeeping=bookkeeping, by=seat, successor_slug=slug)
+    successor = launch_successor(handover, role=role, slug=slug, batch=batch,
                                  base=base, repo_root=repo_root, successor_lane=successor_lane)
     bound = wait_bound(handover, successor.job_id)
     stop(seat)
@@ -328,6 +335,61 @@ def cmd_check(role: str, transcript: Path, bound_age_hours: float) -> None:
     crossed = threshold_crossed(role, tokens=context_tokens(transcript), age_hours=bound_age_hours,
                                 config=load_config())
     click.echo("CROSSED" if crossed else "OK")
+
+
+def _find_transcript(session_id: str) -> Optional[Path]:
+    hits = sorted((Path.home() / ".claude" / "projects").glob(f"*/{session_id}.jsonl"))
+    return hits[0] if hits else None
+
+
+def served_model(transcript: Optional[Path]) -> str:
+    """The `model` of the LAST assistant record of a transcript; "unknown" when unreadable."""
+    if transcript is None:
+        return "unknown"
+    try:
+        lines = Path(transcript).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return "unknown"
+    for line in reversed(lines):
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == "assistant":
+            model = rec.get("model") or (rec.get("message") or {}).get("model")
+            return str(model).replace(" ", "_") if model else "unknown"
+    return "unknown"
+
+
+def bind_successor(handover: Path, *, name: str, seat: str, cycle_no: int,
+                   list_agents: Optional[Callable[[], list]] = None,
+                   find_transcript: Optional[Callable[[str], Optional[Path]]] = None) -> str:
+    matches = [a for a in (list_agents or _list_agents)() if a.get("name") == name]
+    if len(matches) != 1:
+        raise SeatCycleRefused(f"{len(matches)} listed agents are named {name!r}; expected exactly 1")
+    job_id, session_id = matches[0].get("id"), matches[0].get("sessionId")
+    if not job_id:
+        raise SeatCycleRefused(f"agent {name!r} has no id")
+    transcript = (find_transcript or _find_transcript)(session_id) if session_id else None
+    return write_bound(handover, job_id=job_id, served_model=served_model(transcript), seat=seat,
+                       cycle=cycle_no)
+
+
+@cli.command("bound")
+@click.option("--handover", required=True, type=click.Path(path_type=Path))
+@click.option("--name", required=True, help="The successor's own agent name (its launch slug).")
+@click.option("--seat", required=True)
+@click.option("--cycle", "cycle_no", required=True, type=int)
+def cmd_bound(handover: Path, name: str, seat: str, cycle_no: int,
+              list_agents: Optional[Callable[[], list]] = None,
+              find_transcript: Optional[Callable[[str], Optional[Path]]] = None) -> None:
+    try:
+        line = bind_successor(handover, name=name, seat=seat, cycle_no=cycle_no,
+                              list_agents=list_agents, find_transcript=find_transcript)
+    except SeatCycleRefused as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    click.echo(line)
 
 
 @cli.command("verify-stop")

@@ -25,6 +25,16 @@ by: <outgoing seat id>
 
 <Cycle count, batch id, base branch, worktree: whatever the successor needs to keep the seat's books.>
 
-<!-- The successor's first act is to read this file, then append one BOUND line:
+## First act (successor)
+
+As your FIRST action, before anything else, run exactly:
+
+```
+uv run --locked python scripts/seat_cycle.py bound --handover <abs handover path> --name <successor slug> --seat <outgoing seat> --cycle <n>
+```
+
+Then read the sections above.
+
+<!-- That command appends one BOUND line:
 BOUND seat=<seat> cycle=<n> job=<successor job id> model=<served model>
 Until that line exists the outgoing seat keeps running; it is stopped only after BOUND. -->
