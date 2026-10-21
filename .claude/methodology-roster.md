@@ -8,6 +8,7 @@
 - `.github/workflows/conductor.yml` + `scripts/conductor.py` — conductor E's Actions runner and phase gate ([#689], AX3-2; declaration-only until batch X's waves close)
 - `deploy/conductor-required-checks.ruleset.json` — the required-check ruleset as a pure Rulesets-API payload, arriving `enforcement: disabled`; `gh api repos/{owner}/{repo}/rulesets --input <file>` applies it, and arming it is a per-consumer operator act
 - `docs/intake/` + `templates/intake-template.md` — the ADR-98 requirements spine (carried replica of the hub source)
+- `scripts/seat_cycle.py` + `ecosystem/seat-cycle.yaml` + `templates/seat-handover-template.md` — the R179 seat-cycle mechanism (carried replicas; the launch path, hub `dispatch.py successor`, is not carried)
 - `INSTALL.md` — tier1-lifecycle plugin install guide, hub-owned + deploy-carried (Surface 8 ruling)
 - `.vscode/` shared editor config — owner=hub / owner=repo boundary decoration (grey / navy, dark theme)
 - Plugin `tier1-lifecycle@dev-knowledge-methodology` enabled (`.claude/settings.json`)

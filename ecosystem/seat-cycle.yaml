@@ -7,13 +7,17 @@
 #
 # A seat is replaced when EITHER limit is crossed: context tokens >= context_tokens, or the seat's
 # age (hours) >= max_age_hours.
+#
+# `effort` is the successor's launch effort for that role (read by `launch_successor`).
 threshold:
   orchestrator:
     context_tokens: 300000
     max_age_hours: 3.0
+    effort: medium
   integrator:
     context_tokens: 300000
     max_age_hours: 3.0
+    effort: high
 
 # After `claude stop`, the stop is VERIFIED by polling for `window_seconds` every `interval_seconds`;
 # the LAST poll is the verdict.

@@ -504,6 +504,15 @@ carriers:
         # constants -- so adding README.md to either side alone REDs shipped specs. The
         # spine re-point therefore requires a manifest VERSION BUMP, not a retro-edit, and
         # rides ADR-114 option (C) with it.
+        #
+        # R179 the seat-cycle mechanism: the script, its threshold/effort config, and the
+        # handover skeleton. Hash-guarded replicas, same source and path.
+        - source: scripts/seat_cycle.py
+          path: scripts/seat_cycle.py
+        - source: ecosystem/seat-cycle.yaml
+          path: ecosystem/seat-cycle.yaml
+        - source: templates/seat-handover-template.md
+          path: templates/seat-handover-template.md
 
   - id: boot-inversion
     order: 8
@@ -668,6 +677,32 @@ components:
     roster:
       section: header
       line: "`docs/intake/` + `templates/intake-template.md` — the ADR-98 requirements spine (carried replica of the hub source)"
+
+  - id: seat-cycle
+    # Known gap, recorded not hidden: `dispatch.py`'s successor verb and `provider_registry`
+    # are the hub's launch path and are NOT carried. A consumer's seat runs the hub's
+    # `dispatch.py successor` verb; the carried `scripts/seat_cycle.py` imports both lazily and
+    # refuses (SeatCycleRefused) when they are absent, while config, threshold, handover, BOUND
+    # and verify-stop work without them.
+    kind: config
+    carrier: docs
+    status: active
+    waivable: true   # a seat-handover affordance, not a gate; waiving costs the by-code cycle, not enforcement
+    verify: hash
+    engages:                    # OBSERVED (git-state) — carried files, not a firing hook
+      trigger: deploy-time
+      observable: git-state
+      expect: "scripts/seat_cycle.py + ecosystem/seat-cycle.yaml + templates/seat-handover-template.md present (hash-matched)"
+    artifacts:
+      - path: scripts/seat_cycle.py
+        source: scripts/seat_cycle.py
+      - path: ecosystem/seat-cycle.yaml
+        source: ecosystem/seat-cycle.yaml
+      - path: templates/seat-handover-template.md
+        source: templates/seat-handover-template.md
+    roster:
+      section: header
+      line: "`scripts/seat_cycle.py` + `ecosystem/seat-cycle.yaml` + `templates/seat-handover-template.md` — the R179 seat-cycle mechanism (carried replicas; the launch path, hub `dispatch.py successor`, is not carried)"
 
   - id: install-guide
     kind: config   # same file-copy kind as intake-area / vscode / codex-agents-config (see note there)

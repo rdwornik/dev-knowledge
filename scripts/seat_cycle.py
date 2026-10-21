@@ -32,9 +32,6 @@ from typing import Any, Callable, Optional, Sequence
 import click
 import yaml
 
-import dispatch
-import provider_registry
-
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "ecosystem" / "seat-cycle.yaml"
 SECTIONS = ("State", "Next steps", "Open decisions", "Live children", "Seat bookkeeping")
 _BOUND = re.compile(r"(?m)^BOUND seat=\S+ cycle=\S+ job=(\S+) model=\S+\s*$")
@@ -42,6 +39,24 @@ _BOUND = re.compile(r"(?m)^BOUND seat=\S+ cycle=\S+ job=(\S+) model=\S+\s*$")
 
 class SeatCycleRefused(Exception):
     pass
+
+
+def _dispatch():
+    try:
+        import dispatch
+    except ImportError as exc:
+        raise SeatCycleRefused("the launch path is the hub's dispatch.py successor verb; "
+                               "it is not carried here") from exc
+    return dispatch
+
+
+def _registry():
+    try:
+        import provider_registry
+    except ImportError as exc:
+        raise SeatCycleRefused("the role table is the hub's provider_registry; "
+                               "it is not carried here") from exc
+    return provider_registry
 
 
 @dataclass(frozen=True)
@@ -95,8 +110,9 @@ def threshold_crossed(role: str, *, tokens: float, age_hours: float, config: dic
 
 
 def successor_model(role: str, registry: Optional[Path] = None) -> str:
-    return provider_registry.anthropic_role_model(f"seat-{role}", registry) if registry else \
-        provider_registry.anthropic_role_model(f"seat-{role}")
+    reg = _registry()
+    return reg.anthropic_role_model(f"seat-{role}", registry) if registry else \
+        reg.anthropic_role_model(f"seat-{role}")
 
 
 def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, next_steps: Sequence[str],
@@ -152,13 +168,19 @@ def await_bound(handover: Path, *, job_id: str, timeout: float, interval: float 
 
 
 def launch_successor(handover: Path, *, role: str, slug: str, batch: str, base: str, repo_root: Path,
-                     model: Optional[str] = None, effort: str = "high",
-                     successor_lane: Callable[..., Any] = dispatch.successor_lane) -> Successor:
+                     model: Optional[str] = None, effort: Optional[str] = None,
+                                          successor_lane: Optional[Callable[..., Any]] = None) -> Successor:
     if model is not None:
         raise SeatCycleRefused("the successor model comes from the role table; an override is refused")
     defects = lint_handover(Path(handover).read_text(encoding="utf-8"))
     if defects:
         raise SeatCycleRefused("handover refused: " + "; ".join(defects))
+    dispatch = _dispatch()
+    if effort is None:
+        effort = ((load_config().get("threshold") or {}).get(role) or {}).get("effort")
+        if not effort:
+            raise SeatCycleRefused(f"no effort declared for role {role!r} in seat-cycle.yaml")
+    successor_lane = successor_lane or dispatch.successor_lane
     chosen = successor_model(role)
     request = dispatch.SuccessorRequest(slug=slug, contract=Path(handover), base=base, batch=batch,
                                         model=chosen, effort=effort)
@@ -267,7 +289,7 @@ def cycle(seat: str, *, role: str, transcript: Path, bound_age_hours: float, con
           handover_dir: Path, cycle_no: int, batch: str, base: str, repo_root: Path, state: str,
           next_steps: Sequence[str], open_decisions: Sequence[str], live_children: Sequence[str],
           bookkeeping: str, worktree: str = "",
-          successor_lane: Callable[..., Any] = dispatch.successor_lane,
+          successor_lane: Optional[Callable[..., Any]] = None,
           stop: Callable[[str], Any] = _stop,
           verify: Optional[Callable[[str], StopVerdict]] = None,
           wait_bound: Optional[Callable[[Path, str], str]] = None) -> CycleResult:
@@ -346,8 +368,10 @@ def cmd_run(seat, role, transcript, bound_age_hours, handover_dir, cycle_no, bat
                   base=base, repo_root=repo_root, state=state, next_steps=next_steps,
                   open_decisions=open_decisions or ["none"], live_children=live_children or ["none"],
                   bookkeeping=bookkeeping, worktree=worktree)
-    except (SeatCycleRefused, dispatch.DispatchRefused) as exc:
-        raise click.ClickException(str(exc)) from exc
+    except Exception as exc:
+        if isinstance(exc, SeatCycleRefused) or type(exc).__name__ == "DispatchRefused":
+            raise click.ClickException(str(exc)) from exc
+        raise
     if r.handover is None:
         click.echo("OK: below threshold, nothing done")
         return
