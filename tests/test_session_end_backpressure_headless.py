@@ -1,6 +1,6 @@
-"""RED tests: Stop hook is silent in unattended (headless/bg) sessions and fires once per
-session_id in attended ones. Black-box: the hook is copied into a tmp git repo and run as a
-subprocess with cwd=repo."""
+"""Stop hook is silent unless the session is provably interactive (CLAUDE_CODE_SESSION_ATTENDED
+== "1" exactly) and then nudges at most once per session_id. Black-box: the hook is copied into
+a tmp git repo and run as a subprocess with cwd=repo."""
 
 import json
 import os
@@ -12,8 +12,6 @@ from pathlib import Path
 import pytest
 
 _HOOK = Path(__file__).resolve().parent.parent / "scripts" / "session_end_backpressure.py"
-_SID_A = "5f0c1e5e-7a53-4a3e-9a51-0c1d2b3a4f60"
-_SID_B = "9b2d7c44-1e0f-4c7a-8d35-6a7b8c9d0e1f"
 
 
 def _git(repo, *args):
@@ -62,7 +60,7 @@ def _run(repo, env, stdin):
     )
 
 
-def _stop(sid=_SID_A, active=False):
+def _stop(sid="s-default", active=False):
     d = {"hook_event_name": "Stop", "stop_hook_active": active}
     if sid is not None:
         d["session_id"] = sid
@@ -122,13 +120,42 @@ def test_interactive_once_per_session_id(repo, markers):
     assert _status(repo) == before
 
 
-def test_attended_var_absent_behaves_like_interactive(repo, markers):
+def test_attended_var_absent_is_silent(repo, markers):
     env = _env(markers)
     assert "CLAUDE_CODE_SESSION_ATTENDED" not in env
-    first = _run(repo, env, _stop("s-A"))
-    assert first.returncode == 0
-    assert "dirty tree" in _ctx(first)
-    assert _run(repo, env, _stop("s-A")).stdout == ""
+    p = _run(repo, env, _stop("s-A"))
+    assert p.returncode == 0
+    assert p.stdout == ""
+    assert not markers.exists() or list(markers.iterdir()) == []
+
+
+@pytest.mark.parametrize("value", ["", "true", " 1", "01", "2"])
+def test_non_exact_attended_values_are_silent(repo, markers, value):
+    p = _run(repo, _env(markers, CLAUDE_CODE_SESSION_ATTENDED=value), _stop("s-A"))
+    assert p.returncode == 0
+    assert p.stdout == ""
+    assert not markers.exists() or list(markers.iterdir()) == []
+
+
+def test_headless_silent_on_clean_tree_with_commits_ahead(repo, markers):
+    (repo / "untracked.txt").unlink()
+    for i in range(3):
+        (repo / f"f{i}.txt").write_text(f"{i}\n", encoding="utf-8")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", f"c{i}")
+    assert _status(repo) == ""
+    p = _run(repo, _env(markers, **HEADLESS), _stop("s-A"))
+    assert p.returncode == 0
+    assert p.stdout == ""
+    assert not markers.exists() or list(markers.iterdir()) == []
+
+
+@pytest.mark.parametrize("sid", [".", ".."])
+def test_dot_session_id_still_prints(repo, markers, sid):
+    p = _run(repo, _env(markers, CLAUDE_CODE_SESSION_ATTENDED="1"), _stop(sid))
+    assert p.returncode == 0
+    assert "Traceback" not in p.stderr
+    assert "dirty tree" in _ctx(p)
 
 
 def test_no_session_id_prints_every_time(repo, markers):
