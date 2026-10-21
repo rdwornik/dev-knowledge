@@ -164,7 +164,7 @@ def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, 
             f"## Seat bookkeeping\n\n{bookkeeping}\n\n"
             f"## First act (successor)\n\nFIRST read every section above. THEN, as the next action, run exactly:\n\n"
             f"```\n{command}\n```\n\nThe BOUND line it appends means the handover is consumed.\n")
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
     return path
 
 
@@ -198,7 +198,7 @@ def write_bound(handover: Path, *, job_id: str, served_model: str, seat: str, cy
     line = f"BOUND seat={seat} cycle={cycle} job={job_id} model={served_model}"
     text = Path(handover).read_text(encoding="utf-8")
     sep = "" if text.endswith("\n") else "\n"
-    Path(handover).write_text(f"{text}{sep}\n{line}\n", encoding="utf-8")
+    Path(handover).write_text(f"{text}{sep}\n{line}\n", encoding="utf-8", newline="\n")
     return line
 
 

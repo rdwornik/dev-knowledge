@@ -234,8 +234,10 @@ def test_await_bound_and_write_bound(tmp_path):
 
 def test_context_tokens_last_usage_wins(tmp_path):
     p = tmp_path / "t.jsonl"
-    rec = lambda i, c, r: json.dumps({"message": {"usage": {"input_tokens": i, "cache_creation_input_tokens": c,
-                                                             "cache_read_input_tokens": r}}})
+    def rec(i, c, r):
+        return json.dumps({"message": {"usage": {"input_tokens": i, "cache_creation_input_tokens": c,
+                                                 "cache_read_input_tokens": r}}})
+
     p.write_text("\n".join([rec(1, 2, 3), json.dumps({"type": "user"}), rec(10, 200, 3000)]) + "\n", encoding="utf-8")
     assert sc.context_tokens(p) == 3210
     assert sc.context_tokens(tmp_path / "missing.jsonl") == 0

@@ -258,6 +258,8 @@ OWNED_ELSEWHERE = {    # another lane of batch B2-W1 owns the call site
     "gen_lane_contract": "lane W1-4 (item 5, after this lane merges)",
     "seat_state": "no lane of B2-W1 owns it: ROWS-OWED, route its `--path` write through "
                   "transport.emit",
+    "seat_cycle": "no lane of B2-W1 owns it: ROWS-OWED, route its HANDOVER write through "
+                  "transport.emit",
 }
 ROLES = {"operator", "lane", "integrator"}
 
