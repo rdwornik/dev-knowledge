@@ -203,7 +203,8 @@ jobs:
           # [#1103] (R81.3): `-m "not operator_host"` deselects the tests that read the operator's
           # own disk (tests/conftest.py registers the marker). One selector for both legs; the
           # windows leg never collected them, so only the ubuntu leg's set changes.
-          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup -m "not operator_host" 2>&1 | tee pytest.out
+          # e2-test-flow-metrics: --durations=50 --junitxml, for the record (no .test_durations exists yet)
+          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup -m "not operator_host" --durations=50 --junitxml=junit.xml 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
         id: gate
@@ -264,6 +265,7 @@ jobs:
             pytest.out
             suite-gate.out
             known-reds-compare.out
+            junit.xml
           retention-days: 90
           if-no-files-found: warn
       - name: Fail the job on the known-reds compare's verdict, not the frozen-baseline gate's (LANE-5B3-8 repair 1)
@@ -357,10 +359,19 @@ jobs:
     # await: #N". The session that sees it files the repair row and feeds it to the integrator's
     # queue. Scoped to `schedule`: a push run never opens an Issue. Nothing here is a required
     # context, so it can never hold a merge.
+    #
+    # e2-test-flow-metrics (lane L1): this schedule-only job also hosts the nightly TEST-FLOW
+    # RECORD (`scripts/test_flow_metrics.py record`, M1-M4), because a new job would have to join
+    # the `gate` job's `needs` and its allowed-skips, which lane L2 owns. `workflow_dispatch` is
+    # admitted so the record can be produced on a branch before its first scheduled run; the
+    # Issue step below stays `schedule`-only. No CI job pushes a record into the repo (the
+    # precedent: report-only-wall and substrate-heartbeat upload artifacts only), so the record is
+    # the `test-flow-metrics-record` artifact and the laptop ingests it with
+    # `test_flow_metrics.py record --from-run <run id>`.
     needs: pytest
-    if: ${{ always() && github.event_name == 'schedule' }}
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: read
       actions: read
@@ -369,7 +380,32 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19" # MUST equal pyproject.toml [tool.uv] required-version EXACTLY (see the pytest job)
+      - name: Compute the test-flow record (M1-M4)
+        # `continue-on-error`: the record is an instrument, never a gate on the run it rides on.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          uv run --locked python scripts/test_flow_metrics.py record --out test-flow-record.json
+          {
+            echo "## test-flow record (M1-M4) -- \`${GITHUB_SHA}\`"
+            echo
+            echo '```json'
+            cat test-flow-record.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-flow-metrics-record
+          path: test-flow-record.json
+          retention-days: 90
+          if-no-files-found: warn
       - name: Open a nightly-triage Issue when the Windows leg is not green
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           set -e
           concl=$(gh run view "${{ github.run_id }}" --json jobs \

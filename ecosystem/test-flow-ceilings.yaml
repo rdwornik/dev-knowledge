@@ -1,0 +1,23 @@
+# test-flow-ceilings.yaml -- committed ceilings for the four test-flow numbers (lane L1, e2-test-flow-metrics).
+#
+# RATCHET RULE: a ceiling only TIGHTENS. Nobody raises one without an operator ruling;
+# tests/test_test_flow_ceilings.py compares this file with the one at origin/main and fails on
+# a raised ceiling. Lowering one is the lane that moved the number: it lowers the ceiling in the
+# same change, citing the record that proves it (T4: push->main <= 2 h median now, toward <= 60 min).
+#
+# ARMED: while `armed: false`, an absent or empty logs/TEST-FLOW-METRICS.jsonl is a pass that prints
+# why. `armed: true` makes an absent or stale (> 3 days) record RED. The orchestrator flips it after
+# the first scheduled record exists -- the lane that built this file does not.
+# While `armed: false` a record that breaks a ceiling is reported as UNARMED findings and the live test
+# PASSES; only `armed: true` makes a broken ceiling RED.
+#
+# A metric the record cannot supply (M3 on Actions says `available: false`) is UNAVAILABLE, not RED.
+# Source of the numbers: to-browser/DIGEST-TEST-EXECUTION-EVAL-2026-10-20.md section 4 baselines.
+armed: false
+ceilings:
+  m1_push_to_main_median_hours: 2.0        # baseline 3.4 h (n=7); T4 target now <= 2 h
+  m2_runs_per_landing_median: 5            # baseline 5 (range 2-9); target 1 after lane L2
+  m3_test_related_reaps_per_3_days: 5      # baseline 5 reaps in 3 days (4 test-related)
+  m4_always_red_jobs: 2                    # today's measured count: commit-gate, ship-gate
+  m4_main_red_rate: 0.4667                 # baseline main red 7 of 15
+  m4_known_reds: 38                        # baseline 38 failed tests on main

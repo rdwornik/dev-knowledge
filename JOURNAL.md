@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-test-flow-metrics -- `scripts/test_flow_metrics.py` computes M1-M4 against committed ceilings and writes a nightly record; `live_check` reports a ceiling break as an UNARMED finding while `armed: false`, after repair 1 of 2
+
+**Anchors:** `06d9bb87` (feat: M1-M4, `ecosystem/test-flow-ceilings.yaml`, nightly record, `--durations`/`--junitxml`), `32d6aef0` (review fixes: reap notices only, 0 for a green main, newest record by time, NaN ceiling refused), `084c4b4d` (repair 1: UNARMED findings; RED `test_live_unarmed_with_broken_ceiling_passes_and_reports_unarmed` failed on `32d6aef0` first); branch `worktree-e2-test-flow-metrics`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 215e8f4e).
+
+**Did:** test-flow metrics as code. The four measures, their ceilings committed as data, and a nightly record wired into `.github/workflows/conductor.yml`. The ceilings stay `armed: false` until a real scheduled record exists. The integrator's hand gate refused the first handback; repair 1 makes a broken ceiling a reported UNARMED finding, not a failure, while the ceilings are unarmed.
+
+**Result:** the lane reports one conflict, open and not a refusal item: the M1 ceiling (2.0 h) sits below the measured baseline (3.06 h), so `armed` stays false. The orchestrator watches the first scheduled nightly record on main (cron `0 5 * * *` UTC), then asks for the follow-up that arms the ceilings. On the merged tree: `ecosystem/doc-counts.md` regenerated, which clears the branch CI's 2 `test_check_derived_copies` regressions (51 passed, targeted). The codemap and organ-index checks are clean, and BACKLOG.md is unchanged (159,972 B). The 3 `tests/test_onboarding_items.py` reds read as tree lag; the integration branch's CI run decides (R167). Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5.
+
+**Changes:** `scripts/test_flow_metrics.py` (new), `ecosystem/test-flow-ceilings.yaml` (new), `.github/workflows/conductor.yml`, `protocols/BUILD-LIST.md`, `tasks/1372-the-ci-os-policy-runs-as-accepted-and-is-measured.md`, tests (`tests/test_test_flow_metrics.py`, `tests/test_test_flow_ceilings.py`, new); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-rows-r5 line).
+
+**Next:** e2-dispatch-close lands on its repair-1 handback; e2-cliff waits for the operator's BACKLOG-budget GO (28 B headroom).
+
 ### 2026-10-21 (c) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-rows-r5 files `[#1700]`-`[#1706]` -- the Stop hook in headless sessions, pkill scope, the Codex served model from the banner, branch-state reds, a receipt reading FAILED after a crashed land, the dirty-tree probe, the CODESPACE-RECEIPTS ledger dirty by design -- after repair 1 of 2
 
 **Anchors:** `7fd9dccf` (files `[#1700]`-`[#1705]`), `39c5b944` (files `[#1706]`); branch `worktree-e2-rows-r5`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 0aa60da5).
