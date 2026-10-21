@@ -62,13 +62,15 @@ nothing on a clean checkout — that is a defect in a doc, not a shorthand.
 
 ```bash
 uv sync --locked                                   # rebuild the declared environment
-uv run --locked pytest -x --tb=short               # the suite
+uv run --locked pytest -n0 -x --tb=short <tests of the files you changed>   # R167: changed-file tests only
 uv run --locked ruff check --fix                   # lint (also a pre-commit gate)
 uv run --locked python scripts/audit.py health     # self-conformance gate
 ```
 
-**Suite cadence.** In a lane, run the **targeted** tests covering that lane's diff. The
-**full suite runs once, at integration** — not per lane.
+**Test cadence (R167, interim per R166).** No seat starts a local full-suite or wide pytest
+run. Locally run only the tests of the files you changed, with `-n0`. The evidence of the
+whole is the lane BRANCH CI run (run id + conclusion); the integrator's merge verdict is the
+integration-branch CI run.
 
 ## Landing a change
 

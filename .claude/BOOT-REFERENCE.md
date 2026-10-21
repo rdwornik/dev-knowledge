@@ -7,11 +7,6 @@
 ### Header blurb (budget / universal-rules note)
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
->
-> **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
->
-> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` was **deleted 2026-09-14** (`[#628]`) — its doctrine lives in PLAYBOOK; do not look for it.
-
 
 ### Conventions (section 4 bullets)
 
@@ -31,7 +26,6 @@
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit / commit-msg / pre-push roster: moved BACK to `CLAUDE.md` §9 by [#1616] repair 1 (the boot-retrieval evidence refused the pointer form of the `hooks-roster` item: fetched 3/3, canary quoted 0/3), so CLAUDE.md is its single home.
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 

@@ -7,7 +7,6 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.77 — 2026-09-08 -->
 
 > **Session boot contract** — auto-read at session start (ADR-53/ADR-115): a rule lives here only if a session needs it *before it can act*; detail lives at the home each line cites.
 >
@@ -59,7 +58,7 @@ In order, read:
 - **Commits & branches:** Branch prefixes are a closed enum — author-chosen `feat/ fix/ docs/ chore/`, plus four machine-produced lane prefixes `worktree-<name>`, `epic/<slug>`, `claude/<slug>`, `automation/<slug>` (each admitted only by a recorded ruling, never invented in passing — full provenance: PLAYBOOK Ch3 "Branch prefixes — the closed enum"). Commit **types** follow Conventional Commits plus `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 <!-- methodology:end id=conventions-commit-branch -->
 - **Also (relocated: `.claude/BOOT-REFERENCE.md` §Conventions):** scope tags · file lifecycle (append-only `LESSONS.md`/`logs/TOKEN-LOG.md`, newest-first `JOURNAL.md`, `BACKLOG.md` generated — edit `tasks/`) · freshness cadence · TDD · spec-driven development.
-- **Testing:** `uv run --locked pytest -x --tb=short` — a bare `pytest` resolves nothing on a clean checkout (ADR-106 §4). In a lane run the **targeted** tests for that lane's diff; the **full suite runs once, at integration** ([#528])
+- **Testing:** `uv run --locked pytest -n0 <tests of the files you changed>` — R167: no local full-suite or wide pytest run; the lane BRANCH CI run is the evidence of the whole (AGENTS.md "Build / test / lint"). A bare `pytest` resolves nothing on a clean checkout (ADR-106 §4)
 - **Linting:** `uv run --locked ruff check --fix`; `ruff check` is also a pre-commit gate (§9) and blocks
 > **[HUB - methodology]** region `conventions-library-first` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-library-first owner=hub -->
@@ -106,7 +105,7 @@ In order, read:
 2. `git log --oneline -5` — recent context
 3. Read the **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves; same predicate as §1 item 2, so the two boot instructions select the same bundle — if continuing prior session
 4. Check `BACKLOG.md` for in-progress items
-5. `pytest --collect-only` — test discovery sanity check
+5. Run no full-suite or wide pytest (R167); locally only the tests of the files you change, `-n0` — the lane BRANCH CI run is the evidence of the whole
 6. Wait for Rob's prompt — never improvise
 
 If any check fails → stop and ask Rob before proceeding.
