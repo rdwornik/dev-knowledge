@@ -55,9 +55,10 @@ fire-once = the very antipattern ADR-85 forbids. It relies on COMPLIANCE, not th
 
 MEASURED 2026-10-21 on CC 2.1.306 (supersedes the 2.1.178 notes above): Stop stdin DOES carry
 `stop_hook_active` (false on a fresh Stop) and has no headless marker. The discriminator is env
-`CLAUDE_CODE_SESSION_ATTENDED`: "0" in both `claude -p` and `claude --bg` (interactive value
-UNMEASURED, so absent/other keeps the nudge). Headless => silent, before any git call, because
-additionalContext continues the turn (+~45k tokens per dirty-ended headless turn). The advisory
+`CLAUDE_CODE_SESSION_ATTENDED`. Nudge only when it is exactly "1" (the interactive value is
+UNMEASURED, an assumption; "0" was measured for both `claude -p` and `claude --bg`). Every other
+state (0, absent, other) is silent, before any git call, so a wrong assumption costs a lost nudge,
+never a +~45k-token headless turn (additionalContext continues the turn). The advisory
 is also surfaced once per session_id (marker file in SESSION_END_BACKPRESSURE_MARKER_DIR,
 default <tmp>/dk-session-end-backpressure; best-effort, fail-soft).
 
@@ -570,8 +571,8 @@ def _record_seat_stop(data: dict) -> None:
         pass
 
 
-def _is_headless() -> bool:
-    return os.environ.get("CLAUDE_CODE_SESSION_ATTENDED") == "0"
+def _is_provably_interactive() -> bool:
+    return os.environ.get("CLAUDE_CODE_SESSION_ATTENDED") == "1"
 
 
 def _marker_path(session_id: str) -> Path:
@@ -615,7 +616,7 @@ def main() -> int:
         # omitting it). The STRUCTURAL FLOOR (the `is False` guard failing closed to silence)
         # remains the backstop for any context that omits the field. Either way no standalone
         # keep-going can repeat => advisory can never loop to the cap.
-        if _is_headless():
+        if not _is_provably_interactive():
             return 0
         if data.get("stop_hook_active") is False:
             advisory = gather(_ADVISORY_CHECKS)
