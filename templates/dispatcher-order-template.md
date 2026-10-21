@@ -143,7 +143,7 @@ loop of yours before handing over, then run
 `uv run --locked python scripts/seat_registry.py unbind` once, before the new seat is started:
 the registry then reads you `absent`, not `wedged`. The outgoing seat calls the mechanism instead of launching by hand (`dispatcher` is the orchestrator seat for this command): at the no-merge point run
 `uv run --locked python scripts/seat_cycle.py run --role orchestrator --seat <job-id> --transcript <path> --bound-age-hours <h> --handover-dir <dir> --cycle-no <n> --batch <BATCH> --state <text> --next-step <text> [--next-step <text> ...] --bookkeeping <text> [--base main] [--repo-root <path>] [--worktree <path>] [--open-decision <text> ...] [--live-child <text> ...]`.
-The successor's model, effort and name come from the role table and `ecosystem/seat-cycle.yaml`, from a typed line; its first act is to read the handover file and write the BOUND line; the mechanism
+The successor's model, effort and name come from the role table and `ecosystem/seat-cycle.yaml`, not from a typed line; `--seat` is the OUTGOING seat's job id, and the successor's name is derived by the mechanism (`<seat>-c<n+1>`), not chosen. Its first act is to read the handover file and then write the BOUND line; the mechanism
 stops the outgoing seat only after BOUND, and only a stop VERIFIED over the poll window (no listing, no
 queued inbox message, no surviving process naming the job id or worktree) counts as replaced. Write an
 `OPERATOR-ACTION` only if `run` exits non-zero (quote its verdict, keep your seat). Run every long wait and full test

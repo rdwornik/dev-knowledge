@@ -33,13 +33,13 @@ by: <outgoing seat id>
 
 ## First act (successor)
 
-As your FIRST action, before anything else, run exactly:
+FIRST read every section above. THEN, as the next action, run exactly:
 
 ```
 uv run --locked python scripts/seat_cycle.py bound --handover <abs handover path> --name <successor slug> --seat <outgoing seat> --cycle <n>
 ```
 
-Then read the sections above.
+The BOUND line it appends means the handover is consumed.
 
 <!-- That command appends one BOUND line:
 BOUND seat=<seat> cycle=<n> job=<successor job id> model=<served model>

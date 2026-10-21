@@ -35,7 +35,7 @@ import yaml
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "ecosystem" / "seat-cycle.yaml"
 SECTIONS = ("State", "Next steps", "Open decisions", "Live children", "Seat bookkeeping",
             "First act (successor)")
-_BOUND = re.compile(r"(?m)^BOUND seat=\S+ cycle=\S+ job=(\S+) model=\S+\s*$")
+_BOUND = re.compile(r"(?m)^BOUND seat=\S+ cycle=\S+ job=(\S+) model=(\S+)\s*$")
 
 
 class SeatCycleRefused(Exception):
@@ -116,12 +116,32 @@ def successor_model(role: str, registry: Optional[Path] = None) -> str:
         reg.anthropic_role_model(f"seat-{role}")
 
 
+def _effort(role: str, config: dict[str, Any]) -> Optional[str]:
+    """The injected config's effort; a config that declares none falls back to the repo's seat-cycle.yaml."""
+    for source in (config, load_config()):
+        effort = ((source.get("threshold") or {}).get(role) or {}).get("effort")
+        if effort:
+            return effort
+    return None
+
+
+# Free text is indented so no line of it can start a header, a `BOUND ` line or a `carried-by:`/`kind:` key.
+def _indent(text: str) -> str:
+    return "\n".join(f"  {ln}".rstrip() for ln in str(text).splitlines()) or "  "
+
+
+def _indent_tail(text: str) -> str:
+    lines = str(text).splitlines() or [""]
+    return "\n".join([lines[0]] + [f"  {ln}".rstrip() for ln in lines[1:]])
+
+
 def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, next_steps: Sequence[str],
                    open_decisions: Sequence[str], live_children: Sequence[str], bookkeeping: str,
                    by: str, successor_slug: Optional[str] = None,
-                   registry: Optional[Path] = None) -> Path:
+                   registry: Optional[Path] = None, config: Optional[dict[str, Any]] = None) -> Path:
     # The handover is the successor's contract, so the pre-launch model-per-role gate reads this row.
-    effort = ((load_config().get("threshold") or {}).get(role) or {}).get("effort")
+    config = config if config is not None else load_config()
+    effort = _effort(role, config)
     if not effort:
         raise SeatCycleRefused(f"no effort declared for role {role!r} in seat-cycle.yaml")
     try:
@@ -131,8 +151,9 @@ def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, 
     except Exception as exc:
         raise SeatCycleRefused(f"no role-table model for role {role!r}: {exc}") from exc
     head_row = f"| Model | Mode | Effort |\n|---|---|---|\n| {model} | execute | {effort} |"
-    steps = "\n".join(f"{i}. {s}" for i, s in enumerate(next_steps, 1))
-    bullets = lambda items: "\n".join(f"- {x}" for x in items)   # noqa: E731
+    steps = "\n".join(f"{i}. {_indent_tail(s)}" for i, s in enumerate(next_steps, 1))
+    bullets = lambda items: "\n".join(f"- {_indent_tail(x)}" for x in items)   # noqa: E731
+    state, bookkeeping = _indent(state), _indent(bookkeeping)
     path = Path(path)
     slug = successor_slug or f"{seat}-c{cycle + 1}"
     command = (f"uv run --locked python scripts/seat_cycle.py bound --handover {path.resolve()} "
@@ -141,8 +162,8 @@ def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, 
             f"# Handover {seat} cycle {cycle}\n\n## Head row\n\n{head_row}\n\n## State\n\n{state}\n\n## Next steps\n\n{steps}\n\n"
             f"## Open decisions\n\n{bullets(open_decisions)}\n\n## Live children\n\n{bullets(live_children)}\n\n"
             f"## Seat bookkeeping\n\n{bookkeeping}\n\n"
-            f"## First act (successor)\n\nAs your FIRST action, before anything else, run exactly:\n\n"
-            f"```\n{command}\n```\n\nThen read the sections above.\n")
+            f"## First act (successor)\n\nFIRST read every section above. THEN, as the next action, run exactly:\n\n"
+            f"```\n{command}\n```\n\nThe BOUND line it appends means the handover is consumed.\n")
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -187,7 +208,7 @@ def await_bound(handover: Path, *, job_id: str, timeout: float, interval: float 
     start = clock()
     while True:
         for m in _BOUND.finditer(Path(handover).read_text(encoding="utf-8")):
-            if m.group(1) == job_id:
+            if _short(m.group(1)) == _short(job_id):
                 return m.group(0).strip()
         if clock() - start >= timeout:
             raise SeatCycleRefused(f"successor job {job_id} never wrote a BOUND line to {handover}")
@@ -196,7 +217,8 @@ def await_bound(handover: Path, *, job_id: str, timeout: float, interval: float 
 
 def launch_successor(handover: Path, *, role: str, slug: str, batch: str, base: str, repo_root: Path,
                      model: Optional[str] = None, effort: Optional[str] = None,
-                                          successor_lane: Optional[Callable[..., Any]] = None) -> Successor:
+                     successor_lane: Optional[Callable[..., Any]] = None,
+                     config: Optional[dict[str, Any]] = None) -> Successor:
     if model is not None:
         raise SeatCycleRefused("the successor model comes from the role table; an override is refused")
     defects = lint_handover(Path(handover).read_text(encoding="utf-8"))
@@ -204,7 +226,8 @@ def launch_successor(handover: Path, *, role: str, slug: str, batch: str, base: 
         raise SeatCycleRefused("handover refused: " + "; ".join(defects))
     dispatch = _dispatch()
     if effort is None:
-        effort = ((load_config().get("threshold") or {}).get(role) or {}).get("effort")
+        config = config if config is not None else load_config()
+        effort = _effort(role, config)
         if not effort:
             raise SeatCycleRefused(f"no effort declared for role {role!r} in seat-cycle.yaml")
     successor_lane = successor_lane or dispatch.successor_lane
@@ -233,19 +256,30 @@ def verify_stop(job_id: str, worktree: str, *, list_agents: Optional[Callable[[]
     start = clock()
     while True:
         reasons: list[str] = []
-        for entry in list_agents():
-            if job_id in (entry.get("id"), entry.get("sessionId")) or \
-                    _short(job_id) in (_short(entry.get("id") or ""), _short(entry.get("sessionId") or "")):
-                reasons.append(f"seat {job_id} is still listed by `claude agents`")
-                break
-        job = read_job(job_id)
+        try:
+            for entry in list_agents():
+                if job_id in (entry.get("id"), entry.get("sessionId")) or \
+                        _short(job_id) in (_short(entry.get("id") or ""), _short(entry.get("sessionId") or "")):
+                    reasons.append(f"seat {job_id} is still listed by `claude agents`")
+                    break
+        except Exception as exc:
+            reasons.append(f"probe failed: claude agents listing unavailable ({exc})")
+        try:
+            job = read_job(job_id)
+        except Exception as exc:
+            job = None
+            reasons.append(f"job state unreadable (probe failed: {exc})")
         if job is not None:
             if job.get("state") not in ("stopped", "done"):
                 reasons.append(f"job state is {job.get('state')!r}, not 'stopped' or 'done'")
             queued = int((job.get("inFlight") or {}).get("queued") or 0)
             if queued:
                 reasons.append(f"{queued} message(s) still queued for the stopped seat")
-        survivors = find_processes([job_id, worktree])
+        try:
+            survivors = find_processes([job_id, worktree])
+        except Exception as exc:
+            survivors = []
+            reasons.append(f"probe failed: process table unavailable ({exc})")
         if survivors:
             reasons.append(f"surviving process: {survivors[0]}" + (f" (+{len(survivors) - 1})" if len(survivors) > 1 else ""))
         if clock() - start + interval > window:
@@ -254,42 +288,61 @@ def verify_stop(job_id: str, worktree: str, *, list_agents: Optional[Callable[[]
 
 
 def _list_agents() -> list:                                  # pragma: no cover -- production probe
-    out = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True, check=False).stdout
     try:
-        data = json.loads(out or "[]")
-    except json.JSONDecodeError:
-        return []
+        done = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise SeatCycleRefused(f"`claude agents` could not run: {exc}") from exc
+    if done.returncode != 0:
+        raise SeatCycleRefused(f"`claude agents` exited {done.returncode}")
+    try:
+        data = json.loads(done.stdout or "")
+    except json.JSONDecodeError as exc:
+        raise SeatCycleRefused(f"`claude agents` output is not JSON: {exc}") from exc
     if isinstance(data, dict):
         data = data.get("agents", [])
+    if not isinstance(data, list):
+        raise SeatCycleRefused("`claude agents` output has no agent list")
     return [d for d in data if isinstance(d, dict)]
 
 
 def _read_job(job_id: str) -> Optional[dict]:                # pragma: no cover -- production probe
-    path = Path.home() / ".claude" / "jobs" / _short(job_id) / "state.json"
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    """None only when the job directory is gone; a directory without a readable state is a failed check."""
+    job_dir = Path.home() / ".claude" / "jobs" / _short(job_id)
+    if not job_dir.exists():
         return None
-    return data if isinstance(data, dict) else None
+    try:
+        data = json.loads((job_dir / "state.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SeatCycleRefused(f"job state unreadable: {exc}") from exc
+    if not isinstance(data, dict):
+        raise SeatCycleRefused("job state unreadable: not an object")
+    return data
 
 
 def _process_table() -> list[tuple[int, int, str]]:          # pragma: no cover -- production probe
     rows: list[tuple[int, int, str]] = []
+    try:
+        if os.name == "nt":
+            done = subprocess.run(["powershell", "-NoProfile", "-Command",
+                                   "Get-CimInstance Win32_Process | "
+                                   "Select ProcessId,ParentProcessId,CommandLine | ConvertTo-Json"],
+                                  capture_output=True, text=True, check=False)
+        else:
+            done = subprocess.run(["ps", "-eo", "pid,ppid,args"], capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise SeatCycleRefused(f"process table could not be read: {exc}") from exc
+    if done.returncode != 0:
+        raise SeatCycleRefused(f"process table probe exited {done.returncode}")
     if os.name == "nt":
-        out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                              "Get-CimInstance Win32_Process | "
-                              "Select ProcessId,ParentProcessId,CommandLine | ConvertTo-Json"],
-                             capture_output=True, text=True, check=False).stdout
         try:
-            data = json.loads(out or "[]")
-        except json.JSONDecodeError:
-            return rows
+            data = json.loads(done.stdout)
+        except json.JSONDecodeError as exc:
+            raise SeatCycleRefused(f"process table output is not JSON: {exc}") from exc
         for d in [data] if isinstance(data, dict) else data:
             rows.append((int(d.get("ProcessId") or 0), int(d.get("ParentProcessId") or 0),
                          d.get("CommandLine") or ""))
     else:
-        out = subprocess.run(["ps", "-eo", "pid,ppid,args"], capture_output=True, text=True, check=False).stdout
-        for line in out.splitlines()[1:]:
+        for line in done.stdout.splitlines()[1:]:
             parts = line.split(None, 2)
             if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit():
                 rows.append((int(parts[0]), int(parts[1]), parts[2]))
@@ -300,7 +353,8 @@ def needle_matches(cmdline: str, needle: str) -> bool:
     """True where `needle` sits on an identifier boundary: not followed by [A-Za-z0-9_-] (so a
     successor `<seat>-c2` is not the seat) and not preceded by [A-Za-z0-9_] (a `pty-<id>` prefix
     still names the id). A following path separator still matches."""
-    return bool(needle) and re.search(rf"(?<![A-Za-z0-9_]){re.escape(needle)}(?![A-Za-z0-9_-])", cmdline) is not None
+    return bool(needle) and re.search(rf"(?<![A-Za-z0-9_]){re.escape(needle)}(?![A-Za-z0-9_-])", cmdline,
+                                      re.IGNORECASE) is not None
 
 
 def _find_processes(needles: Sequence[str]) -> list[str]:    # pragma: no cover -- production probe
@@ -340,10 +394,14 @@ def cycle(seat: str, *, role: str, transcript: Path, bound_age_hours: float, con
     handover = write_handover(Path(handover_dir) / f"HANDOVER-{seat}-cycle-{cycle_no}.md", seat=seat,
                               role=role, cycle=cycle_no, state=state, next_steps=next_steps,
                               open_decisions=open_decisions, live_children=live_children,
-                              bookkeeping=bookkeeping, by=seat, successor_slug=slug)
-    successor = launch_successor(handover, role=role, slug=slug, batch=batch,
-                                 base=base, repo_root=repo_root, successor_lane=successor_lane)
+                              bookkeeping=bookkeeping, by=seat, successor_slug=slug, config=config)
+    successor = launch_successor(handover, role=role, slug=slug, batch=batch, base=base,
+                                 repo_root=repo_root, successor_lane=successor_lane, config=config)
     bound = wait_bound(handover, successor.job_id)
+    served = re.search(r"\bmodel=(\S+)", bound)
+    if not served or served.group(1) != successor.model:
+        raise SeatCycleRefused(f"successor served model {served.group(1) if served else None!r}, "
+                               f"role table says {successor.model!r}; the seat is not stopped")
     stop(seat)
     verdict = verify(seat)
     return CycleResult(replaced=verdict.verified, handover=handover, successor=successor, bound=bound,
