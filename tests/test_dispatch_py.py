@@ -216,11 +216,11 @@ def test_a_dispatch_head_of_copilot_is_accepted_never_refused():
 # --- a bare model alias is warned, never refused, never rewritten ([#... ] launcher fixes) --------
 
 @pytest.mark.parametrize("alias,expect", [
-    ("opus", "claude-opus-5-5"),
-    ("Opus", "claude-opus-5-5"),          # case-insensitive: a contract cell may be capitalised
-    ("sonnet", "claude-sonnet-5"),
-    ("haiku", "claude-haiku-4-5-20251001"),
-    ("opusplan", "claude-opus-5-5"),
+    ("opus", d.MODEL_ALIASES["opus"]),
+    ("Opus", d.MODEL_ALIASES["opus"]),     # case-insensitive: a contract cell may be capitalised
+    ("sonnet", d.MODEL_ALIASES["sonnet"]),
+    ("haiku", d.MODEL_ALIASES["haiku"]),
+    ("opusplan", d.MODEL_ALIASES["opus"]),
 ])
 def test_a_bare_model_alias_is_warned_with_its_explicit_id(alias, expect):
     warning = d.warn_model_alias(alias)

@@ -1,5 +1,9 @@
 {
   "disableAllHooks": false,
+  "//subagent-model-R177-2026-10-21": "e2-model-routing (R177/R178): subagents default to haiku through the vendor-documented env var CLAUDE_CODE_SUBAGENT_MODEL (no dedicated settings key is documented), and the Agent PreToolUse guard scripts/hooks/subagent_model_guard.py refuses any Agent call whose model is not the registry `read` model or the `seat-orchestrator` model. Pinned by tests/test_model_routing_subagent_hook.py.",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
   "//scope-guard-R15-2026-09-27": "PreToolUse R15 scope guard (scripts/hooks/scope_guard.py), run through the shared shell-neutral launcher scripts/hooks/hook_launcher.py -- pinned by tests/test_scope_guard_hook_command.py and tests/test_hook_launcher.py.",
   "//reuse-gate-R96-D7-2026-10-13": "PreToolUse reuse gate (scripts/hooks/reuse_gate.py, [#735] nearest): in a lane, a Write/Edit creating a new file under scripts/ or .claude/ that the lane contract does not name and no file_purpose_graph why search covers is denied; outside a lane it allows and logs. Run through the shared launcher scripts/hooks/hook_launcher.py -- pinned by tests/test_reuse_gate.py and tests/test_hook_launcher.py. Escape: DEV_KNOWLEDGE_REUSE_GATE_DISABLE=1.",
   "//sessionstart-one-2026-10-13": "[#1001] (batch BW lane lane-bw-1001-sessionstart-one, R96 D9): the NINE SessionStart entries (arm_hooks, surface_triage, changelog_sentinel, conductor session-start, resource_lifecycle session-start, codespace_regime session-start, billing_leak_sentinel, fleet_health, hooks/quota_daily) are ONE entry, scripts/hooks/session_start.py, run through the shared launcher scripts/hooks/hook_launcher.py; it imports the nine readers into one interpreter and bounds the injected text (OUTPUT_CAP_BYTES). Measurement: docs/audits/2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md. Pinned by tests/test_session_start.py and tests/test_hook_launcher.py.",
@@ -64,6 +68,16 @@
   },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --locked python ${CLAUDE_PROJECT_DIR:+\"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_launcher.py\"} $(git rev-parse --no-revs --no-flags -- ./$(git rev-parse --path-format=relative --show-toplevel)scripts/hooks/hook_launcher.py) -m os scripts/hooks/subagent_model_guard.py",
+            "timeout": 15
+          }
+        ]
+      },
       {
         "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Glob|Grep|Monitor|LSP|ReadMcpResourceTool|mcp__.*",
         "hooks": [

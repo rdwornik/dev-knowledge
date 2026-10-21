@@ -362,3 +362,22 @@ def attribution_tokens(path: Optional[Path] = None) -> dict[str, str]:
     Defaults to the id itself; `grok-l5` is the live counter-example (`grok L5` in prose).
     """
     return {mid: str(f.get("attribution_token") or mid) for mid, f in models(path).items()}
+
+
+def anthropic_role_model(role: str, path: Optional[Path] = None) -> str:
+    for entry in role_order(role, path):
+        if entry.get("provider") == "anthropic" and entry.get("model"):
+            return str(entry["model"])
+    raise RegistryError(f"role `{role}` has no anthropic model entry")
+
+
+def claude_alias_ids(path: Optional[Path] = None) -> dict[str, str]:
+    """The bare Claude CLI aliases resolved to registry ids: the one source for every alias table.
+
+    `opus` = `seat-integrator`, `sonnet` = `seat-orchestrator`, `haiku` = the anthropic model of
+    `read`; `opusplan` names the Opus plan mode and the Sonnet build mode.
+    """
+    opus = anthropic_role_model("seat-integrator", path)
+    sonnet = anthropic_role_model("seat-orchestrator", path)
+    return {"opus": opus, "sonnet": sonnet, "haiku": anthropic_role_model("read", path),
+            "opusplan": f"{opus} (plan mode) / {sonnet} (build mode)"}

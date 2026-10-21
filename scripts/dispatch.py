@@ -120,6 +120,11 @@ try:  # pragma: no cover -- the sign-in table and the expiry reader the launch-t
 except ImportError:  # pragma: no cover
     import codespace_parity as cpar
 
+try:  # pragma: no cover -- the alias table below is derived from the registry, never hand-copied
+    from scripts import provider_registry as _preg
+except ImportError:  # pragma: no cover
+    import provider_registry as _preg
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
 
@@ -364,21 +369,13 @@ def commit_witness(slug: str) -> tuple[str, str]:
 # pinned -- "a silent repoint: nothing in this registry moved and nothing in a lane contract that
 # says `--model opus` changed, yet the model actually served underneath it did". That registry
 # deliberately carries no alias FIELD (every `order[].model` there is a versioned id, by design),
-# so this table is dispatch.py's own record of what each alias currently resolves to, cited
-# against the same registry rows the note and the `models:` section already carry. It exists to
+# so this table is dispatch.py's own record of what each alias currently resolves to. It is
+# DERIVED from the registry's `seat-integrator`, `seat-orchestrator` and `read` roles by
+# `provider_registry.claude_alias_ids`, so no id is copied here. It exists to
 # make the drift VISIBLE at launch time, never to resolve it: `warn_model_alias` never changes
 # `model`, because resolving the alias here would be the exact silent repoint the note exists to
 # stop happening again.
-MODEL_ALIASES: dict[str, str] = {
-    # provider-registry.yaml's ALIAS DRIFT note (Claude Code 2.1.280+ default Opus).
-    "opus": "claude-opus-5-5",
-    # provider-registry.yaml `models.claude-sonnet-5` (roles.implement's pinned id).
-    "sonnet": "claude-sonnet-5",
-    # provider-registry.yaml `models.claude-haiku-4-5-20251001` (the id the CLI actually emits).
-    "haiku": "claude-haiku-4-5-20251001",
-    # a COMBO alias (Opus while planning, Sonnet while building) -- no single id, so both are named.
-    "opusplan": "claude-opus-5-5 (plan mode) / claude-sonnet-5 (build mode)",
-}
+MODEL_ALIASES: dict[str, str] = _preg.claude_alias_ids()
 
 
 def warn_model_alias(model: str) -> Optional[str]:

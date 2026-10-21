@@ -158,6 +158,11 @@ try:  # pragma: no cover
 except ImportError:  # pragma: no cover
     import merge_receipt as mr
 
+try:  # pragma: no cover -- the alias table below is derived from the registry
+    from scripts import provider_registry as _preg
+except ImportError:  # pragma: no cover
+    import provider_registry as _preg
+
 
 # --- contract grammar ------------------------------------------------------------------------
 
@@ -244,8 +249,8 @@ _DISPATCH_MODEL_RE = re.compile(r"--model\s+(?P<model>[^\s\"]+)")
 #: own `MODEL_ENUM` both name, matched only as an EXACT, case-insensitive value of the Model
 #: table's first cell or a `--model` argument INSIDE the `## Dispatch` fence
 #: (`_DISPATCH_FENCE_RE`) — never as a substring scan of the contract's whole prose, which would
-#: false-positive on every explicit id that CONTAINS one of these words (`claude-opus-5-5`,
-#: `claude-sonnet-5`), on ordinary discussion of the alias itself (this contract's own
+#: false-positive on every explicit id that CONTAINS one of these words (`claude-opus-5-5`
+#: and the Sonnet ids), on ordinary discussion of the alias itself (this contract's own
 #: Done-contract item 3 names all four), and on a `--model` mentioned outside the real launch
 #: command (a `Do not` example, a `Read first` bullet) -- Codex terra review, HIGH, on the
 #: `--model` leg specifically.
@@ -256,13 +261,13 @@ _ALIASES = frozenset({"opus", "opusplan", "sonnet", "haiku"})
 #: `claude-opus-5-5`") and Part Z's per-provider currency probe
 #: (`to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`). `opusplan` is a MODE (plan mode) layered
 #: on the opus alias (`scripts/gen_lane_contract.py`'s `MODEL_ENUM` comment), not a separate
-#: model, so it resolves to the same id. HONEST LIMIT: a snapshot, not a live query — see the
-#: module docstring's honest limits for why nothing in this repo can re-derive it at lint time.
+#: model, so it resolves to the same id. DERIVED from the registry (`seat-integrator`,
+#: `seat-orchestrator`, `read`) by `provider_registry.claude_alias_ids`, never hand-copied. HONEST LIMIT: a
+#: snapshot, not a live query — see the module docstring's honest limits for why nothing in this
+#: repo can re-derive it at lint time.
 _ALIAS_EXPLICIT_ID: dict[str, str] = {
-    "opus": "claude-opus-5-5",
-    "opusplan": "claude-opus-5-5",
-    "sonnet": "claude-sonnet-5",
-    "haiku": "claude-haiku-4-5-20251001",
+    **_preg.claude_alias_ids(),
+    "opusplan": _preg.claude_alias_ids()["opus"],
 }
 
 

@@ -29,10 +29,10 @@ roles:
 
   reviewer:
     cli: codex
-    model: gpt-6-astra
     note: >-
-      The reviewer pin itself lives at L0 (`~/.codex/AGENTS.md`), which governs the reviewer
-      role by scope; this row records the routing, not the pin.
+      The reviewer pin lives in `ecosystem/provider-registry.yaml`'s `review` role (its first entry
+      is the model); this row records only which CLI runs the role, and carries no `model:` so the
+      pin has one home. The L0 copy (`~/.codex/AGENTS.md`) governs the reviewer role by scope.
 
   adversarial:
     cli: codex
@@ -54,7 +54,7 @@ roles:
       pass on the loop-eval map (2026-09-20) could not attest what served it. HONEST LIMIT: a
       pin names what is REQUESTED; `codex exec` still reports no served model, so "sol
       answered" stays attested by the flag until a receipt records the reported model.
-      L0's `gpt-6-astra` XL-class opt-in (`~/.claude/ROUTING.md`) is a per-invocation
+      The XL-class opt-in at L0 (`~/.claude/ROUTING.md`) is a per-invocation
       escalation for ruling-class work and is not this default.
 
   fan_out:

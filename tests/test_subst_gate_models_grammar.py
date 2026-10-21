@@ -44,18 +44,22 @@ def test_fixture_hash_pinned(name):
 
 @pytest.mark.parametrize("name", ["e2-rows-t5", "e2-rows-r5"])
 def test_real_rows_blocks_are_clean(name):
+    # These real rows predate R177 (Sonnet implemented); the only refusal left is that implement line.
     text = (FIXTURES / f"{name}.txt").read_text(encoding="utf-8")
-    assert sg.check_models_block(text) == ([], [])
+    problems, subs = sg.check_models_block(text)
+    assert subs == [] and len(problems) == 1
+    assert "implement" in problems[0] and "R177" in problems[0]
 
 
 def test_hotspot_codex_self_description_is_one_problem():
     text = (FIXTURES / "e2-graph-hotspot.txt").read_text(encoding="utf-8")
     problems, _ = sg.check_models_block(text)
-    assert len(problems) == 1
-    assert "review codex" in problems[0] and "gpt-5" in problems[0]
+    codex = [p for p in problems if "review codex" in p]
+    assert len(codex) == 1 and "gpt-5" in codex[0]
+    assert len(problems) == 2 and any("R177" in p for p in problems)   # the pre-R177 Sonnet implement line
     fixed = text.replace("served=gpt-5 (as the CLI reported)", "served=gpt-5.6-terra (banner)")
     assert fixed != text
-    assert sg.check_models_block(fixed)[0] == []
+    assert not any("review codex" in p for p in sg.check_models_block(fixed)[0])
 
 
 # --- (i) Copilot gateway ----------------------------------------------------------------------------
@@ -87,8 +91,8 @@ def test_non_copilot_phase_gateway_served_refused(line):
 
 @pytest.mark.parametrize("line", [
     "review codex: requested=gpt-5.6-terra served=gpt-5.6-terra (banner)",
-    "implement: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5 -- reviewer note",
-    "implement: requested=Claude-Sonnet-5-5 served=claude-sonnet-5-5 -- reviewer note",
+    "plan: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5 -- reviewer note",
+    "plan: requested=Claude-Sonnet-5-5 served=claude-sonnet-5-5 -- reviewer note",
 ])
 def test_first_token_equal_accepted(line):
     assert check(line) == ([], [])
@@ -148,9 +152,9 @@ def test_not_run_forms_accepted(line):
 
 
 def test_vendor_fail_none_line_is_not_a_phase():
-    text = block("implement: requested=a served=a") + "VENDOR-FAIL: none\n"
+    text = block("plan: requested=a served=a") + "VENDOR-FAIL: none\n"
     assert sg.check_models_block(text) == ([], [])
-    inside = "MODELS:\n  implement: requested=a served=a\n  VENDOR-FAIL: none\n"
+    inside = "MODELS:\n  plan: requested=a served=a\n  VENDOR-FAIL: none\n"
     assert sg.check_models_block(inside) == ([], [])
 
 

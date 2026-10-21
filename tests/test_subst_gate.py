@@ -22,7 +22,8 @@ SONNET = "claude-sonnet-5-5"
 TERRA = "gpt-5.6-terra"
 
 _PHASE_ROWS = {
-    "implement": f"| implement code (lane head) | {SONNET} | local |",
+    # R177 split: the default implement row is Copilot (Claude implement needs VENDOR-FAIL evidence)
+    "implement": "| implement code (lane head) | Copilot CLI (default model) | local |",
     "red": "| write the RED / isolated tests | Copilot CLI (default model) | codespace |",
     "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
@@ -101,7 +102,7 @@ def _assert_refusal_names(problems, *, lane, role, contract_model, table_model):
 def test_a_head_row_that_is_not_the_implementer_model_is_refused():
     opus = "claude-opus-5-5"
     problems, _ = _problems(_contract(head=opus, dispatch=opus))
-    _assert_refusal_names(problems, lane="lane-x", role="implement", contract_model=opus,
+    _assert_refusal_names(problems, lane="lane-x", role="seat-orchestrator", contract_model=opus,
                           table_model=SONNET)
 
 
@@ -118,8 +119,9 @@ def test_a_launch_model_that_is_not_the_head_model_is_refused():
 
 def test_the_implement_row_naming_grok_is_refused():
     problems, _ = _problems(_contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
+    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
     _assert_refusal_names(problems, lane="lane-x", role="implement", contract_model="grok-4.7",
-                          table_model=SONNET)
+                          table_model="Copilot CLI")
 
 
 def test_the_red_row_naming_a_registry_model_is_refused():
@@ -136,7 +138,7 @@ def test_the_copilot_review_row_not_naming_copilot_is_refused():
 @pytest.mark.parametrize("key,row,role,wrong", [
     ("codex", "| review, Codex half | claude-opus-5-5 | local |", "review", "claude-opus-5-5"),
     ("verify", "| isolated verify | grok-4.7 | local |", "verify", "grok-4.7"),
-    ("orchestrate", "| orchestrate the batch | claude-opus-5-5 | local |", "implement", "claude-opus-5-5"),
+    ("orchestrate", "| orchestrate the batch | claude-opus-5-5 | local |", "seat-orchestrator", "claude-opus-5-5"),
 ])
 def test_a_row_naming_the_wrong_model_is_refused(key, row, role, wrong):
     problems, _ = _problems(_contract(rows={key: row}))
@@ -155,7 +157,7 @@ def test_an_unmapped_phase_name_is_refused_not_noted():
 
 def test_a_matching_models_block_is_accepted():
     text = ("MODELS:\n"
-            f"  implement: requested={SONNET}/high served={SONNET}\n"
+            "  implement: requested=copilot/default served=claude-sonnet-5.5\n"
             f"  review: requested={TERRA}/high served={TERRA}\n")
     assert sg.check_models_block(text) == ([], [])
 
@@ -175,10 +177,10 @@ def test_a_served_model_that_differs_without_vendor_fail_is_a_problem_naming_the
 
 
 def test_a_substitution_with_a_vendor_fail_reference_is_accepted_and_reported():
-    line = f"  implement: requested={SONNET}/high served=claude-opus-5-5 VENDOR-FAIL: INC-42"
+    line = f"  implement: requested={SONNET}/high served=claude-opus-5-5 VENDOR-FAIL: implement INC-42"
     problems, subs = sg.check_models_block(f"MODELS:\n{line}\n")
     assert problems == []
-    assert len(subs) == 1 and "VENDOR-FAIL: INC-42" in subs[0] and "implement" in subs[0]
+    assert len(subs) == 1 and "VENDOR-FAIL: implement INC-42" in subs[0] and "implement" in subs[0]
 
 
 def test_the_requested_model_is_compared_case_insensitively_and_before_the_slash():
@@ -199,7 +201,7 @@ def test_a_phase_that_was_not_run_is_accepted(word):
 
 # --- read_handback_models -----------------------------------------------------------------------
 
-BLOCK = f"MODELS:\n  implement: requested={SONNET}/high served={SONNET}\n"
+BLOCK = "MODELS:\n  implement: requested=copilot/default served=claude-sonnet-5.5\n"
 
 
 def test_a_json_handback_with_a_string_models_value(tmp_path):
@@ -292,7 +294,8 @@ def test_the_cli_refuses_a_substituted_contract_with_exit_1(tmp_path):
     done = _cli(tmp_path, _contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
     assert done.returncode == 1
     line = next(ln for ln in done.stdout.splitlines() if ln.startswith("REFUSED [model-per-role]"))
-    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and SONNET in line
+    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
+    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "Copilot CLI" in line
 
 
 def test_the_cli_refuses_a_launch_model_that_differs_from_the_head(tmp_path):
@@ -330,7 +333,7 @@ def test_an_unindented_line_still_ends_the_models_block():
 
 def test_a_json_handback_list_of_unindented_lines_is_normalised(tmp_path):
     path = tmp_path / "h.json"
-    path.write_text(json.dumps({"models": [f"implement: requested={SONNET}/high served={SONNET}"]}),
+    path.write_text(json.dumps({"models": ["implement: requested=copilot/default served=claude-sonnet-5.5"]}),
                     encoding="utf-8")
     assert sg.check_models_block(sg.read_handback_models(path)) == ([], [])
 
@@ -338,10 +341,10 @@ def test_a_json_handback_list_of_unindented_lines_is_normalised(tmp_path):
 def test_a_json_handback_dict_of_dicts_is_normalised(tmp_path):
     path = tmp_path / "h.json"
     path.write_text(json.dumps({"models": {"implement": {
-        "requested": f"{SONNET}/high", "served": "claude-opus-5-5", "vendor_fail": "INC-9"}}}),
+        "requested": f"{SONNET}/high", "served": "claude-opus-5-5", "vendor_fail": "implement INC-9"}}}),
         encoding="utf-8")
     problems, subs = sg.check_models_block(sg.read_handback_models(path))
-    assert problems == [] and len(subs) == 1 and "VENDOR-FAIL: INC-9" in subs[0]
+    assert problems == [] and len(subs) == 1 and "VENDOR-FAIL: implement INC-9" in subs[0]
 
 
 def test_a_ledger_row_that_is_not_a_codespace_creation_is_not_a_launch_receipt(tmp_path):

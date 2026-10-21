@@ -671,25 +671,19 @@ roles:
       LEDGER (R139), never silent." The order is now Sonnet 5.5 -> Copilot Enterprise -> Grok 4.7,
       which REVERSES the order R104 set (Copilot -> Sonnet -> Grok), carried by `e2-subst-gate`.
       Per P1 (R139) a later entry runs only after a recorded VENDOR-FAIL of the one before it.
+      SUPERSEDED 2026-10-20 by R177/R178 (operator): Copilot Enterprise implements again and is
+      FIRST (the served model is read from the CLI usage file, no model is pinned here); Sonnet 5.5
+      is SECOND and `vendor_fail_only: true`, i.e. it runs only after a recorded
+      `VENDOR-FAIL: implement ...`; Grok 4.7 stays third. The R153 text above is kept as the record
+      of the order that stood until then.
     routing_table_role: producer
     order:
-      - provider: anthropic
-        model: claude-sonnet-5-5
-        substrate: codespace
-        note: >-
-          FIRST. R153 (BATCH-E2-NIGHT-2026-10-19 v3, operator): Sonnet 5.5 implements. This entry was
-          SECOND under R104 (RATIFICATION-2026-10-14 v3), carried by [#1536], and FIRST (as
-          `claude-sonnet-5`) before that. The lane head itself writes the code (Claude Code, the
-          operator's Claude licence), on the Codespace box for a box lane.
-        admission:
-          verdict: admitted
-          decided_by: operator
-          decided_on: "2026-10-14"
-          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: copilot-enterprise
         substrate: codespace
         note: >-
-          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: was FIRST until R153 (2026-10-19) moved Sonnet 5.5 ahead of it; now SECOND. ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
+          FIRST. R177/R178 (operator, 2026-10-20): the Copilot CLI implements; the model it served is
+          read from the CLI usage file and recorded in the MODELS block, none is pinned here. Was
+          SECOND under R153 (2026-10-19), FIRST under R104 before that. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
           transport-only; cited for date/author only, not as the evidence itself). The evidence is
           IN-REPO: `JOURNAL.md` lines 962 and 1113, merge `88dc48f4`, and the ab-828/ab-832
           receipts (`HANDBACK.json`, `copilot-usage.json`), which existed only on the transport
@@ -708,6 +702,19 @@ roles:
           decided_by: operator
           decided_on: "2026-09-23"
           evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        substrate: codespace
+        vendor_fail_only: true
+        note: >-
+          SECOND, and ONLY after a recorded `VENDOR-FAIL: implement ...` of the Copilot CLI
+          (R177/R178, operator; P1, R139). Was FIRST under R153 (2026-10-19). The lane head
+          writes the code in that case (Claude Code, the operator's Claude licence).
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-14"
+          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
         model: grok-4.7
         note: >-
@@ -889,6 +896,34 @@ roles:
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+  seat-orchestrator:
+    description: >-
+      The model the lane head seat itself runs on (R177/R178, operator): Sonnet 5.5. A seat, not a
+      producer role -- the alias `sonnet` and the lane-head row of a contract are derived from it.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        note: "R177/R178 (operator, 2026-10-20): the lane head runs Sonnet 5.5."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-20"
+          evidence: protocols/STANDING_RULINGS.md
+  seat-integrator:
+    description: >-
+      The model the integrator seat runs on (R177/R178, operator): Opus 5.5. A seat, not a producer
+      role -- the alias `opus` is derived from it.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-opus-5-5
+        note: "R177/R178 (operator, 2026-10-20): the integrator runs Opus 5.5."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-20"
+          evidence: protocols/STANDING_RULINGS.md
   judge:
     description: >-
       Rule on the reviewers' findings. R104: Opus 5.5 judges; it reads the reviewers' findings and

@@ -35,8 +35,8 @@ def _entry(registry, role, provider):
     return next(e for e in registry.roles[role].order if e.provider == provider)
 
 
-def test_the_schema_version_is_1_6_0():
-    assert SCHEMA_VERSION == "1.6.0"
+def test_the_schema_version_is_1_7_0():
+    assert SCHEMA_VERSION == "1.7.0"
 
 
 def test_a_role_entry_has_substrate_and_paired_with_safe_defaults():
@@ -58,10 +58,12 @@ def test_a_valid_substrate_is_accepted(live):
     assert ProviderRegistry.model_validate(data).roles["verify"].order[0].substrate == "local"
 
 
-def test_implement_is_led_by_sonnet_on_a_codespace_not_grok(registry):
-    first = registry.roles["implement"].order[0]
-    assert (first.provider, first.model, first.substrate) == ("anthropic", "claude-sonnet-5-5", "codespace")
-    assert not (first.provider == "xai" and first.model == "grok-4.7")
+def test_implement_is_led_by_copilot_with_sonnet_vendor_fail_only_not_grok(registry):
+    order = registry.roles["implement"].order
+    assert (order[0].provider, order[0].substrate) == ("copilot-enterprise", "codespace")
+    assert (order[1].provider, order[1].model, order[1].substrate) == ("anthropic", "claude-sonnet-5-5", "codespace")
+    assert order[1].vendor_fail_only is True
+    assert not (order[0].provider == "xai" and order[0].model == "grok-4.7")
 
 
 def test_red_is_led_by_copilot_default_on_a_codespace(registry):
