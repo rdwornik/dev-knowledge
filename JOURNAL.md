@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (h) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-organ-truth-pin (`[#1711]`) -- the three test-pinned organ fates get dated ROW verdicts (target 2026-11-23, R149/R163), and the organ-truth test pins the fate's shape and non-expiry, not a literal date
+
+**Anchors:** `951e3cdb` (test first: pin the organ-wiring fate SHAPE and non-expiry against `check_organ_truth`'s clock, not the literal 2026-10-19; RED on its base), `d83ddcd9` (dated verdicts for `handback.py`, `lane_boot.py`, `plan_lint.py`: `manual_until 2026-11-23`), `7469ee08` (review fixes: `plan_lint`'s caller cites dispatcher-order-template step 0; handback wording; a non-vacuous assert), `79f48a10` (the reasons no longer claim the census ignores command/template callers; verifier finding); branch `worktree-e2-organ-truth-pin`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 23552198).
+
+**Did:** e2-cliff landed PARTIAL because `tests/test_organ_truth.py` pinned three fates at 2026-10-19. This lane changes that test into the shape-and-non-expiry pin that `[#1711]` Done-when (1) names. It gives the three fates the ROW verdict date of their group row: `[#1711]` targets E3, and R163 fixes E3 = 2026-11-23. This is the form e2-cliff used for its other ROW fates. It is not a silent re-date: R149 (RATIFICATION-2026-10-19.md:14) is the authority, with the operator's 2026-10-21 order to the orchestrator. BATCH §4 D5 bound e2-fates, not this lane. The orchestrator corrected the handback's `plan` MODELS line to `NOT run`.
+
+**Result:** on the branch CI, organ_truth carries no expired organ, only a WARN for the two RETIRE-CANDIDATE fates awaiting the operator's GO (`desired_state_loader.py`, `harness_probes.py`). `tests/test_organ_truth.py` passes on the merged tree (40, targeted). Disclosed: the test reads the real clock, so it goes red the day a pinned fate lapses (2026-11-24 for these three). That is intended: re-date with a fresh reason, do not edit the test. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `ecosystem/harness.yaml` (three fates), `tests/test_organ_truth.py`; generated on the merged tree: `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-stop-hook-headless line).
+
+**Next:** e2-model-routing lands on its package.
+
 ### 2026-10-21 (g) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-stop-hook-headless (`[#1700]`) -- the session-end Stop hook stays silent unless `CLAUDE_CODE_SESSION_ATTENDED` is exactly `1`, and nudges at most once per session_id
 
 **Anchors:** `258a9597` (RED), `f1638753` (silent when headless, once per session_id otherwise), `2ed67e15` (the once-marker claimed atomically with O_EXCL, per review), `6d1d14d6` (RED: silent unless ATTENDED is exactly 1), `44c56783` (fix), `3356e9b4` (the marker filename is never a bare dot name), `06caee93` (the handback file, committed into the repo by mistake and removed by this merge); branch `worktree-e2-stop-hook-headless`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 1fa583e9).
