@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-21  
-**Generated:** 2026-10-21T22:16:07  
+**Generated:** 2026-10-21T22:24:02  
 **Repos audited:** 6  
 **Checks:** 924 total — 161 pass, 13 fail, 554 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-syexxu03\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-2fab36ld\wt`  
 **Last audit:** 2026-10-21
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 0d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-21, newest input BACKLOG.md committed 2026-10-21 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-16, newest input docs/audits committed 2026-10-16 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 9 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 10 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
