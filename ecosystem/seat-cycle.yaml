@@ -1,0 +1,27 @@
+# seat-cycle.yaml -- the numbers `scripts/seat_cycle.py` (R179) cycles a seat on. They live ONLY here.
+#
+# DATA SOURCE OF THE TOKEN NUMBER (state of the art): the LAST assistant `message.usage` record of the
+# seat's transcript jsonl -- input_tokens + cache_creation_input_tokens + cache_read_input_tokens.
+# The job `~/.claude/jobs/<id>/state.json` `tokens` field is per-turn and is NOT context use
+# (measured 2026-10-21); do not read the threshold from it.
+#
+# A seat is replaced when EITHER limit is crossed: context tokens >= context_tokens, or the seat's
+# age (hours) >= max_age_hours.
+threshold:
+  orchestrator:
+    context_tokens: 300000
+    max_age_hours: 3.0
+  integrator:
+    context_tokens: 300000
+    max_age_hours: 3.0
+
+# After `claude stop`, the stop is VERIFIED by polling for `window_seconds` every `interval_seconds`;
+# the LAST poll is the verdict.
+stop_poll:
+  window_seconds: 60
+  interval_seconds: 5
+
+# How long the old seat waits for the successor's BOUND line before refusing to stop.
+bound_wait:
+  timeout_seconds: 300
+  interval_seconds: 5
