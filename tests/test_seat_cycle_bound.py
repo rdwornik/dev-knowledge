@@ -82,3 +82,38 @@ def test_ambiguous_or_missing_name_writes_nothing(tmp_path, monkeypatch, agents)
     assert res.exit_code == 1
     assert "expected exactly 1" in res.output
     assert path.read_text(encoding="utf-8") == before
+
+
+def _registry_with(tmp_path: Path, model: str) -> Path:
+    import yaml
+    import provider_registry
+    data = yaml.safe_load(provider_registry.DEFAULT_REGISTRY_PATH.read_text(encoding="utf-8"))
+    data["roles"]["seat-orchestrator"]["order"][0]["model"] = model
+    path = tmp_path / "registry.yaml"
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    return path
+
+
+def test_handover_head_row_parses_with_gate_parser_and_matches_registry(tmp_path):
+    import dispatch
+    import provider_registry
+    text = _handover(tmp_path).read_text(encoding="utf-8")
+    model, effort = dispatch.parse_contract_model_effort(text)
+    assert model == provider_registry.anthropic_role_model("seat-orchestrator")
+    assert effort == sc.load_config()["threshold"]["orchestrator"]["effort"]
+    assert "| execute |" in text and sc.lint_handover(text) == []
+
+
+def test_head_row_follows_registry_fixture(tmp_path):
+    import dispatch
+    reg = _registry_with(tmp_path, "claude-opus-5-5")
+    text = _handover(tmp_path, registry=reg).read_text(encoding="utf-8")
+    assert dispatch.parse_contract_model_effort(text)[0] == "claude-opus-5-5"
+
+
+def test_lint_flags_missing_or_unparseable_head_row(tmp_path):
+    text = _handover(tmp_path).read_text(encoding="utf-8")
+    start, end = text.index("## Head row"), text.index("## State")
+    assert any("Head row" in d for d in sc.lint_handover(text[:start] + text[end:]))
+    broken = text[:start] + "## Head row\n\nno table here\n\n" + text[end:]
+    assert any("head row" in d for d in sc.lint_handover(broken))

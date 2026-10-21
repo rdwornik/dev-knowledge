@@ -5,6 +5,12 @@ by: <outgoing seat id>
 
 # Handover <seat> cycle <n>
 
+## Head row
+
+| Model | Mode | Effort |
+|---|---|---|
+| <model from the role table> | execute | <effort from ecosystem/seat-cycle.yaml> |
+
 ## State
 
 <Where the work stands now: what is merged, what is mid-flight, what is blocked.>

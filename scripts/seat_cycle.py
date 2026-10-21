@@ -118,7 +118,19 @@ def successor_model(role: str, registry: Optional[Path] = None) -> str:
 
 def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, next_steps: Sequence[str],
                    open_decisions: Sequence[str], live_children: Sequence[str], bookkeeping: str,
-                   by: str, successor_slug: Optional[str] = None) -> Path:
+                   by: str, successor_slug: Optional[str] = None,
+                   registry: Optional[Path] = None) -> Path:
+    # The handover is the successor's contract, so the pre-launch model-per-role gate reads this row.
+    effort = ((load_config().get("threshold") or {}).get(role) or {}).get("effort")
+    if not effort:
+        raise SeatCycleRefused(f"no effort declared for role {role!r} in seat-cycle.yaml")
+    try:
+        model = successor_model(role, registry)
+    except SeatCycleRefused:
+        raise
+    except Exception as exc:
+        raise SeatCycleRefused(f"no role-table model for role {role!r}: {exc}") from exc
+    head_row = f"| Model | Mode | Effort |\n|---|---|---|\n| {model} | execute | {effort} |"
     steps = "\n".join(f"{i}. {s}" for i, s in enumerate(next_steps, 1))
     bullets = lambda items: "\n".join(f"- {x}" for x in items)   # noqa: E731
     path = Path(path)
@@ -126,7 +138,7 @@ def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, 
     command = (f"uv run --locked python scripts/seat_cycle.py bound --handover {path.resolve()} "
                f"--name {slug} --seat {seat} --cycle {cycle}")
     text = (f"carried-by: OPEN\nkind: HANDOVER\nseat: {seat} role={role} cycle={cycle}\nby: {by}\n\n"
-            f"# Handover {seat} cycle {cycle}\n\n## State\n\n{state}\n\n## Next steps\n\n{steps}\n\n"
+            f"# Handover {seat} cycle {cycle}\n\n## Head row\n\n{head_row}\n\n## State\n\n{state}\n\n## Next steps\n\n{steps}\n\n"
             f"## Open decisions\n\n{bullets(open_decisions)}\n\n## Live children\n\n{bullets(live_children)}\n\n"
             f"## Seat bookkeeping\n\n{bookkeeping}\n\n"
             f"## First act (successor)\n\nAs your FIRST action, before anything else, run exactly:\n\n"
@@ -147,6 +159,15 @@ def lint_handover(text: str) -> list[str]:
     for section in SECTIONS:
         if section not in body:
             defects.append(f"missing section: {section}")
+    if "Head row" not in body:
+        defects.append("missing section: Head row")
+    else:
+        try:
+            _dispatch().parse_contract_model_effort(text)
+        except SeatCycleRefused:
+            pass
+        except Exception as exc:
+            defects.append(f"head row unparseable: {exc}")
     if "Next steps" in body and not re.search(r"(?m)^1\. \S", body["Next steps"]):
         defects.append("no next steps: the section carries no numbered item")
     return defects
