@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f79d9f43ecb83b6eb5eacc090203ba9f2c6097895760a9ed0a02ac68cae5c5dc",
+  "generated_sha256": "bf90c9b7820fa521bb6a9daf42bf7274f39cdd7c324004f1a3347962da58776b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2888,10 +2888,6 @@
       "file": "1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md"
     },
     {
-      "task": 1421,
-      "file": "1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md"
-    },
-    {
       "task": 1422,
       "file": "1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md"
     },
@@ -3180,10 +3176,6 @@
       "file": "1555-adr-123-step-1-carve-the-harness-package.md"
     },
     {
-      "task": 1560,
-      "file": "1560-a-lane-push-runs-tier-1-impacted-tests-and-one-always-run-gate-job-judges-the-run.md"
-    },
-    {
       "task": 1561,
       "file": "1561-impacted-tests-selects-for-workflow-and-ecosystem-data-and-for-a-removed-module.md"
     },
@@ -3192,20 +3184,12 @@
       "file": "1562-the-night-suite-runs-in-four-pytest-split-shards-per-os-under-the-existing-leg-names.md"
     },
     {
-      "task": 1563,
-      "file": "1563-the-always-red-ci-ship-gate-job-is-removed-r112.md"
-    },
-    {
       "task": 1564,
       "file": "1564-the-night-opens-on-a-live-known-reds-registry-and-ship-gate-diff-records-what-it-catches.md"
     },
     {
       "task": 1565,
       "file": "1565-tests-become-graph-nodes-with-static-and-coverage-exercises-edges.md"
-    },
-    {
-      "task": 1566,
-      "file": "1566-the-test-census-classifies-every-test-orphan-duplicate-zero-kill-no-outcome.md"
     },
     {
       "task": 1567,
@@ -3552,10 +3536,6 @@
       "file": "1658-codespace-delete-writes-close-row.md"
     },
     {
-      "task": 1659,
-      "file": "1659-agy-pin-tolerance.md"
-    },
-    {
       "task": 1660,
       "file": "1660-groom-view-back-under-150000.md"
     },
@@ -3570,10 +3550,6 @@
     {
       "task": 1663,
       "file": "1663-codex-review-of-box-lanes-runs-on-the-laptop.md"
-    },
-    {
-      "task": 1664,
-      "file": "1664-pins-gate-blocks-box-launch-on-cli-patch-bump.md"
     },
     {
       "task": 1665,
@@ -3742,6 +3718,30 @@
     {
       "task": 1706,
       "file": "1706-codespace-receipts-ledger-is-dirty-on-every-seat.md"
+    },
+    {
+      "task": 1710,
+      "file": "1710-g-stale-fates-lines-name-a-caller-the-census-cannot-see.md"
+    },
+    {
+      "task": 1711,
+      "file": "1711-g-edge-a-command-or-template-caller-is-a-wiring-edge.md"
+    },
+    {
+      "task": 1712,
+      "file": "1712-g-install-record-the-fleet-scheduler-installer.md"
+    },
+    {
+      "task": 1713,
+      "file": "1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md"
+    },
+    {
+      "task": 1714,
+      "file": "1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md"
+    },
+    {
+      "task": 1715,
+      "file": "1715-actions-verdict-reads-only-mains-push-run.md"
     },
     {
       "prose": ""

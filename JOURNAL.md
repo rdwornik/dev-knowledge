@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-cliff lands PARTIAL (48 of 51 fates of the 2026-10-19 date cliff get R149 verdicts in `ecosystem/harness.yaml`; rows `[#1710]`-`[#1715]` filed), with six rows closed by operator GO 2026-10-21 (LEDGER v271) to make room under the BACKLOG ceiling
+
+**Anchors:** `35a645a1` (48 fates get R149 verdicts: ROW target dates, `called_by`, `retire_candidate`; rows `[#1710]`-`[#1715]`; the stale AX paragraph fixed), `d70eeaf9` (refs clause on the six new rows; the AX paragraph names exactly `[#1650]`-`[#1661]`), `1cd1201c` (`[#1710]` names the one fate held by a test pin); branch `worktree-e2-cliff`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 6d1e3b17).
+
+**Did:** the lane gave verdicts to the organ fates whose `manual_until` hit 2026-10-19. Three keep that date, because `tests/test_organ_truth.py` pins them: `handback.py`, `lane_boot.py`, `plan_lint.py` (row `[#1711]`). `harness_probes.py` stays `retire_candidate`, with no deletion. The lane's session died with the laptop (exit 58), and the work was already pushed. The orchestrator rewrote the handback's two MODELS lines from the file's own review records (one line per reviewer, `NOT run`), so the merge gate reads it. The BACKLOG view could not hold the six new rows, so the operator closed six rows in this merge: `[#1664]` and `[#1659]` (subsumed by `[#1671]`), `[#1560]` and `[#1563]` (carried by `[#1672]`, R165), `[#1421]` (subsumed by `[#1675]`), and `[#1566]` (delivered: the census tool landed in `6043eaf5`; the census run is owned by L5 per R168). `tasks/manifest.json` conflicted with main's `[#1700]`-`[#1706]` nodes; both sides were kept in id order, and the closed rows' nodes were removed.
+
+**Result:** BACKLOG view 159,887 B of the 160,000 B ceiling. `tests/test_gen_task_tree.py` + `tests/test_known_reds.py` pass on the merged tree (256, targeted). No known-reds entry names a closed row. Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5; isolated verify WEAK (nonce unrecoverable, disclosed by the lane). The integration branch's CI run is the verdict (R167).
+
+**Changes:** `ecosystem/harness.yaml`, `protocols/STANDING_RULINGS.md` (the AX paragraph), `tasks/1710-…` to `tasks/1715-…` (new), six closed rows (`tasks/1421-…`, `tasks/1560-…`, `tasks/1563-…`, `tasks/1566-…`, `tasks/1659-…`, `tasks/1664-…`), `tasks/manifest.json`, `BACKLOG.md` (regenerated); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-dispatch-close line).
+
+**Next:** e2-stop-hook-headless (`[#1700]`) lands next; the orchestrator launches e2-organ-truth-pin for the three pinned fates.
+
 ### 2026-10-21 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-dispatch-close -- `dispatch.py successor` (`[#1673]`: a worktree cut at a named base, a first-run prompt, a LAUNCH receipt of kind successor, pre-launch) and the `queue` batch grammar (`[#1674]`), after repair 1 of 2
 
 **Anchors:** `30b28d52` (RED for `[#1673]`/`[#1674]`), `8cec2563` (feat), `f00d9a8b` (RED for review findings), `10cdb347` (review fixes: a stale branch is refused, not deleted; a plain dir is refused; effort is checked up front; undo only after its own add; slug lock), `2646faba` (repair 1: R159 teaching in the shim help and the dispatcher-order template, the `queue --dry-run` exemption dropped now that the template renders E2.0); branch `worktree-e2-dispatch-close`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 79397f6e).

@@ -761,7 +761,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
 - [#1410] [P1][M] The dispatcher enforces a lane's same-defect attempt bound in code, not by the lane's reading of its contract · tasks/1410-the-dispatcher-enforces-a-same-defect-attempt-bound-in-code.md
 - [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
-- [#1421] [P2][S] Each seat cycle tears down its own worktree and branch at CYCLE-END · tasks/1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md
 - [#1422] [P1][S] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset · tasks/1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md
 - [#1423] [P1][L] W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376] · tasks/1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md
 - [#1424] [P2][M] W2 carries FOUNDATION lane 12: the commit-time hooks R66 moved to CI run as CI jobs · tasks/1424-w2-carries-foundation-lane-12-the-commit-time-hooks-r66-moved-to-ci-run-as-ci-jo.md
@@ -834,13 +833,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1553] [P2][M] Codespace lanes run two, then six at once, each monitored, inside a declared core-hour cap · tasks/1553-codespace-concurrency-two-then-six.md
 - [#1554] [P2][M] A new ask that duplicates an open row is refused at distill, naming the row, before an id is allocated · tasks/1554-a-duplicate-ask-is-refused-at-distill.md
 - [#1555] [P2][L] ADR-123 step 1: carve the harness into one versioned package, Codespace verbs included · tasks/1555-adr-123-step-1-carve-the-harness-package.md
-- [#1560] [P1][M] A lane push runs Tier 1 (ruff + impacted tests on Linux) and one always-run gate job judges the run (R119 day, BUILD-2a slot 1) · tasks/1560-a-lane-push-runs-tier-1-impacted-tests-and-one-always-run-gate-job-judges-the-run.md
 - [#1561] [P1][S] impacted_tests.py selects the tests a changed workflow or ecosystem data file feeds, and the tests a removed module leaves behind (Tier-1 holes, BUILD-2a slot 1) · tasks/1561-impacted-tests-selects-for-workflow-and-ecosystem-data-and-for-a-removed-module.md
 - [#1562] [P1][M] The night suite runs in four pytest-split shards per OS, and a fail-closed aggregator keeps the two pytest leg names and the known-reds compare unchanged (R119 night, BUILD-2a slot 1) · tasks/1562-the-night-suite-runs-in-four-pytest-split-shards-per-os-under-the-existing-leg-names.md
-- [#1563] [P1][S] The always-red CI ship-gate job is removed with its never-matching handoff reader (R112, BUILD-2a slot 1, after the operator's GO) · tasks/1563-the-always-red-ci-ship-gate-job-is-removed-r112.md
 - [#1564] [P1][S] The night batch opens only on a live known-reds registry, and ship_gate_diff runs once on the final tip and records what it catches (R119 night, BUILD-2a slot 1) · tasks/1564-the-night-opens-on-a-live-known-reds-registry-and-ship-gate-diff-records-what-it-catches.md
 - [#1565] [P1][M] Tests become graph nodes: static exercises edges in FPG, and a nightly per-sha coverage-context edge artifact (R120.1, first night) · tasks/1565-tests-become-graph-nodes-with-static-and-coverage-exercises-edges.md
-- [#1566] [P1][M] The test census classifies every test ORPHAN, DUPLICATE, ZERO-KILL or NO-OUTCOME from the night's edges, without a model, into a KEEP/STRENGTHEN/REMOVE list (R120.3, first night) · tasks/1566-the-test-census-classifies-every-test-orphan-duplicate-zero-kill-no-outcome.md
 - [#1567] [P1][M] mutmut runs nightly on the night's changed functions with a per-lane score, a 70 % threshold and a loud 0-mutant failure (R120 goal, first night) · tasks/1567-mutmut-runs-nightly-on-the-changed-functions-with-a-per-lane-score.md
 - [#1568] [P2][S] Pre-commit refuses a removal that leaves orphan tests: the removed module's tests are deleted or rewritten in the same change (R120.2, BUILD-2b) · tasks/1568-pre-commit-refuses-a-removal-that-leaves-orphan-tests.md
 - [#1569] [P1][S] moment:merge runs without a hand-set HARNESS_CONTRACT, takes its worktree from the integration checkout, and its open-receipt file is git-ignored · tasks/1569-moment-merge-runs-without-a-hand-set-harness-contract-takes-its-worktree-from-the-integrat.md
@@ -927,12 +923,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1656] [P2][S] TODAY-GLUE count in every close digest (R145) · tasks/1656-today-glue-count-in-close-digest.md
 - [#1657] [P2][S] Harvest copies the lane SESSION file back (R145 hand step) · tasks/1657-harvest-copies-the-lane-session-file.md
 - [#1658] [P2][S] `codespace-delete` writes its close row (R144; true for the verb since 2026-10-19) · tasks/1658-codespace-delete-writes-close-row.md
-- [#1659] [P3][S] agy pin tolerance: 1.3.5 -> 1.4.2 must not block a launch (R140) · tasks/1659-agy-pin-tolerance.md
 - [#1660] [P2][M] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) · tasks/1660-groom-view-back-under-150000.md
 - [#1661] [P2][S] A Codespace handback fires a Monitor WAKE (R145 hand step; defect 4) · tasks/1661-codespace-handback-fires-monitor-wake.md
 - [#1662] [P1][S] The runner and the lane both write `/workspaces/dispatch/handback.json` (SEV-1; defect 1) · tasks/1662-runner-and-lane-share-handback-json.md
 - [#1663] [P2][S] Codex review of a box lane runs on the laptop against the pushed branch (defect 2; R151) · tasks/1663-codex-review-of-box-lanes-runs-on-the-laptop.md
-- [#1664] [P2][S] The pins gate blocks every box launch on each laptop CLI patch bump (defect 3) · tasks/1664-pins-gate-blocks-box-launch-on-cli-patch-bump.md
 - [#1665] [P2][S] `merge_receipt` has no abandon verb for a refused land (defect 5) · tasks/1665-merge-receipt-has-no-abandon-verb.md
 - [#1666] [P2][S] `ship_gate_diff.py` fails on a relative `--repo` and runs the caller's organ code on the target tree (defect 6) · tasks/1666-ship-gate-diff-relative-repo-and-caller-organs.md
 - [#1667] [P1][S] Handback text is lost in transport: the handback becomes a checked file, not a rendered one (defect 7) · tasks/1667-handback-text-lost-in-transport.md
@@ -975,6 +969,12 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1704] [P2][S] The merge receipt reads 'FAILED step(s): suite' on a green run after a crashed first land call · tasks/1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md
 - [#1705] [P2][S] The start-up token probe runs on a dirty tree and prints sum, not calls = sum / iterations[0] · tasks/1705-start-up-token-probe-must-refuse-a-dirty-tree.md
 - [#1706] [P2][S] CODESPACE-RECEIPTS.jsonl keeps every seat's tree dirty and the Stop hook says commit it · tasks/1706-codespace-receipts-ledger-is-dirty-on-every-seat.md
+- [#1710] [P3][S] G-STALE: 14 fates lines name organs that already have a real caller (R149) · tasks/1710-g-stale-fates-lines-name-a-caller-the-census-cannot-see.md
+- [#1711] [P3][M] G-EDGE: organs called only from a command or an order template have no wiring edge (R149) · tasks/1711-g-edge-a-command-or-template-caller-is-a-wiring-edge.md
+- [#1712] [P3][S] G-INSTALL: record setup-fleet-scheduler.ps1 as an installer, not a recurring process (R149) · tasks/1712-g-install-record-the-fleet-scheduler-installer.md
+- [#1713] [P2][S] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) · tasks/1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md
+- [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
+- [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
 
 ---
 
