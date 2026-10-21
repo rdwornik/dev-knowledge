@@ -1,0 +1,12 @@
+---
+id: "[#1698]"
+title: "A landing completes without its own MERGE-RECEIPTS line: the line rides the NEXT landing, so the last landing of a batch can lose it"
+status: open
+priority: P2
+size: S
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1698] [P2][S] **A landing completes without its own MERGE-RECEIPTS line: the line rides the NEXT landing, so the last landing of a batch can lose it** - the e2-census-2 merge `6043eaf5f` records itself as `merge_sha` in `logs/MERGE-RECEIPTS.jsonl:184` at main's tip (`"slug": "e2-census-2"`) yet the tree at that commit holds no `census-2` line (its last line is `"slug": "e2-rows-r164"`, and its message says 'carries the e2-rows-r164 MERGE-RECEIPTS line'); the e2-census-2 line first appears in the NEXT landing `10d21de97` ('carries the e2-census-2 MERGE-RECEIPTS line'); the same lag-by-one holds for `cf1fcd645` and `adeb8b1c0`, so a receipt can only be written after its merge sha exists and the landing step never writes it before the push, and the final landing of a batch has no successor to carry it · owner: an integrator-tooling lane (`scripts/merge_receipt.py`, `scripts/merge_path.py`) · Done when: (1) RED first: a test lands a lane through the landing path and fails while the pushed range lacks the lane's own receipt line; (2) the landing step writes that lane's line in a receipt commit pushed in the SAME push as the merge (the merge sha is only known after the merge, so the line cannot live inside the merge commit itself) or refuses to push without it, so no landing needs a successor to carry its line; (3) real-use witness: the next landing on `main` shows its own slug in `logs/MERGE-RECEIPTS.jsonl` at its own `merge_sha`, quoted with `git show <sha>:logs/MERGE-RECEIPTS.jsonl` · touches: `scripts/merge_receipt.py`, `scripts/merge_path.py`, `tests/` · kill-candidates: `[#1665]` -- also edits `merge_receipt.py` (abandon verb); sequence the two; `[#957]` -- its Done-when 2 requires one ledger row per merge, which holds here (the row exists) but says nothing of WHEN it lands, so this row is the timing remainder and does not duplicate it · refs `[#957]`, `[#1665]`, `[#1329]`, `[#1566]` · decided-by: the operator, 2026-10-20, LEDGER v257 T5 (to-browser/LEDGER-dev-knowledge.md), INTERIM under R166 -- to be graded by the harness map · source: `to-cc/BATCH-E2-NIGHT-2026-10-19.md` v3 lane e2-rows-t5 item 2d (operator ruling T5), `git show 6043eaf5f` and `git log origin/main -- logs/MERGE-RECEIPTS.jsonl`

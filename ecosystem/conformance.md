@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-10-20 · **HEAD:** `481f0a473a13` · **window:** 2026-10-13 → 2026-10-20 (7 days)
+- **As of:** 2026-10-21 · **HEAD:** `3247448e0d00` · **window:** 2026-10-14 → 2026-10-21 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -15,7 +15,7 @@
 
 ## Section 0 — Release notes (last 7 days)
 
-_Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
+_Rows that left `BACKLOG.md` between 2026-10-14 and 2026-10-21, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
 - **The architect reads an inbox and request status is derived, not typed** [#1539] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
 - **Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file** [#1538] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `52b9a90bc75c`
@@ -23,13 +23,12 @@ _Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. Th
 - **The generated transport index is built first in B2 W2 and groups files by the seat that wrote them** [#1454] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
 - **HANDOFF_BOOT teaches the browser's triage-then-sequence order** [#1450] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `52b9a90bc75c`
 - **P11 and the paste builder treat superseded decision files as discharged Â· tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md** [#1332] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
-- **conductor.yml does not yet exclude operator_host from the CI pytest invocation Â· tasks/1103-conductor-yml-does-not-yet-exclude-operator-host-from.md** [#1103] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-13 · `8e00b78d36cc`
 
 ## Section 1 — Backlog at a glance
 
 | Theme | Open | Deferred | Closed | Size mix (live rows) |
 |---|---:|---:|---:|---|
-| [E10] Batch convergence | 307 | 0 | 21 | L 21 · M 92 · S 194 |
+| [E10] Batch convergence | 309 | 0 | 21 | L 21 · M 92 · S 196 |
 | [E1] Handoff continuity | 20 | 1 | 10 | M 8 · S 13 |
 | [E2] Enforced governance | 224 | 24 | 61 | L 15 · M 129 · S 104 |
 | [E3] Lessons feedback loop | 5 | 2 | 6 | M 5 · S 2 |
@@ -40,9 +39,9 @@ _Rows that left `BACKLOG.md` between 2026-10-13 and 2026-10-20, newest first. Th
 | [E8] ARC-5 execution | 13 | 0 | 11 | M 4 · S 9 |
 | [E9] Fleet Desired-State System (North Star) | 5 | 1 | 8 | L 1 · M 2 · S 3 |
 
-**Total live rows: 801** (+168 over 7 days; 633 at the window start).
+**Total live rows: 803** (+171 over 7 days; 632 at the window start).
 
-Closed this window (7): [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332] · [#1103]
+Closed this window (6): [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332]
 
 ## Section 2 — Intake lifecycle gate
 

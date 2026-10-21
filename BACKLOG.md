@@ -965,6 +965,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1694] [P3][S] The census writes an edge that has no contexts without a warning · tasks/1694-census-edges-with-no-contexts-are-written-silently.md
 - [#1695] [P2][S] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced · tasks/1695-census-unknown-falls-to-keep.md
 - [#1696] [P3][M] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) · tasks/1696-census-eight-deferred-minor-findings.md
+- [#1697] [P2][S] `ecosystem/substrate-registry.yaml` types the cloud substrate as a live win-tooling build lane, which contradicts R132 (cloud is read-only; tests never run on it) · tasks/1697-substrate-registry-cloud-entry-contradicts-r132.md
+- [#1698] [P2][S] A landing completes without its own MERGE-RECEIPTS line: the line rides the NEXT landing, so the last landing of a batch can lose it · tasks/1698-a-landing-does-not-write-its-own-merge-receipts-line.md
 - [#1699] [P2][S] The R160 merge gate has no recorded-exception mechanism, so its one bootstrap exception was a chat decision · tasks/1699-subst-gate-recorded-exception-mechanism.md
 
 ---

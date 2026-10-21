@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-rows-t5 files `[#1697]` (the substrate registry's cloud entry contradicts R132) and `[#1698]` (a landing does not write its own MERGE-RECEIPTS line), and makes `[#1673]` EXACT, after repair 1 of 2
+
+**Anchors:** `7bbb6194` (files `[#1697]`, `[#1698]`, one sentence on `[#1673]`), `b811182b` (review fixes: the RED target of `[#1697]`, the receipt-timing mechanism and the `[#957]` distinction on `[#1698]`); branch `worktree-e2-rows-t5`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job f2058113).
+
+**Did:** a docs-only lane that files two owed rows and adds one sentence to an open row. The merge conflicted with main in `tasks/manifest.json`: main had added the `[#1699]` node in the same place, and the derived `generated_sha256` differed. The integrator kept both sides' nodes in id order (1697, 1698, 1699) and let `gen_task_tree.py --emit-source` regenerate BACKLOG.md and re-pin the hash. Against main, the merged manifest differs only by the lane's two nodes.
+
+**Result:** BACKLOG view 158,744 B (+467, as measured on the lane) under the 160,000 B ceiling. Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `tasks/1697-…`, `tasks/1698-…` (new), `tasks/1673-dispatch-has-no-successor-verb-g29.md`, `tasks/manifest.json`, `BACKLOG.md` (regenerated); generated on the merged tree: `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-graph-hotspot line).
+
+**Next:** e2-rows-r5 (its manifest nodes `[#1700]`-`[#1706]` go after `[#1699]`), then e2-test-flow-metrics and e2-dispatch-close; e2-cliff waits for the operator's BACKLOG-budget GO.
+
 ### 2026-10-21 (a) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-graph-hotspot -- `_implements_scan_paths` prunes skip dirs in one `os.walk` instead of rglob-then-filter, same paths in the same order, after repair 1 of 2
 
 **Anchors:** `6d74a247` (RED test + fix), `ec36d0df` (test counts only entries strictly under `.claude/worktrees`), `372a8661` (review: hand-typed measurements dropped from a comment); branch `worktree-e2-graph-hotspot`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 9a5316c9).
