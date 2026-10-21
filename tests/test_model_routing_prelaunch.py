@@ -56,6 +56,25 @@ def test_copilot_implement_is_accepted():
     assert _problems(_contract(COPILOT_CELL)) == []
 
 
+FROZEN_CELL = (
+    "**Copilot CLI** (Enterprise account, R146; served `claude-sonnet-5.5`, ...): Copilot WRITES the "
+    "code ...; fallback `claude-sonnet-5-5` ONLY after a recorded "
+    "`VENDOR-FAIL: implement copilot <error verbatim>`, announced in the handback (R139)"
+)
+
+
+def test_copilot_primary_cell_naming_the_claude_fallback_is_accepted():
+    assert _problems(_contract(FROZEN_CELL)) == []
+
+
+def test_claude_first_cell_mentioning_copilot_fallback_is_refused():
+    assert _problems(_contract(f"{SONNET} (fallback copilot)"))
+
+
+def test_claude_via_copilot_cell_is_refused():
+    assert _problems(_contract("Claude via Copilot"))
+
+
 def test_claude_implement_with_a_vendor_fail_line_is_accepted():
     text = _contract(SONNET, extra="VENDOR-FAIL: implement copilot auth error")
     assert [p for p in _problems(text) if "implement" in p and "phase" in p.lower()] == []
@@ -83,3 +102,21 @@ def test_a_claude_implement_contract_is_refused_before_anything_is_launched(tmp_
     out = proc.stdout + proc.stderr
     assert proc.returncode != 0, out
     assert "implement" in out and "provider-registry" in out, out
+
+
+PROSE = "only after a recorded `VENDOR-FAIL: implement copilot <error verbatim>`, announced"
+
+
+def test_vendor_fail_prose_mention_in_paragraph_and_table_cell_does_not_exempt():
+    extra = f"Claude implements {PROSE} in the chat.\n\n| note | {PROSE} |\n|---|---|\n"
+    assert _problems(_contract(SONNET, extra=extra)), "prose mention must not count as evidence"
+
+
+def test_flush_start_vendor_fail_evidence_line_is_accepted():
+    text = _contract(SONNET, extra="VENDOR-FAIL: implement copilot exit 1: not signed in")
+    assert _problems(text) == []
+
+
+def test_bulleted_vendor_fail_evidence_line_is_accepted():
+    text = _contract(SONNET, extra="- VENDOR-FAIL: implement copilot exit 1: not signed in")
+    assert _problems(text) == []

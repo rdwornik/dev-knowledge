@@ -63,7 +63,22 @@ _BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 HEAD_ROLE = "seat-orchestrator"
 IMPLEMENT_ROLE = "implement"
 #: R177: a Claude `implement` row / MODELS line is legal only beside a recorded `VENDOR-FAIL: implement ...`.
-_VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*implement\b", re.IGNORECASE)
+_VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*implement\s+\S", re.IGNORECASE)
+
+
+def _has_vendor_fail_evidence(text: str) -> bool:
+    """True only for a genuine evidence line, never a prose/table/placeholder mention."""
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("|"):
+            continue
+        if line[:1] in ("-", "*"):
+            line = line[1:].lstrip()
+        if "`" in line or "<" in line or ">" in line:
+            continue
+        if _VENDOR_FAIL_IMPLEMENT.match(line):
+            return True
+    return False
 
 _SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")      # dispatch.py's own slug grammar
 _PHASE_HEAD = re.compile(r"^\|\s*Phase\s*\|\s*Model\s*\|\s*(Substrate|Where)\s*\|\s*$", re.IGNORECASE)
@@ -168,8 +183,13 @@ def _implement_row_problems(lane: str, phase: str, cell: str, known: list[str], 
     implement entry only beside a `VENDOR-FAIL: implement` line (R177)."""
     order = pr.role_order(IMPLEMENT_ROLE, registry_path)
     first = order[0]
-    if _cell_matches(cell, first, known):
-        return []
+    if first.get("model"):
+        if _cell_matches(cell, first, known):
+            return []
+    else:
+        alias = str(first.get("provider", "")).split("-")[0].lower()
+        if cell.lstrip(" \t*`_").lower().startswith(alias):
+            return []
     if vendor_fail and any(_cell_matches(cell, e, known) for e in order[1:]):
         return []
     why = ("" if not vendor_fail else " (a `VENDOR-FAIL: implement` line is present but the row names "
@@ -218,7 +238,7 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
                      "row and the Dispatch line only")
         return list(dict.fromkeys(problems)), notes
     known = pr.model_ids(registry_path)
-    vendor_fail = bool(_VENDOR_FAIL_IMPLEMENT.search(text))
+    vendor_fail = _has_vendor_fail_evidence(text)
     for phase, cell in rows:
         low = phase.lower()
         if where_table:
