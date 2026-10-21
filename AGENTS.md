@@ -67,7 +67,7 @@ uv run --locked ruff check --fix                   # lint (also a pre-commit gat
 uv run --locked python scripts/audit.py health     # self-conformance gate
 ```
 
-**Test cadence (R167, interim per R166).** No seat starts a local full-suite or wide pytest
+**Test cadence (R167, interim per R166; [#528]).** No seat starts a local full-suite or wide pytest
 run. Locally run only the tests of the files you changed, with `-n0`. The evidence of the
 whole is the lane BRANCH CI run (run id + conclusion); the integrator's merge verdict is the
 integration-branch CI run.
