@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (c) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-rows-r5 files `[#1700]`-`[#1706]` -- the Stop hook in headless sessions, pkill scope, the Codex served model from the banner, branch-state reds, a receipt reading FAILED after a crashed land, the dirty-tree probe, the CODESPACE-RECEIPTS ledger dirty by design -- after repair 1 of 2
+
+**Anchors:** `7fd9dccf` (files `[#1700]`-`[#1705]`), `39c5b944` (files `[#1706]`); branch `worktree-e2-rows-r5`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 0aa60da5).
+
+**Did:** a docs-only lane that files seven rows. The merge conflicted with main in `tasks/manifest.json`, at the same place as e2-rows-t5's merge: main now holds the `[#1697]`-`[#1699]` nodes, and the derived hash differed. Both sides' nodes are kept in id order (1697 to 1706). `gen_task_tree.py --emit-source` regenerated BACKLOG.md and re-pinned the hash. Against main, the merged manifest differs only by the lane's seven nodes.
+
+**Result:** BACKLOG view 159,972 B, 28 B under the 160,000 B ceiling (R148). `test_check_and_the_size_bar_read_the_same_view_budget` passes on the merged tree (a targeted diagnostic; the CI run decides). e2-cliff's rows cannot fit until the operator rules on its closes. Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `tasks/1700-…` to `tasks/1706-…` (new), `tasks/manifest.json`, `BACKLOG.md` (regenerated); generated on the merged tree: `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-rows-t5 line).
+
+**Next:** with `[#1700]` on main, the orchestrator launches the Stop-hook fix lane; e2-test-flow-metrics and e2-dispatch-close land on their packages; e2-cliff waits for the operator's BACKLOG-budget GO.
+
 ### 2026-10-21 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-rows-t5 files `[#1697]` (the substrate registry's cloud entry contradicts R132) and `[#1698]` (a landing does not write its own MERGE-RECEIPTS line), and makes `[#1673]` EXACT, after repair 1 of 2
 
 **Anchors:** `7bbb6194` (files `[#1697]`, `[#1698]`, one sentence on `[#1673]`), `b811182b` (review fixes: the RED target of `[#1697]`, the receipt-timing mechanism and the `[#957]` distinction on `[#1698]`); branch `worktree-e2-rows-t5`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job f2058113).

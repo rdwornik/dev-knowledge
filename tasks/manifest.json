@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b66bd27a140af1d47044f8462313ca7e203a4c5e9932c0dd732a42c19bf2a5d0",
+  "generated_sha256": "f79d9f43ecb83b6eb5eacc090203ba9f2c6097895760a9ed0a02ac68cae5c5dc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3714,6 +3714,34 @@
     {
       "task": 1699,
       "file": "1699-subst-gate-recorded-exception-mechanism.md"
+    },
+    {
+      "task": 1700,
+      "file": "1700-stop-hook-continues-the-turn-in-headless-sessions.md"
+    },
+    {
+      "task": 1701,
+      "file": "1701-a-lane-may-kill-only-its-own-processes.md"
+    },
+    {
+      "task": 1702,
+      "file": "1702-codex-served-model-is-read-from-the-banner-by-code.md"
+    },
+    {
+      "task": 1703,
+      "file": "1703-lane-branch-ci-goes-red-on-five-main-state-tests.md"
+    },
+    {
+      "task": 1704,
+      "file": "1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md"
+    },
+    {
+      "task": 1705,
+      "file": "1705-start-up-token-probe-must-refuse-a-dirty-tree.md"
+    },
+    {
+      "task": 1706,
+      "file": "1706-codespace-receipts-ledger-is-dirty-on-every-seat.md"
     },
     {
       "prose": ""
