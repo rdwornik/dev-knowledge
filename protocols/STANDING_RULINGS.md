@@ -7293,6 +7293,276 @@ Landed by lane `e2-rulings` (batch E2.0, `to-cc/BATCH-E2-0-2026-10-18.md` v2 §4
   | R147 | **The junior rule:** any agent may be used (Haiku in boxes included), but it works isolated and **never verifies itself** — like a junior, someone else checks its hands. Every output is checked by a different agent before it counts. | BATCH-E2.0 v2 §3; the isolated verify + review pair; ISOLATED-CHECK on close digests |
   ```
 
+## AY. RATIFICATION 2026-10-19 and 2026-10-20 R148–R179 — landed verbatim from their source, R160 onward INTERIM under R166, each carried by a row, a lane or a written disposition (operator, 2026-10-19 and 2026-10-20)
+
+Landed by lane `e2-boot-rules` (batch E2.0). All of R160–R166 and R176–R179 are INTERIM under R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`: every ruling above it is interim and must be evaluated against the big picture); R167–R175 are INTERIM under R166 as well (`RATIFICATION-2026-10-20.md:2`). The sources are `to-browser/RATIFICATION-2026-10-19.md` (v2: R148–R152 at lines 13–17, the night order v3 R153–R159 at lines 24–30), `to-browser/RATIFICATION-2026-10-20-v1-superseded.md` (R160–R166 at lines 12–18; the v2 file `RATIFICATION-2026-10-20.md` lines 14–21 confirms Part 1 as unchanged and keeps its text in the v1 file), `to-browser/RATIFICATION-2026-10-20.md` (R167–R175 at lines 27–35) and `to-browser/HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md` (R176–R179 at lines 64–67). Nothing here is paraphrased by this lane; the verbatim blocks are the source lines byte for byte.
+
+**R-number check, quoted.** `Grep R(14[89]|1[5-7][0-9])` over `protocols/STANDING_RULINGS.md` before this section was written returned 1 match in 1 file: the line in section AX that mentions the R148 ceiling raise in `scripts/view_budget.yaml` (the "Owed rows filed" paragraph); no R149–R179 entry existed. The highest R-number with an entry was R147 (section AX).
+
+**Not landed here:** S5 (a seat/technical item, `RATIFICATION-2026-10-19.md:18`: every lane writes `/workspaces/dispatch/lane-handback.json`, never `handback.json`), which is not a numbered ruling.
+
+**Supersession recorded.** R176 replaces R173 (R176's own text: "R176 replaces R173"). R173's entry below is left as ratified. R168 is an amendment of ADR-127 carrying R119/R120/R155 (its own text).
+
+- **R148 — the BACKLOG view ceiling rises from 150,000 to 160,000 B** (operator's paste of 2026-10-19 ~19:30; full text `RATIFICATION-2026-10-19.md:13`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** landed in `scripts/view_budget.yaml` (commit fe4aace34, lane e2-rulings); groom row [#1660]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:13-13
+  | R148 | **The BACKLOG view ceiling rises from 150,000 to 160,000 B** in `scripts/view_budget.yaml`, as an explicit dated ruling (`manual_until` 2026-11-15), with a groom row that brings the view back under 150,000 B. | landed (fe4aace34); groom row [#1660] |
+  ```
+
+- **R149 — no silent re-date of the fates dated 2026-10-19** (operator's paste of 2026-10-19 ~19:30; full text `RATIFICATION-2026-10-19.md:14`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** lane e2-cliff (landed, commit 35a645a15); rows [#1710], [#1711], [#1712], [#1713], [#1714], [#1715]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:14-14
+  | R149 | **No silent re-date of the fates dated 2026-10-19.** Lane e2-cliff applies the DIGEST-E1-FATES-2026-10-19 verdicts (RETIRE → `retire_candidate`; ROW → one row per FATES group; `called_by:` where called). organ_truth reads red until it lands; recorded, not hidden. | lane e2-cliff (not yet launched) |
+  ```
+
+- **R150 — keep the parity row `settings-deny-and-point`** (operator's paste of 2026-10-19 ~19:30; full text `RATIFICATION-2026-10-19.md:15`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the fix landed with lane e2-fates (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:15-15
+  | R150 | **Keep the parity row `settings-deny-and-point`**; fix its stale comment. | landed with e2-fates |
+  ```
+
+- **R151 — the Codex review of a box lane runs on the laptop** (operator's paste of 2026-10-19 ~19:30; full text `RATIFICATION-2026-10-19.md:16`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the source's carrier column reads "used on every box lane" (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:16-16
+  | R151 | **The Codex review of a box lane runs on the laptop** against the pushed branch; no sandbox exception in boxes. | used on every box lane |
+  ```
+
+- **R152 — Copilot as a multi-model gateway, measured first** (operator's paste of 2026-10-19 ~19:30; full text `RATIFICATION-2026-10-19.md:17`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the T3 digest `DIGEST-MODEL-PROBE-V3-2026-10-19` is done per the source; the role table follows in `ecosystem/provider-registry.yaml`; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:17-17
+  | R152 | **Copilot as a multi-model gateway, measured first** (Enterprise login `Robert-Dwornik_ghub`; USD 200/month corporate budget; ≤ 80% target, stop at 90%). | T3 → DIGEST-MODEL-PROBE-V3-2026-10-19 (done); role table after |
+  ```
+
+- **R153 — Sonnet writes the code** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:24`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the role table in `ecosystem/provider-registry.yaml` is the source's carrier; no task row names R153 as its carrier, so this is a written disposition; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:24-24
+  | R153 | **Sonnet writes the code** (`implement` = claude-sonnet-5-5). A switch away happens only by the R154 decision, announced, never silent. Fallback order (Grok vs Copilot-served Sonnet first) decided with R154. | role table in `ecosystem/provider-registry.yaml` |
+  ```
+
+- **R154 — the weekly Claude allowance is managed strategically** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:25`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — this entry lands the text only; the weekly-allowance instrument the rule names does not exist and no task row is filed (a row is owed; READY-TO-FILE text is in the lane handback) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:25-25
+  | R154 | **The weekly Claude allowance is managed strategically.** No usage pacing in a fresh window; the weekly reading is recorded at each launch; past 50% weekly the seat proposes, from the days left, whether `implement` moves to Grok or Copilot-served Sonnet; the operator decides. | an instrument that reads the weekly allowance (none exists — T4 G9) |
+  ```
+
+- **R155 — the test-strategy open questions of 2026-10-15, as recommended** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:26`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1563] (named in the rule itself: the ship-gate CI job removal); lanes e2-census and e2-tier1 and their successors (the source's carrier column; the e2-tier1 remainder is owned by [#1672])
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:26-26
+  | R155 | **The test-strategy open questions of 2026-10-15, as recommended:** OQ1 pytest-split, pytest-cov/coverage and mutmut locked in `uv.lock`, alls-green pinned by SHA; OQ2 mutation advisory 5 nights then blocking; OQ3 GO to remove the CI ship-gate job (`[#1563]`). | e2-census, e2-tier1 and successors (none of the effects on main yet — T4) |
+  ```
+
+- **R156 — RAM guard and "done means checked"** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:27`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the source's carrier column reads "used tonight (0 runs killed)"; [#1681] covers the teaching of R143, R147 and R156 (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:27-27
+  | R156 | **RAM guard and "done means checked":** WAIT below 4 GB, never kill; a reaped, usage-cut or timed-out run is FAILED or WAITING, never done; nothing counts as done until a different agent checked its report; a "Completed" badge is not evidence. | used tonight (0 runs killed) |
+  ```
+
+- **R157 — 6 lanes in the night of 2026-10-19/20, implementation on Sonnet** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:28`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the source's carrier column reads "spent" (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:28-28
+  | R157 | **6 lanes in the night of 2026-10-19/20, implementation on Sonnet**, parallel up to R156 and the 2-box account limit. | spent |
+  ```
+
+- **R158 — use our own harness before building, build nothing twice** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:29`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1682] (the REUSE CHECK is not taught); the dogfood note in the source (REUSE CHECK used on every night lane; verdict run_phase yes, conductor no)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:29-29
+  | R158 | **Use our own harness before building, build nothing twice:** a REUSE CHECK quote opens every contract (the integrator refuses without it); tested ≠ deployed ≠ used; at least one lane runs through our own phase chain (`conductor.py lane` → `run_phase.py`, PhaseReceipt + `--json-schema`). | REUSE CHECK used on every night lane; dogfood verdict: run_phase yes, conductor no (SESSION-e2-distill-pilot) |
+  ```
+
+- **R159 — the handoff changes with the harness, per lane** (operator's night order v3, paste of 2026-10-19 ~22:20; full text `RATIFICATION-2026-10-19.md:30`). **Status:** landed as text by lane `e2-boot-rules`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1683] (teaching in the same change); T4 drift items (`DIGEST-HARNESS-STATE-2026-10-20` annex A9)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-19.md:30-30
+  | R159 | **The handoff changes with the harness, per lane:** a lane that changes how a process works updates its teaching (order templates, seat-boot teaching, handoff sources) in the same change; the integrator refuses otherwise; T4 measures the drift. | T4: 14 drift items (DIGEST-HARNESS-STATE-2026-10-20 annex A9) |
+  ```
+
+- **R160 — e2-subst-gate successor** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:12`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** lane e2-subst-gate-2; [#1699] (the recorded-exception mechanism for the merge gate's one bootstrap exception)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:12-12
+  | R160 | **e2-subst-gate successor** (lane `e2-subst-gate-2` from 7c279f4b6): the 3 broken test calls get a batch (no assertion change); **option A** — one batch grammar `E<n>.<n>` enforced at launch, codespace-exec, repair and the merge gate (`handback_problems`); the 8 test fixtures with pre-E2 names are re-id'd. STOP-1 option A (no new role); the `red` pin per Appendix A1. | lane e2-subst-gate-2 |
+  ```
+
+- **R161 — e2-census successor** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:13`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — lane e2-census-2 (landed, commit 6043eaf5f); related rows, which do not name this ruling: [#1566] (the census tool) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:13-13
+  | R161 | **e2-census successor** (`e2-census-2` from e8a04fbba): the two `newline=` (scripts/test_census.py:475, :487); the repair's failing list read line by line against main; ship_gate_diff before the handback; scripts/read_gate.py out of the dead list. **No GO for any test removal from this run.** | lane e2-census-2 |
+  ```
+
+- **R162 — e2-distill-pilot lands on its own merits** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:14`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** the integrator's land of lane e2-distill-pilot; the seven chain-defect rows [#1685], [#1686], [#1687], [#1688], [#1689], [#1676], [#1690] (P1–P7, each citing `SESSION-e2-distill-pilot.md`); [#1702] (the banner `model:` line read by code)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:14-14
+  | R162 | **e2-distill-pilot lands on its own merits** (option a); the chain verdict stays its finding; its 7 chain defects become rows. **The CLI's `model:` banner line is the served id**; a model's self-description is a note, not evidence. | integrator land; 7 rows |
+  ```
+
+- **R163 — e2-cliff target dates** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:15`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — lane e2-cliff (landed, commit 35a645a15); related rows, which do not name this ruling: [#1710], [#1711], [#1712], [#1713], [#1714], [#1715] (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:15-15
+  | R163 | **e2-cliff target dates:** E2 → 2026-11-09, E3 → 2026-11-23; e2-cliff launches after e2-subst-gate-2 lands. | lane e2-cliff |
+  ```
+
+- **R164 — CLI pins, interim** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:16`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1671]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:16-16
+  | R164 | **CLI pins, interim:** a patch bump within the same major.minor is tolerated with a recorded line; a minor or major bump still refuses. The seat's systemic alternative (no committed pins; codespace-exec passes the laptop's exact versions to the box) is to be judged under R166. | a codespace_parity row/lane |
+  ```
+
+- **R165 — the e2-tier1 STOPs** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:17`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1672]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:17-17
+  | R165 | **The e2-tier1 STOPs:** the next tier1 lane owns tests/test_conductor.py and scripts/gen_handback.py, to finish the [#1560] remainder and the [#1563] removal (OQ3 GO given by R155). | next tier1 lane |
+  ```
+
+- **R166 — every ruling above is INTERIM and must be evaluated against the big picture** (operator, 2026-10-20 ~12:15; full text `RATIFICATION-2026-10-20-v1-superseded.md:18`; confirmed unchanged at `RATIFICATION-2026-10-20.md:14-21`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — `DIGEST-HARNESS-MAP-2026-10-20` grading is the source's carrier column; no implementation required beyond that digest (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20-v1-superseded.md:18-18
+  | R166 | **Every ruling above is INTERIM and must be evaluated against the big picture** (the operator's loop: backlog → ADR → decision → self-evaluation → backlog → distillation → dispatch → lane phases → isolated evaluation → GitHub Actions → land → report → evaluation; the harness evaluates, repairs and understands itself; our own tools first; nothing rebuilt; cost-efficient — maps and code before tokens). The read-only harness map (to-cc/BATCH-E2-MAP-2026-10-20.md) grades each of R160–R165 KEEP / REPLACE (by the systemic version) / DROP with its reason; the operator rules on that grade. **Every defect and conclusion from the E2 reports must appear in that map with its row id or as UNFILED** — nothing is dropped. | DIGEST-HARNESS-MAP-2026-10-20 |
+  ```
+
+- **R167 — relief: tests off the laptop** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:27`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — lane L3 (`test_run.py`) is the source's written carrier; no task row found, and the mechanism is not yet built (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:27-27
+  | R167 | **Relief: tests off the laptop.** No seat starts a local full-suite or wide pytest run. Locally only the tests of the changed files. The R147 check reads the lane branch CI run (run id + conclusion). The integrator's merge verdict is the integration-branch CI run. Interim until lane L3 builds the mechanism. | L3 (`test_run.py`) |
+  ```
+
+- **R168 — ADR-ε = option O2 "test once, measured"** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:28`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the ADR-ε file and lanes L1–L5 are the source's written carrier; no task row found; related rows, which do not name this ruling: [#1566] records that the census run is owned by L5 per R168; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:28-28
+  | R168 | **ADR-ε = option O2 of DIGEST-TEST-EXECUTION-EVAL-2026-10-20, "test once, measured".** It is an amendment of ADR-127 carrying R119/R120/R155, not a new decision. GO lane L1 (the metric organ: test_flow_metrics.py, ceilings, ceiling test, nightly step, `--durations=50 --junitxml`). L2 launches only after L1 has landed and produced its first nightly record. L3–L5 follow as in the digest §6; every Done-when is a moved metric plus a deletion. | ADR-ε file (written by CC, ratified on Fable); lanes L1–L5 |
+  ```
+
+- **R169 — red means red** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:29`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — lane L2 and "one row" are the source's carrier column; no task row for the commit-gate fix was found, so the lane is the written carrier; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:29-29
+  | R169 | **Red means red.** R155 OQ3 stands: the ship-gate CI job is removed in L2. The commit-gate CI job is also REMOVED in L2, with a row to fix it properly. | L2; one row |
+  ```
+
+- **R170 — targets** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:30`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the ceilings file of lane L1 is the source's carrier column; no task row found; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:30-30
+  | R170 | **Targets.** push→main ≤ 2 h median now; the committed ceiling ratchets toward ≤ 60 min. Teaching lines change inside each lane (R159), and the handoff carries the digest and its baselines. | ceilings file (L1) |
+  ```
+
+- **R171 — cloud** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:31`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the handoff SUPPLEMENT is the source's carrier column; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:31-31
+  | R171 | **Cloud.** R132 stands (the Anthropic cloud is read-only, launched through the hub). Tests never run on the Anthropic cloud. The successor architect seat executes L1–L5 in order and does not re-plan them. | handoff SUPPLEMENT |
+  ```
+
+- **R172 — isolated evaluation, standing** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:32`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1702] (the mechanism row: the Codex banner `model:` line read by code); the templates (lane contract, order), with [#1701] filed on the contract template in the same set of rows
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:32-32
+  | R172 | **Isolated evaluation, standing.** Every lane gets: an isolated verifier that saw only the contract and the diff, never the lane's conclusions; the R138 review pair (Codex terra + Copilot), with the served model read from the CLI banner. Every seat proposal the operator is asked to rule on gets a separate read-only challenger session before the ruling. Both are quoted in every handback. | templates (lane contract, order); mechanism row (banner read by code) |
+  ```
+
+- **R173 — one agent file (candidate ζ)** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:33`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Superseded:** replaced by R176 (HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:64); R173's text is left as ratified.
+
+  **Carried by:** no implementation required — R173 is replaced by R176; the ζ ADR and the generator + gate lane are carried under R176, so no implementation is required under R173 itself (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:33-33
+  | R173 | **One agent file (candidate ζ).** Do option (b) now: CLAUDE.md is one generated line `@AGENTS.md`, test-enforced, and AGENTS.md is the single generated source. Then measure option (a) on cases C1–C7 (LEDGER v256). CLAUDE.md is deleted only when all of C1–C7 PASS and the operator gives the deletion GO. ζ itself still needs the CC challenge (DIGEST-AGENT-FILE-CHALLENGE-2026-10-20) and ratification on Fable. | ζ ADR; generator + gate lane |
+  ```
+
+- **R174 — branch deletion GO** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:34`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the orchestrator hygiene list is the source's carrier column and written disposition; no implementation required in this lane (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:34-34
+  | R174 | **Branch deletion GO.** Delete the remote `worktree-e2-subst-gate` (FAILED) after e2-subst-gate-2 lands. Delete `automation/fleet-audit`, unless a live workflow still writes it; then report that instead, and the operator rules on the automation itself. | orchestrator hygiene list |
+  ```
+
+- **R175 — operator GO on seat proposals P6–P8, and T5** (operator, 2026-10-20 ~14:30–17:15; full text `RATIFICATION-2026-10-20.md:35`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the source names lanes; rows-map landed 10d21de97 and hotspot landing; related rows, which do not name this ruling: the remaining T5 rows [#1673] (G29), [#1697] (substrate-registry cloud entry vs R132), [#1698] (the MERGE-RECEIPTS line a landing does not write) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-20.md:35-35
+  | R175 | **Operator GO on seat proposals P6–P8** (LEDGER v248): e2-startup-bisect (read-only), e2-graph-hotspot, e2-rows-map. And **T5**: file the rows G29 (filed as [#1673]), repair-verb LAUNCH receipt + pre-launch, substrate-registry cloud entry vs R132, and the missing MERGE-RECEIPTS line for census-2. | lanes (done: rows-map landed 10d21de97; hotspot landing); the remaining T5 rows |
+  ```
+
+- **R176 — one agent file, re-scoped (replaces R173)** (operator; full text `HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:64`; operator words also quoted in the contract). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the ζ successor lane is not yet filed (no task row found) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:64-64
+  R176 replaces R173: zeta is re-scoped to DIGEST-AGENT-FILE-CHALLENGE-2026-10-20 section 4c (keep ADR-115's thin CLAUDE.md = @AGENTS.md + Claude-only remainder; hand rules as data later; option (a) parked until the Grok trust row is measured and a test fails on any ancestor CLAUDE.md). GO on the 4 HISTORY lines of that digest's section 9.
+  ```
+
+- **R177 — implement role primary = Copilot CLI (ratified)** (operator; full text `HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:65`; ratification text also at `LEDGER-dev-knowledge-v264-superseded-2026-10-20.md:20`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the mechanism is carried by lane e2-model-routing (the registry role table, pre-launch routing_agreement, subst_gate, the subagent hook; merged on the integration branch, not yet on main; no task row found) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:65-65
+  R177 RATIFIED: implement role primary = Copilot CLI (served claude-sonnet-5.5, Enterprise account R146); fallback claude-sonnet-5-5 only after a recorded VENDOR-FAIL, announced (R139); the lane head is a thin claude-sonnet-5-5 session (frozen spec, gates, hooks, judging); Opus only for the integrator and judgement; the orchestrator seat runs on Sonnet. Applies to every code lane launched from now on, before the mechanism lands.
+  ```
+
+- **R178 — no subagent runs on Opus** (operator; full text `HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:66`; also `LEDGER-dev-knowledge-v264-superseded-2026-10-20.md:26`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the mechanism is carried by lane e2-model-routing (the subagent hook; merged on the integration branch, not yet on main; no task row found) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:66-66
+  R178 NEW: no subagent runs on Opus (reads = Haiku, bounded probes = Sonnet); subagent fan-out uses the CLI's workflow feature where it exists; enforced by the harness, not remembered.
+  ```
+
+- **R179 — every long-running CC seat hands over to a fresh successor BY CODE** (operator; full text `HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:67`; fuller text at `LEDGER-dev-knowledge-v266-superseded-2026-10-20.md:13`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — the mechanism is not yet built; lane e2-seat-cycle is not yet launched (no task row found) (owner: E2-ORCHESTRATOR)
+
+  ```verbatim to-browser/HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:67-67
+  R179 NEW: every long-running CC seat (orchestrator, integrator, any coordinator) hands over to a fresh successor BY CODE at a context threshold; the successor's model is read from the role table; this is a harness mechanism shipped through the deploy manifest to every consumer repo and deployment, not a hub-only habit.
+  ```
+
+- **G29** is carried by row [#1673] (`tasks/1673-dispatch-has-no-successor-verb-g29.md`).
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
