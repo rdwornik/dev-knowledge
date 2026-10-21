@@ -99,6 +99,68 @@ def pytest_configure(config: pytest.Config) -> None:
         "repo's own local main ref, extra worktrees) -- registered in tests/conftest.py; "
         "not a code defect, skipped where the operator host is absent",
     )
+    config.addinivalue_line(
+        "markers",
+        "windows_only: skips on Ubuntu by a platform condition (registered in "
+        "WINDOWS_ONLY_TESTS, applied at collection) -- Ubuntu deselects it, Windows runs it",
+    )
+    config.addinivalue_line(
+        "markers",
+        "windows_smoke: a cheap Windows-leg canary that runs on a Windows-sensitive landing "
+        "alongside the windows_only tests",
+    )
+    extra = os.environ.get("CI_OS_MARKEXPR", "").strip()
+    if extra:
+        config.option.markexpr = compose_markexpr(config.option.markexpr, extra)
+
+
+def compose_markexpr(existing: str, extra: str) -> str:
+    """AND two `-m` expressions; an empty side contributes nothing."""
+    existing, extra = (existing or "").strip(), (extra or "").strip()
+    if existing and extra:
+        return f"({existing}) and ({extra})"
+    return existing or extra
+
+
+# e2-os-split (ADR-127 AMENDMENT 2): the tests that skip on Ubuntu by a PLATFORM condition
+# (os.name / sys.platform / winreg / pwsh), i.e. the sites tests/test_os_split_gate.py detects.
+# Derived from the repo by that gate's own detector (`ubuntu_skipping_tests` over tests/*.py),
+# plus the helper-skipped 8.3 short-name test the detector cannot see (the skip lives in a helper).
+# Posix-only skips (sys.platform == "win32") and tool-absence skips (git/bash/uv/claude) are not
+# here. Entries: 18 (17 exact node ids + 1 module, tests/test_dispatch_shim.py) expanding to
+# 23 collected tests (the module entry = 6 of them). Ubuntu 45 skipped vs Windows 15 => ~30 Windows-only:
+# to-browser/DIGEST-TEST-EXECUTION-EVAL-2026-10-20-ANNEX.md Q4.
+# Entry grammar (the gate's `_covered`): exact node id, or a module path covering every test in it.
+# NB the codex_review_consumer pwsh checks are gated by tool presence, but the gate's detector
+# flags any `pwsh` skip condition, so they are registered (Ubuntu CI has pwsh; this trades their
+# Ubuntu run for the gate's non-vacuity).
+WINDOWS_ONLY_TESTS: frozenset[str] = frozenset({
+    "tests/test_codex_review_consumer.py::test_valid_consumer_citation_produces_consumer_line",
+    "tests/test_codex_review_consumer.py::test_invalid_consumer_citation_errors",
+    "tests/test_codex_review_consumer.py::test_valid_no_consumer_reason_produces_no_consumer_line",
+    "tests/test_codex_review_consumer.py::test_too_short_reason_errors",
+    "tests/test_codex_review_consumer.py::test_neither_consumer_nor_reason_errors",
+    "tests/test_codex_review_consumer.py::test_both_consumer_and_reason_errors",
+    "tests/test_dispatch_launch.py::test_the_shim_needs_no_cap_and_passes_only_launch_and_the_contract",
+    "tests/test_dispatch_launch.py::test_the_shim_keeps_dry_run_and_run",
+    "tests/test_dispatch_launch.py::test_the_shim_passes_a_cap_through_only_when_given_and_returns_launchs_exit_code",
+    "tests/test_dispatch_launch.py::test_the_shims_help_switch_prints_dispatchs_own_help",
+    "tests/test_dispatch_py.py::test_an_unmounted_prompts_authority_is_a_different_refusal_from_a_missing_file",
+    "tests/test_dispatch_shim.py",
+    "tests/test_fleet_health.py::test_read_user_scope_returns_none_when_the_value_is_absent",
+    "tests/test_fleet_health.py::test_read_user_scope_returns_none_when_the_key_cannot_be_opened",
+    "tests/test_fleet_health.py::test_read_user_scope_returns_a_plain_string_value",
+    "tests/test_fleet_health.py::test_read_user_scope_expands_a_reg_expand_sz_value",
+    "tests/test_fleet_health.py::test_read_user_scope_treats_an_empty_value_as_absent",
+    "tests/test_scope_guard.py::test_windows_8dot3_short_form_is_refused",
+})
+
+
+def _windows_only_covered(nodeid: str, registry: frozenset[str]) -> bool:
+    nodeid = nodeid.replace("\\", "/")
+    module = nodeid.split("::", 1)[0]
+    return (nodeid in registry or module in registry
+            or f"{module}::<module>" in registry)
 
 
 @dataclass(frozen=True)
@@ -130,7 +192,11 @@ def find_unregistered_markers(collected: list[_CollectedMarker],
     return sorted({c.nodeid for c in collected if c.marked} - registry)
 
 
+@pytest.hookimpl(tryfirst=True)   # mark before the `-m` deselection runs
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    for item in items:
+        if _windows_only_covered(item.nodeid, WINDOWS_ONLY_TESTS):
+            item.add_marker(pytest.mark.windows_only)
     collected = [
         _CollectedMarker(item.nodeid.replace("\\", "/"),
                          item.get_closest_marker("operator_host") is not None)

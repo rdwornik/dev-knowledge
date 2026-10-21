@@ -32,9 +32,17 @@ HONEST LIMIT. A Windows-only break in a file none of the three sources names is 
 nightly leg, not by the merge. That is the ruling's price: a Windows red found at night becomes
 a row the next morning and does not block the day.
 
+THE TEST SELECTION PER LEG (e2-os-split). Which tests a leg runs is decided here too, as a pytest
+marker expression (`selection`): Ubuntu runs `not windows_only` (every test that cannot skip on
+Ubuntu by platform); Windows on `schedule` / `workflow_dispatch` runs the full suite (`""`, the
+nightly is unchanged); Windows on any other event (a Windows-sensitive landing) runs
+`windows_only or windows_smoke` only. The markers are data in tests/conftest.py
+(`WINDOWS_ONLY_TESTS`, the `windows_smoke` tests), not logic here.
+
 CLI (the workflow): `python3 scripts/ci_os_plan.py --event E --head SHA [--before SHA]` writes
-`os=["ubuntu-latest"]` or `os=["ubuntu-latest","windows-latest"]` and `reason=…` to
-`$GITHUB_OUTPUT`. Stdlib only: the plan job runs before any `uv sync`.
+`os=["ubuntu-latest"]` or `os=["ubuntu-latest","windows-latest"]`, `reason=…`, `base=…`,
+`m_ubuntu=…` and `m_windows=…` (possibly empty) to `$GITHUB_OUTPUT`. Stdlib only: the plan job
+runs before any `uv sync`.
 """
 from __future__ import annotations
 
@@ -53,6 +61,9 @@ WINDOWS = "windows-latest"
 #: Events on which the full matrix runs: the nightly `schedule` and a hand-dispatched run (the
 #: remedy when a landing is refused for a missing Windows leg).
 FULL_MATRIX_EVENTS = ("schedule", "workflow_dispatch")
+
+MARK_WINDOWS_ONLY = "windows_only"
+MARK_WINDOWS_SMOKE = "windows_smoke"
 
 REGISTRY_RELPATH = "logs/KNOWN-REDS-REGISTRY.json"
 
@@ -193,6 +204,15 @@ def plan(event: str, git: GitFn, head: str, before: Optional[str], main_ref: str
     return [LINUX], "no Windows-sensitive path in the diff: Linux alone judges this merge"
 
 
+def selection(event: str, os_name: str) -> str:
+    """The pytest `-m` expression for one OS leg of one event ("" = the full suite)."""
+    if os_name == LINUX:
+        return f"not {MARK_WINDOWS_ONLY}"
+    if event in FULL_MATRIX_EVENTS:
+        return ""
+    return f"{MARK_WINDOWS_ONLY} or {MARK_WINDOWS_SMOKE}"
+
+
 def main(argv: Optional[list] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--event", required=True)
@@ -203,8 +223,11 @@ def main(argv: Optional[list] = None) -> int:
     args = ap.parse_args(argv)
     git = run_git(Path(args.root))
     os_list, reason = plan(args.event, git, args.head, args.before, args.ref)
-    base = resolve_base(args.event, git, args.head, args.before, args.ref) or ""
-    lines = [f"os={json.dumps(os_list)}", f"reason={reason}", f"base={base}"]
+    base = (args.head if args.event == "schedule"      # the nightly head IS main: no git call needed
+            else resolve_base(args.event, git, args.head, args.before, args.ref) or "")
+    lines = [f"os={json.dumps(os_list)}", f"reason={reason}", f"base={base}",
+             f"m_ubuntu={selection(args.event, LINUX)}",
+             f"m_windows={selection(args.event, WINDOWS)}"]
     for line in lines:
         print(line)
     target = os.environ.get("GITHUB_OUTPUT")

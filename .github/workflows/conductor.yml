@@ -110,6 +110,11 @@ jobs:
       os: ${{ steps.plan.outputs.os }}
       reason: ${{ steps.plan.outputs.reason }}
       base: ${{ steps.plan.outputs.base }}
+      # e2-os-split (ADR-127 AM2; v282 design): the per-leg pytest `-m` expression, decided in
+      # scripts/ci_os_plan.py `selection`. m_windows is EMPTY on schedule / workflow_dispatch
+      # (the nightly Windows leg runs the full suite, its red flowing to `windows-nightly-triage`).
+      m_ubuntu: ${{ steps.plan.outputs.m_ubuntu }}
+      m_windows: ${{ steps.plan.outputs.m_windows }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -188,6 +193,21 @@ jobs:
       - name: Sync the locked environment
         run: uv sync --locked --group analytics   # without it, pandas is absent and the
                                                  # fleet_analytics tests fail on the import
+      - name: Per-leg test selection (ci_os_plan)
+        # e2-os-split (ADR-127 AMENDMENT 2, v282 design): this leg's `-m` expression from the
+        # `plan` job, exported as CI_OS_MARKEXPR; tests/conftest.py ANDs it onto the pytest
+        # step's own `-m "not operator_host"`. An env var, not the command: that command text is
+        # pinned by tests/test_conductor.py and must not mention matrix.os.
+        env:
+          IS_WINDOWS: ${{ matrix.os == 'windows-latest' }}
+          M_UBUNTU: ${{ needs.plan.outputs.m_ubuntu }}
+          M_WINDOWS: ${{ needs.plan.outputs.m_windows }}
+        run: |
+          if [ "$IS_WINDOWS" = "true" ]; then
+            echo "CI_OS_MARKEXPR=$M_WINDOWS" >> "$GITHUB_ENV"
+          else
+            echo "CI_OS_MARKEXPR=$M_UBUNTU" >> "$GITHUB_ENV"
+          fi
       - name: pytest, pinned at -n 4 (logs/SUITE-BASELINE-FREEZE.md's comparison command)
         id: run
         continue-on-error: true   # judged by the known-reds compare below, not this raw exit
