@@ -290,9 +290,10 @@ def _override_active() -> bool:
 def _read_hook_input() -> dict:
     """Parse the Stop-hook JSON payload from stdin; fail-soft to {} (field-absent -> floor).
 
-    CC 2.1.178 does NOT send `stop_hook_active` (2.1.306 sends it; see the module docstring), so this is normally `{}` or a dict without
-    that key — which drives the structural floor. A runtime that DOES send it enables the
-    dormant fire-once path. Never raises (no stdin / non-JSON -> {}).
+    CC 2.1.178 does NOT send `stop_hook_active` (2.1.306 sends it; see the module docstring),
+    so this is normally `{}` or a dict without that key — which drives the structural floor.
+    A runtime that DOES send it enables the dormant fire-once path. Never raises (no stdin /
+    non-JSON -> {}).
     """
     try:
         raw = sys.stdin.read()
@@ -579,20 +580,20 @@ def _marker_path(session_id: str) -> Path:
     return root / re.sub(r"[^A-Za-z0-9._-]", "_", session_id)[:128]
 
 
-def _already_nudged(session_id: str) -> bool:
-    try:
-        return _marker_path(session_id).exists()
-    except OSError:
-        return False
-
-
-def _mark_nudged(session_id: str) -> None:
+def _claim_nudge(session_id: str) -> bool:
+    """Atomically claim the once-per-session nudge; True when THIS call may print."""
     try:
         path = _marker_path(session_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return True  # mkdir's FileExistsError (dir path is a file) is not "already nudged"
+        os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        return False
     except OSError:
-        pass
+        return True
+    return True
 
 
 def main() -> int:
@@ -622,7 +623,7 @@ def main() -> int:
                 session_id = data.get("session_id")
                 if not isinstance(session_id, str) or not session_id:
                     session_id = None
-                if session_id and _already_nudged(session_id):
+                if session_id and not _claim_nudge(session_id):
                     return 0
                 ctx = ("Session-end hygiene (deterministic backpressure — repair before "
                        "stopping):\n- " + "\n- ".join(advisory))
@@ -632,8 +633,6 @@ def main() -> int:
                         "additionalContext": ctx,
                     }
                 }))
-                if session_id:
-                    _mark_nudged(session_id)
                 return 0
         return 0  # floor / all-clear / retry -> silent, turn ends
     except Exception as exc:  # noqa: BLE001
