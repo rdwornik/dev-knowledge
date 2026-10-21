@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-21  
-**Generated:** 2026-10-21T22:47:22  
+**Generated:** 2026-10-21T23:39:34  
 **Repos audited:** 6  
-**Checks:** 924 total — 161 pass, 13 fail, 554 warn, 0 unavailable, 196 n/a
+**Checks:** 925 total — 161 pass, 13 fail, 555 warn, 0 unavailable, 196 n/a
 
 ---
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-ub6irsbn\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-bwptlxkr\wt`  
 **Last audit:** 2026-10-21
 
 | Check | Status | Evidence |
@@ -92,6 +92,7 @@
 | `fleet_parity` | WARN | .dev-knowledge settings-local-blocks WARN-undeclared: settings.json hook command not hub-carried and not manifest-owned: 'uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_la...' |
 | `fleet_parity` | WARN | .dev-knowledge settings-local-blocks WARN-undeclared: settings.json hook command not hub-carried and not manifest-owned: 'uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_la...' |
 | `fleet_parity` | WARN | .dev-knowledge settings-local-blocks WARN-undeclared: settings.json hook command not hub-carried and not manifest-owned: 'uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_la...' |
+| `fleet_parity` | WARN | .dev-knowledge settings-local-blocks WARN-undeclared: settings.json hook command not hub-carried and not manifest-owned: 'uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/scripts/hooks/hook_la...' |
 | `fleet_parity` | WARN | .dev-knowledge claude-commands-roster WARN-undeclared: .claude/commands/decide.md exists but no manifest row or roster expectation covers it |
 | `fleet_parity` | WARN | .dev-knowledge claude-commands-roster WARN-undeclared: .claude/commands/map.md exists but no manifest row or roster expectation covers it |
 | `fleet_parity` | WARN | .dev-knowledge claude-commands-roster WARN-undeclared: .claude/commands/spine.md exists but no manifest row or roster expectation covers it |
@@ -107,10 +108,10 @@
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 10d21de appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 6043eaf appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: cf1fcd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: adeb8b1 appears outside an explicit 'Anchors:' record line (+1172 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: c2ac0b7 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a3befd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 10d21de appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 6043eaf appears outside an explicit 'Anchors:' record line (+1174 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 257 code-impact merge(s) since 2026-08-05 carry no linked review artifact: c2ac0b72 worktree-e2-organ-truth-pin, bae73149 worktree-e2-stop-hook-headless, a3befd6f worktree-e2-dispatch-close, 6106a05c worktree-e2-test-flow-metrics, 3247448e worktree-e2-graph-hotspot (+252 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 258 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 16f8ebb9 worktree-e2-model-routing, c2ac0b72 worktree-e2-organ-truth-pin, bae73149 worktree-e2-stop-hook-headless, a3befd6f worktree-e2-dispatch-close, 6106a05c worktree-e2-test-flow-metrics (+253 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -1008,9 +1009,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 161/924 checks passed
+- 161/925 checks passed
 - **13 failure(s)** — route findings to repo owners
-- 554 warning(s)
+- 555 warning(s)
 - 196 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
