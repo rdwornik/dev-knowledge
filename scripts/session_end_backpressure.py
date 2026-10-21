@@ -53,6 +53,14 @@ Therefore advisory legs CANNOT loop:
 The HARD leg deliberately ignores `stop_hook_active` — honoring it would make the gate
 fire-once = the very antipattern ADR-85 forbids. It relies on COMPLIANCE, not the cap.
 
+MEASURED 2026-10-21 on CC 2.1.306 (supersedes the 2.1.178 notes above): Stop stdin DOES carry
+`stop_hook_active` (false on a fresh Stop) and has no headless marker. The discriminator is env
+`CLAUDE_CODE_SESSION_ATTENDED`: "0" in both `claude -p` and `claude --bg` (interactive value
+UNMEASURED, so absent/other keeps the nudge). Headless => silent, before any git call, because
+additionalContext continues the turn (+~45k tokens per dirty-ended headless turn). The advisory
+is also surfaced once per session_id (marker file in SESSION_END_BACKPRESSURE_MARKER_DIR,
+default <tmp>/dk-session-end-backpressure; best-effort, fail-soft).
+
 Both decision-paths reach the model ONLY via VALID JSON on stdout — plain stdout from a Stop
 hook goes to the debug log only. So this prints JSON and nothing else.
 
@@ -86,6 +94,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -281,7 +290,7 @@ def _override_active() -> bool:
 def _read_hook_input() -> dict:
     """Parse the Stop-hook JSON payload from stdin; fail-soft to {} (field-absent -> floor).
 
-    CC 2.1.178 does NOT send `stop_hook_active`, so this is normally `{}` or a dict without
+    CC 2.1.178 does NOT send `stop_hook_active` (2.1.306 sends it; see the module docstring), so this is normally `{}` or a dict without
     that key — which drives the structural floor. A runtime that DOES send it enables the
     dormant fire-once path. Never raises (no stdin / non-JSON -> {}).
     """
@@ -560,6 +569,32 @@ def _record_seat_stop(data: dict) -> None:
         pass
 
 
+def _is_headless() -> bool:
+    return os.environ.get("CLAUDE_CODE_SESSION_ATTENDED") == "0"
+
+
+def _marker_path(session_id: str) -> Path:
+    base = os.environ.get("SESSION_END_BACKPRESSURE_MARKER_DIR")
+    root = Path(base) if base else Path(tempfile.gettempdir()) / "dk-session-end-backpressure"
+    return root / re.sub(r"[^A-Za-z0-9._-]", "_", session_id)[:128]
+
+
+def _already_nudged(session_id: str) -> bool:
+    try:
+        return _marker_path(session_id).exists()
+    except OSError:
+        return False
+
+
+def _mark_nudged(session_id: str) -> None:
+    try:
+        path = _marker_path(session_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+    except OSError:
+        pass
+
+
 def main() -> int:
     try:
         # ADR-85 amendment 2026-08-03 §A2/FR3: the local token path is RETIRED. Local state
@@ -579,9 +614,16 @@ def main() -> int:
         # omitting it). The STRUCTURAL FLOOR (the `is False` guard failing closed to silence)
         # remains the backstop for any context that omits the field. Either way no standalone
         # keep-going can repeat => advisory can never loop to the cap.
+        if _is_headless():
+            return 0
         if data.get("stop_hook_active") is False:
             advisory = gather(_ADVISORY_CHECKS)
             if advisory:
+                session_id = data.get("session_id")
+                if not isinstance(session_id, str) or not session_id:
+                    session_id = None
+                if session_id and _already_nudged(session_id):
+                    return 0
                 ctx = ("Session-end hygiene (deterministic backpressure — repair before "
                        "stopping):\n- " + "\n- ".join(advisory))
                 print(json.dumps({
@@ -590,6 +632,8 @@ def main() -> int:
                         "additionalContext": ctx,
                     }
                 }))
+                if session_id:
+                    _mark_nudged(session_id)
                 return 0
         return 0  # floor / all-clear / retry -> silent, turn ends
     except Exception as exc:  # noqa: BLE001
