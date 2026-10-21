@@ -578,7 +578,7 @@ def _is_provably_interactive() -> bool:
 def _marker_path(session_id: str) -> Path:
     base = os.environ.get("SESSION_END_BACKPRESSURE_MARKER_DIR")
     root = Path(base) if base else Path(tempfile.gettempdir()) / "dk-session-end-backpressure"
-    return root / re.sub(r"[^A-Za-z0-9._-]", "_", session_id)[:128]
+    return root / ("s-" + re.sub(r"[^A-Za-z0-9._-]", "_", session_id)[:128])
 
 
 def _claim_nudge(session_id: str) -> bool:
@@ -616,6 +616,8 @@ def main() -> int:
         # omitting it). The STRUCTURAL FLOOR (the `is False` guard failing closed to silence)
         # remains the backstop for any context that omits the field. Either way no standalone
         # keep-going can repeat => advisory can never loop to the cap.
+        # The ATTENDED gate below: see module docstring paragraph "MEASURED 2026-10-21".
+        # `_record_seat_stop` deliberately runs before the gate (the seat registry wants every Stop).
         if not _is_provably_interactive():
             return 0
         if data.get("stop_hook_active") is False:
