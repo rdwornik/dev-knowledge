@@ -542,7 +542,9 @@ def test_every_organ_wiring_fate_stays_manual_until_not_moment_or_retire():
 
     This test pins the SHAPE, not a calendar date: `manual_until` must be present and must
     not be expired against check_organ_truth's own clock (`cot._today()`, the same seam
-    `check_organ_truth` uses to decide a fate is past due: `until < today`)."""
+    `check_organ_truth` uses to decide a fate is past due: `until < today`).
+    The test reads the real clock via cot._today(), so it goes red the day a pinned fate lapses -- that is the intent: re-date the fate with a fresh reason, do not edit this test."""
+    assert _ORGAN_WIRING_FATES
     fates = _live_fates()
     for path in _ORGAN_WIRING_FATES:
         row = fates[path]
