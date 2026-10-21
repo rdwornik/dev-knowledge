@@ -139,3 +139,13 @@ def test_verify_stop_rejects_working_state_naming_it():
     verdict = _stop("working")
     assert verdict.verified is False
     assert any("working" in r for r in verdict.reasons)
+
+
+def test_needle_matches_on_identifier_boundaries():
+    assert sc.needle_matches("claude.exe --resume x -n 96c2b4a3-c2 --effort", "96c2b4a3") is False
+    assert sc.needle_matches("claude --seat 96c2b4a3 --cycle 1", "96c2b4a3") is True
+    assert sc.needle_matches("pty-5298ab9e 200", "5298ab9e") is True
+    wt = "C:\\x\\wt\\lane"
+    assert sc.needle_matches("cwd C:\\x\\wt\\lane\\sub", wt) is True
+    assert sc.needle_matches("cwd C:\\x\\wt\\lane-c2", wt) is False
+

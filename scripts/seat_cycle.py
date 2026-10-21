@@ -296,6 +296,13 @@ def _process_table() -> list[tuple[int, int, str]]:          # pragma: no cover 
     return rows
 
 
+def needle_matches(cmdline: str, needle: str) -> bool:
+    """True where `needle` sits on an identifier boundary: not followed by [A-Za-z0-9_-] (so a
+    successor `<seat>-c2` is not the seat) and not preceded by [A-Za-z0-9_] (a `pty-<id>` prefix
+    still names the id). A following path separator still matches."""
+    return bool(needle) and re.search(rf"(?<![A-Za-z0-9_]){re.escape(needle)}(?![A-Za-z0-9_-])", cmdline) is not None
+
+
 def _find_processes(needles: Sequence[str]) -> list[str]:    # pragma: no cover -- production probe
     needles = [n for n in needles if n]
     rows = _process_table()
@@ -305,7 +312,7 @@ def _find_processes(needles: Sequence[str]) -> list[str]:    # pragma: no cover 
         skip.add(cur)
         cur = parent.get(cur, 0)
     return [f"{pid} {cmd}" for pid, _ppid, cmd in rows
-            if pid not in skip and any(n in cmd for n in needles)]
+            if pid not in skip and any(needle_matches(cmd, n) for n in needles)]
 
 
 def _stop(seat: str) -> None:                                # pragma: no cover -- production probe
