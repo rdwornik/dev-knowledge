@@ -81,7 +81,7 @@ _RELOCATED_ANCHORS = (
     # CLAUDE.md section 9, section 4 and the header
     "## 9. Hooks active", "A roster, not a manual", "disableAllHooks", "ADR-108",
     "**TDD", "**Spec-driven development", "**Freshness cadence:**", "**File lifecycle:**",
-    "**Scope tags:**", "Budget — bytes bind. ≤24,576 B",
+    "**Scope tags:**",
 )
 
 
