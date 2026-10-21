@@ -217,7 +217,7 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
                       registry_path=None) -> tuple[list[str], list[str]]:
     """`(problems, notes)` for a lane contract. See the module docstring for what is judged."""
     rows, where_table = _phase_rows(text)
-    if not batch_applies(batch) and not rows:
+    if not batch_applies(batch) and (not rows or where_table):
         return [], [f"model-per-role: not applicable (batch {batch or '-'} predates E2.0 and the "
                     f"contract carries no `| Phase | Model | Substrate |` / `| Phase | Model | Where |` table)"]
     import dispatch as d                              # lazy: the heavy import is paid only when judged

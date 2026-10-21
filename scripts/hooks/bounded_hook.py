@@ -214,6 +214,17 @@ POSTURES: tuple[Posture, ...] = (
             "Fail-OPEN by its own design: outside a lane, with no contract on disk, or on any "
             "error it allows and logs, so a harness timeout skipping it loses one reuse check, "
             "never a session. It fires only on Write|Edit|MultiEdit|NotebookEdit."),
+    Posture("subagent-model-guard", "subagent_model_guard.py", "escalated", False,
+            "R178 (operator, 2026-10-20) rules that no subagent runs on Opus. The guard is "
+            "FAIL-CLOSED by design: an unparseable payload, an unreadable registry, a failed "
+            "registry import, an unset model and any Opus model all deny. Wrapping it fail-open "
+            "would undo the ruling, so it is escalated, never wrapped open; which way it goes "
+            "past its harness bound is a class (b) ruling, not a wrapper default. "
+            "DECIDED-BY-LANE: added by lane e2-model-routing although bounded_hook.py is "
+            "outside that lane's named files, because "
+            "test_bounded_hook.py::test_the_live_settings_pass_the_check requires every "
+            "PreToolUse registration to carry a POSTURES entry (the same precedent as the "
+            "scope-guard entry)."),
     Posture("session-start", "scripts/hooks/session_start.py", "fail-open", False,
             "[#1001] the ONE SessionStart entry (lane-bw-1001-sessionstart-one): it imports the "
             "nine former SessionStart readers into one interpreter, each of them fail-open "

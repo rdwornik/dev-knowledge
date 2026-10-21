@@ -481,7 +481,7 @@ def test_a_role_entrys_currency_exception_needs_full_provenance():
 def test_a_role_entrys_currency_exception_with_full_provenance_is_legal():
     d = _mutate()
     d["roles"] = {
-        "implement": {
+        "review": {  # not `implement`: R177 pins that role's first entry to copilot-enterprise
             "description": "produce",
             "order": [
                 {

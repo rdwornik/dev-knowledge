@@ -104,6 +104,19 @@ def test_a_claude_implement_contract_is_refused_before_anything_is_launched(tmp_
     assert "implement" in out and "provider-registry" in out, out
 
 
+def test_where_table_alone_does_not_make_an_out_of_batch_contract_applicable():
+    text = _contract(COPILOT_CELL, head="opus", head_row="| lane head | opus | local |")
+    problems, notes = sg.contract_problems(text, lane="lane-x", batch="", launch_model="opus")
+    assert problems == []
+    assert any("not applicable" in n for n in notes), notes
+
+
+def test_where_table_with_opus_head_is_refused_in_batch_e2_0():
+    text = _contract(COPILOT_CELL, head="opus", head_row="| lane head | opus | local |")
+    problems, _notes = sg.contract_problems(text, lane="lane-x", batch="E2.0", launch_model="opus")
+    assert any("REFUSED" in p and "opus" in p for p in problems), problems
+
+
 PROSE = "only after a recorded `VENDOR-FAIL: implement copilot <error verbatim>`, announced"
 
 
