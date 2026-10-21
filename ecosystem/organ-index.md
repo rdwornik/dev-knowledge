@@ -102,7 +102,7 @@ _Claude Code lifecycle hooks (SessionStart / Stop / PreToolUse / …)_
 | `PreToolUse: fleet_health.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Glob\|Grep\|Bash\|PowerShell\|Monitor\|LSP\|ReadMcpResourceTool\|mcp__.*) | `.claude/settings.json` | hub | ARMED |
 | `PreToolUse: reuse_gate.py` | session-hook | PreToolUse (Write\|Edit\|MultiEdit\|NotebookEdit) | `.claude/settings.json` | hub | ARMED |
 | `PreToolUse: scope_guard.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Bash\|PowerShell\|Glob\|Grep\|Monitor\|LSP\|ReadMcpResourceTool\|mcp__.*) | `.claude/settings.json` | hub | ARMED |
-| `PreToolUse: subagent_model_guard.py` | session-hook | PreToolUse (Agent) | `.claude/settings.json` | hub | ARMED |
+| `PreToolUse: subagent_model_guard.py` | session-hook | PreToolUse (Agent\|Task) | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: session_start.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: surface-closures.ps1` | session-hook | SessionStart | `~/.claude/hooks/surface-closures.ps1` | L0 | DISARMED |
 | `Stop: claude-notify.ps1` | session-hook | Stop | `~/.claude/claude-notify.ps1` | L0 | DISARMED |

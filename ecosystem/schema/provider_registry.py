@@ -806,20 +806,31 @@ class ProviderRegistry(_Contract):
         return self
 
     @model_validator(mode="after")
-    def _implement_is_not_claude_first_and_claude_is_vendor_fail_only(self) -> "ProviderRegistry":
+    def _implement_is_copilot_first_and_claude_is_vendor_fail_only(self) -> "ProviderRegistry":
         spec = self.roles.get("implement")
         if spec is None:
             return self
-        if spec.order[0].provider == "anthropic":
+        if spec.order[0].provider != "copilot-enterprise":
             raise ValueError(
-                "role `implement` order[0] is an anthropic provider — R177: Copilot implements, "
-                "Claude only after a recorded VENDOR-FAIL"
+                f"role `implement` order[0] is provider `{spec.order[0].provider}` — R177: the first "
+                f"implement entry must be `copilot-enterprise`; the others run only after a recorded "
+                f"VENDOR-FAIL"
             )
         for i, entry in enumerate(spec.order):
             if entry.provider == "anthropic" and not entry.vendor_fail_only:
                 raise ValueError(
                     f"role `implement` order[{i}] is anthropic without `vendor_fail_only: true` — "
                     f"R177: a Claude implementer runs only after a recorded VENDOR-FAIL"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _vendor_fail_only_is_never_on_the_first_entry(self) -> "ProviderRegistry":
+        for role, spec in self.roles.items():
+            if spec.order and spec.order[0].vendor_fail_only:
+                raise ValueError(
+                    f"role `{role}` order[0] carries `vendor_fail_only: true` — a vendor-fail fallback "
+                    f"needs an entry before it to fail"
                 )
         return self
 

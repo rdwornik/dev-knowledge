@@ -412,9 +412,15 @@ def check_implement_vendor_fail(root: Path | None = None) -> list[str]:
     """
     order = _preg.role_order("implement")
     out: list[str] = []
-    if order and order[0].get("provider") == "anthropic":
-        out.append("registry: role `implement` order[0] is an anthropic provider -- R177: Copilot "
-                   "implements; Claude runs only after a recorded VENDOR-FAIL: implement")
+    if order and order[0].get("provider") != "copilot-enterprise":
+        out.append(f"registry: role `implement` order[0] is provider `{order[0].get('provider')}` -- "
+                   f"R177: the first implement entry must be `copilot-enterprise`; the others run "
+                   f"only after a recorded VENDOR-FAIL: implement")
+    for role, spec in _preg.roles().items():
+        first = (spec.get("order") or [{}])[0]
+        if first.get("vendor_fail_only"):
+            out.append(f"registry: role `{role}` order[0] carries `vendor_fail_only: true` -- a "
+                       f"vendor-fail fallback needs an entry before it to fail")
     for i, entry in enumerate(order):
         if entry.get("provider") == "anthropic" and not entry.get("vendor_fail_only"):
             out.append(f"registry: role `implement` order[{i}] resolves to Claude without "

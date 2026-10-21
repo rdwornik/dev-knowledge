@@ -63,7 +63,18 @@ _BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 HEAD_ROLE = "seat-orchestrator"
 IMPLEMENT_ROLE = "implement"
 #: R177: a Claude `implement` row / MODELS line is legal only beside a recorded `VENDOR-FAIL: implement ...`.
-_VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*implement\s+\S", re.IGNORECASE)
+_VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*(.*)$", re.IGNORECASE)
+_PLACEHOLDERS = frozenset({"none", "n/a", "na", "-", "tbd", "todo"})
+
+
+def _implement_evidence_text(after_vendor_fail: str) -> bool:
+    """True when the text after `VENDOR-FAIL:` is the whole word `implement`, whitespace, and at least one
+    more token of real text (not a placeholder). The one definition for both the contract and the
+    MODELS line."""
+    m = re.match(r"implement(?=\s)\s+(\S.*)$", after_vendor_fail.strip(), re.IGNORECASE)
+    if m is None:
+        return False
+    return m.group(1).strip().lower() not in _PLACEHOLDERS
 
 
 def _has_vendor_fail_evidence(text: str) -> bool:
@@ -76,12 +87,14 @@ def _has_vendor_fail_evidence(text: str) -> bool:
             line = line[1:].lstrip()
         if "`" in line or "<" in line or ">" in line:
             continue
-        if _VENDOR_FAIL_IMPLEMENT.match(line):
+        m = _VENDOR_FAIL_IMPLEMENT.match(line)
+        if m and _implement_evidence_text(m.group(1)):
             return True
     return False
 
 _SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")      # dispatch.py's own slug grammar
-_PHASE_HEAD = re.compile(r"^\|\s*Phase\s*\|\s*Model\s*\|\s*(Substrate|Where)\s*\|\s*$", re.IGNORECASE)
+_PHASE_HEAD = re.compile(
+    r"^\|\s*Phase\s*\|\s*Model\s*\|\s*(Substrate|Where)\s*\|(?:[^|]*\|)*\s*$", re.IGNORECASE)
 
 #: Phase name -> (role, provider the row must name). First match wins; order matters ("write the RED /
 #: isolated tests" must not fall into the verify rule, "review, Codex half" must not fall into implement).
@@ -90,7 +103,8 @@ _PHASE_RULES: tuple[tuple[re.Pattern, str, Optional[str]], ...] = (
     (re.compile(r"review.*codex|codex.*review"), "review", "openai"),
     (re.compile(r"\bred\b|isolated tests?|write .*tests?"), "red", None),
     (re.compile(r"verify"), "verify", None),
-    (re.compile(r"implement|orchestrat"), HEAD_ROLE, None),
+    (re.compile(r"implement"), IMPLEMENT_ROLE, None),
+    (re.compile(r"orchestrat"), HEAD_ROLE, None),
     (re.compile(r"\bread\b"), "read", "anthropic"),
 )
 
@@ -240,7 +254,7 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
     known = pr.model_ids(registry_path)
     vendor_fail = _has_vendor_fail_evidence(text)
     for phase, cell in rows:
-        low = phase.lower()
+        low = phase.lower().strip("*`_ \t")
         if where_table:
             if low.startswith("lane head"):
                 if not _cell_matches(cell, head_entry, known):
@@ -258,6 +272,9 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
                             f"could carry a silent substitution (P1)")
             continue
         role, provider = rule
+        if role == IMPLEMENT_ROLE:
+            problems += _implement_row_problems(lane, phase, cell, known, vendor_fail, registry_path)
+            continue
         entry = _role_entry(role, provider, registry_path)
         if entry is None:
             problems.append(f"REFUSED [model-per-role]: lane {lane}, role {role}: phase {phase!r} "
@@ -310,6 +327,7 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
                             f"nor `NOT run`: {rest!r}")
             continue
         fail = _VENDOR_FAIL.search(srv.group(1))
+        evidence = bool(fail) and _implement_evidence_text(fail.group(1))
         served = (srv.group(1)[:fail.start()] if fail else srv.group(1)).strip()
         if not served:
             problems.append(f"REFUSED [models-block]: phase {phase!r} has an empty `served=` -- the model "
@@ -318,11 +336,13 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
         token = served.split()[0].lower()             # the served id is the first token; the rest is a note
         requested = req.group(1).strip().split("/")[0].strip().lower()
         if phase.lower().startswith("implement"):
-            # R177: implement is Copilot's; anything else needs `VENDOR-FAIL: implement ...` on the line.
-            if requested.startswith("copilot") or "copilot" in phase.lower():
+            # R177: implement is Copilot's (served by the gateway); anything else needs a genuine
+            # `VENDOR-FAIL: implement <text>` on the line.
+            copilot_arm = requested.startswith("copilot") or "copilot" in phase.lower()
+            if copilot_arm and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}:
                 if fail:
                     subs.append(ln.strip())
-            elif fail and fail.group(1).lower().startswith("implement"):
+            elif evidence:
                 subs.append(ln.strip())
             else:
                 problems.append(f"REFUSED [models-block]: phase {phase!r} (implement) was requested as "

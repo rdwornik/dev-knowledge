@@ -113,3 +113,66 @@ def test_settings_wire_the_guard_and_default_subagents_to_haiku():
                and any("subagent_model_guard.py" in h.get("command", "") for h in e.get("hooks", []))]
     assert entries, "no PreToolUse entry with matcher `Agent` running subagent_model_guard.py"
     assert settings.get("env", {}).get("CLAUDE_CODE_SUBAGENT_MODEL") == "haiku"
+
+
+def test_settings_matcher_covers_both_agent_and_task():
+    settings = json.loads((_ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    entries = [e for e in settings["hooks"]["PreToolUse"]
+               if any("subagent_model_guard.py" in h.get("command", "") for h in e.get("hooks", []))]
+    assert entries
+    for e in entries:
+        assert {"Agent", "Task"} <= set(e["matcher"].split("|")), e["matcher"]
+
+
+def test_opus_is_denied_even_if_the_allowed_list_contains_it():
+    mod = _load()
+    got, _ = mod.decide(_tool_input("claude-opus-5-5"), ["claude-opus-5-5", "haiku", "sonnet"])
+    assert got == "deny"
+
+
+@pytest.mark.parametrize("model,verdict", [
+    (" haiku ", "allow"), ("\tsonnet\n", "allow"), (" opus ", "deny"),
+    (5, "deny"), (["opus"], "deny"), (["haiku"], "deny"), ({"m": "haiku"}, "deny"), (True, "deny"),
+    ("inherit", "deny"), ("opusplan", "deny"), ("sonnet[1m]", "deny"),
+])
+def test_decision_table_hardening(model, verdict):
+    mod = _load()
+    got, reason = mod.decide({"prompt": "p", "model": model}, mod.allowed_models())
+    assert got == verdict, reason
+
+
+def test_main_denies_a_task_call_with_no_model():
+    proc = _run(json.dumps({"tool_name": "Task", "tool_input": _tool_input()}))
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def _broken_import_copy(tmp_path: Path) -> Path:
+    # provider_registry is absent next to this copy, so `import provider_registry` fails
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    copy = hooks / "subagent_model_guard.py"
+    copy.write_text(_GUARD.read_text(encoding="utf-8"), encoding="utf-8")
+    return copy
+
+
+def _run_copy(copy: Path, payload: dict, cwd: Path):
+    env = {k: v for k, v in __import__("os").environ.items() if k != "PYTHONPATH"}
+    return subprocess.run([sys.executable, str(copy)], input=json.dumps(payload), capture_output=True,
+                          text=True, cwd=str(cwd), env=env)
+
+
+@pytest.mark.parametrize("tool", ["Agent", "Task"])
+def test_main_fails_closed_when_the_registry_module_cannot_be_imported(tmp_path, tool):
+    copy = _broken_import_copy(tmp_path)
+    proc = _run_copy(copy, {"tool_name": tool, "tool_input": _tool_input("haiku")}, tmp_path)
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)["hookSpecificOutput"]
+    assert out["permissionDecision"] == "deny"
+    assert "provider_registry" in out["permissionDecisionReason"]
+
+
+def test_a_broken_registry_import_stays_silent_for_other_tools(tmp_path):
+    copy = _broken_import_copy(tmp_path)
+    proc = _run_copy(copy, {"tool_name": "Bash", "tool_input": {"command": "ls"}}, tmp_path)
+    assert proc.returncode == 0 and proc.stdout.strip() == "", proc.stderr

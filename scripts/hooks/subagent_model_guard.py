@@ -21,7 +21,12 @@ _SCRIPTS = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-import provider_registry as pr  # noqa: E402
+try:
+    import provider_registry as pr
+    _IMPORT_ERROR: str | None = None
+except Exception as _exc:  # noqa: BLE001 -- an unimportable registry module must not open the guard
+    pr = None
+    _IMPORT_ERROR = f"{type(_exc).__name__}: {_exc}"
 
 #: The bare Claude CLI aliases the Agent tool accepts for the two allowed tiers.
 _ALIASES = ("haiku", "sonnet")
@@ -37,8 +42,9 @@ def allowed_models() -> list[str]:
 def decide(tool_input: dict, allowed: list[str]) -> tuple[str, str]:
     """`("allow"|"deny", reason)` for one Agent call's `tool_input`."""
     model = tool_input.get("model") if isinstance(tool_input, dict) else None
+    normalised = model.strip().lower() if isinstance(model, str) else None
     allowed_low = {m.lower() for m in allowed}
-    if isinstance(model, str) and model.strip().lower() in allowed_low:
+    if normalised is not None and "opus" not in normalised and normalised in allowed_low:
         return "allow", ""
     shown = repr(model) if model else "unset"
     return "deny", (
@@ -63,6 +69,10 @@ def main() -> int:
               f"check (ecosystem/provider-registry.yaml: haiku or sonnet only)")
         return 0
     if payload.get("tool_name") not in _GUARDED_TOOLS:
+        return 0
+    if _IMPORT_ERROR is not None:
+        _deny(f"subagent_model_guard could not import provider_registry ({_IMPORT_ERROR}); refusing "
+              f"what it cannot check (ecosystem/provider-registry.yaml: haiku or sonnet only)")
         return 0
     try:
         allowed = allowed_models()

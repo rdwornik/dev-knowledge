@@ -90,6 +90,49 @@ def test_schema_refuses_an_anthropic_implement_entry_without_vendor_fail_only(li
     _refuses(_mutated(live, mutate))
 
 
+def _put_first(d: dict, provider: str) -> None:
+    order = d["roles"]["implement"]["order"]
+    if provider == "openai":
+        entry = {"provider": "openai", "model": "gpt-5.6-terra"}
+    else:
+        entry = next(e for e in order if e["provider"] == provider)
+    d["roles"]["implement"]["order"] = [entry, *[e for e in order if e is not entry]]
+
+
+@pytest.mark.parametrize("provider", ["xai", "openai"])
+def test_schema_refuses_a_non_copilot_first_implement_entry(live, provider):
+    data = _mutated(live, lambda d: _put_first(d, provider))
+    _refuses(data)
+
+
+@pytest.mark.parametrize("provider", ["xai", "openai"])
+def test_the_checker_reports_a_non_copilot_first_implement_entry(live, monkeypatch, provider):
+    bad = _mutated(live, lambda d: _put_first(d, provider))
+    monkeypatch.setattr(cpr._preg, "load_registry", lambda path=None: bad)
+    findings = cpr.check_implement_vendor_fail(_ROOT)
+    assert any("implement" in f and "copilot-enterprise" in f for f in findings), findings
+
+
+def test_the_checker_is_clean_on_the_live_registry():
+    assert cpr.check_implement_vendor_fail(_ROOT) == []
+
+
+def test_schema_refuses_vendor_fail_only_on_the_first_entry_of_a_role(live):
+    def mutate(d):
+        d["roles"]["read"]["order"][0]["vendor_fail_only"] = True
+
+    _refuses(_mutated(live, mutate))
+
+
+def test_the_checker_reports_vendor_fail_only_on_a_first_entry(live, monkeypatch):
+    def mutate(d):
+        d["roles"]["implement"]["order"][0]["vendor_fail_only"] = True
+
+    bad = _mutated(live, mutate)
+    monkeypatch.setattr(cpr._preg, "load_registry", lambda path=None: bad)
+    assert any("vendor_fail_only" in f for f in cpr.check_implement_vendor_fail(_ROOT))
+
+
 def test_the_checker_reports_a_claude_implement_without_the_vendor_fail_clause(live, monkeypatch):
     def mutate(d):
         for e in d["roles"]["implement"]["order"]:
