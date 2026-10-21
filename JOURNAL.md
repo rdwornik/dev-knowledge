@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-dispatch-close -- `dispatch.py successor` (`[#1673]`: a worktree cut at a named base, a first-run prompt, a LAUNCH receipt of kind successor, pre-launch) and the `queue` batch grammar (`[#1674]`), after repair 1 of 2
+
+**Anchors:** `30b28d52` (RED for `[#1673]`/`[#1674]`), `8cec2563` (feat), `f00d9a8b` (RED for review findings), `10cdb347` (review fixes: a stale branch is refused, not deleted; a plain dir is refused; effort is checked up front; undo only after its own add; slug lock), `2646faba` (repair 1: R159 teaching in the shim help and the dispatcher-order template, the `queue --dry-run` exemption dropped now that the template renders E2.0); branch `worktree-e2-dispatch-close`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 79397f6e).
+
+**Did:** the successor verb gives a cycling seat a coded handover launch, and `queue` now speaks the one batch grammar. The integrator refused the first handback: `tests/test_dispatch_launch.py::test_the_shims_help_names_every_dispatch_subcommand` went red because the shim did not name `successor`, and the MODELS block carried no served ids. Repair 1 teaches the verb in `templates/dispatch-shim.ps1` and `templates/dispatcher-order-template.md`. The orchestrator, as contract author, ruled `.claude/commands/lane-integrate.md` not owed, since it names no repair or successor verb.
+
+**Result:** on the merged tree, `ecosystem/doc-counts.md` was regenerated (the branch CI's 2 `test_check_derived_copies` regressions), and the targeted derived-copies plus shim-help tests pass (53). The codemap and organ-index checks are clean. `[#1673]` clause 3 (the `claude stop` verification) stays open, as disclosed. Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5; real-use witness job 69e8df93. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `templates/dispatcher-order-template.md`, tests (`tests/test_dispatch_successor.py`, `tests/test_dispatch_queue_batch_grammar.py` new, `tests/test_dispatcher_order_adopts_queue.py`); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-test-flow-metrics line).
+
+**Next:** the orchestrator starts e2-model-routing from this main (it also edits `scripts/dispatch.py`); e2-cliff waits for the operator's BACKLOG-budget GO.
+
 ### 2026-10-21 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-test-flow-metrics -- `scripts/test_flow_metrics.py` computes M1-M4 against committed ceilings and writes a nightly record; `live_check` reports a ceiling break as an UNARMED finding while `armed: false`, after repair 1 of 2
 
 **Anchors:** `06d9bb87` (feat: M1-M4, `ecosystem/test-flow-ceilings.yaml`, nightly record, `--durations`/`--junitxml`), `32d6aef0` (review fixes: reap notices only, 0 for a green main, newest record by time, NaN ceiling refused), `084c4b4d` (repair 1: UNARMED findings; RED `test_live_unarmed_with_broken_ceiling_passes_and_reports_unarmed` failed on `32d6aef0` first); branch `worktree-e2-test-flow-metrics`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 215e8f4e).

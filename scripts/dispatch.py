@@ -1993,6 +1993,149 @@ def repair_lane(request: RepairRequest, *, repo_root: Path,
     return started
 
 
+# --- a successor is a FIRST-RUN lane whose worktree is cut from a named base, not main's tip ------
+
+def build_successor_plan(model: str, slug: str, effort: str, prompt: str,
+                         permission_mode: str = "bypassPermissions") -> Plan:
+    """`claude --bg -n <slug> ...` -- NO `--worktree` flag: the successor's `cwd` IS the worktree
+    `successor_lane` cut at the base, and `--worktree <slug>` would provision one from main's tip."""
+    eff = EFFORTS.get(effort.lower())
+    if eff is None:
+        raise DispatchRefused(f"unknown effort {effort!r}. Valid: low, medium, high, xhigh, max "
+                              "(or l/m/h/x)")
+    argv = ["claude", "--bg", "-n", slug, "--model", model, "--effort", eff, "--permission-mode",
+            permission_mode, prompt]
+    return Plan(argv, "transcript")
+
+
+@dataclass(frozen=True)
+class SuccessorRequest:
+    slug: str
+    contract: Path
+    base: str
+    batch: str
+    model: str
+    effort: str
+    permission_mode: str = "bypassPermissions"
+
+    @property
+    def _launch(self) -> LaunchRequest:
+        return LaunchRequest(slug=self.slug, provider="anthropic", model=self.model, effort=self.effort,
+                             permission_mode=self.permission_mode, contract=self.contract,
+                             batch=self.batch)
+
+    @property
+    def session_name(self) -> str:
+        return self.slug
+
+    @property
+    def prompt(self) -> str:
+        return self._launch.prompt
+
+    @property
+    def argv(self) -> list[str]:
+        return build_successor_plan(self.model, self.slug, self.effort, self.prompt,
+                                    self.permission_mode).argv
+
+
+def _git_out(repo_root: Path, *args: str) -> "subprocess.CompletedProcess":
+    return subprocess.run(["git", "-C", str(repo_root), *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+
+
+def successor_lane(request: SuccessorRequest, *, repo_root: Path,
+                   spawn: Callable[..., "Spawned"] = None,
+                   environ: Optional[Mapping[str, str]] = None,
+                   prelaunch: Optional[Callable[..., PreLaunch]] = None) -> "Spawned":
+    """Cut `<repo>/.claude/worktrees/<slug>` on `worktree-<slug>` at the resolved BASE and spawn a
+    first-run lane into it. Pre-launch runs BEFORE the worktree exists (`repair=False`); an existing
+    worktree at the same base is reused (`repair=True`, its own tree is expected), at any other commit
+    it is refused. A refused or failed launch removes whatever THIS call created."""
+    spawn = spawn or spawn_process
+    prelaunch = prelaunch or run_prelaunch
+    if not (request.batch or "").strip():
+        raise DispatchRefused(f"the successor {request.slug} names no batch: `--batch` is required -- an "
+                              "unknown batch would skip the model-per-role check")
+    _refuse_malformed_batch(request.slug, request.batch)
+    if not Path(request.contract).is_file():
+        raise DispatchRefused(f"no contract file at {request.contract}")
+    resolved = _git_out(repo_root, "rev-parse", "--verify", f"{request.base}^{{commit}}")
+    sha = resolved.stdout.strip()
+    if resolved.returncode != 0 or not sha:
+        raise DispatchRefused(f"base {request.base!r} does not resolve to a commit in {repo_root}: "
+                              f"{_tail(resolved.stderr, 300)}")
+    argv = request.argv
+    tree = repair_worktree_path(repo_root, request.slug)
+    branch = f"worktree-{request.slug}"
+    launch = request._launch
+
+    with _SlugLock(request.slug):
+        existed = tree.exists()
+        if not existed:
+            if _git_out(repo_root, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+                raise DispatchRefused(f"the branch {branch} already exists and the worktree of "
+                                      f"{request.slug} does not: refusing to reuse or delete a branch "
+                                      "this call did not create")
+        else:
+            top = _git_out(tree, "rev-parse", "--show-toplevel")
+            on_branch = _git_out(tree, "symbolic-ref", "--short", "HEAD")
+            try:
+                is_tree = top.returncode == 0 and Path(top.stdout.strip()).resolve() == tree.resolve()
+            except OSError:
+                is_tree = False
+            if not is_tree or on_branch.returncode != 0 or on_branch.stdout.strip() != branch:
+                raise DispatchRefused(f"{tree} is not a worktree of {repo_root} on branch {branch}: "
+                                      "refusing to reuse it for the successor")
+            head = _git_out(tree, "rev-parse", "HEAD").stdout.strip()
+            if head != sha:
+                raise DispatchRefused(f"the worktree of {request.slug} is at {head}, not the base {sha}: "
+                                      "refusing to reuse it for a successor of another commit")
+        try:
+            outcome = prelaunch(launch, repair=existed)
+        except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
+            raise LaunchRefused(f"pre-launch could not run for the successor {request.slug}: "
+                                f"{type(exc).__name__}: {exc}") from exc
+        if not outcome.passed:
+            raise LaunchRefused(f"pre-launch refused the successor {request.slug}: {outcome.reason}")
+
+        created = False
+
+        def undo() -> None:
+            if created:
+                _git_out(repo_root, "worktree", "remove", "--force", str(tree))
+                _git_out(repo_root, "branch", "-D", branch)
+
+        if not existed:
+            added = _git_out(repo_root, "worktree", "add", "-b", branch, str(tree), sha)
+            if added.returncode != 0:
+                raise DispatchRefused(f"could not create the worktree of {request.slug} at {sha}: "
+                                      f"{_tail(added.stderr, 300)}")
+            created = True
+        try:
+            env = dict(environ if environ is not None else os.environ)
+            started = spawn(argv, env, tree)
+        except Exception:
+            undo()
+            raise
+        if started.returncode != 0:
+            undo()
+            raise LaunchRefused(f"the successor {request.slug} failed to start (exit {started.returncode}): "
+                                f"{_tail(started.stdout, 300)} -- no lane was started")
+    match = _JOB_ID.search(_ANSI.sub("", started.stdout or ""))
+    result = LaunchResult(
+        slug=request.slug, provider="anthropic", model_requested=request.model,
+        model_reported=MODEL_PENDING, job_id=match.group(1) if match else "unresolved",
+        worktree=str(tree), session_name=request.session_name, pid=started.pid,
+        argv=list(request.argv))
+    try:
+        _write_launch_records(launch, result, extra={"kind": "successor", "base": sha})
+    except OSError as exc:
+        raise LaunchIncomplete(f"the successor {request.slug} WAS started but its launch receipt "
+                               f"could not be written ({exc}). It is running; nothing was stopped."
+                               ) from exc
+    return started
+
+
 # --- watch: one bounded loop, never an orphan --------------------------------------------------
 
 @dataclass(frozen=True)
@@ -2111,6 +2254,8 @@ def cli() -> None:
                        gates. A codespace lane is routed, never spawned here.
     repair  SLUG CONTRACT   relaunch a repair into SLUG's EXISTING worktree -- never
                        a fresh `--worktree`.
+    successor SLUG CONTRACT   a fresh lane whose worktree is cut from --base (a ref or
+                       sha), not main's tip; first-run prompt, `kind: successor` receipt.
 
     Run `dispatch.py <verb> --help` for a verb's options. The contract's Dispatch
     block is read for its fields (head, -n, --worktree, --model, --effort), never run."""
@@ -4212,6 +4357,7 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
     -- `dispatch.py launch` refuses that head by design; use the codespace verb for it. A re-run
     is idempotent ([#1572]): a lane already launched is reported `already-launched` (exit stays 0,
     the pass goes on) and a lane the --state-file reads MERGED is `SKIP-MERGED`, never refired."""
+    _refuse_malformed_batch("queue", batch or os.environ.get("HARNESS_BATCH", ""))
     lanes = load_queue(list(contracts))
     order = launch_order(lanes)
     by_slug = {lane.slug: lane for lane in lanes}
@@ -4309,6 +4455,31 @@ def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
                             batch=batch)
     spawned = repair_lane(request, repo_root=Path(repo_root))
     click.echo(f"[dispatch] repair {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
+
+
+@cli.command("successor")
+@click.argument("slug")
+@click.argument("contract", type=click.Path(path_type=Path))
+@click.option("--base", required=True, help="The ref or sha the lane's worktree is cut from.")
+@click.option("--batch", default="", help="The batch the lane belongs to, `E<major>.<minor>`. Default: "
+                                          "$HARNESS_BATCH; absent or outside that grammar is a refusal.")
+@click.option("--model", required=True)
+@click.option("--effort", required=True)
+@click.option("--permission-mode", default="bypassPermissions", show_default=True)
+@click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
+              show_default=True)
+def successor_cmd(slug: str, contract: Path, base: str, batch: str, model: str, effort: str,
+                  permission_mode: str, repo_root: Path) -> None:
+    """Start SLUG as a FIRST-RUN lane in a fresh worktree cut from --base, not main's tip. Runs the
+    same `pre-launch` moment a launch runs (before the worktree exists) and writes the LAUNCH receipt
+    (`kind: successor`, with the resolved base sha)."""
+    batch = batch or os.environ.get("HARNESS_BATCH", "")
+    _refuse_malformed_batch(slug, batch)
+    _require_contract_file(contract)
+    request = SuccessorRequest(slug=slug, contract=Path(contract).resolve(), base=base, batch=batch,
+                               model=model, effort=effort, permission_mode=permission_mode)
+    spawned = successor_lane(request, repo_root=Path(repo_root))
+    click.echo(f"[dispatch] successor {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
 
 
 if __name__ == "__main__":  # pragma: no cover

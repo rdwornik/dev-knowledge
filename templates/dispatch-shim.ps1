@@ -26,6 +26,7 @@
                          `dispatch.py queue` directly.
     repair  <slug> <contract>   relaunch a repair into slug's EXISTING worktree, never a fresh
                          `--worktree`. Not wrapped by this shim -- run `dispatch.py repair` directly.
+    successor <slug> <contract>   start a FRESH lane whose worktree is cut from --base (a ref or sha), not main; first-run prompt, LAUNCH receipt kind successor. Not wrapped by this shim -- run `dispatch.py successor` directly.
 
   Plus the codespace legs (LANE-5B4-10, R17) -- not wrapped by this shim, run each directly:
     codespace-exec     <contract>   create the codespace, ship the contract and a generated

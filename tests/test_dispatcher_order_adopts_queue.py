@@ -131,7 +131,7 @@ def test_the_templates_own_queue_line_renders_and_computes_a_dry_batch_order(tmp
     command = _extract_queue_command(_template_text())
     assert "dispatch.py queue --watch" in command
     filled = (command
-             .replace("<BATCH>", "DRY")
+             .replace("<BATCH>", "E2.0")
              .replace("<M>", "4")
              .replace("<N_MB>", "0")
              .replace("<STATE_FILE>", str(state_file))
