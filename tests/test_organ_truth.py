@@ -540,17 +540,18 @@ def test_every_organ_wiring_fate_stays_manual_until_not_moment_or_retire():
     `test_every_organ_wiring_fate_has_exactly_one_recognised_shape` alone would still
     pass if any of these became `moment:` or `retire_candidate:`).
 
-    DECIDED-BY-LANE (LANE-5B5-4-lane-fates-due): the date re-dated 2026-10-05 ->
-    2026-10-19 with the rest of that lane's 50 re-dated fates (R33.3); only the SHAPE
-    is this test's own concern, per its docstring above -- the date moves again the
-    next time this fate comes due, and is not itself pinned by choice, only by what
-    `str(row.get("manual_until"))` naturally reads until the next re-date."""
+    This test pins the SHAPE, not a calendar date: `manual_until` must be present and must
+    not be expired against check_organ_truth's own clock (`cot._today()`, the same seam
+    `check_organ_truth` uses to decide a fate is past due: `until < today`)."""
     fates = _live_fates()
     for path in _ORGAN_WIRING_FATES:
         row = fates[path]
-        assert str(row.get("manual_until")) == "2026-10-19", (path, row)
+        assert "manual_until" in row, (path, row)
         assert "retire_candidate" not in row, (path, row)
         assert "moment" not in row, (path, row)
+        until = cot._parse_date(row["manual_until"])
+        assert until is not None, f"{path}: unparseable manual_until in {row}"
+        assert until >= cot._today(), f"{path}: manual_until expired vs cot._today(): {row}"
 
 
 def test_handback_s_fate_cites_the_lane_end_moment_it_precedes():
