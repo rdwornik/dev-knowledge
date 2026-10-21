@@ -88,7 +88,8 @@ def test_the_role_vocabulary_agrees_with_the_telemetry_emitters_copy():
     mod = importlib.util.module_from_spec(spec)
     sys.modules["cost_usage_telemetry"] = mod
     spec.loader.exec_module(mod)
-    assert mod.ROLES == ROLE_NAMES
+    # seat-* roles are operator seats, not measured/telemetry roles (R177).
+    assert mod.ROLES == ROLE_NAMES - {"seat-orchestrator", "seat-integrator"}
 
 
 def test_the_live_registry_validates_and_carries_all_six_roles(live):
@@ -114,9 +115,9 @@ def test_order_is_a_list_not_a_set_so_position_is_meaningful(live):
     """
     registry = ProviderRegistry.model_validate(live)
     implement = [e.provider for e in registry.roles["implement"].order]
-    assert implement[0] == "anthropic", (
-        "R153 (operator, 2026-10-19; `e2-subst-gate`): Sonnet 5.5 implements first, Copilot is "
-        "the next entry and Grok the third -- reversing the order R104 (2026-10-14; [#1536]) set")
+    assert implement[0] == "copilot-enterprise", (
+        "R177 (operator, 2026-10-20): Copilot implements first, Sonnet 5.5 is a VENDOR-FAIL-only "
+        "fallback -- reversing R153")
     assert len(implement) > 1, "a fallback chain needs somewhere to fall back to"
 
 
@@ -149,8 +150,8 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
     admission check disagree about which vendor is being routed to — one keys on `provider`,
     the other resolves through the model row."""
     def mutate(d):
-        # order[0] is the anthropic entry since R153 put Sonnet 5.5 first (R104 had copilot first).
-        d["roles"]["implement"]["order"][0]["model"] = "gpt-5.6-terra"
+        # order[1] is the anthropic entry since R177 (copilot first).
+        d["roles"]["implement"]["order"][1]["model"] = "gpt-5.6-terra"
 
     message = _refuses(_mutated(live, mutate))
     assert "openai" in message and "anthropic" in message

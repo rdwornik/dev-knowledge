@@ -51,6 +51,11 @@ from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 #: every pre-R61 registry validates unchanged (MINOR); an unset date is read as unverified by
 #: `scripts/check_model_currency.py`. Not a member of `validate_reconciliation._SPEC_REGISTRY`,
 #: so no reconciliation obligation follows from this bump.
+#: 1.7.0 — `e2-model-routing` (R177/R178, operator) adds `RoleEntry.vendor_fail_only` and the `seat-orchestrator` /
+#: `seat-integrator` roles: `implement` is Copilot-first, and an anthropic `implement` entry must carry
+#: `vendor_fail_only: true` (it runs only after a recorded `VENDOR-FAIL: implement ...`). MINOR: the
+#: field defaults to false and the roles are optional, so every pre-1.7.0 registry still validates
+#: unless it names an anthropic implementer.
 #: 1.3.0 — `lane-ratified-unbuilt` (WAVE5B-N5-R, R22) adds `ProviderRegistry.dispatcher`
 #: (`DispatcherPin`): the model the dispatcher session itself runs on. NOT a `roles:` entry —
 #: the dispatcher is a session type whose logic is code, not one of AX21-1's six
@@ -63,7 +68,7 @@ from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 #: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
 #: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
 #: reconciliation obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.6.0"
+SCHEMA_VERSION = "1.7.0"
 
 #: The prefix that marks an evidence reference as living on the operator's transport rather than
 #: in this repository. CI cannot read the transport, so such a reference may ride beside an
@@ -566,7 +571,8 @@ class Model(_Contract):
 #: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
 #: keys a measured pass rate, and collapsing them would make one of the two lie.
 ROLE_NAMES: frozenset[str] = frozenset(
-    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge"}
+    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge",
+     "seat-orchestrator", "seat-integrator"}
 )
 
 
@@ -626,6 +632,8 @@ class RoleEntry(_Contract):
     #: R138: the entry runs TOGETHER with the other `paired` entries of its role (review is a pair,
     #: Codex terra AND Copilot on every code lane) instead of being a fallback for the one before it.
     paired: bool = False
+    #: R177: the entry runs only after a recorded `VENDOR-FAIL: implement ...` of the entry before it.
+    vendor_fail_only: bool = False
 
     @model_validator(mode="after")
     def _max_turns_floor_is_at_least_one(self) -> "RoleEntry":
@@ -795,6 +803,24 @@ class ProviderRegistry(_Contract):
                 f"role is a lookup key the router and the re-rank both match raw, so an "
                 f"invented name resolves nowhere while looking like configuration"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _implement_is_not_claude_first_and_claude_is_vendor_fail_only(self) -> "ProviderRegistry":
+        spec = self.roles.get("implement")
+        if spec is None:
+            return self
+        if spec.order[0].provider == "anthropic":
+            raise ValueError(
+                "role `implement` order[0] is an anthropic provider — R177: Copilot implements, "
+                "Claude only after a recorded VENDOR-FAIL"
+            )
+        for i, entry in enumerate(spec.order):
+            if entry.provider == "anthropic" and not entry.vendor_fail_only:
+                raise ValueError(
+                    f"role `implement` order[{i}] is anthropic without `vendor_fail_only: true` — "
+                    f"R177: a Claude implementer runs only after a recorded VENDOR-FAIL"
+                )
         return self
 
     @model_validator(mode="after")

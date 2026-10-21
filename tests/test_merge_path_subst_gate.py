@@ -21,9 +21,9 @@ BATCH = "E2.0"
 SLUG = "m"
 SONNET = "claude-sonnet-5-5"
 
-GOOD = f"MODELS:\n  implement: requested={SONNET}/high served={SONNET}\n"
+GOOD = "MODELS:\n  implement: requested=copilot/default served=claude-sonnet-5.5\n"
 SUBSTITUTED = f"MODELS:\n  implement: requested={SONNET}/high served=claude-opus-5-5\n"
-VENDOR_FAIL_LINE = f"  implement: requested={SONNET}/high served=claude-opus-5-5 VENDOR-FAIL: INC-7"
+VENDOR_FAIL_LINE = f"  implement: requested={SONNET}/high served=claude-opus-5-5 VENDOR-FAIL: implement INC-7"
 
 
 @dataclass
@@ -131,7 +131,7 @@ def test_a_substitution_with_vendor_fail_lands_and_is_carried_on_the_result(tmp_
     result = _land(tmp_path, rig, handback=_handback(tmp_path, "MODELS:\n" + VENDOR_FAIL_LINE + "\n"))
 
     assert result.landed
-    assert any("VENDOR-FAIL: INC-7" in line for line in result.substitutions)
+    assert any("VENDOR-FAIL: implement INC-7" in line for line in result.substitutions)
 
 
 def test_a_matching_block_and_a_local_launch_receipt_lands(tmp_path, receipts_dir):

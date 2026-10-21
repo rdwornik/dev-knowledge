@@ -47,7 +47,8 @@ _SHAPE = ('uv run --locked python ${CLAUDE_PROJECT_DIR:+"$CLAUDE_PROJECT_DIR/' +
 #: The entries that must survive a shell other than Claude Code's POSIX one (Copilot CLI runs
 #: `.claude/settings.json` hooks through PowerShell on Windows, with no CLAUDE_PROJECT_DIR).
 _LAUNCHED = {
-    "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py"],
+    "PreToolUse": ["scripts/hooks/scope_guard.py", "scripts/hooks/reuse_gate.py",
+                   "scripts/hooks/subagent_model_guard.py"],
     "Stop": ["scripts/lane_end_guard.py", "scripts/lane_handback_gate.py"],
     "SessionStart": ["scripts/hooks/session_start.py"],
 }

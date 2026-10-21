@@ -58,11 +58,15 @@ FIRST_BATCH = (2, 0)
 #: The batch-id grammar, anchored at both ends: `E2.0junk` and `x` are not batch ids.
 _BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 
-#: The head of a lane is the implementer (R153); the registry has no separate lane-head role.
-HEAD_ROLE = "implement"
+#: The lane head seat (R177/R178): the registry's `seat-orchestrator` role. The IMPLEMENTER is a different
+#: role (`implement`, Copilot first); the head row and the Dispatch line are judged against the seat.
+HEAD_ROLE = "seat-orchestrator"
+IMPLEMENT_ROLE = "implement"
+#: R177: a Claude `implement` row / MODELS line is legal only beside a recorded `VENDOR-FAIL: implement ...`.
+_VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*implement\b", re.IGNORECASE)
 
 _SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")      # dispatch.py's own slug grammar
-_PHASE_HEAD = re.compile(r"^\|\s*Phase\s*\|\s*Model\s*\|\s*Substrate\s*\|\s*$", re.IGNORECASE)
+_PHASE_HEAD = re.compile(r"^\|\s*Phase\s*\|\s*Model\s*\|\s*(Substrate|Where)\s*\|\s*$", re.IGNORECASE)
 
 #: Phase name -> (role, provider the row must name). First match wins; order matters ("write the RED /
 #: isolated tests" must not fall into the verify rule, "review, Codex half" must not fall into implement).
@@ -112,11 +116,13 @@ def _entry_label(entry: dict) -> str:
     return entry.get("model") or "Copilot CLI (default model)"
 
 
-def _phase_rows(text: str) -> list[tuple[str, str]]:
-    """`(phase, model cell)` for each row of the contract's `| Phase | Model | Substrate |` table."""
+def _phase_rows(text: str) -> tuple[list[tuple[str, str]], bool]:
+    """`(rows, is_where_table)`: `(phase, model cell)` for each row of the contract's phase table, which
+    has a `Substrate` (every row judged) or a `Where` (only `implement*` and `lane head` judged) header."""
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        if not _PHASE_HEAD.match(line.strip()):
+        head = _PHASE_HEAD.match(line.strip())
+        if not head:
             continue
         rows = []
         for ln in lines[i + 1:]:
@@ -127,8 +133,8 @@ def _phase_rows(text: str) -> list[tuple[str, str]]:
             if len(cells) < 2 or set(ln) <= set("|-: "):
                 continue
             rows.append((cells[0], cells[1]))
-        return rows
-    return []
+        return rows, head.group(1).lower() == "where"
+    return [], False
 
 
 def _role_entry(role: str, provider: Optional[str], registry_path) -> Optional[dict]:
@@ -156,13 +162,30 @@ def _cell_matches(cell: str, entry: dict, known_models: list[str]) -> bool:
     return alias in cell.lower() and not named
 
 
+def _implement_row_problems(lane: str, phase: str, cell: str, known: list[str], vendor_fail: bool,
+                            registry_path) -> list[str]:
+    """A Where-table `implement` row: Copilot (the role's first entry), or a Claude/other registry
+    implement entry only beside a `VENDOR-FAIL: implement` line (R177)."""
+    order = pr.role_order(IMPLEMENT_ROLE, registry_path)
+    first = order[0]
+    if _cell_matches(cell, first, known):
+        return []
+    if vendor_fail and any(_cell_matches(cell, e, known) for e in order[1:]):
+        return []
+    why = ("" if not vendor_fail else " (a `VENDOR-FAIL: implement` line is present but the row names "
+           "no later implement entry)")
+    return [_refused(lane, IMPLEMENT_ROLE, cell, _entry_label(first),
+                     f"phase {phase!r} (row: | {phase} | {cell} |){why}")
+            + " -- add `VENDOR-FAIL: implement <ref>` to the contract only after a recorded Copilot failure"]
+
+
 def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: str = "",
                       registry_path=None) -> tuple[list[str], list[str]]:
     """`(problems, notes)` for a lane contract. See the module docstring for what is judged."""
-    rows = _phase_rows(text)
+    rows, where_table = _phase_rows(text)
     if not batch_applies(batch) and not rows:
         return [], [f"model-per-role: not applicable (batch {batch or '-'} predates E2.0 and the "
-                    f"contract carries no `| Phase | Model | Substrate |` table)"]
+                    f"contract carries no `| Phase | Model | Substrate |` / `| Phase | Model | Where |` table)"]
     import dispatch as d                              # lazy: the heavy import is paid only when judged
     problems: list[str] = []
     notes: list[str] = []
@@ -187,14 +210,26 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
                         f"table names {table_head}); they must agree")
     for what, got in (("the head row", head_model), ("the Dispatch --model", dispatch_model),
                       ("the launch --model", launch_model)):
-        if got and got.lower() != table_head.lower():
+        resolved = d.MODEL_ALIASES.get(got.lower(), got)   # a bare tier alias is compared by the id it resolves to
+        if got and resolved.lower() != table_head.lower():
             problems.append(_refused(lane, HEAD_ROLE, got, table_head, what))
     if not rows:
         notes.append("model-per-role: no `| Phase | Model | Substrate |` table -- judged on the head "
                      "row and the Dispatch line only")
         return list(dict.fromkeys(problems)), notes
     known = pr.model_ids(registry_path)
+    vendor_fail = bool(_VENDOR_FAIL_IMPLEMENT.search(text))
     for phase, cell in rows:
+        low = phase.lower()
+        if where_table:
+            if low.startswith("lane head"):
+                if not _cell_matches(cell, head_entry, known):
+                    problems.append(_refused(lane, HEAD_ROLE, cell, table_head, f"row {phase!r}"))
+                continue
+            if not low.startswith("implement"):
+                continue                              # a Where table judges implement + lane head only
+            problems += _implement_row_problems(lane, phase, cell, known, vendor_fail, registry_path)
+            continue
         rule = next(((role, prov) for pat, role, prov in _PHASE_RULES if pat.search(phase.lower())), None)
         if rule is None:
             problems.append(f"REFUSED [model-per-role]: lane {lane}: phase {phase!r} maps to no registry "
@@ -262,6 +297,19 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             continue
         token = served.split()[0].lower()             # the served id is the first token; the rest is a note
         requested = req.group(1).strip().split("/")[0].strip().lower()
+        if phase.lower().startswith("implement"):
+            # R177: implement is Copilot's; anything else needs `VENDOR-FAIL: implement ...` on the line.
+            if requested.startswith("copilot") or "copilot" in phase.lower():
+                if fail:
+                    subs.append(ln.strip())
+            elif fail and fail.group(1).lower().startswith("implement"):
+                subs.append(ln.strip())
+            else:
+                problems.append(f"REFUSED [models-block]: phase {phase!r} (implement) was requested as "
+                                f"{req.group(1).strip()!r} and served {served!r}, not by the Copilot CLI, "
+                                f"and no `VENDOR-FAIL: implement <ref>` is on the line (R177: the registry "
+                                f"`implement` role is Copilot first)")
+            continue
         copilot_role = requested == "default" and bool(_COPILOT_PHASE.search(phase))
         if (requested.startswith("copilot") or token == requested
                 or (copilot_role and token in COPILOT_GATEWAY_SERVED)):

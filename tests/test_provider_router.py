@@ -120,9 +120,9 @@ def test_refusal_2_a_non_admitted_producer_is_refused_on_implement(router):
     2026-09-23 by operator ruling O-3 — see `test_copilot_enterprise_is_now_admitted_on_implement`
     below — so it is no longer this test's example.)"""
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert got == ["anthropic", "copilot-enterprise"], (
-        "R153 (operator, 2026-10-19) puts Sonnet 5.5 first and Copilot second (reversing R104); the "
-        "unadmitted xai entry is still refused on this one admission-gated role"
+    assert got == ["copilot-enterprise", "anthropic"], (
+        "R177 (operator, 2026-10-20) puts Copilot first and Sonnet 5.5 second (vendor-fail only; reversing "
+        "R153); the unadmitted xai entry is still refused on this one admission-gated role"
     )
 
 
@@ -155,9 +155,9 @@ def test_copilot_enterprise_is_now_admitted_on_implement(router):
     )
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
     assert "copilot-enterprise" in got
-    assert got.index("copilot-enterprise") == 1, (
-        "R153 (operator ruling 2026-10-19) moved Sonnet 5.5 ahead of Copilot on implement (R104 "
-        "had Copilot at the head) -- a ruling, not the AX22-1 measurement, recorded in the registry note"
+    assert got.index("copilot-enterprise") == 0, (
+        "R177 (operator ruling 2026-10-20) moved Copilot back ahead of Sonnet 5.5 on implement (R153 "
+        "had Sonnet at the head) -- a ruling, not the AX22-1 measurement, recorded in the registry note"
     )
 
 
@@ -297,7 +297,7 @@ def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):
     with_producer = [c.provider for c in
                      router.route("implement", repo=".dev-knowledge", produced_by="anthropic")]
     without_producer = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert with_producer == without_producer == ["anthropic", "copilot-enterprise"]
+    assert with_producer == without_producer == ["copilot-enterprise", "anthropic"]
 
 
 def test_refusal_4_reports_its_clause(router):
@@ -819,16 +819,16 @@ def _r1536_route_lines(role: str) -> list[dict]:
 def test_r1536_route_implement_order_and_models():
     rows = _r1536_route_lines("implement")
     got = [(r["provider"], r["model"]) for r in rows[:3]]
-    assert [p for p, _ in got] == ["anthropic", "copilot-enterprise", "xai"], rows
-    assert got[0][1] == "claude-sonnet-5-5", rows
+    assert [p for p, _ in got] == ["copilot-enterprise", "anthropic", "xai"], rows
+    assert got[1][1] == "claude-sonnet-5-5", rows
     assert got[2][1] == "grok-4.7", rows
 
 
-def test_r1536_registry_implement_order_is_sonnet55_copilot_grok47(live_registry):
-    # R153 (2026-10-19, `e2-subst-gate`) reversed R104's Copilot -> Sonnet 5.5 -> Grok 4.7.
+def test_r1536_registry_implement_order_is_copilot_sonnet55_grok47(live_registry):
+    # R177 (2026-10-20, `e2-model-routing`) restored R104's Copilot -> Sonnet 5.5 -> Grok 4.7 (R153 had reversed it).
     order = live_registry["roles"]["implement"]["order"]
-    assert [e["provider"] for e in order[:3]] == ["anthropic", "copilot-enterprise", "xai"]
-    assert order[0]["model"] == "claude-sonnet-5-5"
+    assert [e["provider"] for e in order[:3]] == ["copilot-enterprise", "anthropic", "xai"]
+    assert order[1]["model"] == "claude-sonnet-5-5" and order[1]["vendor_fail_only"] is True
     assert order[2]["model"] == "grok-4.7"
 
 

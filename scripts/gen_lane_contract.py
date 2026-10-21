@@ -976,6 +976,48 @@ class LaneSpec:
         return f"[{self.repo} · {ident} · {self.slug}]"
 
 
+def _roles_section() -> list[str]:
+    """The `## Roles` table of a code lane, read from the registry (R177/R178) -- no model id is held here.
+
+    The pre-launch gate (`subst_gate.contract_problems`) judges the `implement` and `lane head` rows of a
+    `| Phase | Model | Where |` table; the rest is the lane's record of who does what."""
+    import provider_registry as _preg  # noqa: PLC0415 -- the registry is read at render time
+
+    def first(role: str) -> dict:
+        return _preg.role_order(role)[0]
+
+    def where(entry: dict, default: str) -> str:
+        return entry.get("substrate") or default
+
+    def label(entry: dict) -> str:
+        return entry.get("model") or "**Copilot CLI** (default model)"
+
+    implement = first("implement")
+    served = ", ".join(sorted(_preg.copilot_gateway_served()))
+    implement_cell = (f"**Copilot CLI** (Enterprise account, served {served})"
+                      if implement.get("model") is None else label(implement))
+    head = first("seat-orchestrator")
+    red = first("red")
+    review = _preg.role_order("review")
+    review_cell = " + ".join(label(e) for e in review if e.get("paired"))
+    verify = first("verify")
+    rows = [
+        ("implement", implement_cell, where(implement, "codespace")),
+        ("lane head", head["model"], "local"),
+        ("RED tests", label(red), where(red, "codespace")),
+        ("review", review_cell, " + ".join(where(e, "local") for e in review if e.get("paired"))),
+        ("isolated verify", label(verify), where(verify, "local")),
+    ]
+    out = ["## Roles\n", "| Phase | Model | Where |", "|---|---|---|"]
+    out += [f"| {p} | {m} | {w} |" for p, m, w in rows]
+    out.append(
+        "\nThe table is rendered from `ecosystem/provider-registry.yaml` (roles `implement`, "
+        "`seat-orchestrator`, `red`, `review`, `verify`). Claude implements only after a recorded "
+        "VENDOR-FAIL of the Copilot CLI (R177); the pre-launch gate judges the `implement` and "
+        "`lane head` rows.\n")
+    return out
+
+
 def render_contract(spec: LaneSpec) -> str:
     """Render one frozen lane contract. Pure — same spec in, byte-identical markdown out."""
     spec = spec.validated()
@@ -1084,6 +1126,9 @@ def render_contract(spec: LaneSpec) -> str:
             f"perform: integration needs an operator GO per merge, and a `{BACKGROUND_FLAG}`\n"
             f"session can neither merge to `main` nor ask a question. Tier on the record above\n"
             f"(`{spec.model}` / `{spec.effort}`); board label `{spec.board_label}`.\n")
+
+    if spec.kind == "code":
+        parts.extend(_roles_section())
 
     parts.append("## Worktree pairing\n")
     if branch is None:

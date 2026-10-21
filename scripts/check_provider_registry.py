@@ -404,6 +404,25 @@ def check_registry_shape() -> list[str]:
     return out
 
 
+def check_implement_vendor_fail(root: Path | None = None) -> list[str]:
+    """R177: the `implement` role may resolve to Claude only as a VENDOR-FAIL fallback.
+
+    The schema refuses this at load time; kept as a returned string for the same reason as
+    `check_registry_shape`.
+    """
+    order = _preg.role_order("implement")
+    out: list[str] = []
+    if order and order[0].get("provider") == "anthropic":
+        out.append("registry: role `implement` order[0] is an anthropic provider -- R177: Copilot "
+                   "implements; Claude runs only after a recorded VENDOR-FAIL: implement")
+    for i, entry in enumerate(order):
+        if entry.get("provider") == "anthropic" and not entry.get("vendor_fail_only"):
+            out.append(f"registry: role `implement` order[{i}] resolves to Claude without "
+                       f"`vendor_fail_only: true` -- R177: a Claude implementer needs the "
+                       f"VENDOR-FAIL clause")
+    return out
+
+
 def run(root: Path | None = None) -> list[str]:
     """Every violation across every seam, in seam order. Empty list == clean.
 
@@ -414,6 +433,7 @@ def run(root: Path | None = None) -> list[str]:
     r = Path(root) if root is not None else _REPO_ROOT
     findings: list[str] = []
     findings += check_registry_shape()
+    findings += check_implement_vendor_fail(r)
     findings += check_s8_tool_versions(r)
     findings += check_s9_artifact_reader(r)
     findings += check_s10_conformance_hub(r)

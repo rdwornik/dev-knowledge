@@ -503,10 +503,13 @@ def test_model_alias_flagged_in_model_table_and_dispatch_line(tmp_path):
 
 
 def test_model_alias_covers_opusplan_sonnet_and_haiku(tmp_path):
+    from provider_registry import claude_alias_ids  # the registry is the one source of the ids
+
+    ids = claude_alias_ids()
     for i, (alias, explicit) in enumerate((
-            ("opusplan", "claude-opus-5-5"),
-            ("sonnet", "claude-sonnet-5"),
-            ("haiku", "claude-haiku-4-5-20251001"))):
+            ("opusplan", ids["opus"]),
+            ("sonnet", ids["sonnet"]),
+            ("haiku", ids["haiku"]))):
         path = _contract_with_model(tmp_path, f"LANE-{i}.md", f"lane-{alias}", alias)
         lanes = plan_lint.load_contracts([path])
         findings = plan_lint.find_model_aliases(lanes)
