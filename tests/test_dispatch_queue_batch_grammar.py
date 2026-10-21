@@ -2,7 +2,7 @@
 
 A malformed batch (`bogus`, `E2.0junk`, `B1`) -- from `--batch` or `$HARNESS_BATCH` -- is refused (rc 5,
 `REFUSED [batch-grammar]`) BEFORE any launch or spawn. `--dry-run` only prints a static order and
-spawns nothing, so it is not gated (the order template renders it with a placeholder batch). A well-formed batch
+spawns nothing, but the batch is still checked (the order template renders `E2.0`). A well-formed batch
 passes through to `launch_lane`; an empty one stays the callers' own case.
 """
 from __future__ import annotations
@@ -85,14 +85,13 @@ def test_queue_refuses_what_launch_refuses(tmp_path, monkeypatch):
     assert "batch-grammar" in launched.output and "batch-grammar" in queued.output
 
 
-def test_queue_dry_run_with_a_malformed_batch_exits_zero_and_launches_nothing(tmp_path, monkeypatch):
-    # deliberate, documented deviation: a dry run only prints a static order and spawns nothing
+def test_queue_dry_run_with_a_malformed_batch_is_refused_and_launches_nothing(tmp_path, monkeypatch):
     rec = _Recorder(monkeypatch)
     contract = _contract(tmp_path)
 
     out = _queue(contract, tmp_path, "--dry-run", "--batch", "bogus")
 
-    assert out.exit_code == 0, out.output
+    assert out.exit_code == 5, out.output
     assert rec.launches == [] and rec.spawns == []
 
 

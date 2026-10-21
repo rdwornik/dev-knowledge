@@ -4357,8 +4357,7 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
     -- `dispatch.py launch` refuses that head by design; use the codespace verb for it. A re-run
     is idempotent ([#1572]): a lane already launched is reported `already-launched` (exit stays 0,
     the pass goes on) and a lane the --state-file reads MERGED is `SKIP-MERGED`, never refired."""
-    if not dry_run:   # a dry run spawns nothing, and the order template renders it with a placeholder batch
-        _refuse_malformed_batch("queue", batch or os.environ.get("HARNESS_BATCH", ""))
+    _refuse_malformed_batch("queue", batch or os.environ.get("HARNESS_BATCH", ""))
     lanes = load_queue(list(contracts))
     order = launch_order(lanes)
     by_slug = {lane.slug: lane for lane in lanes}

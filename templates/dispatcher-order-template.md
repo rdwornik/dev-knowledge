@@ -16,7 +16,7 @@ reconciled_with: handoff-process@7.1.0
   COMMANDS COME FROM CODE (ruling O-5). The launch line is `scripts/dispatch.py queue --watch`,
   ONE call over every local contract of the batch; its options are whatever
   `uv run --locked python scripts/dispatch.py queue --help` prints today — read them there, not
-  from a copy. Repairs go through `scripts/dispatch.py repair` the same way. No model name is
+  from a copy. Repairs go through `scripts/dispatch.py repair`, successor lanes through `scripts/dispatch.py successor`, the same way. No model name is
   typed here: `dispatch.py` reads each contract's Model table and Dispatch block, and routing is
   `ecosystem/provider-registry.yaml`. Replace every <angle-bracket> placeholder; delete this
   comment.
@@ -66,7 +66,7 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
 - **What a launch leaves, and what refuses it (P1, S4).** `moment:pre-launch` also runs
   `model_per_role`: a contract whose head row, Dispatch `--model` or phase-table model differs from
   the role table (`ecosystem/provider-registry.yaml`) is refused with `REFUSED [model-per-role]` —
-  on `dispatch.py codespace-exec` and `dispatch.py repair` as well as on `launch`, before anything
+  on `dispatch.py codespace-exec`, `dispatch.py repair` and `dispatch.py successor` as well as on `launch`, before anything
   is spawned. Record that line verbatim; do not launch the lane with another model in its place.
   A launch leaves `logs/receipts/LAUNCH-<SLUG>.json` (a Codespace lane: its `logs/CODESPACE-RECEIPTS.jsonl`
   row); the merge gate refuses a lane with neither. A raw `claude --bg`, the PATH `dispatch` wrapper
@@ -104,6 +104,10 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
    self-refusals: do not repair from them.
    ```
    uv run --locked python scripts/dispatch.py repair <slug> <CONTRACT>.md --model <MODEL> --effort <EFFORT> --batch <BATCH>
+   ```
+   For a successor lane (not a repair of a refusal), cut its worktree from a named base:
+   ```
+   uv run --locked python scripts/dispatch.py successor <slug> <CONTRACT>.md --base <sha-or-ref> --model <MODEL> --effort <EFFORT> --batch <BATCH>
    ```
    This relaunches into the lane's EXISTING worktree, not a fresh one, after the same `pre-launch`
    moment a launch runs (a `REFUSED [model-per-role]` stops it), and rewrites
