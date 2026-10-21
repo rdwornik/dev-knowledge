@@ -123,15 +123,19 @@ def compose_markexpr(existing: str, extra: str) -> str:
 
 
 # e2-os-split (ADR-127 AMENDMENT 2): the tests that skip on Ubuntu by a PLATFORM condition
-# (os.name / sys.platform / winreg / platform.system), i.e. the sites tests/test_os_split_gate.py
-# detects. Derived from the repo by that gate's own detector (`ubuntu_skipping_tests` over
-# tests/**/*.py), which follows decorators, class-level skipif/pytestmark, skips in the test body
-# and one level of module-level helper (tests/test_scope_guard.py's 8.3 short-name test is found
-# that way). Posix-only skips (sys.platform == "win32") and tool-absence skips (git/bash/uv/
-# claude/pwsh via shutil.which) are not here: ubuntu-latest has pwsh, so those still run on Ubuntu.
-# Entries: 12 (11 exact node ids + 1 module, tests/test_dispatch_shim.py) expanding to
-# 17 collected tests (the module entry = 6 of them).
-# to-browser/DIGEST-TEST-EXECUTION-EVAL-2026-10-20-ANNEX.md Q4.
+# (os.name / sys.platform / winreg / platform.system), plus Windows-only shell availability.
+# Derivation: 17 found statically by the gate's own detector (`ubuntu_skipping_tests` over
+# tests/**/*.py: os.name/sys.platform/winreg skips, one helper-mediated -- tests/test_scope_guard.py's
+# 8.3 short-name test), plus 13 added from the measured CI junit of run 39673029519 (ubuntu skipped,
+# windows passed). Those 13 are all `[powershell]`-parametrised: the Windows PowerShell 5.1 binary
+# `powershell` does not exist on Linux (only `pwsh`). The static gate CANNOT see that skip (a runtime
+# shell lookup), so those 13 are registry data only, found by measurement.
+# Posix-only skips (sys.platform == "win32") and tool-absence skips (git/bash/uv/claude/pwsh via
+# shutil.which) are not here: ubuntu-latest has pwsh, so those still run on Ubuntu.
+# Entries: 25 (24 exact node ids + 1 module, tests/test_dispatch_shim.py) expanding to
+# 30 collected tests (the module entry = 6 of them); matches
+# to-browser/DIGEST-TEST-EXECUTION-EVAL-2026-10-20-ANNEX.md Q4 (ubuntu 45 skipped vs windows 15
+# => ~30 Windows-only).
 # Entry grammar (the gate's `_covered`): exact node id, or a module path covering every test in it.
 WINDOWS_ONLY_TESTS: frozenset[str] = frozenset({
     "tests/test_dispatch_launch.py::test_the_shim_needs_no_cap_and_passes_only_launch_and_the_contract",
@@ -146,6 +150,19 @@ WINDOWS_ONLY_TESTS: frozenset[str] = frozenset({
     "tests/test_fleet_health.py::test_read_user_scope_expands_a_reg_expand_sz_value",
     "tests/test_fleet_health.py::test_read_user_scope_treats_an_empty_value_as_absent",
     "tests/test_scope_guard.py::test_windows_8dot3_short_form_is_refused",
+    "tests/test_hook_launcher.py::test_a_git_tree_without_the_launcher_fails_closed[powershell]",
+    "tests/test_hook_launcher.py::test_inside_a_git_tree_the_hook_runs_as_if_invoked_directly[powershell-.]",
+    "tests/test_hook_launcher.py::test_inside_a_git_tree_the_hook_runs_as_if_invoked_directly[powershell-sub/deeper]",
+    "tests/test_hook_launcher.py::test_outside_every_git_tree_the_command_allows_silently[powershell]",
+    "tests/test_hook_launcher.py::test_the_adr77_guard_runs_on_the_system_interpreter_and_blocks_in_zone_in_every_shell[powershell]",
+    "tests/test_hook_launcher.py::test_the_hooks_exit_code_is_the_commands_exit_code[powershell]",
+    "tests/test_hook_launcher.py::test_the_prompts_guard_command_parses_and_allows_under_powershell[powershell]",
+    "tests/test_reuse_gate.py::test_in_a_lane_the_declared_command_allows_an_existing_file[powershell]",
+    "tests/test_reuse_gate.py::test_in_a_lane_the_declared_command_denies_an_unnamed_new_file[powershell]",
+    "tests/test_reuse_gate.py::test_outside_a_git_tree_the_declared_command_exits_cleanly[powershell]",
+    "tests/test_scope_guard_hook_command.py::test_inside_the_repo_the_declared_command_runs_the_guard[powershell-.]",
+    "tests/test_scope_guard_hook_command.py::test_inside_the_repo_the_declared_command_runs_the_guard[powershell-scripts]",
+    "tests/test_scope_guard_hook_command.py::test_outside_a_git_tree_the_declared_command_exits_cleanly[powershell]",
 })
 
 
