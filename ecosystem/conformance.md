@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-10-21 · **HEAD:** `a3befd6fb18d` · **window:** 2026-10-14 → 2026-10-21 (7 days)
+- **As of:** 2026-10-21 · **HEAD:** `910550b1fe66` · **window:** 2026-10-14 → 2026-10-21 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -17,6 +17,12 @@
 
 _Rows that left `BACKLOG.md` between 2026-10-14 and 2026-10-21, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
+- **The pins gate blocks every box launch on each laptop CLI patch bump** [#1664] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
+- **agy pin tolerance** [#1659] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
+- **The test census classifies every test ORPHAN, DUPLICATE, ZERO-KILL or NO-OUTCOME from the night's edges, without a model, into a KEEP/STRENGTHEN/REMOVE list** [#1566] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
+- **The always-red CI ship-gate job is removed with its never-matching handoff reader** [#1563] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
+- **A lane push runs Tier 1** [#1560] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
+- **Each seat cycle tears down its own worktree and branch at CYCLE-END Â· tasks/1421-each-seat-cycle-tears-down-its-own-worktree-at-cycle-end.md** [#1421] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-21 · `910550b1fe66`
 - **The architect reads an inbox and request status is derived, not typed** [#1539] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `c13a166ddfc9`
 - **Rulings R100-R115 land in STANDING_RULINGS by id, each from its own source file** [#1538] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `52b9a90bc75c`
 - **The outer loop runs in code** [#1535] → _(row carried no `Done when:` clause — see the closing commit)_ · closed 2026-10-16 · `a3d0ae31226f`
@@ -41,7 +47,7 @@ _Rows that left `BACKLOG.md` between 2026-10-14 and 2026-10-21, newest first. Th
 
 **Total live rows: 810** (+178 over 7 days; 632 at the window start).
 
-Closed this window (6): [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332]
+Closed this window (12): [#1664] · [#1659] · [#1566] · [#1563] · [#1560] · [#1421] · [#1539] · [#1538] · [#1535] · [#1454] · [#1450] · [#1332]
 
 ## Section 2 — Intake lifecycle gate
 

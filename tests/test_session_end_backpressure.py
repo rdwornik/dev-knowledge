@@ -40,6 +40,14 @@ def _load():
 
 sb = _load()
 
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _attended_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ATTENDED", "1")
+    monkeypatch.setenv("SESSION_END_BACKPRESSURE_MARKER_DIR", str(tmp_path / "markers"))
+
 
 def _main_out(monkeypatch, capsys, stdin_obj):
     """Drive main() with a chosen Stop-hook stdin payload; return (rc, stdout-stripped).

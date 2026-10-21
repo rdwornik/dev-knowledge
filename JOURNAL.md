@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (g) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-stop-hook-headless (`[#1700]`) -- the session-end Stop hook stays silent unless `CLAUDE_CODE_SESSION_ATTENDED` is exactly `1`, and nudges at most once per session_id
+
+**Anchors:** `258a9597` (RED), `f1638753` (silent when headless, once per session_id otherwise), `2ed67e15` (the once-marker claimed atomically with O_EXCL, per review), `6d1d14d6` (RED: silent unless ATTENDED is exactly 1), `44c56783` (fix), `3356e9b4` (the marker filename is never a bare dot name), `06caee93` (the handback file, committed into the repo by mistake and removed by this merge); branch `worktree-e2-stop-hook-headless`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 1fa583e9).
+
+**Did:** in `claude -p` and `claude --bg` sessions the Stop hook continued the turn and cost tokens. `ATTENDED` measured 0 there. `scripts/session_end_backpressure.py` now returns silently unless ATTENDED is `1`. `_record_seat_stop` still runs first, and a tempdir marker limits the nudge to once per session. The lane's tip commit put its handback `to-browser/SESSION-e2-stop-hook-headless.md` into the repo, which made the ADR-101 seal tests red ("unsanctioned new top-level directory"). At the orchestrator's request this merge `git rm`s it; the transport copy on Drive is the handback. The orchestrator also rewrote the handback's MODELS lines into the gate's shape (indented; plan `NOT run`).
+
+**Result:** witness: the dirty-clone probe fell from 88,770 to about 44,200 tokens with the reply intact. Disclosed: the interactive Stop path is UNMEASURED. If an interactive session does not set ATTENDED=1, the nudge is lost there; that is an advisory lost, never a token cost. On the merged tree, the seal, derived-copies and the lane's own tests pass (174, targeted). Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5 (round 2 findings fixed or disclosed). Implement by Copilot CLI per R177. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `scripts/session_end_backpressure.py`, tests (`tests/test_session_end_backpressure.py`, `tests/test_session_end_backpressure_headless.py` new); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-cliff line).
+
+**Next:** the orchestrator launches e2-organ-truth-pin; new lanes land on their packages.
+
 ### 2026-10-21 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-cliff lands PARTIAL (48 of 51 fates of the 2026-10-19 date cliff get R149 verdicts in `ecosystem/harness.yaml`; rows `[#1710]`-`[#1715]` filed), with six rows closed by operator GO 2026-10-21 (LEDGER v271) to make room under the BACKLOG ceiling
 
 **Anchors:** `35a645a1` (48 fates get R149 verdicts: ROW target dates, `called_by`, `retire_candidate`; rows `[#1710]`-`[#1715]`; the stale AX paragraph fixed), `d70eeaf9` (refs clause on the six new rows; the AX paragraph names exactly `[#1650]`-`[#1661]`), `1cd1201c` (`[#1710]` names the one fate held by a test pin); branch `worktree-e2-cliff`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 6d1e3b17).
