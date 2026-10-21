@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-21 (a) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-8, batch E2.0): lane e2-graph-hotspot -- `_implements_scan_paths` prunes skip dirs in one `os.walk` instead of rglob-then-filter, same paths in the same order, after repair 1 of 2
+
+**Anchors:** `6d74a247` (RED test + fix), `ec36d0df` (test counts only entries strictly under `.claude/worktrees`), `372a8661` (review: hand-typed measurements dropped from a comment); branch `worktree-e2-graph-hotspot`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 9a5316c9).
+
+**Did:** cycle-8 took the seat after the laptop lost power and cycle-7 died (exit 4). First it landed cycle-7's merge of e2-models-gate-fix (`481f0a47`, CI 39474948755, `merge_path.py land` read the run as PRE-EXISTING). Then it merged this lane: the graph rebuild's hottest loop, `_implements_scan_paths` in `scripts/file_purpose_graph.py`, walks the tree once and prunes the skip dirs while walking. Before, it ran rglob per scan dir and filtered afterwards. The new `tests/test_file_purpose_graph_scan_index.py` pins the output, and it was RED on the old rglob.
+
+**Result:** the lane's witness: the same 3,555 paths in the same order (sha256 identical), `_implements_scan_paths` 23.29 s -> 0.45 s. It makes no claim that a full graph rebuild got faster. The branch CI's `graph-task-coverage` refused the new test file, because no OPEN row claimed it. At merge the integrator added one clause naming the test in `[#664]`'s body, which is the row whose `task_coverage 0 FAIL` Done-when that query serves. `graph_queries.py task-coverage` then reads OK on the merged tree. The BACKLOG view did not change (158,277 B). Reviews: Codex banner gpt-5.6-terra, Copilot claude-sonnet-5.5, isolated verify claude-sonnet-5-5. The integration branch's CI run is the verdict (R167).
+
+**Changes:** `scripts/file_purpose_graph.py`, `tests/test_file_purpose_graph_scan_index.py` (new), `tasks/664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md` (one claim clause); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-models-gate-fix line).
+
+**Next:** e2-rows-t5, then e2-rows-r5 (they share `tasks/manifest.json`, so they are not stacked), then e2-test-flow-metrics and e2-dispatch-close; e2-cliff waits for the operator's BACKLOG-budget GO.
+
 ### 2026-10-20 (g) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-7, batch E2.0): lane e2-models-gate-fix repairs the MODELS gate (operator ruling 2026-10-20 'Fix gate, then lanes'; interim per R166) -- the Copilot gateway rule of BATCH §3, the first token after `served=` is the id, `- ` bullets and `NOT run` accepted, after repair 1 of 2
 
 **Anchors:** `4769e6bd` (the real MODELS blocks of graph-hotspot, rows-t5 and rows-r5 as fixtures), `e9b38c56` (RED), `5a9d0ca5` (fix), `ed70fbcb` (review majors: Copilot role tightened to `requested=default`, a `NOT run` line carries no `served=`), `7e0f91de` (repair 1: the gateway-served id moves into `ecosystem/provider-registry.yaml`); branch `worktree-e2-models-gate-fix`, introduced by this merge. Launched by `scripts/dispatch.py launch --batch E2.0` (job 8bebbeed).
