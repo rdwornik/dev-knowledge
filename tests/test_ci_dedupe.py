@@ -2,8 +2,10 @@
 
 R168: a push to `main` must not start an unconditional workflow run that duplicates the judged
 conductor run; the nightly schedule is the backstop for an unjudged direct push. R169: the
-removed `ship-gate` / `commit-gate` jobs must leave no dangling reference -- not in `needs`, not
-in a required-check context, not in an artifact name. RED-first: these fail until the workflow
+removed `ship-gate` job must leave no dangling reference -- not in `needs`, not in a
+required-check context, not in an artifact name. R169 as narrowed: `commit-gate` stays (advisory,
+`continue-on-error`, needed only by `gate`) because it is the only CI leg running graph
+task-coverage and no fix row can be filed tonight. RED-first: these fail until the workflow
 change lands.
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ yaml = pytest.importorskip("yaml")
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
-REMOVED = ("ship-gate", "commit-gate")
+REMOVED = ("ship-gate",)
 
 
 def load(name: str) -> dict:
@@ -73,12 +75,15 @@ def _needs(job: dict) -> list:
     return [needs] if isinstance(needs, str) else list(needs)
 
 
-def test_conductor_has_no_ship_gate_or_commit_gate_job():
+def test_conductor_has_no_ship_gate_job_but_keeps_an_advisory_commit_gate():
     jobs = load("conductor.yml")["jobs"]
-    for name in REMOVED:
-        assert name not in jobs
-    needs = _needs(jobs["gate"])
-    assert not set(needs) & set(REMOVED)
+    assert "ship-gate" not in jobs
+    assert "commit-gate" in jobs
+    assert jobs["commit-gate"].get("continue-on-error") is True
+    assert "commit-gate" in _needs(jobs["gate"])
+    for name, job in jobs.items():
+        if name != "gate":
+            assert "commit-gate" not in _needs(job)
     for job in jobs.values():
         assert set(_needs(job)) <= set(jobs)
 
@@ -127,7 +132,7 @@ def test_no_required_context_names_a_removed_job():
         | {actions_verdict.WINDOWS_CONTEXT}
         | {c["context"] for c in checks}
     )
-    for name in REMOVED:
+    for name in (*REMOVED, "commit-gate"):
         assert name not in contexts
         assert name not in actions_verdict.required_contexts_for(True)
         assert name not in actions_verdict.required_contexts_for(False)

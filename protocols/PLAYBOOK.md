@@ -4114,15 +4114,15 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 **Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
 
 **Hooks** — auto vs manual: session hooks fire automatically; **most pre-commit hooks are
-currently `stages: [manual]`** (no longer run in CI since R169 removed conductor `commit-gate`;
-2026-09-17 demotion — only `audit-index-freshness`, `organ-index-freshness` (pre-commit) and
+currently `stages: [manual]`** (conductor `commit-gate` runs them report-only since
+2026-09-17 — only `audit-index-freshness`, `organ-index-freshness` (pre-commit) and
 `block-ff-push`, `block-unanchored-push` (pre-push) still fire locally). The canonical,
 drift-tracked roster lives in **CLAUDE.md §9** — read it there rather than maintaining a
 duplicate copy here (this table re-drifted twice already). The operational "when":
 
 - **Pre-commit gates** fire on `git commit`; today only the two index-freshness hooks
   actually run there. `audit-health` (FAIL) and `ruff` (violation) still BLOCK, but at
-  `ship-gate`, not the local commit — run `ruff check --fix` / `/save` before
+  `ship-gate`/conductor, not the local commit — run `ruff check --fix` / `/save` before
   committing regardless, since ship-gate will catch what pre-commit no longer does.
 - **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
 - **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
