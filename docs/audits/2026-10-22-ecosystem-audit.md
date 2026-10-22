@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-22  
-**Generated:** 2026-10-22T13:15:06  
+**Generated:** 2026-10-22T13:52:22  
 **Repos audited:** 6  
-**Checks:** 925 total — 161 pass, 13 fail, 555 warn, 0 unavailable, 196 n/a
+**Checks:** 926 total — 161 pass, 14 fail, 555 warn, 0 unavailable, 196 n/a
 
 ---
 
-## .dev-knowledge — PASS
+## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-dwbewn_i\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-74bontqv\wt`  
 **Last audit:** 2026-10-22
 
 | Check | Status | Evidence |
@@ -23,15 +23,16 @@
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct (explorer.sortOrderLexicographicOptions carries the sorting clause's asserted half), .vscode/ in-pattern |
 | `handoff_bundle_structure` | PASS | 12 stamped v4 bundle(s) valid (structure + sections + budgets) |
-| `canonical_freshness` | WARN | protocols/SESSION_SETUP.md: last_reviewed 2026-09-10 is 42d old (> 30d cadence); protocols/AI_COUNCIL_PROCESS.md: last_reviewed 2026-09-04 is 48d old (> 30d cadence); protocols/DEFINITION_OF_DONE.md: last_reviewed 2026-09-02 is 50d old (> 30d cadence) |
-| `canonical_freshness` | WARN | derived ungated-and-stale: 9 - protocols/HANDOFF_PROCESS.md (declared 2026-09-08 [frontmatter] -> derived 2026-10-16, +38d); AGENTS.md (declared 2026-09-26 [frontmatter] -> derived 2026-10-22, +26d); protocols/PLAYBOOK.md (declared 2026-09-18 [prose] -> derived 2026-10-05, +17d); protocols/STANDING_RULINGS.md (declared 2026-10-09 [frontmatter] -> derived 2026-10-22, +13d); protocols/OPERATOR-INTERFACE.md (declared 2026-10-04 [frontmatter] -> derived 2026-10-16, +12d); README.md (declared 2026-09-06 [frontmatter] -> derived 2026-09-14, +8d); protocols/ENVIRONMENT.md (declared 2026-09-06 [prose] -> derived 2026-09-14, +8d); protocols/README.md (declared 2026-09-06 [frontmatter] -> derived 2026-09-14, +8d); protocols/HANDOFF_BOOT.md (declared 2026-10-15 [frontmatter] -> derived 2026-10-16, +1d) -- full rows: audit.py doc-freshness |
+| `canonical_freshness` | FAIL | 1 stale (edited since review): ARCHITECTURE.md: last_reviewed 2026-09-27 predates last edit 2026-10-22 - edited but not re-reviewed | also 3 warn: protocols/SESSION_SETUP.md: last_reviewed 2026-09-10 is 42d old (> 30d cadence); protocols/AI_COUNCIL_PROCESS.md: last_reviewed 2026-09-04 is 48d old (> 30d cadence); protocols/DEFINITION_OF_DONE.md: last_reviewed 2026-09-02 is 50d old (> 30d cadence) |
+| `canonical_freshness` | WARN | derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-09-27 [frontmatter] -> derived 2026-10-22, +25d) -- full rows: audit.py doc-freshness |
+| `canonical_freshness` | WARN | derived ungated-and-stale: 9 - protocols/HANDOFF_PROCESS.md (declared 2026-09-08 [frontmatter] -> derived 2026-10-16, +38d); protocols/PLAYBOOK.md (declared 2026-09-18 [prose] -> derived 2026-10-22, +34d); AGENTS.md (declared 2026-09-26 [frontmatter] -> derived 2026-10-22, +26d); protocols/STANDING_RULINGS.md (declared 2026-10-09 [frontmatter] -> derived 2026-10-22, +13d); protocols/OPERATOR-INTERFACE.md (declared 2026-10-04 [frontmatter] -> derived 2026-10-16, +12d); README.md (declared 2026-09-06 [frontmatter] -> derived 2026-09-14, +8d); protocols/ENVIRONMENT.md (declared 2026-09-06 [prose] -> derived 2026-09-14, +8d); protocols/README.md (declared 2026-09-06 [frontmatter] -> derived 2026-09-14, +8d); protocols/HANDOFF_BOOT.md (declared 2026-10-15 [frontmatter] -> derived 2026-10-16, +1d) -- full rows: audit.py doc-freshness |
 | `canonical_freshness` | WARN | derived ungated-and-unstamped: 2 - protocols/BUILD-LIST.md (no stamp; last content 2026-10-20); protocols/BUILD-MODE.md (no stamp; last content 2026-09-18) (+22 unstamped outside the gated set's directories, out of scope for this report) -- full rows: audit.py doc-freshness |
-| `canonical_freshness` | PASS | derived gated-and-fresh: 7 of 43 living docs (10 fresh overall; derived = last CONTENT commit, TOUCH commits [whitespace-only, frontmatter-only, stamp-line-only] walked past) |
-| `canonical_freshness` | PASS | derived doctrine rows (live version + date): protocols/HANDOFF_PROCESS.md  version 7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-10-16 (7bc3526e4)  +38d  ungated-and-stale; protocols/PLAYBOOK.md  version handoff-process@7.1.0  declared 2026-09-18 (prose)  derived 2026-10-05 (f79b7f185)  +17d  ungated-and-stale; protocols/OPERATOR-INTERFACE.md  version handoff-process@7.1.0  declared 2026-10-04 (frontmatter)  derived 2026-10-16 (7bc3526e4)  +12d  ungated-and-stale; README.md  version 1.1  declared 2026-09-06 (frontmatter)  derived 2026-09-14 (e791cffcf)  +8d  ungated-and-stale; protocols/README.md  version handoff-process@7.1.0  declared 2026-09-06 (frontmatter)  derived 2026-09-14 (e791cffcf)  +8d  ungated-and-stale; protocols/HANDOFF_BOOT.md  version handoff-process@7.1.0  declared 2026-10-15 (frontmatter)  derived 2026-10-16 (bb644d35f)  +1d  ungated-and-stale; ARCHITECTURE.md  version handoff-process@7.1.0  declared 2026-09-27 (frontmatter)  derived 2026-09-27 (2cb47aee4, unrefined)  0d  gated-and-fresh; CLAUDE.md  version handoff-process@7.1.0  declared 2026-10-22 (frontmatter)  derived 2026-10-22 (d248af24f, unrefined)  0d  gated-and-fresh; CONTRIBUTING.md  version handoff-process@7.1.0  declared 2026-10-18 (frontmatter)  derived 2026-10-18 (2c320567b, unrefined)  0d  gated-and-fresh; docs/handoffs/README.md  version handoff-process@7.1.0  declared 2026-10-18 (frontmatter)  derived 2026-10-18 (2c320567b, unrefined)  0d  gated-and-fresh; protocols/AI_COUNCIL_PROCESS.md  version 2.2  declared 2026-09-04 (frontmatter)  derived 2026-09-04 (51bfe4f8a, unrefined)  0d  gated-and-fresh; protocols/SESSION_SETUP.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh |
+| `canonical_freshness` | PASS | derived gated-and-fresh: 6 of 43 living docs (9 fresh overall; derived = last CONTENT commit, TOUCH commits [whitespace-only, frontmatter-only, stamp-line-only] walked past) |
+| `canonical_freshness` | PASS | derived doctrine rows (live version + date): protocols/HANDOFF_PROCESS.md  version 7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-10-16 (7bc3526e4)  +38d  ungated-and-stale; protocols/PLAYBOOK.md  version handoff-process@7.1.0  declared 2026-09-18 (prose)  derived 2026-10-22 (c9801764a)  +34d  ungated-and-stale; ARCHITECTURE.md  version handoff-process@7.1.0  declared 2026-09-27 (frontmatter)  derived 2026-10-22 (c9801764a)  +25d  gated-and-stale; protocols/OPERATOR-INTERFACE.md  version handoff-process@7.1.0  declared 2026-10-04 (frontmatter)  derived 2026-10-16 (7bc3526e4)  +12d  ungated-and-stale; README.md  version 1.1  declared 2026-09-06 (frontmatter)  derived 2026-09-14 (e791cffcf)  +8d  ungated-and-stale; protocols/README.md  version handoff-process@7.1.0  declared 2026-09-06 (frontmatter)  derived 2026-09-14 (e791cffcf)  +8d  ungated-and-stale; protocols/HANDOFF_BOOT.md  version handoff-process@7.1.0  declared 2026-10-15 (frontmatter)  derived 2026-10-16 (bb644d35f)  +1d  ungated-and-stale; CLAUDE.md  version handoff-process@7.1.0  declared 2026-10-22 (frontmatter)  derived 2026-10-22 (d248af24f, unrefined)  0d  gated-and-fresh; CONTRIBUTING.md  version handoff-process@7.1.0  declared 2026-10-18 (frontmatter)  derived 2026-10-18 (2c320567b, unrefined)  0d  gated-and-fresh; docs/handoffs/README.md  version handoff-process@7.1.0  declared 2026-10-18 (frontmatter)  derived 2026-10-18 (2c320567b, unrefined)  0d  gated-and-fresh; protocols/AI_COUNCIL_PROCESS.md  version 2.2  declared 2026-09-04 (frontmatter)  derived 2026-09-04 (51bfe4f8a, unrefined)  0d  gated-and-fresh; protocols/SESSION_SETUP.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh |
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 0d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-22, newest input tasks committed 2026-10-22 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-16, newest input docs/audits committed 2026-10-16 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 9 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 8 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -60,7 +61,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#927 (4 history dates spanning 43d, 2337 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1601 (5 history dates spanning 33d, 1137 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1627 (4 history dates spanning 111d, 1380 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (376 of 810 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13740 chars; row-length p50/p75/p90 over all 810 rows = 1292/2032/3089 chars; trend: +129 vs previous run (247 -> 376)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (376 of 810 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13740 chars; row-length p50/p75/p90 over all 810 rows = 1292/2049/3089 chars; trend: +129 vs previous run (247 -> 376)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-09-14, 38d ago (> 21d cadence, ADR-41)) |
 | `doc_structure` | PASS | no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme) |
 | `doc_code_edge` | WARN | governance-backlog-implements-grammar: code_orphan (code sites=1, no declaration) |
@@ -108,10 +109,10 @@
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 16f8ebb appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: c2ac0b7 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a3befd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 10d21de appears outside an explicit 'Anchors:' record line (+1175 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: e18b5a8 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 16f8ebb appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: c2ac0b7 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a3befd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line (+1176 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 261 code-impact merge(s) since 2026-08-05 carry no linked review artifact: e18b5a84 worktree-e2-seat-cycle, 2f331ed8 worktree-e2-os-split, 82612d2a worktree-e2-boot-rules, 16f8ebb9 worktree-e2-model-routing, c2ac0b72 worktree-e2-organ-truth-pin (+256 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 262 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 8fe0a1f7 worktree-e2-ci-dedupe, e18b5a84 worktree-e2-seat-cycle, 2f331ed8 worktree-e2-os-split, 82612d2a worktree-e2-boot-rules, 16f8ebb9 worktree-e2-model-routing (+257 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -951,7 +952,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 37d ago]; worktree-lane-ab-810-substrate-repair [last commit 35d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 37d ago]; worktree-lane-ab-810-substrate-repair [last commit 36d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -1009,8 +1010,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 161/925 checks passed
-- **13 failure(s)** — route findings to repo owners
+- 161/926 checks passed
+- **14 failure(s)** — route findings to repo owners
 - 555 warning(s)
 - 196 n/a (check not applicable to that repo)
 
