@@ -21,8 +21,8 @@ import merge_receipt
 import land_lane as ll
 
 SLUG = "lane-a"
-BATCH = "B1"
-INTEGRATION = "worktree-integrate-b1"
+BATCH = "E1.0"          # well-formed and older than E2.0: subst_gate does not require a handback
+INTEGRATION = "worktree-integrate-e1.0"
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -116,6 +116,11 @@ class Env:
 @pytest.fixture(autouse=True)
 def _events(tmp_path, monkeypatch):
     monkeypatch.setenv(merge_path.EVENTS_PATH_ENV, str(tmp_path / "events" / "events.jsonl"))
+    # Machine-independent git: a bare repo is usable and no autocrlf dirties the clones.
+    for i, (k, v) in enumerate((("safe.bareRepository", "all"), ("core.autocrlf", "false"))):
+        monkeypatch.setenv(f"GIT_CONFIG_KEY_{i}", k)
+        monkeypatch.setenv(f"GIT_CONFIG_VALUE_{i}", v)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "2")
 
 
 @pytest.fixture
@@ -131,7 +136,12 @@ def pass_verdict(sha, **kwargs):
 
 
 def stub_suite(root, *, slug, sha, required_contexts=None):
-    return None
+    """Record a landable suite read on the open receipt, as `record_actions_verdict` would."""
+    receipt = merge_receipt.load_receipt(root, slug)
+    receipt.steps.append(merge_receipt.StepTiming(
+        step="suite", step_class=merge_receipt.CLASS_CEREMONY, seconds=0.0, ok=True, returncode=0,
+        command="stub", started="", verdict_state="PASS"))
+    merge_receipt.save_receipt(root, receipt)
 
 
 def recording_git(root: Path, log: list, rewrite=None):
@@ -299,7 +309,7 @@ def test_poll_window_defaults_above_25_minutes_and_is_a_parameter(env, tmp_path)
     assert do_land(second, verdict_fn=verdict).ok
     assert seen == [ll.DEFAULT_TIMEOUT_S]
 
-    option = next(p for p in ll.cli.params if p.name == "timeout")
+    option = next(p for p in ll.cli.params if p.name == "timeout_s")
     assert option.default == ll.DEFAULT_TIMEOUT_S
 
 
@@ -392,3 +402,16 @@ def test_carry_file_round_trips_between_two_landings(env):
     assert json.loads(carried[0])["slug"] == "lane-b"
     assert len(on_main) + len(carried) == 2
     assert merge_receipt.ledger_path(env.worktree).read_text(encoding="utf-8").strip() == first_line
+
+
+# --- regenerate ---------------------------------------------------------------------------------
+
+def test_regenerated_files_are_folded_into_the_two_parent_merge(env):
+    old_main = env.origin_ref("main")
+    cmd = [sys.executable, "-c", "open('generated.txt', 'w').write('regenerated')"]
+    report = do_land(env, regen_cmds=[cmd])
+
+    assert report.ok, report.message
+    parents = _git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
+    assert len(parents) == 3 and parents[1] == old_main
+    assert _git(env.origin, "show", "main:generated.txt") == "regenerated"
