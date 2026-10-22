@@ -61,12 +61,12 @@ def _cycle_section(name: str) -> str:
     return " ".join(text.split("## Cycle", 1)[1].split())  # prose is hard-wrapped
 
 
-def test_the_cycle_handover_launches_the_successor_itself_and_falls_back_only_on_error():
+def test_the_cycle_handover_starts_the_successor_via_seat_cycle_and_falls_back_only_on_error():
     for name in _TEMPLATES:
         sec = _cycle_section(name)
-        assert "claude --bg" in sec, name
-        assert "launches the successor itself" in sec, name
-        assert "only if that launch errors" in sec and "OPERATOR-ACTION" in sec, name
+        assert "scripts/seat_cycle.py run" in sec, name
+        assert "come from the role table" in sec and "not from a typed line" in sec, name
+        assert "`OPERATOR-ACTION` only if `run` exits non-zero" in sec, name
 
 
 def test_no_recorded_evidence_or_system_map_node_names_the_retired_command():

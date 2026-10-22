@@ -198,11 +198,16 @@ long session. One session ran 15.7 h in FOUNDATION; the ceiling is what prevents
    name (`INTEGRATOR-<BATCH>` or your `-cycle-<m>`) and run `seat_registry.py unbind` once. Nothing of
    yours outlives your last message.
 
-**The outgoing seat launches the successor itself.** After step 1 and at the no-merge point, run the
-`claude --bg ...` line your receipt carries for the successor (the one an `OPERATOR-ACTION: start
-successor` would otherwise quote) and record the launched job id in a `STATE` line. Write an
-`OPERATOR-ACTION` only if that launch errors: quote the error verbatim and keep your seat until the
-operator answers. Witnessed working 2026-10-15 16:14 (LEDGER v212).
+**The outgoing seat calls the mechanism; it does not launch by hand.** After step 1 and at the
+no-merge point, run
+`uv run --locked python scripts/seat_cycle.py run --role integrator --seat <job-id> --transcript <path> --bound-age-hours <h> --handover-dir <dir> --cycle-no <n> --batch <BATCH> --state <text> --next-step <text> [--next-step <text> ...] --bookkeeping <text> [--base main] [--repo-root <path>] --worktree <path> [--open-decision <text> ...] [--live-child <text> ...]`.
+The successor's model, effort and name come from the role table and `ecosystem/seat-cycle.yaml`, not
+from a typed line; `--seat` is the OUTGOING seat's job id, and the successor's name is derived by the
+mechanism (`<seat>-c<n+1>`), not chosen. The successor's first act is to read the handover file and then write the BOUND line;
+the mechanism stops the outgoing seat only after BOUND, and only a stop VERIFIED over the poll window
+(no listing, no queued inbox message, no surviving process naming the job id or worktree) counts as
+replaced. Write an `OPERATOR-ACTION` only if `run` exits non-zero: quote its verdict verbatim and keep
+your seat until the operator answers.
 
 **Waits are foreground.** Run every long wait and every full test run in the foreground of an active
 turn, not as a background shell while the session is idle (the memory-pressure reaper takes idle

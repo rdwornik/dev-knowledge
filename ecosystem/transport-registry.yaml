@@ -931,7 +931,7 @@ kinds:
     pattern: '^HANDOVER-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
     class: non-decision
-    writers: [operator]
+    writers: [operator, seat_cycle]
     repo_scope: hub
     versioned: false
     notes: >-
