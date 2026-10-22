@@ -1321,7 +1321,8 @@ def launch_lane(request: LaunchRequest, *,
             _write_json(_receipt_path(request.slug), {
                 "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None,
                 "job_id": "pending", "slug": request.slug, "provider": request.provider,
-                "batch": request.batch, "contract": str(request.contract)})
+                "batch": request.batch, "contract": str(request.contract),
+                "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON})
         except OSError as exc:
             raise LaunchRefused(f"cannot write the launch receipt for {request.slug} ({exc}); refusing "
                                 "to start a lane nothing can record") from exc
@@ -1403,6 +1404,10 @@ def planned_model(argv: Sequence[str]) -> str:
     return ""
 
 
+#: Why a local launch receipt carries no `end`: the launcher exits when the lane starts.
+_LOCAL_END_REASON = "UNMEASURED: the launcher exits when the lane starts; it cannot observe the lane's end"
+
+
 def _write_launch_records(request: LaunchRequest, result: LaunchResult,
                           extra: Optional[Mapping[str, object]] = None) -> None:
     """The launch receipt (one per slug) and the job-to-lane record (one per job). `extra` adds fields
@@ -1411,6 +1416,7 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
     _write_json(_receipt_path(request.slug), {
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
+        "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON,
         **{k: v for k, v in asdict(result).items()}, **(extra or {})})
     if result.job_id == "unresolved":
         return          # one file per job id, and there is none to name
@@ -3579,6 +3585,8 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
         if not mkdir.ok:
             return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"creating {workdir} exited {mkdir.exit_code}")
+        if batch:
+            regime.mark_ready(name, ledger_path=ledger_path)
 
         cp1 = call(["codespace", "cp", "-c", name, "-e", str(contract),
                     f"remote:{workdir}/{Path(contract).name}"])
@@ -4034,7 +4042,8 @@ def codespace_delete(name: str, *, out_dir: Path,
                 closed = regime.write_receipt(
                     lane, batch, name, created=datetime.fromisoformat(opened["created"]),
                     deleted=datetime.now(timezone.utc), machine=opened.get("machine", ""),
-                    prebuild=bool(opened.get("prebuild")), tokens={}, ledger_path=ledger_path)
+                    prebuild=bool(opened.get("prebuild")), tokens={}, ledger_path=ledger_path,
+                    ready=opened.get("ready"), ready_reason=opened.get("ready_reason") or "")
                 minutes = closed["uptime_minutes"]
         write_step(steps_path, batch, lane, name, "delete", res.ok,
                    {"refused": False, "exit_code": res.exit_code, "reason": verdict.reason,
@@ -4042,6 +4051,172 @@ def codespace_delete(name: str, *, out_dir: Path,
                    "" if res.ok else f"delete exited {res.exit_code}")
     return DeleteResult(res.ok, name=name, refused=False, reason=verdict.reason,
                         exit_code=res.exit_code)
+
+
+# ----- deliver + handback: the box is deleted only after the browser's bytes have landed ------------
+
+@dataclass(frozen=True)
+class DeliveryResult:
+    ok: bool
+    reason: str = ""
+    delivered: dict = field(default_factory=dict)  # transport file name -> sha256 hex
+    commands: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class LifecycleResult:
+    ok: bool
+    deleted: bool = False
+    reason: str = ""
+    steps: tuple[str, ...] = ()
+
+
+def _box_size_and_hash(name: str, src: str, call: Callable[[Sequence[str]], GhResult]
+                       ) -> tuple[Optional[tuple[int, str]], str]:
+    """`((bytes, sha256), "")` as the BOX reports them for `src`, or `(None, why)`."""
+    quoted = shlex.quote(src)
+    res = call(["codespace", "ssh", "-c", name, "--", "sh", "-c",
+                f"wc -c < {quoted}; sha256sum {quoted}"])
+    lines = res.stdout.split("\n") if res.ok else []
+    try:
+        return (int(lines[0].strip()), lines[1].split()[0]), ""
+    except (ValueError, IndexError):
+        return None, f"the box could not report the size and sha256 of {src} (exit {res.exit_code})"
+
+
+def deliver_to_transport(name: str, *, lane: str, workdir: str, checkout_dir: str, transport_dir: Path,
+                         stage_dir: Path, invoker: Optional[Callable[..., GhResult]] = None
+                         ) -> DeliveryResult:
+    """Copy the lane's SESSION file and run log out of the box into `transport_dir`, byte-identical.
+
+    Transfer is `gh codespace cp` alone: no credential is placed in the box and nothing goes on a
+    command's stdin. Each file is staged, then compared with what the BOX says it holds (byte length
+    and sha256), then copied into the transport and re-hashed there. An empty, short or altered file,
+    or a transport that cannot be written, is a refusal naming the file -- and a refusal is what keeps
+    `codespace_handback` from deleting the box."""
+    commands: list[str] = []
+    transport_dir, stage_dir = Path(transport_dir), Path(stage_dir)
+    if not lane or any(c in lane for c in "/\\") or ".." in lane:
+        return DeliveryResult(False, f"lane {lane!r} is not a plain slug -- refusing to build a transport path from it",
+                              {}, ())
+
+    def call(argv: Sequence[str]) -> GhResult:
+        commands.append(format_gh_line(argv))
+        return run_gh(argv, invoker=invoker)
+
+    def refuse(reason: str, delivered: Optional[dict] = None) -> DeliveryResult:
+        return DeliveryResult(False, reason, delivered or {}, tuple(commands))
+
+    if not transport_dir.is_dir():
+        return refuse(f"transport directory {transport_dir} is missing or not a directory")
+    plan = ((f"{checkout_dir}/to-browser/SESSION-{lane}.md", f"SESSION-{lane}.md"),
+            (f"{workdir}/run.log", f"{lane}-run.log"))
+    delivered: dict[str, str] = {}
+    for src, target in plan:
+        staged = stage_dir / target
+        copied = call(["codespace", "cp", "-c", name, "-e", f"remote:{src}", str(staged)])
+        if not copied.ok:
+            return refuse(f"{target}: `gh codespace cp` of {src} exited {copied.exit_code}", delivered)
+        box, why = _box_size_and_hash(name, src, call)
+        if box is None:
+            return refuse(f"{target}: {why}", delivered)
+        try:
+            data = staged.read_bytes()
+        except OSError as exc:
+            return refuse(f"{target}: the staged copy cannot be read ({exc})", delivered)
+        if not data:
+            return refuse(f"{target}: delivered file is empty", delivered)
+        if len(data) != box[0]:
+            return refuse(f"{target}: size mismatch -- box {box[0]} bytes, delivered {len(data)}", delivered)
+        digest = hashlib.sha256(data).hexdigest()
+        if digest != box[1]:
+            return refuse(f"{target}: sha256 mismatch -- box {box[1]}, delivered {digest}", delivered)
+        try:
+            partial = transport_dir / (target + ".partial")
+            partial.write_bytes(data)
+            os.replace(partial, transport_dir / target)     # a reader never sees a half-written handback
+            landed = hashlib.sha256((transport_dir / target).read_bytes()).hexdigest()
+        except OSError as exc:
+            return refuse(f"{target}: transport {transport_dir} is not writable ({exc})", delivered)
+        if landed != digest:
+            return refuse(f"{target}: sha256 mismatch in transport {transport_dir}", delivered)
+        delivered[target] = digest
+    return DeliveryResult(True, "", delivered, tuple(commands))
+
+
+def codespace_handback(name: str, *, batch: str, lane: str, repo: str,
+                       workdir: str = "/workspaces/dispatch", transport_dir: Path, out_root: Path,
+                       receipts_root: Path, ledger_path: Optional[Path] = None,
+                       invoker: Optional[Callable[..., GhResult]] = None,
+                       sleep: Callable[[float], None] = lambda s: None) -> LifecycleResult:
+    """Harvest, deliver, delete, verify teardown -- in that order, stopping at the first refusal.
+
+    The delete is gated on the delivery: a box whose SESSION file or run log did not land in the
+    transport byte-identical is NOT deleted (no `gh codespace delete` argv is ever issued), and the
+    reason is returned. Teardown is verified by `gh codespace list --json name`, never assumed."""
+    steps: list[str] = []
+
+    def done(ok: bool, deleted: bool, reason: str) -> LifecycleResult:
+        return LifecycleResult(ok, deleted, reason, tuple(steps))
+
+    steps.append("harvest")
+    prior = _harvest_dir(batch, lane, root=out_root)
+    if (prior / HARVEST_MANIFEST_NAME).exists():
+        # a retry after a failed delivery: the earlier harvest may be the only copy, so it is moved
+        # aside (never overwritten) and this harvest lands in a fresh directory
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        try:
+            prior.rename(prior.with_name(f"{prior.name}.prev-{stamp}"))
+        except OSError as exc:
+            return done(False, False, f"harvest failed: cannot set the earlier harvest aside ({exc})")
+    harvested = codespace_harvest(name, batch=batch, lane=lane, workdir=workdir, out_root=out_root,
+                                  invoker=invoker)
+    if not harvested.ok:
+        return done(False, False, f"harvest failed: {harvested.failure}")
+    steps.append("deliver")
+    with tempfile.TemporaryDirectory() as stage:
+        delivery = deliver_to_transport(name, lane=lane, workdir=workdir,
+                                        checkout_dir=f"/workspaces/{repo.rsplit('/', 1)[-1]}",
+                                        transport_dir=Path(transport_dir), stage_dir=Path(stage),
+                                        invoker=invoker)
+    if not delivery.ok:
+        return done(False, False, f"delivery failed, box NOT deleted: {delivery.reason}")
+    steps.append("delete")
+    removed = codespace_delete(name, out_dir=harvested.out_dir, invoker=invoker, batch=batch, lane=lane,
+                               receipts_root=receipts_root, ledger_path=ledger_path)
+    if not removed.ok:
+        return done(False, False, f"delete failed: {removed.reason or removed.exit_code}")
+    steps.append("verify-teardown")
+    listed = run_gh(["codespace", "list", "--json", "name"], invoker=invoker)
+    if not listed.ok:
+        return done(False, True, f"teardown not verified: `gh codespace list` exited {listed.exit_code}")
+    try:
+        names = {str(row.get("name")) for row in json.loads(listed.stdout or "[]")}
+    except (json.JSONDecodeError, AttributeError):
+        return done(False, True, "teardown not verified: `gh codespace list` did not return JSON")
+    if name in names:
+        return done(False, True, f"{name} is still listed after delete")
+    return done(True, True, "")
+
+
+def codespace_lifecycle(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str], *,
+                        batch: str, transport_dir: Path, out_root: Path, receipts_root: Path,
+                        ledger_path: Optional[Path] = None,
+                        invoker: Optional[Callable[..., GhResult]] = None,
+                        workdir: str = "/workspaces/dispatch",
+                        sleep: Callable[[float], None] = time.sleep, **exec_kwargs) -> LifecycleResult:
+    """`codespace_exec`, then `codespace_handback` for whatever box exec named -- even a failed run
+    leaves a box that is billing, so a name is always handed back. No name, no handback."""
+    ran = codespace_exec(repo, branch, slug, contract, head_argv, batch=batch, workdir=workdir,
+                         invoker=invoker, sleep=sleep, receipts_root=receipts_root,
+                         ledger_path=ledger_path, **exec_kwargs)
+    if not ran.name:
+        return LifecycleResult(False, False, f"exec produced no box: {ran.failure}", ("exec",))
+    back = codespace_handback(ran.name, batch=batch, lane=slug, repo=repo, workdir=workdir,
+                              transport_dir=transport_dir, out_root=out_root,
+                              receipts_root=receipts_root, ledger_path=ledger_path, invoker=invoker)
+    reason = back.reason or ("" if ran.ok else f"exec failed: {ran.failure}")
+    return LifecycleResult(ran.ok and back.ok, back.deleted, reason, ("exec", *back.steps))
 
 
 @cli.command("codespace-exec")
@@ -4138,9 +4313,38 @@ def codespace_observe_cmd(name: str, workdir: str, expected_gone: bool,
               help="Default: ~/.claude/remote-runs -- outside the public tree (R17).")
 @click.option("--force", is_flag=True, help="Replace an existing manifest for this batch/lane.")
 @click.option("--dry-run", is_flag=True)
+@click.option("--deliver/--no-deliver", default=False, show_default=True,
+              help="Run the full handback: harvest, deliver to the transport, delete, verify teardown.")
+@click.option("--transport-dir", type=click.Path(path_type=Path), default=None,
+              help="Where --deliver lands the SESSION file and run log. Default: "
+                   "$CLAUDE_PROMPTS_DIR/to-browser.")
+@click.option("--repo", default="rdwornik/.dev-knowledge", show_default=True,
+              help="owner/name -- names the box's checkout (/workspaces/<name>) for --deliver.")
 def codespace_harvest_cmd(name: str, batch: str, lane: str, workdir: str,
-                          out_root: Optional[Path], force: bool, dry_run: bool) -> None:
-    """Pull evidence out of a codespace and write the manifest `codespace-delete` gates on."""
+                          out_root: Optional[Path], force: bool, dry_run: bool, deliver: bool,
+                          transport_dir: Optional[Path], repo: str) -> None:
+    """Pull evidence out of a codespace and write the manifest `codespace-delete` gates on.
+
+    With `--deliver` the whole handback runs: the box is deleted only once its SESSION file and run
+    log have landed in the transport byte-identical, and a refusal is printed to stderr."""
+    if deliver and dry_run:
+        raise DispatchRefused("--deliver cannot be combined with --dry-run: the handback deletes the box")
+    if deliver:
+        if transport_dir is None:
+            prompts = os.environ.get("CLAUDE_PROMPTS_DIR")
+            if not prompts:
+                raise DispatchRefused("--deliver needs --transport-dir or CLAUDE_PROMPTS_DIR set: "
+                                      "there is no default transport to invent")
+            transport_dir = Path(prompts) / "to-browser"
+        back = codespace_handback(name, batch=batch, lane=lane, repo=repo, workdir=workdir,
+                                  transport_dir=transport_dir,
+                                  out_root=out_root or DEFAULT_HARVEST_ROOT,
+                                  receipts_root=out_root or DEFAULT_HARVEST_ROOT)
+        click.echo(json.dumps(asdict(back)))
+        if not back.ok:
+            click.echo(f"[codespace] NOT COMPLETE -- {back.reason}", err=True)
+            sys.exit(EXIT_REFUSED)
+        return
     result = codespace_harvest(name, batch=batch, lane=lane, workdir=workdir, out_root=out_root,
                                force=force, dry_run=dry_run)
     click.echo(json.dumps({

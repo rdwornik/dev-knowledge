@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (g) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-codespace-fix (`[#1366]`, LEDGER v300 T-C) -- Codespace substrate telemetry and box-lifecycle delivery: the handback reaches the transport by `gh codespace cp` with a size+sha256 gate, the box is deleted only after delivery, teardown is verified, and test-flow metrics gain a per-substrate block
+
+**Anchors:** `5c793848` (RED: 65 failing tests for substrate telemetry, box lifecycle delivery and the hypercare line), `c93fcb5b` (the build: `scripts/dispatch.py` codespace functions `deliver_to_transport`, `codespace_handback`, `codespace_lifecycle`, `harvest --deliver`; `scripts/codespace_regime.py`; the `scripts/test_flow_metrics.py` substrate block), `20b9b433` (review fixes: a retry sets the earlier harvest aside, lane slug validated, atomic transport write, `--deliver --dry-run` refused); branch `worktree-e2-codespace-fix`, introduced by this merge.
+
+**Did:** checked the package: main's `subst_gate.check_models_block` = `([], [])`; `launch_receipt_problems` = `[]` when run from the primary, where `logs/receipts/LAUNCH-E2-CODESPACE-FIX.json` lives; Codex `gpt-6-sol` review (diff hash `5da98be447106c67`): 1 major accepted, not changed (the direct `codespace-delete` verb is the R17 manual path, READY-TO-FILE); Copilot majors fixed.
+
+**Result:** branch CI 39773097768: Ubuntu 5 REGRESSIONs = `test_check_derived_copies` x2 (doc-counts, regenerated here) + `test_onboarding_items` x3 (the anchor read on the branch range). `graph_queries.py task-coverage` first refused the 3 new test files; a clause on OPEN `[#1366]` names them, and the re-run is OK (no row filed; BACKLOG unchanged at 159,887 B). **Honest limit: no new path has run on a real box.** The signed-in `gh` account has no codespace scope, so "Codex in a box" waits for the operator and both sandbox paths are UNTESTED; rows `[#1662]` (shared handback.json) and `[#1661]` (Monitor WAKE on handback) are not done.
+
+**Changes:** `scripts/{dispatch,codespace_regime,test_flow_metrics}.py`, `tests/test_codespace_lifecycle.py`, `tests/test_codespace_telemetry.py`, `tests/test_test_flow_substrate.py`, `tests/test_dispatch_codespace.py`; `tasks/1366-...md` (task-coverage clause); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-arch-stamp line).
+
+**Next:** e2-landing-script (LEDGER v300 T-B; ADR-131 Proposed).
+
 ### 2026-10-22 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-arch-stamp -- ARCHITECTURE.md `last_reviewed` 2026-10-22 after an independent Codex review of the line e2-ci-dedupe changed, which clears the canonical_freshness hard FAIL that the e2-ci-dedupe merge introduced on main
 
 **Anchors:** `13870b7f` (the `last_reviewed` bump; the commit body names the reviewer Codex CLI `codex exec -s read-only -m gpt-6-sol`, banner `model: gpt-6-sol`, scope `git diff e18b5a841 8fe0a1f79 -- ARCHITECTURE.md`, verdict No findings, nonce `6d5400dd4a81`, record path, and editor Copilot claude-sonnet-5.5); branch `worktree-e2-arch-stamp`, introduced by this merge.

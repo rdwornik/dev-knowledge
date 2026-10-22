@@ -280,11 +280,154 @@ def m4_red_on_main(main_runs, jobs_by_run, all_runs, *, known_reds, registry_mem
     }
 
 
+# ------------------------------------------------------------------ substrate (local vs Codespace)
+
+#: vCPU cores per Codespaces machine type; a machine absent here has no core-hours, never zero.
+MACHINE_CORES = {"basicLinux32gb": 2, "standardLinux32gb": 4, "premiumLinux": 8, "largePremiumLinux": 16}
+QUOTA_LIMIT_CORE_HOURS = 180
+UNMEASURED_REAPS = "UNMEASURED: no box-side reap record exists in the receipts"
+
+
+def _box_rows(rows: Iterable[dict]) -> list[dict]:
+    """Container rows only (fate rows share the ledger and describe a lane, not a box)."""
+    return [r for r in rows if isinstance(r, dict) and r.get("kind", "codespace") == "codespace"]
+
+
+def _last_row_per_box(rows: Iterable[dict]) -> dict[str, dict]:
+    """The ledger is append-only, so the LAST row per codespace is its state."""
+    last: dict[str, dict] = {}
+    for r in _box_rows(rows):
+        if r.get("codespace") and r.get("created"):
+            last[str(r["codespace"])] = r
+    return last
+
+
+def _box_end(row: dict, now: datetime) -> datetime:
+    return parse_ts(row["deleted"]) if row.get("deleted") else now
+
+
+def _box_minutes(row: dict, now: datetime) -> float:
+    """A closed box's stored minutes; an OPEN box is measured against `now`, not its stale stored value."""
+    if row.get("deleted") and row.get("uptime_minutes") is not None:
+        return float(row["uptime_minutes"])
+    return (_box_end(row, now) - parse_ts(row["created"])).total_seconds() / 60.0
+
+
+def _core_hours(rows: Iterable[dict], now: datetime) -> tuple[Optional[float], str]:
+    """`(core-hours, "")`, or `(None, reason)` naming every machine with no known core count."""
+    total, unknown = 0.0, set()
+    for r in rows:
+        cores = MACHINE_CORES.get(str(r.get("machine")))
+        if cores is None:
+            unknown.add(str(r.get("machine")))
+        else:
+            total += _box_minutes(r, now) / 60.0 * cores
+    if unknown:
+        return None, f"no core count for machine {', '.join(sorted(unknown))}"
+    return total, ""
+
+
+def _max_concurrent(rows: Iterable[dict], now: datetime) -> int:
+    events = []
+    for r in rows:
+        events.append((parse_ts(r["created"]), 1))
+        events.append((_box_end(r, now), -1))
+    events.sort(key=lambda e: (e[0], e[1]))     # an end sorts before a start at the same instant
+    peak = current = 0
+    for _, delta in events:
+        current += delta
+        peak = max(peak, current)
+    return peak
+
+
+def _failed_fates(fate_rows: Iterable[dict]) -> list[dict]:
+    return [f for f in fate_rows if isinstance(f, dict) and f.get("kind") == "codespace-fate"
+            and f.get("fate") == "FAILED"]
+
+
+def m5_substrate(codespace_rows, launch_receipts, merge_receipts, fate_rows, *, since, until, now) -> dict:
+    """Which substrate landed work, and what the Codespace boxes cost. A field with no input is None
+    beside a `<field>_reason` -- never 0."""
+    boxes = _last_row_per_box(codespace_rows)
+    horizon = min(now, parse_ts(until))     # an open row is never measured past the window's end
+    box_slugs = {r.get("slug") for r in _box_rows(codespace_rows) if r.get("slug")}
+    landed = _landings(merge_receipts, since, until)
+    codespace_n = sum(1 for item in landed if item["receipt"].get("slug") in box_slugs)
+    in_window = [r for r in boxes.values() if _in_window(r["created"], since, until)]
+    out: dict = {"landings_by_substrate": {"local": len(landed) - codespace_n, "codespace": codespace_n},
+                 "landings_basis": "INFERRED: codespace = the slug has a CODESPACE-RECEIPTS row; local = every "
+                                   "other landing (merge receipts carry no substrate field and LAUNCH receipts "
+                                   "are untracked, so 'local' is the absence of a box row, not a measured fact)"}
+    if in_window:
+        out["box_minutes"] = sum(_box_minutes(r, horizon) for r in in_window)
+        out["box_core_hours"], why = _core_hours(in_window, horizon)
+        if why:
+            out["box_core_hours_reason"] = why
+        out["max_concurrent_boxes"] = _max_concurrent(in_window, horizon)
+        out["open_rows"] = sum(1 for r in in_window if not r.get("deleted"))
+        out["open_rows_note"] = ("rows with no close row are measured to the window end; a box deleted by hand "
+                                 "leaves its row open and inflates the figures above")
+    else:
+        reason = "no CODESPACE-RECEIPTS row with a creation in the window"
+        for key in ("box_minutes", "box_core_hours", "max_concurrent_boxes"):
+            out[key] = None
+            out[key + "_reason"] = reason
+    refusals: dict[str, int] = {}
+    for f in _failed_fates(fate_rows):
+        if f.get("recorded") and not _in_window(f["recorded"], since, until):
+            continue
+        step = str(f.get("step") or "unknown")
+        refusals[step] = refusals.get(step, 0) + 1
+    out["refusals_by_class"] = refusals
+    out["window"] = {"since": since, "until": until}
+    out["source"] = (f"logs/CODESPACE-RECEIPTS.jsonl ({len(boxes)} box(es)), logs/MERGE-RECEIPTS.jsonl, "
+                     f"logs/receipts/LAUNCH-*.json ({len(list(launch_receipts))} receipt(s))")
+    return out
+
+
+def hypercare_line(batch, *, codespace_rows, merge_receipts, fate_rows, now, quota_limit=QUOTA_LIMIT_CORE_HOURS) -> str:
+    """The one-line CODESPACE hypercare report for `batch`. Every field with no input prints
+    `UNMEASURED: <what is missing>` in its place."""
+    boxes = _last_row_per_box(codespace_rows)
+    mine = [r for r in boxes.values() if r.get("batch") == batch]
+    none_for_batch = f"UNMEASURED: no CODESPACE-RECEIPTS row for batch {batch}"
+    month = now.astimezone(timezone.utc).strftime("%Y-%m")
+    this_month = [r for r in boxes.values() if parse_ts(r["created"]).strftime("%Y-%m") == month]
+
+    def core(rows, empty) -> str:
+        if not rows:
+            return empty
+        hours, why = _core_hours(rows, now)
+        return f"{hours:.1f}" if hours is not None else f"UNMEASURED: {why}"
+
+    if mine:
+        n, peak = str(len(mine)), str(_max_concurrent(mine, now))
+        minutes = f"{sum(_box_minutes(r, now) for r in mine):.1f}"
+        slugs = {r.get("slug") for r in mine}
+        failed = [f for f in _failed_fates(fate_rows) if f.get("slug") in slugs]
+        pins = sum(1 for f in failed if f.get("step") == "pins" or "pin" in str(f.get("reason", "")).lower())
+        limits = sum(1 for f in failed if "limit" in str(f.get("reason", "")).lower())
+        landed = {r.get("slug") for r in merge_receipts if r.get("kind") == "merge" and _push_main_ended(r)}
+        refusals, pin_n, limit_n = str(len(failed)), str(pins), str(limits)
+        lanes = f"{len(slugs & landed)}/{len(slugs)}"
+    else:
+        n = peak = minutes = refusals = pin_n = limit_n = lanes = none_for_batch
+    used = core(this_month, f"UNMEASURED: no CODESPACE-RECEIPTS row in {month}")
+    return (f"CODESPACE batch {batch}: boxes {n} (max concurrent {peak}; historical observed maximum 2, "
+            f"cap unverified), box-minutes {minutes}, core-hours {core(mine, none_for_batch)} "
+            f"(quota {used}/{quota_limit} at {now.astimezone(timezone.utc):%Y-%m-%d}), "
+            f"refusals {refusals} (pin skew {pin_n}, limit {limit_n}), reaps on box {UNMEASURED_REAPS}, "
+            f"box lanes landed {lanes}.")
+
+
 # ------------------------------------------------------------------ record
 
-def build_record(*, now, since, until, m1, m2, m3, m4) -> dict:
-    return {"schema": SCHEMA, "recorded_at": now if isinstance(now, str) else _iso(now),
-            "window": {"since": since, "until": until}, "m1": m1, "m2": m2, "m3": m3, "m4": m4}
+def build_record(*, now, since, until, m1, m2, m3, m4, substrate=None) -> dict:
+    record = {"schema": SCHEMA, "recorded_at": now if isinstance(now, str) else _iso(now),
+              "window": {"since": since, "until": until}, "m1": m1, "m2": m2, "m3": m3, "m4": m4}
+    if substrate is not None:
+        record["substrate"] = substrate
+    return record
 
 
 def record_line(record: dict) -> str:
@@ -499,6 +642,36 @@ def load_receipts(repo_root: Path) -> list[dict]:
     return rows
 
 
+def load_codespace_rows(repo_root: Path) -> list[dict]:
+    """Every parsable row of `logs/CODESPACE-RECEIPTS.jsonl` (container and fate rows alike)."""
+    path = repo_root / "logs" / "CODESPACE-RECEIPTS.jsonl"
+    if not path.is_file():
+        return []
+    rows = []
+    for ln in path.read_text(encoding="utf-8").split("\n"):
+        if ln.strip():
+            try:
+                row = json.loads(ln)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(row)
+    return rows
+
+
+def load_launch_receipts(repo_root: Path) -> list[dict]:
+    """Every parsable `logs/receipts/LAUNCH-*.json`."""
+    rows = []
+    for path in sorted((repo_root / "logs" / "receipts").glob("LAUNCH-*.json")):
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
 def scan_transcripts(root: Path, since: str) -> list[dict]:
     """Reap notices from every transcript touched since the window opened (older files cannot hold
     an in-window notice)."""
@@ -559,7 +732,10 @@ def compute(*, repo_root: Path, since: str, until: str, laptop: Optional[bool] =
     m4 = m4_red_on_main(main_runs, jobs_by_run, window_conductor,
                         known_reds=latest_main_failed_count(main_runs),
                         registry_members=registry_member_count(repo_root), since=since, until=until)
-    return build_record(now=now, since=since, until=until, m1=m1, m2=m2, m3=m3, m4=m4)
+    box_rows = load_codespace_rows(repo_root)
+    m5 = m5_substrate(box_rows, load_launch_receipts(repo_root), receipts, box_rows,
+                      since=since, until=until, now=now)
+    return build_record(now=now, since=since, until=until, m1=m1, m2=m2, m3=m3, m4=m4, substrate=m5)
 
 
 def ingest_run(run_id: int) -> dict:
@@ -636,6 +812,17 @@ def compute_cmd(since, until, from_run, repo_root, out) -> None:
 def record_cmd(since, until, from_run, repo_root, out) -> None:
     """Print one JSON line and append it to logs/TEST-FLOW-METRICS.jsonl."""
     _run("record", since, until, from_run, repo_root, out)
+
+
+@cli.command("hypercare")
+@click.option("--batch", required=True, help="the batch id to report")
+@click.option("--repo-root", type=click.Path(file_okay=False), default=None)
+def hypercare_cmd(batch, repo_root) -> None:
+    """Print the one-line CODESPACE hypercare report for a batch."""
+    root = Path(repo_root) if repo_root else _REPO_ROOT
+    rows = load_codespace_rows(root)
+    click.echo(hypercare_line(batch, codespace_rows=rows, merge_receipts=load_receipts(root),
+                              fate_rows=rows, now=datetime.now(timezone.utc)))
 
 
 if __name__ == "__main__":                                   # pragma: no cover -- CLI entry

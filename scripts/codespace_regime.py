@@ -161,8 +161,12 @@ def write_receipt(slug: str, batch: str, codespace: str,
                   created: Optional[datetime], deleted: Optional[datetime],
                   machine: str, prebuild: bool, tokens: Mapping[str, int],
                   ledger_path: Optional[Path] = None,
-                  now: Optional[datetime] = None) -> dict:
+                  now: Optional[datetime] = None,
+                  ready: Optional[str] = None, ready_reason: str = "") -> dict:
     """Append one cloud-lane receipt, carrying uptime MINUTES alongside tokens.
+
+    Every row names its `substrate`, the `ready` stamp (the first moment the box answered ssh) and
+    `end` (the deletion stamp). A field with no input is None beside a `<field>_reason`, never 0.
 
     THE REFUSAL IS THE POINT. The frozen contract's clause is that a Codespace lane's receipt
     records uptime minutes alongside tokens, and a receipt that quietly omitted the minutes
@@ -191,11 +195,40 @@ def write_receipt(slug: str, batch: str, codespace: str,
         "uptime_minutes": round(minutes, 2),
         "tokens": dict(tokens),
         "recorded": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+        "substrate": "codespace",
+        "ready": ready,
+        "ready_reason": ready_reason if (ready or ready_reason) else UNMEASURED_READY,
+        "end": deleted.isoformat() if deleted else None,
+        "end_reason": "" if deleted else "open: the box has not been deleted",
     }
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(row, sort_keys=True) + "\n")
+    return row
+
+
+UNMEASURED_READY = "UNMEASURED: the box was not probed for readiness"
+
+
+def mark_ready(codespace: str, ledger_path: Optional[Path] = None,
+               now: Optional[datetime] = None) -> Optional[dict]:
+    """Append a fresh OPEN row for `codespace` stamped `ready`, or None when it has no open row.
+
+    The ledger is append-only, so readiness is a NEW row copying the last open one rather than an
+    edit of the creation row; `open_receipts` keeps the last row per codespace, so it still sees one."""
+    path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
+    current = next((r for r in open_receipts(path) if r.get("codespace") == codespace), None)
+    if current is None:
+        return None
+    stamp = now or datetime.now(timezone.utc)
+    row = dict(current)
+    row["ready"] = stamp.isoformat()
+    row["ready_reason"] = ""
+    row["recorded"] = stamp.isoformat(timespec="seconds")
+    line = json.dumps(row, sort_keys=True) + "\n"
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(line)
     return row
 
 
