@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-22  
-**Generated:** 2026-10-22T02:41:35  
+**Generated:** 2026-10-22T12:37:25  
 **Repos audited:** 6  
-**Checks:** 925 total — 160 pass, 13 fail, 556 warn, 0 unavailable, 196 n/a
+**Checks:** 925 total — 161 pass, 13 fail, 555 warn, 0 unavailable, 196 n/a
 
 ---
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-y0ez22nl\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-fl9cieur\wt`  
 **Last audit:** 2026-10-22
 
 | Check | Status | Evidence |
@@ -31,8 +31,8 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 0d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-22, newest input tasks committed 2026-10-22 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-16, newest input docs/audits committed 2026-10-16 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 9 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
-| `stale_worktrees` | WARN | 1 git stash entry(ies) present: stash@{0}: WIP on worktree-e2-seat-cycle: ee341a7c8 fix(e2-seat-cycle): CI reds -- newline pins, HANDOVER writer accounting, harness fate for seat_cycle, template-pin test follows the R159 teaching, E731 (Copilot-written) - the stash lives in the COMMON git dir, so it survives worktree teardown and every refuse-to-finish item; pop or drop it, or say why it stays |
+| `stale_worktrees` | PASS | 6 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
 | `amendment_coherence` | WARN | handoff-major-version: surface CLAUDE.md present but no normative version mention matched (coupling marker missing/reworded?) |
@@ -100,7 +100,7 @@
 | `fleet_parity` | WARN | ai-council claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `fleet_parity` | WARN | corp-monorepo claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
-| `silent_rule_ratchet` | PASS | live 446 <= baseline 452 under detector silent-rule-v5 (79 file(s) in scope); 6 below baseline — ratchet-down available |
+| `silent_rule_ratchet` | PASS | live 446 <= baseline 452 under detector silent-rule-v5 (81 file(s) in scope); 6 below baseline — ratchet-down available |
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (402 node(s), 31357 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17961 bytes, within its 18000-byte budget |
@@ -111,7 +111,7 @@
 | `journal_spine_anchor` | WARN | anchored by mention, not by record: 16f8ebb appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: c2ac0b7 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a3befd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 10d21de appears outside an explicit 'Anchors:' record line (+1175 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 260 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 2f331ed8 worktree-e2-os-split, 82612d2a worktree-e2-boot-rules, 16f8ebb9 worktree-e2-model-routing, c2ac0b72 worktree-e2-organ-truth-pin, bae73149 worktree-e2-stop-hook-headless (+255 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 261 code-impact merge(s) since 2026-08-05 carry no linked review artifact: e18b5a84 worktree-e2-seat-cycle, 2f331ed8 worktree-e2-os-split, 82612d2a worktree-e2-boot-rules, 16f8ebb9 worktree-e2-model-routing, c2ac0b72 worktree-e2-organ-truth-pin (+256 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -951,7 +951,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 36d ago]; worktree-lane-ab-810-substrate-repair [last commit 35d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 37d ago]; worktree-lane-ab-810-substrate-repair [last commit 35d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -1009,9 +1009,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 160/925 checks passed
+- 161/925 checks passed
 - **13 failure(s)** — route findings to repo owners
-- 556 warning(s)
+- 555 warning(s)
 - 196 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
