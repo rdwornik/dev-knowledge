@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-10-22 · **HEAD:** `08ec7be688ce` · **window:** 2026-10-15 → 2026-10-22 (7 days)
+- **As of:** 2026-10-22 · **HEAD:** `77366f4a93d4` · **window:** 2026-10-15 → 2026-10-22 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -181,7 +181,7 @@ _Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in `docs/intake/archive
 
 _Status per ADR, plus the archival candidates. In this repo **Accepted is not an archive trigger** — `docs/decisions/README.md` keys the bar on `Superseded` / `Deprecated` only, so an implemented-and-still-binding ADR correctly stays put. The flag below is a report; no file is moved._
 
-**Status mix:** (unparsed) 1 · Accepted 90 · Deprecated 1 · Explored, not adopted 2 · Partially superseded 3 · Proposed 7 · Superseded 1 · open | in-progress | blocked | done 1
+**Status mix:** (unparsed) 1 · Accepted 91 · Deprecated 1 · Explored, not adopted 2 · Partially superseded 3 · Proposed 6 · Superseded 1 · open | in-progress | blocked | done 1
 
 **Header coverage:** 71 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
 
@@ -300,7 +300,7 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-128 | Accepted | 2026-09-29 | decisions/ | shared | The handoff system, second pass — paste shape and BD-manifest ratified; HANDOFF_BOOT rewritten to teach dispatch and carry R30; B1 stays first |
 | ADR-129 | Accepted | 2026-10-01 | decisions/ | shared | The handoff cut is gated by handoff-relevant checks only; the whole-repository verdict is reported, and the preflight moves to batch close |
 | ADR-130 | Proposed | 2026-10-15 | decisions/ | shared | The outer loop runs in code — Conductor E completion |
-| ADR-131 | Proposed | 2026-10-22 | decisions/ | shared | Landing is a script; a model is called only on conflict, red CI or BASE-MOVED |
+| ADR-131 | Accepted | 2026-10-22 | decisions/ | shared | Landing is a script; a model is called only on conflict, red CI or BASE-MOVED |
 
 </details>
 

@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (i) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-10, batch E2.0): ADR-131 accepted -- the operator ratified it in plain text ("ratify ADR-131", LEDGER v302 L2) after lane e2-landing-script landed on main at `77366f4a9`; the status line flips Proposed -> Accepted under the ADR-94 in-place exception, and the decision content is untouched
+
+**Anchors:** `89e23db1` (status line + index row + regenerated recent-ADRs roster); branch `worktree-adr-131-accept`, introduced by this merge; `77366f4a` (entry (h), the landing the ratification follows).
+
+**Did:** a one-commit, integrator-authored change in a short-lived worktree (no dispatched lane, no model call): `- **Status:** Accepted (ADR-94 in-place edit; ratified 2026-10-22 by the operator, LEDGER v302 L2, ...)`, the `docs/decisions/README.md` row now reads **Accepted (2026-10-22, LEDGER v302 L2)**, and `.claude/generated/recent-adrs.md` is regenerated. The R159 teaching changes (READY-TO-APPLY text) are not applied here; they go to the next session, per L2.
+
+**Result:** `tests/test_validate_adr_status.py` + `tests/test_boot_retrieval.py`: 233 passed (the pins count grammar, not status; the ADR-127 probe marker is status-free). The verdict is the integration-branch CI run on this merge.
+
+**Changes:** `docs/decisions/ADR-131-landing-is-a-script-a-model-only-on-conflict-red-or-base-moved.md` (status line only), `docs/decisions/README.md`; generated on the merged tree: `.claude/generated/recent-adrs.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-landing-script line).
+
+**Next:** E2.0 close (LEDGER v303 C5: no new lanes); "main green" (the commit-gate red and the main-state reds) is the first lane of the next session (LEDGER v303 C3).
+
 ### 2026-10-22 (h) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-10, batch E2.0): lane e2-landing-script repair 1 (LEDGER v300 T-B, operator O1; landing order LEDGER v302 L1) -- the `land` transition becomes one script: `scripts/land_lane.py` runs fetch, `merge --no-ff`, regenerate, carry, one `merge_path.land()` call, receipt and teardown with zero model calls; ADR-131 stays **Proposed** in this merge, and no process changes until the operator ratifies it
 
 **Anchors:** `3a27626c` (RED: tests for `scripts/land_lane.py`, Copilot-written), `f45c03cf` (the build: `scripts/land_lane.py`, Copilot-written, fixed by the head), `dd1a925e` (ADR-131 Proposed + index row; `harness.yaml` fate and `ORPHAN_DISPOSITIONS` row for `scripts/land_lane.py`), `44c4e72a` (review findings, Codex `gpt-6-sol` + Copilot), `9438c6cc` (the origin gate fails closed; ADR honest limits), `c9773763` (pin repair: `tests/test_validate_adr_status.py` count 103 -> 104, G1 56 -> 57, single cause ADR-131, precedent `c35b2089`), `b839218f` (repair 1 of 2: the recent-ADRs boot-retrieval probe re-pointed at ADR-127 with refreshed evidence, because ADR-131 pushes ADR-126 out of the last-5; precedent `017041e1`); branch `worktree-e2-landing-script`, introduced by this merge.
