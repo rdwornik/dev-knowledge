@@ -1,6 +1,6 @@
 # ADR-131: Landing is a script; a model is called only on conflict, red CI or BASE-MOVED
 
-- **Status:** Proposed
+- **Status:** Accepted (ADR-94 in-place edit; ratified 2026-10-22 by the operator, LEDGER v302 L2, after the lane landed on main at `77366f4a9`)
 - **Date:** 2026-10-22
 - **Decision tier:** Path A — operator ratification (the operator's O1, LEDGER v300 T-B: GO on direction (e)+(b) of the integration-throughput digest).
 - **Related:** ADR-85 (journal anchor, first-parent spine), ADR-120 (the spine is the whole loop), ADR-127 (CI on Windows and Linux is the verdict), ADR-130 (the outer loop runs in code); the standing-rules process-model ruling (2026-10-18: processes are models in code, one responsible module per step, the diagram is generated, library-first; 2026-10-20: code defines prose, never the reverse); R158, R158b, R159.
