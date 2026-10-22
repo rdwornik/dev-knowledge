@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (b) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-os-split (`[#1372]`, ADR-127) -- per-leg test selection: Ubuntu runs `not windows_only` (the merge verdict), the Windows landing leg runs only `windows_only or windows_smoke` when `ci_os_plan.py` plans it, the nightly runs the full suite on Windows
+
+**Anchors:** `cdfd4bef` (RED: planner selection, marker composition, OS-split gate; 13 failed / 11 passed before code), `ade78629` (windows_only/windows_smoke markers as data, `CI_OS_MARKEXPR` composed onto `-m`, planner `selection()`), `d08954b3` (review fixes: gate recurses, class/helper skips, tool-presence pwsh stays on Ubuntu, non-vacuous live selection), `d2ba0319` (the 13 measured `[powershell]` Windows-only ids from CI junit run 39673029519 registered; registry now 30 tests); branch `worktree-e2-os-split`, introduced by this merge. Lane code Copilot-written.
+
+**Did:** checked the repair-1 package (operator M1, LEDGER v293 T1; no repo commit needed): Copilot RED re-run and Copilot review re-run with `--model claude-sonnet-5.5` (usage files `red2/usage.json`, `rev2/usage.json`: `currentModel: claude-sonnet-5.5`; review nonce `6ddc23272707`, no critical, 3 majors deferred as disclosed static limits). The RED re-run wrote no files, so the RED tests Copilot wrote earlier on gpt-6-luna stand. Haiku readers: served `claude-haiku-5-5`, read from the three subagent transcripts. Main's `subst_gate.check_models_block` on the handback = `([], [])`, `launch_receipt_problems` = `[]`.
+
+**Result:** branch CI 39677781216 at `d2ba0319`: Windows 34 passed, known-reds-compare 0 regressions; Ubuntu 2 regressions = `test_check_derived_copies` x2 (doc-counts, regenerated here). `graph_queries.py task-coverage` on the merged staged set first refused 3 files; a clause on OPEN `[#1372]` names them, and the re-run is OK (no row filed; BACKLOG unchanged at 159,887 B). The integration-branch CI run is the verdict (R167).
+
+**Changes:** `.github/workflows/conductor.yml`, `scripts/ci_os_plan.py`, `tests/conftest.py`, `tests/test_ci_os_plan_split.py`, `tests/test_os_split_gate.py`; `tasks/1372-...md` (task-coverage clause); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-boot-rules line).
+
+**Next:** e2-seat-cycle, then e2-ci-dedupe (after this lane: `conductor.yml` overlap), then e2-codespace-fix (night order, LEDGER v293).
+
 ### 2026-10-22 (a) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-boot-rules -- R148-R179 land verbatim in STANDING_RULINGS section AY; the boot files teach R167's test cadence (changed-file tests only, `-n0`; the branch CI run is the evidence of the whole)
 
 **Anchors:** `e22db7db` (R148-R179 in section AY, with source pointers; G29 cites `[#1673]`; R173 recorded as replaced by R176), `ce48a32e` (R167 teaching lines in AGENTS.md, the CLAUDE.md Testing bullet and session-start step 5 via the template; 3 dead HISTORY lines of BOOT-REFERENCE and the CLAUDE.md version comment deleted), `4c8debf9` (landed-row pin moved R147 -> R179), `b3d9a8e3` + `d248af24` (repair 1 after `to-browser/REFUSED-e2-boot-rules.md`: implement passes re-run on Copilot `--model claude-sonnet-5.5`; CLAUDE.md `last_reviewed` 2026-10-22 after an independent read-only Codex review, CLI banner `gpt-6-sol`, no findings, nonce `5b634f80e912`), `c377bc85` (AGENTS.md names open row `[#528]`); branch `worktree-e2-boot-rules`, introduced by this merge.
