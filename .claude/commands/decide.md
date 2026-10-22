@@ -77,7 +77,7 @@ Every bullet ends in `{probe: <path:line | grep -c '<pattern>' <path> | git chec
 
 **Evaluator record** (each `EVAL-*.md`, top fields):
 ```
-served-model: gpt-5.6-sol
+served-model: gpt-6-sol
 attestation-source: codex exec header
 producer-model: claude-opus-5-5
 

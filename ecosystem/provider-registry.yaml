@@ -1153,6 +1153,18 @@ models:
         seam: S29
         format: yaml-provenance
 
+  gpt-6-sol:
+    provider: openai
+    roles: [provenance]
+    attribution_token: "gpt-6-sol"
+    pinned_at: []
+    # R61: read as SERVED 2026-10-22 -- codex exec -m gpt-6-sol header read `model: gpt-6-sol`,
+    # `provider: openai` (OpenAI Codex v0.155.0); the receipt is lane e2-routing-gpt6's
+    # handback. The cited audit is LISTING evidence only (`codex debug models` names it, line 82).
+    last_verified: 2026-10-22
+    evidence:
+      - docs/audits/2026-10-05-technical-codespace-green-run.md
+
   grok-l5:
     provider: xai
     roles: [provenance]

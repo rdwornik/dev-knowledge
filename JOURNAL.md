@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-routing-gpt6 (`[#885]`, LEDGER v294 C6) -- the adversarial-review pin moves from `gpt-5.6-sol` to `gpt-6-sol`, which is registered in the provider registry; the old pin stays registered for provenance
+
+**Anchors:** `58d325f3` (routing-table adversarial pin -> `gpt-6-sol` with a dated note; `gpt-6-sol` provider-registry entry; `tests/test_adversarial_pin_gpt6.py`), `9df5c3b7` (review fixes: the registry comment says the evidence is listing-only; the `decide.md` example names `gpt-6-sol`); branch `worktree-e2-routing-gpt6`, introduced by this merge.
+
+**Did:** checked the package: main's `subst_gate.check_models_block` = `([], [])`, `launch_receipt_problems` = `[]`; the lane quotes the catalog probe banner `model: gpt-6-sol`; Codex `gpt-6-sol` review (nonce `71f22d41b82f`): the evidence Major is fixed; disclosed that test (c) has weak teeth (the checker does not read the routing pin); the stale-`sol` Major is the pre-existing `test_routing_agreement::test_the_live_table_is_well_formed` failure. `check_provider_registry.py` exits 0 on the merged tree. The test came in the same commit as the pin; there is no separate RED commit.
+
+**Result:** branch CI 39765822451: Ubuntu 2 REGRESSIONs = the doc-counts pair (regenerated here); the Windows leg did not run (no OS-sensitive path). `graph_queries.py task-coverage` first refused `tests/test_adversarial_pin_gpt6.py`; a clause on OPEN `[#885]` names it and the re-run is OK (no row filed; BACKLOG unchanged at 159,887 B). `.claude/commands/decide.md` is one of main's standing orphan-census entries (unchanged count). Operator question carried, not done: should the registry review role (terra, head `gpt-6-astra`) also move to `gpt-6-sol`?
+
+**Changes:** `ecosystem/routing-table.yaml`, `ecosystem/provider-registry.yaml`, `.claude/commands/decide.md`, `tests/test_adversarial_pin_gpt6.py`; `tasks/885-...md` (task-coverage clause); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-ci-dedupe line).
+
+**Next:** e2-arch-stamp (the ARCHITECTURE.md `last_reviewed` repair after the ship-gate FAIL that e2-ci-dedupe introduced), then e2-codespace-fix.
+
 ### 2026-10-22 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-ci-dedupe (`[#1372]`, R168) -- a push to `main` no longer re-runs CI on an already-judged sha: the report-only wall's main-push trigger and the ship-gate CI job go, `main` leaves conductor's `on.push`; the commit-gate CI job stays (R169 removal dropped)
 
 **Anchors:** `fc43be4b` (RED-first `tests/test_ci_dedupe.py` + the removals), `01553b01` (wall header names the anchor-backstop gap), `c9801764` (repair 1: commit-gate CI job and its pins restored byte-identical to main); branch `worktree-e2-ci-dedupe`, introduced by this merge.
