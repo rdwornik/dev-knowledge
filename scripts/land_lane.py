@@ -125,6 +125,23 @@ def _default_teardown(worktree: Path) -> None:
             raise RuntimeError(f"git {' '.join(args)} failed: {out.strip()[:200]}")
 
 
+def _changed_paths(git: Runner) -> list[str]:
+    """Paths the working tree changed, from `status --porcelain -z` (no quoting, renames explicit)."""
+    code, out = git(["status", "--porcelain", "-z"])
+    if code != 0:
+        return []
+    tokens, paths, i = out.split("\0"), [], 0
+    while i < len(tokens):
+        entry = tokens[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        paths.append(entry[3:])
+        if entry[0] in "RC":                        # a rename/copy carries its origin as the next token
+            i += 1
+    return paths
+
+
 def _read_lines(path: Path) -> list[str]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -204,8 +221,13 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     if code != 0:
         _, names = git(["diff", "--name-only", "--diff-filter=U"])
         conflicts = tuple(n.strip() for n in names.splitlines() if n.strip())
-        git(["merge", "--abort"])
+        abort_code, abort_out = git(["merge", "--abort"])
         timed("merge", started)
+        if abort_code != 0:
+            return report("REFUSED", EXIT_REFUSED,
+                          f"git merge {lane_ref} stopped ({', '.join(conflicts) or 'no conflicts named'}) "
+                          f"and `git merge --abort` FAILED: {abort_out.strip()[:200]}. The worktree is "
+                          f"NOT clean; resolve it by hand. Nothing was pushed.", conflicts=conflicts)
         if not conflicts:
             return report("REFUSED", EXIT_REFUSED,
                           f"git merge {lane_ref} failed without conflicts: {out.strip()[:200]}")
@@ -224,6 +246,18 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     started = time.monotonic()
     regenerated = list(regenerate_fn(worktree)) if regenerate_fn else []
     for cmd in regen_cmds:
+        # A regeneration command runs BEFORE CI judges the merge, with the integrator's
+        # credentials: refuse one whose own path argument the lane changed (the lane could
+        # otherwise ship the code that runs here).
+        _, changed = git(["diff", "--name-only", base, "HEAD"])
+        touched = {n.strip() for n in changed.splitlines()}
+        tampered = [a.replace("\\", "/") for a in cmd if a.replace("\\", "/") in touched]
+        if tampered:
+            timed("regenerate", started)
+            return report("REFUSED", EXIT_REFUSED,
+                          f"regenerate command {' '.join(cmd)!r} names {tampered}, which this lane "
+                          f"changed: not run before CI has judged it. The merge commit is local "
+                          f"only; nothing was pushed.")
         proc = subprocess.run(list(cmd), cwd=str(worktree), capture_output=True, text=True,
                               encoding="utf-8", errors="replace", check=False)
         if proc.returncode != 0:
@@ -233,8 +267,7 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
                           f"{(proc.stderr or proc.stdout).strip()[:200]}. The merge commit is "
                           f"local only; nothing was pushed.")
     if regen_cmds:
-        _, porcelain = git(["status", "--porcelain"])
-        regenerated += [ln[3:].strip().strip('"') for ln in porcelain.splitlines() if ln.strip()]
+        regenerated += _changed_paths(git)
     timed("regenerate", started)
 
     # carry
@@ -306,11 +339,26 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
 
     # receipt
     started = time.monotonic()
-    mr.close_receipt(worktree, slug)
-    new_lines = _read_lines(ledger)[ledger_before:]
-    carry_file.parent.mkdir(parents=True, exist_ok=True)
-    carry_file.write_text("".join(f"{ln}\n" for ln in new_lines), encoding="utf-8", newline="\n")
-    code, out = git(["checkout", "--", LEDGER_RELPATH])
+    new_lines: list = []
+    try:
+        mr.close_receipt(worktree, slug)
+        new_lines = _read_lines(ledger)[ledger_before:]
+        carry_file.parent.mkdir(parents=True, exist_ok=True)
+        carry_file.write_text("".join(f"{ln}\n" for ln in new_lines), encoding="utf-8",
+                              newline="\n")
+        tracked, _ = git(["ls-files", "--error-unmatch", LEDGER_RELPATH])
+        if tracked == 0:
+            code, out = git(["checkout", "--", LEDGER_RELPATH])
+        else:                                       # the ledger is new in this tree: nothing to restore
+            ledger.unlink(missing_ok=True)
+            code, out = 0, ""
+    except (OSError, mr.MergeReceiptError) as exc:
+        timed("receipt", started)
+        return report("REFUSED", EXIT_REFUSED,
+                      f"LANDED {sha[:12]} on main, but the receipt step failed: {exc}. main is "
+                      f"correct. Save this ledger line for the next landing (carry file "
+                      f"{carry_file}) and clean the worktree by hand: "
+                      f"{' | '.join(new_lines) or 'not read'}", sha=sha)
     timed("receipt", started)
     if code != 0:
         return report("REFUSED", EXIT_REFUSED,
@@ -350,7 +398,10 @@ def _refusal(report: Callable, result, sha: str, branch: str, pushed: bool) -> L
         return report("RED", EXIT_RED,
                       f"RED {result.state}: {result.reason}. Failing: {listed}. {branch} holds "
                       f"{sha[:12]}; main was not touched. The scratch receipt stays in place: it is "
-                      f"the record of this half-done landing.", sha=sha, failing=failing)
+                      f"the record of this half-done landing. Retrying needs a human or model: "
+                      f"{branch} holds this unlanded sha, so a new merge is rejected as a "
+                      f"non-fast-forward until that branch is deleted deliberately.",
+                      sha=sha, failing=failing)
     tail = " Receipt left open." if pushed else ""
     return report("REFUSED", EXIT_REFUSED,
                   f"REFUSED {result.state} ({where}): {result.reason}{tail}", sha=sha)

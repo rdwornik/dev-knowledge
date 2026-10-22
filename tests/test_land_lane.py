@@ -415,3 +415,14 @@ def test_regenerated_files_are_folded_into_the_two_parent_merge(env):
     parents = _git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
     assert len(parents) == 3 and parents[1] == old_main
     assert _git(env.origin, "show", "main:generated.txt") == "regenerated"
+
+
+def test_regen_command_the_lane_changed_is_not_run_before_ci(env):
+    env.make_lane("lane-gen", "gen.py", text="open('pwned.txt', 'w').write('x')\n")
+    before = env.refs()
+    report = do_land(env, slug="lane-gen", regen_cmds=[[sys.executable, "gen.py"]])
+
+    assert report.state == "REFUSED" and report.exit_code == ll.EXIT_REFUSED
+    assert "gen.py" in report.message and "nothing was pushed" in report.message
+    assert env.refs() == before
+    assert not (env.worktree / "pwned.txt").exists()
