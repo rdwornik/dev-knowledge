@@ -36,7 +36,7 @@ roles:
 
   adversarial:
     cli: codex
-    model: gpt-5.6-sol
+    model: gpt-6-sol
     note: >-
       Adversarial design critique. Distinct from review: the reviewer judges a diff, the
       adversary attacks a design before one exists. REBOUND from `sol` 2026-09-05 (architect
@@ -54,6 +54,10 @@ roles:
       pass on the loop-eval map (2026-09-20) could not attest what served it. HONEST LIMIT: a
       pin names what is REQUESTED; `codex exec` still reports no served model, so "sol
       answered" stays attested by the flag until a receipt records the reported model.
+      MODEL REPOINTED 2026-10-22 (lane e2-routing-gpt6, operator ruling LEDGER v294 C6):
+      `gpt-6-sol`, the newest Sol tier; `codex exec -m gpt-6-sol -s read-only` ran on this
+      account and its header read `model: gpt-6-sol`. Previous pin `gpt-5.6-sol` stays
+      registered for provenance.
       The XL-class opt-in at L0 (`~/.claude/ROUTING.md`) is a per-invocation
       escalation for ruling-class work and is not this default.
 
