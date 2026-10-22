@@ -87,12 +87,11 @@ ITEMS: tuple[Item, ...] = (
     ),
     Item(
         "recent-adrs",
-        "Which ADR most recently decided where lanes run and how far they run in parallel, and "
+        "Which ADR decided that CI on both Windows and Linux is what judges a change, and "
         "what is its status?",
         (".claude/generated/recent-adrs.md",),
-        "parallelism runs across repositories",
-        "ADR-126 (",  # status-free: a ratification must not flip body_form; re-point when 126 leaves the last-5
-
+        "verification verdict",
+        "ADR-127 (",  # status-free: a ratification must not flip body_form; re-point when 127 leaves the last-5 (2026-10-22)
         (".claude/generated/recent-adrs.md",),
     ),
     Item(

@@ -654,6 +654,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "gate that would wire it is unbuilt, owned by [#1636]; delete this row when that "
                "gate lands",
         owner="[#1636]"),
+    "scripts/land_lane.py": Disposition(
+        reason="KEEP -- the 'land' transition as code (ADR-131, Proposed): the integrator seat "
+               "calls `land_lane.py` instead of typing the lane-integrate chain; no caller of a "
+               "kind the census reads exists until ADR-131 is ratified and the integrator order "
+               "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
+               "template change lands",
+        owner="e2-landing-script / ADR-131"),
 }
 
 

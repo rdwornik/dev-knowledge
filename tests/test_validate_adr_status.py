@@ -870,7 +870,11 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # ONE ADR and it is named: ADR-130 (the outer loop runs in code), drafted on batch BU row
     # [#1535]. Measured on base `b6161972` + this lane's one added ADR; no other member moved.
     # `Proposed` until the operator rules.
-    assert len(fields) == 103, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-10-22 by lane e2-landing-script (pin repair): 103 -> 104. The delta is
+    # ONE ADR and it is named: ADR-131 (landing is a script), the single cause; no other
+    # member moved. `Proposed` until the operator rules.
+    assert len(fields) == 104, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -923,7 +927,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-10-15 by lane-bu-1535-outer-loop (repair 1): G1 55 -> 56, the same
     # single cause as the count above (ADR-130 carries a G1-shaped `Proposed` status field).
     # G2/G3/G4 unchanged an eleventh time, so the delta is one ADR and not grammar drift.
-    assert counts == {"G1": 56, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-10-22 by lane e2-landing-script (pin repair): G1 56 -> 57, the same
+    # single cause as the count above (ADR-131 carries a G1-shaped `Proposed` status field).
+    # G2/G3/G4 unchanged a twelfth time, so the delta is one ADR and not grammar drift.
+    assert counts == {"G1": 57, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
