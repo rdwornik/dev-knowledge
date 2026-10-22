@@ -44,12 +44,13 @@ def _load() -> dict:
 
 
 @requires_workflow
-def test_the_trigger_is_push_to_main_plus_dispatch():
-    """The whole [#255] correction is the TRIGGER: its predecessor was `pull_request`, which
-    never fired under a local-merge workflow. Pinned so a future edit cannot quietly undo the
-    one property that makes this organ different from the one that was deleted."""
+def test_the_trigger_is_nightly_schedule_plus_dispatch_and_no_push():
+    """The [#255] correction was the TRIGGER: its predecessor was `pull_request`, which never
+    fired under a local-merge workflow. R168 (test once): a main push re-ran a sha the
+    integration-branch run had already judged, so the wall records nightly + on demand only."""
     on = _load()["on"]
-    assert on["push"]["branches"] == ["main"]
+    assert "push" not in on
+    assert "schedule" in on
     assert "workflow_dispatch" in on
 
 
@@ -73,17 +74,19 @@ def test_no_step_passes_an_input_the_action_does_not_accept():
 
 @requires_workflow
 def test_the_record_job_is_never_gated():
-    """THE ASYMMETRY. The wall records what LANDED, so it fires on every push — no `if`, no
+    """THE ASYMMETRY. The wall records what LANDED, nightly and on demand — no `if`, no
     `needs`, and no workflow-level `paths:` filter that would reach it. This is the assertion
     that stops someone gating the pilot the easy way and disarming the recorder with it."""
     doc = _load()
     record = doc["jobs"]["record"]
-    assert "if" not in record, "the record job must fire on every push"
+    assert "if" not in record, "the record job must fire on every run"
     assert "needs" not in record, "the record job must not wait on another job"
-    assert "paths" not in doc["on"]["push"], (
-        "a workflow-level paths filter would gate the RECORD job too — gate the pilot "
-        "per-job instead")
-    assert "paths-ignore" not in doc["on"]["push"]
+    for trigger in doc["on"].values():
+        trigger = trigger or {}
+        assert "paths" not in trigger, (
+            "a workflow-level paths filter would gate the RECORD job too — gate the pilot "
+            "per-job instead")
+        assert "paths-ignore" not in trigger
 
 
 @requires_workflow

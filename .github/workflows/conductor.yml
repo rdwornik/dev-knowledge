@@ -71,7 +71,9 @@ on:
     # branches -- same prefix, same glob, no second pattern needed) plus `epic/**`, per the
     # proposal's trigger list ("push to main, worktree-**, epic/** and the integrator's
     # integration branches").
-    branches: [main, "worktree-**", "epic/**"]
+    # R168 (test once): `main` is no longer a push trigger -- the same sha was already judged on
+    # `worktree-integrate-<batch>`. The 05:00 nightly main run is the backstop for a direct/bypass push.
+    branches: ["worktree-**", "epic/**"]
   pull_request:
     branches: [main]
   schedule:
@@ -898,55 +900,6 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
-  ship-gate:
-    # O3 FIRST STEP (LANE-5B3-8): the R9 ADVISORY leg of "audit.py ship-gate" as its own job,
-    # so a lane branch gets one shown on every push -- never the lane's own self-check
-    # obligation (R9 keeps that as `audit.py health` + targeted tests; the integrator still
-    # runs the real ship-gate on the MERGED tree, which stays the verdict). ADVISORY ONLY:
-    # `continue-on-error: true` at job level, so a ship-gate FAIL never reds this workflow run
-    # or blocks anything -- no existing verdict step anywhere in this file gained
-    # `continue-on-error`, and this job is not in `deploy/conductor-required-checks.ruleset.json`.
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0     # J1: a shallow clone makes `canonical_freshness`'s derived leg REFUSE
-                             # ("the clone is shallow -- every git-derived date is a floor"); the
-                             # pytest job's checkout carries the same line for the same reason.
-      - name: Local `main` ref (J1 -- the pytest job's seed; no `refs/heads/main` on a non-main checkout)
-        run: |
-          git rev-parse --verify --quiet refs/heads/main >/dev/null 2>&1 || git branch main origin/main
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: "0.11.19"
-      - name: Sync the locked environment
-        run: uv sync --locked --group analytics
-      - name: audit.py ship-gate (advisory)
-        run: |
-          set +e
-          start=$(date +%s)
-          uv run --locked python scripts/audit.py ship-gate > ship-gate.out 2>&1
-          rc=$?
-          echo "wall_seconds=$(( $(date +%s) - start )) exit=$rc" >> ship-gate.out
-          cat ship-gate.out
-          {
-            echo "## ship-gate (advisory) — \`${{ github.sha }}\` exit \`$rc\`"
-            echo
-            echo '```'
-            tail -n 120 ship-gate.out
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit $rc
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ship-gate-${{ github.sha }}
-          path: ship-gate.out
-          retention-days: 90
-          if-no-files-found: warn
-
   terra:
     # REPORT-ONLY, AND THE ONE OF THE FOUR THAT IS NOT ARMABLE. §4 says "Codex review becomes
     # a job, never a paste", and this is that job -- except that it needs a provider
@@ -1195,7 +1148,7 @@ jobs:
     # case-insensitive spelling of `== 'push'`, so the quoted-list reader in the tests sees
     # only the two skip lists.)
     if: ${{ always() }}
-    needs: [plan, pytest, windows-gate, windows-nightly-triage, ruff, tier1, seal, spine, anchor, commit-gate, ship-gate, terra, phase-gate, handoff-manifest]
+    needs: [plan, pytest, windows-gate, windows-nightly-triage, ruff, tier1, seal, spine, anchor, commit-gate, terra, phase-gate, handoff-manifest]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

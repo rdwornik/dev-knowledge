@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (d) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-ci-dedupe (`[#1372]`, R168) -- a push to `main` no longer re-runs CI on an already-judged sha: the report-only wall's main-push trigger and the ship-gate CI job go, `main` leaves conductor's `on.push`; the commit-gate CI job stays (R169 removal dropped)
+
+**Anchors:** `fc43be4b` (RED-first `tests/test_ci_dedupe.py` + the removals), `01553b01` (wall header names the anchor-backstop gap), `c9801764` (repair 1: commit-gate CI job and its pins restored byte-identical to main); branch `worktree-e2-ci-dedupe`, introduced by this merge.
+
+**Did:** the first package (tip `01553b01`) was HELD at 04:3x: R168's precondition (L1's first nightly record) was not yet met, and R169 removes commit-gate only "with a row to fix it properly", which H1 forbids filing tonight. Tech-Architect-46 (LEDGER v294 C1) ruled: R168 is met by nightly run 39757540109, and repair 1 drops the commit-gate removal. Checked repair 1: commit-gate job unchanged against main, only `ship-gate` leaves `gate.needs`; main's `subst_gate.check_models_block` = `([], [])`, `launch_receipt_problems` = `[]`; Codex `gpt-6-sol` on the final diff (nonce `e07b5ad7a440`; 1 major accepted as pre-existing: the wall anchor backstop); Copilot served claude-sonnet-5.5.
+
+**Result:** branch CI 39764606550: Windows pytest 0 regressions, windows-gate success, commit-gate present, ship-gate absent; Ubuntu 5 REGRESSIONs = `test_check_derived_copies` x2 (doc-counts, regenerated here) + `test_onboarding_items` x3 (the `journal_spine_anchor` read on the branch base: entry 2026-10-22 (c) anchors `e18b5a84` on main, and `audit.check_journal_spine_anchor` on this merged tree = pass). `graph_queries.py task-coverage` first refused `tests/test_ci_dedupe.py` and the carried `logs/TEST-FLOW-METRICS.jsonl`; a clause on OPEN `[#1372]` names both, and the re-run is OK (no row filed; BACKLOG unchanged at 159,887 B). From this merge on, the landing verdict is the integration-branch run by head sha; a push to main starts no workflow run.
+
+**Changes:** `.github/workflows/{conductor,report-only-wall}.yml`, `ARCHITECTURE.md`, `tests/test_ci_dedupe.py`, `tests/test_conductor.py`, `tests/test_report_only_wall.py`; `tasks/1372-...md` (task-coverage clause); generated on the merged tree: `ecosystem/doc-counts.md`, `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-seat-cycle line) and `logs/TEST-FLOW-METRICS.jsonl` (the first nightly record, run 39757540109, ingested by the orchestrator).
+
+**Next:** e2-routing-gpt6. e2-codespace-fix was never launched (no Codespace scope, no box), so nothing lands for it.
+
 ### 2026-10-22 (c) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-seat-cycle (`[#1636]`, R136/R179) -- the seat-cycle chain in code: threshold check, handover from a template, role-table successor through the dispatch successor verb, a BOUND verb, verified stop; shipped through the docs carrier
 
 **Anchors:** `33067630` (RED witnesses for the R179 chain), `3f754c1f` (the chain: `scripts/seat_cycle.py`, `ecosystem/seat-cycle.yaml`), `2794c3d5` (shipped through the docs carrier; integrator/dispatcher Cycle sections teach it), `5a1c95d5` (First-act section + `bound` verb), `02aa96d0` / `de5f0871` / `b67fdb66` (fixes found by the real-use witness: head-row table for the model-per-role gate, `verify_stop` accepts stopped|done, id probe on identifier boundaries), `c91b47ec` / `ee341a7c` (review findings and CI reds), `18c58abd` (graph rows: ORPHAN_DISPOSITIONS for seat_cycle, owner `[#1636]`; an EDGE_COMPUTATIONS not-an-edge verdict), `0675731e` (Sol-tier review fixes); branch `worktree-e2-seat-cycle`, introduced by this merge. Lane code Copilot-written.

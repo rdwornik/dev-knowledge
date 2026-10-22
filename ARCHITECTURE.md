@@ -331,7 +331,7 @@ Enforcement → Dissemination — PLAYBOOK "The verification mesh".
 - Pre-merge: `/codex-review` + `/ship` (ship-gate, the full `ALL_CHECKS` sweep).
 - Post-merge, off-host: `.github/workflows/report-only-wall.yml` (a standalone workflow,
   separate from `conductor.yml`) — re-runs `pytest`/`audit.py health`/JOURNAL-anchor on
-  every push to `main`, **report-only, never blocks**; a green badge means "recorded,"
+  nightly and on demand (no longer on every push to `main`: R168 test once), **report-only, never blocks**; a green badge means "recorded,"
   never "passed" — verdict is in the job-summary table.
 - Nightly, cloud: conformance Routine (claims-vs-docs digest).
 - Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage

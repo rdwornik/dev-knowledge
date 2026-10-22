@@ -5,19 +5,21 @@
 # separate, ADR-owing decision on a different plan (see the R-A red-team).
 #
 # WHY THIS EXISTS: every hard gate in this repo is client-side, so `git push --no-verify` erases
-# any RED without a trace. A push-triggered run that re-executes those same checks server-side
+# any RED without a trace. A server-side run that re-executes those same checks
 # leaves a record no local bypass reaches.
 #
-# Trigger is `push`, not `pull_request`: the repo merges locally with --no-ff and pushes, so a
-# PR-triggered organ would never fire -- the [#255] vacuity that retired the last .github/ organ.
+# It records nightly and on demand, not on push to main: a main push re-ran a sha the
+# integration-branch run had already judged (R168, test once). `pull_request` would never fire:
+# the repo merges locally with --no-ff and pushes -- the [#255] vacuity that retired the last .github/ organ.
+# KNOWN GAP (e2-ci-dedupe review): the JOURNAL-anchor backstop step below needs `github.event.before`,
+# which only a push has, so with no push trigger it records "skipped" on every run. A direct or
+# `--no-verify` push to main therefore gets only the nightly record, not a per-sha one.
 #
 # The six hard requirements below are each earned empirically, not stylistic. See
 # docs/audits/2026-08-06-technical-night-prep-packs.md section B1 for the evidence behind each.
 name: report-only wall
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
   # [#1103] / R81.3: the mutation pilot runs "on demand and nightly". A schedule runs from the
   # default branch only, and GitHub may delay it; the minute is off the hour on purpose. The
@@ -39,7 +41,7 @@ jobs:
   # LA-4 support job: decides whether the [#502] mutation pilot has anything to do on THIS
   # push. Deliberately its own job rather than a workflow-level `paths:` filter, because a
   # workflow-level filter would also gate the `record` job below -- and the wall must fire on
-  # every push to main or it stops being a record of what landed. Seconds of runtime, no
+  # nightly or on-demand run or the wall stops being a record of what landed. Seconds of runtime, no
   # dependencies, and it is skipped entirely on workflow_dispatch (where the pilot's `if`
   # short-circuits on the event name).
   changes:
