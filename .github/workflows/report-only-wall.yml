@@ -11,6 +11,9 @@
 # It records nightly and on demand, not on push to main: a main push re-ran a sha the
 # integration-branch run had already judged (R168, test once). `pull_request` would never fire:
 # the repo merges locally with --no-ff and pushes -- the [#255] vacuity that retired the last .github/ organ.
+# KNOWN GAP (e2-ci-dedupe review): the JOURNAL-anchor backstop step below needs `github.event.before`,
+# which only a push has, so with no push trigger it records "skipped" on every run. A direct or
+# `--no-verify` push to main therefore gets only the nightly record, not a per-sha one.
 #
 # The six hard requirements below are each earned empirically, not stylistic. See
 # docs/audits/2026-08-06-technical-night-prep-packs.md section B1 for the evidence behind each.
