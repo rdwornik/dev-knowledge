@@ -264,6 +264,10 @@
   // refreshed copy of itself ([#746] B2), which is the half of the freshness repair that was
   // missing; this comment is the other half, because a reader of THIS file is the one who has to
   // know that editing it is what refreshes the image.
+  // WITNESS CARRIER ONLY (e2-codespace-witness, LEDGER v300; branch deleted after the run): path (i) for Codex
+  // in a box -- bubblewrap installed by the Dockerfile and the container allowed to create user namespaces.
+  "runArgs": ["--security-opt", "seccomp=unconfined", "--security-opt", "apparmor=unconfined"],
+
   "onCreateCommand": "bash .devcontainer/provision.sh",
 
   // THE SOURCE-CURRENCY HOOK — and the point is WHICH hook, not what it runs.
