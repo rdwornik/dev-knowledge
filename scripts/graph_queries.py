@@ -648,6 +648,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "wired to no moment. Row [#1437]'s Done-when wires `propose --batch` into batch "
                "close, after which this row and the fates line are deleted in that same act",
         owner="[#1437]"),
+    "scripts/seat_cycle.py": Disposition(
+        reason="KEEP -- the trigger is the seat itself calling `seat_cycle.py run` from the "
+               "integrator/dispatcher order templates' Cycle sections (R179); the R94 Stop-hook "
+               "gate that would wire it is unbuilt, owned by [#1636]; delete this row when that "
+               "gate lands",
+        owner="[#1636]"),
 }
 
 
@@ -1245,6 +1251,14 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "VERSION STRING off a `--version` probe's stdout (`2.1.288`) and compare it with a "
         "pin DECLARED BY HAND in `provisioning.yaml`; the rest is git state and a machine's "
         "installed tools. None of it is a relation between two corpus files, so there is no "
+        "edge for FPG-1 to hold and nothing for a W-G3 lane to migrate"),
+    "scripts/seat_cycle.py": _not_an_edge(
+        "the R179 seat-cycle mechanism. The shape matched on its regexes (`_BOUND`, the "
+        "handover section splitter, the process-name matcher) beside its reads of a handover "
+        "file and a session transcript. The class does not apply because every scan parses a "
+        "RUNTIME ARTIFACT, not the corpus: the `BOUND seat=... job=... model=...` line and "
+        "`## ` sections of one handover document, a transcript's JSONL, and a process "
+        "command line. None of it is a relation between two corpus files, so there is no "
         "edge for FPG-1 to hold and nothing for a W-G3 lane to migrate"),
 }
 
