@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-22 (f) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-arch-stamp -- ARCHITECTURE.md `last_reviewed` 2026-10-22 after an independent Codex review of the line e2-ci-dedupe changed, which clears the canonical_freshness hard FAIL that the e2-ci-dedupe merge introduced on main
+
+**Anchors:** `13870b7f` (the `last_reviewed` bump; the commit body names the reviewer Codex CLI `codex exec -s read-only -m gpt-6-sol`, banner `model: gpt-6-sol`, scope `git diff e18b5a841 8fe0a1f79 -- ARCHITECTURE.md`, verdict No findings, nonce `6d5400dd4a81`, record path, and editor Copilot claude-sonnet-5.5); branch `worktree-e2-arch-stamp`, introduced by this merge.
+
+**Did:** the e2-ci-dedupe merge (entry (d)) edited ARCHITECTURE.md without a review stamp. Its ship-gate diff, which this seat read only after the land because it was chained, INTRODUCED `canonical_freshness` FAIL "ARCHITECTURE.md: last_reviewed 2026-09-27 predates last edit 2026-10-22". This seat did not bump the stamp itself, because a bump asserts a review; the repair followed the CLAUDE.md precedent of entry (a). Checked: the record's banner reads `model: gpt-6-sol`, the verdict is "No findings", and this seat's own `sha256[:12]` of that diff is `6d5400dd4a81`, which equals the nonce (runs 1 and 2 had no verifiable nonce and are disclosed, not used); main's `subst_gate.check_models_block` = `([], [])`, `launch_receipt_problems` = `[]`.
+
+**Result:** branch CI 39774516564 success on every required leg; task-coverage on the merged staged set = OK. Disclosed residual, not ruled on by the reviewer (who saw only the `on:` block): ARCHITECTURE.md:332-333 still says the wall re-runs the JOURNAL-anchor leg, which now records "skipped" on every run (READY-TO-FILE "anchor backstop", e2-ci-dedupe review).
+
+**Changes:** `ARCHITECTURE.md` (front-matter `last_reviewed`); generated on the merged tree: `ecosystem/conformance.{md,html}`; carried `logs/MERGE-RECEIPTS.jsonl` (the e2-routing-gpt6 line).
+
+**Next:** e2-codespace-fix, then e2-landing-script (LEDGER v300 T-B), each on the orchestrator's ready-to-land.
+
 ### 2026-10-22 (e) - CC (Opus 5.5, INTEGRATOR-E2.0 cycle-9, batch E2.0): lane e2-routing-gpt6 (`[#885]`, LEDGER v294 C6) -- the adversarial-review pin moves from `gpt-5.6-sol` to `gpt-6-sol`, which is registered in the provider registry; the old pin stays registered for provenance
 
 **Anchors:** `58d325f3` (routing-table adversarial pin -> `gpt-6-sol` with a dated note; `gpt-6-sol` provider-registry entry; `tests/test_adversarial_pin_gpt6.py`), `9df5c3b7` (review fixes: the registry comment says the evidence is listing-only; the `decide.md` example names `gpt-6-sol`); branch `worktree-e2-routing-gpt6`, introduced by this merge.
