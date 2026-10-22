@@ -4096,6 +4096,9 @@ def deliver_to_transport(name: str, *, lane: str, workdir: str, checkout_dir: st
     `codespace_handback` from deleting the box."""
     commands: list[str] = []
     transport_dir, stage_dir = Path(transport_dir), Path(stage_dir)
+    if not lane or any(c in lane for c in "/\\") or ".." in lane:
+        return DeliveryResult(False, f"lane {lane!r} is not a plain slug -- refusing to build a transport path from it",
+                              {}, ())
 
     def call(argv: Sequence[str]) -> GhResult:
         commands.append(format_gh_line(argv))
@@ -4129,7 +4132,9 @@ def deliver_to_transport(name: str, *, lane: str, workdir: str, checkout_dir: st
         if digest != box[1]:
             return refuse(f"{target}: sha256 mismatch -- box {box[1]}, delivered {digest}", delivered)
         try:
-            (transport_dir / target).write_bytes(data)
+            partial = transport_dir / (target + ".partial")
+            partial.write_bytes(data)
+            os.replace(partial, transport_dir / target)     # a reader never sees a half-written handback
             landed = hashlib.sha256((transport_dir / target).read_bytes()).hexdigest()
         except OSError as exc:
             return refuse(f"{target}: transport {transport_dir} is not writable ({exc})", delivered)
@@ -4155,8 +4160,17 @@ def codespace_handback(name: str, *, batch: str, lane: str, repo: str,
         return LifecycleResult(ok, deleted, reason, tuple(steps))
 
     steps.append("harvest")
+    prior = _harvest_dir(batch, lane, root=out_root)
+    if (prior / HARVEST_MANIFEST_NAME).exists():
+        # a retry after a failed delivery: the earlier harvest may be the only copy, so it is moved
+        # aside (never overwritten) and this harvest lands in a fresh directory
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        try:
+            prior.rename(prior.with_name(f"{prior.name}.prev-{stamp}"))
+        except OSError as exc:
+            return done(False, False, f"harvest failed: cannot set the earlier harvest aside ({exc})")
     harvested = codespace_harvest(name, batch=batch, lane=lane, workdir=workdir, out_root=out_root,
-                                  force=True, invoker=invoker)
+                                  invoker=invoker)
     if not harvested.ok:
         return done(False, False, f"harvest failed: {harvested.failure}")
     steps.append("deliver")
@@ -4313,6 +4327,8 @@ def codespace_harvest_cmd(name: str, batch: str, lane: str, workdir: str,
 
     With `--deliver` the whole handback runs: the box is deleted only once its SESSION file and run
     log have landed in the transport byte-identical, and a refusal is printed to stderr."""
+    if deliver and dry_run:
+        raise DispatchRefused("--deliver cannot be combined with --dry-run: the handback deletes the box")
     if deliver:
         if transport_dir is None:
             prompts = os.environ.get("CLAUDE_PROMPTS_DIR")

@@ -238,6 +238,30 @@ def test_a_good_handback_runs_the_four_steps_in_order_and_deletes(handback_env):
     assert len(box.delete_calls()) == 1
 
 
+def test_a_retry_sets_the_earlier_harvest_aside_instead_of_overwriting_it(handback_env):
+    out_dir = handback_env["out_root"] / "B1" / LANE
+    out_dir.mkdir(parents=True)
+    (out_dir / d.HARVEST_MANIFEST_NAME).write_text("{}", encoding="utf-8")
+    (out_dir / "run.log").write_text("the only copy", encoding="utf-8")
+    second = _handback(FakeBox(), handback_env)
+    assert second.ok, second.reason
+    assert list(out_dir.parent.glob(f"{LANE}.prev-*")), "the earlier harvest must survive a retry"
+
+
+def test_a_lane_with_path_separators_is_refused_before_any_gh_call(handback_env, tmp_path):
+    box = FakeBox()
+    res = d.deliver_to_transport(box.name, lane="../../x", workdir=WORKDIR, checkout_dir="/workspaces/r",
+                                 transport_dir=handback_env["transport_dir"], stage_dir=tmp_path, invoker=box)
+    assert not res.ok and "plain slug" in res.reason and box.calls == []
+
+
+def test_deliver_with_dry_run_is_refused():
+    from click.testing import CliRunner
+    out = CliRunner().invoke(d.cli, ["codespace-harvest", "--name", "n", "--batch", "B", "--lane", "l",
+                                     "--deliver", "--dry-run", "--transport-dir", "."])
+    assert out.exit_code != 0 and "dry-run" in out.output.lower()
+
+
 def test_the_teardown_check_lists_json_names(handback_env):
     box = FakeBox()
     _handback(box, handback_env)

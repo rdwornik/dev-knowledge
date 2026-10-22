@@ -349,17 +349,24 @@ def m5_substrate(codespace_rows, launch_receipts, merge_receipts, fate_rows, *, 
     """Which substrate landed work, and what the Codespace boxes cost. A field with no input is None
     beside a `<field>_reason` -- never 0."""
     boxes = _last_row_per_box(codespace_rows)
+    horizon = min(now, parse_ts(until))     # an open row is never measured past the window's end
     box_slugs = {r.get("slug") for r in _box_rows(codespace_rows) if r.get("slug")}
     landed = _landings(merge_receipts, since, until)
     codespace_n = sum(1 for item in landed if item["receipt"].get("slug") in box_slugs)
     in_window = [r for r in boxes.values() if _in_window(r["created"], since, until)]
-    out: dict = {"landings_by_substrate": {"local": len(landed) - codespace_n, "codespace": codespace_n}}
+    out: dict = {"landings_by_substrate": {"local": len(landed) - codespace_n, "codespace": codespace_n},
+                 "landings_basis": "INFERRED: codespace = the slug has a CODESPACE-RECEIPTS row; local = every "
+                                   "other landing (merge receipts carry no substrate field and LAUNCH receipts "
+                                   "are untracked, so 'local' is the absence of a box row, not a measured fact)"}
     if in_window:
-        out["box_minutes"] = sum(_box_minutes(r, now) for r in in_window)
-        out["box_core_hours"], why = _core_hours(in_window, now)
+        out["box_minutes"] = sum(_box_minutes(r, horizon) for r in in_window)
+        out["box_core_hours"], why = _core_hours(in_window, horizon)
         if why:
             out["box_core_hours_reason"] = why
-        out["max_concurrent_boxes"] = _max_concurrent(in_window, now)
+        out["max_concurrent_boxes"] = _max_concurrent(in_window, horizon)
+        out["open_rows"] = sum(1 for r in in_window if not r.get("deleted"))
+        out["open_rows_note"] = ("rows with no close row are measured to the window end; a box deleted by hand "
+                                 "leaves its row open and inflates the figures above")
     else:
         reason = "no CODESPACE-RECEIPTS row with a creation in the window"
         for key in ("box_minutes", "box_core_hours", "max_concurrent_boxes"):
