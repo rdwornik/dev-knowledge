@@ -80,7 +80,6 @@ def default_regen_cmds(worktree: Path) -> list:
     return [list(c) for c in DEFAULT_REGEN_CMDS if (Path(worktree) / c[-2]).is_file()]
 
 LEDGER_RELPATH = "logs/MERGE-RECEIPTS.jsonl"
-_REMOTE_PREFIXES = ("http://", "https://", "ssh://", "git@", "git://")
 
 
 @dataclass
@@ -408,7 +407,9 @@ def _refusal(report: Callable, result, sha: str, branch: str, pushed: bool) -> L
 
 
 def _origin_is_remote(url: str) -> bool:
-    return url.strip().lower().startswith(_REMOTE_PREFIXES)
+    """Fail CLOSED: an origin is a throwaway only when it is an existing local directory; a
+    `file://`, scp-style or unknown URL counts as remote and needs the flag."""
+    return not Path(url.strip()).is_dir()
 
 
 @click.command("land-lane")

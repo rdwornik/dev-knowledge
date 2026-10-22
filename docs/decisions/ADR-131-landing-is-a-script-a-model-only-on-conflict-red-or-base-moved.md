@@ -35,7 +35,7 @@ Run 2026-10-22 on the lane branch, no landing on the real main:
 - conflicting lane: `state=CONFLICT exit=2`, `conflicts: ['shared.txt']`, worktree status empty, HEAD equals `origin/main`.
 - BASE-MOVED: `state=BASE-MOVED exit=4`, "BASE-MOVED before any push", nothing pushed.
 
-Honest limits: CI is the only judge the script reads and it is stubbed in the witness; `land()` is as sound as `ci_verdict`. The post-landing re-read DETECTS an unjudged sha on main after the fact; prevention is `land()`'s construction (one sha variable for both pushes), pinned by a mutation test. The ruleset (`deploy/conductor-required-checks.ruleset.json`) remains disabled, so until the operator applies it GitHub itself does not refuse a bad push to main.
+Honest limits: CI is the only judge the script reads and it is stubbed in the witness; `land()` is as sound as `ci_verdict`. The post-landing re-read DETECTS an unjudged sha on main after the fact; prevention is `land()`'s construction (one sha variable for both pushes), pinned by a mutation test. A regeneration command runs before CI judges the merge: the script refuses one whose own path argument the lane changed, but a lane that edits a module the command imports (or `pyproject.toml`/`uv.lock`) still gets that code run, so regeneration is trusted only as far as the lane's reviewed content is. After a RED stop, `worktree-integrate-<batch>` holds the unlanded sha and a retry is rejected as a non-fast-forward until a human or model deletes that branch deliberately; the script does not delete it. The ruleset (`deploy/conductor-required-checks.ruleset.json`) remains disabled, so until the operator applies it GitHub itself does not refuse a bad push to main.
 
 ## Consequences
 
