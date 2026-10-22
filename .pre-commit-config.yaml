@@ -24,8 +24,9 @@ default_stages: [pre-commit]
 # that case is to keep ONLY data-loss protection: the JOURNAL anchor (block-unanchored-push,
 # pre-push) and the index-freshness pair (audit-index-freshness, organ-index-freshness).
 # block-ff-push stays with its pre-push sibling. EVERY OTHER HOOK is `stages: [manual]` and
-# runs in `.github/workflows/conductor.yml` job `commit-gate` over the pushed range, REPORT-ONLY
-# while conductor enforcement stays disabled. Temporarily fewer local gates, in exchange for
+# runs nowhere in CI since R169 removed conductor job `commit-gate` (a filed-later row will
+# restore them); until then they run only on demand via `pre-commit run --hook-stage manual`.
+# Temporarily fewer gates, in exchange for
 # being able to merge at all. A hook returns to the local stage only with a counter showing
 # what it caught, at what cost, over what window.
 

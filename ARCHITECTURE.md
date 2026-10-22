@@ -20,8 +20,8 @@ owner: Rob
 > `docs/decisions/README.md`), and prose describing a pre-commit hook as firing at commit
 > time — at the cut only four hooks ran locally; B2 lane 4 (2026-09-18) re-armed a
 > subset. **The live set is whatever in `.pre-commit-config.yaml` carries no
-> `stages: [manual]`** (roster: `CLAUDE.md` §9); the manual rest runs report-only in
-> conductor job `commit-gate`. What survives is doctrine with no other home, or a one-line pointer.
+> `stages: [manual]`** (roster: `CLAUDE.md` §9); the manual rest no longer runs in CI
+> (conductor job `commit-gate` removed, R169). What survives is doctrine with no other home, or a one-line pointer.
 >
 > **How to read this doc.** Ch1 (layers) → Ch2 (organs, now a pointer) → Ch3 (automation)
 > → Ch4 (distribution) → Ch5 (zones) → Ch6 (verification mesh). **Daily working mode is
@@ -177,7 +177,7 @@ on its own tree (`audit.py` pushes to `origin`). **Roster not restated here** �
 
 **Gate tiering ([#597]).** Every `ALL_CHECKS` member declares commit-tier or ship-tier,
 nested (commit ⊂ ship). **As of 2026-09-17 `audit-health` (the pre-commit hook) is
-itself `stages: [manual]`** (conductor `commit-gate` runs it report-only) — the
+itself `stages: [manual]`** (no longer run in CI: conductor `commit-gate` removed, R169) — the
 commit-tier legs do not block a local commit today; they still gate at `ship-gate`
 (`/ship`). `fleet_health`'s SessionStart sweep is not wired (hub `SessionStart` runs only
 `arm_hooks.py`). Basis:
@@ -331,7 +331,7 @@ Enforcement → Dissemination — PLAYBOOK "The verification mesh".
 - Pre-merge: `/codex-review` + `/ship` (ship-gate, the full `ALL_CHECKS` sweep).
 - Post-merge, off-host: `.github/workflows/report-only-wall.yml` (a standalone workflow,
   separate from `conductor.yml`) — re-runs `pytest`/`audit.py health`/JOURNAL-anchor on
-  every push to `main`, **report-only, never blocks**; a green badge means "recorded,"
+  nightly and on demand (no longer on every push to `main`: R168 test once), **report-only, never blocks**; a green badge means "recorded,"
   never "passed" — verdict is in the job-summary table.
 - Nightly, cloud: conformance Routine (claims-vs-docs digest).
 - Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage

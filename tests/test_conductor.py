@@ -550,7 +550,8 @@ def test_the_workflow_carries_the_four_triggers_section_4_names(workflow):
     # LANE-5B4-3 (L1, D1): widened again to `worktree-**` (matches nested worktree-slug refs
     # too, and the integrator's own `worktree-integrate-...` branches -- same prefix, same
     # glob, no separate pattern needed) and `epic/**`, per the proposal's D1 trigger list.
-    assert triggers["push"]["branches"] == ["main", "worktree-**", "epic/**"]
+    # R168: `main` was then dropped -- the same sha is judged on the integration branch.
+    assert triggers["push"]["branches"] == ["worktree-**", "epic/**"]
     assert triggers["schedule"], "a schedule leg is what makes the runner more than a push-reactor"
 
 
@@ -644,39 +645,6 @@ def test_the_pytest_artifact_name_is_scoped_per_os(workflow):
     assert "matrix.os" in upload["with"]["name"]
 
 
-def test_ship_gate_is_a_job_and_is_advisory_only(workflow, ruleset):
-    # O3 first step (LANE-5B3-8): a lane's own pushed branch gets an `audit.py ship-gate` job.
-    # ADVISORY, not a lane self-check substitute (R9 keeps that as `audit.py health` + targeted
-    # tests) and not a gate on anything: `continue-on-error` at job level, and absent from the
-    # required-checks ruleset, same asymmetry as `terra`.
-    job = workflow["jobs"]["ship-gate"]
-    assert job.get("continue-on-error") is True
-    run_text = "\n".join(str(s.get("run", "")) for s in job["steps"])
-    assert "audit.py ship-gate" in run_text
-    contexts = {c["context"] for c in
-                ruleset["rules"][0]["parameters"]["required_status_checks"]}
-    assert "ship-gate" not in contexts
-
-
-def test_the_ship_gate_job_checks_out_a_full_clone_with_a_local_main(workflow):
-    # J1 (DIGEST-CI-TRIAGE 2026-10-03): a bare `actions/checkout@v4` is shallow, single-ref and
-    # has no `refs/heads/main`, so `audit.py ship-gate`'s `canonical_freshness` derived leg
-    # REFUSES ("the clone is shallow -- every git-derived date is a floor") and the job has been
-    # red since 3ac87894. The pytest job's own checkout is the proven shape: `fetch-depth: 0`,
-    # then a seeded local `main`, both BEFORE the gate runs.
-    steps = workflow["jobs"]["ship-gate"]["steps"]
-    checkout_idx, checkout = next(
-        (i, s) for i, s in enumerate(steps) if str(s.get("uses", "")).startswith("actions/checkout"))
-    assert checkout.get("with", {}).get("fetch-depth") == 0, \
-        "the ship-gate checkout must be a full clone (fetch-depth: 0)"
-    main_ref_idx = next(i for i, s in enumerate(steps)
-                        if "refs/heads/main" in str(s.get("run", ""))
-                        and "git branch main" in str(s.get("run", "")))
-    gate_idx = next(i for i, s in enumerate(steps) if "audit.py ship-gate" in str(s.get("run", "")))
-    assert checkout_idx < main_ref_idx < gate_idx, \
-        "the local main ref must be seeded after checkout and before the gate runs"
-
-
 def test_ship_gate_never_touches_an_existing_verdict_steps_continue_on_error(workflow):
     # "Do not": no `continue-on-error` added to an existing verdict step to turn a red green.
     # The pytest job's final verdict step and the ruff job's check step must still be
@@ -738,16 +706,18 @@ def test_a_bare_pytest_context_is_NOT_a_name_this_workflow_emits(workflow):
     assert "pytest" not in emitted_contexts(workflow)
 
 
-def test_every_required_context_is_emitted_on_a_main_push_with_no_path_filter_or_job_if(
+def test_every_required_context_is_emitted_on_an_integration_push_with_no_path_filter_or_job_if(
         workflow, ruleset):
     # A required check that is skipped (a path filter that excludes the push, a job-level `if:`
     # that is false) is a check that never reports, and a required check that never reports
     # blocks the merge forever -- or, if the job is skipped, GitHub counts it as passing, which is
     # the opposite failure. Neither may apply to a context the ruleset requires.
+    # R168: a push to main no longer starts this workflow; the contexts are emitted on the
+    # `worktree-integrate-<batch>` push, which the `worktree-**` pattern matches.
     push = workflow[True]["push"]
     assert "paths" not in push and "paths-ignore" not in push, \
         "a path filter on the push trigger can skip every required context"
-    assert "main" in push["branches"]
+    assert "worktree-**" in push["branches"]
     required_jobs = {"pytest", "windows-gate", "ruff", "seal", "spine", "anchor"}
     for job_id in required_jobs:
         job_if = workflow["jobs"][job_id].get("if")
@@ -814,24 +784,6 @@ def test_the_seal_job_does_not_run_the_validator_bare(workflow):
     seal = "\n".join(str(step.get("run", "")) for step in workflow["jobs"]["seal"]["steps"])
     assert "git reset --soft" in seal
     assert "merge-base --is-ancestor" in seal, "an unresolvable range must SKIP, not seal the tree"
-
-
-def test_the_commit_gate_judges_a_lane_branch_against_its_merge_base_with_main(workflow):
-    # LANE-5B-7: the commit-gate's ONLY automatic trigger is `push` to `main` (§4's
-    # `on.push.branches == ["main"]`, asserted above), so a lane's OWN branch is judged only
-    # by a manual `workflow_dispatch` run against it. `github.event.before` does not exist on
-    # that event -- it is empty on a branch's first push and, on any later one, it is the
-    # branch's OWN prior tip, never main's. Before this fix the gate's BASE resolution had no
-    # branch case at all, so a lane branch's run always saw an empty/unresolvable BASE and
-    # the gate exited 0 having judged nothing -- a vacuous pass on exactly the run this
-    # contract requires to be real. The fix must resolve BASE, for any non-`main`-ref run,
-    # from the branch's merge-base with `origin/main`, so the gate judges only the diff a
-    # merge into `main` would introduce -- never the branch's own prior history.
-    gate = "\n".join(str(step.get("run", "")) for step in workflow["jobs"]["commit-gate"]["steps"])
-    assert 'github.ref' in gate and 'refs/heads/main' in gate, \
-        "the BASE resolution must branch on whether this run is on main"
-    assert "merge-base HEAD origin/main" in gate, \
-        "a non-main ref must resolve BASE from the merge-base with origin/main, not event.before"
 
 
 # --- the §4 SessionStart surface --------------------------------------------------------
