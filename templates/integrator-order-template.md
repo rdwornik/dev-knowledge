@@ -200,7 +200,7 @@ long session. One session ran 15.7 h in FOUNDATION; the ceiling is what prevents
 
 **The outgoing seat calls the mechanism; it does not launch by hand.** After step 1 and at the
 no-merge point, run
-`uv run --locked python scripts/seat_cycle.py run --role integrator --seat <job-id> --transcript <path> --bound-age-hours <h> --handover-dir <dir> --cycle-no <n> --batch <BATCH> --state <text> --next-step <text> [--next-step <text> ...] --bookkeeping <text> [--base main] [--repo-root <path>] [--worktree <path>] [--open-decision <text> ...] [--live-child <text> ...]`.
+`uv run --locked python scripts/seat_cycle.py run --role integrator --seat <job-id> --transcript <path> --bound-age-hours <h> --handover-dir <dir> --cycle-no <n> --batch <BATCH> --state <text> --next-step <text> [--next-step <text> ...] --bookkeeping <text> [--base main] [--repo-root <path>] --worktree <path> [--open-decision <text> ...] [--live-child <text> ...]`.
 The successor's model, effort and name come from the role table and `ecosystem/seat-cycle.yaml`, not
 from a typed line; `--seat` is the OUTGOING seat's job id, and the successor's name is derived by the
 mechanism (`<seat>-c<n+1>`), not chosen. The successor's first act is to read the handover file and then write the BOUND line;

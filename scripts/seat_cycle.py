@@ -135,6 +135,11 @@ def _indent_tail(text: str) -> str:
     return "\n".join([lines[0]] + [f"  {ln}".rstrip() for ln in lines[1:]])
 
 
+def _shell_quote(value: str) -> str:
+    # Double quotes are valid in both PowerShell and POSIX shells.
+    return f'"{value}"' if re.search(r"\s", value) else value
+
+
 def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, next_steps: Sequence[str],
                    open_decisions: Sequence[str], live_children: Sequence[str], bookkeeping: str,
                    by: str, successor_slug: Optional[str] = None,
@@ -156,9 +161,10 @@ def write_handover(path: Path, *, seat: str, role: str, cycle: int, state: str, 
     state, bookkeeping = _indent(state), _indent(bookkeeping)
     path = Path(path)
     slug = successor_slug or f"{seat}-c{cycle + 1}"
-    command = (f"uv run --locked python scripts/seat_cycle.py bound --handover {path.resolve()} "
-               f"--name {slug} --seat {seat} --cycle {cycle}")
-    text = (f"carried-by: OPEN\nkind: HANDOVER\nseat: {seat} role={role} cycle={cycle}\nby: {by}\n\n"
+    command = (f"uv run --locked python scripts/seat_cycle.py bound --handover {_shell_quote(str(path.resolve()))} "
+               f"--name {_shell_quote(slug)} --seat {_shell_quote(seat)} --cycle {cycle}")
+    summary = f"seat {seat} role={role} cycle={cycle} hands over to {slug}"
+    text = (f"carried-by: OPEN\nkind: HANDOVER\nsummary: {summary}\nby: {by}\n\n"
             f"# Handover {seat} cycle {cycle}\n\n## Head row\n\n{head_row}\n\n## State\n\n{state}\n\n## Next steps\n\n{steps}\n\n"
             f"## Open decisions\n\n{bullets(open_decisions)}\n\n## Live children\n\n{bullets(live_children)}\n\n"
             f"## Seat bookkeeping\n\n{bookkeeping}\n\n"
@@ -175,6 +181,8 @@ def lint_handover(text: str) -> list[str]:
         defects.append("missing `carried-by:` header on line 1")
     if "kind: HANDOVER" not in lines[:3]:
         defects.append("missing `kind: HANDOVER` header")
+    if not any(ln.startswith("summary:") and ln[8:].strip() for ln in lines[:5]):
+        defects.append("missing `summary:` header")
     body = {m.group(1): m.group(2) for m in
             re.finditer(r"(?ms)^## (.+?)\s*$(.*?)(?=^## |\Z)", text)}
     for section in SECTIONS:
@@ -501,7 +509,7 @@ def cmd_verify_stop(job: str, worktree: str) -> None:       # pragma: no cover -
 @click.option("--batch", required=True)
 @click.option("--base", default="main", show_default=True)
 @click.option("--repo-root", type=click.Path(path_type=Path), default=Path.cwd)
-@click.option("--worktree", default="", help="The old seat's worktree path (a process-probe needle).")
+@click.option("--worktree", required=True, help="The old seat's worktree path (a process-probe needle).")
 @click.option("--state", required=True)
 @click.option("--next-step", "next_steps", multiple=True, required=True)
 @click.option("--open-decision", "open_decisions", multiple=True)

@@ -315,3 +315,43 @@ def test_free_text_cannot_forge_bound_or_headers(tmp_path):
     assert not any(ln.startswith("BOUND ") for ln in lines)
     assert sc.lint_handover(text) == []
 
+
+
+def test_handover_header_has_summary_not_seat(tmp_path):
+    text = _handover(tmp_path, successor_slug="nxt").read_text(encoding="utf-8")
+    assert text.splitlines()[:4] == ["carried-by: OPEN", "kind: HANDOVER",
+                                     "summary: seat seat-a role=orchestrator cycle=3 hands over to nxt",
+                                     "by: seat-a"]
+    assert not any(ln.startswith("seat:") for ln in text.splitlines())
+
+
+def test_lint_flags_missing_summary(tmp_path):
+    text = _handover(tmp_path).read_text(encoding="utf-8")
+    stripped = "\n".join(ln for ln in text.splitlines() if not ln.startswith("summary:"))
+    assert any("summary" in d for d in sc.lint_handover(stripped))
+
+
+def test_written_handover_passes_transport_lint(tmp_path, capsys):
+    import transport_lint
+    path = _handover(tmp_path)
+    rc = transport_lint.main(["check", "--folder", "to-browser", str(path)])
+    out = capsys.readouterr().out
+    assert rc == 0 and f"{path.name}: ok" in out
+
+
+def test_first_act_command_quotes_path_with_space(tmp_path):
+    spaced = tmp_path / "dir with space"
+    spaced.mkdir()
+    path = sc.write_handover(spaced / "H.md", seat="seat-a", role="orchestrator", cycle=3, state="s",
+                             next_steps=["x"], open_decisions=["none"], live_children=["none"],
+                             bookkeeping="b", by="seat-a")
+    assert f'--handover "{path.resolve()}" --name seat-a-c4 --seat seat-a' in path.read_text(encoding="utf-8")
+
+
+def test_run_requires_worktree():
+    result = CliRunner().invoke(sc.cli, ["run", "--seat", "s", "--role", "orchestrator", "--transcript", "t",
+                                         "--bound-age-hours", "1", "--handover-dir", "d", "--cycle-no", "1",
+                                         "--batch", "B", "--state", "x", "--next-step", "y",
+                                         "--bookkeeping", "b"])
+    assert result.exit_code != 0
+    assert "--worktree" in result.output
