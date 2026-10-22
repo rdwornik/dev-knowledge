@@ -1829,8 +1829,10 @@ def test_codespace_exec_opens_a_regime_ledger_row_on_create(tmp_path):
     result = _fin_exec(tmp_path, _FinishGh())
     assert result.ok, result.failure
     rows = [r for r in _ledger_rows(tmp_path) if r.get("kind") == "codespace"]
-    assert len(rows) == 1, rows
-    row = rows[0]
+    # the creation row stays; the first successful ssh appends ONE more open row stamped `ready`
+    assert len(rows) == 2, rows
+    assert rows[0]["ready"] is None and rows[1]["ready"]
+    row = rows[-1]
     assert row["open"] is True and row["deleted"] is None and row["created"]
     assert row["codespace"] == "fluffy-space-1" and row["slug"] == "lane-x"
     assert row["batch"] == _FIN_BATCH and row["machine"] == "standardLinux32gb"

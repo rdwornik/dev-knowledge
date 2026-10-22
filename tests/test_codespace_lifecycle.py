@@ -174,7 +174,7 @@ def test_an_unwritable_transport_is_refused_naming_transport(tmp_path):
 
 
 def test_non_ascii_session_text_round_trips_byte_identically(tmp_path):
-    text = "é — ✓ session\n".encode("utf-8")
+    text = "é — ✓ session\n".encode()
     box = FakeBox(files={SESSION_SRC: text, LOG_SRC: LOG_BYTES})
     result = _deliver(box, tmp_path)
     assert result.ok, result.reason

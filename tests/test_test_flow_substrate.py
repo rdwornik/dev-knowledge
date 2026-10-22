@@ -229,3 +229,16 @@ def test_the_hypercare_cli_prints_the_line(tmp_path):
     assert result.output.startswith("CODESPACE batch B1: boxes 1 ")
     assert "box-minutes 35.0" in result.output
     assert "box lanes landed 1/1." in result.output
+
+
+def test_compute_puts_the_substrate_block_in_the_record(tmp_path, monkeypatch):
+    (tmp_path / "logs").mkdir()
+    row = cs_row("c1", "s", "B", "basicLinux32gb", "2026-10-19T22:00:00+00:00",
+                 "2026-10-19T23:00:00+00:00", 60.0)
+    (tmp_path / "logs" / "CODESPACE-RECEIPTS.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+    monkeypatch.setattr(tfm, "fetch_runs", lambda *a, **k: [])
+    monkeypatch.setattr(tfm, "fetch_jobs_many", lambda *a, **k: {})
+    rec = tfm.compute(repo_root=tmp_path, since="2026-10-19T00:00:00Z", until="2026-10-20T00:00:00Z",
+                      laptop=False, now=datetime(2026, 10, 20, tzinfo=timezone.utc))
+    sub = rec["substrate"]
+    assert sub["box_minutes"] == 60.0 and sub["box_core_hours"] == 2.0 and sub["max_concurrent_boxes"] == 1

@@ -253,7 +253,8 @@ def test_exec_whose_ssh_fails_before_ready_leaves_it_unmeasured(tmp_path):
 
 def test_delete_close_row_carries_ready_and_end(tmp_path, monkeypatch):
     ledger = tmp_path / "ledger.jsonl"
-    _write(ledger, codespace="box-1", slug="lane-x", batch="B1", created=datetime.now(timezone.utc))
+    _write(ledger, codespace="box-1", slug="lane-x", batch="B1",
+           created=datetime.now(timezone.utc) - timedelta(minutes=10), now=datetime.now(timezone.utc))
     ready = regime.mark_ready("box-1", ledger_path=ledger, now=datetime.now(timezone.utc))
     assert ready is not None
     monkeypatch.setattr(d, "verify_harvest_manifest", lambda *a, **k: d.HarvestVerdict(True, "ok"))
