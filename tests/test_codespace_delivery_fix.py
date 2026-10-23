@@ -69,7 +69,7 @@ def test_runner_and_lane_handbacks_have_distinct_paths(tmp_path):
 
     def fake(argv, timeout=None, **_kw):
         joined = " ".join(argv)
-        for name, payload in payloads.items():
+        for name, payload in sorted(payloads.items(), key=lambda kv: -len(kv[0])):
             if name in joined:
                 return _result(stdout=payload.decode("utf-8"))
         return _result(ok=False, exit_code=1)
