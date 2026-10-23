@@ -471,6 +471,14 @@ jobs:
         # context, and the ruleset's required list is a separate decision. The script exits
         # non-zero when a platform-conditioned skip is added above the committed baseline.
         run: uv run --locked python scripts/platform_skip_ratchet.py
+      - name: process diagram + binding check (D6, W7)
+        # Steps of the existing `ruff` job, not a new job (same reason as above): fails when the
+        # stored diagram is not a regeneration, or a bound anchor is stale.
+        run: uv run --locked python scripts/gen_process_diagrams.py --check
+      - name: process binding gate, two-way completeness ([#1639])
+        # Prints every unbound organ (node->code, code->node), never allow-listed. Report-only until
+        # W9 settles the list (non-empty today); drop `--report` to make an unbound organ block.
+        run: uv run --locked python scripts/gen_process_diagrams.py --gate --report
 
   tier1:
     # [#1560] (BUILD-2a slot 1, R155): a lane push gets a fast Linux verdict -- ruff, then the
