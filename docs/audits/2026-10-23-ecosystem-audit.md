@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-23  
-**Generated:** 2026-10-23T18:22:55  
+**Generated:** 2026-10-23T18:53:38  
 **Repos audited:** 6  
-**Checks:** 925 total — 161 pass, 13 fail, 555 warn, 0 unavailable, 196 n/a
+**Checks:** 925 total — 160 pass, 14 fail, 555 warn, 0 unavailable, 196 n/a
 
 ---
 
-## .dev-knowledge — PASS
+## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-1virbin9\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-scsa8tkk\wt`  
 **Last audit:** 2026-10-23
 
 | Check | Status | Evidence |
@@ -107,11 +107,11 @@
 | `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
-| `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
+| `journal_spine_anchor` | FAIL | 1 first-parent spine entry(ies) above the disposition floor 24882f8cc carry no JOURNAL anchor: 35afb2f42 (2026-10-23) Merge branch 'worktree-registry-roles' @ abb27ba8 -- batch E2.1 lane registry-roles (L13): the 2026-10-23 model routing as registry data (seat-integrator claude-sonnet-5-5 D2 amended, seat-dispatcher Opus D9, rulings and execute roles, reserved share, family constraint, fallback trigger B'); the R177 amendment lands after the operator's ruling recorded in RATIFICATION-2026-10-23 AMENDMENT (a) (K10, U3); regenerates doc-counts; JOURNAL anchor; PREDICATE (ADR-85 amendment 2026-08-03 section A7; STANDING_RULINGS AF-1) -- a spine entry is anchored when the JOURNAL names AT LEAST ONE SHA THAT THE ENTRY INTRODUCED. That is the entire test. The introduced set is `<first-parent>..<sha>` PLUS the entry itself (`scripts/journal_anchor.py`, `introduced`). Three readings that are NOT the test: (1) BRANCH-TIP STATUS forms no part of it -- the tip of the branch being merged normally does qualify, but because the merge introduces it, not because it is a tip; (2) THE ENTRY'S OWN MERGE SHA is in the introduced set and still cannot be used, for a temporal reason rather than a set-theoretic one: its hash does not exist when the JOURNAL text is authored and committed, so it is unavailable to name; (3) A SHA ALREADY ON THE SCANNED REF before the entry fails the test itself, because naming it introduces nothing; DIAGNOSTIC -- run unmodified from the repo root, substituting one <sha> named above: uv run --locked python -c "import sys,pathlib;sys.path.insert(0,'scripts');import journal_anchor as j;r=pathlib.Path('.');s='<sha>';print('introduced:',j.introduced(r,s));print('anchored in this tree:',j.is_anchored(r,s,j.journal_text(r)));print('anchored at main:',j.is_anchored(r,s,j.journal_text(r,'main')))"; THE TREE ASYMMETRY, which turned one of the eight into an operator stop: this check reads the JOURNAL from the COMMITTING TREE and the spine from the shared ref, so a tree that is behind reports gaps that do not exist on main. False here with True at main means SYNC THIS TREE -- there is no gap on main, and a drain entry would not reach a lagging tree anyway. One further fact settles the common case on its own: `block-unanchored-push` fails CLOSED, so a range that has already pushed clean cannot be unanchored; THE SECOND ASYMMETRY, in the ADR-110 exemption rather than the anchor predicate (measured 2026-09-06): the backstop resolves the SPINE against `main` -- a ref shared through the common git dir -- while resolving the open-batch manifest from THIS branch's `HEAD` (`batch_manifest.open_batches` -> `git show HEAD:<manifest>`, the committed-blob rule). A worktree branched before the manifest landed therefore sees the integrator's lane merges on the shared spine and cannot exempt them, and reports gaps for merges it did not make. Same command fixes it -- `git merge origin/main` -- and the exemption clause below says which batch it read, so an unexpected EMPTY batch list is the tell; SYNC COMMAND, for exactly that case -- `git merge origin/main`, run IN THE TREE that reported the gap, then re-read. This is the recorded fix for the tree-lag class rather than a suggestion: on the night of 2026-09-05 it resolved the spine blocks that were lag and not gaps, repeatedly, while every other remedy tried (re-anchoring an already-anchored SHA, --no-verify, re-running the check) addressed a gap that was not there. Run the diagnostic above FIRST: it is the discriminator, and `git merge` is the fix for only one of its two answers |
 | `journal_spine_anchor` | WARN | anchored by mention, not by record: af8bdad appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 16f8ebb appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: c2ac0b7 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a3befd6 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 481f0a4 appears outside an explicit 'Anchors:' record line (+1176 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 266 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 76e089f4 worktree-known-reds-1350, 77366f4a worktree-e2-landing-script, 08ec7be6 worktree-e2-codespace-fix, 6664d88a worktree-e2-routing-gpt6, 8fe0a1f7 worktree-e2-ci-dedupe (+261 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 267 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 35afb2f4 worktree-registry-roles, 76e089f4 worktree-known-reds-1350, 77366f4a worktree-e2-landing-script, 08ec7be6 worktree-e2-codespace-fix, 6664d88a worktree-e2-routing-gpt6 (+262 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -1009,8 +1009,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 161/925 checks passed
-- **13 failure(s)** — route findings to repo owners
+- 160/925 checks passed
+- **14 failure(s)** — route findings to repo owners
 - 555 warning(s)
 - 196 n/a (check not applicable to that repo)
 
