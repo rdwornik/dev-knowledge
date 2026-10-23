@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-23 (d) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane handoff-truth (L12b, riding `[#1640]`, W10) -- six cut-time truth rows in `gen_handoff.preflight_rows` that reproduce the 2026-10-22 cut's misses (`fill_ins_filled`, `seat_ids_both`, `supplement_matches_transport`, `operator_decisions_list`, `digest_owed_present`, `landed_vs_ratified`); the last two are non-blocking by the lane's recorded decision
+
+**Anchors:** `09bf03282` (frozen RED tests), `a71c19ec6` (the six rows), `1109e72c3` and `972666786` (review HIGH fixes), `4fdaec9df` and `6d7a8e393` (the two rows made non-blocking after CI refused dry cuts), `358a22438` (claims `[#1640]` for graph-task-coverage), `9ad7df9f7` (the lane tip: locators reworded so the transport derivation does not read them as a SUPPLEMENT-ANSWERS template)
+
+**Did:** purity (8 lane commits on merge-base af8bdad5b, footprint = `scripts/gen_handoff.py`, `tests/test_gen_handoff_preflight.py` and the new truth test file), substitution gate clean on the lane's MODELS block (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 35afb2f42, regenerate (BACKLOG.md already current, doc-counts only), the six affected test files: 209 passed (`-n0`, 28 min), ship-gate head leg on the merged tree against the L13 head set as the current-main proxy: 462 identities each side, hard-fails 0, one canonical_freshness WARN whose evidence text drifted with the date (introduced 1 / resolved 1, the same WARN).
+
+**Result:** a cut now runs the six truth rows; `[#1640]` stays OPEN (its Done-when needs connector-land on main). The lane's branch CI red was classed by the lane as REGEN-ARTIFACT (doc-counts, regenerated here), PRE-EXISTING (husk, orphan census, journal_spine_anchor on a CI clone with no local main) and the cut-acceptance family failing on a JOURNAL that lags main, which clears over a current main. Operator questions carried to MORNING, not decided here: whether `landed_vs_ratified` (97 ids) and `operator_decisions_list` should refuse a cut once the two definitions of ruling agree, and whether to arm a post-render bundle check.
+
+**Changes:** `scripts/gen_handoff.py`, `tests/test_gen_handoff_preflight.py`, `tests/test_gen_handoff_preflight_truth.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (the previous landing's ledger line), `JOURNAL.md`.
+
+**Next:** ci-one-verdict (L2) @ 963edb406, codespace-delivery-fix repair @ ebdc856a8, startup-tokens repair @ 88421fe17 in that order; connector-land after codespace-delivery-fix lands.
+
+
 ### 2026-10-23 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane registry-roles (L13) -- the 2026-10-23 model routing becomes registry data (seat-integrator claude-sonnet-5-5 per D2 amended, seat-dispatcher Opus per D9, rulings role, execute role, reserved share, family constraint, fallback trigger B') and the R177 amendment lands in `protocols/STANDING_RULINGS.md` after the operator's ruling recorded in `RATIFICATION-2026-10-23` AMENDMENT (a) (K10, U3)
 
 **Anchors:** `07d3ae9d6` (frozen RED tests, written by copilot gpt-6-luna), `0f5ed8509` (the registry data and schema), `743c2e59b` (the R177 amendment draft), `abb27ba8b` (the lane tip: CI repair 1)
