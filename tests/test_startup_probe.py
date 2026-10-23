@@ -47,9 +47,10 @@ def _usage(total, per_call):
 
 def test_dirty_files_returns_clean_status_paths(tmp_path):
     repo = _repo(tmp_path)
+    (repo / "tracked.txt").write_text("changed\n", encoding="utf-8")
     (repo / "new.txt").write_text("new\n", encoding="utf-8")
 
-    assert startup_probe.dirty_files(repo) == ["new.txt"]
+    assert set(startup_probe.dirty_files(repo)) == {"tracked.txt", "new.txt"}
 
 
 def test_dirty_files_returns_empty_for_clean_repo(tmp_path):
@@ -78,6 +79,7 @@ def test_calls_from_usage_requires_an_iteration(iterations):
 
 def test_main_refuses_dirty_repo_without_calling_runner(tmp_path, capsys):
     repo = _repo(tmp_path)
+    (repo / "tracked.txt").write_text("changed\n", encoding="utf-8")
     (repo / "untracked.txt").write_text("dirty\n", encoding="utf-8")
 
     def runner(*_):
@@ -87,6 +89,7 @@ def test_main_refuses_dirty_repo_without_calling_runner(tmp_path, capsys):
     captured = capsys.readouterr()
 
     assert result != 0
+    assert "tracked.txt" in captured.err
     assert "untracked.txt" in captured.err
     assert "calls=" not in captured.out
     assert "tokens=" not in captured.out
