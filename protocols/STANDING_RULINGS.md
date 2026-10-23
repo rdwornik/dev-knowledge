@@ -7553,6 +7553,19 @@ Landed by lane `e2-boot-rules` (batch E2.0). All of R160–R166 and R176–R179 
   R178 NEW: no subagent runs on Opus (reads = Haiku, bounded probes = Sonnet); subagent fan-out uses the CLI's workflow feature where it exists; enforced by the harness, not remembered.
   ```
 
+- **R177 amendment (2026-10-23) — seat models and role routing as registry data** (operator; D2 and D9 of `to-browser/RATIFICATION-2026-10-23.md`, and the operator model routing of 2026-10-23, TA-47 fill F3). **Status:** DRAFT — lands only after the F4 ratification append (K10); interim per R166 for D2; whether every consumer reads the new rows is stated by the registry-roles handback, not asserted here. Amends R177's "Opus only for the integrator" and "the orchestrator seat runs on Sonnet"; R178 stands unchanged.
+
+  **Carried by:** lane registry-roles (`ecosystem/provider-registry.yaml` rows `seat-integrator`, `seat-dispatcher`, `rulings`, `execute`, the `fallback_triggers.bprime` block and `fallback_due` in `ecosystem/schema/provider_registry.py`) (owner: E2-ORCHESTRATOR)
+
+  ```text
+  R177 AMENDED (operator, 2026-10-23):
+  (1) The integrator seat runs on claude-sonnet-5-5 (D2, interim under R166; target state land_lane.py with zero model calls on a clean path). Until 2026-10-23 the integrator pin was claude-opus-5-5 (R177/R178, 2026-10-20); that record stays.
+  (2) The ORCHESTRATOR SEAT runs on claude-opus-5-5, no fallback (D9: the better defined and more specific a task, the smaller the model it needs). Registry row: seat-dispatcher. The lane-head row seat-orchestrator stays claude-sonnet-5-5. EXECUTION (lane heads, implement via Copilot pinned claude-sonnet-5.5, verify) runs on Sonnet 5.5.
+  (3) Role routing: orchestrate/plan = claude-opus-5-5, no fallback, with a reserved share of the weekly Anthropic budget for Opus (value unset until the operator names one); rulings and option picks = claude-fable-5-1; execute = Sonnet -> Grok; write code = Copilot, isolated session; write tests = a SEPARATE Copilot session that sees only the contract, never the code, on a different model family than the coder; evaluate/verify = a third isolated agent (R147, K6); review = Codex -> Grok, every Grok finding cites file:line and is verified by a script or test; reads = agy (laptop only, R140) -> copilot-enterprise -> claude-haiku-5-5, counts and searches done by code, a model only summarises with citations.
+  (4) Fallback trigger B' (operator Q3): execution switches Sonnet -> Grok, and review Codex -> Grok, when weekly usage% > elapsed-week% (on pace to exhaust before reset), or when the manual override flag is set. Every fallback use is recorded in the MODELS block (R139). Where no machine-readable usage signal exists the manual flag is the only trigger.
+  R178 stands: no subagent runs on Opus. Where an older ruling disagrees (R177/R178 implement order, R138 review pair), this routing is the newer operator ruling and the old text is kept as history.
+  ```
+
 - **R179 — every long-running CC seat hands over to a fresh successor BY CODE** (operator; full text `HANDOVER-e2-orchestrator-cycle-2-2026-10-20.md:67`; fuller text at `LEDGER-dev-knowledge-v266-superseded-2026-10-20.md:13`). **Status:** landed as text by lane `e2-boot-rules`; interim per R166 (`RATIFICATION-2026-10-20-v1-superseded.md:18`); whether the mechanism it names is built is not asserted here.
 
   **Carried by:** no implementation required — this entry lands the text only; the mechanism is not yet built, lane e2-seat-cycle is not yet launched (no task row found) (owner: E2-ORCHESTRATOR)
