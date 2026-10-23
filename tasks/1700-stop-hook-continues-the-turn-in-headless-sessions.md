@@ -1,7 +1,7 @@
 ---
 id: "[#1700]"
 title: "The Stop hook continues the turn in headless (-p) sessions: +~45k tokens per dirty-ended turn"
-status: closed
+status: open
 priority: P1
 size: S
 theme: "[E10] Batch convergence"
@@ -10,5 +10,3 @@ generates: BACKLOG.md
 ---
 
 - [#1700] [P1][S] **The Stop hook continues the turn in headless (-p) sessions: +~45k tokens per dirty-ended turn** - `scripts/session_end_backpressure.py` `main()` prints `additionalContext` whenever `stop_hook_active is False` (:582-592) and `check_dirty_tree` (:470) returns text, and `additionalContext` continues the turn (:32-38), so a `claude -p` run that ends dirty makes 2 to 4 model calls instead of 1: clean tree 44,707 vs dirty 89,785 tokens on the same clone (`to-browser/SESSION-e2-startup-bisect.md` Item 5); nothing in the hook tells headless from interactive, and `stop_hook_active` is False on every fresh Stop, so an interactive session is nudged again after each later dirty turn · owner: a Stop-hook lane (its own small lane, launched right after this row lands) · Done when: (1) RED first: (a) a test runs the hook with a dirty tree and a headless context and asserts stdout carries NO `additionalContext` (the lane first captures the real Stop stdin of a `claude -p` run and of an interactive run and picks the discriminator from them: a stdin field, an env var, or `stop_hook_active`); (b) a test that a second Stop with the same `session_id` in an interactive context prints nothing (a per-session marker, because :582 alone fires on every first-attempt Stop); (2) the hook stays silent in headless sessions and nudges at most once per interactive session; (3) real-use witness: the bisect probe `claude -p "Reply with OK." --output-format json --model claude-sonnet-5-5` on a DIRTY clone shows 1 call (calls = sum of the `usage` token legs / `usage.iterations[0]`), where it showed 2 before · touches: `scripts/session_end_backpressure.py`, `tests/test_session_end_backpressure.py` · kill-candidates: `[#739]` -- same hook, another defect (it orders a commit of a peer's work), left open; `[#1616]` -- its start-up witness reads ~100k on a dirty tree until this lands · refs `[#739]`, `[#417]`, `[#1616]` · decided-by: the operator, 2026-10-20, LEDGER v261 / RATIFICATION v2 (R167-R175), ruling (4), INTERIM under R166 -- to be graded by the harness map · source: `to-browser/SESSION-e2-startup-bisect.md` Item 5 and `scripts/session_end_backpressure.py:470-594`
-
-Closed 2026-10-23 by lane startup-tokens: code landed in e2-stop-hook-headless (f16387533..3356e9b4c); real-use witness `claude -p "Reply with OK." --output-format json --model claude-sonnet-5-5` on a DIRTY clone (untracked file; project Stop hooks confirmed firing via --include-hook-events): calls=1 (usage.iterations has 1 entry, sum == iterations[0] sum), 52,680 tokens in a clone nested under the primary's tree (an ancestor CLAUDE.md inflates it; the like-for-like figure is 44,669, see [#1705]).
