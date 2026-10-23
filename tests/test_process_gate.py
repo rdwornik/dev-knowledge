@@ -186,15 +186,22 @@ def test_entry_points_include_decorated_command_and_top_level_launch_lane_only(
     tmp_path: Path,
 ):
     root = _repo(tmp_path)
+    binding = _binding()
 
     assert gpd.entry_points(root) == ["cli:launch", "def:launch_lane"]
+    assert gpd.gate_problems(binding, root)["unbound_entry_points"] == [
+        "cli:launch",
+        "def:launch_lane",
+    ]
 
 
 def test_entry_points_missing_dispatch_file_is_empty(tmp_path: Path):
     root = _repo(tmp_path)
     (root / "scripts" / "dispatch.py").unlink()
+    binding = _binding()
 
     assert gpd.entry_points(root) == []
+    assert gpd.gate_problems(binding, root)["unbound_entry_points"] == []
 
 
 def test_gate_problem_lists_are_sorted(tmp_path: Path):

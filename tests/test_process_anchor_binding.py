@@ -51,10 +51,14 @@ def test_find_anchor_returns_all_one_based_matching_lines_and_empty_for_missing(
     tmp_path: Path,
 ):
     root = _repo(tmp_path, "same_marker()\nother()\nsame_marker()\n")
+    binding = _state_binding(
+        file_line="scripts/target.py:1", anchor="same_marker("
+    )
 
     assert gpd.find_anchor("scripts/target.py", "same_marker(", root) == [1, 3]
     assert gpd.find_anchor("scripts/target.py", "absent(", root) == []
     assert gpd.find_anchor("scripts/missing.py", "same_marker(", root) == []
+    assert gpd.anchor_problems(binding, root) == []
 
 
 def test_anchor_problems_accepts_exact_and_unique_drifted_anchors(tmp_path: Path):
