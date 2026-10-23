@@ -2788,10 +2788,6 @@
       "file": "1349-release-lint-the-floor-spec-pin-does-not-match-i.md"
     },
     {
-      "task": 1350,
-      "file": "1350-the-transport-append-lock-reads-a-windows-delete.md"
-    },
-    {
       "task": 1360,
       "file": "1360-d1-is-the-first-real-backlog-task-through-the-spin.md"
     },
