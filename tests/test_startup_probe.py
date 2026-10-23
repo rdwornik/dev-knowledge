@@ -127,3 +127,18 @@ def test_main_reports_but_rejects_more_than_one_call(tmp_path, capsys):
     assert result != 0
     assert "calls=2" in output
     assert "tokens=89785" in output
+
+
+def test_run_claude_uses_resolved_executable(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_run(argv, **kwargs):
+        seen["argv"] = argv
+        return subprocess.CompletedProcess(argv, 0, stdout="{}")
+
+    monkeypatch.setattr(startup_probe.shutil, "which", lambda name: r"C:\npm\claude.cmd")
+    monkeypatch.setattr(startup_probe.subprocess, "run", fake_run)
+
+    startup_probe.run_claude(tmp_path, "m")
+
+    assert seen["argv"][0] == r"C:\npm\claude.cmd"

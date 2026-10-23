@@ -6,6 +6,7 @@ start-up cost ([#1705]); the probe refuses to run on one.
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -38,8 +39,9 @@ def calls_from_usage(usage):
 
 
 def run_claude(repo, model):
+    exe = shutil.which("claude") or "claude"
     r = subprocess.run(
-        ["claude", "-p", "Reply with OK.", "--output-format", "json", "--model", model],
+        [exe, "-p", "Reply with OK.", "--output-format", "json", "--model", model],
         cwd=repo,
         stdin=subprocess.DEVNULL,
         capture_output=True,
