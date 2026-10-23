@@ -912,13 +912,6 @@
         "signature": "assert 1 == 0",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
-      "tests/test_transport.py::test_concurrent_appends_to_the_same_destination_serialize_without_interleaving": {
-        "attribution": "flaky",
-        "reason": "foundation-8 cause SHOWN, in scripts/transport.py (not a test defect): _DestinationLock.__enter__ (:193) retries only on FileExistsError; on Windows os.open(O_CREAT|O_EXCL) on a lock file another thread is deleting raises PermissionError, which escapes append(). The real test body looped in one local Windows process: 63/300 runs fail, all PermissionError at transport.py:193; with PermissionError read as contention (in-process patch, no script edited) 0/300. Control rates, windows leg: lane-6 merge record 1/8; main push runs 37163851572 (base ae54e7da), 37157649406, 37155783000, 37148025981, 37137696130, 37133589959 = 0/6; DCT read 1/6. Fix owed in scripts/transport.py, under [#1350]. RENEWED 2026-10-16 to 2026-10-26 by the night close-out order (known_reds.py:267 renewal rule: fix it, or re-date it by a recorded ruling): the fix is on branch worktree-night-retire-handoff-verify-2026-10-15 (_DestinationLock reads a delete-pending PermissionError as contention, RED-first test); the entry stays until 10 consecutive green windows runs show it, then [#1350] removes it.",
-        "task": "[#1350]",
-        "owner": "B2",
-        "expiry": "2026-10-26"
-      },
       "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
         "attribution": "pre-freeze",
         "task": "[#673]",

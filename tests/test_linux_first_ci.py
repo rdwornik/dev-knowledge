@@ -224,13 +224,35 @@ def test_the_registrys_windows_only_members_name_their_files():
                                                          "scripts/transport.py"}
 
 
-def test_the_COMMITTED_registry_makes_transport_sensitive():
+def test_transport_stays_windows_sensitive_through_the_platform_scan():
+    """[#1350] re-pointed: the registry route is gone (the quarantine was retired), so
+    `scripts/transport.py` must stay Windows-sensitive through source 3 -- the platform scan over
+    `scripts/*.py` for `PLATFORM_BRANCH_PATTERN` (its delete-pending `PermissionError` arm). A diff
+    touching it still requires the Windows leg."""
+    root = Path(__file__).resolve().parent.parent
+    real_git = plan.run_git(root)
+
+    def working_tree_git(args):          # the real `git grep` over the real tree, no ref (sees an edit)
+        return real_git([a for a in args if a != "WORKTREE"])
+
+    scanned = plan.platform_branching_files(working_tree_git, "WORKTREE")
+
+    assert "scripts/transport.py" in scanned, \
+        "scripts/transport.py no longer matches the platform-branching scan"
+    reasons = plan.why_sensitive(["scripts/transport.py"], scanned)
+    assert reasons and "derived" in reasons[0]
+
+
+def test_the_committed_registry_no_longer_carries_the_1350_transport_node():
     text = (Path(__file__).resolve().parent.parent / plan.REGISTRY_RELPATH).read_text(
         encoding="utf-8")
+    node = ("tests/test_transport.py::"
+            "test_concurrent_appends_to_the_same_destination_serialize_without_interleaving")
 
-    derived = plan.registry_windows_only_files(text)
+    by_os = json.loads(text)["members_by_os"]
 
-    assert "scripts/transport.py" in derived and "tests/test_transport.py" in derived
+    assert all(node not in members for members in by_os.values())
+    assert "tests/test_transport.py" not in plan.registry_windows_only_files(text)
 
 
 def test_a_deleted_platform_script_still_counts_through_the_base_scan():

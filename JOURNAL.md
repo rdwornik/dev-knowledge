@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-23 (b) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane known-reds-1350 (`[#1350]`, W1) -- the `scripts/transport.py` append-lock entry leaves the known-reds registry (removed, not re-dated), and the one test that asserted the registry made transport Windows-sensitive now asserts it through the real platform scan
+
+**Anchors:** `075fb8796` and `78366121a` (the lane's two commits: the registry removal with its mutation witness, and the repair that replaced `test_the_COMMITTED_registry_makes_transport_sensitive`)
+
+**Did:** purity (`git log origin/main..origin/worktree-known-reds-1350` = those two commits only), substitution gate clean on the lane's SESSION file, repair 1 for the one red test (`tests/test_linux_first_ci.py`, a one-test footprint extension ruled DECIDED-BY-INTEGRATOR), merged-tree tests, then the ship-gate diff on the trial merge: 462 blocking identities at both head and `origin/main` af8bdad5b, introduced 0, resolved 0. The diff ran as its two legs in two foreground calls (323 s and 360 s), because the whole exceeds the 10-minute tool cap on this host. Regenerated `BACKLOG.md`, `tasks/manifest.json` and `ecosystem/doc-counts.md` on the merged tree.
+
+**Result:** `logs/KNOWN-REDS-REGISTRY.json` no longer carries the [#1350] node; the two replacement tests pass. Coverage note, accepted and flagged for the architect: a test-only edit to `tests/test_transport.py` no longer selects the Windows leg by registry.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `tests/test_transport.py`, `tests/test_linux_first_ci.py`, `tasks/1350-*.md`, generated `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** `land_lane.py` fixes its own merge message (it fails the type-prefix hook, and a row-closing lane would then fail `backlog-id-on-close`); until then each landing is a recorded `FALLBACK` through `merge_path.py land`. Next in the queue: registry-roles, then startup-tokens (repair 1 owed), codespace-delivery-fix (repair 1 owed).
+
 ### 2026-10-23 (a) - CC (Opus 5.5, handoff seat): the handoff cut `2026-10-22-dev-knowledge-architect` lands -- architect bundle for the next window, supplement transcribed verbatim from Tech-Architect-46's SUPPLEMENT-ANSWERS v4, rulings RATIFICATION-2026-10-22 K1-K15
 
 **Anchors:** `6443402d` (the cut: 13 bundle files, SUPPLEMENT ANSWERS below the divider, carried-debt section in RESIDUAL.md), `53f4ce49` (restamp-manifest after the fill; `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` +1)

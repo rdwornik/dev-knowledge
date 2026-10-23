@@ -736,7 +736,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
-- [#1350] [P2][S] The transport append lock reads a Windows delete-pending file as an error, and one test flakes on it · tasks/1350-the-transport-append-lock-reads-a-windows-delete.md
 - [#1360] [P1][L] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial · tasks/1360-d1-is-the-first-real-backlog-task-through-the-spin.md
 - [#1361] [P1][L] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work · tasks/1361-the-harness-is-one-process-with-one-writer-every-s.md
 - [#1362] [P1][L] A removal engine finds what is no longer current and brings it to removal, and it outranks new features · tasks/1362-a-removal-engine-finds-what-is-no-longer-current-a.md
