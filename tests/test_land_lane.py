@@ -191,25 +191,30 @@ def test_clean_lane_lands_with_zero_model_calls(env, tmp_path, monkeypatch):
     assert report.state == "LANDED"
     assert [name for name, _ in report.steps] == list(ll.STEPS)
     assert report.sha
-    assert env.origin_ref("main") == report.sha
+    # [#1698]: main holds the judged merge M plus the receipt merge M2 (parents M, R) -- one push.
+    assert report.main_sha and report.main_sha != report.sha
+    assert env.origin_ref("main") == report.main_sha
     assert env.origin_ref(f"refs/heads/{INTEGRATION}") == report.sha
     parents = _git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
     assert len(parents) == 3 and parents[0] == report.sha and parents[1] == old_main
+    top = _git(env.worktree, "rev-list", "--parents", "-n1", report.main_sha).split()
+    assert len(top) == 3 and top[1] == report.sha
 
-    carried = [ln for ln in env.carry.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    assert len(carried) == 1
-    assert json.loads(carried[0])["slug"] == SLUG
-    assert env.ledger_on_main() == []
+    on_main = env.ledger_on_main()
+    assert len(on_main) == 1 and json.loads(on_main[0])["slug"] == SLUG
+    assert json.loads(on_main[0])["merge_sha"] == report.sha
+    assert env.carry.read_text(encoding="utf-8").strip() == ""
     assert env.status() == ""
 
     verbs = [a[0] for a in log if a and a[0] in ("fetch", "merge", "push")]
     assert verbs[0] == "fetch"
     assert verbs.index("merge") < verbs.index("push")
-    assert verbs[-2:] == ["push", "push"]
+    # the receipt merge (M2) is made between the integration push and the main push
+    assert verbs.count("push") == 2 and verbs[-1] == "push" and verbs[-2] == "merge"
     pushes = [a for a in log if a and a[0] == "push"]
     assert len(pushes) == 2
     assert pushes[0][-1] == f"{report.sha}:refs/heads/{INTEGRATION}"
-    assert pushes[1][-1] == f"{report.sha}:refs/heads/main"
+    assert pushes[1][-1] == f"{report.main_sha}:refs/heads/main"
 
 
 # --- b ----------------------------------------------------------------------------------------
@@ -383,25 +388,22 @@ def test_real_landing_needs_the_integrator_flag(env):
 
 # --- i ----------------------------------------------------------------------------------------
 
-def test_carry_file_round_trips_between_two_landings(env):
+def test_each_landing_carries_its_own_receipt_line_so_no_successor_is_needed(env):
     first = do_land(env)
     assert first.ok, first.message
-    first_line = env.carry.read_text(encoding="utf-8").splitlines()[0]
-    assert env.ledger_on_main() == []
+    assert env.carry.read_text(encoding="utf-8").strip() == ""
+    assert [json.loads(ln)["slug"] for ln in env.ledger_on_main()] == [SLUG]
 
     env.make_lane("lane-b", "lane_b.txt")
     second = do_land(env, slug="lane-b", lane_ref="origin/worktree-lane-b")
     assert second.ok, second.message
 
-    # The first landing's receipt rode the second merge commit; the second's waits in the carry.
+    # [#1698]: both lines are on main at their own landing; nothing waits in the carry file.
     on_main = env.ledger_on_main()
-    assert on_main == [first_line]
-    assert on_main[0].encode("utf-8") == first_line.encode("utf-8")
-    carried = [ln for ln in env.carry.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    assert len(carried) == 1 and carried[0] != first_line
-    assert json.loads(carried[0])["slug"] == "lane-b"
-    assert len(on_main) + len(carried) == 2
-    assert merge_receipt.ledger_path(env.worktree).read_text(encoding="utf-8").strip() == first_line
+    assert [json.loads(ln)["slug"] for ln in on_main] == [SLUG, "lane-b"]
+    assert json.loads(on_main[1])["merge_sha"] == second.sha
+    assert env.carry.read_text(encoding="utf-8").strip() == ""
+    assert env.status() == ""
 
 
 # --- regenerate ---------------------------------------------------------------------------------
