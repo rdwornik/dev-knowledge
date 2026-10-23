@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6a045e45fadc94ff6b0947d8973eb83c69667682d08af5a3006bfbb735edac70",
+  "generated_sha256": "3bf7fe565d6d0996fc2844dab8ac1f5934fcc14bab273c482fe858cd80ef4ba2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3524,24 +3524,12 @@
       "file": "1656-today-glue-count-in-close-digest.md"
     },
     {
-      "task": 1657,
-      "file": "1657-harvest-copies-the-lane-session-file.md"
-    },
-    {
-      "task": 1658,
-      "file": "1658-codespace-delete-writes-close-row.md"
-    },
-    {
       "task": 1660,
       "file": "1660-groom-view-back-under-150000.md"
     },
     {
       "task": 1661,
       "file": "1661-codespace-handback-fires-monitor-wake.md"
-    },
-    {
-      "task": 1662,
-      "file": "1662-runner-and-lane-share-handback-json.md"
     },
     {
       "task": 1663,

@@ -131,7 +131,7 @@ def test_the_box_is_asked_for_bytes_and_hash_over_ssh_sh_c(tmp_path):
     ssh = [c for c in box.calls if c[:2] == ["codespace", "ssh"]]
     assert ssh
     for call in ssh:
-        assert call[2:5] == ["-c", "box-1", "--"] and call[5:7] == ["sh", "-c"]
+        assert call[2:5] == ["-c", "box-1", "--"] and len(call) == 6 and call[5].startswith("sh -c ")
         assert "sha256sum" in call[-1] and "wc -c" in call[-1]
 
 

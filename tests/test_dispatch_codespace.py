@@ -197,6 +197,14 @@ _RECOVERY_LOG = ("[2026-10-04 22:07:14.201Z] postCreateCommand failed with exit 
                  "Container creation failed.\nCreating recovery container.\n")
 
 
+def _unquote_ssh(argv):
+    """The fakes match on words: undo the one-element remote command gh codespace ssh now receives."""
+    argv = list(argv)
+    if argv[:2] == ["codespace", "ssh"] and "--" in argv and len(argv) == argv.index("--") + 2:
+        argv = argv[:-1] + shlex.split(argv[-1])
+    return argv
+
+
 def _ssh_reply(argv, *, log: str = _HEALTHY_LOG):
     """What a `codespace ssh` answers: the creation log when it is asked for, else nothing."""
     if "creation.log" in " ".join(argv):
@@ -221,7 +229,7 @@ class _FakeGh:
         self.fail_code = fail_code
 
     def __call__(self, argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         self.calls.append(argv)
         verb = " ".join(argv[:2])
         # `codespace ssh` covers several distinct calls (`mkdir -p <workdir>`, the creation-log
@@ -361,7 +369,7 @@ def test_codespace_exec_rewrites_the_local_contract_path_for_the_remote_runner(t
     captured: dict[str, str] = {}
 
     def fake(argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         verb = " ".join(argv[:2])
         if verb == "codespace create":
             return d.GhResult(True, 0, "fluffy-1\n")
@@ -399,7 +407,7 @@ def test_codespace_exec_rewrites_a_relative_contract_argument_too(tmp_path, monk
     captured: dict[str, str] = {}
 
     def fake(argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         verb = " ".join(argv[:2])
         if verb == "codespace create":
             return d.GhResult(True, 0, "fluffy-1\n")
@@ -435,7 +443,7 @@ def test_codespace_exec_runs_the_agent_in_the_checkout_derived_from_repo(tmp_pat
     captured: dict[str, str] = {}
 
     def fake(argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         verb = " ".join(argv[:2])
         if verb == "codespace create":
             return d.GhResult(True, 0, "fluffy-1\n")
@@ -551,7 +559,7 @@ def _ssh_cat_fake(contents: dict[str, str], *, missing: tuple[str, ...] = ()):
     absent even though the harness's caller passed content for it (kept for symmetry with the
     fixture's counterpart in test_codespace_admission.py)."""
     def fake(argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         assert argv[:3] == ["codespace", "ssh", "-c"]
         path = argv[-1]
         rel = path.split("/")[-1]
@@ -789,8 +797,8 @@ def test_the_planned_run_step_is_a_login_shell(tmp_path):
     NON-login shell that sees none of the five Codespaces secrets (night probe x3: `set=no`; a
     login shell `yes`), so `claude -p` answered 'Not logged in'."""
     steps = d.codespace_plan("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"])
-    run = next(s for s in steps if s.argv[-1] == _RUNNER)
-    assert run.argv[-4:] == ["--", "bash", "-l", _RUNNER], run.argv
+    run = next(s for s in steps if s.argv[-1] == shlex.join(["bash", "-l", _RUNNER]))
+    assert run.argv[-2:] == ["--", shlex.join(["bash", "-l", _RUNNER])], run.argv
 
 
 def test_the_executed_run_step_is_a_login_shell(tmp_path):
@@ -898,8 +906,9 @@ def test_an_unreadable_creation_log_is_refused_after_a_bounded_number_of_reads(t
                               invoker=fake, sleep=slept.append, batch="B1")
     assert not result.ok and "indeterminate" in result.failure
     reads = [c for c in fake.calls if "creation.log" in " ".join(c)]
-    assert len(reads) == d.CREATION_LOG_ATTEMPTS == 3
+    assert len(reads) == d.CREATION_LOG_ATTEMPTS
     assert len(slept) == d.CREATION_LOG_ATTEMPTS - 1
+    assert sum(slept) == d.CREATION_LOG_WAIT_BOUND_S
     assert not any("bash" in c for c in fake.calls)
 
 
@@ -907,7 +916,7 @@ def test_a_log_that_is_not_finished_on_the_first_read_is_read_again(tmp_path):
     answers = iter(["", "[2026-10-05 08:03:00Z] Running the postCreateCommand...\n", _HEALTHY_LOG])
 
     def fake(argv):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         verb = " ".join(argv[:2])
         if verb == "codespace create":
             return d.GhResult(True, 0, "fluffy-1\n")
@@ -937,9 +946,10 @@ def test_the_plan_names_the_creation_log_check_before_the_run(tmp_path):
     steps = d.codespace_plan("me/repo", "main", "lane-x", _contract(tmp_path), ["claude"])
     notes = [s.note for s in steps]
     log_i = next(i for i, n in enumerate(notes) if "creation log" in n)
-    run_i = next(i for i, s in enumerate(steps) if s.argv[-1] == _RUNNER)
+    run_i = next(i for i, s in enumerate(steps) if s.argv[-1] == shlex.join(["bash", "-l", _RUNNER]))
     assert log_i < run_i
-    assert steps[log_i].argv[-2:] == ["cat", "/workspaces/.codespaces/.persistedshare/creation.log"]
+    assert steps[log_i].argv[-2:] == [
+        "--", "cat /workspaces/.codespaces/.persistedshare/creation.log"]
 
 
 def test_run_gh_takes_a_per_call_timeout_so_an_observer_read_cannot_block_for_900_s(monkeypatch):
@@ -1108,7 +1118,7 @@ def test_harvest_reads_the_creation_log_from_its_fixed_remote_path(tmp_path):
     seen = []
 
     def fake(argv):
-        seen.append(list(argv)[-1])
+        seen.append(shlex.split(list(argv)[-1])[-1])
         return d.GhResult(ok=False, exit_code=1, stdout="")
 
     d.codespace_harvest("fluffy-1", batch="B1", lane="lane-path", out_root=tmp_path, invoker=fake)
@@ -1348,7 +1358,7 @@ class _MirrorGh(_FakeGh):
         self.runner_body = ""
 
     def __call__(self, argv, input_bytes=None):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         tool = next((a for a in argv if a.endswith("credential-tools.sh")), None)
         if argv[:2] == ["codespace", "ssh"] and tool is not None:
             self.calls.append(argv)
@@ -1751,7 +1761,7 @@ class _FinishGh(_MirrorGh):
         return self.agy.started
 
     def __call__(self, argv, input_bytes=None):
-        argv = list(argv)
+        argv = _unquote_ssh(argv)
         if argv[:2] == ["codespace", "ssh"] and argv[-1].endswith("handback.json"):
             self.calls.append(argv)
             if self.handback == "":
@@ -2219,7 +2229,7 @@ def test_the_runner_writes_the_lane_report_as_handback_json(tmp_path):
     last = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 2,
             "session_id": "s-1", "structured_output": _LANE_REPORT}
     _origin, _checkout, work, receipt = _lane_run(tmp_path, head_lines=_stream_head(tmp_path, last))
-    assert json.loads((work / "handback.json").read_text(encoding="utf-8")) == _LANE_REPORT, \
+    assert json.loads((work / "runner-handback.json").read_text(encoding="utf-8")) == _LANE_REPORT, \
         "the LAST result object's structured_output, not the first"
     assert receipt["handback"] == {"present": True}
 
@@ -2228,7 +2238,7 @@ def test_the_runner_records_no_handback_when_the_last_result_has_no_structured_o
     last = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 2, "session_id": "s-1"}
     _origin, _checkout, work, receipt = _lane_run(tmp_path, head_lines=_stream_head(tmp_path, last))
     assert receipt["handback"] == {"present": False}
-    assert not (work / "handback.json").exists()
+    assert not (work / "runner-handback.json").exists()
 
 
 # ----- 18-19: the commit step ----------------------------------------------------------------------
@@ -2311,7 +2321,7 @@ def test_the_run_step_row_carries_exit_code_status_turns_and_session(tmp_path):
 # ----- 22: harvest ---------------------------------------------------------------------------------
 
 def test_harvest_collects_handback_json_and_writes_a_harvest_step(tmp_path):
-    assert d.HARVEST_FILES == ("run.log", "receipt.json", "handback.json")
+    assert d.HARVEST_FILES == ("run.log", "receipt.json", "handback.json", "runner-handback.json")
     fake = _ssh_cat_fake({"run.log": "x\n", "receipt.json": '{"exit_code": 0}\n',
                           "handback.json": json.dumps(_LANE_REPORT) + "\n"})
     result = d.codespace_harvest("fluffy-1", batch="B1", lane="lane-h", out_root=tmp_path, invoker=fake)

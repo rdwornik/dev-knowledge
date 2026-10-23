@@ -315,9 +315,9 @@ def test_codespace_plan_ships_a_runner_file_and_never_composes_the_prompt_into_s
     verbs = [step.argv[:3] for step in plan]
     assert ["gh", "codespace", "create"] in verbs
     # two `codespace ssh` steps now exist (mkdir the workdir, then run) -- select the RUN one.
-    ssh = next(s for s in plan if s.argv[:3] == ["gh", "codespace", "ssh"] and "bash" in s.argv)
+    ssh = next(s for s in plan if s.argv[:3] == ["gh", "codespace", "ssh"] and s.argv[-1].startswith("bash "))
     # b2-codespace-green item 1 (D1): a LOGIN shell, so the Codespaces secrets are visible
-    assert ssh.argv[-3:-1] == ["bash", "-l"] and ssh.argv[-1].endswith(".sh")
+    assert ssh.argv[-2] == "--" and ssh.argv[-1].startswith("bash -l ") and ssh.argv[-1].endswith(".sh")
     assert all("do the thing" not in " ".join(s.argv) for s in plan)
     receipt = next(s for s in plan if s.note == "pull the receipt back")
     assert receipt.argv[:3] == ["gh", "codespace", "cp"]
