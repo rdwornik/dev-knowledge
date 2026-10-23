@@ -485,6 +485,8 @@ def check_dirty_tree():
     changes = [ln for ln in r.stdout.splitlines() if ln.strip()]
     # Drop lane-owned dailies only; everything beside them keeps its finding and its count.
     changes = [ln for ln in changes if not _is_lane_owned_daily(ln)]
+    # [#1706]: the integrator carries the receipts ledger, so the nudge must not tell a seat to commit it.
+    changes = [ln for ln in changes if ln[3:].strip().strip('"') != "logs/CODESPACE-RECEIPTS.jsonl"]
     if not changes:
         return None
     sample = ", ".join(ln[3:].strip() for ln in changes[:3])
