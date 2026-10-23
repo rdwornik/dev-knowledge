@@ -2190,6 +2190,9 @@ def _row_supplement_matches_transport(transport, bundle_dir: "Path | None") -> P
     except (OSError, UnicodeError) as exc:
         return PreflightRow(name, PREFLIGHT_FAIL, locator,
                             f"the supplement could not be read ({exc}); unread is not matching")
+    if not t_text:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"`{newest.name}` is empty; an empty supplement matches nothing")
     if t_text in b_text:
         return PreflightRow(name, PREFLIGHT_PASS, locator,
                             f"SUPPLEMENT.md folds `{newest.name}` verbatim")

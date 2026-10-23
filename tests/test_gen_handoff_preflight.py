@@ -860,3 +860,16 @@ def test_a_ratified_but_unlanded_ruling_is_named_not_silently_passed(tmp_path, _
     assert "1 of 2 citation(s) resolve" in row.detail, row.detail
     assert "NOT yet landed" in row.detail and "R96" in row.detail, row.detail
     assert "RATIFICATION-2026-10-11.md" in row.detail, row.detail
+
+
+def test_an_empty_transport_supplement_does_not_match_vacuously(tmp_path, _quiet_hub):
+    """Review-2 HIGH: `"" in anything` is True, so an empty newest supplement passed every bundle."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    (transport / "to-cc" / "SUPPLEMENT-ANSWERS-2026-09-07.md").write_text("  \n", encoding="utf-8")
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "SUPPLEMENT.md").write_text("# S\nanything\n", encoding="utf-8")
+    rows = gh.preflight_rows(repo, transport=transport, today=_TODAY, bundle_dir=bundle)
+    row = next(r for r in rows if r.name == "supplement_matches_transport")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
