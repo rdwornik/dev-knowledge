@@ -1,7 +1,7 @@
 ---
 id: "[#1350]"
 title: "The transport append lock reads a Windows delete-pending file as an error, and one test flakes on it"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E10] Batch convergence"
