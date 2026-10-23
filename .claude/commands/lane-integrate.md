@@ -5,6 +5,8 @@ description: Walk a batch's merge queue serially from the primary checkout, then
 
 # /lane-integrate — serial integrator for one batch
 
+> **RETIRED 2026-10-23 ([#1698] / lane landing-class):** `scripts/land_lane.py` is the ONLY landing path. This command is kept, not deleted (removal needs the operator's GO, R127); do not use it to land.
+
 **Doctrine lives in `protocols/PLAYBOOK.md` Ch8, "The batch protocol — ONE plan → N lanes → ONE
 integrator".** Read that section; this command does not restate it. Everything below is the
 mechanical close-out.

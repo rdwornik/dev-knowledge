@@ -21,18 +21,26 @@ THE STEPS (STEPS, in order; a step that did not run is not reported)
   push-integration  `land()`: the merge commit to `worktree-integrate-<batch>`.
   poll              `land()`: CI's verdict for that sha (a poll, in this process).
   land              `land()`: the SAME sha to main. Then `origin/main` is re-read.
-  receipt           close the receipt; its ledger line goes to the carry file, and the ledger is
-                    restored (`git checkout --`) so main's ledger only ever grows by a later merge.
+  receipt           runs inside `land()`, after CI and before the main push ([#1698]): the receipt is
+                    closed, its ledger line committed (R) and merged under the judged merge M with
+                    `--no-ff` (M2, parents M and R), and M2 is what goes to main -- the landing and
+                    its own receipt line arrive in ONE push and main's first-parent spine stays
+                    merge-only. The carry file is left empty.
   teardown          `teardown_fn` (default: fetch, then reset the worktree to `origin/main`).
 The three `land()` steps are one call: their seconds come from the receipt's `push-integration` and
 `push-main` timings and from wall time around the call (poll = wall minus both pushes, floored at 0).
+The line is written before the push it describes, so its `push-main` seconds are a proxy: one
+`git ls-remote origin` round trip, not the push itself.
 
 EXIT CODES  0 landed | 2 conflict | 3 CI red | 4 BASE-MOVED | 5 refused | 64 usage.
 
 HONEST LIMITS
   * The re-read of `origin/main` after `land()` DETECTS an unjudged sha on main; it cannot prevent
     one. Prevention is `land()`'s construction: one sha, pushed to the integration branch, judged,
-    then pushed to main.
+    then pushed to main -- with only the receipt merge M2 (which adds nothing but the ledger line)
+    on top of it.
+  * A landing that fails after the receipt line was written leaves nothing on main; the worktree
+    is reset to BASE and the landing must be re-run.
   * The local `ci wait` is a poll inside this process: it holds the worktree for up to
     `--timeout` seconds and is lost with the process.
   * A real landing against a non-local origin needs `--i-am-the-integrator`; that is a statement,
@@ -56,6 +64,8 @@ _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:                    # dual-import shim, as every sibling uses
     sys.path.insert(0, str(_SCRIPTS))
 
+import check_backlog_commit_msg  # noqa: E402
+import check_backlog_filing  # noqa: E402
 import merge_path  # noqa: E402
 from merge_path import Runner  # noqa: E402
 
@@ -91,14 +101,54 @@ class LandReport:
     steps: list = field(default_factory=list)
     conflicts: tuple = ()
     failing: tuple = ()
+    main_sha: str = ""
 
     @property
     def ok(self) -> bool:
         return self.exit_code == EXIT_OK
 
 
+def build_merge_message(slug: str, batch: str, *, diff: str = "", lane_log: str = "",
+                        override: Optional[str] = None, operator_act: Optional[str] = None,
+                        ratification: Optional[str] = None) -> str:
+    """The merge commit message, shaped to pass the repo's own commit-msg hooks. Pure."""
+    if override is not None:
+        return override
+    subject = f"chore(land): {slug} ({batch})"
+    body: list[str] = []
+    if operator_act:
+        subject += f" operator-act {operator_act}"
+        body.append(f"Ratified-by: {operator_act} {ratification}")
+    removed = set(check_backlog_commit_msg._REMOVED_RE.findall(diff))
+    added = set(check_backlog_commit_msg._ADDED_RE.findall(diff))
+    closed = sorted(removed - added, key=int)
+    if closed:
+        body.append("closes " + " ".join(f"[#{i}]" for i in closed))
+    filed = {tid for _line, tid in check_backlog_filing._ADDED_LINE_RE.findall(diff)} - removed
+    if filed:
+        found = check_backlog_filing._KILL_RE.search(lane_log)
+        body.append(found.group(0).strip() if found else
+                    f"kill-candidates: none -- ids added by lane {slug}; landing carries no "
+                    f"removal proposal of its own")
+    return subject + ("\n\n" + "\n".join(body) if body else "") + "\n"
+
+
+def resolve_ratification(act_id: str, ratification: Path) -> Optional[str]:
+    """The markdown table row `| <act_id> |...` in the ratification file, else None."""
+    try:
+        text = Path(ratification).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    prefix = f"| {act_id} |"
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            return line.rstrip()
+    return None
+
+
 def plan(slug: str, batch: str, timeout_s: int = DEFAULT_TIMEOUT_S,
-         lane_ref: Optional[str] = None) -> list[str]:
+         lane_ref: Optional[str] = None, operator_act: Optional[str] = None,
+         ratification_line: Optional[str] = None) -> list[str]:
     """One line per STEP, naming what it would run. Pure: touches nothing."""
     lane_ref = lane_ref or f"origin/worktree-{slug}"
     branch = merge_path.integration_branch(batch)
@@ -109,11 +159,18 @@ def plan(slug: str, batch: str, timeout_s: int = DEFAULT_TIMEOUT_S,
         "carry": "append the carry file's receipt lines to the ledger; git commit --amend --no-edit",
         "push-integration": f"merge_path.land: git push origin <sha>:refs/heads/{branch}",
         "poll": f"merge_path.land: wait for CI on {branch}, up to {timeout_s / 60:g} min",
-        "land": "merge_path.land: git push origin <same sha>:refs/heads/main; re-read origin/main",
-        "receipt": f"close the receipt for {slug}; ledger line -> carry file; restore the ledger",
+        "land": "merge_path.land: git push origin <judged sha + receipt merge>:refs/heads/main; "
+                "re-read origin/main",
+        "receipt": f"inside land, before the main push: close the receipt for {slug}; commit its "
+                   f"ledger line and --no-ff merge it under the judged sha",
         "teardown": "git fetch origin; git reset --hard origin/main in the integration worktree",
     }
-    return [f"{step}: {text[step]}" for step in STEPS]
+    lines = [f"{step}: {text[step]}" for step in STEPS]
+    if operator_act:
+        lines.insert(0, f"operator-act {operator_act}: no model call; the substitution gate read "
+                        f"is skipped")
+        lines.append(f"ratification: {operator_act} -> {ratification_line}")
+    return lines
 
 
 def _default_teardown(worktree: Path) -> None:
@@ -175,6 +232,8 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
               regenerate_fn: Optional[Callable[[Path], Sequence[str]]] = None,
               regen_cmds: Sequence[Sequence[str]] = (), handback: Optional[Path] = None,
               teardown_fn: Optional[Callable[[Path], None]] = None,
+              message: Optional[str] = None, operator_act: Optional[str] = None,
+              ratification: Optional[Path] = None,
               sleep: Callable[[float], None] = time.sleep) -> LandReport:
     """Run the lane-integrate sequence for one lane. Never raises for an expected stop: every
     outcome is a LandReport. `sleep` is accepted for the injection contract; the poll itself runs
@@ -184,6 +243,7 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     git = git or merge_path._run_git(worktree)
     land_fn = land_fn or merge_path.land
     teardown_fn = teardown_fn or _default_teardown
+    explicit_lane_ref = lane_ref
     lane_ref = lane_ref or f"origin/worktree-{slug}"
     carry_file = Path(carry_file)
     ledger = mr.ledger_path(worktree)
@@ -194,6 +254,17 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
 
     def timed(name: str, started: float) -> None:
         steps.append((name, time.monotonic() - started))
+
+    ratified_row = None
+    if operator_act:
+        ratified_row = resolve_ratification(operator_act, ratification) if ratification else None
+        if ratified_row is None:
+            return report("REFUSED", EXIT_REFUSED,
+                          f"operator-act {operator_act!r} is not ratified: no table row "
+                          f"`| {operator_act} |` in {ratification}. Nothing was pushed.")
+        if not explicit_lane_ref:
+            return report("REFUSED", EXIT_REFUSED,
+                          "an operator-act landing needs an explicit --lane-ref. Nothing was pushed.")
 
     # fetch
     started = time.monotonic()
@@ -216,7 +287,12 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
 
     # merge
     started = time.monotonic()
-    code, out = git(["merge", "--no-ff", "-m", f"land {slug} ({batch})", lane_ref])
+    _, diff = git(["diff", "-U0", f"{base}...{lane_ref}", "--", "BACKLOG.md", "tasks/"])
+    _, lane_log = git(["log", f"{base}..{lane_ref}", "--format=%B"])
+    merge_message = build_merge_message(
+        slug, batch, diff=diff, lane_log=lane_log, override=message, operator_act=operator_act,
+        ratification=str(ratification) if operator_act else None)
+    code, out = git(["merge", "--no-ff", "-m", merge_message, lane_ref])
     if code != 0:
         _, names = git(["diff", "--name-only", "--diff-filter=U"])
         conflicts = tuple(n.strip() for n in names.splitlines() if n.strip())
@@ -287,15 +363,58 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     timed("carry", started)
     code, out = git(["rev-parse", "HEAD"])
     sha = out.strip()
-    ledger_before = len(_read_lines(ledger))
 
     # push-integration, poll, land: one call to merge_path.land
     try:
         mr.open_receipt(worktree, slug=slug, batch=batch)
     except mr.MergeReceiptError as exc:
         return report("REFUSED", EXIT_REFUSED, f"cannot open the receipt: {exc}", sha=sha)
+    push_s_seen: list = []
+    main_s_seen: list = []
+
+    def finalize(judged: str) -> str:
+        """Write this landing's own ledger line and merge it under `judged` (M -> M2)."""
+        push_s_seen.append(_push_seconds(worktree, slug)[0])
+        # The line is written BEFORE the push it describes, so the real push duration cannot be
+        # known: one `ls-remote origin` round trip stands in for it.
+        started_rt = time.monotonic()
+        git(["ls-remote", "origin", "refs/heads/main"])
+        seconds = time.monotonic() - started_rt
+        main_s_seen.append(seconds)
+        mr.record_push(worktree, slug=slug, target="main", branch="main", sha=judged,
+                       seconds=seconds)
+        receipt = mr.load_receipt(worktree, slug)
+        if not receipt.merge_sha:                   # the suite read names it; pin it when none did
+            receipt.merge_sha = judged
+            mr.save_receipt(worktree, receipt)
+        mr.close_receipt(worktree, slug)
+        receipt_msg = f"chore(land): receipt {slug} ({batch})"
+        if operator_act:
+            receipt_msg += f"\n\nRatified-by: {operator_act} {ratification}"
+        for args in (["add", "--", LEDGER_RELPATH],
+                     ["commit", "-m", f"chore(receipt): {slug} MERGE-RECEIPTS line"]):
+            code, out = git(args)
+            if code != 0:
+                raise RuntimeError(f"git {args[0]} failed: {out.strip()[:200]}")
+        code, out = git(["rev-parse", "HEAD"])
+        receipt_commit = out.strip()
+        for args in (["reset", "--hard", judged],
+                     ["merge", "--no-ff", "-m", receipt_msg, receipt_commit]):
+            code, out = git(args)
+            if code != 0:
+                raise RuntimeError(f"git {args[0]} failed: {out.strip()[:200]}")
+        code, out = git(["rev-parse", "HEAD"])
+        merged = out.strip()
+        code, out = git(["diff", "--name-only", judged, merged])
+        if code != 0 or out.split() != [LEDGER_RELPATH]:
+            raise RuntimeError(f"the receipt merge changed {out.split()} instead of only "
+                               f"{LEDGER_RELPATH}")
+        return merged
+
     kwargs = dict(slug=slug, batch=batch, sha=sha, base=base, timeout_s=timeout_s,
-                  interval_s=interval_s, git=git)
+                  interval_s=interval_s, git=git, finalize_fn=finalize)
+    if ratified_row is not None:
+        kwargs["operator_act_line"] = ratified_row
     if verdict_fn is not None:
         kwargs["verdict_fn"] = verdict_fn
     if record_suite_fn is not None:
@@ -314,8 +433,10 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     wall = time.monotonic() - started
     pushed = bool(result.commands)
     branch = result.branch or merge_path.integration_branch(batch)
+    main_sha = getattr(result, "main_sha", "") or sha
     if pushed:
-        push_s, main_s = _push_seconds(worktree, slug)
+        push_s = push_s_seen[0] if push_s_seen else _push_seconds(worktree, slug)[0]
+        main_s = main_s_seen[0] if main_s_seen else 0.0
         steps.append(("push-integration", push_s))
         steps.append(("poll", max(0.0, wall - push_s - main_s)))
         if result.landed:
@@ -324,45 +445,35 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
         mr.scratch_path(worktree, slug).unlink(missing_ok=True)   # nothing pushed: no half-done record
 
     if not result.landed:
-        return _refusal(report, result, sha, branch, pushed)
+        refusal = _refusal(report, result, sha, branch, pushed)
+        if main_s_seen:                             # finalize ran: the worktree holds an unpushed M2
+            git(["reset", "--hard", base])
+            refusal.message += (f" The receipt line for {slug} was written but not pushed; the "
+                                f"worktree was reset to BASE and the landing must be re-run.")
+        return refusal
 
-    # land, verified: main must hold exactly the judged sha
+    # land, verified: main must hold exactly the pushed sha
     code, out = git(["ls-remote", "origin", "refs/heads/main"])
     fields = out.split()
     remote = fields[0] if code == 0 and fields else ""
-    if not merge_path._same(remote, sha):
+    if not merge_path._same(remote, main_sha):
         return report("REFUSED", EXIT_REFUSED,
                       f"unjudged sha on main: origin/main is {remote or out.strip()[:80]!r}, CI "
-                      f"judged {sha}. main was changed by a push other than the judged one; the "
-                      f"receipt for {slug} is left open as the record.", sha=sha)
+                      f"judged {sha} and {main_sha} was pushed. main was changed by a push other "
+                      f"than the judged one; the receipt for {slug} is left open as the record.",
+                      sha=sha, main_sha=main_sha)
 
-    # receipt
+    # receipt: the line is already on main; nothing is left for a successor to carry
     started = time.monotonic()
-    new_lines: list = []
     try:
-        mr.close_receipt(worktree, slug)
-        new_lines = _read_lines(ledger)[ledger_before:]
         carry_file.parent.mkdir(parents=True, exist_ok=True)
-        carry_file.write_text("".join(f"{ln}\n" for ln in new_lines), encoding="utf-8",
-                              newline="\n")
-        tracked, _ = git(["ls-files", "--error-unmatch", LEDGER_RELPATH])
-        if tracked == 0:
-            code, out = git(["checkout", "--", LEDGER_RELPATH])
-        else:                                       # the ledger is new in this tree: nothing to restore
-            ledger.unlink(missing_ok=True)
-            code, out = 0, ""
-    except (OSError, mr.MergeReceiptError) as exc:
+        carry_file.write_text("", encoding="utf-8", newline="\n")
+    except OSError as exc:
         timed("receipt", started)
         return report("REFUSED", EXIT_REFUSED,
-                      f"LANDED {sha[:12]} on main, but the receipt step failed: {exc}. main is "
-                      f"correct. Save this ledger line for the next landing (carry file "
-                      f"{carry_file}) and clean the worktree by hand: "
-                      f"{' | '.join(new_lines) or 'not read'}", sha=sha)
+                      f"LANDED {sha[:12]} on main with its receipt line, but the carry file "
+                      f"{carry_file} could not be emptied: {exc}", sha=sha, main_sha=main_sha)
     timed("receipt", started)
-    if code != 0:
-        return report("REFUSED", EXIT_REFUSED,
-                      f"landed {sha[:12]} but the ledger could not be restored: {out.strip()[:200]}",
-                      sha=sha)
 
     # teardown
     started = time.monotonic()
@@ -371,11 +482,11 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     except Exception as exc:                        # noqa: BLE001 -- reported, the landing stands
         timed("teardown", started)
         return report("LANDED", EXIT_OK, f"LANDED {sha[:12]} on main via {branch}; teardown "
-                                         f"failed: {exc}", sha=sha)
+                                         f"failed: {exc}", sha=sha, main_sha=main_sha)
     timed("teardown", started)
     return report("LANDED", EXIT_OK,
-                  f"LANDED {sha[:12]} on main after CI on {branch}. Receipt line carried to "
-                  f"{carry_file}.", sha=sha)
+                  f"LANDED {sha[:12]} on main after CI on {branch}, receipt line included.",
+                  sha=sha, main_sha=main_sha)
 
 
 def _refusal(report: Callable, result, sha: str, branch: str, pushed: bool) -> LandReport:
@@ -432,17 +543,34 @@ def _origin_is_remote(url: str) -> bool:
               help="print the plan and touch nothing")
 @click.option("--i-am-the-integrator", "integrator", is_flag=True, default=False,
               help="required to land against a non-local origin")
+@click.option("--message", "message", default=None,
+              help="the whole merge commit message, replacing the generated one")
+@click.option("--operator-act", "operator_act", default=None,
+              help="a ratified operator-act id: lands with no model call and no substitution gate")
+@click.option("--ratification", "ratification", default=None, type=click.Path(path_type=Path),
+              help="the ratification file whose table row `| <act> |` ratifies --operator-act")
 def cli(worktree: Path, slug: str, batch: str, lane_ref: Optional[str], carry_file: Optional[Path],
         timeout_s: int, interval_s: int, regen_cmds: tuple, handback: Optional[Path],
-        dry_run: bool, integrator: bool) -> None:
+        dry_run: bool, integrator: bool, message: Optional[str], operator_act: Optional[str],
+        ratification: Optional[Path]) -> None:
     """Land ONE lane: merge, carry, integration push, CI, main push, receipt. No model call."""
+    if operator_act and ratification is None:
+        click.echo("land_lane: --operator-act needs --ratification", err=True)
+        sys.exit(EXIT_REFUSED)
     try:
         merge_path.integration_branch(batch)
     except click.ClickException as exc:
         click.echo(f"land_lane: {exc.message}", err=True)
         sys.exit(EXIT_USAGE)
     if dry_run:
-        for line in plan(slug, batch, timeout_s, lane_ref):
+        row = None
+        if operator_act:
+            row = resolve_ratification(operator_act, ratification)
+            if row is None:
+                click.echo(f"land_lane: operator-act {operator_act!r} is not ratified in "
+                           f"{ratification}", err=True)
+                sys.exit(EXIT_REFUSED)
+        for line in plan(slug, batch, timeout_s, lane_ref, operator_act, row):
             click.echo(line)
         sys.exit(EXIT_OK)
     worktree = worktree.resolve()
@@ -459,6 +587,7 @@ def cli(worktree: Path, slug: str, batch: str, lane_ref: Optional[str], carry_fi
     carry = carry_file or worktree.parent / f"{worktree.name}-land-carry.jsonl"
     report = land_lane(worktree, slug=slug, batch=batch, carry_file=carry, timeout_s=timeout_s,
                        interval_s=interval_s, lane_ref=lane_ref, handback=handback,
+                       message=message, operator_act=operator_act, ratification=ratification,
                        regen_cmds=[shlex.split(c) for c in regen_cmds] or default_regen_cmds(worktree))
     click.echo(report.message)
     for name, seconds in report.steps:

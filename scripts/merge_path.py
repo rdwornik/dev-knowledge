@@ -271,13 +271,18 @@ class LandResult:
     #: The `MODELS:` lines the handback carries with a `VENDOR-FAIL: <ref>` -- a substitution the gate
     #: accepted because it was recorded. Printed by `land`'s verb so it reaches the handback and LEDGER.
     substitutions: list = field(default_factory=list)
+    #: The sha actually pushed to main: `sha` (the judged merge) unless a `finalize_fn` put a
+    #: receipt merge on top of it.
+    main_sha: str = ""
 
 
 def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
          timeout_s: int = 900, interval_s: int = 20, git: Optional[Runner] = None,
          verdict_fn: Optional[Callable] = None, record_push_fn: Optional[Callable] = None,
          record_suite_fn: Optional[Callable] = None, no_push: bool = False,
-         run_id: Optional[int] = None, handback: Optional[Path] = None) -> LandResult:
+         run_id: Optional[int] = None, handback: Optional[Path] = None,
+         operator_act_line: Optional[str] = None,
+         finalize_fn: Optional[Callable[[str], str]] = None) -> LandResult:
     """Integration branch first, then the SAME sha to main. See the module docstring.
 
     For a batch from E2.0 on (`subst_gate.batch_applies`) `handback` is REQUIRED and is read BEFORE
@@ -318,10 +323,15 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                       f"integration base {base} (git said: {out.strip()[:160]!r})")
     sha = parts[0]
     import subst_gate
-    problems, substitutions = subst_gate.handback_problems(
-        root, slug, batch, handback, receipts_dir=os.environ.get("HARNESS_RECEIPTS_DIR") or None)
-    if problems:
-        return refuse("SUBST-GATE-REFUSED", " | ".join(problems))
+    if operator_act_line:
+        # A ratified operator act runs no model: there is no handback or MODELS block to judge.
+        substitutions = []
+    else:
+        problems, substitutions = subst_gate.handback_problems(
+            root, slug, batch, handback,
+            receipts_dir=os.environ.get("HARNESS_RECEIPTS_DIR") or None)
+        if problems:
+            return refuse("SUBST-GATE-REFUSED", " | ".join(problems))
     # ADR-127 AMENDMENT 2: Linux alone judges this merge unless its diff is Windows-sensitive.
     # Read ONCE, here, so the verdict and the receipt's second read of the run judge the same set.
     contexts = required_contexts(windows_required_for(git, base, sha))
@@ -372,17 +382,28 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         return refuse("BASE-MOVED", f"origin/main moved to {remote!r} while CI ran on the "
                                     f"integration branch; the judged sha is no longer the next "
                                     f"commit on main", verdict)
-    push_main = ["push", "origin", f"{sha}:refs/heads/main"]
+    push_sha = sha
+    if finalize_fn is not None:
+        # The caller's receipt merge goes on top of the judged sha BEFORE main is pushed, so the
+        # landing and its receipt line arrive in one push; it records the main-push step itself.
+        try:
+            push_sha = finalize_fn(sha)
+        except Exception as exc:              # noqa: BLE001 -- recorded in the refusal
+            return refuse("RECEIPT-REFUSED", f"the landing's receipt could not be written: {exc}",
+                          verdict)
+    push_main = ["push", "origin", f"{push_sha}:refs/heads/main"]
     commands.append(push_main)
     started = time.monotonic()
     code, out = git(push_main)
     main_s = time.monotonic() - started
     if code != 0:
         return refuse("MAIN-PUSH-REFUSED", out.strip()[:300], verdict)
-    record_push_fn(root, slug=slug, target="main", branch="main", sha=sha, seconds=main_s)
+    if finalize_fn is None:
+        record_push_fn(root, slug=slug, target="main", branch="main", sha=sha, seconds=main_s)
     return LandResult(True, getattr(verdict, "state", "PASS"),
                       f"{sha[:12]} landed on main after CI on {branch}", sha=sha, branch=branch,
-                      verdict=verdict, commands=commands, substitutions=substitutions)
+                      verdict=verdict, commands=commands, substitutions=substitutions,
+                      main_sha=push_sha)
 
 
 # --- the ruleset (items 7, 13, 14) ------------------------------------------------------------
