@@ -3744,6 +3744,18 @@
       "file": "1715-actions-verdict-reads-only-mains-push-run.md"
     },
     {
+      "task": 1716,
+      "file": "1716-codespace-delivery-quoting.md"
+    },
+    {
+      "task": 1717,
+      "file": "1717-codespace-creation-log-wait.md"
+    },
+    {
+      "task": 1718,
+      "file": "1718-dispatch-disallowedtools-passthrough.md"
+    },
+    {
       "prose": ""
     },
     {
