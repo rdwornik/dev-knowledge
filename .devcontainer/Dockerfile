@@ -37,6 +37,7 @@ RUN set -eux; \
     grep -rl 'dl\.yarnpkg\.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null \
       | xargs -r rm -f; \
     apt-get update; \
+    apt-get install -y --no-install-recommends bubblewrap; \
     rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------------------------

@@ -69,7 +69,8 @@ def test_implement_is_led_by_copilot_with_sonnet_vendor_fail_only_not_grok(regis
 def test_red_is_led_by_copilot_default_on_a_codespace(registry):
     first = registry.roles["red"].order[0]
     assert first.provider == "copilot-enterprise"
-    assert first.model is None
+    # F7 (operator 2026-10-23): the RED writer is pinned to gpt-6-luna; was unpinned before.
+    assert first.model == "gpt-6-luna"
     assert first.substrate == "codespace"
 
 

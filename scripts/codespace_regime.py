@@ -162,7 +162,8 @@ def write_receipt(slug: str, batch: str, codespace: str,
                   machine: str, prebuild: bool, tokens: Mapping[str, int],
                   ledger_path: Optional[Path] = None,
                   now: Optional[datetime] = None,
-                  ready: Optional[str] = None, ready_reason: str = "") -> dict:
+                  ready: Optional[str] = None, ready_reason: str = "",
+                  end_reason: str = "") -> dict:
     """Append one cloud-lane receipt, carrying uptime MINUTES alongside tokens.
 
     Every row names its `substrate`, the `ready` stamp (the first moment the box answered ssh) and
@@ -199,7 +200,7 @@ def write_receipt(slug: str, batch: str, codespace: str,
         "ready": ready,
         "ready_reason": ready_reason if (ready or ready_reason) else UNMEASURED_READY,
         "end": deleted.isoformat() if deleted else None,
-        "end_reason": "" if deleted else "open: the box has not been deleted",
+        "end_reason": end_reason if deleted else "open: the box has not been deleted",
     }
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     path.parent.mkdir(parents=True, exist_ok=True)

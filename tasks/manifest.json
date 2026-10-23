@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bf90c9b7820fa521bb6a9daf42bf7274f39cdd7c324004f1a3347962da58776b",
+  "generated_sha256": "3bf7fe565d6d0996fc2844dab8ac1f5934fcc14bab273c482fe858cd80ef4ba2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2788,10 +2788,6 @@
       "file": "1349-release-lint-the-floor-spec-pin-does-not-match-i.md"
     },
     {
-      "task": 1350,
-      "file": "1350-the-transport-append-lock-reads-a-windows-delete.md"
-    },
-    {
       "task": 1360,
       "file": "1360-d1-is-the-first-real-backlog-task-through-the-spin.md"
     },
@@ -3528,24 +3524,12 @@
       "file": "1656-today-glue-count-in-close-digest.md"
     },
     {
-      "task": 1657,
-      "file": "1657-harvest-copies-the-lane-session-file.md"
-    },
-    {
-      "task": 1658,
-      "file": "1658-codespace-delete-writes-close-row.md"
-    },
-    {
       "task": 1660,
       "file": "1660-groom-view-back-under-150000.md"
     },
     {
       "task": 1661,
       "file": "1661-codespace-handback-fires-monitor-wake.md"
-    },
-    {
-      "task": 1662,
-      "file": "1662-runner-and-lane-share-handback-json.md"
     },
     {
       "task": 1663,

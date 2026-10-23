@@ -374,10 +374,10 @@ def anthropic_role_model(role: str, path: Optional[Path] = None) -> str:
 def claude_alias_ids(path: Optional[Path] = None) -> dict[str, str]:
     """The bare Claude CLI aliases resolved to registry ids: the one source for every alias table.
 
-    `opus` = `seat-integrator`, `sonnet` = `seat-orchestrator`, `haiku` = the anthropic model of
+    `opus` = `seat-dispatcher` (D9; was `seat-integrator` until D2 moved it to Sonnet, 2026-10-23), `sonnet` = `seat-orchestrator`, `haiku` = the anthropic model of
     `read`; `opusplan` names the Opus plan mode and the Sonnet build mode.
     """
-    opus = anthropic_role_model("seat-integrator", path)
+    opus = anthropic_role_model("seat-dispatcher", path)
     sonnet = anthropic_role_model("seat-orchestrator", path)
     return {"opus": opus, "sonnet": sonnet, "haiku": anthropic_role_model("read", path),
             "opusplan": f"{opus} (plan mode) / {sonnet} (build mode)"}

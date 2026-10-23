@@ -990,7 +990,10 @@ def _roles_section() -> list[str]:
         return entry.get("substrate") or default
 
     def label(entry: dict) -> str:
-        return entry.get("model") or "**Copilot CLI** (default model)"
+        model = entry.get("model")
+        if entry.get("provider") == "copilot-enterprise":
+            return f"**Copilot CLI** `{model}`" if model else "**Copilot CLI** (default model)"
+        return model or "**Copilot CLI** (default model)"
 
     implement = first("implement")
     served = ", ".join(sorted(_preg.copilot_gateway_served()))

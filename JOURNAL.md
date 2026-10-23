@@ -21,6 +21,56 @@
 
 ---
 
+### 2026-10-23 (e) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane codespace-delivery-fix (L5, W4) -- codespace delivery: the runner and the lane stop sharing `handback.json` (`[#1662]`), the harvest copies and verifies the lane's SESSION file (`[#1657]`), `codespace delete` writes its close row (`[#1658]`), ssh argv is quoted, the creation-log wait is bounded, `--disallowedTools` passes through; the bubblewrap carrier is restored from the e2-pins witness branch
+
+**Anchors:** `79d24b060` and `6c664dccd` (the two e2-pins witness carriers, cherry-picked per contract item 2), `7b2f72121` (frozen RED tests), `62c677593` (the fix), `cc281131c` (test fix), `53b8dac16` (the three D1 rows filed), `e43b5ad39` (review-2 P1: an unreadable requested SESSION file refuses the harvest), `99a19959c` (rows closed), `ebdc856a8` (the lane tip: the Codex review record)
+
+**Did:** purity (9 lane commits on merge-base af8bdad5b), substitution gate clean after repair 1 (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 457909fd9, regenerate (BACKLOG.md 809 -> 806 tasks, tasks/manifest.json, ecosystem/doc-counts.md), the nine affected test files: 526 passed, 1 skipped (`-n0`, 566 s), ship-gate head leg on the merged tree against the handoff-truth merged tree (= main) as baseline: hard-fails 0 introduced by the diff; the lane's Codex review record (docs/audits/2026-10-23-codex-codespace-delivery-fix-review.md) carried two new WARNs (consumer_at_landing, funnel_coverage) and, in the first landing attempt (CI run 40003524303), two new red tests in tests/test_consumer_at_landing.py (the branch-context witnesses): its consumer is the lane's own merge receipt, which exists only after the landing. DECIDED-BY-INTEGRATOR: this merge lands WITHOUT that one file (left on the lane tip ebdc856a8, an ancestor of main) and the NEXT landing adds it together with this lane's receipt line, the integration shape the witness describes; `handoff_probes` FAIL (a wedged dispatcher seat 7f9cba41 the cut did not name) is live seat state and fails identically on main.
+
+**Result:** the codespace delivery path is delivered and tested locally; W4 USED is NOT met: contract items 1 (in-box provider-CLI auth matrix) and 7 (the real-box witness) are BLOCKED-OPERATOR on the gh `user` scope, so no box was created and no lane may run in a box on this window's say-so. The lane edited `scripts/codespace_regime.py` (an optional `end_reason` kwarg, 5 lines) outside its declared footprint; DECIDED-BY-INTEGRATOR: accepted, the contract's non-manual `end_reason` is unreachable without it. The lane's branch CI was red (ubuntu pytest 49 failed / 8 errors); its trace attributes it to PRE-EXISTING families (release_lint, audit fleet parity, dispatch_launch husk on a runner with no `claude`, connection_loop), REGEN-ARTIFACT (regenerated here) and CI-environment; none CAUSED-BY-LANE.
+
+**Changes:** `scripts/dispatch.py`, `scripts/codespace_regime.py`, `.devcontainer/Dockerfile`, `.devcontainer/devcontainer.json`, 7 test files under `tests/`, `tasks/` (1657, 1658, 1662 removed), `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (the previous landing's ledger line), `JOURNAL.md`.
+
+**Next:** the next landing restores docs/audits/2026-10-23-codex-codespace-delivery-fix-review.md (git show ebdc856a8:docs/audits/2026-10-23-codex-codespace-delivery-fix-review.md) with this lane's ledger line in the same merge; startup-tokens repair @ 88421fe17, landing-class @ 0cead9524 (HANDBACK 20:05), ci-one-verdict repair 1 (REFUSED, partial scope); connector-land rebases on this main and re-binds process-binding.yaml before it merges.
+
+
+### 2026-10-23 (d) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane handoff-truth (L12b, riding `[#1640]`, W10) -- six cut-time truth rows in `gen_handoff.preflight_rows` that reproduce the 2026-10-22 cut's misses (`fill_ins_filled`, `seat_ids_both`, `supplement_matches_transport`, `operator_decisions_list`, `digest_owed_present`, `landed_vs_ratified`); the last two are non-blocking by the lane's recorded decision
+
+**Anchors:** `09bf03282` (frozen RED tests), `a71c19ec6` (the six rows), `1109e72c3` and `972666786` (review HIGH fixes), `4fdaec9df` and `6d7a8e393` (the two rows made non-blocking after CI refused dry cuts), `358a22438` (claims `[#1640]` for graph-task-coverage), `9ad7df9f7` (the lane tip: locators reworded so the transport derivation does not read them as a SUPPLEMENT-ANSWERS template)
+
+**Did:** purity (8 lane commits on merge-base af8bdad5b, footprint = `scripts/gen_handoff.py`, `tests/test_gen_handoff_preflight.py` and the new truth test file), substitution gate clean on the lane's MODELS block (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 35afb2f42, regenerate (BACKLOG.md already current, doc-counts only), the six affected test files: 209 passed (`-n0`, 28 min), ship-gate head leg on the merged tree against the L13 head set as the current-main proxy: 462 identities each side, hard-fails 0, one canonical_freshness WARN whose evidence text drifted with the date (introduced 1 / resolved 1, the same WARN).
+
+**Result:** a cut now runs the six truth rows; `[#1640]` stays OPEN (its Done-when needs connector-land on main). The lane's branch CI red was classed by the lane as REGEN-ARTIFACT (doc-counts, regenerated here), PRE-EXISTING (husk, orphan census, journal_spine_anchor on a CI clone with no local main) and the cut-acceptance family failing on a JOURNAL that lags main, which clears over a current main. Operator questions carried to MORNING, not decided here: whether `landed_vs_ratified` (97 ids) and `operator_decisions_list` should refuse a cut once the two definitions of ruling agree, and whether to arm a post-render bundle check.
+
+**Changes:** `scripts/gen_handoff.py`, `tests/test_gen_handoff_preflight.py`, `tests/test_gen_handoff_preflight_truth.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (the previous landing's ledger line), `JOURNAL.md`.
+
+**Next:** ci-one-verdict (L2) @ 963edb406, codespace-delivery-fix repair @ ebdc856a8, startup-tokens repair @ 88421fe17 in that order; connector-land after codespace-delivery-fix lands.
+
+
+### 2026-10-23 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane registry-roles (L13) -- the 2026-10-23 model routing becomes registry data (seat-integrator claude-sonnet-5-5 per D2 amended, seat-dispatcher Opus per D9, rulings role, execute role, reserved share, family constraint, fallback trigger B') and the R177 amendment lands in `protocols/STANDING_RULINGS.md` after the operator's ruling recorded in `RATIFICATION-2026-10-23` AMENDMENT (a) (K10, U3)
+
+**Anchors:** `07d3ae9d6` (frozen RED tests, written by copilot gpt-6-luna), `0f5ed8509` (the registry data and schema), `743c2e59b` (the R177 amendment draft), `abb27ba8b` (the lane tip: CI repair 1)
+
+**Did:** purity (8 lane commits on merge-base af8bdad5b, nothing else), substitution gate clean on the lane's MODELS block (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 76e089f46, regenerate (BACKLOG.md already current, doc-counts only), the changed test files of the diff: 281 passed (`-n0`, 181 s), then the ship-gate diff on the merged tree.
+
+**Result:** after this lands the registry row `seat-integrator` pins claude-sonnet-5-5 (F3); that the successor actually SERVES that model is still checked at the next seat cycle, and the F3 OPERATOR-ACTION is written if it does not. Two operator questions the lane raised are carried to the digest MORNING section, not decided here: whether R138's Codex+Copilot review pair is retired, and whether the B' dispatch consumer and the Grok execute admission are filed this window.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `protocols/STANDING_RULINGS.md`, `scripts/provider_registry.py`, `scripts/subst_gate.py`, `scripts/cost_usage_telemetry.py`, `scripts/gen_lane_contract.py`, 10 test files under `tests/`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** startup-tokens (repair 1 owed), codespace-delivery-fix (repair 1 owed); landing-class (L8) and ci-one-verdict (L2) start now that known-reds-1350 is MERGED.
+
+### 2026-10-23 (b) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane known-reds-1350 (`[#1350]`, W1) -- the `scripts/transport.py` append-lock entry leaves the known-reds registry (removed, not re-dated), and the one test that asserted the registry made transport Windows-sensitive now asserts it through the real platform scan
+
+**Anchors:** `075fb8796` and `78366121a` (the lane's two commits: the registry removal with its mutation witness, and the repair that replaced `test_the_COMMITTED_registry_makes_transport_sensitive`)
+
+**Did:** purity (`git log origin/main..origin/worktree-known-reds-1350` = those two commits only), substitution gate clean on the lane's SESSION file, repair 1 for the one red test (`tests/test_linux_first_ci.py`, a one-test footprint extension ruled DECIDED-BY-INTEGRATOR), merged-tree tests, then the ship-gate diff on the trial merge: 462 blocking identities at both head and `origin/main` af8bdad5b, introduced 0, resolved 0. The diff ran as its two legs in two foreground calls (323 s and 360 s), because the whole exceeds the 10-minute tool cap on this host. Regenerated `BACKLOG.md`, `tasks/manifest.json` and `ecosystem/doc-counts.md` on the merged tree.
+
+**Result:** `logs/KNOWN-REDS-REGISTRY.json` no longer carries the [#1350] node; the two replacement tests pass. Coverage note, accepted and flagged for the architect: a test-only edit to `tests/test_transport.py` no longer selects the Windows leg by registry.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `tests/test_transport.py`, `tests/test_linux_first_ci.py`, `tasks/1350-*.md`, generated `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** `land_lane.py` fixes its own merge message (it fails the type-prefix hook, and a row-closing lane would then fail `backlog-id-on-close`); until then each landing is a recorded `FALLBACK` through `merge_path.py land`. Next in the queue: registry-roles, then startup-tokens (repair 1 owed), codespace-delivery-fix (repair 1 owed).
+
 ### 2026-10-23 (a) - CC (Opus 5.5, handoff seat): the handoff cut `2026-10-22-dev-knowledge-architect` lands -- architect bundle for the next window, supplement transcribed verbatim from Tech-Architect-46's SUPPLEMENT-ANSWERS v4, rulings RATIFICATION-2026-10-22 K1-K15
 
 **Anchors:** `6443402d` (the cut: 13 bundle files, SUPPLEMENT ANSWERS below the divider, carried-debt section in RESIDUAL.md), `53f4ce49` (restamp-manifest after the fill; `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` +1)

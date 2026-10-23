@@ -23,8 +23,8 @@ TERRA = "gpt-5.6-terra"
 
 _PHASE_ROWS = {
     # R177 split: the default implement row is Copilot (Claude implement needs VENDOR-FAIL evidence)
-    "implement": "| implement code (lane head) | Copilot CLI (default model) | local |",
-    "red": "| write the RED / isolated tests | Copilot CLI (default model) | codespace |",
+    "implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |",
+    "red": "| write the RED / isolated tests | Copilot CLI `gpt-6-luna` | codespace |",
     "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
     "verify": f"| isolated verify | {SONNET} | local |",
@@ -121,13 +121,13 @@ def test_the_implement_row_naming_grok_is_refused():
     problems, _ = _problems(_contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
     # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
     _assert_refusal_names(problems, lane="lane-x", role="implement", contract_model="grok-4.7",
-                          table_model="Copilot CLI")
+                          table_model="claude-sonnet-5.5")
 
 
 def test_the_red_row_naming_a_registry_model_is_refused():
     problems, _ = _problems(_contract(rows={"red": f"| write the RED / isolated tests | {SONNET} | codespace |"}))
     assert any("REFUSED [model-per-role]: " in p and "red" in p and "lane-x" in p and SONNET in p
-               and "Copilot" in p for p in problems)
+               and "gpt-6-luna" in p for p in problems)
 
 
 def test_the_copilot_review_row_not_naming_copilot_is_refused():
@@ -295,7 +295,7 @@ def test_the_cli_refuses_a_substituted_contract_with_exit_1(tmp_path):
     assert done.returncode == 1
     line = next(ln for ln in done.stdout.splitlines() if ln.startswith("REFUSED [model-per-role]"))
     # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
-    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "Copilot CLI" in line
+    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "claude-sonnet-5.5" in line
 
 
 def test_the_cli_refuses_a_launch_model_that_differs_from_the_head(tmp_path):

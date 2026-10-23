@@ -200,6 +200,11 @@ def _implement_row_problems(lane: str, phase: str, cell: str, known: list[str], 
     if first.get("model"):
         if _cell_matches(cell, first, known):
             return []
+        # A Copilot-first row pinned to a model (K3, 2026-10-23): the cell leads with the provider and
+        # names the pin; it may also mention the declared Claude fallback (the unpinned branch below).
+        prov = str(first.get("provider", "")).split("-")[0].lower()
+        if (cell.lstrip(" 	*`_").lower().startswith(prov) and first["model"].lower() in cell.lower()):
+            return []
     else:
         alias = str(first.get("provider", "")).split("-")[0].lower()
         if cell.lstrip(" \t*`_").lower().startswith(alias):

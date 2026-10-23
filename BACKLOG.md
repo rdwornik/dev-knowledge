@@ -736,7 +736,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
-- [#1350] [P2][S] The transport append lock reads a Windows delete-pending file as an error, and one test flakes on it · tasks/1350-the-transport-append-lock-reads-a-windows-delete.md
 - [#1360] [P1][L] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial · tasks/1360-d1-is-the-first-real-backlog-task-through-the-spin.md
 - [#1361] [P1][L] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work · tasks/1361-the-harness-is-one-process-with-one-writer-every-s.md
 - [#1362] [P1][L] A removal engine finds what is no longer current and brings it to removal, and it outranks new features · tasks/1362-a-removal-engine-finds-what-is-no-longer-current-a.md
@@ -921,11 +920,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1654] [P2][S] Hypercare register: a defect found in real use becomes a row (R143) · tasks/1654-hypercare-register.md
 - [#1655] [P2][M] Cost telemetry per vendor in every phase receipt (R144) · tasks/1655-cost-telemetry-per-vendor.md
 - [#1656] [P2][S] TODAY-GLUE count in every close digest (R145) · tasks/1656-today-glue-count-in-close-digest.md
-- [#1657] [P2][S] Harvest copies the lane SESSION file back (R145 hand step) · tasks/1657-harvest-copies-the-lane-session-file.md
-- [#1658] [P2][S] `codespace-delete` writes its close row (R144; true for the verb since 2026-10-19) · tasks/1658-codespace-delete-writes-close-row.md
 - [#1660] [P2][M] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) · tasks/1660-groom-view-back-under-150000.md
 - [#1661] [P2][S] A Codespace handback fires a Monitor WAKE (R145 hand step; defect 4) · tasks/1661-codespace-handback-fires-monitor-wake.md
-- [#1662] [P1][S] The runner and the lane both write `/workspaces/dispatch/handback.json` (SEV-1; defect 1) · tasks/1662-runner-and-lane-share-handback-json.md
 - [#1663] [P2][S] Codex review of a box lane runs on the laptop against the pushed branch (defect 2; R151) · tasks/1663-codex-review-of-box-lanes-runs-on-the-laptop.md
 - [#1665] [P2][S] `merge_receipt` has no abandon verb for a refused land (defect 5) · tasks/1665-merge-receipt-has-no-abandon-verb.md
 - [#1666] [P2][S] `ship_gate_diff.py` fails on a relative `--repo` and runs the caller's organ code on the target tree (defect 6) · tasks/1666-ship-gate-diff-relative-repo-and-caller-organs.md

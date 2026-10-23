@@ -30,9 +30,9 @@ def _role_model(role: str, provider: str = "anthropic") -> str:
 
 
 def _expected() -> dict[str, str]:
-    assert "seat-orchestrator" in _REG["roles"] and "seat-integrator" in _REG["roles"], (
+    assert "seat-orchestrator" in _REG["roles"] and "seat-dispatcher" in _REG["roles"], (
         "registry lacks the seat roles the aliases derive from")
-    return {"sonnet": _role_model("seat-orchestrator"), "opus": _role_model("seat-integrator"),
+    return {"sonnet": _role_model("seat-orchestrator"), "opus": _role_model("seat-dispatcher"),
             "haiku": _role_model("read")}
 
 

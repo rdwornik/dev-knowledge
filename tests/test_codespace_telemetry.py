@@ -218,7 +218,7 @@ class _Gh:
                 Path(argv[-1]).write_text(json.dumps(self.receipt), encoding="utf-8")
             return d.GhResult(ok=True, exit_code=0, stdout="")
         if verb == "codespace ssh":
-            if "mkdir" in argv and self.fail_mkdir:
+            if argv[-1].startswith("mkdir ") and self.fail_mkdir:
                 return d.GhResult(ok=False, exit_code=255, stdout="boom")
             if "creation.log" in " ".join(argv):
                 return d.GhResult(ok=True, exit_code=0,
@@ -265,4 +265,4 @@ def test_delete_close_row_carries_ready_and_end(tmp_path, monkeypatch):
     assert closed["open"] is False
     assert closed["ready"] == ready["ready"]
     assert closed["end"] == closed["deleted"]
-    assert closed["end_reason"] == ""
+    assert closed["end_reason"].startswith("deleted via dispatch.py codespace-delete")

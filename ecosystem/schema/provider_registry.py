@@ -511,6 +511,8 @@ class Model(_Contract):
     #: The records that show it: repo-relative paths, or `transport:<name>` for a file that lives
     #: only on the operator's transport. A date with no evidence is refused below.
     evidence: tuple[StrictStr, ...] = ()
+    #: Model family (e.g. `anthropic`, `openai`); lets a role demand a distinct family.
+    family: Optional[StrictStr] = None
 
     @model_validator(mode="after")
     def _a_verification_date_names_its_evidence(self) -> "Model":
@@ -572,8 +574,100 @@ class Model(_Contract):
 #: keys a measured pass rate, and collapsing them would make one of the two lie.
 ROLE_NAMES: frozenset[str] = frozenset(
     {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge",
-     "seat-orchestrator", "seat-integrator"}
+     "seat-orchestrator", "seat-integrator", "seat-dispatcher", "execute", "rulings"}
 )
+
+
+class ReservedShare(_Contract):
+    """A declared share of a weekly budget pool reserved for a role. `value` stays null when the
+    operator named none -- a number is never invented, and the reason says why it is unset."""
+
+    pool: StrictStr
+    value: Optional[float] = None
+    reason: Optional[StrictStr] = None
+    decided_by: StrictStr
+    decided_on: datetime.date
+    evidence: StrictStr
+
+    @model_validator(mode="after")
+    def _an_unset_value_carries_a_reason(self) -> "ReservedShare":
+        if self.value is None:
+            if self.reason is None or not self.reason.strip():
+                raise ValueError(
+                    "`reserved_share.value` is null with no `reason` -- an unset share must say "
+                    "why it is unset"
+                )
+        elif not 0 < self.value <= 1:
+            raise ValueError(
+                f"`reserved_share.value` {self.value} is outside (0, 1] -- a share is a fraction"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _evidence_is_a_repo_relative_path(self) -> "ReservedShare":
+        p = PurePosixPath(self.evidence.replace("\\", "/"))
+        if p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", self.evidence):
+            raise ValueError(
+                f"reserved_share.evidence `{self.evidence}` is not a repo-relative path"
+            )
+        return self
+
+
+def fallback_due(
+    usage_pct: Optional[float],
+    elapsed_week_pct: Optional[float],
+    override: bool = False,
+) -> bool:
+    """Trigger B': True when the override is set, else when weekly usage is STRICTLY ahead of the
+    elapsed share of the week (on pace to exhaust before reset). A missing input is not a trigger."""
+    if override:
+        return True
+    if usage_pct is None or elapsed_week_pct is None:
+        return False
+    return usage_pct > elapsed_week_pct
+
+
+def elapsed_week_pct(
+    now_epoch: float, resets_at_epoch: float, window_minutes: int = 10080
+) -> float:
+    """Percent (0..100) of the rate-limit window already elapsed, clamped."""
+    window_seconds = window_minutes * 60
+    pct = (1 - (resets_at_epoch - now_epoch) / window_seconds) * 100
+    return min(100.0, max(0.0, pct))
+
+
+class FallbackTrigger(_Contract):
+    """A declared fallback rule: which roles switch to which provider/model, on what signals."""
+
+    rule: StrictStr
+    roles: tuple[StrictStr, ...]
+    to_provider: StrictStr
+    to_model: StrictStr
+    override_flag: StrictStr
+    signals: dict[StrictStr, dict[str, str]]
+    decided_by: StrictStr
+    decided_on: datetime.date
+    evidence: StrictStr
+
+    @model_validator(mode="after")
+    def _signals_have_a_known_status(self) -> "FallbackTrigger":
+        for name, signal in self.signals.items():
+            if signal.get("status") not in ("AVAILABLE", "GAP"):
+                raise ValueError(
+                    f"signal `{name}` status {signal.get('status')!r} is not AVAILABLE or GAP"
+                )
+            if not str(signal.get("detail", "")).strip():
+                raise ValueError(f"signal `{name}` carries no `detail`")
+        return self
+
+    @model_validator(mode="after")
+    def _evidence_is_a_repo_relative_path(self) -> "FallbackTrigger":
+        p = PurePosixPath(self.evidence.replace("\\", "/"))
+        if p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", self.evidence):
+            raise ValueError(
+                f"fallback trigger evidence `{self.evidence}` is not a repo-relative path"
+            )
+        return self
 
 
 class RoleEntry(_Contract):
@@ -706,6 +800,30 @@ class Role(_Contract):
     #: the correspondence is genuinely absent — writing a lossy mapping to fill the field would
     #: manufacture the drift the link exists to detect.
     routing_table_role: Optional[StrictStr] = None
+    #: When set, `order[0].model` must equal it -- the pin is DATA on the row, not schema code.
+    pinned_model: Optional[StrictStr] = None
+    #: `order` must hold exactly one entry: no fallback exists for this role.
+    no_fallback: bool = False
+    #: A declared share of a weekly budget pool reserved for this role.
+    reserved_share: Optional[ReservedShare] = None
+    #: Names another role whose first model must be of a different model family.
+    distinct_family_from: Optional[StrictStr] = None
+
+    @model_validator(mode="after")
+    def _a_pin_and_a_no_fallback_hold_against_the_order(self) -> "Role":
+        if self.pinned_model is not None and (
+            not self.order or self.order[0].model != self.pinned_model
+        ):
+            raise ValueError(
+                f"`pinned_model` is `{self.pinned_model}` but order[0] pins "
+                f"`{self.order[0].model if self.order else None}`"
+            )
+        if self.no_fallback and len(self.order) != 1:
+            raise ValueError(
+                f"`no_fallback` is true but `order` holds {len(self.order)} entries -- exactly "
+                f"one is allowed"
+            )
+        return self
 
     @model_validator(mode="after")
     def _the_order_is_non_empty_and_names_each_provider_once(self) -> "Role":
@@ -750,6 +868,47 @@ class ProviderRegistry(_Contract):
     dispatcher: Optional[DispatcherPin] = None
     #: ids the Copilot gateway serves under requested=default, BATCH-E2-0 section 3.
     copilot_gateway_served: list[StrictStr] = []
+    #: Declared fallback rules (e.g. B'), keyed by name.
+    fallback_triggers: dict[StrictStr, FallbackTrigger] = {}
+
+    @model_validator(mode="after")
+    def _a_fallback_trigger_names_declared_roles_and_provider(self) -> "ProviderRegistry":
+        for name, trig in self.fallback_triggers.items():
+            unknown = [r for r in trig.roles if r not in self.roles]
+            if unknown:
+                raise ValueError(
+                    f"fallback trigger `{name}` names role(s) {unknown} not declared in `roles:`"
+                )
+            if trig.to_provider not in self.providers:
+                raise ValueError(
+                    f"fallback trigger `{name}` names undeclared provider `{trig.to_provider}`"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _a_distinct_family_constraint_holds(self) -> "ProviderRegistry":
+        for role, spec in self.roles.items():
+            other = spec.distinct_family_from
+            if other is None:
+                continue
+            if other not in self.roles:
+                raise ValueError(f"role `{role}` distinct_family_from undeclared role `{other}`")
+            families = []
+            for r in (role, other):
+                model_id = self.roles[r].order[0].model
+                model = self.models.get(model_id) if model_id else None
+                if model is None or not model.family:
+                    raise ValueError(
+                        f"role `{role}` demands a distinct family from `{other}`, but the first "
+                        f"model of `{r}` (`{model_id}`) declares no `family`"
+                    )
+                families.append(model.family)
+            if families[0] == families[1]:
+                raise ValueError(
+                    f"role `{role}` and role `{other}` both resolve to model family "
+                    f"`{families[0]}` -- `distinct_family_from` requires them to differ"
+                )
+        return self
 
     @model_validator(mode="after")
     def _the_dispatcher_pin_names_a_declared_provider_and_model(self) -> "ProviderRegistry":
@@ -987,6 +1146,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "CurrencyException",
     "DispatcherPin",
+    "FallbackTrigger",
     "Licence",
     "Model",
     "ModelCurrency",
@@ -994,8 +1154,11 @@ __all__ = [
     "Provider",
     "ProviderLicence",
     "ProviderRegistry",
+    "ReservedShare",
     "Role",
     "RoleAdmission",
     "RoleEntry",
     "Verdict",
+    "elapsed_week_pct",
+    "fallback_due",
 ]

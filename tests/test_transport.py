@@ -533,32 +533,17 @@ def test_the_known_reds_registry_loads_on_2026_10_20():
     assert reg is not None
 
 
-def test_the_windows_append_flake_is_quarantined_with_its_cause_and_rates_not_skipped():
-    """foundation-8 item 2. The cause lives in `scripts/transport.py`
-    (`_DestinationLock.__enter__` catches only FileExistsError; Windows answers a lock file that
-    is mid-delete with PermissionError) -- not a test defect and not this lane's to edit -- so the
-    test is QUARANTINED in the registry with its task, owner, expiry and measured rates, and keeps
-    RUNNING: no skip, skipif or xfail."""
-    import datetime
+def test_the_windows_append_flake_is_no_longer_quarantined_and_is_not_skipped():
+    """[#1350] retired: the lock fix (`_DestinationLock.__enter__` reads a delete-pending
+    PermissionError as contention) is shown by green windows runs, so the known-reds entry is gone
+    -- the test runs un-quarantined, with no skip, skipif or xfail."""
     import json
-    import re
 
     node_id = ("tests/test_transport.py::"
                "test_concurrent_appends_to_the_same_destination_serialize_without_interleaving")
     registry = json.loads((_REPO / "logs" / "KNOWN-REDS-REGISTRY.json").read_text(encoding="utf-8"))
-    entry = registry["members_by_os"].get("windows-latest", {}).get(node_id)
-    assert entry is not None, f"{node_id} is not quarantined on windows-latest"
-    assert entry.get("attribution") == "flaky"
-    row = re.fullmatch(r"\[#(\d+)\]", entry.get("task", ""))
-    row_files = list(_REPO.glob(f"tasks/{row.group(1)}-*.md")) if row else []
-    assert row_files, f"task {entry.get('task')!r} resolves to no tasks/ row"
-    assert "status: open" in row_files[0].read_text(encoding="utf-8")
-    assert entry.get("owner")
-    # renewed 2026-10-16 (night close-out, [#1350]) from 2026-10-19; removed once 10 green windows runs show the fix
-    assert datetime.date.fromisoformat(entry["expiry"]) <= datetime.date(2026, 10, 26)
-    reason = entry.get("reason", "")
-    assert "PermissionError" in reason and "scripts/transport.py" in reason
-    assert len(re.findall(r"\b\d+/\d+\b", reason)) >= 2, "no measured control-run rates"
+    for members in registry["members_by_os"].values():
+        assert node_id not in members, f"{node_id} is still quarantined"
     marks = {m.name for m in getattr(
         test_concurrent_appends_to_the_same_destination_serialize_without_interleaving,
         "pytestmark", [])}

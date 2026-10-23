@@ -709,6 +709,13 @@ PREFLIGHT_ROW_NAMES = (
     "boot_citations",
     # Row 12, added by AMEND-1-BATCH-CUT-2026-10-17: no cut on a dirty git.
     "git_hygiene",
+    # Rows 13-18, added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b.
+    "fill_ins_filled",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    "seat_ids_both",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    "supplement_matches_transport",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    "landed_vs_ratified",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    "operator_decisions_list",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    "digest_owed_present",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
 )
 
 
@@ -2079,12 +2086,216 @@ def _row_git_hygiene(repo_root: Path) -> PreflightRow:
                         "only main and allow-listed protected branches; no linked worktree")
 
 
+_TRUTH_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
+def _truth_docs(transport, prefix: str, subdir: str) -> "list[Path]":
+    """Live `<prefix>-*.md` docs, oldest first by the first date in the filename. Unlike the
+    shared reader this also drops a bare `-superseded` suffix and ranks a trailing-label name
+    (`...-2026-10-23-addendum.md`) by its date instead of treating it as undated."""
+    docs = _hstate()._live_transport_docs(
+        transport, prefix, subdir=subdir, accept=lambda p: "-superseded" not in p.name)
+
+    def _key(p: Path):
+        m = _TRUTH_DATE_RE.search(p.name)
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        return (m.group(1) if m else "", mtime)
+
+    return sorted(docs, key=_key)
+
+
+def _row_fill_ins_filled(bundle_dir: "Path | None") -> PreflightRow:
+    """Row 13 -- every FILL-IN region in the bundle's HANDOFF_BOOT.md / RESIDUAL.md is filled."""
+    name = "fill_ins_filled"
+    locator = "<bundle>/HANDOFF_BOOT.md + RESIDUAL.md `<!-- FILL-IN:<id> START/END -->` bodies"
+    if bundle_dir is None:
+        return _na_row(name, "SUBJECT-ABSENT", "no bundle named", locator)
+    seen = 0
+    empty: list[str] = []
+    try:
+        for fname in ("HANDOFF_BOOT.md", "RESIDUAL.md"):
+            path = Path(bundle_dir) / fname
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            for m in FILL_IN_RE.finditer(text):
+                seen += 1
+                body = m.group("body").strip()
+                if not body or "_(fill:" in body:
+                    empty.append(f"{fname}:{m.group('name')}")
+    except (OSError, UnicodeError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the bundle could not be read ({exc}); unread is not filled")
+    if not seen:
+        return _na_row(name, "SUBJECT-ABSENT", "the bundle carries no FILL-IN region", locator)
+    if empty:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"{len(empty)} unfilled FILL-IN region(s): " + ", ".join(empty))
+    return PreflightRow(name, PREFLIGHT_PASS, locator, f"all {seen} FILL-IN region(s) filled")
+
+
+_TECH_ARCHITECT_RE = re.compile(r"Tech-Architect-(\d+)")
+_SEAT_REGISTRY_RE = re.compile(r"(?m)^\s*-?\s*seat:\s*['\"]?(Tech-Architect-\d+)")
+
+
+def _row_seat_ids_both(transport, repo_root: Path) -> PreflightRow:
+    """Row 14 -- the outgoing Tech-Architect seat and its successor are both registered."""
+    name = "seat_ids_both"
+    locator = "to-cc SUPPLEMENT-ANSWERS files (one per Tech-Architect seat) x ecosystem/seat-ids.yaml"
+    if transport is None:
+        return _no_transport(name)
+    try:
+        docs = _truth_docs(transport, "SUPPLEMENT-ANSWERS", "to-cc")
+        nums = [int(m.group(1)) for d in docs if (m := _TECH_ARCHITECT_RE.search(d.name))]
+        registry = Path(repo_root) / "ecosystem" / "seat-ids.yaml"
+        if not nums or not registry.is_file():
+            return _na_row(name, "SUBJECT-ABSENT",
+                           "no outgoing Tech-Architect supplement or no seat registry", locator)
+        registered = set(_SEAT_REGISTRY_RE.findall(registry.read_text(encoding="utf-8")))
+    except (OSError, UnicodeError, ValueError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the seat evidence could not be read ({exc}); unread is not registered")
+    outgoing = max(nums)
+    needed = [f"Tech-Architect-{outgoing}", f"Tech-Architect-{outgoing + 1}"]
+    missing = [s for s in needed if s not in registered]
+    if missing:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            "not registered in seat-ids.yaml: " + ", ".join(missing))
+    return PreflightRow(name, PREFLIGHT_PASS, locator,
+                        "both " + " and ".join(needed) + " are registered")
+
+
+def _row_supplement_matches_transport(transport, bundle_dir: "Path | None") -> PreflightRow:
+    """Row 15 -- the bundle's SUPPLEMENT.md folds the newest transport supplement verbatim."""
+    import hashlib
+    name = "supplement_matches_transport"
+    locator = "<bundle>/SUPPLEMENT.md x newest to-cc SUPPLEMENT-ANSWERS file"
+    if transport is None:
+        return _no_transport(name)
+    if bundle_dir is None or not (Path(bundle_dir) / "SUPPLEMENT.md").is_file():
+        return _na_row(name, "SUBJECT-ABSENT", "the bundle has no SUPPLEMENT.md", locator)
+    try:
+        docs = _truth_docs(transport, "SUPPLEMENT-ANSWERS", "to-cc")
+        newest = docs[-1] if docs else None
+        if newest is None:
+            return _na_row(name, "SUBJECT-ABSENT",
+                           "no non-superseded supplement on the transport", locator)
+        t_bytes = newest.read_bytes()
+        b_bytes = (Path(bundle_dir) / "SUPPLEMENT.md").read_bytes()
+        t_text = t_bytes.decode("utf-8").strip()
+        b_text = b_bytes.decode("utf-8")
+    except (OSError, UnicodeError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the supplement could not be read ({exc}); unread is not matching")
+    if not t_text:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"`{newest.name}` is empty; an empty supplement matches nothing")
+    if t_text in b_text:
+        return PreflightRow(name, PREFLIGHT_PASS, locator,
+                            f"SUPPLEMENT.md folds `{newest.name}` verbatim")
+    return PreflightRow(
+        name, PREFLIGHT_FAIL, locator,
+        f"SUPPLEMENT.md does not contain `{newest.name}` "
+        f"(transport sha256 {hashlib.sha256(t_bytes).hexdigest()}; "
+        f"bundle sha256 {hashlib.sha256(b_bytes).hexdigest()})")
+
+
+def _row_landed_vs_ratified(transport, repo_root: Path) -> PreflightRow:
+    """Row 16 -- ruling ids ratified on the transport equal those the register has landed."""
+    name = "landed_vs_ratified"
+    locator = "to-browser/RATIFICATION-*.md x protocols/STANDING_RULINGS.md"
+    if transport is None:
+        return _no_transport(name)
+    hs = _hstate()
+    standing = Path(repo_root) / "protocols" / "STANDING_RULINGS.md"
+    try:
+        docs = _truth_docs(transport, "RATIFICATION", "to-browser")
+        if not docs or not standing.is_file():
+            return _na_row(name, "SUBJECT-ABSENT",
+                           "no RATIFICATION file or no STANDING_RULINGS.md", locator)
+        ratified: set[int] = set()
+        for d in docs:
+            text = d.read_text(encoding="utf-8", errors="replace")
+            ratified |= {int(a or b) for a, b in hs._RULING_ID_RE.findall(text)}
+        landed = hs._landed_ids(repo_root)
+    except (OSError, UnicodeError, ValueError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the ruling sources could not be read ({exc}); unread is not equal")
+    unlanded = sorted(ratified - landed)
+    unratified = sorted(landed - ratified)
+    if unlanded or unratified:
+        fmt = lambda ids: ", ".join(f"R{n}" for n in ids) or "none"  # noqa: E731
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"ratified-not-landed: {fmt(unlanded)}; "
+                            f"landed-not-ratified: {fmt(unratified)}")
+    return PreflightRow(name, PREFLIGHT_PASS, locator,
+                        f"{len(ratified)} ruling id(s) ratified and landed, none apart")
+
+
+_OPERATOR_DECISIONS_RE = re.compile(r"(?im)^#{1,6}\s+operator decisions\b")
+
+
+def _row_operator_decisions_list(bundle_dir: "Path | None") -> PreflightRow:
+    """Row 17 -- the bundle carries an `Operator decisions` heading."""
+    name = "operator_decisions_list"
+    locator = "<bundle>/*.md heading `Operator decisions`"
+    if bundle_dir is None or not Path(bundle_dir).is_dir():
+        return _na_row(name, "SUBJECT-ABSENT", "no bundle named", locator)
+    try:
+        files = sorted(Path(bundle_dir).glob("*.md"))
+        if not files:
+            return _na_row(name, "SUBJECT-ABSENT", "the bundle has no markdown file", locator)
+        for f in files:
+            if _OPERATOR_DECISIONS_RE.search(f.read_text(encoding="utf-8")):
+                return PreflightRow(name, PREFLIGHT_PASS, locator,
+                                    f"`Operator decisions` heading found in `{f.name}`")
+    except (OSError, UnicodeError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the bundle could not be read ({exc}); unread is not listed")
+    return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                        "no `Operator decisions` heading in any bundle markdown file")
+
+
+_DIGEST_OWED_RE = re.compile(r"(?m)^owed:")
+
+
+def _row_digest_owed_present(transport) -> PreflightRow:
+    """Row 18 -- the newest batch digest carries an owed list."""
+    name = "digest_owed_present"
+    locator = "newest to-browser/DIGEST-*.md flush-left `owed` list"
+    if transport is None:
+        return _no_transport(name)
+    try:
+        docs = _truth_docs(transport, "DIGEST", "to-browser")
+        digest = docs[-1] if docs else None
+        if digest is None:
+            return _na_row(name, "SUBJECT-ABSENT", "no DIGEST file on the transport", locator)
+        text = digest.read_text(encoding="utf-8", errors="replace")
+    except (OSError, ValueError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the digest could not be read ({exc}); unread has no owed list")
+    if _DIGEST_OWED_RE.search(text):
+        return PreflightRow(name, PREFLIGHT_PASS, locator, f"`{digest.name}` carries an owed list")
+    return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                        f"`{digest.name}` has no flush-left `owed` list")
+
+
 #: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
 #: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
 #: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
 #: and stays out of this tuple (its own FAIL still refuses, its own test says so). A row named
 #: here is carried into the receipt's `preflight_notes` instead of raising `PreflightError`.
-PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap",)
+#: `landed_vs_ratified` (2026-10-23, lane handoff-truth): the register bullets 90+ rulings the
+#: transport's RATIFICATION files never restate, so the row is RED on the real tree and would
+#: refuse every cut (CI: tests/test_handoff_cut_acceptance.py). The verdict stays visible; the
+#: operator rules whether it should refuse once the two definitions of "ruling" agree.
+#: `operator_decisions_list` (2026-10-23, repair 1): the generator never authors an `Operator
+#: decisions` section (the seat writes it by hand), so a `--filled` re-render of a generated
+#: bundle refuses on it (CI: tests/test_onboarding_items.py warm-bundle fixture). FAIL stays visible.
+PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap", "landed_vs_ratified", "operator_decisions_list")
 
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
@@ -2134,6 +2345,12 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_p11_carriage(transport, repo_root),
         _row_boot_citations(repo_root, transport),
         _row_git_hygiene(repo_root),
+        _row_fill_ins_filled(bundle_dir),
+        _row_seat_ids_both(transport, repo_root),
+        _row_supplement_matches_transport(transport, bundle_dir),
+        _row_landed_vs_ratified(transport, repo_root),
+        _row_operator_decisions_list(bundle_dir),
+        _row_digest_owed_present(transport),
     ]
 
 
