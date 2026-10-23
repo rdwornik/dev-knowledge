@@ -164,21 +164,21 @@ def test_rebind_fixes_drift_is_idempotent_and_changes_only_file_line(tmp_path: P
     root = _repo(tmp_path)
     binding_path = tmp_path / "binding.yaml"
     before = (
-        "schema: process-binding/1\n"
-        "processes:\n"
-        "  P1:\n"
-        "    states:\n"
-        "    - id: S01\n"
-        "      name: drafted\n"
-        "      binding:\n"
-        "        code:\n"
-        "          file_line: scripts/target.py:1\n"
-        '          anchor: "unique_marker("\n'
-        "    transitions: []\n"
-        "    retired: []\n"
-        "diagram_mermaid: |-\n"
-        "  stateDiagram-v2\n"
-    ).encode()
+        b"schema: process-binding/1\n"
+        b"processes:\n"
+        b"  P1:\n"
+        b"    states:\n"
+        b"    - id: S01\n"
+        b"      name: drafted\n"
+        b"      binding:\n"
+        b"        code:\n"
+        b"          file_line: scripts/target.py:1\n"
+        b'          anchor: "unique_marker("\n'
+        b"    transitions: []\n"
+        b"    retired: []\n"
+        b"diagram_mermaid: |-\n"
+        b"  stateDiagram-v2\n"
+    )
     binding_path.write_bytes(before)
 
     assert gpd.rebind(binding_path, root) is True
@@ -217,21 +217,21 @@ def test_rebind_preserves_crlf_line_endings(tmp_path: Path):
     root = _repo(tmp_path)
     binding_path = tmp_path / "binding-crlf.yaml"
     before = (
-        "schema: process-binding/1\r\n"
-        "processes:\r\n"
-        "  P1:\r\n"
-        "    states:\r\n"
-        "    - id: S01\r\n"
-        "      name: drafted\r\n"
-        "      binding:\r\n"
-        "        code:\r\n"
-        "          file_line: scripts/target.py:1\r\n"
-        '          anchor: "unique_marker("\r\n'
-        "    transitions: []\r\n"
-        "    retired: []\r\n"
-        "diagram_mermaid: |-\r\n"
-        "  stateDiagram-v2\r\n"
-    ).encode()
+        b"schema: process-binding/1\r\n"
+        b"processes:\r\n"
+        b"  P1:\r\n"
+        b"    states:\r\n"
+        b"    - id: S01\r\n"
+        b"      name: drafted\r\n"
+        b"      binding:\r\n"
+        b"        code:\r\n"
+        b"          file_line: scripts/target.py:1\r\n"
+        b'          anchor: "unique_marker("\r\n'
+        b"    transitions: []\r\n"
+        b"    retired: []\r\n"
+        b"diagram_mermaid: |-\r\n"
+        b"  stateDiagram-v2\r\n"
+    )
     binding_path.write_bytes(before)
 
     assert gpd.rebind(binding_path, root) is True
