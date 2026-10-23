@@ -2,6 +2,8 @@
 
 Each failing fixture records a specific miss from the 2026-10-22 cut; the repaired
 fixtures pin the corresponding evidence that lets the row pass.
+
+Implements [#1640] (R6 stage L12b, lane handoff-truth): the cut-time preflight rows.
 """
 from __future__ import annotations
 
