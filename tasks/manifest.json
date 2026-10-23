@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "670204477202f64df739c0e68e14b22ec105ebb7e36b31530936d94b699ddb78",
+  "generated_sha256": "72699cb96c7d8006445f7cc957db8f32c521c7a5f99c33562ffde019b1fa9ee8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3080,6 +3080,14 @@
       "file": "1525-lane-bw-912-known-reds-expiry-has-no-consumer.md"
     },
     {
+      "task": 1718,
+      "file": "1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md"
+    },
+    {
+      "task": 1719,
+      "file": "1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md"
+    },
+    {
       "task": 1526,
       "file": "1526-lane-bw-926-main-red-has-no-consumer.md"
     },
@@ -3250,10 +3258,6 @@
     {
       "task": 1582,
       "file": "1582-test-every-committed-record-still-proves-out-proves-all-86-archived-row-bodies.md"
-    },
-    {
-      "task": 1583,
-      "file": "1583-the-fourteen-912-known-reds-entries-have-an-owner-before-they-expire-red-on-2026-10-31.md"
     },
     {
       "task": 1584,
