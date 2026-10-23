@@ -229,16 +229,17 @@ def test_transport_stays_windows_sensitive_through_the_platform_scan():
     `scripts/transport.py` must stay Windows-sensitive through source 3 -- the platform scan over
     `scripts/*.py` for `PLATFORM_BRANCH_PATTERN` (its delete-pending `PermissionError` arm). A diff
     touching it still requires the Windows leg."""
-    import fnmatch
-    import re
-
     root = Path(__file__).resolve().parent.parent
-    source = (root / "scripts" / "transport.py").read_text(encoding="utf-8")
+    real_git = plan.run_git(root)
 
-    assert any(fnmatch.fnmatchcase("scripts/transport.py", p) for p in plan.PLATFORM_SCAN_PATHSPECS)
-    assert re.search(plan.PLATFORM_BRANCH_PATTERN, source), \
+    def working_tree_git(args):          # the real `git grep` over the real tree, no ref (sees an edit)
+        return real_git([a for a in args if a != "WORKTREE"])
+
+    scanned = plan.platform_branching_files(working_tree_git, "WORKTREE")
+
+    assert "scripts/transport.py" in scanned, \
         "scripts/transport.py no longer matches the platform-branching scan"
-    reasons = plan.why_sensitive(["scripts/transport.py"], frozenset({"scripts/transport.py"}))
+    reasons = plan.why_sensitive(["scripts/transport.py"], scanned)
     assert reasons and "derived" in reasons[0]
 
 
