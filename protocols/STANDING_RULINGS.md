@@ -7555,7 +7555,7 @@ Landed by lane `e2-boot-rules` (batch E2.0). All of R160–R166 and R176–R179 
 
 - **R177 amendment (2026-10-23) — seat models and role routing as registry data** (operator; D2 and D9 of `to-browser/RATIFICATION-2026-10-23.md`, and the operator model routing of 2026-10-23, TA-47 fill F3). **Status:** landed 2026-10-23 after the F4 ratification append (K10; `to-browser/RATIFICATION-2026-10-23.md:38`, "D2 amended (operator 2026-10-23)"); interim per R166 for D2; whether every consumer reads the new rows is stated by the registry-roles handback, not asserted here. Amends R177's "Opus only for the integrator" and "the orchestrator seat runs on Sonnet"; R178 stands unchanged.
 
-  **Carried by:** lane registry-roles (`ecosystem/provider-registry.yaml` rows `seat-integrator`, `seat-dispatcher`, `rulings`, `execute`, the `fallback_triggers.bprime` block and `fallback_due` in `ecosystem/schema/provider_registry.py`) (owner: E2-ORCHESTRATOR)
+  **Carried by:** no implementation required — the registry data lands with lane registry-roles (`ecosystem/provider-registry.yaml` rows `seat-integrator`, `seat-dispatcher`, `rulings`, `execute`, `fallback_triggers.bprime`, and `fallback_due` in `ecosystem/schema/provider_registry.py`); the consumer gaps are READY-TO-FILE rows in that lane's handback, filed by the orchestrator under H1 (owner: E2-ORCHESTRATOR)
 
   ```text
   R177 AMENDED (operator, 2026-10-23):
