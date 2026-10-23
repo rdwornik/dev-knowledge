@@ -2288,7 +2288,11 @@ def _row_digest_owed_present(transport) -> PreflightRow:
 #: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
 #: and stays out of this tuple (its own FAIL still refuses, its own test says so). A row named
 #: here is carried into the receipt's `preflight_notes` instead of raising `PreflightError`.
-PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap",)
+#: `landed_vs_ratified` (2026-10-23, lane handoff-truth): the register bullets 90+ rulings the
+#: transport's RATIFICATION files never restate, so the row is RED on the real tree and would
+#: refuse every cut (CI: tests/test_handoff_cut_acceptance.py). The verdict stays visible; the
+#: operator rules whether it should refuse once the two definitions of "ruling" agree.
+PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap", "landed_vs_ratified")
 
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
