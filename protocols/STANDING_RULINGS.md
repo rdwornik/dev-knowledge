@@ -7553,7 +7553,7 @@ Landed by lane `e2-boot-rules` (batch E2.0). All of R160–R166 and R176–R179 
   R178 NEW: no subagent runs on Opus (reads = Haiku, bounded probes = Sonnet); subagent fan-out uses the CLI's workflow feature where it exists; enforced by the harness, not remembered.
   ```
 
-- **R177 amendment (2026-10-23) — seat models and role routing as registry data** (operator; D2 and D9 of `to-browser/RATIFICATION-2026-10-23.md`, and the operator model routing of 2026-10-23, TA-47 fill F3). **Status:** DRAFT — lands only after the F4 ratification append (K10); interim per R166 for D2; whether every consumer reads the new rows is stated by the registry-roles handback, not asserted here. Amends R177's "Opus only for the integrator" and "the orchestrator seat runs on Sonnet"; R178 stands unchanged.
+- **R177 amendment (2026-10-23) — seat models and role routing as registry data** (operator; D2 and D9 of `to-browser/RATIFICATION-2026-10-23.md`, and the operator model routing of 2026-10-23, TA-47 fill F3). **Status:** landed 2026-10-23 after the F4 ratification append (K10; `to-browser/RATIFICATION-2026-10-23.md:38`, "D2 amended (operator 2026-10-23)"); interim per R166 for D2; whether every consumer reads the new rows is stated by the registry-roles handback, not asserted here. Amends R177's "Opus only for the integrator" and "the orchestrator seat runs on Sonnet"; R178 stands unchanged.
 
   **Carried by:** lane registry-roles (`ecosystem/provider-registry.yaml` rows `seat-integrator`, `seat-dispatcher`, `rulings`, `execute`, the `fallback_triggers.bprime` block and `fallback_due` in `ecosystem/schema/provider_registry.py`) (owner: E2-ORCHESTRATOR)
 

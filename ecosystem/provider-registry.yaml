@@ -784,7 +784,10 @@ roles:
         note: >-
           Fallback under trigger B' (weekly usage above elapsed-week share, or the manual override):
           `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model routing of 2026-10-23.
-          Every use is recorded in the MODELS block (R139).
+          Every use is recorded in the MODELS block (R139). NOT ADMITTED for `execute`: xai's licence is
+          `restricted` and a test pins xai admitted for `review` only, so admitting it here is a licence
+          ruling that is the operator's (OPERATOR-ACTION in the registry-roles handback); until then
+          trigger B' cannot route an execute call to Grok through the router.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
