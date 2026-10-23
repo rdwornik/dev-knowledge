@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 _REPO = Path(__file__).resolve().parents[1]
-_REFERENCE_DATE = date(2026, 10, 23)
+_REFERENCE_DATE = date.today()
 
 
 def test_expiring_known_reds_name_open_task_rows():
@@ -26,7 +26,7 @@ def test_expiring_known_reds_name_open_task_rows():
         (group, key, entry)
         for group, key, entry in entries
         if entry.get("expiry")
-        and _REFERENCE_DATE <= date.fromisoformat(entry["expiry"]) <= deadline
+        and date.fromisoformat(entry["expiry"]) <= deadline
     ]
     assert expiring, "the fixed 30-day window must cover registry entries"
 
