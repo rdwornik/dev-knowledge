@@ -959,3 +959,43 @@ def test_R2_e2e_lane_branch_gets_no_journal_advisory(tmp_path):
     ctx = json.loads(_run_hook(repo, {"stop_hook_active": False}))[
         "hookSpecificOutput"]["additionalContext"]
     assert "JOURNAL (hard)" in ctx
+
+
+def test_dirty_tree_silent_when_only_codespace_receipts_ledger_changed(monkeypatch):
+    monkeypatch.setattr(
+        sb, "_git", _fake_git({"status": _R(" M logs/CODESPACE-RECEIPTS.jsonl\n")}))
+    assert sb.check_dirty_tree() is None
+
+
+def test_dirty_tree_reports_other_changes_beside_codespace_receipts_ledger(monkeypatch):
+    monkeypatch.setattr(
+        sb, "_git",
+        _fake_git({"status": _R(" M logs/CODESPACE-RECEIPTS.jsonl\n M foo.py\n")}))
+
+    line = sb.check_dirty_tree()
+
+    assert line and "1 uncommitted" in line
+    assert "foo.py" in line
+    assert "CODESPACE-RECEIPTS.jsonl" not in line
+
+
+@pytest.mark.parametrize(
+    "status_line",
+    [
+        " M other/CODESPACE-RECEIPTS.jsonl",
+        " M logs/CODESPACE-RECEIPTS.jsonl.bak",
+    ],
+)
+def test_dirty_tree_does_not_exclude_similarly_named_paths(monkeypatch, status_line):
+    monkeypatch.setattr(sb, "_git", _fake_git({"status": _R(status_line + "\n")}))
+
+    line = sb.check_dirty_tree()
+
+    assert line and "1 uncommitted" in line
+    assert status_line[3:] in line
+
+
+def test_dirty_tree_silent_for_untracked_codespace_receipts_ledger(monkeypatch):
+    monkeypatch.setattr(
+        sb, "_git", _fake_git({"status": _R("?? logs/CODESPACE-RECEIPTS.jsonl\n")}))
+    assert sb.check_dirty_tree() is None
