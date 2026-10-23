@@ -65,7 +65,8 @@ def test_seat_roles_and_opus_only_roles(live):
     roles = ProviderRegistry.model_validate(live).roles
     assert {"seat-orchestrator", "seat-integrator"} <= set(roles), "seat roles missing from the registry"
     assert [(e.provider, e.model) for e in roles["seat-orchestrator"].order] == [("anthropic", SONNET)]
-    assert [(e.provider, e.model) for e in roles["seat-integrator"].order] == [("anthropic", OPUS)]
+    assert [(e.provider, e.model) for e in roles["seat-integrator"].order] == [("anthropic", SONNET)]  # D2 amended 2026-10-23
+    assert [(e.provider, e.model) for e in roles["seat-dispatcher"].order] == [("anthropic", OPUS)]  # D9
     for name in ("orchestrate", "plan"):
         assert roles[name].rerankable is False
         assert [e.model for e in roles[name].order] == [OPUS]

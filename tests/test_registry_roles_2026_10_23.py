@@ -1,3 +1,4 @@
+# Registry data for the 2026-10-23 model routing (R139 no silent substitution: [#1670]); claim line added after the RED freeze, no assertion changed.
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
