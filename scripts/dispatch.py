@@ -3937,6 +3937,13 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
     if checkout_dir and transport_dir is not None:
         src = f"{checkout_dir}/to-browser/{session_rel}"
         got = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", src)])
+        if not got.ok:
+            # asked for, so a missing SESSION file is a refusal, never a skipped file (review 2, P1)
+            failure = f"{session_rel}: the box could not be read at {src} (exit {got.exit_code})"
+            write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", False,
+                       {"manifest_path": str(manifest_path), "files": manifest}, failure)
+            return HarvestResult(False, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                                 files=manifest, commands=tuple(commands), failure=failure)
         if got.ok:
             data = got.stdout.encode("utf-8")
             box, why = _box_size_and_hash(name, src, call)

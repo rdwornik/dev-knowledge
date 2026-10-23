@@ -368,3 +368,17 @@ def test_claude_background_plan_passes_disallowed_tools_as_one_token():
     assert "--disallowedTools=AskUserQuestion" in argv
     assert argv.index("--disallowedTools=AskUserQuestion") < len(argv) - 1
     assert argv[-1] == prompt
+
+
+def test_harvest_refuses_when_the_requested_session_file_cannot_be_read(tmp_path):
+    transport = tmp_path / "transport"
+    transport.mkdir()
+
+    def fake(argv, timeout=None, **_kw):
+        return _result(stdout="x\n") if "run.log" in " ".join(argv) else _result(ok=False, exit_code=1)
+
+    result = d.codespace_harvest("box-1", batch="B1", lane="lane-x", out_root=tmp_path / "out",
+                                 checkout_dir="/workspaces/repo", transport_dir=transport, invoker=fake)
+    assert not result.ok
+    assert "SESSION-lane-x.md" in result.failure
+    assert not list(transport.iterdir())
