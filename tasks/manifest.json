@@ -3080,6 +3080,14 @@
       "file": "1525-lane-bw-912-known-reds-expiry-has-no-consumer.md"
     },
     {
+      "task": 1716,
+      "file": "1716-ci-the-commit-gate-job-needs-a-proper-fix-r169.md"
+    },
+    {
+      "task": 1717,
+      "file": "1717-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md"
+    },
+    {
       "task": 1526,
       "file": "1526-lane-bw-926-main-red-has-no-consumer.md"
     },
