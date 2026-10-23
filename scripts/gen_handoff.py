@@ -2292,7 +2292,10 @@ def _row_digest_owed_present(transport) -> PreflightRow:
 #: transport's RATIFICATION files never restate, so the row is RED on the real tree and would
 #: refuse every cut (CI: tests/test_handoff_cut_acceptance.py). The verdict stays visible; the
 #: operator rules whether it should refuse once the two definitions of "ruling" agree.
-PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap", "landed_vs_ratified")
+#: `operator_decisions_list` (2026-10-23, repair 1): the generator never authors an `Operator
+#: decisions` section (the seat writes it by hand), so a `--filled` re-render of a generated
+#: bundle refuses on it (CI: tests/test_onboarding_items.py warm-bundle fixture). FAIL stays visible.
+PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap", "landed_vs_ratified", "operator_decisions_list")
 
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,

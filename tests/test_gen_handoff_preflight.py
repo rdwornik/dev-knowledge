@@ -286,7 +286,8 @@ def test_memory_within_cap_over_budget_does_not_refuse_the_cut(tmp_path, monkeyp
     (`_write_receipt`'s `preflight_notes`) can carry it. `worktree_owners`, the other live-state
     row, is a genuine precondition and is untouched by this tuple -- its own FAIL still refuses
     (test_worktree_owners_* below)."""
-    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("memory_within_cap", "landed_vs_ratified")
+    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("memory_within_cap", "landed_vs_ratified",
+                                              "operator_decisions_list")
     monkeypatch.setattr(gh._cdocs, "MEMORY_BYTE_BUDGET", 20_000, raising=False)
     mem = tmp_path / "MEMORY.md"
     mem.write_bytes(b"x" * 23_851)
