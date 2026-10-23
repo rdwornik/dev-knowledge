@@ -20,10 +20,13 @@ USAGE:
     uv run --locked python scripts/gen_process_diagrams.py --check   # stored diagram == regenerated
     uv run --locked python scripts/gen_process_diagrams.py --write   # regenerate the stored diagram
     uv run --locked python scripts/gen_process_diagrams.py --print    # the Mermaid source on stdout
+    uv run --locked python scripts/gen_process_diagrams.py --rebind   # re-derive every file_line from its anchor
+    uv run --locked python scripts/gen_process_diagrams.py --gate [--report]   # unbound node / entry point
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import difflib
 import functools
 import operator
@@ -402,10 +405,161 @@ def check_glue(path: Path = BINDING_PATH) -> list[str]:
     ]
 
 
-def check_diagram(path: Path = BINDING_PATH) -> int:
+def find_anchor(file: str, anchor: str, repo_root: Path = REPO) -> list[int]:
+    """1-based lines of `file` that contain `anchor`; empty when the anchor or the file is absent."""
+    try:
+        text = (repo_root / file).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    return [n for n, line in enumerate(text.splitlines(), start=1) if anchor in line]
+
+
+def _split_file_line(file_line: str) -> tuple[str, Optional[int]]:
+    file, _, num = str(file_line).rpartition(":")
+    if file and num.isdigit():
+        return file, int(num)
+    return str(file_line), None
+
+
+def _sites(binding: dict) -> list[tuple[str, str, Optional[str]]]:
+    """(node label, file_line, anchor) for every code site, in document order. A HOLE has no site."""
+    out: list[tuple[str, str, Optional[str]]] = []
+    for proc in binding["processes"].values():
+        for s in proc.get("states") or []:
+            for site in (s.get("binding") or {}).values():
+                out.append((str(s.get("name")), site["file_line"], site.get("anchor")))
+        for t in proc.get("transitions") or []:
+            if t.get("file_line"):
+                label = f"{t.get('event')} {t.get('source')}->{t.get('target')}"
+                out.append((label, t["file_line"], t.get("anchor")))
+    return out
+
+
+def _resolve(hint: Optional[int], matches: list[int]) -> int:
+    """The hint when it is a match, else the nearest match (the earlier one on a tie)."""
+    if hint in matches:
+        return hint
+    return min(matches, key=lambda n: (abs(n - hint) if hint is not None else n, n))
+
+
+def anchor_problems(binding: dict, repo_root: Path = REPO) -> list[str]:
+    """Sites whose anchor is absent, whose file is missing, or whose anchor is ambiguous with no hint match."""
+    problems: list[str] = []
+    for node, file_line, anchor in _sites(binding):
+        file, hint = _split_file_line(file_line)
+        if not (repo_root / file).is_file():
+            problems.append(f"{node}: file {file} is missing")
+        elif not anchor:
+            problems.append(f"{node}: {file} has no anchor")
+        else:
+            matches = find_anchor(file, anchor, repo_root)
+            if not matches:
+                problems.append(f"{node}: anchor {anchor!r} is stale, absent from {file}")
+            elif len(matches) > 1 and hint not in matches:
+                problems.append(f"{node}: anchor {anchor!r} is ambiguous in {file} (lines {matches}), hint {hint} matches none")
+    return problems
+
+
+_FILE_LINE = re.compile(r"^(\s*file_line:\s*)(\S+?):(\d+)(?=[ \t]*(?:\r?\n|\Z))", re.MULTILINE)
+
+
+def rebind(path: Path = BINDING_PATH, repo_root: Path = REPO) -> bool:
+    """Rewrite every `file_line` number to where its anchor now is. True when the file changed."""
+    with path.open(encoding="utf-8", newline="") as fh:  # newline="": the file's own line endings survive
+        text = fh.read()
+    sites = _sites(yaml.safe_load(text))
+    found = _FILE_LINE.findall(text)
+    if len(found) != len(sites):
+        raise ValueError(f"{path}: {len(found)} file_line lines but {len(sites)} bound sites")
+    lines: list[int] = []
+    for node, file_line, anchor in sites:
+        file, hint = _split_file_line(file_line)
+        matches = find_anchor(file, anchor, repo_root) if anchor else []
+        if not matches:
+            raise ValueError(f"{node}: anchor {anchor!r} is stale or {file} is missing")
+        lines.append(_resolve(hint, matches))
+    it = iter(lines)
+    new = _FILE_LINE.sub(lambda m: f"{m.group(1)}{m.group(2)}:{next(it)}", text)
+    if new == text:
+        return False
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        fh.write(new)
+    return True
+
+
+def _entry_spans(repo_root: Path) -> dict[str, tuple[int, int]]:
+    """dispatch.py entry code -> (first line incl. decorators, last line); empty when the file is missing."""
+    try:
+        tree = ast.parse((repo_root / "scripts" / "dispatch.py").read_text(encoding="utf-8"))
+    except OSError:
+        return {}
+    spans: dict[str, tuple[int, int]] = {}
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        first = min([node.lineno] + [d.lineno for d in node.decorator_list])
+        for dec in node.decorator_list:
+            if (
+                isinstance(dec, ast.Call)
+                and isinstance(dec.func, ast.Attribute)
+                and dec.func.attr == "command"
+                and dec.args
+                and isinstance(dec.args[0], ast.Constant)
+                and isinstance(dec.args[0].value, str)
+            ):
+                spans[f"cli:{dec.args[0].value}"] = (first, node.end_lineno)
+        if node.name == "launch_lane":
+            spans["def:launch_lane"] = (first, node.end_lineno)
+    return spans
+
+
+def entry_points(repo_root: Path = REPO) -> list[str]:
+    """dispatch.py entry points: `cli:<name>` per decorated click command, `def:launch_lane`. Sorted."""
+    return sorted(_entry_spans(repo_root))
+
+
+def gate_problems(binding: dict, repo_root: Path = REPO) -> dict[str, list[str]]:
+    """Two-way coverage: nodes with no code binding, and dispatch entry points no binding lands in."""
+    unbound: list[str] = []
+    for proc in binding["processes"].values():
+        for s in proc.get("states") or []:
+            if not s.get("binding"):
+                unbound.append(f"state:{s.get('name')}")
+        for t in proc.get("transitions") or []:
+            if not t.get("file_line"):
+                unbound.append(f"transition:{t.get('event')}:{t.get('source')}->{t.get('target')}")
+    resolved: list[tuple[str, int]] = []
+    for _node, file_line, anchor in _sites(binding):
+        file, hint = _split_file_line(file_line)
+        matches = find_anchor(file, anchor, repo_root) if anchor else []
+        if matches:
+            resolved.append((file, _resolve(hint, matches)))
+    uncovered = [
+        code
+        for code, (lo, hi) in _entry_spans(repo_root).items()
+        if not any(file == "scripts/dispatch.py" and lo <= n <= hi for file, n in resolved)
+    ]
+    return {"unbound_nodes": sorted(unbound), "unbound_entry_points": sorted(uncovered)}
+
+
+def gate_main(path: Path = BINDING_PATH, repo_root: Path = REPO, report_only: bool = False) -> int:
+    problems = gate_problems(load_binding(path), repo_root)
+    for node in problems["unbound_nodes"]:
+        print(f"UNBOUND NODE {node}")
+    for code in problems["unbound_entry_points"]:
+        print(f"UNBOUND ENTRY {code}")
+    return 0 if report_only or not any(problems.values()) else 1
+
+
+def check_diagram(path: Path = BINDING_PATH, repo_root: Path = REPO) -> int:
     drifted = check_glue(path)
     if drifted:
         print(f"today_glue is derived and differs for: {', '.join(drifted)}")
+        return 1
+    stale = anchor_problems(load_binding(path), repo_root)
+    if stale:
+        print("\n".join(stale))
+        print("\nanchors are stale: run `uv run --locked python scripts/gen_process_diagrams.py --rebind`")
         return 1
     stored = (load_binding(path).get(DIAGRAM_KEY) or "").strip()
     fresh = render_mermaid().strip()
@@ -426,7 +580,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     g.add_argument("--check", action="store_true", help="exit 1 when the stored diagram differs from a fresh render")
     g.add_argument("--write", action="store_true", help="regenerate the stored diagram in place")
     g.add_argument("--print", dest="show", action="store_true", help="print the Mermaid source")
+    g.add_argument("--rebind", action="store_true", help="rewrite every file_line from its anchor")
+    g.add_argument("--gate", action="store_true", help="exit 1 on an unbound node or dispatch entry point")
+    ap.add_argument("--report", action="store_true", help="with --gate: print everything, always exit 0")
     args = ap.parse_args(argv)
+    if args.report and not args.gate:
+        ap.error("--report needs --gate")
+    if args.gate:
+        return gate_main(report_only=args.report)
+    if args.rebind:
+        try:
+            print("rebound file_line values" if rebind() else "file_line values already current")
+        except ValueError as exc:
+            print(exc)
+            return 1
+        return 0
     if args.show:
         sys.stdout.write(render_mermaid())
         return 0
