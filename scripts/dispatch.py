@@ -121,6 +121,11 @@ except ImportError:  # pragma: no cover
     import codespace_parity as cpar
 
 try:  # pragma: no cover -- the alias table below is derived from the registry, never hand-copied
+    from scripts import transport as _transport
+except ImportError:  # pragma: no cover
+    import transport as _transport
+
+try:
     from scripts import provider_registry as _preg
 except ImportError:  # pragma: no cover
     import provider_registry as _preg
@@ -663,7 +668,7 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
     # contract prompt's first words. --permission-mode is not optional: nobody is at a --bg lane's
     # keyboard, so a prompt is a silent stall that looks exactly like a slow lane.
     argv = ["claude", "--bg", "-n", slug, "--model", model, "--effort", eff, "--permission-mode",
-            permission_mode, "--worktree", slug, prompt]
+            permission_mode, "--worktree", slug, "--disallowedTools=AskUserQuestion", prompt]
     return Plan(argv, "transcript")
 
 
@@ -2394,16 +2399,16 @@ def codespace_plan(repo: str, branch: str, slug: str, contract: Path, head_argv:
         Step(["gh", "codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
               "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug],
              "create -- its own stdout is the NAME, `{cs}` below"),
-        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "cat", cs.CREATION_LOG_PATH],
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", *_remote("cat", cs.CREATION_LOG_PATH)],
              "creation log: read over ssh and classified -- a recovery container is REFUSED "
              "before anything ships or runs (night leg 5, D3)"),
-        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "mkdir", "-p", workdir],
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", *_remote("mkdir", "-p", workdir)],
              "create the workdir -- NOT the checkout's own directory"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", str(contract),
               f"remote:{workdir}/{Path(contract).name}"], "ship the contract in"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", "{runner}", f"remote:{runner}"],
              "ship the runner in"),
-        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "bash", "-l", runner],
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", *_remote("bash", "-l", runner)],
              "run (stream-metered) in a LOGIN shell -- a non-login ssh shell sees none of the "
              "Codespaces secrets (night leg 5, D1); cwd is the checkout `create` produced, "
              "not `workdir`"),
@@ -2411,7 +2416,7 @@ def codespace_plan(repo: str, branch: str, slug: str, contract: Path, head_argv:
               "{receipt}"], "pull the receipt back"),
     ]
     for rel in HARVEST_FILES:
-        steps.append(Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "cat", f"{workdir}/{rel}"],
+        steps.append(Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", *_remote("cat", f"{workdir}/{rel}")],
                            f"harvest: {rel} (R17/D2, ssh|cat -- measured, not `cp`)"))
     steps.append(Step(["<local>", "verify_harvest_manifest", str(out_dir)],
                        "manifest check (local, no gh call) -- GATES the delete step below"))
@@ -2559,10 +2564,22 @@ RUNNER_NEVER_SET: tuple[str, ...] = ("CODEX_API_KEY", "OPENAI_API_KEY")
 #: this is killed and its receipt says why.
 RUNNER_STALL_AFTER_S = int(cs.STALE_AFTER_S)
 
-#: How often, and how many times, the creation log is read before a box with no finished log is
-#: refused. The ssh read works only once the box is up; the log's last line lands a moment later.
-CREATION_LOG_ATTEMPTS = 3
+#: The runner's own copy of the agent's structured output. `handback.json` belongs to the lane
+#: itself, which writes it in the checkout's workdir; the runner must never overwrite it.
+RUNNER_HANDBACK_FILE = "runner-handback.json"
+
+#: How long, in total sleep, the creation log is re-read while INDETERMINATE (a prebuild-less
+#: container build runs for minutes; the ssh read works only once the box is up and the log's last
+#: line lands later still). Past the bound the box is refused.
+CREATION_LOG_WAIT_BOUND_S = 900
 CREATION_LOG_WAIT_S = 20
+CREATION_LOG_ATTEMPTS = CREATION_LOG_WAIT_BOUND_S // CREATION_LOG_WAIT_S + 1
+
+
+def _remote(*words: str) -> list[str]:
+    """The argv tail after `--` for `gh codespace ssh`: the remote command as ONE element. ssh
+    re-joins separate elements with spaces, so a path with a space would split on the box."""
+    return [shlex.join(words)]
 
 #: The run step's own bound, in seconds: the codespace's idle timeout (240 m) less a margin. A lane
 #: is long, and the stall watchdog in the runner (not this number) is what ends a quiet one.
@@ -2987,7 +3004,7 @@ def _mirror_into_box(cfg: MirrorConfig, items: Sequence[MirrorItem], records: li
                         records, name, commands, fate="FAILED")
 
     def tool(*args: str, stdin: Optional[bytes] = None) -> GhResult:
-        return call(["codespace", "ssh", "-c", name, "--", "bash", "-l", tools_remote, *args],
+        return call(["codespace", "ssh", "-c", name, "--", *_remote("bash", "-l", tools_remote, *args)],
                     timeout=CREDENTIAL_CALL_TIMEOUT_S, input_bytes=stdin)
 
     by_cli = {r["cli"]: r for r in records}
@@ -3170,7 +3187,7 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
     quoted = " ".join(shlex.quote(a) for a in head_argv)
     run_log = f"{workdir}/run.log"
     receipt_json = f"{workdir}/receipt.json"
-    handback_json = f"{workdir}/handback.json"
+    handback_json = f"{workdir}/{RUNNER_HANDBACK_FILE}"
     # ONE STATEMENT PER LINE, joined by "\n" -- never ";" across a block. A `try/except`/`for`
     # body de-indented with ";" instead of a real newline is a Python IndentationError, and that
     # is exactly the failure mode this script exists not to introduce (measured while writing
@@ -3191,7 +3208,7 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "import json,sys,os",
         f"RUN_LOG={run_log!r}",
         f"RECEIPT={receipt_json!r}",
-        f"HANDBACK={handback_json!r}",
+        f"RUNNER_HB={handback_json!r}",
         f"STALL={int(stall_after_s)!r}",
         "t=open(RUN_LOG,encoding='utf-8',errors='replace').read()",
         "r=None",
@@ -3228,9 +3245,9 @@ def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequenc
         "        last=p",
         "        break",
         "if last is not None and isinstance(last.get('structured_output'),dict):",
-        "    json.dump(last['structured_output'],open(HANDBACK,'w'))",
+        "    json.dump(last['structured_output'],open(RUNNER_HB,'w'))",
         "    hb_present=True",
-        "receipt['handback']={'present':hb_present}",
+        f"receipt['handback']={{'present':hb_present}}  # {RUNNER_HANDBACK_FILE}",
         "E=os.environ.get",
         "bs,hs,br,ps,pe=E('CS_BASE_SHA') or None,E('CS_HEAD_SHA') or None,E('CS_BRANCH') or None,"
         "E('CS_PUSHED_SHA') or None,E('CS_PUSH_EXIT') or None",
@@ -3581,7 +3598,7 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
         # `/workspaces/<repo-name>`) -- it is only where THIS runner's own files live, and
         # nothing creates it. Codex terra P1 (2026-09-27): the first `cp` into it failed on
         # every fresh codespace because the directory had never existed.
-        mkdir = call(["codespace", "ssh", "-c", name, "--", "mkdir", "-p", workdir])
+        mkdir = call(["codespace", "ssh", "-c", name, "--", *_remote("mkdir", "-p", workdir)])
         if not mkdir.ok:
             return ExecResult(False, name=name, commands=tuple(commands), mirror=tuple(records),
                                failure=f"creating {workdir} exited {mkdir.exit_code}")
@@ -3613,7 +3630,7 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
         # writes `receipt.json` in its own `exit $code` tail, so a non-zero ssh exit still has a
         # receipt worth reading -- returning early on `ran.ok` alone threw away exactly the
         # evidence a failed lane most needs kept.
-        ran = call(["codespace", "ssh", "-c", name, "--", "bash", "-l", runner_remote],
+        ran = call(["codespace", "ssh", "-c", name, "--", *_remote("bash", "-l", runner_remote)],
                    timeout=run_timeout_s)
 
         # THE FATE OF A RUN WHOSE TRANSPORT DIED (item 5, R65): ssh's own exit 255 is a dropped
@@ -3686,7 +3703,7 @@ def _codespace_exec_core(repo: str, branch: str, slug: str, contract: Path, head
                 {k: commit.get(k) for k in ("branch", "base_sha", "head_sha", "pushed_sha",
                                             "committed", "pushed", "push_exit")},
                 commit_failure, commit_fate)
-            pulled = call(["codespace", "ssh", "-c", name, "--", "cat", f"{workdir}/handback.json"])
+            pulled = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", f"{workdir}/{RUNNER_HANDBACK_FILE}")])
             evidence = _handback_evidence(pulled.stdout if pulled.ok else "")
             hb_ok = evidence["present"] and evidence["valid"]
             hb_failure = "" if hb_ok else (
@@ -3707,12 +3724,13 @@ def _creation_log_refusal(name: str, call: Callable[..., GhResult],
                           sleep: Callable[[float], None]) -> str:
     """'' when the creation log says the container is ours; else the reason to refuse the run.
 
-    READS THE LOG OVER SSH (`cs.creation_log_args`) with a timeout, up to `CREATION_LOG_ATTEMPTS`
-    times while it is INDETERMINATE (empty, unreadable, or not yet finished). A recovery container
+    READS THE LOG OVER SSH with a timeout, until `CREATION_LOG_WAIT_BOUND_S` of sleep is spent
+    while it is INDETERMINATE (empty, unreadable, or not yet finished). A recovery container
     or a failed creation refuses at once: another read cannot make it ours."""
     verdict = None
     for attempt in range(CREATION_LOG_ATTEMPTS):
-        res = call(cs.creation_log_args(name), timeout=cs.SSH_TIMEOUT_S)
+        res = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", cs.CREATION_LOG_PATH)],
+                   timeout=cs.SSH_TIMEOUT_S)
         verdict = cs.classify_creation_log(res.stdout if res.ok else "")
         if verdict.verdict is cs.ContainerVerdict.OURS:
             return ""
@@ -3825,7 +3843,7 @@ def codespace_observe(name: str, *, workdir: str = "/workspaces/dispatch",
 #: absent on the remote is SKIPPED at harvest, not refused -- a stalled lane's partial evidence is
 #: still worth capturing -- but only the files actually captured enter the manifest, and
 #: `codespace_delete` gates on exactly that manifest, never on this constant.
-HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json", "handback.json")
+HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json", "handback.json", RUNNER_HANDBACK_FILE)
 
 #: The platform's creation log, read from its FIXED remote path rather than from `workdir`, and kept
 #: as `creation.log`. A run refused before it started (a recovery container, a failed creation --
@@ -3863,7 +3881,8 @@ class HarvestResult:
 def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/workspaces/dispatch",
                        files: Sequence[str] = HARVEST_FILES, out_root: Optional[Path] = None,
                        force: bool = False, dry_run: bool = False,
-                       invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
+                       invoker: Optional[Callable[[Sequence[str]], GhResult]] = None,
+                       checkout_dir: str = "", transport_dir: Optional[Path] = None
                        ) -> HarvestResult:
     """R17 / D2's harvest leg: pull evidence out of a codespace via `ssh ... cat` -- ported from
     `Save-CodespaceLaneHarvest`, whose own docstring calls this "measured rather than preferred":
@@ -3896,17 +3915,17 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
 
     if dry_run:
         for rel in files:
-            commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--", "cat",
-                                             f"{workdir}/{rel}"]))
-        commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--", "cat",
-                                         cs.CREATION_LOG_PATH]))
+            commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--",
+                                             *_remote("cat", f"{workdir}/{rel}")]))
+        commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--",
+                                         *_remote("cat", cs.CREATION_LOG_PATH)]))
         return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
                               commands=tuple(commands))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict = {}
     for rel in files:
-        res = call(["codespace", "ssh", "-c", name, "--", "cat", f"{workdir}/{rel}"])
+        res = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", f"{workdir}/{rel}")])
         if not res.ok:
             continue  # absent on the remote -- skipped, not refused (module docstring above)
         local = out_dir / rel
@@ -3914,7 +3933,43 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         local.write_text(res.stdout, encoding="utf-8", newline="\n")
         manifest[rel] = hashlib.sha256(local.read_bytes()).hexdigest()
 
-    log = call(["codespace", "ssh", "-c", name, "--", "cat", cs.CREATION_LOG_PATH])
+    session_rel = f"SESSION-{lane}.md"
+    if checkout_dir and transport_dir is not None:
+        src = f"{checkout_dir}/to-browser/{session_rel}"
+        got = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", src)])
+        if got.ok:
+            data = got.stdout.encode("utf-8")
+            box, why = _box_size_and_hash(name, src, call)
+            digest = hashlib.sha256(data).hexdigest()
+            problem = ""
+            if box is None:
+                problem = why
+            elif len(data) != box[0]:
+                problem = f"{session_rel}: size mismatch -- box {box[0]} bytes, harvested {len(data)}"
+            elif digest != box[1]:
+                problem = f"{session_rel}: sha256 mismatch -- box {box[1]}, harvested {digest}"
+            if not problem:
+                local = out_dir / session_rel
+                local.write_bytes(data)
+                try:
+                    # the operator named the directory, so its folder name is not policed here --
+                    # the writer and the content lint still are
+                    registry = [replace(k, folders=(*k.folders, "root")) if k.matches(session_rel) else k
+                                for k in _transport.load_registry()]
+                    landed = _transport.write("lane", Path(transport_dir) / session_rel, got.stdout,
+                                              registry=registry)
+                except (OSError, _transport.TransportWriteRefused) as exc:
+                    problem = f"{session_rel}: the transport refused the session file ({exc})"
+                else:
+                    manifest[session_rel] = hashlib.sha256(landed.read_bytes()).hexdigest()
+            if problem:
+                (out_dir / session_rel).unlink(missing_ok=True)
+                write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", False,
+                           {"manifest_path": str(manifest_path), "files": manifest}, problem)
+                return HarvestResult(False, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                                     files=manifest, commands=tuple(commands), failure=problem)
+
+    log = call(["codespace", "ssh", "-c", name, "--", *_remote("cat", cs.CREATION_LOG_PATH)])
     if log.ok and log.stdout.strip():
         local = out_dir / HARVEST_CREATION_LOG
         local.write_text(log.stdout, encoding="utf-8", newline="\n")
@@ -3924,11 +3979,15 @@ def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/work
         json.dumps({"name": name, "batch": batch, "lane": lane, "files": manifest},
                    indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n")
-    recovered = bool(manifest)
-    if not recovered:
-        # NOTHING TO RECOVER IS NOT A FAILURE (Save-CodespaceLaneHarvest's own doctrine) -- an
-        # empty manifest is still written, and it is still what codespace_delete gates on.
+    if not manifest:
+        # an empty manifest is still written (codespace_delete refuses on it) but is a FAILED
+        # harvest: a caller that proceeds as if evidence were captured would lose the box's only copy
         commands.append("# nothing captured -- every named file was absent on the remote")
+        failure = "nothing was captured -- every named file was absent on the remote"
+        write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", False,
+                   {"manifest_path": str(manifest_path), "files": manifest}, failure)
+        return HarvestResult(False, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                             commands=tuple(commands), failure=failure)
     write_step(out_dir / "steps.jsonl", batch, lane, name, "harvest", True,
                {"manifest_path": str(manifest_path), "files": manifest})
     return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
@@ -4043,7 +4102,9 @@ def codespace_delete(name: str, *, out_dir: Path,
                     lane, batch, name, created=datetime.fromisoformat(opened["created"]),
                     deleted=datetime.now(timezone.utc), machine=opened.get("machine", ""),
                     prebuild=bool(opened.get("prebuild")), tokens={}, ledger_path=ledger_path,
-                    ready=opened.get("ready"), ready_reason=opened.get("ready_reason") or "")
+                    ready=opened.get("ready"), ready_reason=opened.get("ready_reason") or "",
+                    end_reason="deleted via dispatch.py codespace-delete after a manifest-gated "
+                               "harvest (hash-verified)")
                 minutes = closed["uptime_minutes"]
         write_step(steps_path, batch, lane, name, "delete", res.ok,
                    {"refused": False, "exit_code": res.exit_code, "reason": verdict.reason,
@@ -4075,8 +4136,8 @@ def _box_size_and_hash(name: str, src: str, call: Callable[[Sequence[str]], GhRe
                        ) -> tuple[Optional[tuple[int, str]], str]:
     """`((bytes, sha256), "")` as the BOX reports them for `src`, or `(None, why)`."""
     quoted = shlex.quote(src)
-    res = call(["codespace", "ssh", "-c", name, "--", "sh", "-c",
-                f"wc -c < {quoted}; sha256sum {quoted}"])
+    res = call(["codespace", "ssh", "-c", name, "--",
+                *_remote("sh", "-c", f"wc -c < {quoted}; sha256sum {quoted}")])
     lines = res.stdout.split("\n") if res.ok else []
     try:
         return (int(lines[0].strip()), lines[1].split()[0]), ""
@@ -4320,9 +4381,12 @@ def codespace_observe_cmd(name: str, workdir: str, expected_gone: bool,
                    "$CLAUDE_PROMPTS_DIR/to-browser.")
 @click.option("--repo", default="rdwornik/.dev-knowledge", show_default=True,
               help="owner/name -- names the box's checkout (/workspaces/<name>) for --deliver.")
+@click.option("--checkout-dir", default="", show_default=True,
+              help="The box's checkout; with --transport-dir (no --deliver) the harvest also copies "
+                   "and hash-verifies to-browser/SESSION-<lane>.md into the transport.")
 def codespace_harvest_cmd(name: str, batch: str, lane: str, workdir: str,
                           out_root: Optional[Path], force: bool, dry_run: bool, deliver: bool,
-                          transport_dir: Optional[Path], repo: str) -> None:
+                          transport_dir: Optional[Path], repo: str, checkout_dir: str) -> None:
     """Pull evidence out of a codespace and write the manifest `codespace-delete` gates on.
 
     With `--deliver` the whole handback runs: the box is deleted only once its SESSION file and run
@@ -4346,7 +4410,8 @@ def codespace_harvest_cmd(name: str, batch: str, lane: str, workdir: str,
             sys.exit(EXIT_REFUSED)
         return
     result = codespace_harvest(name, batch=batch, lane=lane, workdir=workdir, out_root=out_root,
-                               force=force, dry_run=dry_run)
+                               force=force, dry_run=dry_run, checkout_dir=checkout_dir,
+                               transport_dir=transport_dir)
     click.echo(json.dumps({
         "ok": result.ok, "name": result.name, "out_dir": str(result.out_dir),
         "manifest_path": str(result.manifest_path), "files": result.files,
