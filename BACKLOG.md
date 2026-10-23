@@ -970,6 +970,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1713] [P2][S] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) · tasks/1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md
 - [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
 - [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
+- [#1716] [P2][S] The K1 operator-act landing class: land_lane.py lands a non-model change keyed by a ratification id · tasks/1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md
 
 ---
 

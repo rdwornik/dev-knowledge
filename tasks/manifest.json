@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "72699cb96c7d8006445f7cc957db8f32c521c7a5f99c33562ffde019b1fa9ee8",
+  "generated_sha256": "98f81866bc50faa4a7718080df5502382b737477350a58be3199fbc5583e6b1a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3722,6 +3722,10 @@
     {
       "task": 1715,
       "file": "1715-actions-verdict-reads-only-mains-push-run.md"
+    },
+    {
+      "task": 1716,
+      "file": "1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md"
     },
     {
       "prose": ""
