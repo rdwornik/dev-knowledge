@@ -142,3 +142,15 @@ def test_run_claude_uses_resolved_executable(monkeypatch, tmp_path):
     startup_probe.run_claude(tmp_path, "m")
 
     assert seen["argv"][0] == r"C:\npm\claude.cmd"
+
+
+def test_default_model_is_the_registry_role_model_not_a_literal():
+    from scripts import provider_registry
+
+    src = startup_probe.__file__
+    text = open(src, encoding="utf-8").read()
+    assert "DEFAULT_MODEL" not in text or "claude-sonnet-5-5" not in text
+    assert startup_probe.default_model() == provider_registry.anthropic_role_model(
+        "seat-orchestrator"
+    )
+    assert provider_registry.anthropic_role_model("seat-orchestrator") not in text

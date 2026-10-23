@@ -11,9 +11,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEFAULT_MODEL = "claude-sonnet-5-5"
+ROLE = "seat-orchestrator"  # the model a lane-head seat runs on
 TIMEOUT_S = 180
 _KEYS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+
+
+def default_model():
+    try:
+        from scripts import provider_registry
+    except ImportError:
+        import provider_registry
+    return provider_registry.anthropic_role_model(ROLE)
 
 
 def dirty_files(repo):
@@ -55,7 +63,7 @@ def run_claude(repo, model):
 def main(argv, runner=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", default=".")
-    ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--model", default=None)
     args = ap.parse_args(argv)
     repo = Path(args.repo)
 
@@ -64,7 +72,7 @@ def main(argv, runner=None):
         print("refusing dirty tree: " + ", ".join(dirty), file=sys.stderr)
         return 2
 
-    usage = json.loads((runner or run_claude)(repo, args.model))["usage"]
+    usage = json.loads((runner or run_claude)(repo, args.model or default_model()))["usage"]
     calls = calls_from_usage(usage)
     print(f"calls={calls} tokens={_total(usage)}")
     return 0 if calls <= 1 else 1
