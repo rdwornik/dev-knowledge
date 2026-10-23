@@ -999,3 +999,14 @@ def test_dirty_tree_silent_for_untracked_codespace_receipts_ledger(monkeypatch):
     monkeypatch.setattr(
         sb, "_git", _fake_git({"status": _R("?? logs/CODESPACE-RECEIPTS.jsonl\n")}))
     assert sb.check_dirty_tree() is None
+
+
+@pytest.mark.parametrize("status", [" D", "D ", "MD"])
+def test_dirty_tree_reports_deleted_codespace_receipts_ledger(monkeypatch, status):
+    monkeypatch.setattr(
+        sb, "_git", _fake_git({"status": _R(f"{status} logs/CODESPACE-RECEIPTS.jsonl\n")}))
+
+    line = sb.check_dirty_tree()
+
+    assert line and "1 uncommitted" in line
+    assert "logs/CODESPACE-RECEIPTS.jsonl" in line
