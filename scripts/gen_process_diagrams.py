@@ -543,12 +543,20 @@ def gate_problems(binding: dict, repo_root: Path = REPO) -> dict[str, list[str]]
 
 
 def gate_main(path: Path = BINDING_PATH, repo_root: Path = REPO, report_only: bool = False) -> int:
-    problems = gate_problems(load_binding(path), repo_root)
+    binding = load_binding(path)
+    problems = gate_problems(binding, repo_root)
     for node in problems["unbound_nodes"]:
         print(f"UNBOUND NODE {node}")
     for code in problems["unbound_entry_points"]:
         print(f"UNBOUND ENTRY {code}")
-    return 0 if report_only or not any(problems.values()) else 1
+    # A gate that cannot see its inputs must not pass: a missing dispatch.py empties the entry-point
+    # set, and a stale anchor leaves a node "bound" by field only (review-2 P1s).
+    extra = anchor_problems(binding, repo_root)
+    if not (repo_root / "scripts" / "dispatch.py").is_file():
+        extra.append("scripts/dispatch.py is missing: the entry-point set is empty, not complete")
+    for line in extra:
+        print(f"GATE INPUT {line}")
+    return 0 if report_only or not (any(problems.values()) or extra) else 1
 
 
 def check_diagram(path: Path = BINDING_PATH, repo_root: Path = REPO) -> int:
