@@ -2256,7 +2256,7 @@ def _row_operator_decisions_list(bundle_dir: "Path | None") -> PreflightRow:
                         "no `Operator decisions` heading in any bundle markdown file")
 
 
-_DIGEST_OWED_RE = re.compile(r"(?im)^(?:#{1,6}\s+)?owed\b")
+_DIGEST_OWED_RE = re.compile(r"(?m)^owed:")
 
 
 def _row_digest_owed_present(transport) -> PreflightRow:
