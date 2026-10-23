@@ -2144,7 +2144,7 @@ _SEAT_REGISTRY_RE = re.compile(r"(?m)^\s*-?\s*seat:\s*['\"]?(Tech-Architect-\d+)
 def _row_seat_ids_both(transport, repo_root: Path) -> PreflightRow:
     """Row 14 -- the outgoing Tech-Architect seat and its successor are both registered."""
     name = "seat_ids_both"
-    locator = "to-cc/SUPPLEMENT-ANSWERS-Tech-Architect-<n>*.md x ecosystem/seat-ids.yaml"
+    locator = "to-cc SUPPLEMENT-ANSWERS files (one per Tech-Architect seat) x ecosystem/seat-ids.yaml"
     if transport is None:
         return _no_transport(name)
     try:
@@ -2172,7 +2172,7 @@ def _row_supplement_matches_transport(transport, bundle_dir: "Path | None") -> P
     """Row 15 -- the bundle's SUPPLEMENT.md folds the newest transport supplement verbatim."""
     import hashlib
     name = "supplement_matches_transport"
-    locator = "<bundle>/SUPPLEMENT.md x newest to-cc/SUPPLEMENT-ANSWERS-*.md"
+    locator = "<bundle>/SUPPLEMENT.md x newest to-cc SUPPLEMENT-ANSWERS file"
     if transport is None:
         return _no_transport(name)
     if bundle_dir is None or not (Path(bundle_dir) / "SUPPLEMENT.md").is_file():
