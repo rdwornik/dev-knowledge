@@ -89,7 +89,7 @@ def test_the_role_vocabulary_agrees_with_the_telemetry_emitters_copy():
     sys.modules["cost_usage_telemetry"] = mod
     spec.loader.exec_module(mod)
     # seat-* roles are operator seats, not measured/telemetry roles (R177).
-    assert mod.ROLES == ROLE_NAMES - {"seat-orchestrator", "seat-integrator"}
+    assert mod.ROLES == ROLE_NAMES - {"seat-orchestrator", "seat-integrator", "seat-dispatcher"}
 
 
 def test_the_live_registry_validates_and_carries_all_six_roles(live):

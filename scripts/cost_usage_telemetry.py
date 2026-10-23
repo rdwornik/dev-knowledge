@@ -184,7 +184,8 @@ _LIVE_COLLECTOR_PACKAGES: dict[str, str] = {
 #: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
 #: keys a measured pass rate, and collapsing them would make one of the two lie.
 ROLES: frozenset[str] = frozenset(
-    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge"}
+    {"orchestrate", "plan", "implement", "review", "read", "verify", "red", "qa", "judge",
+     "execute", "rulings"}
 )
 
 #: The WORK-PRODUCT outcome, closed -- AX21-2's parenthetical ("tests green? review

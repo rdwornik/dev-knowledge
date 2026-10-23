@@ -17,8 +17,8 @@ BATCH = "E2.0"
 
 _PHASE_ROWS = {
     # R177 split: the default implement row is Copilot (Claude implement needs VENDOR-FAIL evidence)
-    "implement": "| implement code (lane head) | Copilot CLI (default model) | local |",
-    "red": "| write the RED / isolated tests | Copilot CLI (default model) | codespace |",
+    "implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |",
+    "red": "| write the RED / isolated tests | Copilot CLI `gpt-6-luna` | codespace |",
     "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
     "verify": f"| isolated verify | {SONNET} | local |",

@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-23 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane registry-roles (L13) -- the 2026-10-23 model routing becomes registry data (seat-integrator claude-sonnet-5-5 per D2 amended, seat-dispatcher Opus per D9, rulings role, execute role, reserved share, family constraint, fallback trigger B') and the R177 amendment lands in `protocols/STANDING_RULINGS.md` after the operator's ruling recorded in `RATIFICATION-2026-10-23` AMENDMENT (a) (K10, U3)
+
+**Anchors:** `07d3ae9d6` (frozen RED tests, written by copilot gpt-6-luna), `0f5ed8509` (the registry data and schema), `743c2e59b` (the R177 amendment draft), `abb27ba8b` (the lane tip: CI repair 1)
+
+**Did:** purity (8 lane commits on merge-base af8bdad5b, nothing else), substitution gate clean on the lane's MODELS block (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 76e089f46, regenerate (BACKLOG.md already current, doc-counts only), the changed test files of the diff: 281 passed (`-n0`, 181 s), then the ship-gate diff on the merged tree.
+
+**Result:** after this lands the registry row `seat-integrator` pins claude-sonnet-5-5 (F3); that the successor actually SERVES that model is still checked at the next seat cycle, and the F3 OPERATOR-ACTION is written if it does not. Two operator questions the lane raised are carried to the digest MORNING section, not decided here: whether R138's Codex+Copilot review pair is retired, and whether the B' dispatch consumer and the Grok execute admission are filed this window.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `protocols/STANDING_RULINGS.md`, `scripts/provider_registry.py`, `scripts/subst_gate.py`, `scripts/cost_usage_telemetry.py`, `scripts/gen_lane_contract.py`, 10 test files under `tests/`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** startup-tokens (repair 1 owed), codespace-delivery-fix (repair 1 owed); landing-class (L8) and ci-one-verdict (L2) start now that known-reds-1350 is MERGED.
+
 ### 2026-10-23 (b) - CC (Sonnet 5.5, INTEGRATOR-E2.1, batch E2.1): lane known-reds-1350 (`[#1350]`, W1) -- the `scripts/transport.py` append-lock entry leaves the known-reds registry (removed, not re-dated), and the one test that asserted the registry made transport Windows-sensitive now asserts it through the real platform scan
 
 **Anchors:** `075fb8796` and `78366121a` (the lane's two commits: the registry removal with its mutation witness, and the repair that replaced `test_the_COMMITTED_registry_makes_transport_sensitive`)

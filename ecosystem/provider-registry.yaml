@@ -608,6 +608,11 @@ providers:
 # ===========================================================================================
 roles:
 
+  # 2026-10-23 -- operator model routing (`to-browser/RATIFICATION-2026-10-23.md` D2/D9, "the
+  # operator model routing of 2026-10-23"): seat-integrator -> claude-sonnet-5-5 (interim), NEW
+  # seat-dispatcher / execute / rulings roles, no-fallback + reserved Opus share on orchestrate/plan,
+  # `distinct_family_from` on red, and the `fallback_triggers:` block (B') at the end of the file.
+  # Superseded text stays in each note as history.
   orchestrate:
     description: >-
       Decide what the other roles do. AX21-1: "orchestrate / plan -> Opus only". `claude-opus-5-5`
@@ -621,6 +626,14 @@ roles:
     # rather than its finding.
     rerankable: false
     routing_table_role: null   # routing-table.yaml has no orchestration row; it is CC's own seat
+    no_fallback: true
+    reserved_share:
+      pool: "anthropic-weekly-opus"
+      value: null
+      reason: "the operator ruled that a share of the weekly Anthropic budget is reserved for Opus but named no value (2026-10-23 routing); a number is not invented"
+      decided_by: operator
+      decided_on: "2026-10-23"
+      evidence: protocols/STANDING_RULINGS.md
     order:
       - provider: anthropic
         model: claude-opus-5-5
@@ -628,10 +641,13 @@ roles:
           Opus only (AX21-1). No fallback -- a degraded orchestrator is worse than a stopped
           one. MOVED from `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the operator's explicit
           admission, B5: "Opus 5.5 admitted for orchestrate/plan, by explicit model id."
+          2026-10-23: `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool
+          (value unset) per `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model
+          routing of 2026-10-23.
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-24"
+          decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
   plan:
     description: >-
@@ -640,16 +656,27 @@ roles:
       every other role executes against.
     rerankable: false
     routing_table_role: null
+    no_fallback: true
+    reserved_share:
+      pool: "anthropic-weekly-opus"
+      value: null
+      reason: "the operator ruled that a share of the weekly Anthropic budget is reserved for Opus but named no value (2026-10-23 routing); a number is not invented"
+      decided_by: operator
+      decided_on: "2026-10-23"
+      evidence: protocols/STANDING_RULINGS.md
     order:
       - provider: anthropic
         model: claude-opus-5-5
         note: >-
           Opus only (AX21-1), same clause and same reason as orchestrate. MOVED from
-          `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the same B5 admission.
+          `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the same B5 admission. 2026-10-23:
+          `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool (value
+          unset) per `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing
+          of 2026-10-23.
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-24"
+          decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
   implement:
     description: >-
@@ -679,8 +706,13 @@ roles:
     routing_table_role: producer
     order:
       - provider: copilot-enterprise
+        model: claude-sonnet-5.5
         substrate: codespace
         note: >-
+          PINNED 2026-10-23 (K3, `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
+          routing of 2026-10-23): "Copilot CLI --model claude-sonnet-5.5 on EVERY call". Until then
+          no model was pinned here (the served model was read from the CLI usage file); that text
+          follows as history.
           FIRST. R177/R178 (operator, 2026-10-20): the Copilot CLI implements; the model it served is
           read from the CLI usage file and recorded in the MODELS block, none is pinned here. Was
           SECOND under R153 (2026-10-19), FIRST under R104 before that. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
@@ -700,8 +732,8 @@ roles:
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-23"
-          evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
+          decided_on: "2026-10-23"
+          evidence: protocols/STANDING_RULINGS.md
       - provider: anthropic
         model: claude-sonnet-5-5
         substrate: codespace
@@ -729,6 +761,52 @@ roles:
         admission:
           verdict: unevaluated
           floors: ["AX22-1", "AX21-3"]
+  execute:
+    description: >-
+      Execute a planned task. 2026-10-23 operator model routing (`to-browser/RATIFICATION-2026-10-23.md`
+      D2/D9): Sonnet first, Grok as the fallback under trigger B' (see `fallback_triggers:`). NOT the
+      `implement` role: that one writes code through the Copilot CLI in an isolated session.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        note: >-
+          Sonnet 5.5 executes (`to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
+          routing of 2026-10-23).
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-23"
+          evidence: protocols/STANDING_RULINGS.md
+      - provider: xai
+        model: grok-4.7
+        requires_admission: true
+        note: >-
+          Fallback under trigger B' (weekly usage above elapsed-week share, or the manual override):
+          `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model routing of 2026-10-23.
+          Every use is recorded in the MODELS block (R139). NOT ADMITTED for `execute`: xai's licence is
+          `restricted` and a test pins xai admitted for `review` only, so admitting it here is a licence
+          ruling that is the operator's (OPERATOR-ACTION in the registry-roles handback); until then
+          trigger B' cannot route an execute call to Grok through the router.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+  rulings:
+    description: >-
+      Rulings and option picks. 2026-10-23 operator model routing (`to-browser/RATIFICATION-2026-10-23.md`
+      D2/D9): Fable decides.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-fable-5-1
+        note: >-
+          Fable 5.1 for rulings / option picks (`to-browser/RATIFICATION-2026-10-23.md` D2/D9, the
+          operator model routing of 2026-10-23).
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-23"
+          evidence: protocols/STANDING_RULINGS.md
   review:
     description: >-
       Judge a diff before merge. AX21-1 routes this to Codex terra and excludes the producing
@@ -769,6 +847,9 @@ roles:
           chain, so ADMITTED for `review` (this entry was `unevaluated` until then). Declares
           `max_turns_floor: 2` because `grok -p` returns nothing at `--max-turns 1`. MOVED from
           `grok-4.6` 2026-10-04 (`foundation-10-model-currency`, R61) on served evidence.
+          Every Grok finding cites file:line and is verified by a script or test (operator
+          2026-10-23; `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model routing of
+          2026-10-23).
         admission:
           verdict: admitted
           decided_by: operator
@@ -801,7 +882,8 @@ roles:
       Locate and quote. AX21-1: "read / scan -> agy -> Copilot Enterprise -> Sonnet (locator +
       verbatim; CC verifies)". The "CC verifies" half is not a courtesy -- it is why a
       not-yet-admitted reader is still a coherent idea: a locator can be re-checked, so the
-      failure mode is a wasted call rather than a false record.
+      failure mode is a wasted call rather than a false record. Counts and searches are done by
+      code; a model only summarises with citations (operator 2026-10-23).
     routing_table_role: null   # routing-table.yaml's fan_out is retrieval-only multi-head, a different shape
     order:
       - provider: antigravity
@@ -841,6 +923,7 @@ roles:
       Confirm the work holds. AX21-1: "verify -> Sonnet + the lane's RED-first tests." The tests
       are the load-bearing half and they are not a provider, which is why this role has exactly
       one entry rather than a chain: if the tests do not pass, no fallback model changes that.
+      Verification is done by a third, isolated agent (R147, K6).
     routing_table_role: null
     order:
       - provider: anthropic
@@ -860,13 +943,22 @@ roles:
       (2026-10-18) has the Copilot CLI write and run them, and R153 has Sonnet implement the code
       they test, so the writer is never the producer.
     routing_table_role: null
+    distinct_family_from: implement
     order:
       - provider: copilot-enterprise
+        model: gpt-6-luna
         substrate: codespace
-        note: "BATCH-E2-0 v2 section 3: Copilot CLI, default model and effort. No model is pinned; the served model is recorded verbatim in the MODELS block."
+        note: >-
+          PINNED 2026-10-23 to `gpt-6-luna` (F7; `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the
+          operator model routing of 2026-10-23): the tests-writer is a SEPARATE Copilot agent on a
+          DIFFERENT model family than the coder (`distinct_family_from: implement`). History:
+          BATCH-E2-0 v2 section 3: Copilot CLI, default model and effort; no model was pinned and the
+          served model is recorded verbatim in the MODELS block.
         admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-23"
+          evidence: protocols/STANDING_RULINGS.md
       - provider: anthropic
         model: claude-sonnet-5-5
         note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. Runs only after a recorded VENDOR-FAIL of the Copilot CLI (P1, R139)."
@@ -900,6 +992,8 @@ roles:
     description: >-
       The model the lane head seat itself runs on (R177/R178, operator): Sonnet 5.5. A seat, not a
       producer role -- the alias `sonnet` and the lane-head row of a contract are derived from it.
+      This is the lane-head row and must not be repointed; the orchestrator seat that takes in what
+      happens is the separate `seat-dispatcher` row.
     routing_table_role: null
     order:
       - provider: anthropic
@@ -912,17 +1006,41 @@ roles:
           evidence: protocols/STANDING_RULINGS.md
   seat-integrator:
     description: >-
-      The model the integrator seat runs on (R177/R178, operator): Opus 5.5. A seat, not a producer
-      role -- the alias `opus` is derived from it.
+      The model the integrator seat runs on: Sonnet 5.5 as an interim (D2 amended, operator
+      2026-10-23). A seat, not a producer role -- the alias derived for the integrator follows it.
     routing_table_role: null
+    pinned_model: claude-sonnet-5-5
     order:
       - provider: anthropic
-        model: claude-opus-5-5
-        note: "R177/R178 (operator, 2026-10-20): the integrator runs Opus 5.5."
+        model: claude-sonnet-5-5
+        note: >-
+          "D2 amended (operator 2026-10-23): integrator = claude-sonnet-5-5 as an interim (amends
+          R177 under R166)" -- `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
+          routing of 2026-10-23. History: until then the pin was claude-opus-5-5 (R177/R178,
+          operator, 2026-10-20: the integrator runs Opus 5.5).
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-10-20"
+          decided_on: "2026-10-23"
+          evidence: protocols/STANDING_RULINGS.md
+  seat-dispatcher:
+    description: >-
+      The orchestrator/dispatcher seat: it takes in what happens and decides the next step (D9
+      workforce principle; amends R177 "the orchestrator seat runs on Sonnet"). A seat, not a
+      producer role. Distinct from `seat-orchestrator`, which is the lane-head row.
+    routing_table_role: null
+    no_fallback: true
+    order:
+      - provider: anthropic
+        model: claude-opus-5-5
+        note: >-
+          Opus 5.5, no fallback (`to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
+          routing of 2026-10-23). Amends R177 "the orchestrator seat runs on Sonnet"; the
+          lane-head row `seat-orchestrator` is unchanged.
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
   judge:
     description: >-
@@ -966,6 +1084,9 @@ dispatcher:
     Sonnet without a routing failure; the one Opus dispatcher of N3 cost ~7x its Sonnet
     estimate. A launcher session dispatching this seat records `OVERRIDE: R22` against
     `roles.orchestrate` (unchanged, Opus-only) rather than routing through it.
+    RECONCILED 2026-10-23 (DECIDED-BY-LANE): R22's pin governs the dispatch-queue launcher session
+    (code, not judgement); D9's Opus applies to the orchestrator SEAT, the `seat-dispatcher` role.
+    The two answer different questions; this block is not repointed.
   decided_by: operator
   decided_on: "2026-09-27"
   evidence: protocols/STANDING_RULINGS.md
@@ -973,6 +1094,30 @@ dispatcher:
 # Ids the Copilot gateway serves under requested=default (BATCH-E2-0 section 3).
 copilot_gateway_served:
   - claude-sonnet-5.5
+
+# FALLBACK TRIGGERS -- ADDED 2026-10-23 (operator model routing; `to-browser/RATIFICATION-2026-10-23.md`
+# D2/D9). Rule as data; the ONE pure function is `fallback_due` in `ecosystem/schema/provider_registry.py`.
+# Every fallback use is recorded in the MODELS block (R139).
+fallback_triggers:
+  bprime:
+    rule: "weekly-usage-exceeds-elapsed-week"
+    roles: [execute, review]
+    to_provider: xai
+    to_model: grok-4.7
+    override_flag: "FORCE_GROK_FALLBACK"
+    signals:
+      anthropic_weekly:
+        status: AVAILABLE
+        detail: "Claude Code statusline stdin JSON rate_limits.seven_day.{used_percentage,resets_at} (https://code.claude.com/docs/en/statusline, read 2026-10-23); Pro/Max only, only after the first API response, only inside a statusline script; nothing persists it today"
+      anthropic_opus_vs_sonnet_pools:
+        status: GAP
+        detail: "the statusline schema exposes five_hour and seven_day only, no per-model pool; separate Opus/Sonnet usage is not machine-readable"
+      codex_weekly:
+        status: AVAILABLE
+        detail: "~/.codex/sessions/**/rollout-*.jsonl token_count events carry payload.rate_limits.secondary.{used_percent,window_minutes=10080,resets_at}; read 2026-10-23"
+    decided_by: operator
+    decided_on: "2026-10-23"
+    evidence: protocols/STANDING_RULINGS.md
 
 models:
   claude-sonnet-5:
@@ -1056,6 +1201,7 @@ models:
   # not the $5.00 the card's earlier 1.25x multiplier would have produced.
   claude-opus-5-5:
     provider: anthropic
+    family: anthropic
     tier: L
     roles: [orchestrate, plan, judge]
     rates:
@@ -1227,12 +1373,30 @@ models:
   # is addressable and in the vocabulary; it is not priced and is not yet read as SERVED.
   claude-haiku-5-5:
     provider: anthropic
+    family: anthropic
     tier: S
     roles: [read]
     pinned_at: []
 
+  # ADDED 2026-10-23 (operator model routing; `to-browser/RATIFICATION-2026-10-23.md` D2/D9): the
+  # `rulings` role's model.
+  claude-fable-5-1:
+    provider: anthropic
+    family: anthropic
+    roles: [rulings]
+    pinned_at: []
+
+  # ADDED 2026-10-23 (K3): the id the Copilot CLI is pinned to for `implement` (`--model
+  # claude-sonnet-5.5` on EVERY call); the gateway serves it (`copilot_gateway_served`).
+  claude-sonnet-5.5:
+    provider: copilot-enterprise
+    family: anthropic
+    roles: [implement]
+    pinned_at: []
+
   claude-sonnet-5-5:
     provider: anthropic
+    family: anthropic
     tier: M
     # PRICED 2026-10-14 BY `[#1536]` (R104): it was unpriced on purpose until a rate source was
     # read; the claude-api skill's cached Current Models table now supplies one (below).
@@ -1255,6 +1419,7 @@ models:
   # session store, with `modelUsage` naming only `grok-4.7`. Both `xai` role entries pin it.
   grok-4.7:
     provider: xai
+    family: xai
     roles: [implement, reviewer]
     pinned_at: []
     last_verified: 2026-10-03
@@ -1274,6 +1439,7 @@ models:
   # provider only -- so the row exists so C1's served-id probe has an id to compare with.
   gpt-6-luna:
     provider: copilot-enterprise
+    family: openai
     roles: [reviewer]
     pinned_at: []
     last_verified: 2026-10-06
@@ -1282,6 +1448,7 @@ models:
 
   gemini-3.8-flash:
     provider: antigravity
+    family: google
     roles: [reviewer]
     pinned_at: []
     last_verified: 2026-10-03
