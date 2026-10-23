@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3bf7fe565d6d0996fc2844dab8ac1f5934fcc14bab273c482fe858cd80ef4ba2",
+  "generated_sha256": "670204477202f64df739c0e68e14b22ec105ebb7e36b31530936d94b699ddb78",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3676,10 +3676,6 @@
       "file": "1699-subst-gate-recorded-exception-mechanism.md"
     },
     {
-      "task": 1700,
-      "file": "1700-stop-hook-continues-the-turn-in-headless-sessions.md"
-    },
-    {
       "task": 1701,
       "file": "1701-a-lane-may-kill-only-its-own-processes.md"
     },
@@ -3694,10 +3690,6 @@
     {
       "task": 1704,
       "file": "1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md"
-    },
-    {
-      "task": 1705,
-      "file": "1705-start-up-token-probe-must-refuse-a-dirty-tree.md"
     },
     {
       "task": 1706,
