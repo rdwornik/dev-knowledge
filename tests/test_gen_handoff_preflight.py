@@ -96,7 +96,7 @@ def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_
     row 11 — the boot's citations, R95 D1 — by BW lane D5, `[#1450]`.)"""
     repo = _hub_stub(tmp_path)
     rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
-    assert len(rows) == 12
+    assert len(rows) == 18
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     for r in rows:
         assert r.status in (gh.PREFLIGHT_PASS, gh.PREFLIGHT_FAIL, gh.PREFLIGHT_NA)
@@ -731,7 +731,7 @@ def test_the_p11_row_is_in_the_roster_and_cites_the_family_precedent(tmp_path, _
     transport = _seven_file_short(tmp_path, carriers_set=True)
     assert "p11_carriage" in gh.PREFLIGHT_ROW_NAMES
     rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
-    assert len(rows) == 12
+    assert len(rows) == 18
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     row = next(r for r in rows if r.name == "p11_carriage")
     assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
@@ -807,7 +807,7 @@ def _seed_boot(repo, boot: str) -> None:
 
 
 def test_the_boot_citations_row_is_in_the_cut_gate():
-    assert gh.PREFLIGHT_ROW_NAMES[-2] == "boot_citations"   # row 12, git_hygiene, follows it
+    assert gh.PREFLIGHT_ROW_NAMES[10] == "boot_citations"   # row 12, git_hygiene, follows it
     assert "boot_citations" not in gh.PREFLIGHT_NON_BLOCKING_ROWS      # a FAIL refuses the cut
     assert "boot_citations" not in gh.TRIAL_CUT_EXCLUDED_ROWS          # and it runs at batch close
 
