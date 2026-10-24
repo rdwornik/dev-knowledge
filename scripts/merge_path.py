@@ -400,6 +400,16 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         return refuse("MAIN-PUSH-REFUSED", out.strip()[:300], verdict)
     if finalize_fn is None:
         record_push_fn(root, slug=slug, target="main", branch="main", sha=sha, seconds=main_s)
+    if push_sha != sha:
+        # CI's push trigger covers integration branches, not main: pushing the receipt merge
+        # there gives the new main tip a CI run the next landing can use as its baseline.
+        # Best-effort -- main already has the landing, so a failure here is not a refusal.
+        push_branch = ["push", "origin", f"{push_sha}:refs/heads/{branch}"]
+        commands.append(push_branch)
+        try:
+            git(push_branch)
+        except Exception:                     # noqa: BLE001 -- best-effort by design
+            pass
     return LandResult(True, getattr(verdict, "state", "PASS"),
                       f"{sha[:12]} landed on main after CI on {branch}", sha=sha, branch=branch,
                       verdict=verdict, commands=commands, substitutions=substitutions,

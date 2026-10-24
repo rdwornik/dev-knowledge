@@ -25,7 +25,10 @@ THE STEPS (STEPS, in order; a step that did not run is not reported)
                     closed, its ledger line committed (R) and merged under the judged merge M with
                     `--no-ff` (M2, parents M and R), and M2 is what goes to main -- the landing and
                     its own receipt line arrive in ONE push and main's first-parent spine stays
-                    merge-only. The carry file is left empty.
+                    merge-only. The carry file is left empty. M2 is covered by the ADR-85 predicate
+                    through `journal_anchor` (receipt-merge shape, anchored via M), and is also
+                    pushed to the integration branch so CI judges it and the next landing has a
+                    baseline.
   teardown          `teardown_fn` (default: fetch, then reset the worktree to `origin/main`).
 The three `land()` steps are one call: their seconds come from the receipt's `push-integration` and
 `push-main` timings and from wall time around the call (poll = wall minus both pushes, floored at 0).
@@ -38,7 +41,8 @@ HONEST LIMITS
   * The re-read of `origin/main` after `land()` DETECTS an unjudged sha on main; it cannot prevent
     one. Prevention is `land()`'s construction: one sha, pushed to the integration branch, judged,
     then pushed to main -- with only the receipt merge M2 (which adds nothing but the ledger line)
-    on top of it.
+    on top of it. M2 is anchored via M (journal_anchor's receipt-merge shape); the best-effort push
+    of M2 to the integration branch gives main's new tip a CI run, but it is not a gate.
   * A landing that fails after the receipt line was written leaves nothing on main; the worktree
     is reset to BASE and the landing must be re-run.
   * The local `ci wait` is a poll inside this process: it holds the worktree for up to

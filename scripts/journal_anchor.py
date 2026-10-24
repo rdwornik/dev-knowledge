@@ -551,9 +551,43 @@ def is_anchored(repo: Path, sha: str, journal: str) -> bool:
     for every input rather than only for the inputs today's callers produce.
     """
     index = _anchor_index(journal)
-    return any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
-               else (c[:_SHORT] in journal)
-               for c in introduced(repo, sha))
+    if any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
+           else (c[:_SHORT] in journal)
+           for c in introduced(repo, sha)):
+        return True
+    # A receipt merge is covered by the anchor of the landing it receipts (see _is_receipt_merge).
+    first_parent = _is_receipt_merge(repo, sha)
+    return first_parent is not None and is_anchored(repo, first_parent, journal)
+
+
+_RECEIPT_LEDGER = "logs/MERGE-RECEIPTS.jsonl"
+
+
+def _is_receipt_merge(repo: Path, sha: str) -> str | None:
+    """Return the first parent P1 if `sha` is a landing's receipt merge (P1 + ledger commit), else None.
+
+    WHY: the receipt commit does not exist until after CI, hence after the JOURNAL text was
+    authored (the A7 temporal rule), so no JOURNAL can name it. The receipt merge adds only the
+    ledger line, so it is covered by the anchor of the landing it receipts (P1).
+    """
+    intro = introduced(repo, sha)
+    if len(intro) != 2:
+        return None
+    parts = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
+    if len(parts) != 3 or parts[0] != sha:
+        return None
+    p1, p2 = parts[1], parts[2]
+    if p2 not in intro or p2 == sha:
+        return None
+    p2_parts = _git(repo, "rev-list", "--parents", "-n", "1", p2).split()
+    if p2_parts != [p2, p1]:
+        return None
+    ledger = [_RECEIPT_LEDGER]
+    if _git(repo, "diff", "--name-only", p1, sha).split() != ledger:
+        return None
+    if _git(repo, "diff", "--name-only", p1, p2).split() != ledger:
+        return None
+    return p1
 
 
 def unanchored_in_range(repo: Path, rev_range: str, journal: str) -> list[str]:
