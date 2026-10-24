@@ -972,6 +972,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
 - [#1716] [P2][S] The K1 operator-act landing class: land_lane.py lands a non-model change keyed by a ratification id · tasks/1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md
 - [#1721] [P1][S] A land_lane landing leaves an unanchored receipt merge (M2) on main's first-parent spine, and a main tip no CI run judged · tasks/1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md
+- [#1724] [P2][S] The claude.ai scheduled (cloud) routines run an unpinned `uv`; no check ties a routine bootstrap to pyproject's `required-version` · tasks/1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md
 
 ---
 
