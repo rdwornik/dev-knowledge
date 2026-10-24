@@ -434,6 +434,21 @@ def test_unrecorded_expiry_moves_distinguishes_bare_and_code_applied_changes(kr,
     assert kr.unrecorded_expiry_moves(base, extended)
 
 
+def _rewind_applied_extensions(path):
+    """Put the entries the real registry already carries an `extended` record for back at their
+    `old_expiry`, so the test keeps its real-shape input after KR-1 is applied to the live file."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    buckets = [data.get("members", {}), data.get("hooks", {})]
+    buckets += list(data.get("members_by_os", {}).values())
+    for entries in buckets:
+        for entry in entries.values():
+            record = entry.get("extended")
+            if record and record.get("old_expiry") == _OLD_EXPIRY:
+                entry["expiry"] = record["old_expiry"]
+                del entry["extended"]
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
     kr, tmp_path, capsys
 ):
@@ -443,6 +458,7 @@ def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
 
     registry_path = tmp_path / "registry.json"
     shutil.copyfile(source, registry_path)
+    _rewind_applied_extensions(registry_path)
     original_bytes = registry_path.read_bytes()
     before = json.loads(original_bytes)
     ratification_file = _ratification_file(
