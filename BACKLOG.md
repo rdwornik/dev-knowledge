@@ -971,6 +971,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
 - [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
 - [#1716] [P2][S] The K1 operator-act landing class: land_lane.py lands a non-model change keyed by a ratification id · tasks/1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md
+- [#1733] [P1][S] A lane cannot register its own row in the task manifest, so its branch CI is red by construction · tasks/1733-a-lane-cannot-register-its-own-row-so-its-branch-ci-is-red-by-construction.md
 
 ---
 
