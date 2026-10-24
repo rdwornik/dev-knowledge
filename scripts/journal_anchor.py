@@ -551,13 +551,17 @@ def is_anchored(repo: Path, sha: str, journal: str) -> bool:
     for every input rather than only for the inputs today's callers produce.
     """
     index = _anchor_index(journal)
-    if any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
-           else (c[:_SHORT] in journal)
-           for c in introduced(repo, sha)):
-        return True
-    # A receipt merge is covered by the anchor of the landing it receipts (see _is_receipt_merge).
-    first_parent = _is_receipt_merge(repo, sha)
-    return first_parent is not None and is_anchored(repo, first_parent, journal)
+    cur = sha
+    while True:
+        if any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
+               else (c[:_SHORT] in journal)
+               for c in introduced(repo, cur)):
+            return True
+        # A receipt merge is covered by the anchor of the landing it receipts (see _is_receipt_merge).
+        parent = _is_receipt_merge(repo, cur)
+        if parent is None:
+            return False
+        cur = parent
 
 
 _RECEIPT_LEDGER = "logs/MERGE-RECEIPTS.jsonl"
@@ -587,6 +591,13 @@ def _is_receipt_merge(repo: Path, sha: str) -> str | None:
         return None
     if _git(repo, "diff", "--name-only", p1, p2).split() != ledger:
         return None
+    for tip in (sha, p2):
+        rows = [ln.split("\t") for ln in _git(repo, "diff", "--numstat", p1, tip).splitlines() if ln.strip()]
+        if len(rows) != 1 or len(rows[0]) != 3 or rows[0][2] != _RECEIPT_LEDGER:
+            return None
+        added, deleted = rows[0][0], rows[0][1]
+        if not (added.isdigit() and deleted.isdigit()) or int(deleted) != 0 or int(added) < 1:
+            return None
     return p1
 
 

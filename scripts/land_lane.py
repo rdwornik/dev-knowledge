@@ -488,9 +488,13 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
         return report("LANDED", EXIT_OK, f"LANDED {sha[:12]} on main via {branch}; teardown "
                                          f"failed: {exc}", sha=sha, main_sha=main_sha)
     timed("teardown", started)
-    return report("LANDED", EXIT_OK,
-                  f"LANDED {sha[:12]} on main after CI on {branch}, receipt line included.",
-                  sha=sha, main_sha=main_sha)
+    message = f"LANDED {sha[:12]} on main after CI on {branch}, receipt line included."
+    baseline_error = getattr(result, "baseline_push_error", "")
+    if baseline_error:
+        message += (f" WARNING: the receipt merge was NOT pushed to the integration branch "
+                    f"({baseline_error}); main's new tip has no CI run until it is: push it to "
+                    f"{branch} by hand before the next landing.")
+    return report("LANDED", EXIT_OK, message, sha=sha, main_sha=main_sha)
 
 
 def _refusal(report: Callable, result, sha: str, branch: str, pushed: bool) -> LandReport:

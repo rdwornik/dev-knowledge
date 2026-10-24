@@ -274,6 +274,8 @@ class LandResult:
     #: The sha actually pushed to main: `sha` (the judged merge) unless a `finalize_fn` put a
     #: receipt merge on top of it.
     main_sha: str = ""
+    #: Why the best-effort push of the receipt merge to the integration branch failed ("" = it did not).
+    baseline_push_error: str = ""
 
 
 def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
@@ -383,6 +385,7 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
                                     f"integration branch; the judged sha is no longer the next "
                                     f"commit on main", verdict)
     push_sha = sha
+    baseline_push_error = ""
     if finalize_fn is not None:
         # The caller's receipt merge goes on top of the judged sha BEFORE main is pushed, so the
         # landing and its receipt line arrive in one push; it records the main-push step itself.
@@ -407,13 +410,15 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         push_branch = ["push", "origin", f"{push_sha}:refs/heads/{branch}"]
         commands.append(push_branch)
         try:
-            git(push_branch)
-        except Exception:                     # noqa: BLE001 -- best-effort by design
-            pass
+            code, out = git(push_branch)
+            if code != 0:
+                baseline_push_error = out.strip()[:300]
+        except Exception as exc:              # noqa: BLE001 -- best-effort by design
+            baseline_push_error = str(exc)[:300]
     return LandResult(True, getattr(verdict, "state", "PASS"),
                       f"{sha[:12]} landed on main after CI on {branch}", sha=sha, branch=branch,
                       verdict=verdict, commands=commands, substitutions=substitutions,
-                      main_sha=push_sha)
+                      main_sha=push_sha, baseline_push_error=baseline_push_error)
 
 
 # --- the ruleset (items 7, 13, 14) ------------------------------------------------------------
