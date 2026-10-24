@@ -297,8 +297,11 @@ def test_extend_adds_exact_record_without_mutating_the_input(kr, tmp_path):
         "date",
     }
     assert {
-        key: value for key, value in result.members["node-a"].items() if key != "extended"
-    } == before["members"]["node-a"]
+        key: value
+        for key, value in result.members["node-a"].items()
+        if key not in ("extended", "expiry")
+    } == {k: v for k, v in before["members"]["node-a"].items() if k != "expiry"}
+    assert result.members["node-a"]["expiry"] == _NEW_EXPIRY
 
 
 def test_extend_cli_defaults_to_dry_run_and_write_persists_the_diff(kr, tmp_path, capsys):
@@ -471,7 +474,7 @@ def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
     ]
     assert changed_lines
     assert all(
-        any(f'"{key}"' in line for key in allowed_keys)
+        line in ("}", "},") or any(f'"{key}"' in line for key in allowed_keys)
         for line in changed_lines
     )
     original_matching = sum(
