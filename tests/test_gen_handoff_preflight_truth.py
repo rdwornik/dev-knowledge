@@ -440,7 +440,7 @@ def test_digest_with_owed_list_repairs_the_2026_10_22_cut(tmp_path, _quiet_hub):
 
 def test_new_truth_rows_are_appended_after_git_hygiene_in_contract_order():
     """Pins the six rows added to expose the 2026-10-22 cut's omitted truth checks."""
-    assert gh.PREFLIGHT_ROW_NAMES[-7:] == ("git_hygiene", *_NEW_ROWS)
+    assert gh.PREFLIGHT_ROW_NAMES[-8:-1] == ("git_hygiene", *_NEW_ROWS)
 
 
 def test_truth_rows_do_not_change_between_trial_and_real_cut(tmp_path, _quiet_hub):

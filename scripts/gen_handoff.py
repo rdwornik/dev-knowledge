@@ -716,6 +716,8 @@ PREFLIGHT_ROW_NAMES = (
     "landed_vs_ratified",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
     "operator_decisions_list",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
     "digest_owed_present",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
+    # Row 19, added 2026-10-24, lane l12-acceptance, riding [#1640], H-Q2 of RATIFICATION-2026-10-24.
+    "role_pin_current",
 )
 
 
@@ -2283,6 +2285,88 @@ def _row_digest_owed_present(transport) -> PreflightRow:
                         f"`{digest.name}` has no flush-left `owed` list")
 
 
+_ROLE_MODEL_RE = re.compile(r"model:\s*([^|]+?)\s*(?:\||-->)")
+_PIN_SHA_RE = re.compile(r"(?m)^sha256:\s*([0-9a-f]{64})\b")
+_BOOT_VERSION_RE = re.compile(r"(?m)^boot_version:\s*(\d+)\s*$")
+_MODEL_FAMILIES = ("opus", "sonnet", "haiku")
+
+
+def _registry_model_ids(repo_root: Path) -> "set[str]":
+    import yaml  # noqa: PLC0415
+    data = yaml.safe_load(
+        (Path(repo_root) / "ecosystem" / "provider-registry.yaml").read_text(encoding="utf-8")) or {}
+    ids: set[str] = set()
+    for role in (data.get("roles") or {}).values():
+        for entry in (role or {}).get("order") or []:
+            if isinstance(entry, dict) and entry.get("model"):
+                ids.add(str(entry["model"]))
+    return ids
+
+
+def _seat_model_tokens(clause: str) -> "list[str]":
+    """The model ids in a `model:` header clause; a split seat names `a (plan) + b (execute)`."""
+    return [t.strip() for t in re.sub(r"\([^)]*\)", "", clause).split("+") if t.strip()]
+
+
+def _row_role_pin_current(repo_root: Path, transport, bundle_dir: "Path | None") -> PreflightRow:
+    """Row 19 (H-Q2) -- the bundle's role pins agree with the provider registry, the paste's pinned
+    HANDOFF_BOOT sha256 is the repo file's, and the operator's hand-uploaded Project copy (the
+    transport root's `HANDOFF_BOOT.md`, when present) is the same version and sha256."""
+    import hashlib  # noqa: PLC0415
+    name = "role_pin_current"
+    locator = ("<bundle>/SEAT-BOOT-*.md `model:` vs ecosystem/provider-registry.yaml; "
+               "<bundle>/PASTE_THIS.md ROLE PIN sha256 and <transport>/HANDOFF_BOOT.md vs "
+               "protocols/HANDOFF_BOOT.md")
+    if bundle_dir is None:
+        return PreflightRow(name, PREFLIGHT_NA, locator, "SUBJECT-ABSENT no bundle named")
+    bundle = Path(bundle_dir)
+    seats = sorted(bundle.glob("SEAT-BOOT-*.md"))
+    paste = bundle / "PASTE_THIS.md"
+    if not seats and not paste.is_file():
+        return PreflightRow(name, PREFLIGHT_NA, locator,
+                            "SUBJECT-ABSENT the bundle holds no SEAT-BOOT-*.md and no PASTE_THIS.md")
+    problems: list[str] = []
+    try:
+        boot_bytes = (Path(repo_root) / "protocols" / "HANDOFF_BOOT.md").read_bytes()
+        live_sha = hashlib.sha256(boot_bytes).hexdigest()
+        live_ver = _BOOT_VERSION_RE.search(boot_bytes.decode("utf-8", errors="replace"))
+        if seats:
+            ids = _registry_model_ids(repo_root)
+            for seat in seats:
+                m = _ROLE_MODEL_RE.search(seat.read_text(encoding="utf-8", errors="replace"))
+                if m is None:
+                    problems.append(f"{seat.name}: no `model:` in its header")
+                    continue
+                for tok in _seat_model_tokens(m.group(1)):
+                    known = tok in ids or (tok in _MODEL_FAMILIES
+                                           and any(i.startswith(f"claude-{tok}-") for i in ids))
+                    if not known:
+                        problems.append(f"{seat.name}: model `{tok}` is not in the provider registry")
+        if paste.is_file():
+            pin = _PIN_SHA_RE.search(paste.read_text(encoding="utf-8", errors="replace"))
+            if pin is None:
+                problems.append("PASTE_THIS.md carries no ROLE PIN `sha256:` line")
+            elif pin.group(1) != live_sha:
+                problems.append(f"stale boot pin: PASTE_THIS.md pins sha256 {pin.group(1)} but "
+                                f"protocols/HANDOFF_BOOT.md is {live_sha}")
+        if transport is not None and (Path(transport) / "HANDOFF_BOOT.md").is_file():
+            copy_bytes = (Path(transport) / "HANDOFF_BOOT.md").read_bytes()
+            copy_sha = hashlib.sha256(copy_bytes).hexdigest()
+            copy_ver = _BOOT_VERSION_RE.search(copy_bytes.decode("utf-8", errors="replace"))
+            cv, lv = (copy_ver.group(1) if copy_ver else "none"), (live_ver.group(1) if live_ver else "none")
+            if copy_sha != live_sha or cv != lv:
+                problems.append(f"stale Project copy: boot_version {cv} (repo {lv}), sha256 "
+                                f"{copy_sha} (repo {live_sha}) -- re-upload protocols/HANDOFF_BOOT.md")
+    except (OSError, UnicodeError, ValueError, ImportError) as exc:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator,
+                            f"the role pins could not be read ({exc}); unread is not current")
+    if problems:
+        return PreflightRow(name, PREFLIGHT_FAIL, locator, "; ".join(problems))
+    return PreflightRow(name, PREFLIGHT_PASS, locator,
+                        f"{', '.join(s.name for s in seats) or 'no seat files'} carry registered models; "
+                        f"boot sha8 {live_sha[:8]}")
+
+
 #: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
 #: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
 #: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
@@ -2351,6 +2435,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_landed_vs_ratified(transport, repo_root),
         _row_operator_decisions_list(bundle_dir),
         _row_digest_owed_present(transport),
+        _row_role_pin_current(repo_root, transport, bundle_dir),
     ]
 
 
@@ -2908,8 +2993,93 @@ def spec_version(repo_root: Path) -> "str | None":
     return m.group(1) if m else None
 
 
+_FILL_IN_MARK_RE = re.compile(r"<!--\s*FILL-IN:\S+\s+(START|END)\s*-->")
+_LIST_ITEM_RE = re.compile(r"(?:[-*]|\d+\.)\s")
+NARRATIVE_MIN_WORDS = 20
+
+
+def narrative_findings(text: str) -> "list[str]":
+    """H-Q1: the lines of `text` that are a generated narrative paragraph -- at least
+    `NARRATIVE_MIN_WORDS` words ending in sentence punctuation that are not structure (table row,
+    heading, list item, quote, fenced code, HTML comment) and not inside a FILL-IN region. The
+    bundle carries facts and the operator's fill-ins; a hit here is prose the code wrote."""
+    found: list[str] = []
+    fenced = in_fill = in_comment = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        mark = _FILL_IN_MARK_RE.fullmatch(line)
+        if mark:
+            in_fill = mark.group(1) == "START"
+            continue
+        if in_fill:
+            continue
+        if line.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if in_comment or line.startswith("<!--"):
+            in_comment = "-->" not in line
+            continue
+        if not line or line[0] in "|#>" or _LIST_ITEM_RE.match(line):
+            continue
+        if len(line.split()) >= NARRATIVE_MIN_WORDS and line[-1] in ".!?":
+            found.append(line)
+    return found
+
+
+def _diagrams():
+    """`gen_process_diagrams`, flat name first (the same shim as `_vhp`)."""
+    try:
+        import gen_process_diagrams as gpd  # noqa: PLC0415
+    except ImportError:  # pragma: no cover - exercised by the package entrypoint
+        from scripts import gen_process_diagrams as gpd  # noqa: PLC0415
+    return gpd
+
+
+def diagram_numbers() -> "dict[str, int]":
+    """H-Q4: the P1 picture's numbers, counted from the process binding."""
+    binding = _diagrams().load_binding()
+    states = binding.get("states")
+    if states is None:
+        states = binding["processes"]["P1"]["states"]
+    values = list(states.values()) if isinstance(states, dict) else list(states)
+    return {
+        "states": len(values),
+        "holes": sum(1 for s in values if "hole" in s),
+        "glue": sum(1 for s in values if s.get("today_glue")),
+        "zones": len({s.get("zone") for s in values}),
+    }
+
+
+def diagram_row() -> "tuple[str, str]":
+    n = diagram_numbers()
+    return ("Diagram", f"{n['states']} states · {n['holes']} holes · "
+                       f"{n['glue']} glue · {n['zones']} zones")
+
+
+def diagram_block() -> str:
+    """H-Q4: the generated P1 picture under its exact label, then the two hand-built reference maps."""
+    return (
+        "P1 dispatch only — the handoff process is not yet bound\n\n"
+        f"```mermaid\n{_diagrams().render_mermaid().rstrip()}\n```\n\n"
+        "Reference pictures (`to-browser/`), hand-built, verified 2026-10-23:\n\n"
+        "- `MAP-HARNESS-AS-IS-r3`\n"
+        "- `MAP-HARNESS-TO-BE-r3`\n"
+    )
+
+
+def _write_diagram(bundle_dir: Path) -> None:
+    (bundle_dir / DIAGRAM_FILE).write_text(
+        diagram_block().rstrip() + f"\nNumbers: {diagram_row()[1]}\n", encoding="utf-8", newline="\n")
+
+
+DIAGRAM_FILE = "DIAGRAM.md"
+
+
 def boot_data_rows(slug: str, mode: str, chat_title: str, role_version: "str | None", *,
-                   state_rows: "list | None" = None) -> list[tuple[str, str]]:
+                   state_rows: "list | None" = None,
+                   diagram_row: "tuple[str, str] | None" = None) -> list[tuple[str, str]]:
     """The DATA rows, in paste order. Each key has exactly one rule in `BOOT_DATA_RULES`, and
     every pointer, self-pointer and the launcher line is rendered FROM the verifier's tables
     (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree.
@@ -2941,6 +3111,8 @@ def boot_data_rows(slug: str, mode: str, chat_title: str, role_version: "str | N
         ("Runbook", ptr("Runbook")),
         ("Harness", ptr("Harness")),
     ]
+    if diagram_row is not None:
+        rows.append(diagram_row)
     if state_rows:
         rows += [(row.key, row.rendered()) for row in state_rows]
     return rows
@@ -3910,7 +4082,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     live_state_rows = _hstate().state_rows(repo_root, _state_transport)
     tokens["BOOT_DATA"] = boot_data_block(
         boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root),
-                       state_rows=live_state_rows))
+                       state_rows=live_state_rows, diagram_row=diagram_row()))
 
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")
@@ -3932,6 +4104,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # beside STALE renders. `functional` mode never reaches here, which is HANDOFF_PROCESS
     # §16's one-file scoping and not a judgement about that mode's need for the list.
     _write_decision_ledger(bundle_dir, repo_root)
+    # H-Q4: the generated P1 picture and its numbers, attached to every bundle (the numbers are
+    # also the BOOT-DATA `Diagram` row, probe-checked live).
+    _write_diagram(bundle_dir)
     # INBOX-dev-knowledge-2026-09-08-038 / AMEND-BATCH-V-001 §1: the five SEAT-BOOT pastes, so
     # the next incoming seat POINTS at a rendered boot instead of composing one. AFTER the seal
     # gate for the same reason the health block is (a refused cut leaves no fresh artifact beside
@@ -4271,15 +4446,37 @@ def reading_path_report(transport: "Path | None", repo_root: "Path | str | None"
                    "to-browser/MAP-DISPATCH.md on the transport; cut nothing")
 @click.option("--write", "write_map", is_flag=True, default=False,
               help="with --dispatch-map: write the map to the transport instead of printing it")
+@click.option("--intake", "intake", is_flag=True, default=False,
+              help="write ONE bounded FINDING (disposition ledger, owed ids, <=7 questions) "
+                   "from --plan to to-browser/ on the transport; cut nothing")
+@click.option("--plan", "plan", default=None, type=click.Path(dir_okay=False, path_type=Path),
+              help="with --intake: the plan file whose bullet items are dispositioned")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
          preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
          boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
          restamp: bool = False, reading_path: bool = False, dispatch_map: bool = False,
-         write_map: bool = False) -> None:
+         write_map: bool = False, intake: bool = False, plan: "Path | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     if write_map and not dispatch_map:
         raise click.UsageError("--write belongs to --dispatch-map")
+    if plan is not None and not intake:
+        raise click.UsageError("--plan belongs to --intake")
+    if intake:
+        if plan is None:
+            raise click.UsageError("--intake needs --plan <file>")
+        root = transport_root()
+        if root is None:
+            raise SystemExit("[error] the transport is unresolved (CLAUDE_PROMPTS_DIR)")
+        import handoff_intake  # noqa: PLC0415
+        try:
+            dest = handoff_intake.write_intake(root, plan.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise SystemExit(f"[error] {exc}") from exc
+        except Exception as exc:  # noqa: BLE001  (TransportWriteRefused: one diagnostic line)
+            raise SystemExit(f"[error] {exc}") from exc
+        click.echo(f"Written: {dest}")
+        raise SystemExit(0)
     if reading_path:
         transport = transport_root()
         if transport is None:

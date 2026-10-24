@@ -361,6 +361,7 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
     2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
+    3: "fc8a82d37d4056f1b2786b019b6342028c559998c70590274982207ee57e5fe7",
 }
 
 
@@ -553,8 +554,8 @@ def test_the_three_rulings_are_each_one_line_with_their_id():
 def test_the_boot_is_version_2_with_a_recorded_body_hash_and_reconciled_with_the_live_spec():
     text = _BOOT.read_text(encoding="utf-8")
     front, _body = _split_boot(text)
-    assert re.search(r"(?m)^boot_version:\s*2\s*$", front), front
-    assert {1, 2} <= set(_BOOT_BODY_SHA256), "version 1's pair stays (the history); 2's is recorded"
+    assert re.search(r"(?m)^boot_version:\s*3\s*$", front), front
+    assert {1, 2, 3} <= set(_BOOT_BODY_SHA256), "versions 1 and 2 stay (the history); 3's is recorded"
     live = re.search(r"(?m)^Version:\s+v?(\d+\.\d+\.\d+)", _HP.read_text(encoding="utf-8")).group(1)
     assert re.search(rf"(?m)^reconciled_with:\s*handoff-process@{re.escape(live)}\s*$", front), (
         f"reconciled_with must equal the live spec version {live}")
@@ -760,8 +761,8 @@ def test_unbuilt_mechanisms_are_taught_as_pending_not_as_working():
         marker = f"pending `[#{row}]`"
         is_open = _row_status(row) == "open"
         for term in terms:
-            if term.lower() not in boot.lower():
-                problems.append(f"the boot never mentions {term!r}")
+            # H-Q2 (RATIFICATION-2026-10-24): the boot no longer names these mechanisms; a mention
+            # that remains must still carry the pending marker while the row is open.
             for ln in lines:
                 if term.lower() in ln.lower() and (marker in ln) != is_open:
                     problems.append(

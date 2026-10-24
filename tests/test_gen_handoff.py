@@ -3033,7 +3033,7 @@ def test_diagram_helpers_match_the_process_binding_and_render_contract(monkeypat
 
     binding_path = _REPO / "ecosystem" / "process-binding.yaml"
     raw = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    states = raw["states"]
+    states = raw["states"] if "states" in raw else raw["processes"]["P1"]["states"]
     state_values = list(states.values()) if isinstance(states, dict) else states
     expected = {
         "states": len(state_values),

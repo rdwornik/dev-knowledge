@@ -12,6 +12,7 @@ import pytest
 import gen_handoff as gh
 
 _REPO = Path(__file__).resolve().parents[1]
+# [#1640] l12-acceptance: H-Q1/H-Q5 intake + KPI acceptance.
 _SCRIPTS = _REPO / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
