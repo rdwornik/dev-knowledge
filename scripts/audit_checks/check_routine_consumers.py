@@ -192,12 +192,13 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
 
 
 _UV_PIN_RE = re.compile(r"^==(\d+(?:\.\d+)*)$")
+_UV_VER = r"\d+(?:\.\d+)*(?![\w.+-])"
 _UV_INSTALL_RES = (
-    re.compile(r"\buv\s*==\s*(?P<v>[\w.]+)"),
-    re.compile(r"\bpip3?\s+install\b[^\n]*?\buv\b(?![=\w./-])(?!\s*==)"),
-    re.compile(r"astral\.sh/uv/(?:(?P<v>\d[\w.]*)/)?install\.(?:sh|ps1)"),
-    re.compile(r"\buv\s+self\s+update\b(?:\s+(?P<v>\d[\w.]*))?"),
+    re.compile(rf"""\bpip3?\s+install\b[^\n]*?["']?\buv\b(?:\s*==\s*(?P<v>{_UV_VER})|(?P<tail>[=\w./-]*))"""),
+    re.compile(rf"astral\.sh/uv/(?:(?P<v>{_UV_VER})/|(?P<tail>[\w.+-]*/?))install\.(?:sh|ps1)"),
+    re.compile(rf"\buv\s+self\s+update\b(?:\s+(?P<v>{_UV_VER})|(?P<tail>\s+\S+)?)"),
 )
+_UV_INLINE_COMMENT_RE = re.compile(r"\s#.*$")
 
 
 def _routine_uv_pin_value(repo_path: Path) -> tuple[str | None, str]:
@@ -249,11 +250,15 @@ def check_routine_uv_pin(repo_path: Path) -> list[Finding]:
         for line in text.splitlines():
             if line.lstrip().startswith("#"):
                 continue
+            line = _UV_INLINE_COMMENT_RE.sub("", line)
             for rx in _UV_INSTALL_RES:
                 for m in rx.finditer(line):
                     installs += 1
-                    version = m.groupdict().get("v")
-                    if version is None:
+                    version = m.group("v")
+                    if version is None and m.group("tail"):
+                        # `uv-foo`, `uv==1.2+x`: a different package/version, not an unpinned uv
+                        bad.append(f"{rel}: uv install {m.group(0).strip()!r} is not the exact pin {pin}")
+                    elif version is None:
                         bad.append(f"{rel}: uv install unpinned (uv), want {pin}")
                     elif version != pin:
                         bad.append(f"{rel}: uv install at {version}, want {pin}")

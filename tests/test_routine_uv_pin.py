@@ -142,3 +142,30 @@ def test_one_bad_script_fails_even_when_another_is_pinned(tmp_path: Path) -> Non
     assert finding.status == "fail"
     assert "bad.sh" in finding.evidence
     assert "0.8.17" in finding.evidence
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        "pip install uv==0.11.19+bad",
+        "echo uv==0.11.19",
+        'pip install "uv>=0.11.19"',
+    ],
+)
+def test_review_bypass_forms_do_not_pass(tmp_path: Path, script: str) -> None:
+    _write_pin(tmp_path)
+    _write_routine(tmp_path, "boot.sh", script)
+    assert _finding(tmp_path).status == "fail"
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        'pip install "uv==0.11.19"',
+        "pip install uv==0.11.19  # not https://astral.sh/uv/install.sh",
+    ],
+)
+def test_review_quoted_and_commented_exact_pin_passes(tmp_path: Path, script: str) -> None:
+    _write_pin(tmp_path)
+    _write_routine(tmp_path, "boot.sh", script)
+    assert _finding(tmp_path).status == "pass"
