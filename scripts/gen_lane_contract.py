@@ -260,6 +260,9 @@ REMOVED_SHAPES: dict[str, str] = {
               "emitted -- use --shape codespace for an off-machine lane"),
 }
 
+#: A retired `Dispatch-CloudV2` command line; refused at parse, never counted as a command form.
+RETIRED_CLOUDV2_RE = re.compile(r"^Dispatch-CloudV2\s", re.MULTILINE)
+
 #: One-line gloss per shape, emitted beside the declared `**Shape:**` value so the contract
 #: says what the label means without the reader going to Ch8 for it.
 SHAPE_GLOSS: dict[str, str] = {
@@ -1348,6 +1351,11 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     if expect_shape is not None and shape is not None and shape != expect_shape:
         problems.append(
             f"contract declares shape {shape!r} but {expect_shape!r} was expected")
+
+    if RETIRED_CLOUDV2_RE.search(text):
+        problems.append(
+            "CL-1: the cloud dispatch form (`Dispatch-CloudV2`) was retired (CL-1, R112) -- "
+            "use `Dispatch-Codespace` for an off-machine lane")
 
     # Which forms are actually present. Read from the FULL text — a command line legitimately
     # lives inside a fence.
