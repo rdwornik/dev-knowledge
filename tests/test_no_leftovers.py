@@ -721,3 +721,12 @@ def test_a_run_against_a_leftover_laden_tree_changes_nothing(hub, jobs, tmp_path
              _git(hub, "worktree", "list", "--porcelain").stdout)
     assert rc == 1
     assert before == after
+
+
+def test_12_a_directory_named_md_is_not_evidence_of_a_read(hub, jobs, tmp_path):
+    root = tmp_path / "transport-dirmd"
+    (root / "to-cc" / "decoy.md").mkdir(parents=True)
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(root))}
+    assert not res[12].passed
+    assert "vacuous" in res[12].evidence

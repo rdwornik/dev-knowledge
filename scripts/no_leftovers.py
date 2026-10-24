@@ -302,7 +302,7 @@ def _check_claim_marker(contract: str, transport_root: str | None) -> tuple[bool
     except OSError as exc:
         return False, f"unreadable: could not list {to_cc}: {exc}"
     try:
-        has_md = any(to_cc.glob("*.md"))
+        has_md = any(p.is_file() for p in to_cc.glob("*.md"))
     except OSError as exc:
         return False, f"unreadable: could not list {to_cc}: {exc}"
     if not has_md:
