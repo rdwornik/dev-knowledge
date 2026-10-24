@@ -187,3 +187,58 @@ def test_the_templates_repair_line_relaunches_into_the_existing_worktree(tmp_pat
                            prelaunch=lambda r, repair=False: d.PreLaunch(True))
     assert result.returncode == 0
     assert calls == [tree]
+
+
+# --- queue receipts and the dispatcher wake mechanism ---------------------------------------------
+
+def test_template_says_a_queue_fire_leaves_a_launch_receipt():
+    text = " ".join(_template_text().split())
+    assert re.search(
+        r"dispatch\.py\s+queue[^.!?]{0,160}leave\s+no\s+such\s+receipt",
+        text, re.IGNORECASE,
+    ) is None
+    assert re.search(
+        r"(?:\bqueue\s+|\[queue\]\s*)FIRE\b.{0,180}"
+        r"(?:leaves?|writes?|creates?|produces?)\b.{0,100}"
+        r"logs/receipts/LAUNCH-<SLUG>\.json",
+        text, re.IGNORECASE,
+    )
+
+
+def test_template_monitors_the_one_queue_watch_call_and_its_outcomes():
+    text = " ".join(_template_text().split())
+    assert re.search(r"\bONE\s+(?:launch\s+)?call\b.{0,250}dispatch\.py\s+queue\s+--watch",
+                     text, re.IGNORECASE)
+    assert re.search(r"\bMonitor\b.{0,240}\b(?:queue|its)\s+output\b|"
+                     r"\b(?:queue|its)\s+output\b.{0,240}\bMonitor\b",
+                     text, re.IGNORECASE)
+    for outcome in ("FIRE", "HOLD", "HELD-FAILED"):
+        assert re.search(rf"\bMonitor\b.{{0,400}}\b{outcome}\b|"
+                         rf"\b{outcome}\b.{{0,400}}\bMonitor\b",
+                         text, re.IGNORECASE)
+
+
+def test_template_cron_wake_repairs_and_checks_before_codespace_fire():
+    text = " ".join(_template_text().split())
+    assert re.search(r"\b10[- ]min(?:ute)?s?\b.{0,80}\bcron\b|"
+                     r"\bcron\b.{0,80}\b10[- ]min(?:ute)?s?\b",
+                     text, re.IGNORECASE)
+    assert re.search(
+        r"\bcron\b.{0,600}\bwakes?\b.{0,600}\bliveness\b.{0,500}"
+        r"\brepair\b.{0,500}transport_lint\.py\s+sweep.{0,500}"
+        r"batch_janitor\.py\s+run.{0,500}quota_watch\.py\s+check"
+        r".{0,500}\b(?:box(?:\s+\(codespace\))?|codespace)\s+fire\b",
+        text, re.IGNORECASE,
+    )
+
+
+def test_template_rearms_monitor_and_cron_when_the_seat_binds():
+    text = " ".join(_template_text().split())
+    assert re.search(
+        r"\bBIND\b.{0,300}\bre[- ]arm(?:s|ed)?\b|"
+        r"\bre[- ]arm(?:s|ed)?\b.{0,300}\bBIND\b",
+        text, re.IGNORECASE,
+    )
+    assert re.search(r"\bre[- ]arms?\b.{0,200}\bMonitor\b.{0,200}\bcron\b|"
+                     r"\bre[- ]arms?\b.{0,200}\bcron\b.{0,200}\bMonitor\b",
+                     text, re.IGNORECASE)
