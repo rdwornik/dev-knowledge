@@ -87,7 +87,7 @@ def test_absent_routine_is_na_with_operator_action_and_pin(tmp_path: Path) -> No
     finding = _finding(tmp_path)
 
     assert finding.status == "n/a"
-    assert finding.evidence.startswith("[n/a-reason:subject-absent]")
+    assert finding.evidence.startswith("[n/a-reason:SUBJECT-ABSENT]")
     assert "OPERATOR-ACTION" in finding.evidence
     assert "9.9.9" in finding.evidence
 
