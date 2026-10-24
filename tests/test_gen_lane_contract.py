@@ -1982,3 +1982,12 @@ def test_cl1_emit_refuses_cloud_without_writing_contract(tmp_path):
     assert result.exit_code != 0, result.output
     assert "CL-1" in result.output
     assert not list(tmp_path.glob("LANE-*.md"))
+
+
+# CL-1 RED (review finding)
+
+def test_cl1_parse_refuses_a_retired_dispatch_cloudv2_line(local_contract):
+    contract = local_contract + "\nDispatch-CloudV2 LANE-a-539-test.md -Title 'lane-a-539-test'\n"
+    parsed = glc.parse_contract(contract, expect_shape="local")
+    assert not parsed.ok, parsed.problems
+    assert any("CL-1" in problem for problem in parsed.problems), parsed.problems
