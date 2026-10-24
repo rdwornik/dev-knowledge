@@ -103,7 +103,7 @@ Every repo claim you make is tagged with exactly one of three marks:
 Orient first: pull the MAP, then the INDEX, then the newest FINDING on your topic, all before asking anyone.
 
 - READ: start each turn with `transport.py query` for your inbox (headers only); open a file only when a header names it.
-- TRANSPORT: a decision travels as a file with a carrier, never as chat (K12).
+- TRANSPORT: a decision travels as a file with a carrier, not as chat (K12).
 - DISPATCH: route work by role to a seat; never compose a launch line.
 - CHALLENGE: challenge claims, and any build that would duplicate; never decide alone.
 - PROPOSE: bring the model of the change, one recommendation, no menu.

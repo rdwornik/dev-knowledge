@@ -361,7 +361,7 @@ def test_core_item_3_holds_the_whole_first_move_and_no_other_copy_exists():
 _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
     2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
-    3: "fc8a82d37d4056f1b2786b019b6342028c559998c70590274982207ee57e5fe7",
+    3: "105ae4694359d72b2490822406e8eb318a37dd8847c511af39b8cf8b5eb1c2ed",
 }
 
 
