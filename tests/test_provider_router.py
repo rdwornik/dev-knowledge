@@ -212,12 +212,14 @@ def test_refusal_2_does_NOT_apply_to_read_or_verify(router):
 
 
 def _unadmit_xai_on_review(data):
-    """R104 (2026-10-14, [#1536]) admitted xai on `review`; the schema refuses an admitted entry
-    under a non-permitting licence, so a licence fixture on xai first returns that one entry
-    to `unevaluated` -- the refusal under test is the router's, on `implement`."""
-    for entry in data["roles"]["review"]["order"]:
-        if entry["provider"] == "xai":
-            entry["admission"] = {"verdict": "unevaluated", "floors": ["AX22-1"]}
+    """R104 (2026-10-14, [#1536]) admitted xai on `review`, and the operator ruling of 2026-10-24
+    on `execute`; the schema refuses an admitted entry under a non-permitting licence, so a
+    licence fixture on xai first returns those entries to `unevaluated` -- the refusal under test
+    is the router's, on `implement`."""
+    for role in ("review", "execute"):
+        for entry in data["roles"][role]["order"]:
+            if entry["provider"] == "xai":
+                entry["admission"] = {"verdict": "unevaluated", "floors": ["AX22-1"]}
 
 
 def test_refusal_3_a_provider_without_a_permitting_licence_is_refused(router, live_registry,
