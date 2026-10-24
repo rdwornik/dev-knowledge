@@ -773,3 +773,31 @@ def test_adapter_corpus_is_lane_contracts_only_not_every_md_in_the_directory():
 def test_cl1_registry_removes_cloud_and_keeps_other_substrates(registry):
     assert "cloud" not in registry
     assert {"local", "codespace", "interactive"} <= set(registry)
+
+
+# Retired cloud contracts are judged by their own date line, never a source allowlist.
+
+def test_pre_retirement_cloud_date_is_grandfathered_by_validate_contract(registry):
+    text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_contract(text, source="arbitrary/LANE-old.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+def test_pre_retirement_cloud_date_is_grandfathered_by_validate_batch(registry):
+    text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_batch({"arbitrary/LANE-old.md": text}, registry=registry)
+    assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+@pytest.mark.parametrize("date", ["2026-10-24", "2026-11-02"])
+def test_cloud_date_on_or_after_retirement_is_still_refused(registry, date):
+    text = f"date: {date}\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_contract(text, source="arbitrary/LANE-new.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_undated_cloud_is_still_refused_even_with_an_old_source_path(registry):
+    text = _contract(shape_line="**Substrate:** `cloud`")
+    source = "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-old.md"
+    refusals = vs.validate_contract(text, source=source, registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
