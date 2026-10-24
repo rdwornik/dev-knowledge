@@ -169,3 +169,10 @@ def test_review_quoted_and_commented_exact_pin_passes(tmp_path: Path, script: st
     _write_pin(tmp_path)
     _write_routine(tmp_path, "boot.sh", script)
     assert _finding(tmp_path).status == "pass"
+
+
+def test_non_script_file_in_routines_dir_is_not_a_bootstrap(tmp_path: Path) -> None:
+    _write_pin(tmp_path)
+    _write_routine(tmp_path, "boot.sh", "pip install uv==0.11.19")
+    (tmp_path / ".claude" / "routines" / "README.md").write_text("notes\n")
+    assert _finding(tmp_path).status == "pass"
