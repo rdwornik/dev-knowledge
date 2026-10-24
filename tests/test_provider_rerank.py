@@ -197,7 +197,8 @@ def test_the_report_names_every_provider_admission_state(router):
     # separately below rather than folded into the "admitted nowhere" loop, which now excludes it.
     # R104 (operator, 2026-10-14; [#1536]) adds Copilot's `qa` seat and Grok's `review` seat.
     assert by_provider["copilot-enterprise"].admitted_in == ["implement", "qa", "red"]  # red pinned+admitted shape per F7 data
-    assert by_provider["xai"].admitted_in == ["review"]
+    # Grok's `execute` seat joined 2026-10-24 (operator ruling); the report lists roles sorted.
+    assert by_provider["xai"].admitted_in == ["execute", "review"]
     for provider in ("antigravity", "openai"):
         assert by_provider[provider].admitted_in == [], f"{provider} is NOT ADMITTED anywhere"
 
