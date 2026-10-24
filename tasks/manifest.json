@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "966dc83ecc2ada55334905c2eb5ba04f9e4d2bf26a671655778032e519ba438a",
+  "generated_sha256": "37912507b91f60c53047e3bb16af309f5cef5172f8c7e522e3bbc84f4dade910",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3730,6 +3730,10 @@
     {
       "task": 1721,
       "file": "1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md"
+    },
+    {
+      "task": 1736,
+      "file": "1736-the-known-reds-extend-routine-and-its-test-file-are-claimed-by-an-open-row.md"
     },
     {
       "prose": ""
