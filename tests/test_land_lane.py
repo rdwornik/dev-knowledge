@@ -196,7 +196,7 @@ def test_clean_lane_lands_with_zero_model_calls(env, tmp_path, monkeypatch):
     assert env.origin_ref("main") == report.main_sha
     # [#1721]: M2 is also pushed to the integration branch, so main's new tip has a CI run.
     assert env.origin_ref(f"refs/heads/{INTEGRATION}") == report.main_sha
-    parents =_git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
+    parents = _git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
     assert len(parents) == 3 and parents[0] == report.sha and parents[1] == old_main
     top = _git(env.worktree, "rev-list", "--parents", "-n1", report.main_sha).split()
     assert len(top) == 3 and top[1] == report.sha
