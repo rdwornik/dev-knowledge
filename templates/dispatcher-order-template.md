@@ -128,8 +128,9 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   `uv run --locked python scripts/dispatch.py queue --help`.
 - Put one Monitor on its output. Each `[queue] FIRE` and `already-launched` line is an event, and so
   is the closing `[queue] watch ended` summary, whose counts carry the `HELD-FAILED` lanes and the
-  routed-codespace ones (the per-lane `HOLD` / `HELD-FAILED` reasons are printed by a pass without
-  `--watch`, e.g. `queue --dry-run`); record every line verbatim.
+  routed-codespace ones. `queue --watch` prints no per-lane `HOLD` line, so the launcher bullet's
+  `HOLD` / `ROUTE-CODESPACE` lines are what a pass without `--watch` prints, not what the Monitor
+  sees; record every line it does print verbatim.
 - Behind it, a 10-minute cron (CronCreate, recurring). Each cron wake does, in order:
   1. liveness, then repair (Sequence steps 2-3);
   2. `uv run --locked python scripts/transport_lint.py sweep --since <the previous wake>`;
