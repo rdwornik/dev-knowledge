@@ -1,0 +1,12 @@
+---
+id: "[#1721]"
+title: "A land_lane landing leaves an unanchored receipt merge (M2) on main's first-parent spine, and a main tip no CI run judged"
+status: open
+priority: P1
+size: S
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1721] [P1][S] **A land_lane landing leaves an unanchored receipt merge (M2) on main's first-parent spine, and a main tip no CI run judged** - since `[#1698]` every `land_lane.py` landing ends with M2 (parents the judged merge M and the ledger commit R) on top of M; M2 introduces only {M2, R}, both created after the JOURNAL text was authored, so ADR-85 section A7 can never anchor it: `journal_anchor.unanchored_on_spine` named `36b14291e` (and `c8fd7e08c` before it), `audit.py` check `journal_spine_anchor` failed, 3 `tests/test_onboarding_items.py` tests went red, and M2 as main's tip has no push-event CI run so the next landing's baseline read is UNATTRIBUTED (integrator receipt, scheduled run 40080968947) · owner: lane land-lane-receipt-anchor (`scripts/journal_anchor.py`, `scripts/merge_path.py`) · Done when: (1) RED first: `tests/test_land_lane_receipt_anchor.py` fails while a landing leaves M2 unanchored; (2) `journal_anchor.is_anchored` covers a ledger-only receipt merge by the anchor of its first parent and never launders an unanchored first parent or a merge that touches any other file; (3) `merge_path.land` pushes M2 to the integration branch after the main push so the new tip has a CI run; `[#1698]`'s same-push receipt line is kept; (4) real-use witness: the integrator's landing of this lane, then `journal_anchor.unanchored_on_spine` on `origin/main` after the NEXT `land_lane.py` landing is `[]` with no hand-written anchor entry for M2 · touches: `scripts/journal_anchor.py`, `scripts/merge_path.py`, `scripts/land_lane.py`, `tests/test_land_lane_receipt_anchor.py`, `tests/test_land_lane_receipt_anchor_hardening.py`, `tests/test_land_lane_receipt_anchor_review3.py`, `tests/test_land_lane.py` · kill-candidates: `[#1698]` -- its same-push property is kept, this row repairs what that fix left on the spine; `[#1719]` -- the range-level discharge of the push guard, a different gate (this row changes only the per-entry predicate for the receipt-merge shape); none removed · refs `[#1698]`, `[#1716]`, RATIFICATION-2026-10-24 H1-X · decided-by: the operator, 2026-10-24, RATIFICATION-2026-10-24 amendment (b) H1-X · source: `to-browser/FINDING-E2-1-MIDPOINT-2026-10-24.md` section 7, `git show 36b14291e`

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "98f81866bc50faa4a7718080df5502382b737477350a58be3199fbc5583e6b1a",
+  "generated_sha256": "966dc83ecc2ada55334905c2eb5ba04f9e4d2bf26a671655778032e519ba438a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3726,6 +3726,10 @@
     {
       "task": 1716,
       "file": "1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md"
+    },
+    {
+      "task": 1721,
+      "file": "1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md"
     },
     {
       "prose": ""

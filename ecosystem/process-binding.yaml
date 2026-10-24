@@ -324,7 +324,7 @@ processes:
       today_glue: true
       binding:
         land:
-          file_line: scripts/merge_path.py:279
+          file_line: scripts/merge_path.py:281
           anchor: 'def land(root: Path, *, slug: str'
       hole: P11 owns the inside
       asis: []
@@ -337,10 +337,10 @@ processes:
       today_glue: true
       binding:
         landable:
-          file_line: scripts/merge_path.py:376
+          file_line: scripts/merge_path.py:378
           anchor: 'if not is_landable(verdict):'
         echo:
-          file_line: scripts/merge_path.py:698
+          file_line: scripts/merge_path.py:713
           anchor: '''LANDED'' if result.landed'
       hole: 'writer: the `STATE <lane> MERGED` line `queue` reads (dispatch.py:1698) is typed by the integrator; no code writes
         it'
@@ -354,7 +354,7 @@ processes:
       today_glue: false
       binding:
         refuse:
-          file_line: scripts/merge_path.py:311
+          file_line: scripts/merge_path.py:313
           anchor: 'def refuse(state: str'
         template:
           file_line: templates/integrator-order-template.md:101
@@ -797,14 +797,14 @@ processes:
       target: refused
       guard: '!landed'
       r130: true
-      file_line: scripts/merge_path.py:311
+      file_line: scripts/merge_path.py:313
       anchor: 'def refuse(state: str'
     - event: merge
       source: integrating
       target: merged
       guard: landed
       r130: true
-      file_line: scripts/merge_path.py:698
+      file_line: scripts/merge_path.py:713
       anchor: '''LANDED'' if result.landed'
     - event: repair
       source: refused

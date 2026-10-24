@@ -194,7 +194,8 @@ def test_clean_lane_lands_with_zero_model_calls(env, tmp_path, monkeypatch):
     # [#1698]: main holds the judged merge M plus the receipt merge M2 (parents M, R) -- one push.
     assert report.main_sha and report.main_sha != report.sha
     assert env.origin_ref("main") == report.main_sha
-    assert env.origin_ref(f"refs/heads/{INTEGRATION}") == report.sha
+    # [#1721]: M2 is also pushed to the integration branch, so main's new tip has a CI run.
+    assert env.origin_ref(f"refs/heads/{INTEGRATION}") == report.main_sha
     parents = _git(env.worktree, "rev-list", "--parents", "-n1", report.sha).split()
     assert len(parents) == 3 and parents[0] == report.sha and parents[1] == old_main
     top = _git(env.worktree, "rev-list", "--parents", "-n1", report.main_sha).split()
@@ -209,12 +210,14 @@ def test_clean_lane_lands_with_zero_model_calls(env, tmp_path, monkeypatch):
     verbs = [a[0] for a in log if a and a[0] in ("fetch", "merge", "push")]
     assert verbs[0] == "fetch"
     assert verbs.index("merge") < verbs.index("push")
-    # the receipt merge (M2) is made between the integration push and the main push
-    assert verbs.count("push") == 2 and verbs[-1] == "push" and verbs[-2] == "merge"
+    # the receipt merge (M2) is made between the integration push and the main push; M2 then also
+    # goes to the integration branch ([#1721]) so main's new tip has a CI run
+    assert verbs.count("push") == 3 and verbs[-1] == "push" and verbs[-3] == "merge"
     pushes = [a for a in log if a and a[0] == "push"]
-    assert len(pushes) == 2
+    assert len(pushes) == 3
     assert pushes[0][-1] == f"{report.sha}:refs/heads/{INTEGRATION}"
     assert pushes[1][-1] == f"{report.main_sha}:refs/heads/main"
+    assert pushes[2][-1] == f"{report.main_sha}:refs/heads/{INTEGRATION}"
 
 
 # --- b ----------------------------------------------------------------------------------------

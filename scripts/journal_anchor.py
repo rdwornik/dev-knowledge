@@ -551,9 +551,71 @@ def is_anchored(repo: Path, sha: str, journal: str) -> bool:
     for every input rather than only for the inputs today's callers produce.
     """
     index = _anchor_index(journal)
-    return any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
+    cur = sha
+    while True:
+        if any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
                else (c[:_SHORT] in journal)
-               for c in introduced(repo, sha))
+               for c in introduced(repo, cur)):
+            return True
+        # A receipt merge is covered by the anchor of the landing it receipts (see _is_receipt_merge).
+        parent = _is_receipt_merge(repo, cur)
+        if parent is None:
+            return False
+        cur = parent
+
+
+_RECEIPT_LEDGER = "logs/MERGE-RECEIPTS.jsonl"
+
+
+def _is_receipt_merge(repo: Path, sha: str) -> str | None:
+    """Return the first parent P1 if `sha` is a landing's receipt merge (P1 + ledger commit), else None.
+
+    WHY: the receipt commit does not exist until after CI, hence after the JOURNAL text was
+    authored (the A7 temporal rule), so no JOURNAL can name it. The receipt merge adds only the
+    ledger line, so it is covered by the anchor of the landing it receipts (P1).
+    """
+    intro = introduced(repo, sha)
+    if len(intro) != 2:
+        return None
+    parts = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
+    if len(parts) != 3 or parts[0] != sha:
+        return None
+    p1, p2 = parts[1], parts[2]
+    if p2 not in intro or p2 == sha:
+        return None
+    p2_parts = _git(repo, "rev-list", "--parents", "-n", "1", p2).split()
+    if p2_parts != [p2, p1]:
+        return None
+    ledger = [_RECEIPT_LEDGER]
+    if _git(repo, "diff", "--name-only", p1, sha).split() != ledger:
+        return None
+    if _git(repo, "diff", "--name-only", p1, p2).split() != ledger:
+        return None
+    for tip in (sha, p2):
+        rows = [ln.split("\t") for ln in _git(repo, "diff", "--numstat", p1, tip).splitlines() if ln.strip()]
+        if len(rows) != 1 or len(rows[0]) != 3 or rows[0][2] != _RECEIPT_LEDGER:
+            return None
+        added, deleted = rows[0][0], rows[0][1]
+        if not (added.isdigit() and deleted.isdigit()) or int(deleted) != 0 or int(added) < 1:
+            return None
+    # Pure additions are not enough: they must be appended after P1's last ledger line.
+    if _git(repo, "ls-tree", p1, "--", _RECEIPT_LEDGER).strip():
+        try:
+            shown = subprocess.run(["git", "-C", str(repo), "show", f"{p1}:{_RECEIPT_LEDGER}"],
+                                   capture_output=True, timeout=60)
+        except Exception as exc:  # noqa: BLE001 -- surfaced, never swallowed
+            raise AnchorError(f"git show {p1}:{_RECEIPT_LEDGER} failed to run: {exc!r}") from exc
+        if shown.returncode != 0:
+            raise AnchorError(f"git show {p1}:{_RECEIPT_LEDGER} exited {shown.returncode}")
+        old_lines = shown.stdout.count(b"\n")
+    else:
+        old_lines = 0
+    for tip in (sha, p2):
+        diff = _git(repo, "diff", "-U0", p1, tip, "--", _RECEIPT_LEDGER)
+        hunks = [ln for ln in diff.split("\n") if ln.startswith("@@ ")]
+        if len(hunks) != 1 or not hunks[0].startswith(f"@@ -{old_lines},0 +"):
+            return None
+    return p1
 
 
 def unanchored_in_range(repo: Path, rev_range: str, journal: str) -> list[str]:
