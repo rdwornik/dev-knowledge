@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-24  
-**Generated:** 2026-10-24T12:21:31  
+**Generated:** 2026-10-24T14:14:08  
 **Repos audited:** 6  
 **Checks:** 927 total — 160 pass, 14 fail, 557 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-21ty85ec\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-ndo5lmb2\wt`  
 **Last audit:** 2026-10-24
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 2d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-22, newest input BACKLOG.md committed 2026-10-24 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-24, newest input docs/audits committed 2026-10-24 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 12 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 10 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -606,7 +606,7 @@
 | `organ_truth` | WARN | 2 organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: scripts/desired_state_loader.py, scripts/harness_probes.py |
 | `model_currency` | WARN | 18 flag(s) over 19 pinned ids -- stale x7: claude-opus-5-5, claude-sonnet-5-5, gemini-3.8-flash, gpt-5.6-terra +3 more; unverified x11: claude-fable-5-1, claude-haiku-4-5-20251001, claude-haiku-5-5, claude-opus-4-8 +7 more (list: uv run --locked python scripts/check_model_currency.py) |
 | `rulings_carried` | PASS | 125 of 125 gated ruling(s) (R55 on) carried by a row or a written 'no implementation required'; 60 older entries counted, not refused (decision_coverage.py rulings) |
-| `rulings_carried` | PASS | every ruling in 36 non-superseded RATIFICATION file(s) (105 read) is landed or inside the 1-batch grace period |
+| `rulings_carried` | PASS | every ruling in 37 non-superseded RATIFICATION file(s) (105 read) is landed or inside the 1-batch grace period |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -953,7 +953,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 39d ago]; worktree-lane-ab-810-substrate-repair [last commit 37d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 2 of 2 linked worktree(s) look unclosed (horizon 7d): feat/codespace-name-from-stdout [last commit 39d ago]; worktree-lane-ab-810-substrate-repair [last commit 38d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
