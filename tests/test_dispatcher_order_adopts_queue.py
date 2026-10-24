@@ -242,3 +242,24 @@ def test_template_rearms_monitor_and_cron_when_the_seat_binds():
     assert re.search(r"\bre[- ]arms?\b.{0,200}\bMonitor\b.{0,200}\bcron\b|"
                      r"\bre[- ]arms?\b.{0,200}\bcron\b.{0,200}\bMonitor\b",
                      text, re.IGNORECASE)
+
+
+def test_template_cron_commands_carry_the_arguments_the_scripts_require():
+    """Review finding (Codex terra + sol): the wake commands were prose-matched but not runnable --
+    `batch_janitor.py run` requires `--batch`, `quota_watch.py check` `--projected-core-hours`."""
+    text = " ".join(_template_text().split())
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    for script, flag, line in (
+            ("batch_janitor.py", "--batch", r"batch_janitor\.py\s+run\s+--batch\s+<BATCH>"),
+            ("quota_watch.py", "--projected-core-hours",
+             r"quota_watch\.py\s+check\s+--projected-core-hours\s+<n>")):
+        assert flag in (scripts / script).read_text(encoding="utf-8")
+        assert re.search(line, text), f"{script} wake line lacks {flag}"
+
+
+def test_template_does_not_promise_per_lane_hold_lines_from_queue_watch():
+    """`queue --watch` prints FIRE / already-launched lines and one closing summary, never a
+    per-lane HOLD line (dispatch.py queue_cmd); the template must not tell the Monitor to expect one."""
+    text = " ".join(_template_text().split())
+    assert re.search(r"watch ended", text)
+    assert not re.search(r"Each `\[queue\] FIRE`, `HOLD`", text)

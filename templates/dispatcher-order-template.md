@@ -126,13 +126,16 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
 
 - `dispatch.py queue --watch` is the ONE launch call; run it once. Options:
   `uv run --locked python scripts/dispatch.py queue --help`.
-- Put one Monitor on its output. Each `[queue] FIRE`, `HOLD` and `HELD-FAILED` line is an event;
-  record it verbatim.
+- Put one Monitor on its output. Each `[queue] FIRE` and `already-launched` line is an event, and so
+  is the closing `[queue] watch ended` summary, whose counts carry the `HELD-FAILED` lanes and the
+  routed-codespace ones (the per-lane `HOLD` / `HELD-FAILED` reasons are printed by a pass without
+  `--watch`, e.g. `queue --dry-run`); record every line verbatim.
 - Behind it, a 10-minute cron (CronCreate, recurring). Each cron wake does, in order:
   1. liveness, then repair (Sequence steps 2-3);
   2. `uv run --locked python scripts/transport_lint.py sweep --since <the previous wake>`;
-  3. `uv run --locked python scripts/batch_janitor.py run` (options: `--help`);
-  4. `uv run --locked python scripts/quota_watch.py check` before any codespace fire.
+  3. `uv run --locked python scripts/batch_janitor.py run --batch <BATCH>` (other options: `--help`);
+  4. `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` before any
+     codespace fire (`<n>` as in the codespace bullet above).
 - On BIND (a successor seat binds after a cycle, `seat_registry.py bind`) re-arm the Monitor and the
   cron; the outgoing seat's are stopped at handover.
 
