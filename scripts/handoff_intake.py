@@ -53,11 +53,11 @@ def build_intake(plan_text: str, *, owed_sources: list[str], seat: str, today: s
     ids: list[str] = []
     for n, item in enumerate(items, 1):
         found = transport_lint.decision_id_tokens(item)
-        if found or item in owed_set:
+        ids.extend(found)
+        if item.endswith("?"):
+            disposition = "ASK"      # a question stays a question even when it names a decision id
+        elif found or item in owed_set:
             disposition = "OWED"
-            ids.extend(found)
-        elif item.endswith("?"):
-            disposition = "ASK"
         else:
             disposition = "ASSUME"
         rows.append((n, item, disposition))

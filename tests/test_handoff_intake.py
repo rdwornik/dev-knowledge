@@ -249,3 +249,12 @@ def test_write_intake_reads_the_carry_ledger_as_an_owed_source(tmp_path):
     dest = intake.write_intake(transport_root, "- Record the landing\n", seat="seat-x",
                                today="2026-10-24")
     assert "owed: H-Q1" in dest.read_text(encoding="utf-8")
+
+
+def test_a_question_naming_a_decision_id_is_still_asked_and_its_id_is_owed():
+    intake = _intake_module()
+    body = intake.build_intake("- Should R166 be reopened?\n", owed_sources=[], seat="s",
+                               today="2026-10-24")
+    assert "| 1 | Should R166 be reopened? | ASK |" in body
+    assert "owed: R166" in body
+    assert "- Should R166 be reopened?" in body.split("## Questions")[1]
