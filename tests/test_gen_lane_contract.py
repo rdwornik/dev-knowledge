@@ -2020,3 +2020,15 @@ def test_matching_is_by_kind_not_by_substring_of_the_whole_record():
     missing = glc.missing_required_tools(
         ("skill:why", "flag:--json-schema", "skill:ship", "tool:Read"), calls)
     assert missing == ("skill:why", "flag:--json-schema", "tool:Read")
+
+
+# CL-1 RED
+
+def test_cl1_emit_refuses_cloud_without_writing_contract(tmp_path):
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-a-101-cloud", "--purpose", "test refusal",
+        "--shape", "cloud", "--out-dir", str(tmp_path),
+    ])
+    assert result.exit_code != 0, result.output
+    assert "CL-1" in result.output
+    assert not list(tmp_path.glob("LANE-*.md"))

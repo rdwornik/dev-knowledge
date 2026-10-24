@@ -749,3 +749,10 @@ def test_adapter_corpus_is_lane_contracts_only_not_every_md_in_the_directory():
     assert all(n.startswith("LANE-") for n in names), sorted(n for n in names
                                                             if not n.startswith("LANE-"))
     assert "CUT.md" not in names and "PLAN.md" not in names
+
+
+# CL-1 RED
+
+def test_cl1_registry_removes_cloud_and_keeps_other_substrates(registry):
+    assert "cloud" not in registry
+    assert {"local", "codespace", "interactive"} <= set(registry)
