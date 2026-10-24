@@ -502,3 +502,21 @@ def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
         for label, entry in entries.items():
             if entry.get("expiry") == _OLD_EXPIRY:
                 assert written.members_by_os[os_key][label]["expiry"] == _NEW_EXPIRY
+
+
+def test_a_second_extension_replaces_the_prior_record(kr, tmp_path):
+    _, registry = _write_registry(tmp_path, kr, members={"node-a": _entry()})
+    first_file = _ratification_file(tmp_path, "| R-1 | approved through 2026-11-09 |")
+    once, _ = kr.extend(
+        registry, ids=("members[node-a]",), new_expiry=dt.date(2026, 11, 9),
+        ratification_file=first_file, ratification_id="R-1", today=_TODAY)
+    second_file = tmp_path / "second.md"
+    second_file.write_text("| R-2 | approved through 2026-11-16 |", encoding="utf-8")
+    twice, _ = kr.extend(
+        once, ids=("members[node-a]",), new_expiry=dt.date(2026, 11, 16),
+        ratification_file=second_file, ratification_id="R-2", today=_TODAY)
+    entry = twice.members["node-a"]
+    assert entry["expiry"] == "2026-11-16"
+    assert entry["extended"]["old_expiry"] == "2026-11-09"
+    assert entry["extended"]["ratification_id"] == "R-2"
+    assert kr.registry_problems(twice, _TODAY) == []

@@ -535,6 +535,8 @@ def extend(registry: Registry, *, ids, new_expiry: datetime.date, ratification_f
         # (a trailing comma on the previous last key would show as an unrelated change).
         rebuilt = {}
         for key, value in entry.items():
+            if key == "extended":  # a re-extension replaces the prior record, never keeps it
+                continue
             rebuilt[key] = new_expiry.isoformat() if key == "expiry" else value
             if key == "expiry":
                 rebuilt["extended"] = record
