@@ -236,3 +236,16 @@ def test_carry_ledger_owed_returns_owed_lines_and_decision_table_rows(tmp_path):
         encoding="utf-8",
     )
     assert intake.carry_ledger_owed(ledger) == [owed_line, decision_row]
+
+
+def test_write_intake_reads_the_carry_ledger_as_an_owed_source(tmp_path):
+    """H-Q1: the newest system-review decision register on the transport feeds `owed:`."""
+    intake = _intake_module()
+    transport_root = tmp_path / "transport"
+    (transport_root / "to-browser").mkdir(parents=True)
+    (transport_root / "to-cc").mkdir()
+    (transport_root / "to-browser" / "CARRY-LEDGER-SYSTEM-REVIEW-DECISIONS-2026-10-23.md").write_text(
+        "kind: LEDGER\nowed: H-Q1 carried\n", encoding="utf-8")
+    dest = intake.write_intake(transport_root, "- Record the landing\n", seat="seat-x",
+                               today="2026-10-24")
+    assert "owed: H-Q1" in dest.read_text(encoding="utf-8")

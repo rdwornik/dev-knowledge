@@ -24,6 +24,7 @@ import transport_lint  # noqa: E402
 
 MAX_QUESTIONS = 7
 DEFAULT_SEAT = "handoff-cut"
+CARRY_LEDGER_GLOB = "CARRY-LEDGER-SYSTEM-REVIEW-DECISIONS-*.md"
 _BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
 _ID_TABLE_ROW_RE = re.compile(r"^\|\s*(" + transport_lint._DECISION_ID_RE.pattern + r")\s*\|")
 
@@ -102,7 +103,11 @@ def write_intake(transport_root: Path, plan_text: str, *, seat: str = DEFAULT_SE
                  today: str | None = None, owed_sources: list[str] | None = None) -> Path:
     import transport  # noqa: PLC0415  (module attribute, so the registered writer path is the one used)
     today = today or _date.today().isoformat()
-    body = build_intake(plan_text, owed_sources=owed_sources or [], seat=seat, today=today)
+    if owed_sources is None:
+        # H-Q1: the system-review decision register is an `owed:` source; newest file wins.
+        ledgers = sorted((Path(transport_root) / "to-browser").glob(CARRY_LEDGER_GLOB))
+        owed_sources = carry_ledger_owed(ledgers[-1]) if ledgers else []
+    body = build_intake(plan_text, owed_sources=owed_sources, seat=seat, today=today)
     dest = Path(transport_root) / "to-browser" / intake_name(seat, today)
     return transport.write("lane", dest, body)
 
