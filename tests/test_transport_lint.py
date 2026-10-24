@@ -950,3 +950,96 @@ def test_1539_a_fresh_lane_end_report_carries_by_and_the_sweep_shows_no_no_by_fi
     mine = [f for f in found if f.path.endswith("LANE-END-demo-lane.md")]
     assert [f.code for f in mine if f.code.startswith("no-by")] == []
     assert lint.by_value(report.read_text(encoding="utf-8")) is not None
+
+
+# --- L12 acceptance: decision-id extraction and the owed-list hard rule ----------------------------
+
+def test_decision_id_tokens_extracts_ordered_unique_ids_from_ratification_text(lint):
+    decision_id_tokens = getattr(lint, "decision_id_tokens", None)
+    assert callable(decision_id_tokens), "transport_lint.decision_id_tokens is required"
+    text = (
+        "| H-Q1 | ruling |\n"
+        "| H-L12 | lane |\n"
+        "| H-P1 | process |\n"
+        "K12 R166 D7 H3 H-Q1 R166 D7"
+    )
+    assert decision_id_tokens(text) == ["H-Q1", "H-L12", "H-P1", "K12", "R166", "D7", "H3"]
+
+
+def _owed_findings(lint, name, body, registry, *, file_class="new", folder="to-browser"):
+    entry = getattr(lint, "lint_entry", None)
+    assert callable(entry), "transport_lint.lint_entry is required"
+    return entry(name, folder, lambda *args, **kwargs: body, registry, file_class=file_class)
+
+
+@pytest.mark.parametrize("name", (
+    "DIGEST-X-2026-10-24.md",
+    "DIGEST-CAPABILITY-MAP-X-2026-10-24.md",
+    "FINDING-seat-INTAKE-2026-10-24.md",
+))
+def test_new_lane_digest_and_finding_without_owed_are_refused(lint, registry, name):
+    findings = _owed_findings(lint, name, "by: Tech-Architect-47\n# Intake\n", registry)
+    assert any(f.code == "no-owed" and f.level == "refuse" for f in findings), findings
+
+
+@pytest.mark.parametrize("name,body", (
+    ("DIGEST-X-2026-10-24.md", "owed: \n"),
+    ("FINDING-seat-INTAKE-2026-10-24.md", "owed: unresolved obligation\n"),
+))
+def test_new_lane_owed_must_be_nonempty_and_contain_decision_ids(lint, registry, name, body):
+    findings = _owed_findings(lint, name, body, registry)
+    if "unresolved" in body:
+        assert not any(f.code == "no-owed" for f in findings), findings
+        assert any(
+            f.code == "owed-no-decision-ids" and f.level == "refuse" for f in findings
+        ), findings
+    else:
+        assert any(f.code == "no-owed" and f.level == "refuse" for f in findings), findings
+
+
+@pytest.mark.parametrize("name,body", (
+    ("DIGEST-X-2026-10-24.md", "owed: R166 R167\n"),
+    ("DIGEST-X-2026-10-24.md", "owed:\n- H-Q6\n"),
+    ("FINDING-seat-INTAKE-2026-10-24.md", "owed: none\n"),
+    ("DIGEST-CAPABILITY-MAP-X-2026-10-24.md", "owed: none\n"),
+))
+def test_valid_owed_values_pass_for_digest_and_finding_kinds(lint, registry, name, body):
+    findings = _owed_findings(lint, name, body, registry)
+    assert not [
+        (finding.code, finding.level) for finding in findings
+        if finding.code in {"no-owed", "owed-no-decision-ids"}
+    ], findings
+
+
+@pytest.mark.parametrize("file_class", ("pre-existing", "edited"))
+def test_existing_or_edited_lane_digests_report_owed_findings_without_refusing(
+        lint, registry, file_class):
+    no_list = _owed_findings(
+        lint, "DIGEST-X-2026-10-24.md", "by: Seat\n# Digest\n",
+        registry, file_class=file_class,
+    )
+    bad_ids = _owed_findings(
+        lint, "DIGEST-X-2026-10-24.md", "by: Seat\nowed: unresolved\n# Digest\n",
+        registry, file_class=file_class,
+    )
+    assert any(f.code == "no-owed" and f.level == "report" for f in no_list), no_list
+    assert any(f.code == "owed-no-decision-ids" and f.level == "report" for f in bad_ids), bad_ids
+    assert not any(
+        f.code in {"no-owed", "owed-no-decision-ids"} and f.level == "refuse"
+        for f in (*no_list, *bad_ids)
+    )
+
+
+@pytest.mark.parametrize("name", (
+    "SESSION-lane-2026-10-24.md",
+    "RATIFICATION-2026-10-24.md",
+    "SUPPLEMENT-ANSWERS-seat-2026-10-24.md",
+))
+def test_session_ratification_and_supplement_are_not_subject_to_owed_rule(
+        lint, registry, name):
+    folder = "to-cc" if name.startswith("SUPPLEMENT") else "to-browser"
+    findings = _owed_findings(lint, name, "by: Seat\n# Artifact\n", registry, folder=folder)
+    assert not [
+        finding for finding in findings
+        if finding.code in {"no-owed", "owed-no-decision-ids"}
+    ], findings

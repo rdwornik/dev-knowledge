@@ -440,7 +440,7 @@ def test_digest_with_owed_list_repairs_the_2026_10_22_cut(tmp_path, _quiet_hub):
 
 def test_new_truth_rows_are_appended_after_git_hygiene_in_contract_order():
     """Pins the six rows added to expose the 2026-10-22 cut's omitted truth checks."""
-    assert gh.PREFLIGHT_ROW_NAMES[-7:] == ("git_hygiene", *_NEW_ROWS)
+    assert gh.PREFLIGHT_ROW_NAMES[-8:-1] == ("git_hygiene", *_NEW_ROWS)
 
 
 def test_truth_rows_do_not_change_between_trial_and_real_cut(tmp_path, _quiet_hub):
@@ -455,3 +455,132 @@ def test_truth_rows_do_not_change_between_trial_and_real_cut(tmp_path, _quiet_hu
     assert tuple(name for name in _NEW_ROWS if name in normal) == _NEW_ROWS
     assert trial == normal
     assert set(normal.values()) == {gh.PREFLIGHT_FAIL}
+
+
+def _role_pin_fixture(tmp_path, *, seat_model="claude-opus-5.5", registry_model="claude-opus-5.5",
+                      pasted_sha=None, project_boot=None):
+    import hashlib
+
+    repo = tmp_path / "role-repo"
+    transport = tmp_path / "role-transport"
+    bundle = tmp_path / "role-bundle"
+    (repo / "protocols").mkdir(parents=True)
+    (repo / "ecosystem").mkdir()
+    (transport / "to-browser").mkdir(parents=True)
+    bundle.mkdir()
+    boot = b"---\nboot_version: 3\n---\n\n# Operating protocol\n"
+    boot_path = repo / "protocols" / "HANDOFF_BOOT.md"
+    boot_path.write_bytes(boot)
+    (repo / "ecosystem" / "provider-registry.yaml").write_text(
+        "roles:\n  architect:\n    order:\n      - model: " + registry_model + "\n",
+        encoding="utf-8",
+    )
+    (bundle / "SEAT-BOOT-Tech-Architect-47.md").write_text(
+        f"<!-- ROLE PIN | model: {seat_model} | -->\n", encoding="utf-8")
+    live_sha = hashlib.sha256(boot).hexdigest()
+    (bundle / "PASTE_THIS.md").write_text(
+        f"ROLE PIN — HANDOFF_BOOT.md @ handoff-process v3\nsha256: "
+        f"{pasted_sha or live_sha}\n",
+        encoding="utf-8",
+    )
+    if project_boot is not None:
+        (transport / "HANDOFF_BOOT.md").write_bytes(project_boot)
+    return repo, transport, bundle, live_sha
+
+
+def _role_pin_row(repo, transport, bundle):
+    row_fn = getattr(gh, "_row_role_pin_current", None)
+    assert callable(row_fn), "gen_handoff._row_role_pin_current is required"
+    return row_fn(repo, transport, bundle)
+
+
+def test_role_pin_current_is_the_final_preflight_row():
+    assert gh.PREFLIGHT_ROW_NAMES[-1] == "role_pin_current"
+
+
+def test_role_pin_current_is_not_applicable_without_a_bundle(tmp_path):
+    repo, transport, _bundle, _sha = _role_pin_fixture(tmp_path)
+    row = _role_pin_row(repo, transport, None)
+    assert row.status == gh.PREFLIGHT_NA
+    assert row.detail.startswith("SUBJECT-ABSENT")
+
+
+def test_role_pin_current_rejects_a_seat_model_missing_from_the_provider_registry(tmp_path):
+    repo, transport, bundle, _sha = _role_pin_fixture(
+        tmp_path, seat_model="unregistered-model")
+    row = _role_pin_row(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "SEAT-BOOT-Tech-Architect-47.md" in row.detail
+    assert "unregistered-model" in row.detail
+
+
+def test_role_pin_current_names_both_hashes_for_a_stale_boot_pin(tmp_path):
+    repo, transport, bundle, live_sha = _role_pin_fixture(tmp_path, pasted_sha="0" * 64)
+    row = _role_pin_row(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "0" * 64 in row.detail and live_sha in row.detail
+
+
+def test_role_pin_current_names_versions_and_hashes_for_a_stale_project_copy(tmp_path):
+    import hashlib
+
+    stale_copy = b"---\nboot_version: 2\n---\n\n# Old project copy\n"
+    repo, transport, bundle, live_sha = _role_pin_fixture(
+        tmp_path, project_boot=stale_copy)
+    row = _role_pin_row(repo, transport, bundle)
+    stale_sha = hashlib.sha256(stale_copy).hexdigest()
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "stale Project copy" in row.detail
+    assert "2" in row.detail and "3" in row.detail
+    assert stale_sha in row.detail and live_sha in row.detail
+
+
+@pytest.mark.parametrize("seat_model", ("opus", "claude-opus-5.5"))
+def test_role_pin_current_passes_registered_model_and_fresh_boot_copies(tmp_path, seat_model):
+    repo, transport, bundle, live_sha = _role_pin_fixture(tmp_path, seat_model=seat_model)
+    (transport / "HANDOFF_BOOT.md").write_bytes(
+        (repo / "protocols" / "HANDOFF_BOOT.md").read_bytes())
+    row = _role_pin_row(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_PASS
+    assert "SEAT-BOOT-Tech-Architect-47.md" in row.detail
+    assert live_sha[:8] in row.detail
+
+
+def test_role_pin_current_skips_an_absent_project_copy(tmp_path):
+    repo, transport, bundle, _live_sha = _role_pin_fixture(tmp_path, seat_model="opus")
+    row = _role_pin_row(repo, transport, bundle)
+    assert not (transport / "HANDOFF_BOOT.md").exists()
+    assert row.status == gh.PREFLIGHT_PASS
+
+
+def test_preflight_rows_include_role_pin_current(tmp_path, _quiet_hub):
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    (repo / "ecosystem").mkdir(exist_ok=True)
+    (repo / "ecosystem" / "provider-registry.yaml").write_text(
+        "roles:\n  architect:\n    order:\n      - model: claude-opus-5.5\n",
+        encoding="utf-8",
+    )
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    boot = b"---\nboot_version: 3\n---\n"
+    (repo / "protocols" / "HANDOFF_BOOT.md").write_bytes(boot)
+    sha = hashlib.sha256(boot).hexdigest()
+    (bundle / "SEAT-BOOT-Tech-Architect-47.md").write_text(
+        "<!-- ROLE PIN | model: claude-opus-5.5 | -->\n", encoding="utf-8")
+    (bundle / "PASTE_THIS.md").write_text(
+        f"ROLE PIN — HANDOFF_BOOT.md @ handoff-process v3\nsha256: {sha}\n",
+        encoding="utf-8",
+    )
+    row = _row(repo, transport, "role_pin_current", bundle_dir=bundle)
+    assert row.name == "role_pin_current"
+
+
+def test_role_pin_current_reads_the_sha_of_the_role_pin_line_not_any_sha256_line(tmp_path):
+    """Review 1 P1: a decoy `sha256:` line ahead of a stale ROLE PIN must not satisfy the row."""
+    repo, transport, bundle, live_sha = _role_pin_fixture(tmp_path, pasted_sha="0" * 64)
+    paste = bundle / "PASTE_THIS.md"
+    paste.write_text(f"sha256: {live_sha}\n" + paste.read_text(encoding="utf-8"), encoding="utf-8")
+    row = _role_pin_row(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "0" * 64 in row.detail

@@ -2870,3 +2870,231 @@ def test_a_cut_prints_exactly_two_install_lines(tmp_path, capfd):
     assert len(install) == 2, out
     assert install[0].startswith("INSTALL 1/2 protocols/HANDOFF_BOOT.md sha8 ")
     assert install[1].startswith("INSTALL 2/2 ") and "PASTE_THIS.md sha8 " in install[1]
+
+
+# --- L12 acceptance: generated facts, durable instructions, and the attached process diagram ---
+
+def test_narrative_findings_flags_only_unstructured_narrative():
+    narrative_findings = getattr(gh, "narrative_findings", None)
+    assert callable(narrative_findings), "gen_handoff.narrative_findings is required"
+    narrative = (
+        "This is a sufficiently long narrative paragraph that describes a generated conclusion "
+        "instead of a fact, and it must be kept out of the handoff bundle."
+    )
+    text = "\n".join((
+        narrative,
+        "| " + "table content " * 12 + "|",
+        "# " + "heading content " * 12,
+        "- " + "list content " * 12 + ".",
+        "* " + "star list content " * 12 + ".",
+        "1. " + "numbered list content " * 12 + ".",
+        "> " + "quoted content " * 12 + ".",
+        "```text",
+        "fenced content " * 12 + ".",
+        "```",
+        "<!-- HTML " + "comment content " * 12 + ". -->",
+        "<!-- FILL-IN:purpose START -->",
+        "fill-in " + "operator narrative " * 12 + ".",
+        "<!-- FILL-IN:purpose END -->",
+    ))
+    assert narrative_findings(text) == [narrative]
+
+
+def test_dry_generated_boot_data_and_receipt_have_no_narrative_or_boot_copied_row_details(
+        tmp_path, monkeypatch):
+    narrative_findings = getattr(gh, "narrative_findings", None)
+    assert callable(narrative_findings), "gen_handoff.narrative_findings is required"
+    generated_repo = _stub_repo(tmp_path / "generated")
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-browser").mkdir()
+    monkeypatch.setattr(gh, "transport_root", lambda *args, **kwargs: transport)
+    failed_rows = gh.preflight_rows(
+        generated_repo, transport=transport, today="2026-10-24",
+        bundle_dir=None, trial_cut=True)
+    row_names = {
+        "fill_ins_filled", "seat_ids_both", "supplement_matches_transport",
+        "landed_vs_ratified", "operator_decisions_list", "digest_owed_present",
+    }
+    notes = [row.detail for row in failed_rows if row.name in row_names]
+    assert len(notes) == 6
+
+    bundle = gh.generate(
+        generated_repo, mode="architect", slug="2026-10-24-narrative",
+        repo=".dev-knowledge", date="2026-10-24", bundle_root=tmp_path / "dry",
+        dry_cut=True, assemble=True,
+    ).bundle_dir
+    boot = (bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    data_start = boot.index(gh.BOOT_DATA_BEGIN) + len(gh.BOOT_DATA_BEGIN)
+    data_end = boot.index(gh.BOOT_DATA_END, data_start)
+    data_block = boot[data_start:data_end]
+    generated_rows, _prose = vhp.parse_boot_blocks(boot)
+    rendered_data_block = gh.boot_data_block(generated_rows)
+    receipt_path = bundle / gh.RECEIPT_FILE
+    gh._write_receipt(
+        bundle, slug=bundle.name, mode="architect", date="2026-10-24", cut="dry",
+        cost={}, paste={}, preflight_notes=notes,
+    )
+
+    assert narrative_findings(data_block) == []
+    assert narrative_findings(rendered_data_block) == []
+    assert narrative_findings(receipt_path.read_text(encoding="utf-8")) == []
+    for note in notes:
+        assert note not in boot
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["preflight_notes"] == notes
+
+
+def test_handoff_boot_keeps_volatile_facts_in_boot_data_only(tmp_path):
+    import yaml
+
+    boot_path = _REPO / "protocols" / "HANDOFF_BOOT.md"
+    template_path = _REPO / "templates" / "handoff" / "v5" / "HANDOFF_BOOT.md.tmpl"
+    boot = boot_path.read_text(encoding="utf-8")
+    template = template_path.read_text(encoding="utf-8")
+    forbidden = (
+        "no file access", "file-less", "conductor e", "code decides what runs next",
+        "opus plans and judges", "copilot produces code", "pending `[#1536]`",
+    )
+    for text in (boot, template):
+        lowered = text.lower()
+        assert not [claim for claim in forbidden if claim in lowered]
+        assert not re.search(r"(?m)^-\s+\*\*Models\*\*", text)
+
+    front_matter = re.match(r"\A---\s*\n(.*?)\n---", boot, flags=re.DOTALL)
+    assert front_matter is not None
+    metadata = yaml.safe_load(front_matter.group(1))
+    assert metadata["boot_version"] == 3
+    assert str(metadata["last_reviewed"]) == "2026-10-24"
+
+    generated = _gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md"
+    rows, _prose = vhp.parse_boot_blocks(generated.read_text(encoding="utf-8"))
+    assert "Models" in {key for key, _value in rows}
+
+
+def test_handoff_boot_operating_protocol_carries_the_h_q3_instructions():
+    boot = (_REPO / "protocols" / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    sections = list(re.finditer(r"(?m)^#{1,6}\s+(.+?)\s*$", boot))
+    operating = None
+    for index, heading in enumerate(sections):
+        if "operating protocol" in heading.group(1).lower():
+            end = sections[index + 1].start() if index + 1 < len(sections) else len(boot)
+            operating = boot[heading.start():end]
+            break
+    assert operating is not None, "an Operating protocol section is required"
+
+    for tag in ("[W]", "[M]", "[I]"):
+        tag_line = next(
+            (line for line in operating.splitlines() if tag in line), "")
+        assert len(tag_line.split()) >= 3, (tag, tag_line)
+    assert re.search(r"(?is)every repo claim.{0,100}(?:tagged|tag)", operating)
+    assert re.search(r"(?is)MAP.{0,80}INDEX.{0,80}FINDING.{0,120}before asking", operating)
+    for behaviour, phrase in (
+        ("READ", "transport.py query"),
+        ("TRANSPORT", "K12"),
+        ("DISPATCH", "by role"),
+        ("CHALLENGE", "never decide"),
+        ("PROPOSE", "the model"),
+    ):
+        line = next((ln for ln in operating.splitlines() if behaviour in ln), "")
+        assert line and phrase.lower() in line.lower(), (behaviour, phrase)
+    for act in ("idea", "ratify", "GO", "destructive act", "seat release"):
+        assert re.search(rf"(?i)\b{re.escape(act)}\b", operating), act
+
+    assert not re.search(r"\w+\.\w+:\d+", operating)
+    assert not re.search(r"\b\d{2,}\b", operating)
+    assert not re.search(r"(?i)\b(?:claude-|gpt-|batch\s)", operating)
+    assert not re.search(
+        r"(?i)\bCI\b.{0,40}\b(?:pass|fail|green|red|verdict)\b|"
+        r"\b(?:pass|fail|green|red|verdict)\b.{0,40}\bCI\b",
+        operating,
+    )
+
+
+def test_diagram_helpers_match_the_process_binding_and_render_contract(monkeypatch):
+    import gen_process_diagrams as diagrams
+    import yaml
+
+    numbers = getattr(gh, "diagram_numbers", None)
+    block = getattr(gh, "diagram_block", None)
+    row = getattr(gh, "diagram_row", None)
+    assert callable(numbers) and callable(block) and callable(row), (
+        "diagram_numbers, diagram_block, and diagram_row are required")
+
+    real_loader = diagrams.load_binding
+    monkeypatch.setattr(diagrams, "load_binding", lambda: {
+        "states": [
+            {"id": "a", "zone": "X", "today_glue": True, "hole": "missing"},
+            {"id": "b", "zone": "Y", "today_glue": False},
+            {"id": "c", "zone": "X", "today_glue": True},
+        ],
+    })
+    assert numbers() == {"states": 3, "holes": 1, "glue": 2, "zones": 2}
+    monkeypatch.setattr(diagrams, "load_binding", real_loader)
+
+    binding_path = _REPO / "ecosystem" / "process-binding.yaml"
+    raw = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
+    states = raw["states"] if "states" in raw else raw["processes"]["P1"]["states"]
+    state_values = list(states.values()) if isinstance(states, dict) else states
+    expected = {
+        "states": len(state_values),
+        "holes": sum("hole" in state for state in state_values),
+        "glue": sum(bool(state.get("today_glue")) for state in state_values),
+        "zones": len({state["zone"] for state in state_values}),
+    }
+    assert numbers() == expected
+    rendered = diagrams.render_mermaid()
+    diagram = block()
+    assert diagram.startswith("P1 dispatch only — the handoff process is not yet bound\n")
+    assert f"```mermaid\n{rendered.rstrip()}\n```" in diagram
+    assert "MAP-HARNESS-AS-IS-r3" in diagram and "MAP-HARNESS-TO-BE-r3" in diagram
+    assert "hand-built, verified 2026-10-23" in diagram
+    assert re.search(r"(?m)^.*hand-built, verified 2026-10-23.*$", diagram)
+    assert row() == (
+        "Diagram",
+        f"{expected['states']} states · {expected['holes']} holes · "
+        f"{expected['glue']} glue · {expected['zones']} zones",
+    )
+
+
+def test_generated_bundle_attaches_diagram_and_verifies_its_boot_data_row(tmp_path):
+    boot_data_rows = getattr(gh, "boot_data_rows", None)
+    assert callable(boot_data_rows), "gen_handoff.boot_data_rows is required"
+    diagram_parameter = inspect.signature(boot_data_rows).parameters.get("diagram_row")
+    assert diagram_parameter is not None, (
+        "boot_data_rows needs the optional diagram_row keyword")
+    assert diagram_parameter.default is None
+    diagram_row = getattr(gh, "diagram_row", None)
+    diagram_block = getattr(gh, "diagram_block", None)
+    assert callable(diagram_row) and callable(diagram_block)
+
+    bundle = _gen(tmp_path).bundle_dir
+    expected_text = (
+        diagram_block().rstrip() + "\nNumbers: " +
+        f"{diagram_row()[1]}\n"
+    )
+    diagram_path = bundle / "DIAGRAM.md"
+    assert diagram_path.is_file()
+    assert diagram_path.read_text(encoding="utf-8") == expected_text
+
+    boot = (bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "**Diagram**" in boot
+    rows, _prose = vhp.parse_boot_blocks(boot)
+    keys = [key for key, _value in rows]
+    assert "Diagram" in keys
+    assert "Models" in keys
+    assert keys.index("Diagram") > 0
+    assert keys.index("Diagram") < keys.index("Models")
+
+    rule = vhp.BOOT_DATA_RULES.get("Diagram")
+    assert callable(rule), "BOOT_DATA_RULES needs a live Diagram rule"
+    assert rule(diagram_row()[1], None)[0] == "pass"
+    changed = diagram_row()[1] + " changed"
+    result_status, detail = rule(changed, None)
+    assert result_status == "fail" and diagram_row()[1] in detail and changed in detail
+
+    probes = vhp.verify(bundle, repo_root=bundle.parents[2])
+    diagram_failures = [
+        (probe.probe_id, probe.detail) for probe in probes
+        if probe.probe_id == f"BD-{vhp.boot_data_id('Diagram')}" and probe.status == "fail"
+    ]
+    assert diagram_failures == []
