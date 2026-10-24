@@ -302,7 +302,7 @@ def _check_claim_marker(contract: str, transport_root: str | None) -> tuple[bool
     except OSError as exc:
         return False, f"unreadable: could not list {to_cc}: {exc}"
     try:
-        has_md = any(p.is_file() for p in to_cc.glob("*.md"))
+        has_md = any(p.is_file() and not p.is_symlink() for p in to_cc.glob("*.md"))
     except OSError as exc:
         return False, f"unreadable: could not list {to_cc}: {exc}"
     if not has_md:
@@ -316,6 +316,8 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bo
     root = _worktrees_root(repo)
     if not (root.exists() or root.is_symlink()):
         return [], False, ""
+    if root.is_symlink() or not root.is_dir():
+        return [], False, f"unreadable: {root} is not a plain directory"
     entries, why = _registered(repo)
     if entries is None:
         return [], False, f"unreadable: {why}"
@@ -327,7 +329,7 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bo
         keep = []
         for d in sorted(dirs):
             child = here / d
-            if child.is_symlink():
+            if child.is_symlink() or os.path.isjunction(child):
                 files.append(d)
             elif _norm(child) not in known:
                 keep.append(d)

@@ -730,3 +730,28 @@ def test_12_a_directory_named_md_is_not_evidence_of_a_read(hub, jobs, tmp_path):
                                               contract=CONTRACT, transport_root=str(root))}
     assert not res[12].passed
     assert "vacuous" in res[12].evidence
+
+
+def test_12_a_symlinked_md_is_not_evidence_of_a_read(hub, jobs, tmp_path):
+    root = tmp_path / "transport-linkmd"
+    (root / "to-cc").mkdir(parents=True)
+    target = tmp_path / "elsewhere.md"
+    target.write_text("x\n", encoding="utf-8")
+    try:
+        (root / "to-cc" / "note.md").symlink_to(target)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(root))}
+    assert not res[12].passed and "vacuous" in res[12].evidence
+
+
+def test_13_fails_closed_when_the_worktrees_root_is_not_a_directory(hub, jobs):
+    root = hub / ".claude" / "worktrees"
+    if root.exists():
+        import shutil
+        shutil.rmtree(root)
+    root.parent.mkdir(parents=True, exist_ok=True)
+    root.write_text("not a dir\n", encoding="utf-8")
+    res = _run(hub, jobs)
+    assert not res[13].passed and "unreadable" in res[13].evidence
