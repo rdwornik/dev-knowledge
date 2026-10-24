@@ -598,6 +598,23 @@ def _is_receipt_merge(repo: Path, sha: str) -> str | None:
         added, deleted = rows[0][0], rows[0][1]
         if not (added.isdigit() and deleted.isdigit()) or int(deleted) != 0 or int(added) < 1:
             return None
+    # Pure additions are not enough: they must be appended after P1's last ledger line.
+    if _git(repo, "ls-tree", p1, "--", _RECEIPT_LEDGER).strip():
+        try:
+            shown = subprocess.run(["git", "-C", str(repo), "show", f"{p1}:{_RECEIPT_LEDGER}"],
+                                   capture_output=True, timeout=60)
+        except Exception as exc:  # noqa: BLE001 -- surfaced, never swallowed
+            raise AnchorError(f"git show {p1}:{_RECEIPT_LEDGER} failed to run: {exc!r}") from exc
+        if shown.returncode != 0:
+            raise AnchorError(f"git show {p1}:{_RECEIPT_LEDGER} exited {shown.returncode}")
+        old_lines = shown.stdout.count(b"\n")
+    else:
+        old_lines = 0
+    for tip in (sha, p2):
+        diff = _git(repo, "diff", "-U0", p1, tip, "--", _RECEIPT_LEDGER)
+        hunks = [ln for ln in diff.split("\n") if ln.startswith("@@ ")]
+        if len(hunks) != 1 or not hunks[0].startswith(f"@@ -{old_lines},0 +"):
+            return None
     return p1
 
 

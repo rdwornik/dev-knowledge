@@ -467,6 +467,13 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
                       f"than the judged one; the receipt for {slug} is left open as the record.",
                       sha=sha, main_sha=main_sha)
 
+    warning = ""
+    baseline_error = getattr(result, "baseline_push_error", "")
+    if baseline_error:
+        warning = (f" WARNING: the receipt merge was NOT pushed to the integration branch "
+                   f"({baseline_error}); main's new tip has no CI run until it is: push it to "
+                   f"{branch} by hand before the next landing.")
+
     # receipt: the line is already on main; nothing is left for a successor to carry
     started = time.monotonic()
     try:
@@ -476,7 +483,7 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
         timed("receipt", started)
         return report("REFUSED", EXIT_REFUSED,
                       f"LANDED {sha[:12]} on main with its receipt line, but the carry file "
-                      f"{carry_file} could not be emptied: {exc}", sha=sha, main_sha=main_sha)
+                      f"{carry_file} could not be emptied: {exc}{warning}", sha=sha, main_sha=main_sha)
     timed("receipt", started)
 
     # teardown
@@ -486,14 +493,9 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
     except Exception as exc:                        # noqa: BLE001 -- reported, the landing stands
         timed("teardown", started)
         return report("LANDED", EXIT_OK, f"LANDED {sha[:12]} on main via {branch}; teardown "
-                                         f"failed: {exc}", sha=sha, main_sha=main_sha)
+                                         f"failed: {exc}{warning}", sha=sha, main_sha=main_sha)
     timed("teardown", started)
-    message = f"LANDED {sha[:12]} on main after CI on {branch}, receipt line included."
-    baseline_error = getattr(result, "baseline_push_error", "")
-    if baseline_error:
-        message += (f" WARNING: the receipt merge was NOT pushed to the integration branch "
-                    f"({baseline_error}); main's new tip has no CI run until it is: push it to "
-                    f"{branch} by hand before the next landing.")
+    message = f"LANDED {sha[:12]} on main after CI on {branch}, receipt line included.{warning}"
     return report("LANDED", EXIT_OK, message, sha=sha, main_sha=main_sha)
 
 
