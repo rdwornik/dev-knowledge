@@ -574,3 +574,13 @@ def test_preflight_rows_include_role_pin_current(tmp_path, _quiet_hub):
     )
     row = _row(repo, transport, "role_pin_current", bundle_dir=bundle)
     assert row.name == "role_pin_current"
+
+
+def test_role_pin_current_reads_the_sha_of_the_role_pin_line_not_any_sha256_line(tmp_path):
+    """Review 1 P1: a decoy `sha256:` line ahead of a stale ROLE PIN must not satisfy the row."""
+    repo, transport, bundle, live_sha = _role_pin_fixture(tmp_path, pasted_sha="0" * 64)
+    paste = bundle / "PASTE_THIS.md"
+    paste.write_text(f"sha256: {live_sha}\n" + paste.read_text(encoding="utf-8"), encoding="utf-8")
+    row = _role_pin_row(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "0" * 64 in row.detail

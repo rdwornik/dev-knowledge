@@ -2286,7 +2286,7 @@ def _row_digest_owed_present(transport) -> PreflightRow:
 
 
 _ROLE_MODEL_RE = re.compile(r"model:\s*([^|]+?)\s*(?:\||-->)")
-_PIN_SHA_RE = re.compile(r"(?m)^sha256:\s*([0-9a-f]{64})\b")
+_PIN_SHA_RE = re.compile(r"(?m)^ROLE PIN [^\n]*\r?\nsha256:\s*([0-9a-f]{64})\b")
 _BOOT_VERSION_RE = re.compile(r"(?m)^boot_version:\s*(\d+)\s*$")
 _MODEL_FAMILIES = ("opus", "sonnet", "haiku")
 
