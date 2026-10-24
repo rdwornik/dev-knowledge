@@ -69,9 +69,8 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   on `dispatch.py codespace-exec`, `dispatch.py repair` and `dispatch.py successor` as well as on `launch`, before anything
   is spawned. Record that line verbatim; do not launch the lane with another model in its place.
   A launch leaves `logs/receipts/LAUNCH-<SLUG>.json` (a Codespace lane: its `logs/CODESPACE-RECEIPTS.jsonl`
-  row); the merge gate refuses a lane with neither. A queue FIRE (`dispatch.py queue`) goes through the launch
-  path and leaves `logs/receipts/LAUNCH-<SLUG>.json` (witnessed 2026-10-24). Only a raw `claude --bg`
-  and the PATH `dispatch` wrapper leave no such receipt, so a lane started that way cannot merge.
+  row); the merge gate refuses a lane with neither. A queue FIRE (`dispatch.py queue`) leaves `logs/receipts/LAUNCH-<SLUG>.json`
+  too (witnessed 2026-10-24); only a raw `claude --bg` or the PATH `dispatch` wrapper leaves none, so such a lane cannot merge.
 - **Before each CODESPACE fire (W2, R7 — the one hard veto):**
   `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` — exit 0
   (OK): fire · exit 1 (REFUSED): record the refusal verbatim, do not fire. `<n>` is that
