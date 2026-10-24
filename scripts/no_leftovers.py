@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""no_leftovers.py — teardown verified by code, not by a human reading eleven lines.
+"""no_leftovers.py — teardown verified by code, not by a human reading eleven lines (now thirteen checks).
 
 WHAT THIS IS
 ------------
@@ -14,7 +14,7 @@ WHY A HUMAN READING ELEVEN LINES IS NOT ENOUGH. Two empty directories, `lane-z-4
 absent from `git worktree list`, no branch, nothing for `git status` to say. Only a directory
 enumeration sees them (`[#762]`: a gitignored leftover reads clean on both git views).
 
-THE ELEVEN CHECKS (numbers are the spec's order)
+THE CHECKS (1-11 the original eleven; 12 optional; 13 scratch files; numbers are the spec's order)
    1 worktree-not-registered            `git worktree list --porcelain` names neither lane path nor branch
    2 worktree-dir-absent                `.claude/worktrees/<slug>` is not on disk
    3 worktree-dir-enumeration-empty     `find <path> -mindepth 1` finds nothing (the check `git status` cannot do)
@@ -36,10 +36,18 @@ THE ELEVEN CHECKS (numbers are the spec's order)
                                         only a claim marker (a dispatcher or integrator order, not a worktree lane)
                                         passes `--contract` alone and gets check 12 by itself, not the eleven
                                         lane-worktree checks it has no lane slug to run. `--contract` omitted, the
-                                        other eleven checks are unaffected and this row is not printed at all.
+                                        other checks are unaffected and this row is not printed at all. It must
+                                        not pass vacuously: a `to-cc` holding no `*.md` file at all FAILS as
+                                        "vacuous" (a scan that read nothing proves nothing).
+  13 worktrees-scratch-files-absent     no regular file or symlink under `.claude/worktrees/` lies outside every
+                                        REGISTERED git worktree (a file in a husk dir, or loose directly under
+                                        `.claude/worktrees/`, is scratch; files inside a registered worktree are
+                                        not). Bounded, read-only, fail-closed (an unreadable registration list or
+                                        directory is a FAIL). Always runs in a slugged run; the slug-less husk scan
+                                        also prints `FAIL 13` lines and exits 1 on any scratch file.
 
 With no slug it runs the husk scan alone: every directory under `.claude/worktrees/` that git does
-not register, and every registration whose directory is gone.
+not register, every registration whose directory is gone, and check 13's scratch files.
 
 POSTURE — READ-ONLY, BY CONSTRUCTION. It verifies; it never removes, unlocks, prunes or deletes.
 A leftover is REPORTED, not repaired: repair is an ordered act (job first, then unlock -> remove
@@ -244,7 +252,7 @@ def find_prunable(repo: Path) -> list[Path]:
             if _norm(e["worktree"]).startswith(root + "/") and not Path(e["worktree"]).exists()]
 
 
-# --- the eleven checks --------------------------------------------------------------
+# --- the checks --------------------------------------------------------------
 
 def _refs(repo: Path, *patterns: str) -> tuple[list[str] | None, str]:
     out, why = _git_out(repo, "for-each-ref", "--format=%(refname)", *patterns)
@@ -293,15 +301,60 @@ def _check_claim_marker(contract: str, transport_root: str | None) -> tuple[bool
         found = sorted(p.name for p in to_cc.glob(_claim_marker_glob(contract)))
     except OSError as exc:
         return False, f"unreadable: could not list {to_cc}: {exc}"
+    try:
+        has_md = any(to_cc.glob("*.md"))
+    except OSError as exc:
+        return False, f"unreadable: could not list {to_cc}: {exc}"
+    if not has_md:
+        return False, f"vacuous: {to_cc} holds no .md file, so the claim-marker scan read nothing"
     return not found, (f"marker(s) still present: {_shown(found)}" if found
                        else f"no {_claim_marker_glob(contract)} marker under {to_cc}")
+
+
+def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bool, str]:
+    """Files/symlinks under `.claude/worktrees/` outside every registered worktree. -> (files, truncated, error)."""
+    root = _worktrees_root(repo)
+    if not (root.exists() or root.is_symlink()):
+        return [], False, ""
+    entries, why = _registered(repo)
+    if entries is None:
+        return [], False, f"unreadable: {why}"
+    known = {_norm(e["worktree"]) for e in entries}
+    errors: list[str] = []
+    found: list[Path] = []
+    for cur, dirs, files in os.walk(root, onerror=lambda e: errors.append(f"could not list {e.filename}: {e}")):
+        here = Path(cur)
+        keep = []
+        for d in sorted(dirs):
+            child = here / d
+            if child.is_symlink():
+                files.append(d)
+            elif _norm(child) not in known:
+                keep.append(d)
+        dirs[:] = keep
+        for f in sorted(files):
+            if len(found) >= cap:
+                return found, True, "; ".join(errors)
+            found.append(here / f)
+    return found, False, "; ".join(errors)
+
+
+def _check_scratch_files(repo: Path) -> tuple[bool, str, list[Path]]:
+    found, truncated, err = find_scratch_files(repo)
+    if err:
+        return False, f"unreadable: {err}" if not err.startswith("unreadable") else err, found
+    if found:
+        return False, (f"{len(found)}{'+' if truncated else ''} scratch file(s) outside any registered worktree: "
+                       f"{_shown([str(p) for p in found])}"), found
+    return True, f"no scratch file under {_worktrees_root(repo)} outside a registered worktree", found
 
 
 def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | None,
                remote: str = "origin", main_branch: str = "main", contract: str | None = None,
                transport_root: str | None = None) -> list[Result]:
     """Run the eleven checks for `lane` against the primary checkout `repo`, plus the optional
-    twelfth (`contract`) that reads the transport rather than the git repo.
+    twelfth (`contract`) that reads the transport rather than the git repo, and the always-on
+    thirteenth (scratch files under `.claude/worktrees/`).
 
     `agents` is the parsed `claude agents --json` list, or None when it could not be read (check 9
     then FAILS rather than passing on no evidence).
@@ -469,6 +522,10 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
     if contract is not None:
         ok, evidence = _check_claim_marker(contract, transport_root)
         add(12, "no-claim-marker", ok, evidence)
+
+    # 13
+    ok, evidence, _ = _check_scratch_files(repo)
+    add(13, "worktrees-scratch-files-absent", ok, evidence)
     return res
 
 
@@ -510,7 +567,7 @@ def _report_husks(repo: Path, header: str) -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="no_leftovers.py", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    v = sub.add_parser("verify", help="run the eleven checks for --lane, or the husk scan without it")
+    v = sub.add_parser("verify", help="run checks 1-11 and 13 for --lane (plus 12 with --contract), or the husk and scratch-file scan without it")
     v.add_argument("--lane", help="lane slug, e.g. lane-l5-no-leftovers (worktree dir name)")
     v.add_argument("--repo", help="repository to check (default: the primary of the current directory)")
     v.add_argument("--jobs-dir", help="claude jobs directory (default: ~/.claude/jobs)")
@@ -544,6 +601,14 @@ def main(argv: list[str] | None = None) -> int:
                   + ("CLEAN (1/1 check passes)" if ok else "NOT CLEAN (1 of 1 checks fail: no-claim-marker)"))
             return EXIT_OK if ok else EXIT_LEFTOVER
         n = _report_husks(repo, "FAIL")
+        ok, evidence, scratch = _check_scratch_files(repo)
+        if scratch:
+            for path in scratch:
+                print(f"FAIL 13 worktrees-scratch-files-absent  scratch file outside any registered worktree: {path}")
+            n += len(scratch)
+        elif not ok:
+            print(f"FAIL 13 worktrees-scratch-files-absent  {evidence}")
+            n += 1
         print(f"no-leftovers husk scan of {_worktrees_root(repo)}: "
               + ("CLEAN (no husk)" if n == 0 else f"NOT CLEAN ({n} leftover(s))"))
         return EXIT_OK if n == 0 else EXIT_LEFTOVER

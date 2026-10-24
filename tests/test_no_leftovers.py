@@ -42,6 +42,7 @@ _NAMES = {
     9: "job-not-in-agents",
     10: "working-tree-clean",
     11: "main-equals-origin-main",
+    13: "worktrees-scratch-files-absent",
 }
 
 
@@ -105,7 +106,7 @@ def _job(jobs_dir: Path, job_id: str, **state) -> None:
 
 # --- the spec: eleven named checks ---------------------------------------------
 
-def test_the_eleven_checks_are_named_and_numbered_as_the_spec_lists_them(hub, jobs):
+def test_the_checks_are_named_and_numbered_as_the_spec_lists_them(hub, jobs):
     results = nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[])
     assert {r.number: r.name for r in results} == _NAMES
 
@@ -407,6 +408,7 @@ CONTRACT = "LANE-t-1-demo"
 def transport(tmp_path: Path) -> Path:
     root = tmp_path / "transport"
     (root / "to-cc").mkdir(parents=True)
+    (root / "to-cc" / f"{CONTRACT}.md").write_text("contract\n", encoding="utf-8")
     return root
 
 
@@ -428,6 +430,15 @@ def test_12_fails_while_a_claim_marker_still_exists(hub, jobs, transport):
     assert f"{CONTRACT}.CLAIMED-11111111" in res[12].evidence
 
 
+def test_12_fails_vacuously_when_to_cc_holds_no_markdown(hub, jobs, transport):
+    (transport / "to-cc" / f"{CONTRACT}.md").unlink()
+    (transport / "to-cc" / "note.txt").write_text("not markdown\n", encoding="utf-8")
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(transport))}
+    assert not res[12].passed
+    assert "vacuous" in res[12].evidence
+
+
 def test_12_fails_closed_when_the_transport_is_not_mounted(hub, jobs, tmp_path):
     res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
                                               contract=CONTRACT,
@@ -441,6 +452,50 @@ def test_12_does_not_mistake_a_sibling_contracts_marker_for_this_ones(hub, jobs,
     res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
                                               contract=CONTRACT, transport_root=str(transport))}
     assert res[12].passed, res[12].evidence
+
+
+# --- check 13: worktrees-scratch-files-absent --------------------------------------
+
+def test_13_passes_when_worktrees_dir_is_absent_or_clean(hub, jobs):
+    assert _run(hub, jobs)[13].passed
+    (hub / ".claude" / "worktrees").mkdir(parents=True)
+    assert _run(hub, jobs)[13].passed
+
+
+def test_13_fails_on_a_scratch_file_in_an_unregistered_husk(hub, jobs):
+    scratch = hub / ".claude" / "worktrees" / "lane-old-husk" / "sub" / "tmp.txt"
+    scratch.parent.mkdir(parents=True)
+    scratch.write_text("x\n", encoding="utf-8")
+    res = _run(hub, jobs)[13]
+    assert not res.passed
+    assert "tmp.txt" in res.evidence
+    assert scratch.read_text(encoding="utf-8") == "x\n"
+
+
+def test_13_fails_on_a_loose_file_directly_under_worktrees(hub, jobs):
+    loose = hub / ".claude" / "worktrees" / "loose.txt"
+    loose.parent.mkdir(parents=True)
+    loose.write_text("x\n", encoding="utf-8")
+    res = _run(hub, jobs)[13]
+    assert not res.passed
+    assert "loose.txt" in res.evidence
+
+
+def test_13_ignores_files_inside_a_registered_worktree(hub, jobs):
+    other = _add_lane(hub, SLUG + "-2")
+    (other / "inside.txt").write_text("x\n", encoding="utf-8")
+    assert _run(hub, jobs)[13].passed
+
+
+def test_cli_slugless_scan_fails_on_scratch_file_and_names_it(hub, capsys):
+    loose = hub / ".claude" / "worktrees" / "loose.txt"
+    loose.parent.mkdir(parents=True)
+    loose.write_text("x\n", encoding="utf-8")
+    rc = nl.main(["verify", "--repo", str(hub)])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert any(ln.startswith("FAIL 13 worktrees-scratch-files-absent") and "loose.txt" in ln
+               for ln in out.splitlines())
 
 
 # --- the husk: the leak that is live -----------------------------------------------
@@ -551,7 +606,7 @@ def test_cli_reports_the_true_check_count_when_lane_and_contract_are_both_clean(
     rc = nl.main(argv)
     out = capsys.readouterr().out
     assert rc == 0
-    assert "CLEAN (12/12 checks pass)" in out
+    assert "CLEAN (13/13 checks pass)" in out
 
 
 def test_cli_reports_check_12_failing_when_a_marker_remains(hub, jobs, tmp_path, transport, capsys):
