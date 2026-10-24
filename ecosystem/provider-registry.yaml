@@ -629,10 +629,10 @@ roles:
     no_fallback: true
     reserved_share:
       pool: "anthropic-weekly-opus"
-      value: null
-      reason: "the operator ruled that a share of the weekly Anthropic budget is reserved for Opus but named no value (2026-10-23 routing); a number is not invented"
+      value: 0.30
+      reason: "the operator ruled 2026-10-24 that 30% of the weekly Anthropic budget is reserved for Opus on this role; reviewed at batch close with quota_watch data (supersedes the 2026-10-23 routing, which named no value)"
       decided_by: operator
-      decided_on: "2026-10-23"
+      decided_on: "2026-10-24"
       evidence: protocols/STANDING_RULINGS.md
     order:
       - provider: anthropic
@@ -642,8 +642,9 @@ roles:
           one. MOVED from `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the operator's explicit
           admission, B5: "Opus 5.5 admitted for orchestrate/plan, by explicit model id."
           2026-10-23: `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool
-          (value unset) per `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model
-          routing of 2026-10-23.
+          (value 0.30, i.e. 30%, per the 2026-10-24 operator ruling) per
+          `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing of
+          2026-10-23.
         admission:
           verdict: admitted
           decided_by: operator
@@ -659,10 +660,10 @@ roles:
     no_fallback: true
     reserved_share:
       pool: "anthropic-weekly-opus"
-      value: null
-      reason: "the operator ruled that a share of the weekly Anthropic budget is reserved for Opus but named no value (2026-10-23 routing); a number is not invented"
+      value: 0.30
+      reason: "the operator ruled 2026-10-24 that 30% of the weekly Anthropic budget is reserved for Opus on this role; reviewed at batch close with quota_watch data (supersedes the 2026-10-23 routing, which named no value)"
       decided_by: operator
-      decided_on: "2026-10-23"
+      decided_on: "2026-10-24"
       evidence: protocols/STANDING_RULINGS.md
     order:
       - provider: anthropic
@@ -671,8 +672,9 @@ roles:
           Opus only (AX21-1), same clause and same reason as orchestrate. MOVED from
           `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the same B5 admission. 2026-10-23:
           `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool (value
-          unset) per `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing
-          of 2026-10-23.
+          0.30, i.e. 30%, per the 2026-10-24 operator ruling) per
+          `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing of
+          2026-10-23.
         admission:
           verdict: admitted
           decided_by: operator
@@ -784,13 +786,15 @@ roles:
         note: >-
           Fallback under trigger B' (weekly usage above elapsed-week share, or the manual override):
           `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model routing of 2026-10-23.
-          Every use is recorded in the MODELS block (R139). NOT ADMITTED for `execute`: xai's licence is
-          `restricted` and a test pins xai admitted for `review` only, so admitting it here is a licence
-          ruling that is the operator's (OPERATOR-ACTION in the registry-roles handback); until then
-          trigger B' cannot route an execute call to Grok through the router.
+          Every use is recorded in the MODELS block (R139). ADMITTED for `execute` by operator
+          ruling 2026-10-24 under trigger B'. The provider-level `xai` licence block is unchanged
+          (it is `permitted`, decided 2026-08-26); only the admission for this role changed --
+          admission stays per role.
         admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-24"
+          evidence: protocols/STANDING_RULINGS.md
   rulings:
     description: >-
       Rulings and option picks. 2026-10-23 operator model routing (`to-browser/RATIFICATION-2026-10-23.md`

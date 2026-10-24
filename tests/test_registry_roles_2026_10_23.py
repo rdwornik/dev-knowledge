@@ -94,7 +94,7 @@ def test_orchestration_roles_pin_opus_without_fallback(registry_data, role_name)
     assert role.order[0].model == "claude-opus-5-5"
     assert role.reserved_share is not None
     assert "opus" in role.reserved_share.pool.lower()
-    assert role.reserved_share.value is None
+    assert role.reserved_share.value == 0.30
     assert role.reserved_share.reason.strip()
 
 

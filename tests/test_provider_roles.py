@@ -185,14 +185,15 @@ def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
         if entry.admission is not None and entry.admission.verdict == "admitted"
     }
     # `xai` joined 2026-10-14 by R104 (operator ruling, [#1536]), on the REVIEW role only --
-    # pinned below so the exception cannot widen to implement unnoticed.
+    # pinned below so the exception cannot widen to implement unnoticed. `execute` joined
+    # 2026-10-24 by operator ruling.
     assert admitted_providers == {"anthropic", "copilot-enterprise", "xai"}
     xai_admitted_in = {
         name for name, role in registry.roles.items() for entry in role.order
         if entry.provider == "xai" and entry.admission is not None
         and entry.admission.verdict == "admitted"
     }
-    assert xai_admitted_in == {"review"}
+    assert xai_admitted_in == {"review", "execute"}
 
 
 def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(live):
