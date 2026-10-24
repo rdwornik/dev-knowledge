@@ -633,10 +633,29 @@ def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
                 f"were deferred off the back of it ([#746])"))
 
 
+#: Substrates retired from the registry (CL-1, retired 2026-10-24) -> retirement date. A contract
+#: dated BEFORE it is a record of an already-executed dispatch and is grandfathered past leg 1.
+RETIRED_SUBSTRATES: dict[str, _dt.date] = {"cloud": _dt.date(2026, 10, 24)}
+
+_DATE_LINE_RE = re.compile(r"(?m)^date:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$")
+
+
+def contract_date(text: str) -> Optional[_dt.date]:
+    """The contract's own flush-left `date: YYYY-MM-DD` line, or None."""
+    m = _DATE_LINE_RE.search(text)
+    if m is None:
+        return None
+    try:
+        return _dt.date.fromisoformat(m.group(1))
+    except ValueError:
+        return None
+
+
 def validate_contract(text: str, *, source: str,
                       registry: Mapping[str, Substrate],
                       heartbeat=_HEARTBEAT_AUTO,
-                      now: Optional[_dt.datetime] = None) -> list[Refusal]:
+                      now: Optional[_dt.datetime] = None,
+                      landed: Optional[_dt.date] = None) -> list[Refusal]:
     """Legs 1-3 and 8 plus the unknown-override report, for ONE contract.
 
     Leg 4 needs the whole batch and lives in `validate_batch`. Every problem is returned, not
@@ -682,6 +701,10 @@ def validate_contract(text: str, *, source: str,
             detail = (f"declares substrate {name!r}, which is registered with no live verb "
                       f"({', '.join(substrate.verbs)}) — the substrate is declared and "
                       f"unbacked")
+        retired_on = RETIRED_SUBSTRATES.get(name) if name else None
+        effective = contract_date(text) or landed
+        if retired_on is not None and effective is not None and effective < retired_on:
+            return out
         out.append(_apply_override(
             Refusal(rule=RULE_NO_LIVE_VERB, source=source, detail=detail, substrate=name),
             overrides))
@@ -754,7 +777,8 @@ def validate_contract(text: str, *, source: str,
 
 
 def validate_batch(contracts: Mapping[str, str], *,
-                   registry: Mapping[str, Substrate]) -> list[Refusal]:
+                   registry: Mapping[str, Substrate],
+                   landed: Optional[Mapping[str, _dt.date]] = None) -> list[Refusal]:
     """Every leg, across a whole batch. Leg 4 lives here because it is a batch property.
 
     Returns the per-contract refusals in `contracts` iteration order, then the writer WARNs.
@@ -765,7 +789,9 @@ def validate_batch(contracts: Mapping[str, str], *,
     checkouts: dict[str, list[str]] = {}
 
     for source, text in contracts.items():
-        out.extend(validate_contract(text, source=source, registry=registry))
+        out.extend(validate_contract(
+            text, source=source, registry=registry,
+            landed=landed.get(source) if landed else None))
         name = declared_substrate(text)
         substrate = registry.get(name) if name else None
         if substrate is None or not substrate.live or substrate.family != "local":

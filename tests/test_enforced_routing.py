@@ -87,7 +87,7 @@ def test_a_contract_carrying_no_kind_line_is_reported_by_the_freeze_gate():
 
 # --- 2. clause 1, leg RESOLVE: an inert tier is refused AT FREEZE -------------------------
 
-@pytest.mark.parametrize("shape", ["local", "cloud", "codespace"])
+@pytest.mark.parametrize("shape", ["local", "codespace"])
 def test_opusplan_is_REFUSED_at_freeze_on_every_unattended_shape(shape):
     refusals = glc.routing_refusals(model="opusplan", kind="code", shape=shape)
     assert refusals, shape

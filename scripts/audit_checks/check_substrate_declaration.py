@@ -291,7 +291,7 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
     post_launch: list[str] = []
     closed = None
     expired = _today() > POST_LAUNCH_NARROWING_EXPIRES
-    for refusal in _vsub.validate_batch(gated, registry=registry):
+    for refusal in _vsub.validate_batch(gated, registry=registry, landed=landed_at):
         leg_arm = LEG_ARM_DATES.get(refusal.rule)
         if leg_arm is not None:
             # A multi-source refusal (leg 6 names a PAIR) is grandfathered when EITHER side
