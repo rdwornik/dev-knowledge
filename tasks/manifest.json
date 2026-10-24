@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "98f81866bc50faa4a7718080df5502382b737477350a58be3199fbc5583e6b1a",
+  "generated_sha256": "5ec94aca71d36ac9313323e3ada40b8204caacd7385b705135ea2f0e11c71bdb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3074,10 +3074,6 @@
     {
       "task": 1524,
       "file": "1524-lane-bw-893-b2w3-carry-has-no-consumer.md"
-    },
-    {
-      "task": 1525,
-      "file": "1525-lane-bw-912-known-reds-expiry-has-no-consumer.md"
     },
     {
       "task": 1718,

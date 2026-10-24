@@ -1,7 +1,8 @@
 """CI de-duplication contract (R168/R169), pinned as data derived from the workflow YAML.
 
-R168: a push to `main` must not start an unconditional workflow run that duplicates the judged
-conductor run; the nightly schedule is the backstop for an unjudged direct push. R169: the
+R168 as amended by DECIDED-BY-OPERATOR 2026-10-24: a push to `main` starts exactly ONE
+unconditional run (conductor), which reuses the green verdict of the same sha when CI already judged it.
+The nightly schedule is the backstop for an unjudged direct push. R169: the
 removed `ship-gate` job must leave no dangling reference -- not in `needs`, not in a
 required-check context, not in an artifact name. R169 as narrowed: `commit-gate` stays (advisory,
 `continue-on-error`, needed only by `gate`) because it is the only CI leg running graph
@@ -90,8 +91,9 @@ def test_conductor_has_no_ship_gate_job_but_keeps_an_advisory_commit_gate():
 
 def test_a_push_to_main_starts_no_unconditional_workflow_run():
     runs = push_runs("main")
-    # OLD number was 2: conductor + report-only-wall.
-    assert runs["unconditional"] == []
+    # R168 as amended by DECIDED-BY-OPERATOR 2026-10-24: exactly ONE unconditional run (conductor),
+    # which reuses the green verdict of the same sha when CI already judged it.
+    assert runs["unconditional"] == ["conductor.yml"]
     # Fires only on provisioning paths; out of scope here.
     assert runs["path_filtered"] == ["substrate-heartbeat.yml"]
 
