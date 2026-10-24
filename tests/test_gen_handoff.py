@@ -2528,6 +2528,231 @@ def test_preflight_notes_land_in_the_receipt_when_given(tmp_path):
 
 def test_refusal_count_is_none_without_a_readable_log(tmp_path):
     assert gh._refusal_count_since_previous_cut(None) is None
+
+
+# --- L12 acceptance: prose-free output, the instruction-only boot, and the P1 diagram ----------------
+
+def _l12_dry_bundle(tmp_path, monkeypatch, *, slug="2026-10-24-l12", **kwargs):
+    repo = _stub_repo(tmp_path)
+    transport = tmp_path / "l12-transport"
+    (transport / "to-browser").mkdir(parents=True)
+    (transport / "to-cc").mkdir()
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    return gh.generate(
+        repo, mode="architect", slug=slug, repo=".dev-knowledge",
+        date="2026-10-24", bundle_root=tmp_path / "l12-dry",
+        assemble=False, dry_cut=True, transport=transport, **kwargs,
+    )
+
+
+def test_narrative_findings_flags_only_unstructured_long_sentences():
+    text = "\n".join([
+        "This is a deliberately long narrative sentence with enough separate words to cross the threshold and end clearly.",
+        "| This table row also has enough separate words to cross the threshold and end with punctuation.",
+        "# This heading has enough separate words to cross the threshold and end clearly.",
+        "- This list item has enough separate words to cross the threshold and end clearly.",
+        "> This quoted line has enough separate words to cross the threshold and end clearly.",
+        "```text",
+        "This code line has enough separate words to cross the threshold and end clearly.",
+        "```",
+        "<!-- This comment line has enough separate words to cross the threshold and end clearly.",
+        "A second commented line has enough separate words to cross the threshold and end clearly. -->",
+        "<!-- FILL-IN:purpose START -->",
+        "This fill-in line has enough separate words to cross the threshold and end clearly.",
+        "<!-- FILL-IN:purpose END -->",
+    ])
+    assert gh.narrative_findings(text) == [text.splitlines()[0]]
+
+
+def test_dry_generated_boot_and_receipt_are_prose_free_and_l12_notes_stay_in_receipt(
+    tmp_path, monkeypatch
+):
+    import json
+
+    res = _l12_dry_bundle(tmp_path, monkeypatch)
+    bundle = res.bundle_dir
+    boot = (bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    receipt_text = (bundle / gh.RECEIPT_FILE).read_text(encoding="utf-8")
+    data = boot[boot.find(gh.BOOT_DATA_BEGIN):boot.find(gh.BOOT_DATA_END)]
+    assert gh.narrative_findings(data) == []
+    assert gh.narrative_findings(receipt_text) == []
+
+    receipt = json.loads(receipt_text)
+    assert "preflight_notes" in receipt
+    rows = gh.preflight_rows(
+        bundle.parents[1] / "repo", transport=bundle.parents[1] / "l12-transport",
+        today="2026-10-24", bundle_dir=bundle, trial_cut=True,
+    )
+    l12_names = {
+        "fill_ins_filled", "seat_ids_both", "supplement_matches_transport",
+        "landed_vs_ratified", "operator_decisions_list", "digest_owed_present",
+    }
+    notes = "\n".join(receipt["preflight_notes"])
+    for row in rows:
+        if row.name in l12_names:
+            assert row.detail not in boot
+            assert row.detail in notes
+
+
+def test_volatile_boot_claims_are_removed_and_models_remains_generated_data():
+    from pathlib import Path
+
+    protocol = (_REPO / "protocols" / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    template = (
+        _REPO / "templates" / "handoff" / "v5" / "HANDOFF_BOOT.md.tmpl"
+    ).read_text(encoding="utf-8")
+    forbidden = (
+        "no file access", "file-less", "conductor e", "code decides what runs next",
+        "opus plans and judges", "copilot produces code", "pending `[#1536]`",
+    )
+    for source in (protocol, template):
+        lowered = source.casefold()
+        for phrase in forbidden:
+            assert phrase.casefold() not in lowered, phrase
+        assert not re.search(r"(?m)^-\s+\*\*Models\*\*", source)
+
+    front = re.match(r"\A---\s*\n(.*?)\n---", protocol, re.DOTALL)
+    assert front is not None
+    assert re.search(r"(?m)^boot_version:\s*3\s*$", front.group(1))
+    assert re.search(r"(?m)^last_reviewed:\s*2026-10-24\s*$", front.group(1))
+    assert Path(_REPO / "protocols" / "HANDOFF_BOOT.md").is_file()
+
+    rows = gh.boot_data_rows(_REPO, state_rows=[])
+    assert "Models" in [name for name, _value in rows]
+
+
+def _operating_protocol_section():
+    text = (_REPO / "protocols" / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    match = re.search(
+        r"(?ims)^#{1,6}[^\n]*Operating protocol[^\n]*\n(.*?)(?=^#{1,6}\s|\Z)",
+        text,
+    )
+    assert match is not None, "missing Operating protocol instruction section"
+    return match.group(1)
+
+
+def test_operating_protocol_carries_the_required_seat_instructions():
+    body = _operating_protocol_section()
+    lowered = body.casefold()
+    for tag in ("[w]", "[m]", "[i]"):
+        assert tag in lowered
+    assert "every repo claim" in lowered
+    assert all(term in lowered for term in ("map", "index", "finding", "before asking"))
+    behaviours = {
+        "READ": ("index", "transport.py query"),
+        "TRANSPORT": ("k12",),
+        "DISPATCH": ("by role",),
+        "CHALLENGE": ("never decide",),
+        "PROPOSE": ("the model",),
+    }
+    lines = body.splitlines()
+    for behaviour, phrases in behaviours.items():
+        line = next((line for line in lines if behaviour in line.upper()), "")
+        assert line, f"missing {behaviour} instruction"
+        assert all(phrase.casefold() in line.casefold() for phrase in phrases), line
+    for act in ("idea", "ratify", "GO", "destructive act", "seat release"):
+        assert act.casefold() in lowered
+
+
+def test_operating_protocol_has_no_volatile_locator_or_environment_claims():
+    body = _operating_protocol_section()
+    assert not re.search(r"\w+\.\w+:\d+", body)
+    assert not re.search(r"\b\d{2,}\b", body)
+    assert not re.search(r"\b(?:CI\s+(?:GREEN|RED|PASS|FAIL)|verdict)\b", body, re.I)
+    assert not re.search(r"claude-|gpt-|batch ", body, re.I)
+
+
+def test_diagram_numbers_count_the_binding_shapes(monkeypatch):
+    import gen_process_diagrams as diagrams
+
+    monkeypatch.setattr(diagrams, "load_binding", lambda: {
+        "states": [
+            {"id": "a", "zone": "X", "today_glue": True, "hole": "h"},
+            {"id": "b", "zone": "X", "today_glue": False},
+            {"id": "c", "zone": "Y", "today_glue": True},
+        ]
+    })
+    assert gh.diagram_numbers() == {
+        "states": 3, "holes": 1, "glue": 2, "zones": 2,
+    }
+
+
+def test_diagram_numbers_match_an_independent_parse_of_the_real_binding():
+    import yaml
+    import gen_process_diagrams as diagrams
+
+    raw = yaml.safe_load(
+        (_REPO / "ecosystem" / "process-binding.yaml").read_text(encoding="utf-8")
+    )
+    states = raw["states"]
+    if isinstance(states, dict):
+        states = list(states.values())
+    expected = {
+        "states": len(states),
+        "holes": sum("hole" in state for state in states),
+        "glue": sum(bool(state.get("today_glue")) for state in states),
+        "zones": len({state.get("zone") for state in states}),
+    }
+    assert gh.diagram_numbers() == expected
+    assert diagrams.load_binding()
+
+
+def test_diagram_block_and_row_have_the_contract_labels():
+    import gen_process_diagrams as diagrams
+
+    block = gh.diagram_block()
+    assert block.startswith("P1 dispatch only — the handoff process is not yet bound")
+    assert "```mermaid\n" + diagrams.render_mermaid() + "\n```" in block
+    assert "MAP-HARNESS-AS-IS-r3" in block
+    assert "MAP-HARNESS-TO-BE-r3" in block
+    assert "hand-built, verified 2026-10-23" in block
+    states, holes, glue, zones = (gh.diagram_numbers()[key]
+                                   for key in ("states", "holes", "glue", "zones"))
+    assert gh.diagram_row() == (
+        "Diagram", f"{states} states · {holes} holes · {glue} glue · {zones} zones"
+    )
+
+
+def test_diagram_row_is_between_identity_and_state_rows_and_none_is_unchanged():
+    without = gh.boot_data_rows(
+        _REPO, state_rows=[("Fixture state", "fixture")]
+    )
+    with_diagram = gh.boot_data_rows(
+        _REPO, state_rows=[("Fixture state", "fixture")],
+        diagram_row=("Diagram", "3 states · 1 holes · 2 glue · 2 zones"),
+    )
+    names = [name for name, _value in with_diagram]
+    state_index = names.index("Fixture state")
+    assert with_diagram[:state_index] == without[:state_index]
+    assert with_diagram[state_index] == ("Diagram", "3 states · 1 holes · 2 glue · 2 zones")
+    assert with_diagram[state_index + 1:] == without[state_index:]
+    assert gh.boot_data_rows(
+        _REPO, state_rows=[("Fixture state", "fixture")], diagram_row=None
+    ) == without
+
+
+def test_generated_bundle_attaches_only_the_p1_diagram_artifact(tmp_path, monkeypatch):
+    res = _l12_dry_bundle(tmp_path, monkeypatch)
+    expected = gh.diagram_block() + "\nNumbers: " + ": ".join(gh.diagram_row()) + "\n"
+    diagram_file = res.bundle_dir / "DIAGRAM.md"
+    assert diagram_file.is_file()
+    assert diagram_file.read_text(encoding="utf-8") == expected
+    assert [path.name for path in res.bundle_dir.glob("DIAGRAM*")] == ["DIAGRAM.md"]
+
+
+def test_diagram_boot_data_is_emitted_only_when_the_verifier_has_a_rule(
+    tmp_path, monkeypatch
+):
+    original = vhp.BOOT_DATA_RULES
+    without_rule = _l12_dry_bundle(tmp_path / "without", monkeypatch, slug="without-rule")
+    boot_without = (without_rule.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "**Diagram**" not in boot_without
+
+    monkeypatch.setattr(vhp, "BOOT_DATA_RULES", {**original, "Diagram": object()})
+    with_rule = _l12_dry_bundle(tmp_path / "with", monkeypatch, slug="with-rule")
+    boot_with = (with_rule.bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "**Diagram**" in boot_with
     assert gh._refusal_count_since_previous_cut(tmp_path / "no-transport-here") is None
 
 

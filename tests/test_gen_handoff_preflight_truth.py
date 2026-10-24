@@ -455,3 +455,96 @@ def test_truth_rows_do_not_change_between_trial_and_real_cut(tmp_path, _quiet_hu
     assert tuple(name for name in _NEW_ROWS if name in normal) == _NEW_ROWS
     assert trial == normal
     assert set(normal.values()) == {gh.PREFLIGHT_FAIL}
+
+
+def _role_pin_fixture(tmp_path, *, model="claude-opus-4.8", paste_sha=None,
+                      project_boot=None):
+    repo = tmp_path / "role-pin-repo"
+    boot = b"---\nboot_version: 3\n---\n# Handoff boot\n"
+    (repo / "protocols").mkdir(parents=True)
+    (repo / "ecosystem").mkdir()
+    (repo / "protocols" / "HANDOFF_BOOT.md").write_bytes(boot)
+    (repo / "ecosystem" / "provider-registry.yaml").write_text(
+        "roles:\n  architect:\n    order:\n      - model: claude-opus-4.8\n",
+        encoding="utf-8",
+    )
+    bundle = tmp_path / "role-pin-bundle"
+    bundle.mkdir()
+    seat = "SEAT-BOOT-Tech-Architect-46.md"
+    (bundle / seat).write_text(
+        f"<!-- role pin | model: {model} | seat: Tech-Architect-46 -->\n",
+        encoding="utf-8",
+    )
+    repo_sha = hashlib.sha256(boot).hexdigest()
+    (bundle / "PASTE_THIS.md").write_text(
+        f"ROLE PIN — HANDOFF_BOOT.md @ handoff-process v3\n"
+        f"sha256: {paste_sha if paste_sha is not None else repo_sha}\n",
+        encoding="utf-8",
+    )
+    transport = tmp_path / "role-pin-transport"
+    transport.mkdir()
+    (transport / "HANDOFF_BOOT.md").write_bytes(
+        boot if project_boot is None else project_boot
+    )
+    return repo, transport, bundle, seat, repo_sha
+
+
+def test_role_pin_row_accepts_registered_models_and_fresh_copies(tmp_path):
+    repo, transport, bundle, seat, repo_sha = _role_pin_fixture(tmp_path)
+    row = gh._row_role_pin_current(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_PASS, row.render()
+    assert seat in row.detail
+    assert repo_sha[:8] in row.detail
+
+
+def test_role_pin_row_rejects_an_unregistered_model_token(tmp_path):
+    repo, transport, bundle, seat, _repo_sha = _role_pin_fixture(
+        tmp_path, model="unregistered-model"
+    )
+    row = gh._row_role_pin_current(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+    assert seat in row.detail
+    assert "unregistered-model" in row.detail
+
+
+def test_role_pin_row_rejects_a_stale_boot_sha(tmp_path):
+    repo, transport, bundle, _seat, repo_sha = _role_pin_fixture(
+        tmp_path, paste_sha="0" * 64
+    )
+    row = gh._row_role_pin_current(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+    assert "0" * 64 in row.detail
+    assert repo_sha in row.detail
+
+
+def test_role_pin_row_rejects_a_stale_project_copy_by_version_and_sha(tmp_path):
+    project_boot = b"---\nboot_version: 2\n---\n# Old Project copy\n"
+    repo, transport, bundle, _seat, repo_sha = _role_pin_fixture(
+        tmp_path, project_boot=project_boot
+    )
+    project_sha = hashlib.sha256(project_boot).hexdigest()
+    row = gh._row_role_pin_current(repo, transport, bundle)
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+    assert "stale Project copy" in row.detail
+    assert "3" in row.detail and "2" in row.detail
+    assert repo_sha in row.detail
+    assert project_sha in row.detail
+
+
+def test_role_pin_row_is_not_applicable_without_a_bundle(tmp_path):
+    repo = tmp_path / "repo"
+    row = gh._row_role_pin_current(repo, tmp_path / "transport", None)
+    assert row.status == gh.PREFLIGHT_NA, row.render()
+    assert row.detail.startswith("SUBJECT-ABSENT")
+
+
+def test_preflight_rows_include_role_pin_current(tmp_path, _quiet_hub):
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    rows = gh.preflight_rows(
+        repo, transport=transport, today=_TODAY, bundle_dir=bundle
+    )
+    assert gh.PREFLIGHT_ROW_NAMES[-1] == "role_pin_current"
+    assert [row.name for row in rows][-1] == "role_pin_current"
