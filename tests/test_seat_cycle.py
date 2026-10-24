@@ -22,6 +22,7 @@ import seat_cycle as sc
 REPO = Path(__file__).resolve().parent.parent
 REAL_REGISTRY = REPO / "ecosystem" / "provider-registry.yaml"
 JOB = "abcd1234"
+SERVED = provider_registry.anthropic_role_model("seat-dispatcher")
 CONFIG = {
     "threshold": {
         "orchestrator": {"context_tokens": 1000, "max_age_hours": 6.0},
@@ -76,7 +77,7 @@ def _bound_writer(order, handover_holder):
     def wait_bound(handover, job_id):
         order.append("wait_bound")
         handover_holder.append(handover)
-        return sc.write_bound(handover, job_id=job_id, served_model="claude-sonnet-5-5", seat="seat-o-1", cycle=1)
+        return sc.write_bound(handover, job_id=job_id, served_model=SERVED, seat="seat-o-1", cycle=1)
     return wait_bound
 
 
@@ -126,11 +127,12 @@ def test_wait_bound_failure_never_stops(tmp_path):
 
 def test_model_follows_role_table(tmp_path, monkeypatch):
     data = yaml.safe_load(REAL_REGISTRY.read_text(encoding="utf-8"))
-    data["roles"]["seat-orchestrator"]["order"][0]["model"] = "claude-opus-5-5"
+    data["roles"]["seat-dispatcher"]["order"][0]["model"] = "claude-opus-5-5"
     tmp_reg = tmp_path / "registry.yaml"
     tmp_reg.write_text(yaml.safe_dump(data), encoding="utf-8")
     assert sc.successor_model("orchestrator", registry=tmp_reg) == "claude-opus-5-5"
-    assert sc.successor_model("orchestrator", registry=REAL_REGISTRY) == "claude-sonnet-5-5"
+    assert sc.successor_model("orchestrator", registry=REAL_REGISTRY) == \
+        provider_registry.anthropic_role_model("seat-dispatcher")
 
     real = provider_registry.anthropic_role_model
     h = _handover(tmp_path)
@@ -142,7 +144,7 @@ def test_model_follows_role_table(tmp_path, monkeypatch):
     monkeypatch.setattr(provider_registry, "anthropic_role_model", real)
     sc.launch_successor(h, role="orchestrator", slug="s1", batch="E2.0", base="main", repo_root=tmp_path,
                         successor_lane=_lane(calls))
-    assert calls[-1].model == "claude-sonnet-5-5"
+    assert calls[-1].model == SERVED
 
 
 def test_launch_refuses_model_override_and_ignores_handover_text(tmp_path):
@@ -222,10 +224,9 @@ def test_await_bound_and_write_bound(tmp_path):
         polls.append(s)
         clock.sleep(s)
         if len(polls) == 3:
-            sc.write_bound(h, job_id=JOB, served_model="claude-sonnet-5-5", seat="seat-o-1", cycle=1)
-
+            sc.write_bound(h, job_id=JOB, served_model=SERVED, seat="seat-o-1", cycle=1)
     line = sc.await_bound(h, job_id=JOB, timeout=60, sleep=sleep, clock=clock)
-    assert line == "BOUND seat=seat-o-1 cycle=1 job=abcd1234 model=claude-sonnet-5-5" and len(polls) == 3
+    assert line == f"BOUND seat=seat-o-1 cycle=1 job=abcd1234 model={SERVED}" and len(polls) == 3
     added = h.read_text(encoding="utf-8")[len(before):]
     assert added.strip() == line and added.count("BOUND") == 1
     with pytest.raises(sc.SeatCycleRefused):
