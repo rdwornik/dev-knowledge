@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "966dc83ecc2ada55334905c2eb5ba04f9e4d2bf26a671655778032e519ba438a",
+  "generated_sha256": "b7b1f14836efcd6b87802aea8620d297287bcef26b652fbeccde7e53ffb91643",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3730,6 +3730,10 @@
     {
       "task": 1721,
       "file": "1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md"
+    },
+    {
+      "task": 1727,
+      "file": "1727-the-dispatcher-template-says-queue-leaves-no-receipt-and-lacks-the-wake-mechanism.md"
     },
     {
       "prose": ""
