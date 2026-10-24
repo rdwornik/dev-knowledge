@@ -642,9 +642,9 @@ roles:
           one. MOVED from `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the operator's explicit
           admission, B5: "Opus 5.5 admitted for orchestrate/plan, by explicit model id."
           2026-10-23: `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool
-          (value 0.30, i.e. 30%, per the 2026-10-24 operator ruling) per
-          `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing of
-          2026-10-23.
+          per `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing of
+          2026-10-23 (that routing named no value). 2026-10-24: the operator named the value,
+          0.30 (30%), reviewed at batch close with quota_watch data.
         admission:
           verdict: admitted
           decided_by: operator
@@ -671,10 +671,10 @@ roles:
         note: >-
           Opus only (AX21-1), same clause and same reason as orchestrate. MOVED from
           `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the same B5 admission. 2026-10-23:
-          `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool (value
-          0.30, i.e. 30%, per the 2026-10-24 operator ruling) per
+          `no_fallback: true` and a `reserved_share` of the weekly Anthropic Opus pool per
           `to-browser/RATIFICATION-2026-10-23.md` D2/D9 and the operator model routing of
-          2026-10-23.
+          2026-10-23 (that routing named no value). 2026-10-24: the operator named the value,
+          0.30 (30%), reviewed at batch close with quota_watch data.
         admission:
           verdict: admitted
           decided_by: operator
