@@ -146,15 +146,23 @@ jobs:
       - name: Reuse the same-sha green verdict (push to main only)
         id: reuse
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        env:
+          PLAN_OS: ${{ steps.plan.outputs.os }}
         run: |
-          n=$(gh run list --workflow conductor.yml --commit "${{ github.sha }}" --limit 50 \
+          ids=$(gh run list --workflow conductor.yml --commit "${{ github.sha }}" --limit 50 \
             --json databaseId,headBranch,status,conclusion \
-            --jq '[.[] | select(.status == "completed" and .conclusion == "success" and .databaseId != ${{ github.run_id }} and .headBranch != "main")] | length')
-          if [ "${n:-0}" -gt 0 ]; then
-            echo "reuse=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "reuse=false" >> "$GITHUB_OUTPUT"
-          fi
+            --jq '.[] | select(.status == "completed" and .conclusion == "success" and .databaseId != ${{ github.run_id }} and .headBranch != "main") | .databaseId')
+          reuse=false
+          for rid in $ids; do
+            case "${PLAN_OS:-}" in
+              *windows-latest*)
+                # this push needs the Windows leg: only a run whose own Windows job passed judged it
+                w=$(gh run view "$rid" --json jobs --jq '.jobs[] | select(.name == "pytest (windows-latest)") | .conclusion')
+                [ "$w" = "success" ] || continue ;;
+            esac
+            reuse=true; break
+          done
+          echo "reuse=$reuse" >> "$GITHUB_OUTPUT"
 
   pytest:
     # LANE-5B4-3 (L1, D1): the OS matrix. `fail-fast: false` so a red on one leg never cancels
