@@ -561,7 +561,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             # the batch-close row passes no --seat-state: read the batch's own STATE files instead
             # ([#1636] cycles / max context / compactions must reach the digest through that row)
             batch_id = args.batch or args.lane or os.environ.get("HARNESS_BATCH")
-            for found in sorted((repo / "to-browser").glob("STATE-*.json")):
+            ss = _sibling("seat_state")
+            # the checkout's to-browser/ always; the transport's (what the seat templates mean by
+            # `to-browser/`) only for a NAMED batch, so an unscoped digest never sweeps in other batches
+            folders = [repo / "to-browser"] if not batch_id else ss.state_folders(repo)
+            for found in sorted(f for d in folders for f in d.glob("STATE-*.json")):
                 try:
                     st = _sibling("seat_state").load_counters(found)
                 except Exception:  # noqa: BLE001 -- an unreadable seat file says nothing

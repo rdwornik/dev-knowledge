@@ -508,26 +508,27 @@ def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
     crossed = threshold_crossed(role, tokens=tokens, age_hours=age_hours,
                                 config=config if config is not None else load_config())
     slug = re.sub(r"[^a-z0-9]+", "-", str(bound.get("batch") or "").lower()).strip("-")
-    folder = root / "to-browser"
+    import seat_state
+    state_name = f"STATE-{slug}{suffix}.json"
+    folder = next((f for f in seat_state.state_folders(root) if (f / state_name).is_file()), None)
     line = None
     if crossed:
         line = (f"CROSSED seat={session} role={role} tokens={tokens} age_hours={age_hours:.2f} "
                 f"ts={moment.isoformat(timespec='seconds')}")
-    import seat_state
-    state_path = folder / f"STATE-{slug}{suffix}.json"
-    if not state_path.is_file():
+    if folder is None:
         # no state file -> nothing to record into, and no receipt line either (never fabricated)
         return "CROSSED" if crossed else "OK"
-    seat_state.update_counters(state_path, max_context=tokens,
+    seat_state.update_counters(folder / state_name, max_context=tokens,
                                compactions=compactions, crossed_line=line)
     if line:
         receipt = folder / f"SESSION-{bound['role']}-{slug}.md"
-        # one CROSSED per seat session: the receipt's `seat=<id>` line is the dedupe key
-        seen = receipt.read_text(encoding="utf-8", errors="replace") if receipt.exists() else ""
-        if f"CROSSED seat={session} " not in seen:
-            folder.mkdir(parents=True, exist_ok=True)
-            with receipt.open("a", encoding="utf-8", newline="\n") as fh:
-                fh.write(("" if not seen or seen.endswith("\n") else "\n") + line + "\n")
+        # one CROSSED per seat session: the receipt's `seat=<id>` line is the dedupe key; the
+        # check and the append are ONE locked step so two Stop processes cannot both append
+        with seat_state.locked(receipt):
+            seen = receipt.read_text(encoding="utf-8", errors="replace") if receipt.exists() else ""
+            if f"CROSSED seat={session} " not in seen:
+                with receipt.open("a", encoding="utf-8", newline="\n") as fh:
+                    fh.write(("" if not seen or seen.endswith("\n") else "\n") + line + "\n")
     return "CROSSED" if crossed else "OK"
 
 

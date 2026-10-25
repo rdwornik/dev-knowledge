@@ -220,11 +220,23 @@ def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Map
                          crossed=list(crossed))
 
 
+def state_folders(repo_root: Path) -> list[Path]:
+    """Where seat state files live: the checkout's `to-browser/` and the transport's
+    (`$CLAUDE_PROMPTS_DIR/to-browser`, which is what the seat templates' `to-browser/` names).
+    Existing folders only, de-duplicated by where they resolve."""
+    out: list[Path] = []
+    prompts = os.environ.get("CLAUDE_PROMPTS_DIR", "").strip()
+    for cand in (Path(repo_root) / "to-browser", Path(prompts) / "to-browser" if prompts else None):
+        if cand is not None and cand.is_dir() and all(cand.resolve() != o.resolve() for o in out):
+            out.append(cand)
+    return out
+
+
 LOCK_TIMEOUT_S = 2.0   # a Stop hook must not stall a turn ending on a stale lock file
 
 
 @contextlib.contextmanager
-def _locked(path: Path):
+def locked(path: Path):
     """The read-merge-write of a state file as ONE step: `transport.py`'s per-destination
     `O_EXCL` lock (library-first -- the idiom this repo already has), so the hook's counter update
     and a by-hand `write_state` never interleave and lose one another's fields."""
@@ -246,7 +258,7 @@ def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapp
     one, which is the module's own defence against manufacturing the torn file `read_state`
     exists to refuse."""
     path = Path(path)
-    with _locked(path):
+    with locked(path):
         kept = _read_counters(path)           # a by-hand rewrite must not erase the hook's bookkeeping
         state = build_state(role=role, batch=batch, base_sha=base_sha, lanes=lanes,
                             written_by=written_by, now=now,
@@ -312,7 +324,7 @@ def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
     path = Path(path)
     if not path.is_file():
         return False                       # never fabricate a state (or its folder)
-    with _locked(path):
+    with locked(path):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
