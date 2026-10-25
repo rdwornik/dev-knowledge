@@ -153,6 +153,8 @@ class SeatStateFile:
     max_context: int = 0
     compactions: int = 0
     crossed: list[str] = field(default_factory=list)
+    #: compactions seen per seat session; `compactions` is their SUM, so a successor's do not mask a predecessor's
+    compaction_sessions: dict[str, int] = field(default_factory=dict)
 
     def in_flight(self) -> list[str]:
         """The lanes a fresh session still has to act on -- `QUEUED` or `IN-FLIGHT` -- sorted so
@@ -169,7 +171,8 @@ class SeatStateFile:
                 "written_by": self.written_by,
                 "lanes": {lane: row.to_dict() for lane, row in self.lanes.items()},
                 "cycles": self.cycles, "max_context": self.max_context,
-                "compactions": self.compactions, "crossed": list(self.crossed)}
+                "compactions": self.compactions, "crossed": list(self.crossed),
+                "compaction_sessions": dict(self.compaction_sessions)}
 
 
 def _now() -> str:
@@ -204,7 +207,8 @@ def _validate_lane(lane: str, row: object) -> LaneRow:
 def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Mapping],
                 written_by: str = "", now: Optional[str] = None, cycles: int = 0,
                 max_context: int = 0, compactions: int = 0,
-                crossed: Sequence[str] = ()) -> SeatStateFile:
+                crossed: Sequence[str] = (),
+                compaction_sessions: Optional[Mapping[str, int]] = None) -> SeatStateFile:
     """Validate inputs and assemble a `SeatStateFile`, without touching disk. Split out of
     `write_state` so a caller (and a test) can build one in memory."""
     if role not in ROLES:
@@ -217,19 +221,46 @@ def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Map
     return SeatStateFile(role=role, batch=str(batch).upper(), base_sha=base_sha,
                          written_ts=now or _now(), written_by=written_by, lanes=validated,
                          cycles=cycles, max_context=max_context, compactions=compactions,
-                         crossed=list(crossed))
+                         crossed=list(crossed),
+                         compaction_sessions=dict(compaction_sessions or {}))
+
+
+def _primary_checkout(root: Path) -> Optional[Path]:
+    """The primary checkout of a linked worktree (its `.git` is a `gitdir: <primary>/.git/worktrees/x` file)."""
+    marker = Path(root) / ".git"
+    if not marker.is_file():
+        return None
+    try:
+        gitdir = marker.read_text(encoding="utf-8").split("gitdir:", 1)[1].strip()
+    except (OSError, IndexError):
+        return None
+    for parent in Path(gitdir).parents:
+        if parent.name == ".git":
+            return parent.parent
+    return None
 
 
 def state_folders(repo_root: Path) -> list[Path]:
-    """Where seat state files live: the checkout's `to-browser/` and the transport's
-    (`$CLAUDE_PROMPTS_DIR/to-browser`, which is what the seat templates' `to-browser/` names).
-    Existing folders only, de-duplicated by where they resolve."""
+    """Where seat state files live, in PRECEDENCE order: the transport's (`$CLAUDE_PROMPTS_DIR/to-browser`,
+    which is what the seat templates' `to-browser/` names), then the checkout's, then -- for a linked
+    worktree -- the primary checkout's. Existing folders only, de-duplicated by where they resolve."""
     out: list[Path] = []
     prompts = os.environ.get("CLAUDE_PROMPTS_DIR", "").strip()
-    for cand in (Path(repo_root) / "to-browser", Path(prompts) / "to-browser" if prompts else None):
+    primary = _primary_checkout(repo_root)
+    for cand in (Path(prompts) / "to-browser" if prompts else None, Path(repo_root) / "to-browser",
+                 primary / "to-browser" if primary else None):
         if cand is not None and cand.is_dir() and all(cand.resolve() != o.resolve() for o in out):
             out.append(cand)
     return out
+
+
+def is_state_file(path: Path) -> bool:
+    """True when `path` parses as this module's schema (the precondition of any counter update)."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(data, dict) and data.get("schema") == SCHEMA
 
 
 LOCK_TIMEOUT_S = 2.0   # a Stop hook must not stall a turn ending on a stale lock file
@@ -265,7 +296,8 @@ def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapp
                             cycles=kept["cycles"] if cycles is None else cycles,
                             max_context=kept["max_context"] if max_context is None else max_context,
                             compactions=kept["compactions"] if compactions is None else compactions,
-                            crossed=kept["crossed"] if crossed is None else crossed)
+                            crossed=kept["crossed"] if crossed is None else crossed,
+                            compaction_sessions=kept["compaction_sessions"])
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
         try:
@@ -281,7 +313,8 @@ def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapp
 def _read_counters(path: Path) -> dict:
     """The cycle fields of an existing file, tolerant: unreadable, torn or old -> zeros. Staleness is
     deliberately not checked -- these are history, not a belief about what is open."""
-    out: dict = {"cycles": 0, "max_context": 0, "compactions": 0, "crossed": []}
+    out: dict = {"cycles": 0, "max_context": 0, "compactions": 0, "crossed": [],
+                 "compaction_sessions": {}}
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -291,6 +324,12 @@ def _read_counters(path: Path) -> dict:
     for key in ("cycles", "max_context", "compactions"):
         try:
             out[key] = int(data.get(key) or 0)
+        except (TypeError, ValueError):
+            pass
+    per_session = data.get("compaction_sessions")
+    if isinstance(per_session, Mapping):
+        try:
+            out["compaction_sessions"] = {str(k): int(v) for k, v in per_session.items()}
         except (TypeError, ValueError):
             pass
     crossed = data.get("crossed")
@@ -316,7 +355,7 @@ def load_counters(path: Path) -> SeatStateFile:
 
 
 def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
-                    crossed_line: Optional[str] = None) -> bool:
+                    crossed_line: Optional[str] = None, session: Optional[str] = None) -> bool:
     """The Stop hook's write ([#1636]): raise `max_context`/`compactions` to the observed values and,
     given a CROSSED line not yet recorded, append it and bump `cycles`. Touches ONLY the cycle
     fields of an EXISTING file (never fabricates a state, never moves `written_ts`, the staleness
@@ -334,7 +373,13 @@ def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
         kept = _read_counters(path)
         new = dict(kept)
         new["max_context"] = max(kept["max_context"], int(max_context))
-        new["compactions"] = max(kept["compactions"], int(compactions))
+        if session:       # per-session maxima, summed: a successor session's compactions ADD
+            per = dict(kept["compaction_sessions"])
+            per[session] = max(per.get(session, 0), int(compactions))
+            new["compaction_sessions"] = per
+            new["compactions"] = sum(per.values())
+        else:
+            new["compactions"] = max(kept["compactions"], int(compactions))
         # one CROSSED per seat session: the line's `seat=<id>` prefix is the dedupe key (tokens/age vary)
         key = " ".join(crossed_line.split()[:2]) + " " if crossed_line else None
         if crossed_line and not any(x.startswith(key) for x in kept["crossed"]):

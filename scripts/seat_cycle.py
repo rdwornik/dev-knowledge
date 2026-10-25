@@ -437,30 +437,27 @@ _STOP_ROLES = {"dispatcher": ("orchestrator", "-dispatcher"), "integrator": ("in
 
 
 def transcript_stats(transcript: Path) -> tuple[int, int]:
-    """(context tokens, compaction count) from ONE read of the transcript."""
+    """(context tokens, compaction count) from ONE streamed pass over the transcript (never held whole)."""
+    tokens, compactions = 0, 0
     try:
-        lines = Path(transcript).read_text(encoding="utf-8", errors="replace").splitlines()
+        with Path(transcript).open(encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if '"isCompactSummary"' in line:
+                    try:
+                        if json.loads(line).get("isCompactSummary") is True:
+                            compactions += 1
+                    except (json.JSONDecodeError, AttributeError):
+                        pass
+                if '"usage"' in line:
+                    try:
+                        usage = (json.loads(line).get("message") or {}).get("usage")
+                    except (json.JSONDecodeError, AttributeError):
+                        continue
+                    if isinstance(usage, dict):       # the LAST record carrying usage wins
+                        tokens = sum(int(usage.get(k) or 0) for k in
+                                     ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
     except OSError:
         return 0, 0
-    tokens, compactions = 0, 0
-    for line in lines:
-        if '"isCompactSummary"' in line:
-            try:
-                if json.loads(line).get("isCompactSummary") is True:
-                    compactions += 1
-            except (json.JSONDecodeError, AttributeError):
-                pass
-    for line in reversed(lines):
-        if '"usage"' not in line:
-            continue
-        try:
-            usage = (json.loads(line).get("message") or {}).get("usage")
-        except (json.JSONDecodeError, AttributeError):
-            continue
-        if isinstance(usage, dict):
-            tokens = sum(int(usage.get(k) or 0) for k in
-                         ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
-            break
     return tokens, compactions
 
 
@@ -518,9 +515,9 @@ def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
     if folder is None:
         # no state file -> nothing to record into, and no receipt line either (never fabricated)
         return "CROSSED" if crossed else "OK"
-    seat_state.update_counters(folder / state_name, max_context=tokens,
-                               compactions=compactions, crossed_line=line)
-    if line:
+    seat_state.update_counters(folder / state_name, max_context=tokens, compactions=compactions,
+                               crossed_line=line, session=session)
+    if line and seat_state.is_state_file(folder / state_name):
         receipt = folder / f"SESSION-{bound['role']}-{slug}.md"
         # one CROSSED per seat session: the receipt's `seat=<id>` line is the dedupe key; the
         # check and the append are ONE locked step so two Stop processes cannot both append

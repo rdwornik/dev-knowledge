@@ -565,12 +565,15 @@ def main(argv: Optional[list[str]] = None) -> int:
             # the checkout's to-browser/ always; the transport's (what the seat templates mean by
             # `to-browser/`) only for a NAMED batch, so an unscoped digest never sweeps in other batches
             folders = [repo / "to-browser"] if not batch_id else ss.state_folders(repo)
+            seen_seats: set = set()       # state_folders is in precedence order: the first copy of a seat wins
             for found in sorted(f for d in folders for f in d.glob("STATE-*.json")):
                 try:
                     st = _sibling("seat_state").load_counters(found)
                 except Exception:  # noqa: BLE001 -- an unreadable seat file says nothing
                     continue
-                if not batch_id or st.batch.upper() == str(batch_id).upper():
+                if (not batch_id or st.batch.upper() == str(batch_id).upper()) \
+                        and (st.role, st.batch) not in seen_seats:
+                    seen_seats.add((st.role, st.batch))
                     seat_states.append(st)
         for raw in seat_files:
             try:
