@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-25  
-**Generated:** 2026-10-25T14:32:52  
+**Generated:** 2026-10-25T20:44:31  
 **Repos audited:** 6  
 **Checks:** 933 total — 159 pass, 13 fail, 565 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-hr1r2j54\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-p8r4hl8h\wt`  
 **Last audit:** 2026-10-25
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 3d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-22, newest input BACKLOG.md committed 2026-10-25 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-25, newest input docs/audits committed 2026-10-25 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 11 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 9 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | WARN | 1 git stash entry(ies) present: stash@{0}: On worktree-l12-acceptance: l12-acceptance reaped copilot partial 2026-10-24 - the stash lives in the COMMON git dir, so it survives worktree teardown and every refuse-to-finish item; pop or drop it, or say why it stays |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -108,10 +108,10 @@
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 50b49b8 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9d00fdf appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 049da20 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 5e19949 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 401d55c appears outside an explicit 'Anchors:' record line (+1195 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: 7d70f71 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: abecec4 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 50b49b8 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9d00fdf appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 049da20 appears outside an explicit 'Anchors:' record line (+1197 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 1 kill-candidates assertion(s) name a non-open row: [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 277 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 5a369f6d worktree-cloud-remove-tail-3, 8744113e worktree-template-wake-fix, 8b744ede worktree-l12-acceptance, f246bced worktree-land-lane-receipt-anchor, 2e7d3608 worktree-landing-class (+272 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 280 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 45654729 worktree-ci-one-verdict-2, d590a42f worktree-seat-cycle-fix, 525d0455 worktree-known-reds-extend, 5a369f6d worktree-cloud-remove-tail-3, 8744113e worktree-template-wake-fix (+275 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
