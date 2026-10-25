@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "73b42885f641506bacf818507b64f4bb5f3fbebbbb543cf5f9bcb9a9929cfa31",
+  "generated_sha256": "87957cf0df02e0f545c9507e7e94020ba7a6692df2e5d0568ec5a1d3dfd089c3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3666,10 +3666,6 @@
     {
       "task": 1696,
       "file": "1696-census-eight-deferred-minor-findings.md"
-    },
-    {
-      "task": 1697,
-      "file": "1697-substrate-registry-cloud-entry-contradicts-r132.md"
     },
     {
       "task": 1698,
