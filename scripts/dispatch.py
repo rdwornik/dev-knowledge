@@ -1418,11 +1418,23 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
     """The launch receipt (one per slug) and the job-to-lane record (one per job). `extra` adds fields
     to the receipt only -- the `repair` verb passes `kind` and `attempt` (item 2b)."""
     when = _stamp()
-    _write_json(_receipt_path(request.slug), {
+    receipt = {
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
         "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON,
-        **{k: v for k, v in asdict(result).items()}, **(extra or {})})
+        **{k: v for k, v in asdict(result).items()}, **(extra or {})}
+    if (extra or {}).get("kind") == "repair":
+        # A repair rewrites the slug receipt: keep every earlier launch in `launches` so the first
+        # launch's job and kind survive, and leave a copy where the gate's default lookup for the
+        # lane's own worktree reads it.
+        prior = read_launch_receipt(request.slug) or {}
+        history = list(prior.get("launches") or [])
+        if prior and not history:
+            history = [{**prior, "kind": prior.get("kind", "launch")}]
+        receipt["launches"] = history
+        if result.worktree:
+            _write_json(Path(result.worktree) / "logs" / "receipts" / _receipt_path(request.slug).name, receipt)
+    _write_json(_receipt_path(request.slug), receipt)
     if result.job_id == "unresolved":
         return          # one file per job id, and there is none to name
     _write_json(_job_path(result.job_id), {

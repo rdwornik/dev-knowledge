@@ -7,7 +7,6 @@ the lane worktree's `logs/receipts` that the gate's default lookup reads.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
