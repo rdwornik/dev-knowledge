@@ -641,8 +641,10 @@ _DATE_LINE_RE = re.compile(r"(?m)^date:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$")
 
 
 def contract_date(text: str) -> Optional[_dt.date]:
-    """The contract's own flush-left `date: YYYY-MM-DD` line, or None."""
-    m = _DATE_LINE_RE.search(text)
+    """The contract's own flush-left `date: YYYY-MM-DD` line in its HEADER block (the lines
+    before the first blank line), or None. A `date:` line further down is body text -- a fenced
+    example, a quoted record -- and never dates the contract."""
+    m = _DATE_LINE_RE.search(re.split(r"\n[ \t]*\n", text, maxsplit=1)[0])
     if m is None:
         return None
     try:

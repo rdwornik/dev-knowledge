@@ -273,6 +273,15 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"placed against the {ARM_DATE.isoformat()} cutoff — it is "
                                f"reported rather than assumed grandfathered"))
             continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            text = None            # reported below when the contract is gated; grandfathered ones need no read
+        own = _vsub.contract_date(text) if text is not None else None
+        if own is not None and own >= ARM_DATE:
+            # The contract's OWN date outranks a pre-arm directory: a contract written after the
+            # arm date cannot hide in an old directory.
+            landed = own
         if landed < ARM_DATE:
             grandfathered += 1
             continue
