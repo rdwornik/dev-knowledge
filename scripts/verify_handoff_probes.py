@@ -1551,6 +1551,26 @@ def _transport_for(ctx: _BootCtx):
     return _gh.transport_root()
 
 
+def _substrates_as_sealed(row, ctx):
+    """The live Substrates row with every substrate retired AFTER the bundle's seal date
+    (`validate_substrate.RETIRED_SUBSTRATES`) re-added: live count and total +1 each, name in
+    sorted position. `ctx.cut_date` None or >= the retirement date leaves the row unchanged."""
+    if ctx.cut_date is None or ctx.cut_sha is None:
+        return row
+    import validate_substrate as _vs  # noqa: PLC0415
+    m = re.fullmatch(r"(\d+)/(\d+) live: (.*)", row.value)
+    if m is None:
+        return row
+    live = [] if m.group(3) == "none" else m.group(3).split(", ")
+    added = [name for name, retired_on in _vs.RETIRED_SUBSTRATES.items()
+             if ctx.cut_date < retired_on.isoformat() and name not in live]
+    if not added:
+        return row
+    live = sorted(live + added)
+    value = f"{int(m.group(1)) + len(added)}/{int(m.group(2)) + len(added)} live: {', '.join(live)}"
+    return type(row)(row.key, value, row.freshness, row.evidence)
+
+
 _STATE_ROW_FNS = {
     # [#1330]: CI/Rulings/Capabilities anchor to the bundle's OWN cut point (ctx.cut_sha /
     # ctx.cut_date, both None for an uncommitted bundle -- live-state teeth, unchanged).
@@ -1559,7 +1579,7 @@ _STATE_ROW_FNS = {
     "CI": lambda hs, ctx: hs.row_ci(ctx.repo_root, at_sha=ctx.cut_sha),
     "Batches": lambda hs, ctx: hs.row_batches(ctx.repo_root),
     "Seats": lambda hs, ctx: hs.row_seats(),
-    "Substrates": lambda hs, ctx: hs.row_substrates(ctx.repo_root),
+    "Substrates": lambda hs, ctx: _substrates_as_sealed(hs.row_substrates(ctx.repo_root), ctx),
     "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
     "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date,
                                               repo_root=ctx.repo_root),

@@ -227,8 +227,8 @@ BACKGROUND_PERMISSION_MODE = "bypassPermissions"
 #: The dispatch shapes that launch through `claude --bg`.
 #:
 #: HONEST LIMIT, stated because it bounds every green verdict below: only Ch8 row 1 ("LOCAL
-#: background lane") is modelled here. `cloud` and `codespace` reach their substrates through
-#: their own transports, which this reader does not open, and `interactive` is attended by
+#: background lane") is modelled here. `codespace` reaches its substrate through
+#: its own transport, which this reader does not open, and `interactive` is attended by
 #: definition. A contract on one of those shapes is resolved WITHOUT the background legs -- not
 #: because they are known safe there, but because this organ has not measured them.
 BACKGROUND_SHAPES: tuple[str, ...] = ("local",)
@@ -345,7 +345,7 @@ def resolve_launch(*, model: str, mode: str, effort: str, shape: str, slug: str)
                             f"a miss is refused, never rounded to a neighbour")
     if shape not in glc.SHAPE_ENUM:
         refusals.append(f"dispatch shape {shape!r} is outside the enum "
-                        f"{{{' | '.join(glc.SHAPE_ENUM)}}} -- rounding `remote` to `cloud`, or "
+                        f"{{{' | '.join(glc.SHAPE_ENUM)}}} -- rounding `remote` to a removed shape such as `cloud` (CL-1), or "
                         f"`worktree` to `local`, would emit a CONFIDENTLY WRONG command, which is "
                         f"strictly worse than emitting none")
     # A MODE THIS TABLE DOES NOT SPELL IS A REFUSAL, not a default. `MODE_ENUM` can gain a member

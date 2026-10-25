@@ -918,3 +918,26 @@ def test_a_schedule_run_and_a_push_run_of_one_ref_fall_in_different_concurrency_
     assert (_render_group(template, _ctx("push", "refs/heads/a"))
             != _render_group(template, _ctx("push", "refs/heads/b")))
     assert concurrency["cancel-in-progress"] is True
+
+
+# CL-1 RED
+
+def test_cl1_dispatch_surface_refuses_cloud_resolution():
+    sys.path.insert(0, str(_REPO / "scripts"))
+    import dispatch_surface as ds
+
+    launch = ds.resolve_launch(model="opus", mode="execute", effort="high",
+                               shape="cloud", slug="lane-a-101-cloud")
+    assert not launch.ok
+    assert not launch.flags
+
+
+def test_cl1_conductor_does_not_list_cloud_dispatch_verbs(cond):
+    verbs = ("Dispatch-Cloud", "Dispatch-CloudV2", "Dispatch-CloudBrief")
+    organ_descriptions = [description for _, description, _ in cond.SECTION_5_ORGANS]
+    for verb in verbs:
+        assert not any(verb in description.split(" / ") for description in organ_descriptions)
+
+
+def test_cl1_adr72_cloud_routine_decision_remains_present():
+    assert list((_REPO / "docs" / "decisions").glob("ADR-72*.md"))

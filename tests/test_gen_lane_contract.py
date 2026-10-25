@@ -88,11 +88,6 @@ def local_contract() -> str:
 
 
 @pytest.fixture()
-def cloud_contract() -> str:
-    return glc.render_contract(_spec(shape="cloud"))
-
-
-@pytest.fixture()
 def interactive_contract() -> str:
     return glc.render_contract(_spec(shape="interactive"))
 
@@ -103,11 +98,6 @@ def test_an_emitted_local_contract_parses_with_no_problems(local_contract):
     parsed = glc.parse_contract(local_contract, expect_shape="local")
     assert parsed.problems == (), parsed.problems
     assert parsed.ok
-
-
-def test_an_emitted_cloud_contract_parses_with_no_problems(cloud_contract):
-    parsed = glc.parse_contract(cloud_contract, expect_shape="cloud")
-    assert parsed.problems == (), parsed.problems
 
 
 def test_the_parser_recovers_the_slug_branch_and_file_the_emitter_wrote(local_contract):
@@ -223,25 +213,10 @@ def test_the_decision_budget_carries_all_three_ask_classes(local_contract):
         assert ask_class in local_contract
 
 
-def test_a_cloud_lane_carries_both_receipt_fields_and_a_local_lane_carries_neither(
-        cloud_contract, local_contract):
-    for field_name in glc.RECEIPT_FIELDS:
-        assert field_name in cloud_contract
-        assert field_name not in local_contract
-    assert f"## {glc.CLOUD_SECTION}" in cloud_contract
-    assert f"## {glc.CLOUD_SECTION}" not in local_contract
-
-
 def test_a_missing_mandatory_section_is_reported_by_name(local_contract):
     mangled = local_contract.replace("## Decision budget", "## Budget of decisions", 1)
     problems = glc.parse_contract(mangled).problems
     assert any("Decision budget" in p for p in problems), problems
-
-
-def test_a_cloud_lane_missing_a_receipt_field_is_reported(cloud_contract):
-    mangled = cloud_contract.replace(glc.RECEIPT_FIELDS[1], "something-else", 1)
-    problems = glc.parse_contract(mangled, expect_shape="cloud").problems
-    assert any(glc.RECEIPT_FIELDS[1] in p for p in problems), problems
 
 
 def test_a_doubled_prefix_in_the_pairing_line_is_reported(local_contract):
@@ -490,29 +465,20 @@ def test_a_generated_contract_without_its_command_line_fails(local_contract):
 
 
 @pytest.mark.parametrize("shape, present, absent", [
-    ("local", "claude --bg --model ", ("Dispatch-CloudV2", "and execute it exactly")),
-    ("cloud", "Dispatch-CloudV2 ", ("claude --bg --model ", "and execute it exactly")),
-    ("interactive", "and execute it exactly", ("claude --bg --model ", "Dispatch-CloudV2")),
+    ("local", "claude --bg --model ", ("Dispatch-Codespace", "and execute it exactly")),
+    ("codespace", "Dispatch-Codespace ", ("claude --bg --model ", "and execute it exactly")),
+    ("interactive", "and execute it exactly", ("claude --bg --model ", "Dispatch-Codespace")),
 ])
 def test_the_command_shape_is_selected_from_the_declared_shape(shape, present, absent):
     """All three shapes, not just the local one (Done-item 3).
 
     The `absent` half is the load-bearing one: it is what would have caught the pre-lane
-    defect, where a cloud contract carried `Dispatch-Lane`.
+    defect, where an off-machine contract carried `Dispatch-Lane`.
     """
     text = glc.render_contract(_spec(shape=shape))
     assert present in text
     for wrong in absent:
         assert wrong not in text, f"{shape} contract carries the {wrong!r} form"
-
-
-def test_a_cloud_contract_carries_the_cloud_command_and_never_the_local_one(cloud_contract):
-    """The exact pre-lane defect, pinned as its own regression."""
-    match = glc._CLOUD_DISPATCH_LINE_RE.search(cloud_contract)
-    assert match is not None
-    assert match.group("file") == "LANE-a-539-ch8-codification.md"
-    assert match.group("slug") == "lane-a-539-ch8-codification"
-    assert glc._DISPATCH_LINE_RE.search(cloud_contract) is None
 
 
 def test_an_interactive_contract_carries_the_read_and_execute_first_message(
@@ -534,10 +500,10 @@ def test_the_declared_shape_line_is_emitted_and_recovered(shape):
 
 
 @pytest.mark.parametrize("declared, wrong_command", [
-    ("cloud", "Dispatch-Lane lane-a-539-ch8-codification "
-              "LANE-a-539-ch8-codification.md -Effort high"),
-    ("interactive", "Dispatch-CloudV2 LANE-a-539-ch8-codification.md "
-                    "-Title 'lane-a-539-ch8-codification'"),
+    ("codespace", "Dispatch-Lane lane-a-539-ch8-codification "
+                  "LANE-a-539-ch8-codification.md -Effort high"),
+    ("interactive", "Dispatch-Codespace -Contract LANE-a-539-ch8-codification.md "
+                    "-Slug lane-a-539-ch8-codification"),
 ])
 def test_a_command_that_disagrees_with_the_declared_shape_is_refused(declared, wrong_command):
     """A hand-edited contract cannot keep a shape label while carrying another's command."""
@@ -550,11 +516,11 @@ def test_a_command_that_disagrees_with_the_declared_shape_is_refused(declared, w
 
 
 def test_an_expect_shape_mismatch_is_reported(local_contract):
-    problems = glc.parse_contract(local_contract, expect_shape="cloud").problems
-    assert any("cloud" in p for p in problems), problems
+    problems = glc.parse_contract(local_contract, expect_shape="codespace").problems
+    assert any("codespace" in p for p in problems), problems
 
 
-@pytest.mark.parametrize("bad", ["", "  ", "Local", "worktree", "remote", "batch"])
+@pytest.mark.parametrize("bad", ["", "  ", "Local", "worktree", "remote", "batch", "cloud"])
 def test_an_off_enum_shape_is_refused(bad):
     with pytest.raises(glc.LaneContractError) as exc:
         glc.validate_shape(bad)
@@ -566,42 +532,29 @@ def test_every_shape_enum_member_is_accepted(good):
     assert glc.validate_shape(good) == good
 
 
-def test_the_shape_enum_is_exactly_the_four_ch8_names():
+def test_the_shape_enum_is_exactly_the_three_ch8_names():
     """The enum is CLOSED and this test is the closing.
 
-    It was three names until 2026-08-31, when `codespace` entered by ruling (R-ENUM). Widened
-    here rather than deleted, because the property under test is not the arity: it is that a
-    shape enters this enum only by a recorded ruling and never by a lane, a generator or an
-    integrator. This assertion is what makes a silent fourth member impossible, and the same
-    assertion is what makes the fourth one traceable to the act that admitted it.
+    `codespace` entered by ruling on 2026-08-31 (R-ENUM) and `cloud` left it with CL-1 (R112):
+    a shape enters or leaves this enum only by a recorded ruling, never by a lane, a generator
+    or an integrator.
     """
-    assert glc.SHAPE_ENUM == ("local", "cloud", "interactive", "codespace")
+    assert glc.SHAPE_ENUM == ("local", "interactive", "codespace")
     assert glc.DEFAULT_SHAPE == "local"
+    assert "cloud" in glc.REMOVED_SHAPES and "CL-1" in glc.REMOVED_SHAPES["cloud"]
 
 
 def test_the_branch_derivation_follows_the_shape():
-    """Ch8 puts a cloud lane on `claude/<slug>`, not on `worktree-<slug>`.
-
-    The pre-lane generator emitted the worktree branch for every shape, so a cloud contract
-    declared a branch its own transport would never create.
-    """
+    """The branch is a function of the declared shape; a removed shape derives nothing."""
     assert glc.branch_name("lane-a-539-x", "local") == "worktree-lane-a-539-x"
-    assert glc.branch_name("lane-a-539-x", "cloud") == "claude/lane-a-539-x"
+    with pytest.raises(glc.LaneContractError):
+        glc.branch_name("lane-a-539-x", "cloud")
     assert glc.branch_name("lane-a-539-x", "interactive") is None
-    # R-ENUM leg 3: OFF-MACHINE is not the same axis as CLOUD. A codespace lane commits and
-    # pushes like a local one, so it keeps `worktree-`; reading "off-machine" as "claude/"
-    # here would have emitted a branch nothing creates, which is the cloud defect in mirror.
+    # R-ENUM leg 3: a codespace lane commits and pushes like a local one, so it keeps `worktree-`.
     assert glc.branch_name("lane-a-539-x", "codespace") == "worktree-lane-a-539-x"
     # The one-argument form is unchanged — the local default, so every existing caller and
     # the batch-6 doubled-prefix regression keep their meaning.
     assert glc.branch_name("lane-a-539-x") == "worktree-lane-a-539-x"
-
-
-def test_a_cloud_contract_pairs_its_slug_with_the_claude_branch(cloud_contract):
-    match = glc._PAIRING_RE.search(cloud_contract)
-    assert match is not None
-    assert match.group("branch") == "claude/lane-a-539-ch8-codification"
-    assert "worktree-" not in match.group("branch")
 
 
 def test_an_interactive_contract_pairs_slug_to_contract_with_no_branch(interactive_contract):
@@ -615,22 +568,22 @@ def test_an_interactive_contract_pairs_slug_to_contract_with_no_branch(interacti
 
 
 def test_only_a_local_contract_states_an_effort_on_its_command_line():
-    """`Dispatch-CloudV2` has no `-Effort` parameter, so demanding one would be wrong.
+    """Neither `Dispatch-Codespace` nor the interactive message has an `-Effort` parameter.
 
     The tier is still on the record for every shape — the routing row carries it — which is
     why this asserts the SOURCE moves rather than that the requirement disappears.
     """
     assert glc.parse_contract(glc.render_contract(_spec())).effort == "high"
-    for shape in ("cloud", "interactive"):
+    for shape in ("codespace", "interactive"):
         parsed = glc.parse_contract(glc.render_contract(_spec(shape=shape)))
         assert parsed.effort is None
         assert parsed.problems == ()
         assert "| opus | execute | high |" in glc.render_contract(_spec(shape=shape))
 
 
-def test_the_receipt_gate_rides_the_cloud_shape_and_nothing_else(interactive_contract):
+def test_the_receipt_gate_rides_the_off_machine_shape_and_nothing_else(interactive_contract):
     assert f"## {glc.CLOUD_SECTION}" not in interactive_contract
-    for field_name in glc.RECEIPT_FIELDS:
+    for field_name in glc.ALL_RECEIPT_FIELDS:
         assert field_name not in interactive_contract
 
 
@@ -659,11 +612,11 @@ def test_the_emit_log_line_names_the_command_for_the_shape_it_wrote(tmp_path, ca
     """The operator reads this line off the terminal — it is a dispatch surface too."""
     with caplog.at_level("INFO", logger="gen-lane-contract"):
         result = CliRunner().invoke(glc.cli, [
-            "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "cloud",
+            "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "codespace",
             "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     logged = " ".join(r.getMessage() for r in caplog.records)
-    assert "Dispatch-CloudV2" in logged
+    assert "Dispatch-Codespace" in logged
     assert "Dispatch-Lane" not in logged
 
 
@@ -728,7 +681,6 @@ def test_a_codespace_contract_carries_the_dispatch_codespace_verb(codespace_cont
     one handed none, because a wrong command looks authoritative."""
     assert "Dispatch-Codespace -Contract " in codespace_contract
     assert glc._DISPATCH_LINE_RE.search(codespace_contract) is None
-    assert glc._CLOUD_DISPATCH_LINE_RE.search(codespace_contract) is None
     assert glc.find_command_line(codespace_contract).startswith("Dispatch-Codespace")
 
 
@@ -771,8 +723,8 @@ def test_a_codespace_dispatch_line_carrying_a_model_outside_the_enum_is_REPORTED
 
 def test_a_codespace_lane_pairs_a_worktree_branch_not_a_claude_one(codespace_contract):
     """Leg 3 — the pairing rule. A codespace lane COMMITS like a local lane, merely
-    elsewhere, so it runs on `worktree-<slug>`; `claude/` is the cloud transport's prefix and
-    nothing in a codespace creates it."""
+    elsewhere, so it runs on `worktree-<slug>`; `claude/` is a branch nothing in a
+    codespace creates."""
     assert glc.branch_name("lane-a-539-ch8-codification", "codespace") == (
         "worktree-lane-a-539-ch8-codification")
     parsed = glc.parse_contract(codespace_contract, expect_shape="codespace")
@@ -790,13 +742,11 @@ def test_a_codespace_contract_with_a_claude_prefixed_pairing_is_reported(codespa
 def test_a_codespace_lane_carries_a_receipt_gate_with_its_own_fields(codespace_contract):
     """The receipt gate is an OFF-MACHINE rule, not a cloud-only one — Ch8's row 4 states it
     for this substrate in its own words (`receipt.json` is pulled back out, and `Ok` and
-    `RemoteExitCode` are read separately). Its FIELDS differ from cloud's, because the traps
-    differ: a codespace receipt can carry `subtype: "success"` with `is_error: true`."""
+    `RemoteExitCode` are read separately). Its traps are its own: a codespace receipt can
+    carry `subtype: "success"` with `is_error: true`."""
     assert f"## {glc.CLOUD_SECTION}" in codespace_contract
     for field_name in glc.RECEIPT_FIELDS_BY_SHAPE["codespace"]:
         assert field_name in codespace_contract
-    for cloud_field in glc.RECEIPT_FIELDS:
-        assert cloud_field not in codespace_contract
 
 
 def test_a_codespace_lane_missing_a_receipt_field_is_reported(codespace_contract):
@@ -814,7 +764,7 @@ def test_a_codespace_contract_that_dropped_its_receipt_gate_is_reported(codespac
 
 def test_the_receipt_shapes_are_exactly_the_off_machine_ones():
     """Stated as a set so a fourth shape cannot be added without deciding this question."""
-    assert set(glc.RECEIPT_SHAPES) == {"cloud", "codespace"}
+    assert set(glc.RECEIPT_SHAPES) == {"codespace"}
     assert set(glc.RECEIPT_FIELDS_BY_SHAPE) == set(glc.RECEIPT_SHAPES)
 
 
@@ -1416,7 +1366,7 @@ def test_opusplan_is_an_admitted_model_tier_end_to_end():
     messages on `claude-sonnet-5`, because a split tier needs plan mode and every unattended
     dispatch carries `--permission-mode bypassPermissions`, which never enters one. So the tier
     is admitted where a seat can plan (`interactive` -- AX22-3's integrator seat, untouched) and
-    REFUSED AT FREEZE where nobody can (`local`, `cloud`, `codespace`).
+    REFUSED AT FREEZE where nobody can (`local`, `codespace`).
 
     The test is amended rather than deleted, and the distinction is the point: the ruling that
     put `opusplan` in the enum is not overturned, it is SCOPED by a measurement of the same
@@ -1728,9 +1678,9 @@ def test_the_local_launch_line_runs_dispatch_py_launch():
     assert not _WIN_TOOLING.search(line), line
 
 
-@pytest.mark.parametrize("shape", ["cloud", "codespace", "interactive"])
+@pytest.mark.parametrize("shape", ["codespace", "interactive"])
 def test_a_shape_that_dispatch_py_does_not_launch_yet_has_no_launch_line(shape):
-    """Cloud and Codespace are the next wave (their emits stay as they are); interactive has no
+    """Codespace is the next wave (its emit stays as it is); interactive has no
     launcher at all. A launch line for them would be a claim the tree does not make true."""
     assert glc.launch_command("LANE-x.md", shape) is None
 
@@ -2020,3 +1970,24 @@ def test_matching_is_by_kind_not_by_substring_of_the_whole_record():
     missing = glc.missing_required_tools(
         ("skill:why", "flag:--json-schema", "skill:ship", "tool:Read"), calls)
     assert missing == ("skill:why", "flag:--json-schema", "tool:Read")
+
+
+# CL-1 RED
+
+def test_cl1_emit_refuses_cloud_without_writing_contract(tmp_path):
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-a-101-cloud", "--purpose", "test refusal",
+        "--shape", "cloud", "--out-dir", str(tmp_path),
+    ])
+    assert result.exit_code != 0, result.output
+    assert "CL-1" in result.output
+    assert not list(tmp_path.glob("LANE-*.md"))
+
+
+# CL-1 RED (review finding)
+
+def test_cl1_parse_refuses_a_retired_dispatch_cloudv2_line(local_contract):
+    contract = local_contract + "\nDispatch-CloudV2 LANE-a-539-test.md -Title 'lane-a-539-test'\n"
+    parsed = glc.parse_contract(contract, expect_shape="local")
+    assert not parsed.ok, parsed.problems
+    assert any("CL-1" in problem for problem in parsed.problems), parsed.problems

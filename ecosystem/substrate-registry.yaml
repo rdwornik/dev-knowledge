@@ -59,20 +59,6 @@ substrates:
     shared_checkout: true
     branch_prefix: null
 
-  cloud:
-    family: cloud
-    verbs: [Dispatch-Cloud]
-    aliases: [Dispatch-CloudV2, Dispatch-CloudBrief]
-    live: true
-    # Ch8 Layer-1 Q1, measured: "NOT cloud -- measured: no hook armed there, unpinned `uv`,
-    # no `click`." Intake #45 records the same fact: no cloud lane's commits passed a gate.
-    admits_gate_dependent_work: false
-    # Ch8: "a cloud session clones from origin and cannot see unpushed branches or local
-    # files. That is a physical limit of the transport."
-    operator_disk: false
-    shared_checkout: false
-    branch_prefix: claude/
-
   codespace:
     family: codespace
     verbs: [Dispatch-Codespace]

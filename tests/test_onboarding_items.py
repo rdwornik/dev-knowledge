@@ -720,9 +720,9 @@ def test_the_reading_path_starts_with_the_inbox_query_not_the_bare_index():
 def test_each_substrate_has_exactly_one_non_wrapping_start_line():
     names = re.findall(r"(?m)^  ([a-z][a-z_]*):\s*$",
                        _SUBSTRATE_REGISTRY.read_text(encoding="utf-8"))
-    assert {"local", "interactive", "cloud", "codespace"} <= set(names), names
+    assert {"local", "interactive", "codespace"} <= set(names), names
     lines = _boot_text().split("\n")
-    wants = {"cloud": "no start verb; read-only work only", "codespace": "codespace-exec",
+    wants = {"codespace": "codespace-exec",
              "local": "dispatch.py launch", "interactive": "claude"}
     problems = []
     for name in names:
