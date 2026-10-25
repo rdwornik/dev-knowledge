@@ -334,3 +334,77 @@ def test_batch_close_digest_reads_state_files_on_the_transport(tmp_path, monkeyp
                   "--costs-file", str(tmp_path / "none.jsonl")])
     out = capsys.readouterr().out
     assert rc == 0 and "cycles 3" in out and "max context 300001" in out
+
+
+# --- repair 2, third round --------------------------------------------------------------------------
+
+def test_transport_state_file_wins_over_a_stale_checkout_copy(tmp_path, monkeypatch):
+    prompts = tmp_path / "prompts"
+    (prompts / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    live = _state(prompts, "integrator")
+    stale = _state(tmp_path / "checkout", "integrator")
+    reg = tmp_path / "registry.jsonl"
+    _bind(reg, "integrator")
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1",
+               "transcript_path": str(_transcript(tmp_path / "t.jsonl", 5000))}
+    sc.stop_check(payload, registry_path=reg, repo_root=tmp_path / "checkout", config=CONFIG, now=NOW)
+    assert json.loads(live.read_text(encoding="utf-8"))["cycles"] == 1
+    assert json.loads(stale.read_text(encoding="utf-8"))["cycles"] == 0
+
+
+def test_a_linked_worktree_finds_the_primary_checkouts_state(tmp_path):
+    primary = tmp_path / "primary"
+    (primary / ".git" / "worktrees" / "wt").mkdir(parents=True)
+    wt = tmp_path / "wt"
+    wt.mkdir()
+    (wt / ".git").write_text(f"gitdir: {(primary / '.git' / 'worktrees' / 'wt').as_posix()}\n", encoding="utf-8")
+    path = _state(primary, "integrator")
+    reg = tmp_path / "registry.jsonl"
+    _bind(reg, "integrator")
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1", "cwd": str(wt),
+               "transcript_path": str(_transcript(tmp_path / "t.jsonl", 5000))}
+    assert sc.stop_check(payload, registry_path=reg, config=CONFIG, now=NOW) == "CROSSED"
+    assert json.loads(path.read_text(encoding="utf-8"))["cycles"] == 1
+
+
+def test_compactions_add_up_across_successor_sessions(tmp_path):
+    path = _state(tmp_path)
+    assert ss.update_counters(path, compactions=1, session="s-1")
+    assert ss.update_counters(path, compactions=1, session="s-2")
+    assert ss.update_counters(path, compactions=1, session="s-2") is False      # same session: a max, not a sum
+    assert json.loads(path.read_text(encoding="utf-8"))["compactions"] == 2
+    ss.write_state(path, role="integrator", batch="B9", base_sha="abc", lanes={})   # a by-hand rewrite keeps it
+    assert json.loads(path.read_text(encoding="utf-8"))["compactions"] == 2
+    assert ss.update_counters(path, compactions=2, session="s-2")
+    assert json.loads(path.read_text(encoding="utf-8"))["compactions"] == 3
+
+
+def test_digest_lists_one_row_per_seat_batch(tmp_path, monkeypatch, capsys):
+    prompts = tmp_path / "prompts"
+    (prompts / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    for root, n in ((prompts, 5), (tmp_path, 1)):
+        ss.write_state(root / "to-browser" / "STATE-b9.json", role="integrator", batch="B9",
+                       base_sha="abc", lanes={}, cycles=n)
+    ld.main(["--lane", "B9", "--repo", str(tmp_path), "--receipts-dir", str(tmp_path / "r"),
+             "--costs-file", str(tmp_path / "none.jsonl")])
+    out = capsys.readouterr().out
+    assert out.count("integrator B9: cycles") == 1 and "cycles 5" in out
+
+
+def test_receipt_is_not_written_when_the_state_update_cannot_apply(tmp_path):
+    path = _state(tmp_path)
+    path.write_text("{ not json", encoding="utf-8")          # torn after the existence check would pass
+    assert _run(tmp_path, "integrator", 5000) == "CROSSED"
+    assert not (tmp_path / "to-browser" / "SESSION-integrator-b9.md").exists()
+
+
+def test_transcript_is_streamed_not_read_whole(tmp_path, monkeypatch):
+    t = _transcript(tmp_path / "t.jsonl", 4321, compactions=2)
+
+    def boom(self, *a, **k):
+        raise AssertionError("read_text on the transcript")
+
+    monkeypatch.setattr(Path, "read_text", boom)
+    assert sc.transcript_stats(t) == (4321, 2)
