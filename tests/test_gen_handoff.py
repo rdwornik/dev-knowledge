@@ -645,12 +645,16 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
 
     [#1443] adds `--reading-path`, `--dispatch-map` and `--write` (the boot's reading-path
     resolver and the dispatch-map generator are flags of this script, not a new one) -- three
-    new members, none lost or renamed."""
+    new members, none lost or renamed.
+
+    [#1640] (l12-acceptance) adds `--intake` and `--plan` (the one read-only intake and its plan
+    file are flags of this script) -- two new members, none lost or renamed."""
     expected_flags = {
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
         "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
         "--boot-dispatch", "--restamp-manifest", "--reading-path", "--dispatch-map", "--write",
+        "--intake", "--plan",
     }
     actual_flags: set[str] = set()
     for p in gh.main.params:
