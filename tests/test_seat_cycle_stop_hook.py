@@ -126,10 +126,13 @@ def test_hook_never_blocks_or_continues(tmp_path):
     """Black box: the Stop hook prints nothing on stdout (no decision/additionalContext), exit 0."""
     reg_home = tmp_path / "home"
     (reg_home / ".claude").mkdir(parents=True)
-    _state(tmp_path)
+    # a batch name no real transport holds: the child reads the User-scope $CLAUDE_PROMPTS_DIR first
+    state_path = tmp_path / "to-browser" / "STATE-zzhook.json"
+    ss.write_state(state_path, role="integrator", batch="ZZHOOK", base_sha="abc123",
+                   lanes={"l1": {"state": "QUEUED", "evidence": {"session_file": "to-browser/S.md"}}})
     transcript = _transcript(tmp_path / "t.jsonl", 999999)   # over the real 300000 threshold
     reg = reg_home / ".claude" / "seat-registry.jsonl"
-    _bind(reg, "integrator")
+    sr.bind("integrator", "ZZHOOK", session_id="sess-1", path=reg, now=NOW - timedelta(hours=0.1))
     env = {**os.environ, "HOME": str(reg_home), "USERPROFILE": str(reg_home),
            "SEAT_CYCLE_REPO_ROOT": str(tmp_path)}
     env.pop("CLAUDE_CODE_SESSION_ATTENDED", None)   # the unrelated hygiene nudge stays silent
@@ -140,7 +143,7 @@ def test_hook_never_blocks_or_continues(tmp_path):
                           cwd=str(tmp_path), timeout=15)
     assert done.returncode == 0, done.stderr
     assert done.stdout.strip() == ""
-    state = json.loads((tmp_path / "to-browser" / "STATE-b9.json").read_text(encoding="utf-8"))
+    state = json.loads(state_path.read_text(encoding="utf-8"))
     assert state["cycles"] == 1, done.stderr          # ... and yet the CROSSED was recorded
 
 
