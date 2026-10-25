@@ -110,10 +110,21 @@ def threshold_crossed(role: str, *, tokens: float, age_hours: float, config: dic
     return tokens >= limits["context_tokens"] or age_hours >= limits["max_age_hours"]
 
 
+# D9 puts the orchestrator SEAT on the seat-dispatcher row; seat-orchestrator is the lane-head row.
+_ROLE_ROWS = {"orchestrator": "seat-dispatcher", "integrator": "seat-integrator"}
+
+
 def successor_model(role: str, registry: Optional[Path] = None) -> str:
+    row = _ROLE_ROWS.get(role)
+    if row is None:
+        raise SeatCycleRefused(f"no registry row for role {role!r}; known roles: {sorted(_ROLE_ROWS)}")
     reg = _registry()
-    return reg.anthropic_role_model(f"seat-{role}", registry) if registry else \
-        reg.anthropic_role_model(f"seat-{role}")
+    return reg.anthropic_role_model(row, registry) if registry else reg.anthropic_role_model(row)
+
+
+def successor_name(role: str, batch: str, cycle_no: int) -> str:
+    batch_slug = re.sub(r"[^a-z0-9]+", "-", batch.lower()).strip("-")
+    return f"{role}-{batch_slug}-cycle-{cycle_no + 1}"
 
 
 def _effort(role: str, config: dict[str, Any]) -> Optional[str]:
@@ -398,7 +409,7 @@ def cycle(seat: str, *, role: str, transcript: Path, bound_age_hours: float, con
                                               interval=poll["interval_seconds"]))
     wait_bound = wait_bound or (lambda h, j: await_bound(h, job_id=j, timeout=wait["timeout_seconds"],
                                                          interval=wait["interval_seconds"]))
-    slug = f"{seat}-c{cycle_no + 1}"
+    slug = successor_name(role, batch, cycle_no)
     handover = write_handover(Path(handover_dir) / f"HANDOVER-{seat}-cycle-{cycle_no}.md", seat=seat,
                               role=role, cycle=cycle_no, state=state, next_steps=next_steps,
                               open_decisions=open_decisions, live_children=live_children,
