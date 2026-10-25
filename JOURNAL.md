@@ -21,6 +21,30 @@
 
 ---
 
+### 2026-10-25 (o) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane l12-acceptance (`[#1640]`, H-Q1..H-Q6) -- the R6 handoff design lands: `handoff_intake.py` and `gen_handoff.py --intake --plan`, boot v3 (instructions only, facts in BOOT-DATA), `role_pin_current`, the labelled `Diagram` row, KPI by code, the `owed:` decision-id lint
+
+**Anchors:** `5ae14a9f8` (the lane tip: silent-rule pool drained), `7c159b71d` (the R6 acceptance delta H-Q1..H-Q6 on L12), `6692b4d3c` (37 RED tests frozen first)
+
+**Did:** merged `origin/worktree-l12-acceptance` @ `5ae14a9f8` onto main `188ac7070` (6 lane commits, base `c8fd7e08c`, clean; 13 files: `scripts/handoff_intake.py` new, `scripts/gen_handoff.py`, `scripts/transport_lint.py`, `scripts/verify_handoff_probes.py`, `protocols/HANDOFF_BOOT.md`, `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`, `ecosystem/harness.yaml` and six test files). The lane's two items it could not do are done here: the neighbouring-file sweep over the handoff tests and the branch CI verdict (see the integrator receipt). Regenerated `ecosystem/doc-counts.md`.
+
+**Result:** recorded in the integrator receipt (tests, sweep, ship-gate diff, the landing's CI). The R6 rulings it implements are `RATIFICATION-2026-10-24.md` H-Q1..H-Q7; the 2026-10-31 cut is the first under the ruled design. The lane's recorded-not-fixed items stay with the architect: wiring `narrative_findings` and `role_pin_current` into a post-render check, comparing `DIAGRAM.md` in the Diagram rule, tightening `owed:` to ids only.
+
+**Changes:** `scripts/handoff_intake.py`, `scripts/gen_handoff.py`, `scripts/transport_lint.py`, `scripts/verify_handoff_probes.py`, `protocols/HANDOFF_BOOT.md`, `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`, `ecosystem/harness.yaml`, `tests/`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** template-wake-fix, then cloud-remove-tail; P2 known-reds-extend and ci-one-verdict-2 stay held on the operator's S4 ruling.
+
+### 2026-10-25 (n) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): `[#1733]` filed on main -- "a lane cannot register its own manifest node / row, so its branch CI is red by construction" (fix: a `gen_task_tree` add verb) -- landed as the H1-X operator act (`land_lane.py --operator-act H1-X`), 0 model calls
+
+**Anchors:** `31efbaa15` (the orchestrator's commit `chore(tasks): file [#1733] ...`)
+
+**Did:** merged `origin/worktree-orch-h1x-lane-row` @ `31efbaa15` (orchestrator-e2-1-cycle-2's own commit, base `36b14291e`, three files: the task row, its manifest node, one BACKLOG line) onto main `f246bced7`. The base is behind main and `tasks/manifest.json` and `BACKLOG.md` moved in `[#1721]`, so the two generated files were taken from main, the `[#1733]` manifest node was registered after `[#1721]` in story `[S28]` and `gen_task_tree.py --emit-source` regenerated both (no hand merge). Basis (DECIDED-BY-ORCHESTRATOR, relayed; I could not read the operator's GO text itself in a transport file): the operator's GO G4 of 2026-10-24, relayed by Tech-Architect-47, "file one row (H1-X) 'lanes cannot register their own manifest node / row, so branch CI is red by construction' with the gen_task_tree add-verb as the fix", which extends H1-X's "No other new rows" in the operator's own words. The key is the ratified `| H1-X |` row at `to-browser/RATIFICATION-2026-10-24.md:36`; no new ratification row was written. The substitution gate does not apply to an operator act, and a non-lane commit would otherwise be refused by it (no handback, no LAUNCH receipt).
+
+**Result:** `[#1733]` is OPEN on main; its fix (the add verb) is not built. Carries the `land-lane-receipt-anchor` merge-receipt line (`[#1721]` witness: this is the first `land_lane.py` landing after the receipt-anchor fix).
+
+**Changes:** `tasks/1733-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** P2 known-reds-extend and ci-one-verdict-2 stay held on the operator's S4 ruling.
+
 ### 2026-10-24 (m) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane land-lane-receipt-anchor (P1, `[#1721]`, H1-X) -- the M2 receipt merge of a `land_lane.py` landing no longer leaves main's first-parent spine unanchored, and a failed baseline push is surfaced; landed through `merge_path.py` as a recorded FALLBACK because it fixes `land_lane` itself
 
 **Anchors:** `7919fc261` (the lane tip), `fb5f8872b` (receipt rule append-only, iterative, failed baseline push surfaced), `c8ce1d67a` (a `land_lane` landing keeps main's spine anchored: the receipt merge is covered by its landing's anchor)

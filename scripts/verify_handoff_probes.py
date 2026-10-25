@@ -1091,7 +1091,7 @@ _BOOT_DATA_ERA = "2026-09-25"
 #: A ruled row is owed only by a bundle cut on/after the row's era: a committed bundle is immutable,
 #: so a row added later cannot be asked of it. Rows absent here predate `_BOOT_DATA_ERA`.
 _ROW_ERA = {"Landed": "2026-10-03", "Decisions": "2026-10-03", "Dates": "2026-10-03",
-            "Models": "2026-10-03", "Plan": "2026-10-04"}
+            "Models": "2026-10-03", "Plan": "2026-10-04", "Diagram": "2026-10-24"}
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -1753,6 +1753,15 @@ def _rule_plan(base):
     return rule
 
 
+def _rule_diagram(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: ARG001 -- ctx unused
+    """H-Q4: the P1 diagram's numbers, recomputed live from the process binding."""
+    import gen_handoff as _gh  # noqa: PLC0415
+    live = _gh.diagram_row()[1]
+    if value.strip() == live:
+        return "pass", f"matches the live process binding: {live}"
+    return "fail", f"the row says `{value.strip()}` but the live process binding gives `{live}`"
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1776,6 +1785,7 @@ BOOT_DATA_RULES = {
     # B2-W1 W1-11: Transport compares recorded-kinds-subset-of-live, not the rendered string.
     "Transport": _rule_transport,
     "Seats": _rule_bd_seats,
+    "Diagram": _rule_diagram,
 }
 
 
