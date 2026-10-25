@@ -550,8 +550,8 @@ def test_the_workflow_carries_the_four_triggers_section_4_names(workflow):
     # LANE-5B4-3 (L1, D1): widened again to `worktree-**` (matches nested worktree-slug refs
     # too, and the integrator's own `worktree-integrate-...` branches -- same prefix, same
     # glob, no separate pattern needed) and `epic/**`, per the proposal's D1 trigger list.
-    # R168: `main` was then dropped -- the same sha is judged on the integration branch.
-    assert triggers["push"]["branches"] == ["worktree-**", "epic/**"]
+    # R168 as amended by DECIDED-BY-OPERATOR 2026-10-24: `main` is a push trigger again; the push reuses the same-sha green verdict.
+    assert triggers["push"]["branches"] == ["main", "worktree-**", "epic/**"]
     assert triggers["schedule"], "a schedule leg is what makes the runner more than a push-reactor"
 
 

@@ -134,3 +134,11 @@ wave's merging and is recorded.
 
 `docs/audits/2026-10-12-technical-batch-bw-close-packet.md`, written when Wave D has landed or
 been recorded as stopped. Until then this batch is OPEN.
+
+## Amendment 1 (2026-10-24, lane ci-one-verdict-2, [#1525]) — contract links
+
+Amendment marker only; nothing above is edited. The launch contract of lane F1-KR is an undated
+file, so a `tasks/` or ADR citation cannot make it consumed (the consumer_at_landing pool
+tokenizer reads dated names only); the batch-manifest link is the route. Linked here by path:
+
+- `docs/audits/2026-10-12-technical-batch-bw-launch-contracts/LANE-bw-912-known-reds-expiry.md` — F1-KR, owner rows `[#912]` `[#664]` `[#1340]` `[#1341]` `[#1343]` `[#1344]`; finding dispositioned by `[#1583]` (owner rows exist) and `[#1525]`.

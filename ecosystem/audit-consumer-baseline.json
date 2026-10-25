@@ -5,7 +5,7 @@
   "measured_at_sha": "7353821c",
   "corpus": 1493,
   "pool_files": 1262,
-  "unconsumed": 802,
+  "unconsumed": 801,
   "provenance": "e1-p0-fix re-stamp (2026-10-18), detector v4 -> v5 (ruling D4), measured on 7353821c plus the v5 predicate: a governance-pool citation now declares a consumer on the landing leg, clearing the 8 undeclared archive-copy audits (2026-10-14 verify-{ci,dispatch,hooks-gates,land,providers,transport}, 2026-10-15 build1-challenge-{m2-r113,m3-r114}), all named by docs/intake/2026-10-16-tech-harness-defect-register.md; the unconsumed name list is UNCHANGED (none of the 8 was ever in it) -- only the detector stamp moves",
   "artifacts": [
     "1a-L01.md",
@@ -666,7 +666,6 @@
     "LANE-bw-735-reuse-gate.md",
     "LANE-bw-781-system-map.md",
     "LANE-bw-893-b2w3-carry.md",
-    "LANE-bw-912-known-reds-expiry.md",
     "LANE-bw-926-main-red.md",
     "LANE-bw-958-required-tools.md",
     "LANE-c-000-claude-md-regenre.md",
