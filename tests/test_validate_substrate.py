@@ -818,3 +818,24 @@ def test_undated_cloud_with_a_body_example_date_is_refused(registry):
     )
     refusals = vs.validate_contract(text, source="F.md", registry=registry)
     assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_crlf_pre_retirement_cloud_date_is_grandfathered_like_lf(registry):
+    lf_text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    crlf_text = lf_text.replace("\n", "\r\n")
+
+    assert vs.contract_date(lf_text).isoformat() == "2026-09-06"
+    assert vs.contract_date(crlf_text) == vs.contract_date(lf_text)
+    for text in (lf_text, crlf_text):
+        refusals = vs.validate_contract(text, source="F.md", registry=registry)
+        assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+def test_duplicate_date_header_never_grandfathers_cloud(registry):
+    text = ("date: 2026-10-23\n"
+            "date: 2026-10-24\n"
+            + _contract(shape_line="**Substrate:** `cloud`"))
+
+    assert vs.contract_date(text) is None
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
