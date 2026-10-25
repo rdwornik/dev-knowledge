@@ -801,3 +801,20 @@ def test_undated_cloud_is_still_refused_even_with_an_old_source_path(registry):
     source = "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-old.md"
     refusals = vs.validate_contract(text, source=source, registry=registry)
     assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_body_example_date_is_not_the_contract_date():
+    text = _contract(
+        shape_line="**Substrate:** `cloud`",
+        body="Example:\n```yaml\ndate: 2026-09-06\n```",
+    )
+    assert vs.contract_date(text) is None
+
+
+def test_undated_cloud_with_a_body_example_date_is_refused(registry):
+    text = _contract(
+        shape_line="**Substrate:** `cloud`",
+        body="Example:\n```yaml\ndate: 2026-09-06\n```",
+    )
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
