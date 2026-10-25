@@ -656,8 +656,7 @@ def contract_date(text: str) -> Optional[_dt.date]:
 def validate_contract(text: str, *, source: str,
                       registry: Mapping[str, Substrate],
                       heartbeat=_HEARTBEAT_AUTO,
-                      now: Optional[_dt.datetime] = None,
-                      landed: Optional[_dt.date] = None) -> list[Refusal]:
+                      now: Optional[_dt.datetime] = None) -> list[Refusal]:
     """Legs 1-3 and 8 plus the unknown-override report, for ONE contract.
 
     Leg 4 needs the whole batch and lives in `validate_batch`. Every problem is returned, not
@@ -704,7 +703,7 @@ def validate_contract(text: str, *, source: str,
                       f"({', '.join(substrate.verbs)}) — the substrate is declared and "
                       f"unbacked")
         retired_on = RETIRED_SUBSTRATES.get(name) if name else None
-        effective = contract_date(text) or landed
+        effective = contract_date(text)
         if retired_on is not None and effective is not None and effective < retired_on:
             return out
         out.append(_apply_override(
@@ -779,8 +778,7 @@ def validate_contract(text: str, *, source: str,
 
 
 def validate_batch(contracts: Mapping[str, str], *,
-                   registry: Mapping[str, Substrate],
-                   landed: Optional[Mapping[str, _dt.date]] = None) -> list[Refusal]:
+                   registry: Mapping[str, Substrate]) -> list[Refusal]:
     """Every leg, across a whole batch. Leg 4 lives here because it is a batch property.
 
     Returns the per-contract refusals in `contracts` iteration order, then the writer WARNs.
@@ -791,9 +789,7 @@ def validate_batch(contracts: Mapping[str, str], *,
     checkouts: dict[str, list[str]] = {}
 
     for source, text in contracts.items():
-        out.extend(validate_contract(
-            text, source=source, registry=registry,
-            landed=landed.get(source) if landed else None))
+        out.extend(validate_contract(text, source=source, registry=registry))
         name = declared_substrate(text)
         substrate = registry.get(name) if name else None
         if substrate is None or not substrate.live or substrate.family != "local":
