@@ -29,6 +29,9 @@ def _no_real_transport(tmp_path, monkeypatch):
     """The state lookup also tries $CLAUDE_PROMPTS_DIR/to-browser: never the operator's real one."""
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "no-such-transport"))
     monkeypatch.setattr(ss, "_user_env", lambda name: None, raising=False)   # the User-scope registry copy
+    import importlib
+    monkeypatch.setattr(importlib.import_module("scripts.seat_state"), "_user_env",    # lane_digest's copy
+                        lambda name: None, raising=False)
 
 
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)

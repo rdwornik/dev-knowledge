@@ -240,12 +240,27 @@ def _primary_checkout(root: Path) -> Optional[Path]:
     return None
 
 
+def _user_env(name: str) -> Optional[str]:
+    """The USER-scope value of an environment variable (the HKCU Environment key), or None -- the process copy
+    goes stale, so the User scope wins (same read `transport_report.windows_user_env` does, repeated
+    so a Stop hook imports nothing heavy)."""
+    if os.name != "nt":
+        return None
+    try:
+        import winreg  # noqa: PLC0415
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            value, _kind = winreg.QueryValueEx(key, name)
+    except (ImportError, OSError):
+        return None
+    return os.path.expandvars(str(value))
+
+
 def state_folders(repo_root: Path) -> list[Path]:
     """Where seat state files live, in PRECEDENCE order: the transport's (`$CLAUDE_PROMPTS_DIR/to-browser`,
     which is what the seat templates' `to-browser/` names), then the checkout's, then -- for a linked
     worktree -- the primary checkout's. Existing folders only, de-duplicated by where they resolve."""
     out: list[Path] = []
-    prompts = os.environ.get("CLAUDE_PROMPTS_DIR", "").strip()
+    prompts = (_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get("CLAUDE_PROMPTS_DIR") or "").strip()
     primary = _primary_checkout(repo_root)
     for cand in (Path(prompts) / "to-browser" if prompts else None, Path(repo_root) / "to-browser",
                  primary / "to-browser" if primary else None):
@@ -375,9 +390,10 @@ def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
         new["max_context"] = max(kept["max_context"], int(max_context))
         if session:       # per-session maxima, summed: a successor session's compactions ADD
             per = dict(kept["compaction_sessions"])
+            legacy = max(0, kept["compactions"] - sum(per.values()))     # a total recorded before per-session
             per[session] = max(per.get(session, 0), int(compactions))
             new["compaction_sessions"] = per
-            new["compactions"] = sum(per.values())
+            new["compactions"] = legacy + sum(per.values())
         else:
             new["compactions"] = max(kept["compactions"], int(compactions))
         # one CROSSED per seat session: the line's `seat=<id>` prefix is the dedupe key (tokens/age vary)
