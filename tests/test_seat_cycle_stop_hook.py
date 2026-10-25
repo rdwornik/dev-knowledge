@@ -28,6 +28,7 @@ import seat_state as ss  # noqa: E402
 def _no_real_transport(tmp_path, monkeypatch):
     """The state lookup also tries $CLAUDE_PROMPTS_DIR/to-browser: never the operator's real one."""
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "no-such-transport"))
+    monkeypatch.setattr(ss, "_user_env", lambda name: None, raising=False)   # the User-scope registry copy
 
 
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
@@ -408,3 +409,39 @@ def test_transcript_is_streamed_not_read_whole(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "read_text", boom)
     assert sc.transcript_stats(t) == (4321, 2)
+
+
+# --- repair 2, fourth round -----------------------------------------------------------------------------
+
+def test_digest_precedence_survives_path_sort_order(tmp_path, monkeypatch, capsys):
+    """A checkout path that sorts BEFORE the transport's must still lose to it."""
+    checkout = tmp_path / "a-checkout"
+    prompts = tmp_path / "z-prompts"
+    (prompts / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    for root, n in ((prompts, 5), (checkout, 1)):
+        ss.write_state(root / "to-browser" / "STATE-b9.json", role="integrator", batch="B9",
+                       base_sha="abc", lanes={}, cycles=n)
+    ld.main(["--lane", "B9", "--repo", str(checkout), "--receipts-dir", str(tmp_path / "r"),
+             "--costs-file", str(tmp_path / "none.jsonl")])
+    out = capsys.readouterr().out
+    assert out.count("integrator B9: cycles") == 1 and "cycles 5" in out
+
+
+def test_a_legacy_compaction_total_survives_the_first_session_update(tmp_path):
+    path = _state(tmp_path)
+    ss.write_state(path, role="integrator", batch="B9", base_sha="abc", lanes={}, compactions=2)
+    assert json.loads(path.read_text(encoding="utf-8")).get("compaction_sessions", {}) == {}
+    ss.update_counters(path, compactions=0, session="s-1", max_context=1)
+    assert json.loads(path.read_text(encoding="utf-8"))["compactions"] == 2
+    ss.update_counters(path, compactions=1, session="s-1")
+    assert json.loads(path.read_text(encoding="utf-8"))["compactions"] == 3
+
+
+def test_user_scope_transport_beats_a_stale_process_copy(tmp_path, monkeypatch):
+    stale, live = tmp_path / "stale", tmp_path / "live"
+    for d in (stale, live):
+        (d / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(stale))
+    monkeypatch.setattr(ss, "_user_env", lambda name: str(live), raising=False)
+    assert ss.state_folders(tmp_path / "checkout")[0] == live / "to-browser"
