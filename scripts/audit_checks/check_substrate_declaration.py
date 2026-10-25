@@ -414,7 +414,7 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
         out.append(Finding(CHECK_NAME, "pass",
                            f"{len(named_list_excused)} named-list exception(s) "
                            f"(retired-substrate records pinned by path + blob sha, "
-                           f"{len(RETIRED_SUBSTRATE_EXCEPTIONS)} listed); no other retired-substrate debt"))
+                           f"{len(RETIRED_SUBSTRATE_EXCEPTIONS)} listed)"))
     if post_launch:
         # Its OWN line, emitted whatever else the run found: a narrowing that disappears
         # whenever an unrelated WARN is present is not visible debt, it is a hidden one.
