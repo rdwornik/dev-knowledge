@@ -556,7 +556,19 @@ def main(argv: Optional[list[str]] = None) -> int:
             except (OSError, ValueError):
                 ci_red = None  # an unreadable file says nothing, same posture as load_costs
         seat_states = []
-        for raw in args.seat_state or []:
+        seat_files = list(args.seat_state or [])
+        if not seat_files:
+            # the batch-close row passes no --seat-state: read the batch's own STATE files instead
+            # ([#1636] cycles / max context / compactions must reach the digest through that row)
+            batch_id = args.batch or args.lane or os.environ.get("HARNESS_BATCH")
+            for found in sorted((repo / "to-browser").glob("STATE-*.json")):
+                try:
+                    st = _sibling("seat_state").load_counters(found)
+                except Exception:  # noqa: BLE001 -- an unreadable seat file says nothing
+                    continue
+                if not batch_id or st.batch.upper() == str(batch_id).upper():
+                    seat_states.append(st)
+        for raw in seat_files:
             try:
                 seat_states.append(_sibling("seat_state").load_counters(Path(raw)))
             except Exception:  # noqa: BLE001 -- an unreadable seat file says nothing, like load_costs

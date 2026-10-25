@@ -68,6 +68,7 @@ HONEST LIMITS
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
@@ -219,6 +220,23 @@ def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Map
                          crossed=list(crossed))
 
 
+LOCK_TIMEOUT_S = 2.0   # a Stop hook must not stall a turn ending on a stale lock file
+
+
+@contextlib.contextmanager
+def _locked(path: Path):
+    """The read-merge-write of a state file as ONE step: `transport.py`'s per-destination
+    `O_EXCL` lock (library-first -- the idiom this repo already has), so the hook's counter update
+    and a by-hand `write_state` never interleave and lose one another's fields."""
+    try:
+        from transport import _DestinationLock  # noqa: PLC0415
+    except ImportError:
+        from scripts.transport import _DestinationLock  # type: ignore[no-redef]  # noqa: PLC0415
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _DestinationLock(path, LOCK_TIMEOUT_S):
+        yield
+
+
 def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapping[str, Mapping],
                 written_by: str = "", now: Optional[str] = None, cycles: Optional[int] = None,
                 max_context: Optional[int] = None, compactions: Optional[int] = None,
@@ -228,22 +246,23 @@ def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapp
     one, which is the module's own defence against manufacturing the torn file `read_state`
     exists to refuse."""
     path = Path(path)
-    kept = _read_counters(path)           # a by-hand rewrite must not erase the hook's bookkeeping
-    state = build_state(role=role, batch=batch, base_sha=base_sha, lanes=lanes,
-                        written_by=written_by, now=now,
-                        cycles=kept["cycles"] if cycles is None else cycles,
-                        max_context=kept["max_context"] if max_context is None else max_context,
-                        compactions=kept["compactions"] if compactions is None else compactions,
-                        crossed=kept["crossed"] if crossed is None else crossed)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
-            json.dump(state.to_dict(), fh, indent=2, sort_keys=True)
-            fh.write("\n")
-        os.replace(tmp_name, path)
-    finally:
-        Path(tmp_name).unlink(missing_ok=True)
+    with _locked(path):
+        kept = _read_counters(path)           # a by-hand rewrite must not erase the hook's bookkeeping
+        state = build_state(role=role, batch=batch, base_sha=base_sha, lanes=lanes,
+                            written_by=written_by, now=now,
+                            cycles=kept["cycles"] if cycles is None else cycles,
+                            max_context=kept["max_context"] if max_context is None else max_context,
+                            compactions=kept["compactions"] if compactions is None else compactions,
+                            crossed=kept["crossed"] if crossed is None else crossed)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(state.to_dict(), fh, indent=2, sort_keys=True)
+                fh.write("\n")
+            os.replace(tmp_name, path)
+        finally:
+            Path(tmp_name).unlink(missing_ok=True)
     return state
 
 
@@ -291,32 +310,35 @@ def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
     fields of an EXISTING file (never fabricates a state, never moves `written_ts`, the staleness
     clock of the lane rows). Atomic. True when the file changed."""
     path = Path(path)
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return False
-    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
-        return False
-    kept = _read_counters(path)
-    new = dict(kept)
-    new["max_context"] = max(kept["max_context"], int(max_context))
-    new["compactions"] = max(kept["compactions"], int(compactions))
-    # one CROSSED per seat session: the line's `seat=<id>` prefix is the dedupe key (tokens/age vary)
-    key = " ".join(crossed_line.split()[:2]) + " " if crossed_line else None
-    if crossed_line and not any(x.startswith(key) for x in kept["crossed"]):
-        new["crossed"] = kept["crossed"] + [crossed_line]
-        new["cycles"] = kept["cycles"] + 1
-    if new == kept:
-        return False
-    data.update(new)
-    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
-            json.dump(data, fh, indent=2, sort_keys=True)
-            fh.write("\n")
-        os.replace(tmp_name, path)
-    finally:
-        Path(tmp_name).unlink(missing_ok=True)
+    if not path.is_file():
+        return False                       # never fabricate a state (or its folder)
+    with _locked(path):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+        if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+            return False
+        kept = _read_counters(path)
+        new = dict(kept)
+        new["max_context"] = max(kept["max_context"], int(max_context))
+        new["compactions"] = max(kept["compactions"], int(compactions))
+        # one CROSSED per seat session: the line's `seat=<id>` prefix is the dedupe key (tokens/age vary)
+        key = " ".join(crossed_line.split()[:2]) + " " if crossed_line else None
+        if crossed_line and not any(x.startswith(key) for x in kept["crossed"]):
+            new["crossed"] = kept["crossed"] + [crossed_line]
+            new["cycles"] = kept["cycles"] + 1
+        if new == kept:
+            return False
+        data.update(new)
+        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(data, fh, indent=2, sort_keys=True)
+                fh.write("\n")
+            os.replace(tmp_name, path)
+        finally:
+            Path(tmp_name).unlink(missing_ok=True)
     return True
 
 

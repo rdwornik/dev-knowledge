@@ -478,6 +478,16 @@ def _bound_seat(session_id: str, registry_path: Optional[Path]) -> Optional[dict
     return seat
 
 
+def _repo_root(start: Path) -> Path:
+    """The checkout holding `start`: the nearest ancestor with a `.git` (a directory, or the file a
+    worktree has). A hook fired from a subdirectory must still write the repo root's `to-browser/`."""
+    start = start.resolve()
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return start
+
+
 def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
                repo_root: Optional[Path] = None, config: Optional[dict[str, Any]] = None,
                now: Optional[Any] = None) -> Optional[str]:
@@ -491,7 +501,7 @@ def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
     if not bound or not mapped:
         return None
     role, suffix = mapped
-    root = Path(repo_root or payload.get("cwd") or Path.cwd())
+    root = Path(repo_root) if repo_root else _repo_root(Path(payload.get("cwd") or Path.cwd()))
     tokens, compactions = transcript_stats(Path(str(payload.get("transcript_path") or "")))
     moment = now or datetime.now(timezone.utc)
     age_hours = (moment - datetime.fromisoformat(str(bound["ts"]))).total_seconds() / 3600.0
@@ -504,11 +514,15 @@ def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
         line = (f"CROSSED seat={session} role={role} tokens={tokens} age_hours={age_hours:.2f} "
                 f"ts={moment.isoformat(timespec='seconds')}")
     import seat_state
-    seat_state.update_counters(folder / f"STATE-{slug}{suffix}.json", max_context=tokens,
+    state_path = folder / f"STATE-{slug}{suffix}.json"
+    if not state_path.is_file():
+        # no state file -> nothing to record into, and no receipt line either (never fabricated)
+        return "CROSSED" if crossed else "OK"
+    seat_state.update_counters(state_path, max_context=tokens,
                                compactions=compactions, crossed_line=line)
     if line:
         receipt = folder / f"SESSION-{bound['role']}-{slug}.md"
-        # one CROSSED per seat session: the state file is the dedupe key when it exists, else the receipt
+        # one CROSSED per seat session: the receipt's `seat=<id>` line is the dedupe key
         seen = receipt.read_text(encoding="utf-8", errors="replace") if receipt.exists() else ""
         if f"CROSSED seat={session} " not in seen:
             folder.mkdir(parents=True, exist_ok=True)
