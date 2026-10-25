@@ -105,10 +105,11 @@ def test_repeated_stops_record_one_crossed_per_session(tmp_path):
     assert receipt.count("CROSSED ") == 1
 
 
-def test_a_missing_state_file_is_not_fabricated(tmp_path):
+def test_a_missing_state_file_is_not_fabricated_and_writes_no_receipt(tmp_path):
+    """Repair 2 (c): no state file -> no CROSSED line anywhere, no receipt write."""
     assert _run(tmp_path, "integrator", 5000) == "CROSSED"
     assert not (tmp_path / "to-browser" / "STATE-b9.json").exists()
-    assert "CROSSED " in (tmp_path / "to-browser" / "SESSION-integrator-b9.md").read_text(encoding="utf-8")
+    assert not (tmp_path / "to-browser" / "SESSION-integrator-b9.md").exists()
 
 
 def test_hook_never_blocks_or_continues(tmp_path):
@@ -175,3 +176,95 @@ def test_digest_prints_cycles_max_context_compactions(tmp_path):
 
 def test_digest_without_seat_states_is_unchanged():
     assert "cycles" not in ld.render_digest([])
+
+
+# --- repair 2: the five HIGH findings -------------------------------------------------------------
+
+def test_hook_from_a_subdirectory_writes_to_the_repo_root(tmp_path):
+    """(b) state and receipt follow the repo root, not the hook's cwd."""
+    (tmp_path / ".git").mkdir()
+    sub = tmp_path / "scripts" / "deep"
+    sub.mkdir(parents=True)
+    path = _state(tmp_path)
+    reg = tmp_path / "registry.jsonl"
+    _bind(reg, "integrator")
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1", "cwd": str(sub),
+               "transcript_path": str(_transcript(tmp_path / "t.jsonl", 5000))}
+    assert sc.stop_check(payload, registry_path=reg, config=CONFIG, now=NOW) == "CROSSED"
+    assert json.loads(path.read_text(encoding="utf-8"))["cycles"] == 1
+    assert (tmp_path / "to-browser" / "SESSION-integrator-b9.md").exists()
+    assert not (sub / "to-browser").exists()
+
+
+def test_hook_without_seat_registry_is_a_silent_noop(tmp_path):
+    """(a) a consumer repo has no hub-only `seat_registry`: the standalone hook still exits 0, silently."""
+    import shutil
+    lone = tmp_path / "lone"
+    lone.mkdir()
+    shutil.copy(SCRIPTS / "session_end_backpressure.py", lone / "session_end_backpressure.py")
+    env = {**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)}
+    env.pop("CLAUDE_CODE_SESSION_ATTENDED", None)
+    env.pop("PYTHONPATH", None)
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1", "cwd": str(lone),
+               "transcript_path": str(tmp_path / "t.jsonl")}
+    done = subprocess.run([sys.executable, str(lone / "session_end_backpressure.py")],
+                          input=json.dumps(payload), capture_output=True, text=True, env=env,
+                          cwd=str(lone), timeout=15)
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == ""
+    assert "DEGRADED" not in done.stderr, done.stderr
+
+
+def test_concurrent_write_state_and_hook_update_lose_nothing(tmp_path, monkeypatch):
+    """(d) read-merge-write is atomic: a hook update that lands while a by-hand rewrite is between
+    its read and its write survives, and so does the rewrite."""
+    import threading
+    import time
+    path = _state(tmp_path)
+    real = ss._read_counters
+
+    def slow(p):
+        out = real(p)
+        time.sleep(0.3)           # widen the read -> write window of whichever writer is in it
+        return out
+
+    monkeypatch.setattr(ss, "_read_counters", slow)
+    errors = []
+
+    def rewrite():
+        try:
+            ss.write_state(path, role="integrator", batch="B9", base_sha="abc",
+                           lanes={"l2": {"state": "QUEUED", "evidence": {"session_file": "S.md"}}},
+                           written_by="by-hand")
+        except Exception as exc:                      # noqa: BLE001
+            errors.append(exc)
+
+    def hook():
+        try:
+            time.sleep(0.1)
+            ss.update_counters(path, max_context=9, compactions=4)
+        except Exception as exc:                      # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=rewrite), threading.Thread(target=hook)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert not errors, errors
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["written_by"] == "by-hand" and "l2" in data["lanes"]      # the rewrite survived
+    assert data["compactions"] == 4 and data["max_context"] == 9          # ... and so did the hook
+
+
+def test_batch_close_digest_prints_seat_cycles_without_a_flag(tmp_path, capsys):
+    """(e) the batch-close row passes no --seat-state; the digest finds the batch's STATE files itself."""
+    path = tmp_path / "to-browser" / "STATE-b9.json"
+    ss.write_state(path, role="integrator", batch="B9", base_sha="abc", lanes={},
+                   cycles=2, max_context=412000, compactions=0)
+    other = tmp_path / "to-browser" / "STATE-b8.json"
+    ss.write_state(other, role="integrator", batch="B8", base_sha="abc", lanes={}, cycles=7)
+    rc = ld.main(["--lane", "B9", "--repo", str(tmp_path), "--receipts-dir", str(tmp_path / "r"),
+                  "--costs-file", str(tmp_path / "none.jsonl")])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "cycles 2" in out and "max context 412000" in out and "(target 0)" in out
+    assert "cycles 7" not in out
