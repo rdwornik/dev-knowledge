@@ -79,10 +79,23 @@ def test_the_lane_head_where_row_follows_the_chosen_role():
     assert _problems(OPUS, ORCH, launch_model=OPUS, rows=sonnet_row)
 
 
-def test_the_orchestrate_substrate_row_follows_the_chosen_role():
-    rows = f"| orchestrate the batch | {OPUS} | local |"
-    text = _contract(head=OPUS, dispatch=OPUS, lane=ORCH).replace("Where", "Substrate") + ""
-    text += "| Phase | Model | Substrate |\n|---|---|---|\n" + rows + "\n"
-    assert sg.contract_problems(text, lane=ORCH, batch="E2.1", launch_model=OPUS)[0] == []
-    text = text.replace(f"| orchestrate the batch | {OPUS}", f"| orchestrate the batch | {SONNET}")
-    assert sg.contract_problems(text, lane=ORCH, batch="E2.1", launch_model=OPUS)[0]
+def _substrate_problems(rows, lane, head):
+    """The Substrate table is the FIRST (and only) table, so `_phase_rows` judges its rows."""
+    text = _contract(head=head, dispatch=head, lane=lane)
+    text += "| Phase | Model | Substrate |" + chr(10) + "|---|---|---|" + chr(10) + rows + chr(10)
+    return sg.contract_problems(text, lane=lane, batch="E2.1", launch_model=head)[0]
+
+
+@pytest.mark.parametrize("phase", ["orchestrate the batch", "lane head"])
+def test_a_substrate_head_row_follows_the_chosen_role(phase):
+    opus_row = f"| {phase} | {OPUS} | local |"
+    sonnet_row = f"| {phase} | {SONNET} | local |"
+    assert _substrate_problems(opus_row, ORCH, OPUS) == []
+    assert _substrate_problems(sonnet_row, ORCH, OPUS)
+    assert _substrate_problems(sonnet_row, "lane-x", SONNET) == []
+    assert _substrate_problems(opus_row, "lane-x", SONNET)
+
+
+def test_a_lane_head_substrate_row_is_not_an_unmapped_phase():
+    problems = _substrate_problems(f"| lane head | {OPUS} | local |", ORCH, OPUS)
+    assert not any("maps to no registry role" in p for p in problems)
