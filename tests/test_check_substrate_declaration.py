@@ -13,6 +13,15 @@ from audit_checks import check_substrate_declaration as adapter
 from test_validate_substrate import _contract
 
 
+_COMMITTED_LIST = dict(adapter.RETIRED_SUBSTRATE_EXCEPTIONS)
+
+
+@pytest.fixture(autouse=True)
+def _empty_named_list(monkeypatch):
+    """The committed list names hub paths a tmp repo lacks (they would report as stale)."""
+    monkeypatch.setattr(adapter, "RETIRED_SUBSTRATE_EXCEPTIONS", {})
+
+
 def _repo_with_cloud_contract(tmp_path: Path, *, directory_date: str,
                               contract_date: str | None = None) -> Path:
     registry = tmp_path / "ecosystem/substrate-registry.yaml"
@@ -147,7 +156,15 @@ def test_new_undated_contract_is_refused_whatever_its_directory(tmp_path, monkey
 
 
 def test_the_committed_named_list_is_closed_at_sixteen_sha_pinned_entries():
-    listed = adapter.RETIRED_SUBSTRATE_EXCEPTIONS
+    listed = _COMMITTED_LIST
     assert len(listed) == 16
     assert all(p.startswith("docs/audits/") and Path(p).name.startswith("LANE-")
                and len(sha) == 40 for p, sha in listed.items())
+
+
+def test_the_live_tree_passes_with_exactly_the_sixteen_named_exceptions(monkeypatch):
+    monkeypatch.setattr(adapter, "RETIRED_SUBSTRATE_EXCEPTIONS", _COMMITTED_LIST)
+    findings = adapter.check_substrate_declaration(vs.repo_root())
+    assert not [f for f in findings if f.status in ("fail", "warn")
+                and "w-684" not in f.evidence], findings
+    assert "16 named-list exception" in _evidence(findings), findings

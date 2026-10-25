@@ -47,6 +47,7 @@ Read-only (Layer 2): no git, no writes.
 from __future__ import annotations
 
 import datetime as _dt
+import hashlib
 import re
 from pathlib import Path
 
@@ -63,6 +64,59 @@ AUDITS_RELPATH = "docs/audits"
 #: Contracts landed on or after this date are gated; earlier ones are grandfathered records
 #: of an already-executed dispatch. The date this check armed.
 ARM_DATE = _dt.date(2026, 8, 27)
+
+#: STANDING EXCEPTION for immutable records (operator ruling 4, 2026-10-25, T2): the committed
+#: LANE-*.md contracts that declare a RETIRED substrate (`cloud`) and carry no `date:` line.
+#: They record dispatches that already ran and cannot be edited (CLAUDE.md rule 3), and the
+#: directory name never dates a contract, so each is excused by NAME: repo path -> git blob sha.
+#: A path whose blob differs (the file was edited) is refused; a path that is not a committed
+#: LANE-*.md is reported as stale. CLOSED LIST: adding an entry needs a ruling. Every new
+#: contract must carry its own `date:` line instead.
+RETIRED_SUBSTRATE_EXCEPTIONS: dict[str, str] = {
+    "docs/audits/2026-08-29-technical-batchd-launch-contracts/LANE-e-000-essentials-census.md":
+        "f2bd5e8f4d964ae4942acc740d8bc798b2c6d5a6",
+    "docs/audits/2026-08-29-technical-batchd-launch-contracts/LANE-f-000-adr81-fuzzy-band.md":
+        "50cd4f99d286921c1150db6aa39e028ebf5978a5",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a1-single-file-folder-census.md":
+        "ab2bacff8e8e85c98f256c09c5ab8d6d12e18475",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a2-templates-consumer-census.md":
+        "6c8cfcc5e62fe6a749570d3680ce7bfcc1253a3e",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a3-stale-doctrine-reference-census.md":
+        "d7b54e892c6599b93142d2cd4835a0f62da924e1",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a4-doc-freshness-derivation-audit.md":
+        "177f15fe0bc1e4d760302e0acfdc5bca67d22d83",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a5-harness-portability-map.md":
+        "3879e2c947636b9b737154c0c9aeaec57baa0eca",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a6-langgraph-class-rejection-record.md":
+        "45164aea76a9862b62edaae5bfd325516e6f0133",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-batch-e-a7-agy-admission-and-quota-visibility.md":
+        "d0bc979b23c7ca4b4e988f3879e4b8a98a08cea2",
+    "docs/audits/2026-08-31-technical-batche-launch-contracts/LANE-h-8-local-memory-tier-l-evaluation.md":
+        "2dac79616277123b23061872f19f6324ea2dd4ab",
+    "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-t-000-aj-research.md":
+        "6d2cd0f48f9b27e52b809f7210deec104556f522",
+    "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-t-000-v4-archive-report.md":
+        "bab3c38807c2bde761de4f72e122c45428c77243",
+    "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-t-000-v5-closures.md":
+        "8550d3bb830c1cbc01cf5f579201753368dedc44",
+    "docs/audits/2026-09-15-technical-batch-z-launch-contracts/LANE-z-11-three-repo-comparison.md":
+        "26bfdcc820d8a0ea3175e85a62d75cf14139a682",
+    "docs/audits/2026-09-15-technical-batch-z-launch-contracts/LANE-z-14-management-map.md":
+        "ccc6ec6c3bb9f7d8f3596749a637c5930f75214e",
+    "docs/audits/2026-09-17-technical-batchac-launch-contracts/LANE-ac-694-cloud-census.md":
+        "7edb4bd5b49d00e367161890507047dec7b9fffd",
+}
+
+
+def _blob_sha(path: Path) -> str | None:
+    """The git blob sha of the file's bytes, or None when unreadable (the entry then fails to
+    match, which refuses)."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
 
 #: PER-LEG arm dates, for legs added AFTER this check armed. A leg written today cannot
 #: honestly gate a contract dispatched last week: the contract is a RECORD, and editing it to
@@ -296,11 +350,34 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"{rel} is not valid UTF-8 ({exc}), so it was not "
                                f"validated".replace("|", "/")))
 
+    corpus_rels = {p.relative_to(repo_path).as_posix(): p for p in paths}
+    pinned_ok: set[str] = set()
+    for rel, pinned in sorted(RETIRED_SUBSTRATE_EXCEPTIONS.items()):
+        path = corpus_rels.get(rel)
+        if path is None:
+            out.append(Finding(CHECK_NAME, "fail",
+                               f"stale named-list entry {rel}: no such committed LANE-*.md "
+                               f"contract exists; remove it from RETIRED_SUBSTRATE_EXCEPTIONS "
+                               f"(a closed list must not carry dead entries)".replace("|", "/")))
+        elif _blob_sha(path) != pinned:
+            out.append(Finding(CHECK_NAME, "fail",
+                               f"named-list entry {rel} pins blob {pinned} but the file is "
+                               f"{_blob_sha(path)}: an immutable record was edited, so the "
+                               f"exception no longer applies".replace("|", "/")))
+        else:
+            pinned_ok.add(rel)
+
+    named_list_excused: set[str] = set()
     leg_grandfathered = 0
     post_launch: list[str] = []
     closed = None
     expired = _today() > POST_LAUNCH_NARROWING_EXPIRES
     for refusal in _vsub.validate_batch(gated, registry=registry):
+        if (refusal.rule == _vsub.RULE_NO_LIVE_VERB and refusal.substrate in _vsub.RETIRED_SUBSTRATES
+                and refusal.source in pinned_ok):
+            # Named-list exception: path AND blob sha match, so this is the exact immutable record.
+            named_list_excused.add(refusal.source)
+            continue
         leg_arm = LEG_ARM_DATES.get(refusal.rule)
         if leg_arm is not None:
             # A multi-source refusal (leg 6 names a PAIR) is grandfathered when EITHER side
@@ -333,6 +410,11 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                            f"of an already-executed dispatch; {leg_grandfathered} finding(s) "
                            f"from later-armed legs [{legs}] grandfathered as debt — those "
                            f"legs are fully armed at FREEZE)"))
+    if named_list_excused:
+        out.append(Finding(CHECK_NAME, "pass",
+                           f"{len(named_list_excused)} named-list exception(s) "
+                           f"(retired-substrate records pinned by path + blob sha, "
+                           f"{len(RETIRED_SUBSTRATE_EXCEPTIONS)} listed); zero other debt"))
     if post_launch:
         # Its OWN line, emitted whatever else the run found: a narrowing that disappears
         # whenever an unrelated WARN is present is not visible debt, it is a hidden one.
