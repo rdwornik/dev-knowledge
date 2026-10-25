@@ -581,6 +581,15 @@ def _record_seat_cycle(data: dict) -> None:
     no-op. Prints nothing and never blocks or asks the model to continue ([#1700]). Fail-soft."""
     try:
         try:
+            import seat_registry  # noqa: PLC0415
+        except ImportError:
+            from scripts import seat_registry  # type: ignore[no-redef]  # noqa: PLC0415
+        session = data.get("session_id")
+        # seat_cycle pulls click + yaml (~175 ms): import it only for a session that ever bound a seat role
+        if not session or not any(r.get("session_id") == session and r.get("kind") == "bind"
+                                  for r in seat_registry.read_rows()):
+            return
+        try:
             import seat_cycle  # noqa: PLC0415
         except ImportError:
             from scripts import seat_cycle  # type: ignore[no-redef]  # noqa: PLC0415
