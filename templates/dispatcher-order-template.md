@@ -69,8 +69,8 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   on `dispatch.py codespace-exec`, `dispatch.py repair` and `dispatch.py successor` as well as on `launch`, before anything
   is spawned. Record that line verbatim; do not launch the lane with another model in its place.
   A launch leaves `logs/receipts/LAUNCH-<SLUG>.json` (a Codespace lane: its `logs/CODESPACE-RECEIPTS.jsonl`
-  row); the merge gate refuses a lane with neither. A raw `claude --bg`, the PATH `dispatch` wrapper
-  and `dispatch.py queue` leave no such receipt, so a lane started that way cannot merge.
+  row); the merge gate refuses a lane with neither. A queue FIRE (`dispatch.py queue`) leaves `logs/receipts/LAUNCH-<SLUG>.json`
+  too (witnessed 2026-10-24); only a raw `claude --bg` or the PATH `dispatch` wrapper leaves none, so such a lane cannot merge.
 - **Before each CODESPACE fire (W2, R7 — the one hard veto):**
   `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` — exit 0
   (OK): fire · exit 1 (REFUSED): record the refusal verbatim, do not fire. `<n>` is that
@@ -120,6 +120,24 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
      lane's `MODELS:` block; carry every `VENDOR-FAIL` substitution line into it);
    - confirm it on the transport;
    - stop every Monitor, poll and shell of yours; stop.
+
+## Waking — the launch call, a Monitor and a cron
+
+- `dispatch.py queue --watch` is the ONE launch call; run it once. Options:
+  `uv run --locked python scripts/dispatch.py queue --help`.
+- Put one Monitor on its output. Each `[queue] FIRE` and `already-launched` line is an event, and so
+  is the closing `[queue] watch ended` summary, whose counts carry the `HELD-FAILED` lanes and the
+  routed-codespace ones. `queue --watch` prints no per-lane `HOLD` line, so the launcher bullet's
+  `HOLD` / `ROUTE-CODESPACE` lines are what a pass without `--watch` prints, not what the Monitor
+  sees; record every line it does print verbatim.
+- Behind it, a 10-minute cron (CronCreate, recurring). Each cron wake does, in order:
+  1. liveness, then repair (Sequence steps 2-3);
+  2. `uv run --locked python scripts/transport_lint.py sweep --since <the previous wake>`;
+  3. `uv run --locked python scripts/batch_janitor.py run --batch <BATCH>` (other options: `--help`);
+  4. `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` before any
+     codespace fire (`<n>` as in the codespace bullet above).
+- On BIND (a successor seat binds after a cycle, `seat_registry.py bind`) re-arm the Monitor and the
+  cron; the outgoing seat's are stopped at handover.
 
 ## State file
 
