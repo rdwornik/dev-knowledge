@@ -229,10 +229,12 @@ def check_routine_uv_pin(repo_path: Path) -> list[Finding]:
     name = "routine_uv_pin"
     repo_path = Path(repo_path)
     pin, problem = _routine_uv_pin_value(repo_path)
-    if pin is None:
-        return [Finding(name, "fail", problem.replace("|", "/"))]
     routines = repo_path / ".claude" / "routines"
     scripts = sorted(p for p in routines.glob("*.sh") if p.is_file()) if routines.is_dir() else []
+    if pin is None and scripts:
+        return [Finding(name, "fail", problem.replace("|", "/"))]
+    if pin is None:
+        return [_na(name, "SUBJECT-ABSENT", "no repo-hosted routine bootstrap under .claude/routines/")]
     if not scripts:
         return [_na(name, "SUBJECT-ABSENT",
                     "no repo-hosted routine bootstrap under .claude/routines/. "
