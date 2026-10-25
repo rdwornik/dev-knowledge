@@ -90,3 +90,13 @@ def test_the_gate_default_lookup_for_the_lane_worktree_finds_the_repair_receipt(
     assert sg.launch_receipt_problems(tree, SLUG, BATCH) == []
     body = json.loads((tree / "logs" / "receipts" / f"LAUNCH-{SLUG.upper()}.json").read_text(encoding="utf-8"))
     assert body["kind"] == "repair" and body["job_id"] == "faffac9a"
+
+
+def test_a_second_repair_keeps_the_first_launch_and_the_first_repair(tmp_path, repo_root, primary_receipts):
+    contract = _launch(tmp_path, primary_receipts)
+    _repair(tmp_path, repo_root, contract, job="aaaa1111")
+    _repair(tmp_path, repo_root, contract, job="bbbb2222")
+
+    body = json.loads((primary_receipts / f"LAUNCH-{SLUG.upper()}.json").read_text(encoding="utf-8"))
+    assert [(h["job_id"], h["kind"]) for h in body["launches"]] == [("07f32b10", "launch"), ("aaaa1111", "repair")]
+    assert body["job_id"] == "bbbb2222"

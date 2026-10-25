@@ -1429,8 +1429,9 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
         # lane's own worktree reads it.
         prior = read_launch_receipt(request.slug) or {}
         history = list(prior.get("launches") or [])
-        if prior and not history:
-            history = [{**prior, "kind": prior.get("kind", "launch")}]
+        if prior:
+            latest = {k: v for k, v in prior.items() if k != "launches"}
+            history.append({**latest, "kind": latest.get("kind", "launch")})
         receipt["launches"] = history
         if result.worktree:
             _write_json(Path(result.worktree) / "logs" / "receipts" / _receipt_path(request.slug).name, receipt)
