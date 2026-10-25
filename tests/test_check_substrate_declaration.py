@@ -24,10 +24,25 @@ def _repo_with_cloud_contract(tmp_path: Path, *, directory_date: str,
     return tmp_path
 
 
-def test_old_directory_cloud_contract_is_grandfathered(tmp_path):
+def test_undated_cloud_contract_in_an_old_directory_is_refused(tmp_path):
+    """No directory-date grandfather: the directory name never dates a retired-substrate contract."""
     repo = _repo_with_cloud_contract(tmp_path, directory_date="2026-09-06")
     findings = adapter.check_substrate_declaration(repo)
+    refused = [f for f in findings if f.status == "fail" and "cloud" in f.evidence]
+    assert refused, findings
+    assert "date:" in refused[0].evidence, refused[0].evidence
+
+
+def test_dated_cloud_contract_in_an_old_directory_passes(tmp_path):
+    repo = _repo_with_cloud_contract(
+        tmp_path, directory_date="2026-09-06", contract_date="2026-09-06")
+    findings = adapter.check_substrate_declaration(repo)
     assert not [f for f in findings if f.status == "fail"], findings
+
+
+def test_adapter_has_no_directory_date_retired_grandfather():
+    import inspect
+    assert "retired_grandfathered" not in inspect.getsource(adapter)
 
 
 def test_new_directory_cloud_contract_is_refused(tmp_path):
