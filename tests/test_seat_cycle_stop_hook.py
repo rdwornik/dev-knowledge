@@ -24,6 +24,12 @@ import seat_cycle as sc  # noqa: E402
 import seat_registry as sr  # noqa: E402
 import seat_state as ss  # noqa: E402
 
+@pytest.fixture(autouse=True)
+def _no_real_transport(tmp_path, monkeypatch):
+    """The state lookup also tries $CLAUDE_PROMPTS_DIR/to-browser: never the operator's real one."""
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "no-such-transport"))
+
+
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=timezone.utc)
 CONFIG = {"threshold": {"orchestrator": {"context_tokens": 1000, "max_age_hours": 3.0},
                         "integrator": {"context_tokens": 1000, "max_age_hours": 3.0}}}
@@ -268,3 +274,63 @@ def test_batch_close_digest_prints_seat_cycles_without_a_flag(tmp_path, capsys):
     assert rc == 0
     assert "cycles 2" in out and "max context 412000" in out and "(target 0)" in out
     assert "cycles 7" not in out
+
+
+# --- repair 2, second round: findings from the re-review of the fix tip ------------------------------
+
+def test_concurrent_hooks_append_one_crossed_per_session(tmp_path, monkeypatch):
+    """Receipt dedupe is read-then-append: two Stop processes for one session must not both append."""
+    import threading
+    import time
+    _state(tmp_path)
+    reg = tmp_path / "registry.jsonl"
+    _bind(reg, "integrator")
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1",
+               "transcript_path": str(_transcript(tmp_path / "t.jsonl", 5000))}
+    real = Path.exists
+
+    def slow(self):
+        out = real(self)
+        if self.name.startswith("SESSION-"):
+            time.sleep(0.3)          # widen the check -> append window of the receipt dedupe
+        return out
+
+    monkeypatch.setattr(Path, "exists", slow)
+    threads = [threading.Thread(target=sc.stop_check, args=(payload,),
+                                kwargs=dict(registry_path=reg, repo_root=tmp_path, config=CONFIG, now=NOW))
+               for _ in range(2)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    monkeypatch.undo()
+    receipt = (tmp_path / "to-browser" / "SESSION-integrator-b9.md").read_text(encoding="utf-8")
+    assert receipt.count("CROSSED seat=sess-1 ") == 1
+
+
+def test_state_file_on_the_transport_is_found_and_recorded(tmp_path, monkeypatch):
+    """The seat templates' `to-browser/` is the transport; a state file there (none in the checkout) counts."""
+    prompts = tmp_path / "prompts"
+    (prompts / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    path = _state(prompts, "integrator")
+    checkout = tmp_path / "checkout"
+    (checkout / ".git").mkdir(parents=True)
+    reg = tmp_path / "registry.jsonl"
+    _bind(reg, "integrator")
+    payload = {"hook_event_name": "Stop", "session_id": "sess-1",
+               "transcript_path": str(_transcript(tmp_path / "t.jsonl", 5000))}
+    assert sc.stop_check(payload, registry_path=reg, repo_root=checkout, config=CONFIG, now=NOW) == "CROSSED"
+    assert json.loads(path.read_text(encoding="utf-8"))["cycles"] == 1
+    assert "CROSSED seat=sess-1" in (prompts / "to-browser" / "SESSION-integrator-b9.md").read_text(encoding="utf-8")
+    assert not (checkout / "to-browser").exists()
+
+
+def test_batch_close_digest_reads_state_files_on_the_transport(tmp_path, monkeypatch, capsys):
+    prompts = tmp_path / "prompts"
+    (prompts / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    ss.write_state(prompts / "to-browser" / "STATE-b9.json", role="integrator", batch="B9",
+                   base_sha="abc", lanes={}, cycles=3, max_context=300001, compactions=0)
+    rc = ld.main(["--lane", "B9", "--repo", str(tmp_path), "--receipts-dir", str(tmp_path / "r"),
+                  "--costs-file", str(tmp_path / "none.jsonl")])
+    out = capsys.readouterr().out
+    assert rc == 0 and "cycles 3" in out and "max context 300001" in out
