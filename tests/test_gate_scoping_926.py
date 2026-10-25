@@ -232,7 +232,7 @@ def _run_adapter(monkeypatch, repo: Path, rules=(vs.RULE_HEARTBEAT_DEAD,),
     the ADAPTER's question (is this refusal in scope?) and not the receipt's."""
     monkeypatch.setattr(adapter._vsub, "load_registry", lambda _repo: {})
     monkeypatch.setattr(adapter._vsub, "validate_batch", lambda gated, registry: [
-        vs.Refusal(rule=r, source=src, substrate="cloud", detail=f"{r} on {src}")
+        vs.Refusal(rule=r, source=src, substrate="codespace", detail=f"{r} on {src}")
         for src in gated for r in rules])
     monkeypatch.setattr(adapter, "_today", lambda: today)
     return adapter.check_substrate_declaration(repo)
