@@ -1555,7 +1555,7 @@ def _substrates_as_sealed(row, ctx):
     """The live Substrates row with every substrate retired AFTER the bundle's seal date
     (`validate_substrate.RETIRED_SUBSTRATES`) re-added: live count and total +1 each, name in
     sorted position. `ctx.cut_date` None or >= the retirement date leaves the row unchanged."""
-    if ctx.cut_date is None:
+    if ctx.cut_date is None or ctx.cut_sha is None:
         return row
     import validate_substrate as _vs  # noqa: PLC0415
     m = re.fullmatch(r"(\d+)/(\d+) live: (.*)", row.value)

@@ -214,7 +214,7 @@ def _substrate_repo(tmp_path: Path, *, manifest: bool, closed: bool) -> Path:
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "config", "user.email", "t@t.t")
     _git(repo, "config", "user.name", "t")
-    (repo / CONTRACT).write_text("# LANE q-1\n\n**Shape:** `cloud`\n", encoding="utf-8")
+    (repo / CONTRACT).write_text("# LANE q-1\n\n**Shape:** `codespace`\n", encoding="utf-8")
     if manifest:
         (repo / MANIFEST).write_text(
             f"---\nbatch: Q\nstatus: open\nclosed_by: {CLOSER}\n---\n\n# Batch Q\n",
