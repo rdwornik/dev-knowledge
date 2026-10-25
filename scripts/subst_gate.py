@@ -112,7 +112,7 @@ _PHASE_RULES: tuple[tuple[re.Pattern, str, Optional[str]], ...] = (
     (re.compile(r"\bred\b|isolated tests?|write .*tests?"), "red", None),
     (re.compile(r"verify"), "verify", None),
     (re.compile(r"implement"), IMPLEMENT_ROLE, None),
-    (re.compile(r"orchestrat"), HEAD_ROLE, None),
+    (re.compile(r"orchestrat|lane head"), HEAD_ROLE, None),
     (re.compile(r"\bread\b"), "read", "anthropic"),
 )
 
