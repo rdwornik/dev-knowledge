@@ -176,3 +176,42 @@ def test_non_script_file_in_routines_dir_is_not_a_bootstrap(tmp_path: Path) -> N
     _write_routine(tmp_path, "boot.sh", "pip install uv==0.11.19")
     (tmp_path / ".claude" / "routines" / "README.md").write_text("notes\n")
     assert _finding(tmp_path).status == "pass"
+
+
+def test_routine_uv_pin_is_registered_at_commit_tier_in_canonical_order() -> None:
+    from scripts import audit as aud
+    from scripts.audit_checks.registry import CHECK_ORDER
+
+    assert "check_routine_uv_pin" in CHECK_ORDER
+    assert tuple(check.__name__ for check in aud.ALL_CHECKS) == CHECK_ORDER
+    assert sum(check is check_routine_uv_pin for check in aud.ALL_CHECKS) == 1
+    assert aud.tier_of(check_routine_uv_pin) == aud.TIER_COMMIT
+    assert getattr(check_routine_uv_pin, "gate_tier", None) == aud.TIER_COMMIT
+
+
+def test_checks_command_lists_routine_uv_pin() -> None:
+    from click.testing import CliRunner
+
+    from scripts import audit as aud
+
+    result = CliRunner().invoke(aud.cmd_checks)
+    assert result.exit_code == 0, result.output
+    assert any(
+        line.strip().split(" — ", 1)[0].split(". ", 1)[-1] == "routine_uv_pin"
+        for line in result.output.splitlines()
+    ), "audit checks did not list routine_uv_pin"
+
+
+def test_health_reports_absent_routine_uv_pin_on_live_tree() -> None:
+    from click.testing import CliRunner
+
+    from scripts import audit as aud
+
+    repo = Path(aud._REPO_ROOT)
+    assert not list((repo / ".claude" / "routines").glob("*.sh"))
+
+    result = CliRunner().invoke(aud.cmd_health)
+    assert any(
+        line.strip().startswith("[--] routine_uv_pin: [n/a-reason:SUBJECT-ABSENT]")
+        for line in result.output.splitlines()
+    ), "audit health did not report routine_uv_pin as n/a SUBJECT-ABSENT"
