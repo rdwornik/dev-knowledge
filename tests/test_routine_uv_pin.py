@@ -215,3 +215,20 @@ def test_health_reports_absent_routine_uv_pin_on_live_tree() -> None:
         line.strip().startswith("[--] routine_uv_pin: [n/a-reason:SUBJECT-ABSENT]")
         for line in result.output.splitlines()
     ), "audit health did not report routine_uv_pin as n/a SUBJECT-ABSENT"
+
+
+@pytest.mark.parametrize(
+    "pyproject",
+    [None, "[project]\nname = 'example'\n"],
+)
+def test_no_routine_and_no_pyproject_pin_is_na_not_fail(
+    tmp_path: Path, pyproject: str | None
+) -> None:
+    # a fleet/child repo with no routine bootstrap has no subject; it must not FAIL
+    if pyproject is not None:
+        (tmp_path / "pyproject.toml").write_text(pyproject)
+
+    finding = _finding(tmp_path)
+
+    assert finding.status == "n/a"
+    assert finding.evidence.startswith("[n/a-reason:SUBJECT-ABSENT]")
