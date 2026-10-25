@@ -808,7 +808,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1522] [P3][S] LANE-bw-735-reuse-gate.md has no consumer -- its finding is owned or dispositioned · tasks/1522-lane-bw-735-reuse-gate-has-no-consumer.md
 - [#1523] [P3][S] LANE-bw-781-system-map.md has no consumer -- its finding is owned or dispositioned · tasks/1523-lane-bw-781-system-map-has-no-consumer.md
 - [#1524] [P3][S] LANE-bw-893-b2w3-carry.md has no consumer -- its finding is owned or dispositioned · tasks/1524-lane-bw-893-b2w3-carry-has-no-consumer.md
-- [#1525] [P3][S] LANE-bw-912-known-reds-expiry.md has no consumer -- its finding is owned or dispositioned · tasks/1525-lane-bw-912-known-reds-expiry-has-no-consumer.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
 - [#1526] [P3][S] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned · tasks/1526-lane-bw-926-main-red-has-no-consumer.md

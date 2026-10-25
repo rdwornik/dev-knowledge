@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-25 (v) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 2, batch E2.1): lane ci-one-verdict-2 (L2, W1, `[#1525]` closed) -- push-time CI on `main` reuses the same-sha green verdict (FR13 <= 2 suite runs per landing), the bw-912 contract is consumed by a batch-manifest link
+
+**Anchors:** `cef60cedc` (the lane tip: `[#1525]` task-line edit), `052d871de` (review-2 P1 fix: main-push reuse requires the reused run's Windows job when the plan needs Windows), `0f3d820a4` (push-time CI on main reuses the same-sha green verdict), `8283fea20` (bw-912 launch contract consumed by a manifest link)
+
+**Did:** merged `origin/worktree-ci-one-verdict-2` @ `cef60cedc` (10 lane commits on base `c8fd7e08c`, main 18 first-parent merges ahead at `7d70f71bc`; clean merge, 10 files, all in the lane's footprint: `.github/workflows/conductor.yml`, the bw manifest amendment, `ecosystem/audit-consumer-baseline.json`, task 1525, `tests/test_ci_dedupe.py` and `tests/test_conductor.py` pin amendments (DECIDED-BY-OPERATOR R168 vs push-time CI), four new test files). It lands through `land_lane.py --operator-act S4-CIV2` (RATIFICATION-2026-10-25: the missing `-2` LAUNCH receipt is the ratified S4 exception; no model call, no substitution gate). Regenerated `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`; closed `[#1525]` with `gen_task_tree.py --close-row` (evidence `052d871de`; the lane left it open for the integrator).
+
+**Result:** merged-tree tests: the lane set (153 passed) and the regeneration/process-anchor set (345 passed, one `task_tree_coherence` test red on the dirty pre-commit tree only). The judgement of record is the integration-branch run. OPERATOR-ACTION from the lane: amend R168 in `protocols/STANDING_RULINGS.md` (a push to `main` now starts one conductor run that reuses the same-sha green verdict). Once on main this removes the baseline gap that forced scratch `worktree-baseline-<sha>` branches after each M2 landing.
+
+**Changes:** `.github/workflows/conductor.yml`, `docs/audits/2026-10-12-technical-batch-bw-manifest.md`, `ecosystem/audit-consumer-baseline.json`, `tasks/1525-*.md`, `tests/` (4 new, 2 amended), `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, `JOURNAL.md`.
+
+**Next:** the box lanes once their follow-ons hand back; registry-grok-share stays parked to the 2026-11-09 window. After this lands, the first push run of `main` is the W7 witness (`gen_process_diagrams --check` green on a push of main).
+
 ### 2026-10-25 (u) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 2, batch E2.1): lane seat-cycle-fix lands on its own repair-1 receipts: a cycled orchestrator seat now takes its successor model from the registry row `seat-dispatcher` (D9) and is named `<role>-<batch>-cycle-<n>`
 
 **Anchors:** `0ab396f04` (the lane tip: successor model from the seat-dispatcher row, successor named `<role>-<batch>-cycle-<n>`), `3676b43ff` (RED seat-cycle contract tests)
