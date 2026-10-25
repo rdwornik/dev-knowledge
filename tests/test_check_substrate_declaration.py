@@ -90,7 +90,7 @@ _REL = "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-a-1-x.md"
 
 
 def _blob_sha(path: Path) -> str:
-    data = path.read_bytes()
+    data = path.read_bytes().replace(b"\r\n", b"\n")
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 

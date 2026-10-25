@@ -115,6 +115,7 @@ def _blob_sha(path: Path) -> str | None:
         data = path.read_bytes()
     except OSError:
         return None
+    data = data.replace(b"\r\n", b"\n")    # .gitattributes pins eol=lf; a CRLF checkout hashes as its blob
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
