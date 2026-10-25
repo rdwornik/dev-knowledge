@@ -88,7 +88,7 @@ def _registry_with(tmp_path: Path, model: str) -> Path:
     import yaml
     import provider_registry
     data = yaml.safe_load(provider_registry.DEFAULT_REGISTRY_PATH.read_text(encoding="utf-8"))
-    data["roles"]["seat-orchestrator"]["order"][0]["model"] = model
+    data["roles"]["seat-dispatcher"]["order"][0]["model"] = model
     path = tmp_path / "registry.yaml"
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
     return path
@@ -99,7 +99,7 @@ def test_handover_head_row_parses_with_gate_parser_and_matches_registry(tmp_path
     import provider_registry
     text = _handover(tmp_path).read_text(encoding="utf-8")
     model, effort = dispatch.parse_contract_model_effort(text)
-    assert model == provider_registry.anthropic_role_model("seat-orchestrator")
+    assert model == provider_registry.anthropic_role_model("seat-dispatcher")
     assert effort == sc.load_config()["threshold"]["orchestrator"]["effort"]
     assert "| execute |" in text and sc.lint_handover(text) == []
 
@@ -153,8 +153,9 @@ def test_needle_matches_on_identifier_boundaries():
 # ---- review-finding fixes ----------------------------------------------------------------------
 
 import dispatch  # noqa: E402
+import provider_registry  # noqa: E402
 
-ROLE_MODEL = "claude-sonnet-5-5"
+ROLE_MODEL = provider_registry.anthropic_role_model("seat-dispatcher")
 TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "seat-handover-template.md"
 
 

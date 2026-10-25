@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-25 (u) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 2, batch E2.1): lane seat-cycle-fix lands on its own repair-1 receipts: a cycled orchestrator seat now takes its successor model from the registry row `seat-dispatcher` (D9) and is named `<role>-<batch>-cycle-<n>`
+
+**Anchors:** `0ab396f04` (the lane tip: successor model from the seat-dispatcher row, successor named `<role>-<batch>-cycle-<n>`), `3676b43ff` (RED seat-cycle contract tests)
+
+**Did:** merged `origin/worktree-seat-cycle-fix` @ `0ab396f04` onto main `abecec4e4` (2 lane commits, base `c8fd7e08c`, clean, no generated-file conflict; `scripts/seat_cycle.py` and four seat-cycle test files, two of them new). Regenerated `ecosystem/doc-counts.md`. The lane's own tests (`test_seat_cycle*.py`, `test_model_id_single_source.py`) pass here, 60 of 60. It lands as S4-SCF VERIFY-RELAUNCH, not an S4 exception: the substitution gate was run on `SESSION-seat-cycle-fix-repair-1.md`, which carries both Copilot served ids read from the tool's own session logs, and `handback_problems` is empty.
+
+**Result:** `successor_model("orchestrator")` reads `seat-dispatcher` and `successor_model("integrator")` reads `seat-integrator`, so no model literal sits in `scripts/`. The `bound --cycle` value stays the handed-over cycle while the name carries cycle+1; both reviewers flagged that and the lane kept it (DECIDED-BY-LANE).
+
+**Changes:** `scripts/seat_cycle.py`, `tests/test_seat_cycle.py`, `tests/test_seat_cycle_bound.py`, `tests/test_seat_cycle_model_row.py`, `tests/test_seat_cycle_name.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** ci-one-verdict-2 (S4-CIV2), then the box lanes once their follow-ons hand back.
+
 ### 2026-10-25 (t) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane known-reds-extend (P2, `[#1736]` claiming row) lands `known_reds.py extend`, and KR-1 is APPLIED: all 121 known-reds entries expiring 2026-10-31 move to cap 2026-11-09, each with an `extended` record, by code and not by hand (operator ruling KR-1, `RATIFICATION-2026-10-24.md` amendment (b))
 
 **Anchors:** `b4165a5a7` (the lane tip: a re-extension replaces the prior extended record), `bb74922f1` (the ratified, recorded, code-applied extension routine), `989098ef3` (RED tests)
