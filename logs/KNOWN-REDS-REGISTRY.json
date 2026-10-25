@@ -9,54 +9,110 @@
       "attribution": "pre-freeze",
       "task": "[#1347]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_archive_row_body.py::test_every_committed_record_still_proves_out": {
       "attribution": "pre-freeze",
       "task": "[#1347]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
       "attribution": "pre-freeze",
       "task": "[#457]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
     },
     "tests/test_audit.py::test_health_ok_with_registered_repo": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
     },
     "tests/test_audit.py::test_health_stays_ok_with_na_status": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
     },
     "tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
     },
     "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": {
       "attribution": "pre-freeze",
       "task": "[#673]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
     },
     "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
@@ -66,40 +122,82 @@
       },
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set": {
       "attribution": "pre-freeze",
       "task": "[#1348]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent": {
       "attribution": "pre-freeze",
       "task": "[#1347]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
     },
     "tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
     },
     "tests/test_gen_handoff.py::test_filled_waiver_refuses_a_malformed_seats_row": {
@@ -107,20 +205,41 @@
       "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
       "task": "[#1481]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
       "attribution": "pre-freeze",
       "task": "[#664]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
     },
     "tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class": {
@@ -130,7 +249,14 @@
       },
       "task": "[#1343]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "growth": {
         "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
         "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
@@ -143,143 +269,297 @@
       "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
       "attribution": "witness",
       "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
       "attribution": "witness",
       "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
       "attribution": "witness",
       "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
       "task": "[#664]",
       "owner": "[#664]",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
       "attribution": "pre-freeze",
       "task": "[#655]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_logs_retention.py::test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live": {
       "attribution": "pre-freeze",
       "task": "[#655]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect": {
       "attribution": "pre-freeze",
       "task": "[#1348]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation": {
       "attribution": "pre-freeze",
       "task": "[#1348]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
     },
     "tests/test_release_lint.py::test_cli_green_exit_0": {
       "attribution": "pre-freeze",
       "task": "[#1349]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_release_lint.py::test_live_hub_state_is_green": {
       "attribution": "pre-freeze",
       "task": "[#1349]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_release_lint.py::test_live_v120_state_is_green": {
       "attribution": "pre-freeze",
       "task": "[#1349]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_release_lint.py::test_missing_tag_is_warn_not_fail": {
       "attribution": "pre-freeze",
       "task": "[#1349]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_release_lint.py::test_unmutated_copy_is_green": {
       "attribution": "pre-freeze",
       "task": "[#1349]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword": {
       "attribution": "pre-freeze",
       "task": "[#1348]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     },
     "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
       "attribution": "pre-freeze",
       "task": "[#829]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
     },
     "tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins": {
       "attribution": "pre-freeze",
       "task": "[#912]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
     },
     "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
       "attribution": "pre-freeze",
       "task": "[#673]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
     },
     "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
       "attribution": "pre-freeze",
       "task": "[#1022]",
       "owner": "rob",
-      "expiry": "2026-10-31",
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      },
       "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
     }
   },
@@ -297,7 +577,14 @@
       ],
       "task": "[#1020]",
       "owner": "rob",
-      "expiry": "2026-10-31"
+      "expiry": "2026-11-09",
+      "extended": {
+        "ratification_file": "RATIFICATION-2026-10-24.md",
+        "ratification_id": "KR-1",
+        "old_expiry": "2026-10-31",
+        "new_expiry": "2026-11-09",
+        "date": "2026-10-25"
+      }
     }
   },
   "members_by_os": {
@@ -306,21 +593,42 @@
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: no proposals written to host logs/; stderr="
       },
       "tests/test_archive_row_body.py::test_every_committed_record_still_proves_out": {
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 79 == 86"
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
         "task": "[#457]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: live fleet not green: [<LIST>]",
         "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
       },
@@ -328,7 +636,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "assert 1 == 0",
         "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
@@ -336,7 +651,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
@@ -344,7 +666,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -352,7 +681,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'",
         "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
       },
@@ -360,7 +696,14 @@
         "attribution": "pre-freeze",
         "task": "[#673]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed",
         "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
       },
@@ -371,7 +714,14 @@
         },
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -379,21 +729,42 @@
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 4 == 1"
       },
       "tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent": {
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: candidate: pre-push hook 'block-unanchored-push' runs block_unanchored_push ('uv run --locked python scripts/block_unanchored_push.py') | pre-push organ REFUSED an anchored push too (exit 1) — it does not discriminate; a constant refusal enforces nothing"
       },
       "tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -401,7 +772,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]",
         "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
       },
@@ -409,7 +787,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 6 == 5",
         "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
       },
@@ -418,13 +803,27 @@
         "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
         "task": "[#1481]",
         "owner": "rob",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -432,7 +831,14 @@
         "attribution": "pre-freeze",
         "task": "[#664]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
       },
@@ -443,7 +849,14 @@
         },
         "task": "[#1343]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "growth": {
           "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
           "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
@@ -457,48 +870,97 @@
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
         "attribution": "pre-freeze",
         "task": "[#655]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: scripts/logs_retention.py is called by no SessionStart hook -- run_retention() still has no production caller ([#655]), and the tests above call it themselves, which schedules nothing. [#664] named the SessionStart/Stop path that writes the logs it would retain"
       },
       "tests/test_logs_retention.py::test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live": {
         "attribution": "pre-freeze",
         "task": "[#655]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: logs_retention.py now has a trigger and still carries an ORPHAN_DISPOSITIONS entry"
       },
       "tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -506,21 +968,42 @@
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 3 == 1"
       },
       "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation": {
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ['[#577]', '[...'[#592]', ...] == ['[#587]']"
       },
       "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()",
         "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
       },
@@ -528,49 +1011,98 @@
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: release-lint ok   C1-spec: methodology_version 1.1.0 / source_tag v1.1.0 coherent"
       },
       "tests/test_release_lint.py::test_live_hub_state_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_release_lint.py::test_live_v120_state_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_release_lint.py::test_missing_tag_is_warn_not_fail": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert [Finding(chec...<SHA>..')] == []"
       },
       "tests/test_release_lint.py::test_unmutated_copy_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword": {
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 5 == 1"
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
         "task": "[#829]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ['codex'] == ['sol']",
         "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
       },
@@ -578,7 +1110,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -586,7 +1125,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -594,7 +1140,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "assert 1 == 0",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -602,7 +1155,14 @@
         "attribution": "pre-freeze",
         "task": "[#673]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)",
         "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
       },
@@ -610,7 +1170,14 @@
         "attribution": "pre-freeze",
         "task": "[#1022]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: citation regex false-stripped: [<LIST>]",
         "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
       }
@@ -620,21 +1187,42 @@
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: no proposals written to host logs/; stderr="
       },
       "tests/test_archive_row_body.py::test_every_committed_record_still_proves_out": {
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 79 == 86"
       },
       "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
         "attribution": "pre-freeze",
         "task": "[#457]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: live fleet not green: [<LIST>]",
         "disposition": "re-owned 2026-10-15 from [#912]: [#457] (i) owns it (the test asserts raw findings); live WARNs: settings-local-blocks for scope_guard.py / reuse_gate.py / lane_handback_gate.py and four undeclared .claude/commands files (ecosystem/parity-surfaces.yaml)."
       },
@@ -642,7 +1230,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "assert 1 == 0",
         "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
@@ -650,7 +1245,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: the live audit.py health FAILs on canonical_freshness (CLAUDE.md last_reviewed 2026-10-05 predates its 2026-10-13 edit) and on handoff_probes (live wedged/starved seats the cut did not name) -- both read live state."
       },
@@ -658,7 +1260,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -666,7 +1275,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 'ungated-and-unstamped' in 'derived gated-and-stale: 1 - ARCHITECTURE.md (declared 2026-04-01 [frontmatter] -> derived 2026-05-01, +30d) -- full ...cols/PLAYBOOK.md (declared 2026-01-01 [frontmatter] -> derived 2026-05-01, +120d) -- full rows: audit.py doc-freshness'",
         "disposition": "ROWS-OWED: scripts/audit.py:1424-1432 reports the unstamped class only for docs sharing a directory with the gated set; the test's unstamped doc protocols/README.md is outside its patched root-only set (tests/test_canonical_docs.py:553,826)."
       },
@@ -674,7 +1290,14 @@
         "attribution": "pre-freeze",
         "task": "[#673]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the stamp - a real event that should be seen, not absorbed",
         "disposition": "re-owned 2026-10-15 from [#912]: [#673] names this test; cause: the test pins a live-git freshness class that every PLAYBOOK content commit after its prose stamp turns stale (tests/test_canonical_docs.py:773)."
       },
@@ -685,7 +1308,14 @@
         },
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ('lane-zz-occupancy-witness-<N>' in 'ERROR `claude` is not on PATH -- the live-session leg cannot be read')",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -693,21 +1323,42 @@
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 4 == 1"
       },
       "tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent": {
         "attribution": "pre-freeze",
         "task": "[#1347]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: candidate: pre-push hook 'block-unanchored-push' runs block_unanchored_push ('uv run --locked python scripts/block_unanchored_push.py') | pre-push organ REFUSED an anchored push too (exit 1) � it does not discriminate; a constant refusal enforces nothing"
       },
       "tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: the export is read by governance: scripts/graph_queries.py references 'export_backlog_view'; ecosystem/harness.yaml references 'export_backlog_view'",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -715,7 +1366,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: the committed baseline must produce a clean verdict on the tree it was measured from: [<LIST>]",
         "disposition": "ROWS-OWED (lane-bu-863-prompts-guard 2026-10-15): 269 audits since 2026-09-01 carry no disposition and are not in ecosystem/audit-funnel-baseline.json (scripts/funnel_coverage.py:670-675); disposition them or re-stamp the baseline under review."
       },
@@ -723,7 +1381,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 6 == 5",
         "disposition": "ROWS-OWED: the stub bundle 0000-00-00-epic-t is unparseable, so scripts/verify_handoff_probes.py:167-173 reads it in-era and adds a failing P11 row the epic template lacks (tests/test_gen_handoff.py:788,834)."
       },
@@ -732,13 +1397,27 @@
         "reason": "[#1481] non-hermetic test, cause shown: tests/test_gen_handoff.py:600-609 never pins the live readers that its sibling pins at :594, so test_filled_waiver_refuses_a_malformed_seats_row reads live `gh` at the cut and fails when `gh` is unauthenticated (`gh exited 4: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN`: the BD-ci refusal comes back where the test expects BD-seats). Evidence: red on the windows leg of main push run 37984981579 (integration branch worktree-integrate-b2-w2, aaf43867; the ubuntu leg of that run passed it) and in the B2-W2 integrator's paired local runs; green on windows leg of run 37839948936 (3 attempts). Registered by seat ruling S-34 P-L2-4 (b2w3-red-burn-down); the hermetic fix is a follow-on after b2w2-boot-teaching merges (that lane owns tests/test_gen_handoff.py). No signature: the live text carries the cut's sha and gh's stderr, which differ per run.",
         "task": "[#1481]",
         "owner": "rob",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 'primary + ' in '- worktrees: primary only'",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -746,7 +1425,14 @@
         "attribution": "pre-freeze",
         "task": "[#664]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: [<LIST>]",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch"
       },
@@ -757,7 +1443,14 @@
         },
         "task": "[#1343]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "growth": {
           "from": ".claude/skills/aj-scan/SKILL.md (first orphan named at the registry measurement)",
           "to": ".claude/commands/decide.md (first orphan named at 2e7fa5f2)",
@@ -771,48 +1464,97 @@
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
         "attribution": "witness",
         "reason": "R98 (operator, RATIFICATION-2026-10-13 v2): re-dated 2026-10-17 -> 2026-10-31; [#664] its fix is owed in the next batch. Prior reason: [#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise",
         "task": "[#664]",
         "owner": "[#664]",
-        "expiry": "2026-10-31"
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        }
       },
       "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
         "attribution": "pre-freeze",
         "task": "[#655]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: scripts/logs_retention.py is called by no SessionStart hook -- run_retention() still has no production caller ([#655]), and the tests above call it themselves, which schedules nothing. [#664] named the SessionStart/Stop path that writes the logs it would retain"
       },
       "tests/test_logs_retention.py::test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live": {
         "attribution": "pre-freeze",
         "task": "[#655]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: logs_retention.py now has a trigger and still carries an ORPHAN_DISPOSITIONS entry"
       },
       "tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...}) is frozenset({'census', 'changelog-review', 'codex', 'conformance-nightly-digest', 'ecosystem-audit', 'fresh-eyes', ...})",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -820,21 +1562,42 @@
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 3 == 1"
       },
       "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation": {
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ['[#577]', '[...'[#592]', ...] == ['[#587]']"
       },
       "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert {'test_batch_...ble_sha', ...} == set()",
         "disposition": "ROWS-OWED: ecosystem/proof-layer-baseline.json (armed 2026-08-27) lists 243 skipif guards; the live scan finds 354 -- move the properties out from behind the guards or re-arm the baseline under review (scripts/proof_layer.py:540-557)."
       },
@@ -842,49 +1605,98 @@
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: release-lint ok   C1-spec: methodology_version 1.1.0 / source_tag v1.1.0 coherent"
       },
       "tests/test_release_lint.py::test_live_hub_state_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_release_lint.py::test_live_v120_state_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_release_lint.py::test_missing_tag_is_warn_not_fail": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert [Finding(chec...<SHA>..')] == []"
       },
       "tests/test_release_lint.py::test_unmutated_copy_is_green": {
         "attribution": "pre-freeze",
         "task": "[#1349]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: [<LIST>]"
       },
       "tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword": {
         "attribution": "pre-freeze",
         "task": "[#1348]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert 5 == 1"
       },
       "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
         "attribution": "pre-freeze",
         "task": "[#829]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: assert ['codex'] == ['sol']",
         "disposition": "re-owned 2026-10-15 from [#912]: [#829] is this exact red; cause: ecosystem/routing-table.yaml rebound adversarial sol -> codex (5be038ff) and the test still asserts ['sol'] (tests/test_routing_agreement.py:109)."
       },
@@ -892,7 +1704,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -900,7 +1719,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: operational:",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -908,7 +1734,14 @@
         "attribution": "pre-freeze",
         "task": "[#912]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "assert 1 == 0",
         "disposition": "ROWS-OWED: green on the operator's box 2026-10-15 (lane-bu-863-prompts-guard run of the [#912] set), red on CI -- the test reads machine state CI lacks (ecosystem repo registration, claude on PATH, live lane worktrees) or, for test_export_backlog_view, the registry signature predates its 2026-10-14 rewrite (5ed99872); needs a CI-environment owner row."
       },
@@ -916,7 +1749,14 @@
         "attribution": "pre-freeze",
         "task": "[#673]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: R6 unbuilt: `--repo-root` + `--cross-repo` rejected (rc=1)",
         "disposition": "re-owned 2026-10-15 from [#912] (lane-bu-863-prompts-guard): [#673] names this test; cause: the fixture's empty PROBES.md is refused since 274dd38c ([#643]) -- the fixture needs one valid row (tests/test_v6_frozen_contract.py:267)."
       },
@@ -924,7 +1764,14 @@
         "attribution": "pre-freeze",
         "task": "[#1022]",
         "owner": "rob",
-        "expiry": "2026-10-31",
+        "expiry": "2026-11-09",
+        "extended": {
+          "ratification_file": "RATIFICATION-2026-10-24.md",
+          "ratification_id": "KR-1",
+          "old_expiry": "2026-10-31",
+          "new_expiry": "2026-11-09",
+          "date": "2026-10-25"
+        },
         "signature": "AssertionError: citation regex false-stripped: [<LIST>]",
         "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
       }
