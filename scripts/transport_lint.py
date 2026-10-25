@@ -40,6 +40,12 @@ WHAT IT CHECKS (each finding has a code and a reason):
         writes the inventory (`transport.py inventory --write` does); no readable inventory fails
         closed (every file counts as new).
 
+  no-owed / owed-no-decision-ids                   -- H-Q6 (RATIFICATION-2026-10-24, `[#1640]`): a
+        DIGEST, DIGEST-CAPABILITY-MAP or FINDING `.md` carries a flush-left `owed:` list whose
+        value is `none` or names a decision id (`decision_id_tokens`). Refused for a new file;
+        reported (`level=report`) for a pre-existing or edited one. Era-bounded: only a file
+        whose name is dated on or after `OWED_RULE_FROM`.
+
 It checks SHAPE, never resolution: that the named home exists on `main` is `gen_handoff`'s P11
 row, which needs the repository; a file may name a home that lands in the same merge.
 
@@ -199,6 +205,56 @@ def _by_findings(name: str, kind, text: str, cls, refuse_by: Optional[bool]) -> 
                     f"`by:` in its first {BY_HEAD_LINES} lines", "report")]
 
 
+#: H-Q6 (RATIFICATION-2026-10-24): an `owed:` list names decision ids, never prose.
+_DECISION_ID_RE = re.compile(r"\b(?:R\d+|K\d+|D\d+|H-Q\d+|H-L\d+|H-P\d+|H\d+)\b")
+_OWED_KINDS = ("DIGEST", "DIGEST_CAPABILITY_MAP", "FINDING")
+#: The rule binds files dated on or after the ruling; an earlier-dated name is out of its era.
+OWED_RULE_FROM = "2026-10-24"
+_NAME_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})(?!.*\d{4}-\d{2}-\d{2})")
+
+
+def _owed_rule_applies(name: str) -> bool:
+    m = _NAME_DATE_RE.search(name)
+    return m is not None and m.group(1) >= OWED_RULE_FROM
+
+
+def decision_id_tokens(text: str) -> list[str]:
+    """Decision ids in `text`, in first-seen order, de-duplicated."""
+    return list(dict.fromkeys(_DECISION_ID_RE.findall(text)))
+
+
+def _owed_value(text: str) -> str:
+    """The value of a flush-left `owed:` key: the rest of its line plus any indented or list
+    continuation lines. Empty when the key is absent or has no value."""
+    lines = text.lstrip("\ufeff").splitlines()
+    for i, line in enumerate(lines):
+        if not line.startswith("owed:"):
+            continue
+        parts = [line[len("owed:"):].strip()]
+        for nxt in lines[i + 1:]:
+            if nxt[:1] in (" ", "\t") or nxt.startswith(("- ", "* ")):
+                parts.append(nxt.strip())
+            else:
+                break
+        return " ".join(p for p in parts if p)
+    return ""
+
+
+def _owed_findings(name: str, text: str, cls) -> list[Finding]:
+    value = _owed_value(text)
+    if value and (value.lower() == "none" or decision_id_tokens(value)):
+        return []
+    if value:
+        code, reason = ("owed-no-decision-ids",
+                        "the `owed:` list is neither `none` nor names a decision id (R<n>, K<n>, D<n>, H-Q<n>...)")
+    else:
+        code, reason = ("no-owed",
+                        "a lane-written digest or FINDING carries a flush-left `owed:` list with a value "
+                        "(decision ids, or `none`)")
+    cls = cls() if callable(cls) else (cls or "new")
+    return [Finding(name, code, reason, "refuse" if cls == "new" else "report")]
+
+
 def lint_entry(name: str, folder: str, read_text: Callable[[], str],
                registry: Optional[list] = None, *, require_by: bool = False,
                file_class: "Optional[str | Callable[[], str]]" = None,
@@ -240,6 +296,8 @@ def lint_entry(name: str, folder: str, read_text: Callable[[], str],
             findings.append(Finding(name, "lane-contract-no-r59-proof",
                 "the close-out names no served model id and no nonce or content-hash proof of "
                 "read (R59): a review record without both reads as a failed read"))
+    if kind is not None and kind.name in _OWED_KINDS and name.endswith(".md") and _owed_rule_applies(name):
+        findings.extend(_owed_findings(name, body(), file_class))
     if require_by and kind is not None and name.endswith(".md"):
         findings.extend(_by_findings(name, kind, body(), file_class, refuse_by))
     return findings

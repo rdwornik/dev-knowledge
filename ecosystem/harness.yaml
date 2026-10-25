@@ -106,6 +106,7 @@ moments:
 # and narrows nothing, and no organ is dropped from the roster. The reasons cite `ORPHAN_DISPOSITIONS`
 # (scripts/graph_queries.py) where the census already ruled on the same absence.
 fates:
+  - {path: scripts/handoff_intake.py, manual_until: 2026-11-09, reason: "run by the handoff cut (gen_handoff.py --intake) and the KPI step, H-Q1/H-Q5 of RATIFICATION-2026-10-24; no moment binds the handoff process yet (H-Q4 'not yet bound'); lane l12-acceptance, [#1640]"}
   - {path: .claude/commands/boot-session.md, manual_until: 2026-11-23, reason: "on-demand by the operator (act: sitting); no event fires a command (ORPHAN_DISPOSITIONS) -- E1 fates digest 2026-10-19: ROW [#1375], target 2026-11-23"}
   - {path: .claude/commands/changelog-review.md, manual_until: 2026-11-23, reason: "push trigger only: a SessionStart sentinel nudges it and a nudge is not a trigger (ORPHAN_DISPOSITIONS, V+1 list) -- E1 fates digest 2026-10-19: ROW [#1375], target 2026-11-23"}
   - {path: .claude/commands/decide.md, manual_until: 2026-11-23, reason: "LANE-5B4-12's second new organ (the script's own fates line is ruling (a)'s one; this lane's Done-contract also names the command, and leaving it unrecorded reds test_the_fates_cover_every_organ_the_census_names, same shape as the aj-scan skill precedent): on-demand by the operator (R14 -- a structural decision is run through the system on request, not on an automated trigger; ORPHAN_DISPOSITIONS) -- E1 fates digest 2026-10-19: ROW [#1375], target 2026-11-23"}
