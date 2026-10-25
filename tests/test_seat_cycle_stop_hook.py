@@ -116,19 +116,21 @@ def test_hook_never_blocks_or_continues(tmp_path):
     reg_home = tmp_path / "home"
     (reg_home / ".claude").mkdir(parents=True)
     _state(tmp_path)
-    transcript = _transcript(tmp_path / "t.jsonl", 99999)
+    transcript = _transcript(tmp_path / "t.jsonl", 999999)   # over the real 300000 threshold
     reg = reg_home / ".claude" / "seat-registry.jsonl"
     _bind(reg, "integrator")
     env = {**os.environ, "HOME": str(reg_home), "USERPROFILE": str(reg_home),
-           "CLAUDE_CODE_SESSION_ATTENDED": "1", "SEAT_CYCLE_REPO_ROOT": str(tmp_path)}
+           "SEAT_CYCLE_REPO_ROOT": str(tmp_path)}
+    env.pop("CLAUDE_CODE_SESSION_ATTENDED", None)   # the unrelated hygiene nudge stays silent
     payload = {"hook_event_name": "Stop", "session_id": "sess-1", "stop_hook_active": False,
                "transcript_path": str(transcript), "cwd": str(tmp_path)}
     done = subprocess.run([sys.executable, str(SCRIPTS / "session_end_backpressure.py")],
                           input=json.dumps(payload), capture_output=True, text=True, env=env,
                           cwd=str(tmp_path), timeout=15)
-    assert done.returncode == 0
-    for marker in ('"decision"', "additionalContext", "block"):
-        assert marker not in done.stdout
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == ""
+    state = json.loads((tmp_path / "to-browser" / "STATE-b9.json").read_text(encoding="utf-8"))
+    assert state["cycles"] == 1, done.stderr          # ... and yet the CROSSED was recorded
 
 
 # --- state fields -----------------------------------------------------------------------------

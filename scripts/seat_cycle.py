@@ -427,6 +427,96 @@ def cycle(seat: str, *, role: str, transcript: Path, bound_age_hours: float, con
                        verdict=verdict)
 
 
+# --- the Stop leg ([#1636]) -------------------------------------------------------------------------
+# The Stop hook calls `stop_check` every turn. It only RECORDS: a CROSSED line in the seat's state file
+# and receipt, read by the seat at its next wake (a no-merge point). It returns a string for the caller
+# and prints nothing -- a Stop hook that asks the model to continue cost +45k tokens per start ([#1700]).
+
+# registry role -> (cycle role, state-file suffix)
+_STOP_ROLES = {"dispatcher": ("orchestrator", "-dispatcher"), "integrator": ("integrator", "")}
+
+
+def transcript_stats(transcript: Path) -> tuple[int, int]:
+    """(context tokens, compaction count) from ONE read of the transcript."""
+    try:
+        lines = Path(transcript).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return 0, 0
+    tokens, compactions = 0, 0
+    for line in lines:
+        if '"isCompactSummary"' in line:
+            try:
+                if json.loads(line).get("isCompactSummary") is True:
+                    compactions += 1
+            except (json.JSONDecodeError, AttributeError):
+                pass
+    for line in reversed(lines):
+        if '"usage"' not in line:
+            continue
+        try:
+            usage = (json.loads(line).get("message") or {}).get("usage")
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        if isinstance(usage, dict):
+            tokens = sum(int(usage.get(k) or 0) for k in
+                         ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+            break
+    return tokens, compactions
+
+
+def _bound_seat(session_id: str, registry_path: Optional[Path]) -> Optional[dict]:
+    """The session's LATEST bind row, unless an unbind followed it."""
+    import seat_registry
+    seat: Optional[dict] = None
+    for row in seat_registry.read_rows(registry_path):
+        if row.get("session_id") != session_id:
+            continue
+        if row.get("kind") == "bind":
+            seat = row
+        elif row.get("kind") == "unbind":
+            seat = None
+    return seat
+
+
+def stop_check(payload: dict[str, Any], *, registry_path: Optional[Path] = None,
+               repo_root: Optional[Path] = None, config: Optional[dict[str, Any]] = None,
+               now: Optional[Any] = None) -> Optional[str]:
+    """None for any seat that is not a bound orchestrator/integrator; else "OK" or "CROSSED"."""
+    from datetime import datetime, timezone
+    session = str(payload.get("session_id") or "")
+    if not session:
+        return None
+    bound = _bound_seat(session, registry_path)
+    mapped = _STOP_ROLES.get(str((bound or {}).get("role")))
+    if not bound or not mapped:
+        return None
+    role, suffix = mapped
+    root = Path(repo_root or payload.get("cwd") or Path.cwd())
+    tokens, compactions = transcript_stats(Path(str(payload.get("transcript_path") or "")))
+    moment = now or datetime.now(timezone.utc)
+    age_hours = (moment - datetime.fromisoformat(str(bound["ts"]))).total_seconds() / 3600.0
+    crossed = threshold_crossed(role, tokens=tokens, age_hours=age_hours,
+                                config=config if config is not None else load_config())
+    slug = re.sub(r"[^a-z0-9]+", "-", str(bound.get("batch") or "").lower()).strip("-")
+    folder = root / "to-browser"
+    line = None
+    if crossed:
+        line = (f"CROSSED seat={session} role={role} tokens={tokens} age_hours={age_hours:.2f} "
+                f"ts={moment.isoformat(timespec='seconds')}")
+    import seat_state
+    seat_state.update_counters(folder / f"STATE-{slug}{suffix}.json", max_context=tokens,
+                               compactions=compactions, crossed_line=line)
+    if line:
+        receipt = folder / f"SESSION-{bound['role']}-{slug}.md"
+        # one CROSSED per seat session: the state file is the dedupe key when it exists, else the receipt
+        seen = receipt.read_text(encoding="utf-8", errors="replace") if receipt.exists() else ""
+        if f"CROSSED seat={session} " not in seen:
+            folder.mkdir(parents=True, exist_ok=True)
+            with receipt.open("a", encoding="utf-8", newline="\n") as fh:
+                fh.write(("" if not seen or seen.endswith("\n") else "\n") + line + "\n")
+    return "CROSSED" if crossed else "OK"
+
+
 @click.group(help="Seat cycling (R179): hand a seat over to a fresh successor at a threshold.")
 def cli() -> None:                                           # pragma: no cover -- click plumbing
     pass

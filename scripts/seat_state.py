@@ -74,7 +74,7 @@ import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Sequence
 
 import click
 
@@ -145,6 +145,13 @@ class SeatStateFile:
     written_ts: str
     written_by: str
     lanes: dict[str, LaneRow] = field(default_factory=dict)
+    #: Cycle bookkeeping ([#1636]), written by the Stop hook through `seat_cycle.stop_check`:
+    #: threshold crossings, the highest context seen, `isCompactSummary` records (target 0), and
+    #: the CROSSED lines themselves. Absent in a file written before the fields existed -> 0.
+    cycles: int = 0
+    max_context: int = 0
+    compactions: int = 0
+    crossed: list[str] = field(default_factory=list)
 
     def in_flight(self) -> list[str]:
         """The lanes a fresh session still has to act on -- `QUEUED` or `IN-FLIGHT` -- sorted so
@@ -159,7 +166,9 @@ class SeatStateFile:
         return {"schema": SCHEMA, "role": self.role, "batch": self.batch,
                 "base_sha": self.base_sha, "written_ts": self.written_ts,
                 "written_by": self.written_by,
-                "lanes": {lane: row.to_dict() for lane, row in self.lanes.items()}}
+                "lanes": {lane: row.to_dict() for lane, row in self.lanes.items()},
+                "cycles": self.cycles, "max_context": self.max_context,
+                "compactions": self.compactions, "crossed": list(self.crossed)}
 
 
 def _now() -> str:
@@ -192,7 +201,9 @@ def _validate_lane(lane: str, row: object) -> LaneRow:
 
 
 def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Mapping],
-                written_by: str = "", now: Optional[str] = None) -> SeatStateFile:
+                written_by: str = "", now: Optional[str] = None, cycles: int = 0,
+                max_context: int = 0, compactions: int = 0,
+                crossed: Sequence[str] = ()) -> SeatStateFile:
     """Validate inputs and assemble a `SeatStateFile`, without touching disk. Split out of
     `write_state` so a caller (and a test) can build one in memory."""
     if role not in ROLES:
@@ -203,18 +214,27 @@ def build_state(*, role: str, batch: str, base_sha: str, lanes: Mapping[str, Map
         raise SeatStateError("a state file names no base_sha")
     validated = {lane: _validate_lane(lane, row) for lane, row in lanes.items()}
     return SeatStateFile(role=role, batch=str(batch).upper(), base_sha=base_sha,
-                         written_ts=now or _now(), written_by=written_by, lanes=validated)
+                         written_ts=now or _now(), written_by=written_by, lanes=validated,
+                         cycles=cycles, max_context=max_context, compactions=compactions,
+                         crossed=list(crossed))
 
 
 def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapping[str, Mapping],
-                written_by: str = "", now: Optional[str] = None) -> SeatStateFile:
+                written_by: str = "", now: Optional[str] = None, cycles: Optional[int] = None,
+                max_context: Optional[int] = None, compactions: Optional[int] = None,
+                crossed: Optional[Sequence[str]] = None) -> SeatStateFile:
     """Build and write the state file, ATOMICALLY: a temp file in the same directory, then
     `os.replace` -- a crash mid-write leaves the previous file intact rather than a half-written
     one, which is the module's own defence against manufacturing the torn file `read_state`
     exists to refuse."""
-    state = build_state(role=role, batch=batch, base_sha=base_sha, lanes=lanes,
-                        written_by=written_by, now=now)
     path = Path(path)
+    kept = _read_counters(path)           # a by-hand rewrite must not erase the hook's bookkeeping
+    state = build_state(role=role, batch=batch, base_sha=base_sha, lanes=lanes,
+                        written_by=written_by, now=now,
+                        cycles=kept["cycles"] if cycles is None else cycles,
+                        max_context=kept["max_context"] if max_context is None else max_context,
+                        compactions=kept["compactions"] if compactions is None else compactions,
+                        crossed=kept["crossed"] if crossed is None else crossed)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
     try:
@@ -225,6 +245,79 @@ def write_state(path: Path, *, role: str, batch: str, base_sha: str, lanes: Mapp
     finally:
         Path(tmp_name).unlink(missing_ok=True)
     return state
+
+
+def _read_counters(path: Path) -> dict:
+    """The cycle fields of an existing file, tolerant: unreadable, torn or old -> zeros. Staleness is
+    deliberately not checked -- these are history, not a belief about what is open."""
+    out: dict = {"cycles": 0, "max_context": 0, "compactions": 0, "crossed": []}
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return out
+    if not isinstance(data, Mapping):
+        return out
+    for key in ("cycles", "max_context", "compactions"):
+        try:
+            out[key] = int(data.get(key) or 0)
+        except (TypeError, ValueError):
+            pass
+    crossed = data.get("crossed")
+    if isinstance(crossed, list):
+        out["crossed"] = [str(x) for x in crossed]
+    return out
+
+
+def load_counters(path: Path) -> SeatStateFile:
+    """A state file for REPORTING (the batch-close digest): identity plus the counters, with no
+    staleness refusal -- a closed batch's file is old by definition. Lanes are not validated."""
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SeatStateError(f"no readable state file at {path}: {exc!r}") from exc
+    if not isinstance(data, Mapping) or data.get("schema") != SCHEMA:
+        raise SeatStateError(f"{path} is not a {SCHEMA} file")
+    return SeatStateFile(role=str(data.get("role") or ""), batch=str(data.get("batch") or ""),
+                         base_sha=str(data.get("base_sha") or ""),
+                         written_ts=str(data.get("written_ts") or ""),
+                         written_by=str(data.get("written_by") or ""), **_read_counters(path))
+
+
+def update_counters(path: Path, *, max_context: int = 0, compactions: int = 0,
+                    crossed_line: Optional[str] = None) -> bool:
+    """The Stop hook's write ([#1636]): raise `max_context`/`compactions` to the observed values and,
+    given a CROSSED line not yet recorded, append it and bump `cycles`. Touches ONLY the cycle
+    fields of an EXISTING file (never fabricates a state, never moves `written_ts`, the staleness
+    clock of the lane rows). Atomic. True when the file changed."""
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    if not isinstance(data, dict) or data.get("schema") != SCHEMA:
+        return False
+    kept = _read_counters(path)
+    new = dict(kept)
+    new["max_context"] = max(kept["max_context"], int(max_context))
+    new["compactions"] = max(kept["compactions"], int(compactions))
+    # one CROSSED per seat session: the line's `seat=<id>` prefix is the dedupe key (tokens/age vary)
+    key = " ".join(crossed_line.split()[:2]) + " " if crossed_line else None
+    if crossed_line and not any(x.startswith(key) for x in kept["crossed"]):
+        new["crossed"] = kept["crossed"] + [crossed_line]
+        new["cycles"] = kept["cycles"] + 1
+    if new == kept:
+        return False
+    data.update(new)
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(data, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+        os.replace(tmp_name, path)
+    finally:
+        Path(tmp_name).unlink(missing_ok=True)
+    return True
 
 
 #: A file nobody has written to for longer than this is STALE, not merely old. Chosen as a margin
@@ -280,7 +373,7 @@ def read_state(path: Path, *, now: Optional[datetime] = None,
     lanes = {lane: _validate_lane(lane, row) for lane, row in raw_lanes.items()}
     return SeatStateFile(role=str(role), batch=str(batch), base_sha=str(base_sha),
                          written_ts=str(written_ts), written_by=str(data.get("written_by") or ""),
-                         lanes=lanes)
+                         lanes=lanes, **_read_counters(path))
 
 
 # ============================================================================================ CLI

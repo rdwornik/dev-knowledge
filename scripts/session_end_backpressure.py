@@ -575,6 +575,21 @@ def _record_seat_stop(data: dict) -> None:
         pass
 
 
+def _record_seat_cycle(data: dict) -> None:
+    """`[#1636]`: the seat-cycle Stop leg. For a bound orchestrator/integrator seat it records
+    CROSSED (state file + receipt) when the R179 threshold is crossed; every other session is a
+    no-op. Prints nothing and never blocks or asks the model to continue ([#1700]). Fail-soft."""
+    try:
+        try:
+            import seat_cycle  # noqa: PLC0415
+        except ImportError:
+            from scripts import seat_cycle  # type: ignore[no-redef]  # noqa: PLC0415
+        root = os.environ.get("SEAT_CYCLE_REPO_ROOT")
+        seat_cycle.stop_check(data, repo_root=Path(root) if root else None)
+    except Exception as exc:  # noqa: BLE001 -- a recorder never blocks a turn ending, but says so
+        print(f"session_end_backpressure: seat-cycle leg DEGRADED ({exc!r})", file=sys.stderr)
+
+
 def _is_provably_interactive() -> bool:
     return os.environ.get("CLAUDE_CODE_SESSION_ATTENDED") == "1"
 
@@ -610,6 +625,7 @@ def main() -> int:
         # made non-silent by the audit backstop.
         data = _read_hook_input()
         _record_seat_stop(data)
+        _record_seat_cycle(data)
         # No hard block. additionalContext "continues the conversation" (CC v2.1.163), so a
         # standalone advisory on a PERSISTENT condition would keep the turn going every retry
         # -> the block-cap auto-overrides (the bypass ADR-85 forbids). Surface advisory

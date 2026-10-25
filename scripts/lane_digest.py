@@ -59,7 +59,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 try:  # pragma: no cover -- whichever entry point the caller uses (package mode vs script)
     from scripts import transport_report as _tr
@@ -162,7 +162,14 @@ def ci_red_line(ci_red: Optional[dict]) -> Optional[str]:
             f"({ci_red.get('url', '?')})")
 
 
-def render_digest(lanes: Sequence[LaneInput], *, ci_red: Optional[dict] = None) -> str:
+def seat_cycle_lines(seat_states: Sequence[Any]) -> list[str]:
+    """[#1636] one line per seat state file: cycles / max context / compactions (target 0)."""
+    return [f"- {s.role} {s.batch}: cycles {s.cycles} · max context {s.max_context} · "
+            f"compactions {s.compactions} (target 0)" for s in seat_states]
+
+
+def render_digest(lanes: Sequence[LaneInput], *, ci_red: Optional[dict] = None,
+                  seat_states: Sequence[Any] = ()) -> str:
     tally = verdicts(lanes)
     counts = {v: sum(1 for x in tally.values() if x == v)
               for v in (VERDICT_CLEAN, VERDICT_ATTENTION, VERDICT_INCOMPLETE)}
@@ -172,6 +179,8 @@ def render_digest(lanes: Sequence[LaneInput], *, ci_red: Optional[dict] = None) 
         out += [line, ""]
     out += [f"{counts[VERDICT_CLEAN]} finished clean, {counts[VERDICT_ATTENTION]} need attention, "
            f"{counts[VERDICT_INCOMPLETE]} incomplete.", ""]
+    if seat_states:
+        out += ["Seat cycles:"] + seat_cycle_lines(seat_states) + [""]
     for lane in lanes:
         items = open_items(lane)
         out += [f"## {lane.name} -- {tally[lane.name]}", ""]
@@ -486,6 +495,9 @@ def _parser() -> argparse.ArgumentParser:
                    help="a JSON file written by `ci_red_age.py --out-json` (since/hours/sha/url, "
                         "or a literal `null`); its OPERATOR-ACTION line renders at batch close "
                         "when main has been red past ci_red_age.RED_AGE_THRESHOLD_H")
+    p.add_argument("--seat-state", action="append", default=None,
+                   help="[#1636] a seat state file (to-browser/STATE-*.json); repeatable. Its cycles / "
+                        "max context / compactions (target 0) print in a Seat cycles section")
     p.add_argument("--manifest", default=None,
                    help="[#1368] the section-4 rollup: a batch manifest whose lanes table names the "
                         "expected lanes; each one's LANE-END-<lane>.md is read under --reports-root "
@@ -543,7 +555,13 @@ def main(argv: Optional[list[str]] = None) -> int:
                 ci_red = json.loads(Path(args.ci_red_json).read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 ci_red = None  # an unreadable file says nothing, same posture as load_costs
-        sys.stdout.write(render_digest(lanes, ci_red=ci_red))
+        seat_states = []
+        for raw in args.seat_state or []:
+            try:
+                seat_states.append(_sibling("seat_state").load_counters(Path(raw)))
+            except Exception:  # noqa: BLE001 -- an unreadable seat file says nothing, like load_costs
+                continue
+        sys.stdout.write(render_digest(lanes, ci_red=ci_red, seat_states=seat_states))
         return EXIT_OK
     except BaseException as exc:  # noqa: BLE001 -- a digest must never raise out of a Stop hook
         print(f"lane_digest: {type(exc).__name__}: {exc}", file=sys.stderr)
