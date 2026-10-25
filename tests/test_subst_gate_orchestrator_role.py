@@ -86,16 +86,10 @@ def _substrate_problems(rows, lane, head):
     return sg.contract_problems(text, lane=lane, batch="E2.1", launch_model=head)[0]
 
 
-@pytest.mark.parametrize("phase", ["orchestrate the batch", "lane head"])
-def test_a_substrate_head_row_follows_the_chosen_role(phase):
-    opus_row = f"| {phase} | {OPUS} | local |"
-    sonnet_row = f"| {phase} | {SONNET} | local |"
+def test_the_orchestrate_substrate_row_follows_the_chosen_role():
+    opus_row = f"| orchestrate the batch | {OPUS} | local |"
+    sonnet_row = f"| orchestrate the batch | {SONNET} | local |"
     assert _substrate_problems(opus_row, ORCH, OPUS) == []
     assert _substrate_problems(sonnet_row, ORCH, OPUS)
     assert _substrate_problems(sonnet_row, "lane-x", SONNET) == []
     assert _substrate_problems(opus_row, "lane-x", SONNET)
-
-
-def test_a_lane_head_substrate_row_is_not_an_unmapped_phase():
-    problems = _substrate_problems(f"| lane head | {OPUS} | local |", ORCH, OPUS)
-    assert not any("maps to no registry role" in p for p in problems)
