@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-25 (x) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 6, batch E2.1): lane repair-launch-receipt lands under operator ruling RLR-1 -- a repair launch now keeps the first launch and every earlier repair in a `launches` history and writes the receipt where the substitution gate looks for it
+
+**Anchors:** `e6f30f4f3` (the lane tip: a second repair keeps the previous repair in `launches`), `2a692c4b7` (the independent black-box test), `1b23413b6` (the fix), `1ee0ca6bb` (the RED test, `KeyError: 'launches'` on the pre-fix `dispatch.py`)
+
+**Did:** merged `worktree-repair-launch-receipt` @ `e6f30f4f3` onto main `345db0d97` (4 lane commits; clean merge, three files: `scripts/dispatch.py`, `tests/test_dispatch_repair_receipt.py`, `tests/test_dispatch_repair_receipt_indep.py`). Regenerated `ecosystem/doc-counts.md`. `_write_launch_records` on `kind == repair` now appends the prior slug receipt to a `launches` list and writes the new receipt to both `receipts_dir()` and `<worktree>/logs/receipts/`. Landing authority: RATIFICATION-2026-10-25.md row RLR-1 ("land normally; gate result ([],[])"); `handback_problems` against the primary `logs/receipts` is `([], [])` on the lane's SESSION file; terra and sol reviewed the final tip and the isolated verify passed.
+
+**Result:** recorded R177 deviation: the lane head (claude-sonnet-5-5) wrote the RED tests and the implementation, no Copilot phase and no VENDOR-FAIL. Two HIGH review findings were left unfixed by the lane and ruled by RLR-1 into ONE H1-X row: `scripts/dispatch.py:1430` (the history read-modify-write is outside the per-slug lock) and `:1437` (the worktree copy is written before the primary write). The lane added a second test file (architect option C), outside the contract's one-file list.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_repair_receipt.py`, `tests/test_dispatch_repair_receipt_indep.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** `stop-hook-cycle-check` @ `552c965b2` lands next under SH1-X (review-2 re-runs on the landed diff after the Codex reset 2026-10-26 00:56 local), then `routine-uv-pin` under UV-1, then T2 through the dispatch queue.
+
 ### 2026-10-25 (w) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 4, batch E2.1): lane gate-orchestrator-role lands by S4 exception GOR-1 -- the pre-launch model-per-role gate judges an `orchestrator-<batch>-cycle-<n>` lane against the registry row `seat-dispatcher` (MG-1), so the next orchestrator rotation can come up Opus
 
 **Anchors:** `79bd37a3a` (the lane tip after repair 2: the orchestrate Substrate row is exercised from the first table), `d25539b4d` (`subst_gate` judges orchestrator-<batch>-cycle-<n> lanes against `seat-dispatcher`), `e08da5c76` (the RED witnesses), `b7e7e2127` (revert of the `lane head` Substrate mapping, operator ruling 2026-10-25)
