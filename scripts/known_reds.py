@@ -69,6 +69,13 @@ the other committed suite artifact it supersedes: `logs/KNOWN-REDS-REGISTRY.json
 registry and come back green or with its new reds named (done-contract item 4); only then does
 the frozen prose file retire.
 
+THE EXTENSION PATH (`extend`, R149). An entry's `expiry` moves only through `extend`: it needs a
+ratification row (`land_lane.resolve_ratification`) whose date -- or `cap=YYYY-MM-DD` -- bounds the
+new expiry, which must move strictly forward and not into the past. Each moved entry carries an
+`extended` record; `registry_problems` refuses one that disagrees with its `expiry`, and
+`unrecorded_expiry_moves` names a hand-edited date between two registries. The CLI is a dry-run
+diff unless `--write`; it never calls `refresh` or a subprocess.
+
 THE BISECT WRAPPER (`attribute`) is a CLONE, never the caller's own worktree -- same
 `ISOLATION_REASON` as `scripts/test_pairing.py`: `git bisect` repeatedly checks out different
 commits, and doing that in a worktree several other tools read (`git worktree list`, open
@@ -83,7 +90,9 @@ younger than the comparison range's start.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime
+import difflib
 import hashlib
 import json
 import os
@@ -104,6 +113,7 @@ SCHEMA = "known-reds-registry/2"
 LEGACY_SCHEMA = "known-reds-registry/1"
 REGISTRY_PATH = "logs/KNOWN-REDS-REGISTRY.json"
 EXIT_UNCOMPARABLE = 2
+EXIT_EXTEND_REFUSED = 5
 
 #: The fields every entry carries (R52 Q2): the row that owns the red, who answers for it, and
 #: the date after which the registry refuses to vouch for it.
@@ -267,6 +277,14 @@ def _entry_problems_impl(label: str, entry, today: datetime.date | None) -> list
                 problems.append(f"{label}: EXPIRED {expiry} (task {task}) -- fix it, or "
                                 "re-date it by a recorded ruling; the registry does not "
                                 "vouch for it past its date")
+    if "extended" in entry:
+        record = entry["extended"]
+        if not isinstance(record, dict):
+            problems.append(f"{label}: extended record is not an object")
+        elif record.get("new_expiry") != entry.get("expiry"):
+            problems.append(f"{label}: extended.new_expiry {record.get('new_expiry')!r} does "
+                            f"not match expiry {entry.get('expiry')!r} -- an expiry moves only "
+                            "through `extend`, which records it")
     return problems + _ceiling_problems(label, entry)
 
 
@@ -425,10 +443,132 @@ def load_registry(path: Path, *, today: datetime.date | None = None) -> Registry
     return registry
 
 
+def _registry_text(registry: Registry) -> str:
+    return json.dumps(registry.to_json(), indent=2, ensure_ascii=False) + "\n"
+
+
 def write_registry(path: Path, registry: Registry) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(registry.to_json(), indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8", newline="\n")
+    path.write_text(_registry_text(registry), encoding="utf-8", newline="\n")
+
+
+# --- extend: move an entry's expiry under a recorded ratification (R149) -------------------
+
+class ExtendRefused(KnownRedsError):
+    """An expiry extension that is not ratified, dated, capped, increasing and in date."""
+
+
+_ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_CAP_RE = re.compile(r"cap=(\d{4}-\d{2}-\d{2})")
+_LABEL_RE = re.compile(r"^(members|hooks)\[(.+)\]$|^(members_by_os)\[([^\]]+)\]\[(.+)\]$")
+
+
+def _entry_slots(registry: Registry) -> dict:
+    """`{label: (container, key)}` for every entry, labelled as `registry_problems` labels them."""
+    slots = {f"members[{k}]": (registry.members, k) for k in registry.members}
+    slots.update({f"hooks[{k}]": (registry.hooks, k) for k in registry.hooks})
+    for os_key, entries in registry.members_by_os.items():
+        slots.update({f"members_by_os[{os_key}][{k}]": (entries, k) for k in entries})
+    return slots
+
+
+def _ratified_cap(row: str) -> datetime.date | None:
+    """The ceiling a ratification row grants: its `cap=YYYY-MM-DD`, else its latest ISO date."""
+    explicit = _CAP_RE.search(row)
+    dates = [explicit.group(1)] if explicit else _ISO_DATE_RE.findall(row)
+    try:
+        return max(datetime.date.fromisoformat(d) for d in dates) if dates else None
+    except ValueError:
+        return None
+
+
+def extend(registry: Registry, *, ids, new_expiry: datetime.date, ratification_file: Path,
+           ratification_id: str, today: datetime.date) -> tuple[Registry, list[dict]]:
+    """`(new_registry, changes)`: `ids` re-dated to `new_expiry` under the ratification row
+    `ratification_id` in `ratification_file` (R149). Pure -- no subprocess, no refresh, the input
+    is never mutated. Each moved entry carries an `extended` record that
+    `unrecorded_expiry_moves` and `registry_problems` check against its `expiry`."""
+    import land_lane  # lazy: only the extension path needs the ratification row parser
+
+    row = land_lane.resolve_ratification(ratification_id, ratification_file)
+    if row is None:
+        raise ExtendRefused(f"no ratification row `| {ratification_id} |` in {ratification_file}")
+    cap = _ratified_cap(row)
+    if cap is None:
+        raise ExtendRefused(f"ratification row {ratification_id} carries no ISO date to cap "
+                            f"the extension: {row}")
+    if new_expiry > cap:
+        raise ExtendRefused(f"new expiry {new_expiry} is past the ratified cap {cap}")
+    if new_expiry < today:
+        raise ExtendRefused(f"new expiry {new_expiry} is before today {today}")
+
+    result = Registry.from_json(copy.deepcopy(registry.to_json()), "extend")
+    slots = _entry_slots(result)
+    labels: list[str] = []
+    for ident in ids:
+        if ident in slots:
+            matched = [ident]
+        elif _LABEL_RE.match(ident):
+            matched = []
+        else:
+            matched = [lab for lab, (_, key) in slots.items() if key == ident]
+        if not matched:
+            raise ExtendRefused(f"{ident}: matches no registry entry")
+        labels += [lab for lab in matched if lab not in labels]
+
+    changes: list[dict] = []
+    for label in labels:
+        container, key = slots[label]
+        entry = container[key]
+        old = entry.get("expiry")
+        try:
+            old_date = datetime.date.fromisoformat(old)
+        except (TypeError, ValueError):
+            raise ExtendRefused(f"{label}: current expiry {old!r} is not an ISO date") from None
+        if new_expiry <= old_date:
+            raise ExtendRefused(f"{label}: new expiry {new_expiry} does not move past current "
+                                f"expiry {old}")
+        record = {"ratification_file": Path(ratification_file).name,
+                  "ratification_id": ratification_id, "old_expiry": old,
+                  "new_expiry": new_expiry.isoformat(), "date": today.isoformat()}
+        # `extended` goes right after `expiry`, so the diff touches those lines and no neighbour
+        # (a trailing comma on the previous last key would show as an unrelated change).
+        rebuilt = {}
+        for key, value in entry.items():
+            if key == "extended":  # a re-extension replaces the prior record, never keeps it
+                continue
+            rebuilt[key] = new_expiry.isoformat() if key == "expiry" else value
+            if key == "expiry":
+                rebuilt["extended"] = record
+        entry.clear()
+        entry.update(rebuilt)
+        changes.append({"label": label, "old_expiry": old, "new_expiry": new_expiry.isoformat()})
+
+    problems = registry_problems(result, today)
+    if problems:
+        raise ExtendRefused("the extended registry is not sound:\n  " + "\n  ".join(problems))
+    return result, changes
+
+
+def unrecorded_expiry_moves(base: Registry, head: Registry) -> list[str]:
+    """Entries whose expiry differs between `base` and `head` with no `extended` record that
+    names exactly that move -- a hand edit of a date, which only `extend` may make."""
+    base_slots, head_slots = _entry_slots(base), _entry_slots(head)
+    moves: list[str] = []
+    for label in sorted(base_slots.keys() & head_slots.keys()):
+        old = base_slots[label][0][base_slots[label][1]]
+        new = head_slots[label][0][head_slots[label][1]]
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            continue
+        if old.get("expiry") == new.get("expiry"):
+            continue
+        record = new.get("extended")
+        recorded = (isinstance(record, dict) and record.get("old_expiry") == old.get("expiry")
+                    and record.get("new_expiry") == new.get("expiry"))
+        if not recorded:
+            moves.append(f"{label}: expiry {old.get('expiry')!r} -> {new.get('expiry')!r} "
+                         "with no matching `extended` record")
+    return moves
 
 
 # --- refresh: build/update the registry from a run + attribution evidence ------------------
@@ -1221,10 +1361,57 @@ def main(argv: list[str] | None = None) -> int:
     attr.add_argument("--workdir", default=None)
     attr.add_argument("--timeout", default=180.0, type=float)
 
+    ext = sub.add_parser("extend", help="re-date registry entries under a ratification row "
+                                        "(dry-run diff unless --write)")
+    ext.add_argument("--registry", default=REGISTRY_PATH)
+    ext_ids = ext.add_mutually_exclusive_group(required=True)
+    ext_ids.add_argument("--ids", nargs="+", help="members[x], hooks[x], "
+                                                  "members_by_os[os][x], or a bare id")
+    ext_ids.add_argument("--all-expiring-on", default=None, metavar="DATE")
+    ext.add_argument("--new-expiry", required=True)
+    ext.add_argument("--ratification-file", required=True)
+    ext.add_argument("--ratification-id", required=True)
+    ext.add_argument("--today", default=None, help="YYYY-MM-DD; default today")
+    ext.add_argument("--write", action="store_true")
+
     for p in (ref, cmp_, cmp_hook, attr):
         p.add_argument("--out", default=None)
     args = ap.parse_args(argv)
     root = Path(args.repo_root).resolve() if args.repo_root else Path.cwd()
+
+    if args.command == "extend":
+        path = root / args.registry
+        try:
+            today = (datetime.date.fromisoformat(args.today) if args.today
+                     else datetime.date.today())
+            new_expiry = datetime.date.fromisoformat(args.new_expiry)
+            registry = load_registry(path, today=today)
+            ids = args.ids
+            if args.all_expiring_on is not None:
+                ids = [label for label, (container, key) in _entry_slots(registry).items()
+                       if container[key].get("expiry") == args.all_expiring_on]
+                if not ids:
+                    raise ExtendRefused(f"no entry expires on {args.all_expiring_on}")
+            extended, changes = extend(registry, ids=ids, new_expiry=new_expiry,
+                                       ratification_file=Path(args.ratification_file),
+                                       ratification_id=args.ratification_id, today=today)
+        except ValueError as exc:
+            print(f"known_reds: {exc}", file=sys.stderr)
+            return EXIT_EXTEND_REFUSED
+        except KnownRedsError as exc:
+            print(str(exc), file=sys.stderr)
+            return EXIT_EXTEND_REFUSED
+        if args.write:
+            write_registry(path, extended)
+            print(f"known_reds: extended {len(changes)} entr(ies) in {args.registry} to "
+                  f"{new_expiry}")
+        else:
+            diff = difflib.unified_diff(_registry_text(registry).splitlines(keepends=True),
+                                        _registry_text(extended).splitlines(keepends=True),
+                                        fromfile=str(args.registry),
+                                        tofile=f"{args.registry} (extended)")
+            sys.stdout.write("".join(diff))
+        return 0
 
     if args.command == "refresh":
         text = Path(args.pytest_output).read_text(encoding="utf-8", errors="replace")
