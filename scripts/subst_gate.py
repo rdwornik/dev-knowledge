@@ -16,6 +16,9 @@ the launch receipt is the one `dispatch._write_launch_records` writes):
                          table names for that role. The lane head IS the implementer (R153: Sonnet
                          writes the code), so the head is judged against the `implement` role -- no
                          new role, no change to `orchestrate` (Opus-only, AX21-1).
+                         HEAD ROLE BY LANE NAME: a lane named `orchestrator-<batch>-cycle-<n>` (e.g.
+                         `orchestrator-e2-1-cycle-4`) is judged against `seat-dispatcher` (Opus, D9);
+                         every other lane head against `seat-orchestrator` (`head_role_for_lane`).
   check_models_block     merge gate: a handback must carry a `MODELS:` block, and every phase line
                          with served != requested must carry a `VENDOR-FAIL: <ref>` (the substitution
                          is then printed, so it reaches the handback and the ledger). Grammar: served
@@ -60,7 +63,12 @@ _BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 
 #: The lane head seat (R177/R178): the registry's `seat-orchestrator` role. The IMPLEMENTER is a different
 #: role (`implement`, Copilot first); the head row and the Dispatch line are judged against the seat.
+#: A lane named `orchestrator-<batch>-cycle-<n>` (e.g. `orchestrator-e2-1-cycle-4`) is the orchestrator
+#: successor seat and is judged against `DISPATCHER_ROLE` (`seat-dispatcher`, Opus, D9) instead; HEAD_ROLE
+#: stays the default for every other lane head. `head_role_for_lane` is the one function choosing.
 HEAD_ROLE = "seat-orchestrator"
+DISPATCHER_ROLE = "seat-dispatcher"
+_ORCH_LANE_RE = re.compile(r"orchestrator-e[0-9]+-[0-9]+-cycle-[0-9]+")
 IMPLEMENT_ROLE = "implement"
 #: R177: a Claude `implement` row / MODELS line is legal only beside a recorded `VENDOR-FAIL: implement ...`.
 _VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*(.*)$", re.IGNORECASE)
@@ -107,6 +115,13 @@ _PHASE_RULES: tuple[tuple[re.Pattern, str, Optional[str]], ...] = (
     (re.compile(r"orchestrat"), HEAD_ROLE, None),
     (re.compile(r"\bread\b"), "read", "anthropic"),
 )
+
+
+def head_role_for_lane(lane: str) -> str:
+    """THE role the lane head is judged against: `seat-dispatcher` for an `orchestrator-<batch>-cycle-<n>`
+    lane (`fullmatch` on the RAW name, no strip), else `seat-orchestrator`. Near-misses fail closed to the
+    stricter default."""
+    return DISPATCHER_ROLE if isinstance(lane, str) and _ORCH_LANE_RE.fullmatch(lane) else HEAD_ROLE
 
 
 def batch_grammar_ok(batch: str) -> bool:
@@ -228,30 +243,31 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
     import dispatch as d                              # lazy: the heavy import is paid only when judged
     problems: list[str] = []
     notes: list[str] = []
-    head_entry = _role_entry(HEAD_ROLE, None, registry_path)
+    head_role = head_role_for_lane(lane)
+    head_entry = _role_entry(head_role, None, registry_path)
     if head_entry is None:
-        return [f"REFUSED [model-per-role]: lane {lane}: the registry has no `{HEAD_ROLE}` role"], notes
+        return [f"REFUSED [model-per-role]: lane {lane}: the registry has no `{head_role}` role"], notes
     table_head = _entry_label(head_entry)
     try:
         head_model, _effort = d.parse_contract_model_effort(text)
     except d.DispatchRefused as exc:
-        return [f"REFUSED [model-per-role]: lane {lane}, role {HEAD_ROLE}: the head row is unreadable "
+        return [f"REFUSED [model-per-role]: lane {lane}, role {head_role}: the head row is unreadable "
                 f"({exc}); the role table names {table_head}"], notes
     try:
         line = d.parse_dispatch_block(text)
     except d.DispatchRefused as exc:
-        return [f"REFUSED [model-per-role]: lane {lane}, role {HEAD_ROLE}: the Dispatch line is "
+        return [f"REFUSED [model-per-role]: lane {lane}, role {head_role}: the Dispatch line is "
                 f"unreadable ({exc}); the role table names {table_head}"], notes
     dispatch_model = line.model if line else ""
     if dispatch_model and dispatch_model.lower() != head_model.lower():
-        problems.append(f"REFUSED [model-per-role]: lane {lane}, role {HEAD_ROLE}: the head row names "
+        problems.append(f"REFUSED [model-per-role]: lane {lane}, role {head_role}: the head row names "
                         f"{head_model!r} but the Dispatch --model names {dispatch_model!r} (the role "
                         f"table names {table_head}); they must agree")
     for what, got in (("the head row", head_model), ("the Dispatch --model", dispatch_model),
                       ("the launch --model", launch_model)):
         resolved = d.MODEL_ALIASES.get(got.lower(), got)   # a bare tier alias is compared by the id it resolves to
         if got and resolved.lower() != table_head.lower():
-            problems.append(_refused(lane, HEAD_ROLE, got, table_head, what))
+            problems.append(_refused(lane, head_role, got, table_head, what))
     if not rows:
         notes.append("model-per-role: no `| Phase | Model | Substrate |` table -- judged on the head "
                      "row and the Dispatch line only")
@@ -263,7 +279,7 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
         if where_table:
             if low.startswith("lane head"):
                 if not _cell_matches(cell, head_entry, known):
-                    problems.append(_refused(lane, HEAD_ROLE, cell, table_head, f"row {phase!r}"))
+                    problems.append(_refused(lane, head_role, cell, table_head, f"row {phase!r}"))
                 continue
             if not low.startswith("implement"):
                 continue                              # a Where table judges implement + lane head only
@@ -277,6 +293,8 @@ def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: st
                             f"could carry a silent substitution (P1)")
             continue
         role, provider = rule
+        if role == HEAD_ROLE:
+            role = head_role                  # the orchestrate row follows the lane's chosen head role
         if role == IMPLEMENT_ROLE:
             problems += _implement_row_problems(lane, phase, cell, known, vendor_fail, registry_path)
             continue
