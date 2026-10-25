@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-25 (r) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): the cloud-remove chain lands as `worktree-cloud-remove-tail-3`: the cloud build substrate leaves the registry and the `Dispatch-Cloud` verbs go (CL-1), a retired substrate is grandfathered only by a bundle sealed before the retirement, and `contract_date` is CRLF-safe and refuses a duplicate header date
+
+**Anchors:** `9c43c6d9a` (the lane tip: a second sync of main), `dacbde62a` (`contract_date` CRLF-safe, refuses a duplicate header date, process-binding lines follow), `10146ad20` (remove the cloud build substrate), `1a1994154` (the tool-pin refresh for the E2.1 box lanes, which rides this chain)
+
+**Did:** merged `origin/worktree-cloud-remove-tail-3` @ `9c43c6d9a` onto main `36e14d01f` (17 commits that supersede `cloud-remove` `401d55ce7`, `-tail` `5e19949a2` and `-tail-2` `049da201c`; clean, no generated-file conflict, no new task row). Regenerated `ecosystem/doc-counts.md`. The dispatcher's `CODESPACE-RECEIPTS` launch rows for the three cloud-remove-tail boxes were only in the primary's working tree, and the substitution gate reads the committed ledger of the landing worktree, so they ride a separate carry commit.
+
+**Result:** the registry no longer types cloud as a build lane (R132, CL-1). Not done and not claimed: `[#1697]` stays open for the orchestrator to judge against its Done-when (the registry entry was removed, where the row asks for it to be corrected); `protocols/PLAYBOOK.md:2919/3002` still routes read-only work to `CLOUD` / `Dispatch-Cloud` and the dispatch-drift test still requires it (review-1 P1, owed to a lane that may edit `protocols/*`); an editable `date:` line still lets a new cloud contract backdate itself, and an undated retired-substrate contract is grandfathered by its directory date alone (review-2 P1, technical ruling pending).
+
+**Changes:** `.devcontainer/provisioning.yaml`, `ecosystem/process-binding.yaml`, `ecosystem/substrate-registry.yaml`, `scripts/audit_checks/check_substrate_declaration.py`, `scripts/conductor.py`, `scripts/dispatch_surface.py`, `scripts/gen_lane_contract.py`, `scripts/validate_substrate.py`, `scripts/verify_handoff_probes.py`, the matching tests, `ecosystem/doc-counts.md`, `logs/CODESPACE-RECEIPTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** the S4 ruling lanes and `routine-uv-pin-tail` once their rulings are recorded; the PLAYBOOK cloud-verb follow-up.
+
 ### 2026-10-25 (p) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): l12-acceptance is on main (`8b744ede4`, receipt `633452dae`), and lane template-wake-fix (P6, `[#1727]`) lands: the dispatcher template now says a queue FIRE leaves `LAUNCH-<SLUG>.json` and carries the `queue --watch` / Monitor / 10-minute cron / re-arm-on-BIND wake section
 
 **Anchors:** `d686c8636` (the lane tip: the receipt sentence kept at its original two lines so the S15 process-binding anchor holds), `f67d1333d` (the template says a queue FIRE leaves the launch receipt and adds the wake section), `a497e24fb` (RED tests), `dd359b7f4` (the claiming row `[#1727]`)

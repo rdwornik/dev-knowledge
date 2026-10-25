@@ -32,7 +32,7 @@ processes:
       today_glue: true
       binding:
         emit:
-          file_line: scripts/gen_lane_contract.py:2358
+          file_line: scripts/gen_lane_contract.py:2312
           anchor: '@cli.command("emit")'
       hole: trigger is an operator paste of the prep order (glue)
       asis:
@@ -46,7 +46,7 @@ processes:
       today_glue: true
       binding:
         check:
-          file_line: scripts/gen_lane_contract.py:2432
+          file_line: scripts/gen_lane_contract.py:2386
           anchor: '@cli.command("check")'
         lint:
           file_line: scripts/plan_lint.py:896
@@ -417,14 +417,14 @@ processes:
       target: emitted
       guard: null
       r130: false
-      file_line: scripts/gen_lane_contract.py:2358
+      file_line: scripts/gen_lane_contract.py:2312
       anchor: '@cli.command("emit")'
     - event: check
       source: emitted
       target: checked
       guard: contract_ok, lint_clear, tier_within_role
       r130: false
-      file_line: scripts/gen_lane_contract.py:2432
+      file_line: scripts/gen_lane_contract.py:2386
       anchor: '@cli.command("check")'
     - event: check
       source: emitted

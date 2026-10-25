@@ -27,6 +27,7 @@ import pytest
 import verify_handoff_probes as vhp  # noqa: E402
 import audit as aud  # noqa: E402
 import handoff_state as hs  # noqa: E402 -- lane-handoff-min: the 7 live state rows
+import validate_substrate as vs  # noqa: E402 -- retirement dates shared with the substrate gate
 
 # --- mini-bundle fixtures (a self-consistent temp repo) ---------------------
 
@@ -2888,6 +2889,55 @@ def test_no_other_state_key_loses_its_equality_teeth(tmp_path):
     live = hs.row_substrates(repo).rendered()
     assert vhp.BOOT_DATA_RULES["Substrates"](live, ctx)[0] == "pass"
     status, detail = vhp.BOOT_DATA_RULES["Substrates"](live.replace("1/1", "9/9"), ctx)
+    assert status == "fail", detail
+
+
+def _substrates_after_cloud_retirement(tmp_path):
+    repo = tmp_path / "srepo"
+    (repo / "ecosystem").mkdir(parents=True)
+    (repo / "ecosystem" / "substrate-registry.yaml").write_text(
+        "substrates:\n"
+        "  codespace:\n    live: true\n"
+        "  interactive:\n    live: true\n"
+        "  local:\n    live: true\n",
+        encoding="utf-8")
+    recorded = ("4/4 live: cloud, codespace, interactive, local — "
+                "evidence: ecosystem/substrate-registry.yaml [SLOW]")
+    live = hs.row_substrates(repo).rendered()
+    assert live.startswith("3/3 live: codespace, interactive, local — ")
+    return repo, recorded
+
+
+def _substrates_rule(value, repo, cut_date):
+    cut_sha = "a" * 40 if cut_date is not None else None
+    ctx = vhp._BootCtx(repo / "bundle", repo, {}, cut_sha, cut_date)
+    return vhp.BOOT_DATA_RULES["Substrates"](value, ctx)
+
+
+def test_substrates_row_grandfathers_cloud_sealed_before_its_retirement(tmp_path):
+    repo, recorded = _substrates_after_cloud_retirement(tmp_path)
+    assert "cloud" in vs.RETIRED_SUBSTRATES
+    assert vs.RETIRED_SUBSTRATES["cloud"].isoformat() == "2026-10-24"
+    status, detail = _substrates_rule(recorded, repo, "2026-10-23")
+    assert status == "pass", detail
+
+
+@pytest.mark.parametrize("cut_date", ["2026-10-24", "2026-10-25"])
+def test_substrates_row_does_not_grandfather_cloud_sealed_after_retirement(tmp_path, cut_date):
+    repo, recorded = _substrates_after_cloud_retirement(tmp_path)
+    status, detail = _substrates_rule(recorded, repo, cut_date)
+    assert status == "fail", detail
+
+
+def test_substrates_row_does_not_grandfather_cloud_without_a_seal_date(tmp_path):
+    repo, recorded = _substrates_after_cloud_retirement(tmp_path)
+    status, detail = _substrates_rule(recorded, repo, None)
+    assert status == "fail", detail
+
+
+def test_substrates_row_with_wrong_counts_still_fails_before_retirement(tmp_path):
+    repo, recorded = _substrates_after_cloud_retirement(tmp_path)
+    status, detail = _substrates_rule(recorded.replace("4/4", "9/9"), repo, "2026-10-23")
     assert status == "fail", detail
 
 

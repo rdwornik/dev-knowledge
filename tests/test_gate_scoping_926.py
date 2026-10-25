@@ -214,7 +214,7 @@ def _substrate_repo(tmp_path: Path, *, manifest: bool, closed: bool) -> Path:
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "config", "user.email", "t@t.t")
     _git(repo, "config", "user.name", "t")
-    (repo / CONTRACT).write_text("# LANE q-1\n\n**Shape:** `cloud`\n", encoding="utf-8")
+    (repo / CONTRACT).write_text("# LANE q-1\n\n**Shape:** `codespace`\n", encoding="utf-8")
     if manifest:
         (repo / MANIFEST).write_text(
             f"---\nbatch: Q\nstatus: open\nclosed_by: {CLOSER}\n---\n\n# Batch Q\n",
@@ -232,7 +232,7 @@ def _run_adapter(monkeypatch, repo: Path, rules=(vs.RULE_HEARTBEAT_DEAD,),
     the ADAPTER's question (is this refusal in scope?) and not the receipt's."""
     monkeypatch.setattr(adapter._vsub, "load_registry", lambda _repo: {})
     monkeypatch.setattr(adapter._vsub, "validate_batch", lambda gated, registry: [
-        vs.Refusal(rule=r, source=src, substrate="cloud", detail=f"{r} on {src}")
+        vs.Refusal(rule=r, source=src, substrate="codespace", detail=f"{r} on {src}")
         for src in gated for r in rules])
     monkeypatch.setattr(adapter, "_today", lambda: today)
     return adapter.check_substrate_declaration(repo)

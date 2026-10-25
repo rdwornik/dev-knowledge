@@ -273,6 +273,15 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"placed against the {ARM_DATE.isoformat()} cutoff — it is "
                                f"reported rather than assumed grandfathered"))
             continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            text = None            # reported below when the contract is gated; grandfathered ones need no read
+        own = _vsub.contract_date(text) if text is not None else None
+        if own is not None and own >= ARM_DATE:
+            # The contract's OWN date outranks a pre-arm directory: a contract written after the
+            # arm date cannot hide in an old directory.
+            landed = own
         if landed < ARM_DATE:
             grandfathered += 1
             continue
@@ -288,10 +297,19 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"validated".replace("|", "/")))
 
     leg_grandfathered = 0
+    retired_grandfathered = 0
     post_launch: list[str] = []
     closed = None
     expired = _today() > POST_LAUNCH_NARROWING_EXPIRES
     for refusal in _vsub.validate_batch(gated, registry=registry):
+        retired_on = _vsub.RETIRED_SUBSTRATES.get(refusal.substrate or "")
+        if (refusal.rule == _vsub.RULE_NO_LIVE_VERB and retired_on is not None
+                and landed_at.get(refusal.source, retired_on) < retired_on):
+            # A retired substrate (CL-1) declared by a contract that landed before the
+            # retirement is a record of an already-executed dispatch: debt, not a refusal.
+            # (A contract's OWN header date is read inside `validate_contract`.)
+            retired_grandfathered += 1
+            continue
         leg_arm = LEG_ARM_DATES.get(refusal.rule)
         if leg_arm is not None:
             # A multi-source refusal (leg 6 names a PAIR) is grandfathered when EITHER side
@@ -323,7 +341,8 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                            f"({grandfathered} earlier contract(s) grandfathered as records "
                            f"of an already-executed dispatch; {leg_grandfathered} finding(s) "
                            f"from later-armed legs [{legs}] grandfathered as debt — those "
-                           f"legs are fully armed at FREEZE)"))
+                           f"legs are fully armed at FREEZE; {retired_grandfathered} pre-retirement "
+                           f"contract(s) declaring a retired substrate grandfathered)"))
     if post_launch:
         # Its OWN line, emitted whatever else the run found: a narrowing that disappears
         # whenever an unrelated WARN is present is not visible debt, it is a hidden one.

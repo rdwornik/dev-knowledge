@@ -267,7 +267,7 @@ SECTION_5_ORGANS: tuple[tuple[str, str, str | None], ...] = (
     # target needs reading before it is scored: nine of the twelve §5 items are files this hub
     # can count, and three are not.
     ("win-tooling-dispatch-verbs",
-     "dispatch / Dispatch-Local / Dispatch-Cloud / Dispatch-Codespace in win-tooling", None),
+     "dispatch / Dispatch-Local / Dispatch-Codespace in win-tooling", None),
     ("dispatcher-seat", "the dispatcher as a SEAT (a role, not a file)", None),
     ("integrator-seat", "the integrator as a SEAT (a role, not a file)", None),
 )

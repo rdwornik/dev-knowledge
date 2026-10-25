@@ -633,6 +633,27 @@ def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
                 f"were deferred off the back of it ([#746])"))
 
 
+#: Substrates retired from the registry (CL-1, retired 2026-10-24) -> retirement date. A contract
+#: dated BEFORE it is a record of an already-executed dispatch and is grandfathered past leg 1.
+RETIRED_SUBSTRATES: dict[str, _dt.date] = {"cloud": _dt.date(2026, 10, 24)}
+
+_DATE_LINE_RE = re.compile(r"(?m)^date:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$")
+
+
+def contract_date(text: str) -> Optional[_dt.date]:
+    """The contract's own flush-left `date: YYYY-MM-DD` line in its HEADER block (the lines
+    before the first blank line), or None. A `date:` line further down is body text -- a fenced
+    example, a quoted record -- and never dates the contract."""
+    header = re.split(r"\r?\n[ \t]*\r?\n", text, maxsplit=1)[0].replace("\r\n", "\n")
+    matches = _DATE_LINE_RE.findall(header)
+    if len(matches) != 1 or len(re.findall(r"(?m)^date:", header)) != 1:
+        return None
+    try:
+        return _dt.date.fromisoformat(matches[0])
+    except ValueError:
+        return None
+
+
 def validate_contract(text: str, *, source: str,
                       registry: Mapping[str, Substrate],
                       heartbeat=_HEARTBEAT_AUTO,
@@ -682,6 +703,10 @@ def validate_contract(text: str, *, source: str,
             detail = (f"declares substrate {name!r}, which is registered with no live verb "
                       f"({', '.join(substrate.verbs)}) — the substrate is declared and "
                       f"unbacked")
+        retired_on = RETIRED_SUBSTRATES.get(name) if name else None
+        effective = contract_date(text)
+        if retired_on is not None and effective is not None and effective < retired_on:
+            return out
         out.append(_apply_override(
             Refusal(rule=RULE_NO_LIVE_VERB, source=source, detail=detail, substrate=name),
             overrides))

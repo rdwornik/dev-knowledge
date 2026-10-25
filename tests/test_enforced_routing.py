@@ -87,12 +87,29 @@ def test_a_contract_carrying_no_kind_line_is_reported_by_the_freeze_gate():
 
 # --- 2. clause 1, leg RESOLVE: an inert tier is refused AT FREEZE -------------------------
 
-@pytest.mark.parametrize("shape", ["local", "cloud", "codespace"])
+@pytest.mark.parametrize("shape", ["local", "codespace"])
 def test_opusplan_is_REFUSED_at_freeze_on_every_unattended_shape(shape):
     refusals = glc.routing_refusals(model="opusplan", kind="code", shape=shape)
     assert refusals, shape
     assert any("opusplan" in r for r in refusals)
     assert any("bypassPermissions" in r or "plan mode" in r for r in refusals)
+
+
+def test_shape_parametrizations_have_no_retired_cloud_case():
+    import ast
+
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    shapes = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            if (isinstance(decorator, ast.Call) and
+                    isinstance(decorator.func, ast.Attribute) and
+                    decorator.func.attr == "parametrize" and len(decorator.args) >= 2 and
+                    ast.literal_eval(decorator.args[0]) == "shape"):
+                shapes.update(ast.literal_eval(decorator.args[1]))
+    assert "cloud" not in shapes, shapes
 
 
 def test_opusplan_is_ADMITTED_on_the_attended_shape_because_that_seat_can_plan():

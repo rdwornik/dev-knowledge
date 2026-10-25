@@ -74,11 +74,28 @@ def registry():
     return vs.load_registry(vs.repo_root())
 
 
+@pytest.fixture()
+def retired_cloud_registry(registry):
+    """The live registry plus a SYNTHETIC gate-intolerant, no-operator-disk, own-clone row.
+
+    CL-1 removed `cloud` from the committed registry. Legs 2 and 3 and the override mechanics
+    are rules over registry ATTRIBUTES (`admits_gate_dependent_work`, `operator_disk`,
+    `shared_checkout`), so their tests keep their full assertions against a seeded row of the
+    retired shape rather than being dropped. The row lives only in this fixture.
+    """
+    seeded = dict(registry)
+    seeded["cloud"] = vs.Substrate(
+        name="cloud", family="cloud", verbs=("Dispatch-Cloud",), aliases=(), live=True,
+        admits_gate_dependent_work=False, operator_disk=False, shared_checkout=False,
+        branch_prefix="claude/")
+    return seeded
+
+
 # --- the registry itself ----------------------------------------------------
 
 def test_registry_declares_the_three_ruled_substrates_plus_interactive(registry):
     """STANDING_RULINGS V3 names three substrate verbs; Ch8 row 3 adds the interactive shape."""
-    assert {"local", "cloud", "codespace", "interactive"} <= set(registry)
+    assert {"local", "codespace", "interactive"} <= set(registry)
     assert registry["local"].family == "local"
     assert registry["interactive"].family == "local"
 
@@ -141,10 +158,10 @@ def test_accepts_the_ch8_bolded_prose_spelling(registry):
 
 # --- leg 2: cloud + a gate in the Done-when ---------------------------------
 
-def test_refuses_cloud_plus_a_gate_in_the_done_when(registry):
+def test_refuses_cloud_plus_a_gate_in_the_done_when(retired_cloud_registry):
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `pytest` green and `audit.py health` green")
-    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    refusals = vs.validate_contract(text, source="F.md", registry=retired_cloud_registry)
     assert vs.RULE_CLOUD_GATE in [r.rule for r in refusals]
     fired = next(r for r in refusals if r.rule == vs.RULE_CLOUD_GATE)
     assert "pytest" in fired.detail
@@ -161,12 +178,12 @@ def test_codespace_plus_a_gate_is_admitted(registry):
                                                  heartbeat=None)] == []
 
 
-def test_a_gate_word_outside_the_done_when_does_not_fire(registry):
+def test_a_gate_word_outside_the_done_when_does_not_fire(retired_cloud_registry):
     """Scoped to the Done-when, per the requirement's own words."""
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `<a read-only census>`",
                      body="The integrator runs `pytest` locally after the merge.")
-    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=registry,
+    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=retired_cloud_registry,
                                                  heartbeat=None)] == []
 
 
@@ -179,11 +196,11 @@ def test_a_gate_word_outside_the_done_when_does_not_fire(registry):
     "$env:CLAUDE_PROMPTS_DIR",
     "%USERPROFILE%",
 ])
-def test_refuses_cloud_or_codespace_plus_an_operator_disk_path(registry, path):
+def test_refuses_cloud_or_codespace_plus_an_operator_disk_path(retired_cloud_registry, path):
     for substrate in ("cloud", "codespace"):
         text = _contract(shape_line=f"**Substrate:** `{substrate}`",
                          body=f"Read the contract at {path} first.")
-        refusals = vs.validate_contract(text, source="F.md", registry=registry)
+        refusals = vs.validate_contract(text, source="F.md", registry=retired_cloud_registry)
         assert vs.RULE_OFFMACHINE_PATH in [r.rule for r in refusals], (substrate, path)
 
 
@@ -233,7 +250,7 @@ def test_distinct_worktrees_are_not_a_second_writer(registry):
             if r.rule == vs.RULE_SECOND_LOCAL_WRITER] == []
 
 
-def test_cloud_lanes_never_contend_for_a_checkout(registry):
+def test_cloud_lanes_never_contend_for_a_checkout(retired_cloud_registry):
     """A cloud lane owns its own clone — Ch8's ceilings call it effectively unlimited."""
     batch = {
         "A.md": _contract(shape_line="**Substrate:** `cloud`",
@@ -243,43 +260,43 @@ def test_cloud_lanes_never_contend_for_a_checkout(registry):
                           pairing="slug `lane-a-1-x` -> branch `claude/lane-a-1-x` "
                                   "-> contract `LANE-a-1-x.md`"),
     }
-    assert [r for r in vs.validate_batch(batch, registry=registry)
+    assert [r for r in vs.validate_batch(batch, registry=retired_cloud_registry)
             if r.rule == vs.RULE_SECOND_LOCAL_WRITER] == []
 
 
 # --- the override: an explicit RECORDED deviation, never a silent pass ------
 
-def test_an_override_downgrades_but_never_silences(registry):
+def test_an_override_downgrades_but_never_silences(retired_cloud_registry):
     text = _contract(
         shape_line="**Substrate:** `cloud`",
         done="1. `pytest` green",
         body="**Substrate deviation:** substrate-cloud-gate-dependent — the lane hand-runs "
              "the suite as `python3` and declares that it did (Ch8 cloud guards).")
-    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    refusals = vs.validate_contract(text, source="F.md", registry=retired_cloud_registry)
     fired = next(r for r in refusals if r.rule == vs.RULE_CLOUD_GATE)
     assert fired.overridden is True
     assert fired.severity == "warn"
     assert "hand-runs" in fired.detail
 
 
-def test_an_override_with_no_reason_is_not_an_override(registry):
+def test_an_override_with_no_reason_is_not_an_override(retired_cloud_registry):
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `pytest` green",
                      body="**Substrate deviation:** substrate-cloud-gate-dependent — ok")
-    fired = next(r for r in vs.validate_contract(text, source="F.md", registry=registry)
+    fired = next(r for r in vs.validate_contract(text, source="F.md", registry=retired_cloud_registry)
                  if r.rule == vs.RULE_CLOUD_GATE)
     assert fired.overridden is False
     assert fired.severity == "refuse"
 
 
-def test_an_override_binds_only_the_rule_it_names(registry):
+def test_an_override_binds_only_the_rule_it_names(retired_cloud_registry):
     text = _contract(
         shape_line="**Substrate:** `cloud`",
         done="1. `pytest` green",
         body="**Substrate deviation:** substrate-offmachine-operator-path — a different "
              "rule entirely, recorded here so the mismatch is visible.\n"
              r"Read `~\Downloads\LANE-x.md`.")
-    by_rule = {r.rule: r for r in vs.validate_contract(text, source="F.md", registry=registry)}
+    by_rule = {r.rule: r for r in vs.validate_contract(text, source="F.md", registry=retired_cloud_registry)}
     assert by_rule[vs.RULE_CLOUD_GATE].overridden is False
     assert by_rule[vs.RULE_OFFMACHINE_PATH].overridden is True
 
@@ -294,11 +311,11 @@ def test_an_override_naming_an_unknown_rule_is_reported(registry):
 
 # --- every refusal names its rule -------------------------------------------
 
-def test_every_refusal_names_the_rule_it_fired_on(registry):
+def test_every_refusal_names_the_rule_it_fired_on(retired_cloud_registry):
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `pytest` green",
                      body=r"Read `C:\Users\x\Downloads\LANE-x.md`.")
-    refusals = vs.validate_contract(text, source="F.md", registry=registry, heartbeat=None)
+    refusals = vs.validate_contract(text, source="F.md", registry=retired_cloud_registry, heartbeat=None)
     assert len(refusals) == 2
     for r in refusals:
         assert r.rule in vs.RULE_IDS
@@ -418,8 +435,8 @@ def test_shape_declaration_requires_BOTH_backticks():
 # native worktree refuses because it pairs to no contract for a teardown to attribute.
 
 
-def _cloud_shape() -> str:
-    return "**Shape:** `cloud`"
+def _lane_shape() -> str:
+    return "**Shape:** `local`"
 
 
 def test_leg5_refuses_a_lane_whose_branch_shape_the_teardown_enum_cannot_see(registry):
@@ -431,7 +448,7 @@ def test_leg5_refuses_a_lane_whose_branch_shape_the_teardown_enum_cannot_see(reg
     leg is for, and it is what the leg is now given.
     """
     text = _contract(
-        shape_line=_cloud_shape(),
+        shape_line=_lane_shape(),
         pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
     )
     refusals = vs.validate_contract(text, source="F.md", registry=registry)
@@ -450,7 +467,7 @@ def test_leg5_names_its_predicate_rather_than_describing_it(registry):
     2026-09-06 `**Substrate deviation:**` lines were hand-written to paper over.
     """
     text = _contract(
-        shape_line=_cloud_shape(),
+        shape_line=_lane_shape(),
         pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
     )
     fired = [r for r in vs.validate_contract(text, source="F.md", registry=registry)
@@ -478,7 +495,7 @@ def test_leg5_admits_every_ruled_lane_prefix_not_only_the_batch_grammar(registry
     rather than testing the cloud case alone: the defect was a whole class, and a test
     covering only `claude/` would go green against a predicate special-cased for it."""
     text = _contract(
-        shape_line=_cloud_shape(),
+        shape_line=_lane_shape(),
         pairing=f"slug `lane-f-0-x` -> branch `{branch}` -> contract `LANE-f-0-x.md`",
     )
     assert vs.RULE_TEARDOWN_ENUM not in [
@@ -508,7 +525,7 @@ def test_leg5_is_dischargeable_by_a_recorded_deviation_never_a_silent_pass(regis
     """`[#591]`'s done-when: an override is an explicit RECORDED deviation, never a silent
     pass. The refusal is downgraded to WARN and KEPT, carrying its reason."""
     text = _contract(
-        shape_line=_cloud_shape(),
+        shape_line=_lane_shape(),
         pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
         body=("**Substrate deviation:** `substrate-teardown-enum-coverage` — the batch "
               "manifest enumerates this cloud lane by name and the teardown iterates the "
@@ -749,3 +766,76 @@ def test_adapter_corpus_is_lane_contracts_only_not_every_md_in_the_directory():
     assert all(n.startswith("LANE-") for n in names), sorted(n for n in names
                                                             if not n.startswith("LANE-"))
     assert "CUT.md" not in names and "PLAN.md" not in names
+
+
+# CL-1 RED
+
+def test_cl1_registry_removes_cloud_and_keeps_other_substrates(registry):
+    assert "cloud" not in registry
+    assert {"local", "codespace", "interactive"} <= set(registry)
+
+
+# Retired cloud contracts are judged by their own date line, never a source allowlist.
+
+def test_pre_retirement_cloud_date_is_grandfathered_by_validate_contract(registry):
+    text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_contract(text, source="arbitrary/LANE-old.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+def test_pre_retirement_cloud_date_is_grandfathered_by_validate_batch(registry):
+    text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_batch({"arbitrary/LANE-old.md": text}, registry=registry)
+    assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+@pytest.mark.parametrize("date", ["2026-10-24", "2026-11-02"])
+def test_cloud_date_on_or_after_retirement_is_still_refused(registry, date):
+    text = f"date: {date}\n" + _contract(shape_line="**Substrate:** `cloud`")
+    refusals = vs.validate_contract(text, source="arbitrary/LANE-new.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_undated_cloud_is_still_refused_even_with_an_old_source_path(registry):
+    text = _contract(shape_line="**Substrate:** `cloud`")
+    source = "docs/audits/2026-09-06-technical-batch-t-launch-contracts/LANE-old.md"
+    refusals = vs.validate_contract(text, source=source, registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_body_example_date_is_not_the_contract_date():
+    text = _contract(
+        shape_line="**Substrate:** `cloud`",
+        body="Example:\n```yaml\ndate: 2026-09-06\n```",
+    )
+    assert vs.contract_date(text) is None
+
+
+def test_undated_cloud_with_a_body_example_date_is_refused(registry):
+    text = _contract(
+        shape_line="**Substrate:** `cloud`",
+        body="Example:\n```yaml\ndate: 2026-09-06\n```",
+    )
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
+
+
+def test_crlf_pre_retirement_cloud_date_is_grandfathered_like_lf(registry):
+    lf_text = "date: 2026-09-06\n" + _contract(shape_line="**Substrate:** `cloud`")
+    crlf_text = lf_text.replace("\n", "\r\n")
+
+    assert vs.contract_date(lf_text).isoformat() == "2026-09-06"
+    assert vs.contract_date(crlf_text) == vs.contract_date(lf_text)
+    for text in (lf_text, crlf_text):
+        refusals = vs.validate_contract(text, source="F.md", registry=registry)
+        assert vs.RULE_NO_LIVE_VERB not in {r.rule for r in refusals}, refusals
+
+
+def test_duplicate_date_header_never_grandfathers_cloud(registry):
+    text = ("date: 2026-10-23\n"
+            "date: 2026-10-24\n"
+            + _contract(shape_line="**Substrate:** `cloud`"))
+
+    assert vs.contract_date(text) is None
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_NO_LIVE_VERB in {r.rule for r in refusals}, refusals
