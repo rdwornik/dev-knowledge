@@ -115,6 +115,7 @@ from .check_routine_consumers import (
     _routine_value_is_named,
     check_routine_consumers,
 )
+from .check_routine_consumers import check_routine_uv_pin
 from .check_rulings_carried import check_rulings_carried
 from .check_safe_removal import _sr, check_safe_removal
 from .check_substrate_declaration import check_substrate_declaration
@@ -169,6 +170,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_import_edges",                 # facade — STANDING_RULINGS N-1 site
     "check_fleet_parity",                 # facade — _is_hub/_REPO_ROOT seam
     "check_routine_consumers",
+    "check_routine_uv_pin",
     "check_silent_rule_ratchet",          # facade — _ref_baseline_state/_git/_is_hub seams
     "check_task_tree_coherence",          # facade — _index_worktree_divergence/_is_hub seams
     "check_intake_tree_coherence",        # facade — _index_worktree_divergence/_is_hub seams
@@ -214,6 +216,7 @@ EXTRACTED_CHECKS = (
     check_safe_removal,
     check_residual_completeness,
     check_routine_consumers,
+    check_routine_uv_pin,
     check_boot_byte_budget,
     check_adr_status_grammar,
     check_substrate_declaration,
@@ -300,6 +303,7 @@ __all__ = [
     "check_reconciled_versions",
     "check_residual_completeness",
     "check_routine_consumers",
+    "check_routine_uv_pin",
     "check_rulings_carried",
     "check_safe_removal",
     "check_substrate_declaration",

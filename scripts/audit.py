@@ -323,6 +323,7 @@ check_reconciled_versions = _registry.check_reconciled_versions
 check_residual_completeness = _registry.check_residual_completeness
 check_safe_removal = _registry.check_safe_removal
 check_routine_consumers = _registry.check_routine_consumers
+check_routine_uv_pin = _registry.check_routine_uv_pin
 check_boot_byte_budget = _registry.check_boot_byte_budget
 
 _vr = _registry._vr
@@ -5477,6 +5478,7 @@ ALL_CHECKS = [
                              # the discharge of the follow-up filed in its docstring
     _tier(TIER_COMMIT, check_routine_consumers),   # [#419]/ADR-105 activation gate; scope =
                                                    # marked rows only
+    _tier(TIER_COMMIT, check_routine_uv_pin),   # routine uv-pin gate
     _tier(TIER_COMMIT, check_silent_rule_ratchet),   # [#436] D4 ratchet — gates GROWTH of the
                                                      # silent-rule pool
     _tier(TIER_COMMIT, check_task_tree_coherence),   # [#433] C1 — arms gen_task_tree --check
