@@ -644,11 +644,12 @@ def contract_date(text: str) -> Optional[_dt.date]:
     """The contract's own flush-left `date: YYYY-MM-DD` line in its HEADER block (the lines
     before the first blank line), or None. A `date:` line further down is body text -- a fenced
     example, a quoted record -- and never dates the contract."""
-    m = _DATE_LINE_RE.search(re.split(r"\n[ \t]*\n", text, maxsplit=1)[0])
-    if m is None:
+    header = re.split(r"\r?\n[ \t]*\r?\n", text, maxsplit=1)[0].replace("\r\n", "\n")
+    matches = _DATE_LINE_RE.findall(header)
+    if len(matches) != 1 or len(re.findall(r"(?m)^date:", header)) != 1:
         return None
     try:
-        return _dt.date.fromisoformat(m.group(1))
+        return _dt.date.fromisoformat(matches[0])
     except ValueError:
         return None
 
