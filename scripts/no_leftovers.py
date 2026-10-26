@@ -160,16 +160,17 @@ def _fold(path: Path) -> bool:
 
     Case is folded when comparing a path git reports with one read off disk ONLY there; on a
     case-sensitive filesystem `Lane` and `lane` are two directories and folding would skip one.
-    Unprobeable (no letters in the name, or the probe fails) -> True, the pre-existing behaviour.
+    Unprobeable (no letters in the name, or the probe fails) -> False: case is preserved, so a
+    differently-cased unregistered directory is reported rather than skipped (fail closed).
     """
     swapped = path.name.swapcase()
     if swapped == path.name:
-        return True
+        return False
     try:
         other = path.parent / swapped
         return other.exists() and os.path.samefile(path, other)
     except OSError:
-        return True
+        return False
 
 
 def _norm_fs(path: str | Path, fold: bool) -> str:
@@ -274,7 +275,7 @@ def find_prunable(repo: Path) -> list[Path]:
     """Worktrees git still registers under `.claude/worktrees/` whose directory is gone."""
     entries, _ = _registered(repo)
     wt_root = _worktrees_root(repo)
-    fold = _fold(wt_root) if wt_root.is_dir() else True
+    fold = _fold(wt_root) if wt_root.is_dir() else False
     root = _norm_fs(wt_root, fold)
     return [Path(e["worktree"]) for e in (entries or [])
             if _norm_fs(e["worktree"], fold).startswith(root + "/") and not Path(e["worktree"]).exists()]
@@ -377,26 +378,34 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP,
     errors: list[str] = []
     found: list[Path] = []
     visited = 0
-    for cur, dirs, files in os.walk(root, onerror=lambda e: errors.append(f"could not list {e.filename}: {e}")):
-        here = Path(cur)
-        keep = []
-        for d in sorted(dirs):
-            child = here / d
-            if child.is_symlink() or os.path.isjunction(child):
-                files.append(d)
-            elif _norm_fs(child, fold) not in known:
-                keep.append(d)
-        dirs[:] = keep
-        visited += len(keep)
-        for f in sorted(files):
-            visited += 1
-            if len(found) >= cap:
-                errors.append(f"scan truncated: reported-entry cap of {cap} reached")
-                return found, True, "; ".join(errors)
-            found.append(here / f)
-        if visited > walk_cap:
-            errors.append(f"scan truncated: walk cap of {walk_cap} entries reached")
-            return found, True, "; ".join(errors)
+    stack = [root]
+    while stack:
+        cur = stack.pop()
+        try:
+            it = os.scandir(cur)
+        except OSError as exc:
+            errors.append(f"could not list {cur}: {exc}")
+            continue
+        with it:
+            for entry in it:
+                visited += 1
+                if visited > walk_cap:
+                    errors.append(f"scan truncated: walk cap of {walk_cap} entries reached")
+                    return found, True, "; ".join(errors)
+                child = Path(entry.path)
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=False) and not os.path.isjunction(child)
+                except OSError:
+                    is_dir = False
+                if is_dir:
+                    if _norm_fs(child, fold) not in known:
+                        stack.append(child)
+                    continue
+                if len(found) >= cap:
+                    errors.append(f"scan truncated: reported-entry cap of {cap} reached")
+                    return found, True, "; ".join(errors)
+                found.append(child)
+    found.sort()
     return found, False, "; ".join(errors)
 
 
