@@ -273,3 +273,32 @@ def test_r1b_walk_cap_bounds_a_single_large_directory(tmp_path):
 
     assert truncated and "cap" in err
     assert len(found) <= 5
+
+
+def test_r1c_iteration_time_read_error_fails_closed(tmp_path, monkeypatch):
+    import no_leftovers as nl
+
+    repo = make_repo(tmp_path)
+    (repo / ".claude" / "worktrees" / "husk").mkdir(parents=True)
+
+    class Broken:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            return False
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            raise PermissionError("denied mid-scan")
+
+    real = os.scandir
+    root = repo / ".claude" / "worktrees"
+    monkeypatch.setattr(nl.os, "scandir", lambda p: Broken() if Path(p) == root else real(p))
+
+    ok, evidence, _ = nl._check_scratch_files(repo)
+
+    assert ok is False
+    assert "could not list" in evidence
