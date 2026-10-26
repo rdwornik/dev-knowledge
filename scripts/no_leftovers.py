@@ -91,6 +91,9 @@ _SLUG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _CONTRACT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _MAX_EVIDENCE = 8
 _ENUM_CAP = 200
+#: Entries (directories and files) check 13 may visit before it FAILS closed naming this cap --
+#: a walk of a huge or empty-directory-only tree is never silently truncated into a pass.
+_WALK_CAP = 1000
 _GIT_TIMEOUT = 60
 #: `scripts/claim.py`'s own marker-name convention, duplicated here (a short literal, not an
 #: import) rather than importing that module -- this file's own posture is a lean, read-only
@@ -150,6 +153,28 @@ def _git_out(repo: Path, *args: str) -> tuple[str | None, str]:
 
 def _norm(path: str | Path) -> str:
     return re.sub(r"[\\/]+", "/", str(path)).rstrip("/").casefold()
+
+
+def _fold(path: Path) -> bool:
+    """True when `path` (an existing directory) sits on a case-insensitive filesystem.
+
+    Case is folded when comparing a path git reports with one read off disk ONLY there; on a
+    case-sensitive filesystem `Lane` and `lane` are two directories and folding would skip one.
+    Unprobeable (no letters in the name, or the probe fails) -> True, the pre-existing behaviour.
+    """
+    swapped = path.name.swapcase()
+    if swapped == path.name:
+        return True
+    try:
+        other = path.parent / swapped
+        return other.exists() and os.path.samefile(path, other)
+    except OSError:
+        return True
+
+
+def _norm_fs(path: str | Path, fold: bool) -> str:
+    text = re.sub(r"[\\/]+", "/", str(path)).rstrip("/")
+    return text.casefold() if fold else text
 
 
 def _lane_re(slug: str) -> re.Pattern[str]:
@@ -239,17 +264,20 @@ def find_husks(repo: Path) -> list[Path]:
     if not root.is_dir():
         return []
     entries, _ = _registered(repo)
-    known = {_norm(e["worktree"]) for e in (entries or [])}
-    return sorted((p for p in root.iterdir() if p.is_dir() and _norm(p) not in known),
+    fold = _fold(root)
+    known = {_norm_fs(e["worktree"], fold) for e in (entries or [])}
+    return sorted((p for p in root.iterdir() if p.is_dir() and _norm_fs(p, fold) not in known),
                   key=lambda p: p.name)
 
 
 def find_prunable(repo: Path) -> list[Path]:
     """Worktrees git still registers under `.claude/worktrees/` whose directory is gone."""
     entries, _ = _registered(repo)
-    root = _norm(_worktrees_root(repo))
+    wt_root = _worktrees_root(repo)
+    fold = _fold(wt_root) if wt_root.is_dir() else True
+    root = _norm_fs(wt_root, fold)
     return [Path(e["worktree"]) for e in (entries or [])
-            if _norm(e["worktree"]).startswith(root + "/") and not Path(e["worktree"]).exists()]
+            if _norm_fs(e["worktree"], fold).startswith(root + "/") and not Path(e["worktree"]).exists()]
 
 
 # --- the checks --------------------------------------------------------------
@@ -311,8 +339,31 @@ def _check_claim_marker(contract: str, transport_root: str | None) -> tuple[bool
                        else f"no {_claim_marker_glob(contract)} marker under {to_cc}")
 
 
-def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bool, str]:
-    """Files/symlinks under `.claude/worktrees/` outside every registered worktree. -> (files, truncated, error)."""
+def _kind(path: Path) -> str:
+    """What a scratch entry is, for the report: symlink, junction, fifo, socket, device or file."""
+    import stat
+    try:
+        if path.is_symlink():
+            return "symlink"
+        if os.path.isjunction(path):
+            return "junction"
+        mode = path.lstat().st_mode
+    except OSError:
+        return "unreadable"
+    for test, name in ((stat.S_ISFIFO, "fifo"), (stat.S_ISSOCK, "socket"),
+                       (stat.S_ISCHR, "char-device"), (stat.S_ISBLK, "block-device")):
+        if test(mode):
+            return name
+    return "file"
+
+
+def find_scratch_files(repo: Path, cap: int = _ENUM_CAP,
+                       walk_cap: int = _WALK_CAP) -> tuple[list[Path], bool, str]:
+    """Entries under `.claude/worktrees/` outside every registered worktree. -> (entries, truncated, error).
+
+    Bounded two ways, both FAIL closed and name the cap: `cap` entries reported, `walk_cap` entries
+    (directories included) visited.
+    """
     root = _worktrees_root(repo)
     if not (root.exists() or root.is_symlink()):
         return [], False, ""
@@ -321,9 +372,11 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bo
     entries, why = _registered(repo)
     if entries is None:
         return [], False, f"unreadable: {why}"
-    known = {_norm(e["worktree"]) for e in entries}
+    fold = _fold(root)
+    known = {_norm_fs(e["worktree"], fold) for e in entries}
     errors: list[str] = []
     found: list[Path] = []
+    visited = 0
     for cur, dirs, files in os.walk(root, onerror=lambda e: errors.append(f"could not list {e.filename}: {e}")):
         here = Path(cur)
         keep = []
@@ -331,23 +384,31 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP) -> tuple[list[Path], bo
             child = here / d
             if child.is_symlink() or os.path.isjunction(child):
                 files.append(d)
-            elif _norm(child) not in known:
+            elif _norm_fs(child, fold) not in known:
                 keep.append(d)
         dirs[:] = keep
+        visited += len(keep)
         for f in sorted(files):
+            visited += 1
             if len(found) >= cap:
+                errors.append(f"scan truncated: reported-entry cap of {cap} reached")
                 return found, True, "; ".join(errors)
             found.append(here / f)
+        if visited > walk_cap:
+            errors.append(f"scan truncated: walk cap of {walk_cap} entries reached")
+            return found, True, "; ".join(errors)
     return found, False, "; ".join(errors)
 
 
 def _check_scratch_files(repo: Path) -> tuple[bool, str, list[Path]]:
     found, truncated, err = find_scratch_files(repo)
+    shown = _shown([f"{p} [{_kind(p)}]" for p in found])
     if err:
-        return False, f"unreadable: {err}" if not err.startswith("unreadable") else err, found
+        text = err if err.startswith("unreadable") else f"unreadable: {err}"
+        return False, (f"{text}; {len(found)}{'+' if truncated else ''} scratch entr(y/ies) so far: {shown}"
+                       if found else text), found
     if found:
-        return False, (f"{len(found)}{'+' if truncated else ''} scratch file(s) outside any registered worktree: "
-                       f"{_shown([str(p) for p in found])}"), found
+        return False, f"{len(found)} scratch entr(y/ies) outside any registered worktree: {shown}", found
     return True, f"no scratch file under {_worktrees_root(repo)} outside a registered worktree", found
 
 
@@ -599,15 +660,22 @@ def main(argv: list[str] | None = None) -> int:
             # the eleven lane-worktree checks it has no slug to run.
             ok, evidence = _check_claim_marker(args.contract, args.transport_root)
             print(f"{'PASS' if ok else 'FAIL'} 12 no-claim-marker  {evidence}")
+            ok13, evidence13, _ = _check_scratch_files(repo)
+            print(f"{'PASS' if ok13 else 'FAIL'} 13 worktrees-scratch-files-absent  {evidence13}")
+            failed = [n for n, good in (("no-claim-marker", ok), ("worktrees-scratch-files-absent", ok13)) if not good]
             print(f"no-leftovers {args.contract}: "
-                  + ("CLEAN (1/1 check passes)" if ok else "NOT CLEAN (1 of 1 checks fail: no-claim-marker)"))
-            return EXIT_OK if ok else EXIT_LEFTOVER
+                  + ("CLEAN (2/2 checks pass)" if not failed
+                     else f"NOT CLEAN ({len(failed)} of 2 checks fail: {', '.join(failed)})"))
+            return EXIT_OK if not failed else EXIT_LEFTOVER
         n = _report_husks(repo, "FAIL")
         ok, evidence, scratch = _check_scratch_files(repo)
         if scratch:
             for path in scratch:
-                print(f"FAIL 13 worktrees-scratch-files-absent  scratch file outside any registered worktree: {path}")
+                print(f"FAIL 13 worktrees-scratch-files-absent  scratch {_kind(path)} outside any registered worktree: {path}")
             n += len(scratch)
+            if not ok and "cap" in evidence:
+                print(f"FAIL 13 worktrees-scratch-files-absent  {evidence}")
+                n += 1
         elif not ok:
             print(f"FAIL 13 worktrees-scratch-files-absent  {evidence}")
             n += 1
