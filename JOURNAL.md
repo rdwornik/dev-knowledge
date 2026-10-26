@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-26 (y) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 7, batch E2.1): lane stop-hook-cycle-check lands under operator ruling SH1-X -- the Stop hook records a CROSSED seat cycle in the seat state and the receipt, and the batch-close digest prints cycles, max context and compactions per seat
+
+**Anchors:** `552c965b2` (the lane tip: hermetic subprocess hook test), `7af6e4b20` (digest keeps transport-first order, legacy compaction total preserved, User-scope transport wins), `fb008e4b7` (transport-first state lookup, linked-worktree primary, per-session compaction sum, one digest row per seat), `68a6e0c3e`, `0564ea81b`, `94fc5a793` (import seat_cycle only for bound seats; the Stop leg declared in `harness.yaml`), `2a4976e11` (Stop leg records CROSSED in seat state and receipt), `3f89cd7ff` (the first RED witnesses), `f5da78de6`, `c327ace98`, `cb56090cf`, `240d7759f`
+
+**Did:** merged the local ref `worktree-stop-hook-cycle-check` @ `552c965b2` (12 lane commits, not on origin; pushed as a prep branch from this merge) onto main `b239968e0`; clean merge, six files: `ecosystem/harness.yaml`, `scripts/lane_digest.py`, `scripts/seat_cycle.py`, `scripts/seat_state.py`, `scripts/session_end_backpressure.py`, `tests/test_seat_cycle_stop_hook.py`. Regenerated `ecosystem/doc-counts.md`. Landing authority: RATIFICATION-2026-10-25.md row SH1-X ("land as is"); `handback_problems` against the primary `logs/receipts` is `([], [])` on the lane's SESSION file (re-run by this seat).
+
+**Result:** SH1-X rulings recorded: sol `:640` (a record-only hook, [#1700]) is rejected as by-design; sol `:436` (the dispatcher/orchestrator cycle instruction says about 2 h while `ecosystem/seat-cycle.yaml` says 3 h) becomes an H1-X row, [#1737]. The final-tip Codex review did not run in the lane (usage limit until 2026-10-26 12:56); review-2 re-runs on the landed diff, launched by the orchestrator. Recorded R177 deviation: the lane head (claude-sonnet-5-5) wrote the RED tests and the implementation, no Copilot phase and no VENDOR-FAIL.
+
+**Changes:** `ecosystem/harness.yaml`, `scripts/lane_digest.py`, `scripts/seat_cycle.py`, `scripts/seat_state.py`, `scripts/session_end_backpressure.py`, `tests/test_seat_cycle_stop_hook.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** `routine-uv-pin` under UV-1, then T2 (`cloud-remove-named-list`); H1-X rows [#1737] and [#1738] filed in a pure add landing.
+
 ### 2026-10-25 (x) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 6, batch E2.1): lane repair-launch-receipt lands under operator ruling RLR-1 -- a repair launch now keeps the first launch and every earlier repair in a `launches` history and writes the receipt where the substitution gate looks for it
 
 **Anchors:** `e6f30f4f3` (the lane tip: a second repair keeps the previous repair in `launches`), `2a692c4b7` (the independent black-box test), `1b23413b6` (the fix), `1ee0ca6bb` (the RED test, `KeyError: 'launches'` on the pre-fix `dispatch.py`)
