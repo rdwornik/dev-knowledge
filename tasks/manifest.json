@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d80437cbc83974ed6e32b9f47c8ae920837823c046c2bdf88d95a3ae0d33909b",
+  "generated_sha256": "bd24631020f7c40409877ca6cf67c4c7631fb1e8d18a79d18145bdccc8e488e6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3716,14 +3716,6 @@
       "file": "1715-actions-verdict-reads-only-mains-push-run.md"
     },
     {
-      "task": 1716,
-      "file": "1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md"
-    },
-    {
-      "task": 1721,
-      "file": "1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md"
-    },
-    {
       "task": 1724,
       "file": "1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md"
     },
@@ -3738,6 +3730,34 @@
     {
       "task": 1733,
       "file": "1733-a-lane-cannot-register-its-own-row-so-its-branch-ci-is-red-by-construction.md"
+    },
+    {
+      "task": 1737,
+      "file": "1737-cadence.md"
+    },
+    {
+      "task": 1738,
+      "file": "1738-history-lock.md"
+    },
+    {
+      "task": 1739,
+      "file": "1739-gate-288.md"
+    },
+    {
+      "task": 1740,
+      "file": "1740-print-602.md"
+    },
+    {
+      "task": 1741,
+      "file": "1741-lock-order.md"
+    },
+    {
+      "task": 1742,
+      "file": "1742-git-hygiene.md"
+    },
+    {
+      "task": 1743,
+      "file": "1743-uv-pin-fate.md"
     },
     {
       "prose": ""

@@ -968,12 +968,17 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1713] [P2][S] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) · tasks/1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md
 - [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
 - [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
-- [#1716] [P2][S] The K1 operator-act landing class: land_lane.py lands a non-model change keyed by a ratification id · tasks/1716-the-k1-operator-act-landing-class-lands-a-non-model-change-by-ratification-id.md
-- [#1721] [P1][S] A land_lane landing leaves an unanchored receipt merge (M2) on main's first-parent spine, and a main tip no CI run judged · tasks/1721-a-land-lane-landing-leaves-an-unanchored-receipt-merge-on-main.md
 - [#1724] [P2][S] The claude.ai scheduled (cloud) routines run an unpinned `uv`; no check ties a routine bootstrap to pyproject's `required-version` · tasks/1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md
 - [#1736] [P2][S] The known-reds extend routine and its test file are claimed by an open row (H1-X (a)) · tasks/1736-the-known-reds-extend-routine-and-its-test-file-are-claimed-by-an-open-row.md
 - [#1727] [P1][S] The dispatcher template says dispatch.py queue leaves no receipt, and carries no wake mechanism · tasks/1727-the-dispatcher-template-says-queue-leaves-no-receipt-and-lacks-the-wake-mechanism.md
 - [#1733] [P1][S] A lane cannot register its own row in the task manifest, so its branch CI is red by construction · tasks/1733-a-lane-cannot-register-its-own-row-so-its-branch-ci-is-red-by-construction.md
+- [#1737] [P2][S] Dispatcher template 2 h vs yaml 3 h · tasks/1737-cadence.md
+- [#1738] [P2][S] dispatch.py history read-modify-write · tasks/1738-history-lock.md
+- [#1739] [P3][S] subst_gate.py:288 Substrate lane head · tasks/1739-gate-288.md
+- [#1740] [P3][S] session_end:602 print, not logging · tasks/1740-print-602.md
+- [#1741] [P3][S] stop_check state before receipt lock · tasks/1741-lock-order.md
+- [#1742] [P2][S] Git hygiene by mechanism · tasks/1742-git-hygiene.md
+- [#1743] [P2][S] check_routine_uv_pin unwired, fate 11-09 · tasks/1743-uv-pin-fate.md
 
 ---
 
