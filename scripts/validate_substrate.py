@@ -634,7 +634,8 @@ def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
 
 
 #: Substrates retired from the registry (CL-1, retired 2026-10-24) -> retirement date. A contract
-#: dated BEFORE it is a record of an already-executed dispatch and is grandfathered past leg 1.
+#: carrying its OWN `date:` line BEFORE it is a record of an already-executed dispatch and passes
+#: leg 1; an undated one is refused (no directory-date grandfather).
 RETIRED_SUBSTRATES: dict[str, _dt.date] = {"cloud": _dt.date(2026, 10, 24)}
 
 _DATE_LINE_RE = re.compile(r"(?m)^date:[ \t]*(\d{4}-\d{2}-\d{2})[ \t]*$")
@@ -707,6 +708,11 @@ def validate_contract(text: str, *, source: str,
         effective = contract_date(text)
         if retired_on is not None and effective is not None and effective < retired_on:
             return out
+        if retired_on is not None:
+            detail += (f" -- {name!r} was retired on {retired_on.isoformat()}; a record of an "
+                       f"earlier dispatch must say so itself with a flush-left "
+                       f"`date: YYYY-MM-DD` line in its header block (before {retired_on.isoformat()}); "
+                       f"the directory name never dates a contract")
         out.append(_apply_override(
             Refusal(rule=RULE_NO_LIVE_VERB, source=source, detail=detail, substrate=name),
             overrides))

@@ -235,6 +235,9 @@ def _run_adapter(monkeypatch, repo: Path, rules=(vs.RULE_HEARTBEAT_DEAD,),
         vs.Refusal(rule=r, source=src, substrate="codespace", detail=f"{r} on {src}")
         for src in gated for r in rules])
     monkeypatch.setattr(adapter, "_today", lambda: today)
+    # The committed T2 named list pins real repo paths; a fixture repo carries none of them and
+    # would report all of them stale, burying the one refusal the test asks about.
+    monkeypatch.setattr(adapter, "RETIRED_SUBSTRATE_EXCEPTIONS", {})
     return adapter.check_substrate_declaration(repo)
 
 
