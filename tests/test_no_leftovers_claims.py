@@ -242,3 +242,34 @@ def test_f3_file_truncation_names_the_cap(tmp_path):
 
     assert code == 1, output
     assert any("cap" in ln.lower() for ln in output.splitlines() if ln.startswith("FAIL 13")), output
+
+
+# --- review 1 round 1 findings (R1-a unprobeable fold, R1-b walk cap inside one directory) ---
+
+def test_r1a_unprobeable_case_sensitivity_does_not_fold(tmp_path, monkeypatch):
+    import no_leftovers as nl
+
+    root = tmp_path / "worktrees"
+    root.mkdir()
+
+    def boom(*_a, **_k):
+        raise OSError("probe failed")
+
+    monkeypatch.setattr(nl.os.path, "samefile", boom)
+    monkeypatch.setattr(Path, "exists", lambda self: True)
+    assert nl._fold(root) is False
+
+
+def test_r1b_walk_cap_bounds_a_single_large_directory(tmp_path):
+    import no_leftovers as nl
+
+    repo = make_repo(tmp_path)
+    husk = repo / ".claude" / "worktrees" / "husk"
+    husk.mkdir(parents=True)
+    for i in range(30):
+        (husk / f"f{i:02d}.txt").write_text("x\n", encoding="utf-8")
+
+    found, truncated, err = nl.find_scratch_files(repo, cap=200, walk_cap=5)
+
+    assert truncated and "cap" in err
+    assert len(found) <= 5
