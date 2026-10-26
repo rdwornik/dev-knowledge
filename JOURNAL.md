@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-26 (aa) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 7, batch E2.1): lane cloud-remove-named-list lands as ruling T2 -- the retired-substrate declaration check drops the directory-date grandfather; the 16 undated cloud contracts are a closed named list pinned by path and blob sha in code
+
+**Anchors:** `2ae600448` (the lane tip: the blob sha hashes LF-normalised bytes), `a9856159c` (the evidence line states the count only), `cacb28db3` (evidence-line wording), `d9e0cd1b8` (the named-list exception, 16 records, replaces the directory-date grandfather), `508916c5f` (RED: named-list exception), `fdae92016` (removes the directory-date grandfather), `a3275e70e` (RED: no directory-date grandfather)
+
+**Did:** merged the local ref `worktree-cloud-remove-named-list` @ `2ae600448` (7 lane commits, not on origin; pushed as a prep branch from this merge) onto main `de53aeabe`; clean merge, three files: `scripts/audit_checks/check_substrate_declaration.py`, `scripts/validate_substrate.py`, `tests/test_check_substrate_declaration.py`. Regenerated `ecosystem/doc-counts.md`. Landing authority: ruling T2 of RATIFICATION-2026-10-25.md ("no grandfathering by directory date; an undated contract naming a retired substrate gets an explicit date line or is refused") and ORDER-1 (landing 4 of 4); this is the normal landing path, not an operator-act: `handback_problems` against the primary `logs/receipts` is `([], [])` on the lane's SESSION file (run by this seat), so the substitution gate reads the handback.
+
+**Result:** recorded caveats, not hidden: R177 deviation (the lane head, claude-sonnet-5-5, wrote the RED tests and the implementation); review-1 NOT run (Codex usage limit, VENDOR-FAIL line verbatim in the lane report, no substitution); review-2 ran on grok-4.7 (nonce `NONCE-T2-7f3a91c4`) under ruling B'-CODEX; the final-tip delta `a9856159c` + `2ae600448` was never re-reviewed (OPERATOR-ACTION open at the orchestrator). The orchestrator verified by script: 16 entries, 0 blob-sha mismatches, 16 substrate-no-live-verb fails identical to the lane's list.
+
+**Changes:** `scripts/audit_checks/check_substrate_declaration.py`, `scripts/validate_substrate.py`, `tests/test_check_substrate_declaration.py`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** one pure-add rows landing: [#1737], [#1738], the SH1-X LOW (`session_end_backpressure.py:602`) and the terra residual; [#1739] stays unfiled until the operator extends the grant.
+
 ### 2026-10-26 (z) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 7, batch E2.1): lane routine-uv-pin lands under operator ruling UV-1 -- `check_routine_uv_pin` ties a repo-hosted routine bootstrap to pyproject's exact uv pin, and row [#1724] is filed; it does NOT fix the claude.ai cloud scheduled task
 
 **Anchors:** `9e9b99fbc` (the lane tip: only `.claude/routines/*.sh` are bootstraps), `9002c9dde` (exact-version boundary, install-context match and inline comments), `f7ef82e32` (the check reads the pin from pyproject and reports the routine-side bootstrap as OPERATOR-ACTION), `ef677090d` (the RED test: a bootstrap installing a uv other than the pin fails the check), `e2bef90d5` (files [#1724])
