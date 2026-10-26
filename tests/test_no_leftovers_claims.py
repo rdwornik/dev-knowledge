@@ -144,3 +144,101 @@ def test_files_in_registered_worktree_are_not_scratch(tmp_path):
     _, output = verify("--repo", repo)
 
     assert fail_line(output, inside.name) is None, output
+
+
+# --- repair 1 (G-1744): F1 contract-alone check 13, F2 case folding, F3 kinds and bounded walk ---
+
+def _case_sensitive(path):
+    probe = path / "CaseProbe"
+    probe.mkdir()
+    try:
+        return not (path / "caseprobe").exists()
+    finally:
+        probe.rmdir()
+
+
+def test_f1_contract_alone_runs_check_13_and_fails_on_scratch(tmp_path):
+    repo = make_repo(tmp_path)
+    to_cc = tmp_path / "to-cc"
+    to_cc.mkdir()
+    (to_cc / "note.md").write_text("a claim exists\n", encoding="utf-8")
+    scratch = repo / ".claude" / "worktrees" / "x" / "tmp.txt"
+    scratch.parent.mkdir(parents=True)
+    scratch.write_text("scratch\n", encoding="utf-8")
+
+    code, output = verify("--repo", repo, "--contract", CONTRACT, "--transport-root", tmp_path)
+
+    assert code == 1, output
+    assert fail_line(output, "13 worktrees-scratch-files-absent") is not None, output
+    assert scratch.exists()
+
+
+def test_f1_contract_alone_passes_check_13_on_a_clean_checkout(tmp_path):
+    repo = make_repo(tmp_path)
+    to_cc = tmp_path / "to-cc"
+    to_cc.mkdir()
+    (to_cc / "note.md").write_text("a claim exists\n", encoding="utf-8")
+
+    code, output = verify("--repo", repo, "--contract", CONTRACT, "--transport-root", tmp_path)
+
+    assert code == 0, output
+    assert any(ln.startswith("PASS 13 worktrees-scratch-files-absent") for ln in output.splitlines()), output
+
+
+def test_f2_unregistered_dir_differing_only_by_case_is_not_skipped(tmp_path):
+    repo = make_repo(tmp_path)
+    root = repo / ".claude" / "worktrees"
+    root.mkdir(parents=True)
+    if not _case_sensitive(root):
+        pytest.skip("case-insensitive filesystem: two directories differing only by case cannot exist")
+    registered = root / "Lane"
+    git(repo, "worktree", "add", "-q", "-b", "lane-branch", str(registered))
+    stray = root / "lane" / "tmp.txt"
+    stray.parent.mkdir()
+    stray.write_text("scratch\n", encoding="utf-8")
+
+    code, output = verify("--repo", repo)
+
+    assert code == 1, output
+    assert fail_line(output, "tmp.txt") is not None, output
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="no FIFOs on this platform")
+def test_f3_fifo_is_reported_by_its_kind(tmp_path):
+    repo = make_repo(tmp_path)
+    fifo = repo / ".claude" / "worktrees" / "x" / "pipe"
+    fifo.parent.mkdir(parents=True)
+    os.mkfifo(fifo)
+
+    code, output = verify("--repo", repo)
+
+    assert code == 1, output
+    line = fail_line(output, "pipe")
+    assert line is not None and "fifo" in line.lower(), output
+
+
+def test_f3_walk_of_empty_directories_is_bounded_and_fails_closed_naming_the_cap(tmp_path):
+    repo = make_repo(tmp_path)
+    husk = repo / ".claude" / "worktrees" / "husk"
+    husk.mkdir(parents=True)
+    for i in range(1100):
+        (husk / f"d{i:04d}").mkdir()
+
+    code, output = verify("--repo", repo)
+
+    assert code == 1, output
+    line = fail_line(output, "13 worktrees-scratch-files-absent")
+    assert line is not None and "cap" in line.lower(), output
+
+
+def test_f3_file_truncation_names_the_cap(tmp_path):
+    repo = make_repo(tmp_path)
+    husk = repo / ".claude" / "worktrees" / "husk"
+    husk.mkdir(parents=True)
+    for i in range(250):
+        (husk / f"f{i:03d}.txt").write_text("x\n", encoding="utf-8")
+
+    code, output = verify("--repo", repo)
+
+    assert code == 1, output
+    assert any("cap" in ln.lower() for ln in output.splitlines() if ln.startswith("FAIL 13")), output
