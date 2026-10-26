@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "98f81866bc50faa4a7718080df5502382b737477350a58be3199fbc5583e6b1a",
+  "generated_sha256": "322528ee4122233e58835059b0550251bd90f5916ff2a1781355db06d04922f7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3086,6 +3086,10 @@
     {
       "task": 1719,
       "file": "1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md"
+    },
+    {
+      "task": 1744,
+      "file": "1744-no-leftovers-refuses-a-vacuous-scan-and-loose-worktree-scratch-files.md"
     },
     {
       "task": 1526,

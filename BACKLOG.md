@@ -811,6 +811,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1525] [P3][S] LANE-bw-912-known-reds-expiry.md has no consumer -- its finding is owned or dispositioned · tasks/1525-lane-bw-912-known-reds-expiry-has-no-consumer.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
+- [#1744] [P2][S] no_leftovers refuses a vacuous scan and loose worktree scratch files · tasks/1744-no-leftovers-refuses-a-vacuous-scan-and-loose-worktree-scratch-files.md
 - [#1526] [P3][S] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned · tasks/1526-lane-bw-926-main-red-has-no-consumer.md
 - [#1527] [P3][S] LANE-bw-958-required-tools.md has no consumer -- its finding is owned or dispositioned · tasks/1527-lane-bw-958-required-tools-has-no-consumer.md
 - [#1528] [P3][S] 2026-10-10-codex-b2w2-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1528-2026-10-10-codex-b2w2-transport-index-has-no-consumer.md
