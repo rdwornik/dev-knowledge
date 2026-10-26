@@ -386,25 +386,28 @@ def find_scratch_files(repo: Path, cap: int = _ENUM_CAP,
         except OSError as exc:
             errors.append(f"could not list {cur}: {exc}")
             continue
-        with it:
-            for entry in it:
-                visited += 1
-                if visited > walk_cap:
-                    errors.append(f"scan truncated: walk cap of {walk_cap} entries reached")
-                    return found, True, "; ".join(errors)
-                child = Path(entry.path)
-                try:
-                    is_dir = entry.is_dir(follow_symlinks=False) and not os.path.isjunction(child)
-                except OSError:
-                    is_dir = False
-                if is_dir:
-                    if _norm_fs(child, fold) not in known:
-                        stack.append(child)
-                    continue
-                if len(found) >= cap:
-                    errors.append(f"scan truncated: reported-entry cap of {cap} reached")
-                    return found, True, "; ".join(errors)
-                found.append(child)
+        try:
+            with it:
+                for entry in it:
+                    visited += 1
+                    if visited > walk_cap:
+                        errors.append(f"scan truncated: walk cap of {walk_cap} entries reached")
+                        return found, True, "; ".join(errors)
+                    child = Path(entry.path)
+                    try:
+                        is_dir = entry.is_dir(follow_symlinks=False) and not os.path.isjunction(child)
+                    except OSError:
+                        is_dir = False
+                    if is_dir:
+                        if _norm_fs(child, fold) not in known:
+                            stack.append(child)
+                        continue
+                    if len(found) >= cap:
+                        errors.append(f"scan truncated: reported-entry cap of {cap} reached")
+                        return found, True, "; ".join(errors)
+                    found.append(child)
+        except OSError as exc:
+            errors.append(f"could not list {cur}: {exc}")
     found.sort()
     return found, False, "; ".join(errors)
 
