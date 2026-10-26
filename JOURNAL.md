@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-26 (z) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 7, batch E2.1): lane routine-uv-pin lands under operator ruling UV-1 -- `check_routine_uv_pin` ties a repo-hosted routine bootstrap to pyproject's exact uv pin, and row [#1724] is filed; it does NOT fix the claude.ai cloud scheduled task
+
+**Anchors:** `9e9b99fbc` (the lane tip: only `.claude/routines/*.sh` are bootstraps), `9002c9dde` (exact-version boundary, install-context match and inline comments), `f7ef82e32` (the check reads the pin from pyproject and reports the routine-side bootstrap as OPERATOR-ACTION), `ef677090d` (the RED test: a bootstrap installing a uv other than the pin fails the check), `e2bef90d5` (files [#1724])
+
+**Did:** merged `origin/worktree-routine-uv-pin` @ `9e9b99fbc` onto main `eb4f1a92f` (5 lane commits, five files: `scripts/audit_checks/check_routine_consumers.py`, `tests/test_routine_uv_pin.py`, the task file `tasks/1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md`, `tasks/manifest.json`, `BACKLOG.md`). The merge conflicted in the two generated files (`BACKLOG.md`, `tasks/manifest.json`; the lane was cut from `f246bced7`): resolved by the operator's 2026-09-21 standing rule, not by choosing a side -- the manifest reset to main's side, the lane's one node for [#1724] re-added, `gen_task_tree.py --emit-source` regenerated `BACKLOG.md`, `--check` ok, no conflict markers. Regenerated `ecosystem/doc-counts.md`. Landing authority: RATIFICATION-2026-10-25.md row UV-1 ("land the branch per its lane report"); it lands through `land_lane.py --operator-act UV-1` (no model call, no substitution gate).
+
+**Result:** `handback_problems` on the lane's SESSION file is NOT clean (`REFUSED [models-block]` for red-tests, review-1, review-2, isolated-verify and the readers line: served-model strings carry no `VENDOR-FAIL` ref, isolated-verify was not run in the box); UV-1 is the operator ruling that lands it regardless, and that is recorded here rather than hidden. The lane's own caveats stand: the check is a text scan (an echoed `pip install uv==X` still counts), no APPROVE was obtained from the re-review, and the check is NOT wired into the audit registry (lane `owed:`). With no repo-hosted bootstrap today the check reports n/a with an OPERATOR-ACTION: the operator pastes `pip install "uv==0.11.19"` into the claude.ai routine environment (UV-1b option A, executed by TA-47 after the pin is witnessed).
+
+**Changes:** `scripts/audit_checks/check_routine_consumers.py`, `tests/test_routine_uv_pin.py`, `tasks/1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** T2 (`cloud-remove-named-list`), then the H1-X rows [#1737] and [#1738].
+
 ### 2026-10-26 (y) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 7, batch E2.1): lane stop-hook-cycle-check lands under operator ruling SH1-X -- the Stop hook records a CROSSED seat cycle in the seat state and the receipt, and the batch-close digest prints cycles, max context and compactions per seat
 
 **Anchors:** `552c965b2` (the lane tip: hermetic subprocess hook test), `7af6e4b20` (digest keeps transport-first order, legacy compaction total preserved, User-scope transport wins), `fb008e4b7` (transport-first state lookup, linked-worktree primary, per-session compaction sum, one digest row per seat), `68a6e0c3e`, `0564ea81b`, `94fc5a793` (import seat_cycle only for bound seats; the Stop leg declared in `harness.yaml`), `2a4976e11` (Stop leg records CROSSED in seat state and receipt), `3f89cd7ff` (the first RED witnesses), `f5da78de6`, `c327ace98`, `cb56090cf`, `240d7759f`
