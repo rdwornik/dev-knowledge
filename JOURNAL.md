@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-27 (a) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close, batch E2.2): the backlog-close landing -- 55 STALE rows closed (GO-1) and [#1745] filed
+
+**Anchors:** `e7665ef2d` (closes 40 rows), `fce7ea4bd` (closes 19 rows), `40c0a7a43` (files [#1745]), `2e165923f` and `912c63946` (repair: re-open [#419] [#426] [#428] [#271])
+
+**Did:** landed lane `backlog-close` (`worktree-backlog-close` @ `912c63946`) with `land_lane.py` from the integration worktree: 54 STALE-by-rule rows plus [#274] (DONE, witness 66a616a94) closed, the rest of the 105 STALE ids kept (P0/P1, NEXT frontier or held-back roster, live depends-on target, and after the first integration run went red, rows whose body says they stay open or whose target an open row depends on), and [#1745] filed to strengthen the 43 NO-OUTCOME test nodes. BACKLOG.md regenerated on the merged tree.
+
+**Result:** First integration run (fb7da983) was RED (REGRESSED) and refused; repaired lane tip re-reviewed: gpt-6-sol no HIGH, gpt-5.6-terra one HIGH on the [#274] witness rejected by the lane with evidence, H6 sample 6/6 agree. See `to-browser/SESSION-backlog-close.md` and the integrator receipt for the merge sha and CI verdict.
+
+**Changes:** `tasks/` (59 rows closed, `1745-*` filed), `BACKLOG.md` and the manifest (regenerated), `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** `docs-boot` lands next; the generator has no `--note` flag for closures (TODAY-GLUE in the lane file).
+
 ### 2026-10-26 (ac) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 11, batch E2.1): the no-leftovers-claims landing -- `no_leftovers` refuses a scan that read nothing and sees loose files under `.claude/worktrees/`; [#1744] is filed from the operator's id grant and closed in the same landing
 
 **Anchors:** `599184473` (merge of `worktree-no-leftovers-claims` @ `f448dc13d`; closes [#1744])
