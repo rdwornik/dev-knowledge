@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-10-04
+last_reviewed: 2026-10-27
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -48,8 +48,10 @@ fallback, and nothing else in this section changes.
                    connector). THE VARIABLE IS THE SOURCE. The folder's location is the
                    operator's and may change without this file changing; a seat that hardcodes
                    a path has substituted a fact it cannot keep current for one it can resolve
-    to-cc\       : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
-    to-browser\  : CC to browser. Delivered artifacts (plain copies, same filename) and inbox
+    to-cc\       : written by the operator (and the integrator: MERGE-PLAN, ESCALATE, REPAIR)
+                   per the registry. Contracts, pastes, GO, PLAN, ARCHITECT-INBOX-<date>-<NNN>.md
+    to-browser\  : written by lanes, handback, gen_ledger and the operator per the registry.
+                   Delivered artifacts (plain copies, same filename) and inbox
                    copies with a DONE <sha> line per item — the browser's ONLY witness that an
                    item ran
     read rule    : look in the prompts dir first; if the file is not there, ~\Downloads and its
@@ -109,21 +111,23 @@ shapes the 2026-09-06 night window actually used (inbox 028 criterion G). One gr
 transport file, so a reader identifies a file's kind, its author and its direction from the name
 alone. `<seat>` is a session name (`filings`, `integrator`), `<date>` is `YYYY-MM-DD`.
 
-| Shape | What it carries | Written by | Home |
-|---|---|---|---|
-| `STATUS-<seat>.md` | a seat's running findings, kept current while it works | that seat | `to-browser/` |
-| `SESSION-<seat>.md` | that seat's close-out account, written on stop | that seat | `to-browser/` |
-| `QUESTION-<seat>.md` | a question raised without stopping, under night autonomy | that seat | `to-browser/` |
-| `ANSWER-<seat>.md` | the reply to one | browser | `to-cc/` |
-| `AMEND-<batch>-<NNN>.md` | an additive clarification to a live batch contract | browser | `to-cc/` |
-| `ADDENDUM-<lane>-<tag>.md` | a change scoped to a single lane's contract | browser | `to-cc/` |
-| `RATIFICATION-<date>.md` | the sitting's decision list, one row per item | filings | `to-browser/` |
-| `UNOWNED-<date>.md` | unowned items enumerated, owner left unproposed | filings | `to-browser/` |
-| `RETRO-<date>.md` | a window's retrospective | browser | `to-cc/` |
-| `LEDGER-<repo>.md` | the operator's read surface, overwritten each batch and wrap | browser | `to-browser/` |
-| `INBOX-<repo>-<date>-<NNN>.md` | one numbered architect item | browser | `to-cc/` |
-| `DECLARE-<item>.md` | an operator ruling that gates an item | browser | `to-cc/` |
-| `BATCH-<date>-<name>-CONTRACTS.md` | one batch's lane contracts | browser | `to-cc/` |
+| Shape | What it carries | Written by | Home | Class |
+|---|---|---|---|---|
+| `STATUS-<seat>.md` | a seat's running findings, kept current while it works | lane | `to-browser/` | non-decision |
+| `SESSION-<seat>.md` | that seat's close-out account, written on stop | handback, lane | `to-browser/` | non-decision |
+| `QUESTION-<seat>.md` | a question raised without stopping, under night autonomy | lane | `to-browser/` | non-decision |
+| `ANSWER-<seat>.md` | the reply to one | operator | `to-cc/` | non-decision |
+| `AMEND-<batch>-<NNN>.md` | an additive clarification to a live batch contract | operator | `to-cc/` | decision |
+| `ADDENDUM-<lane>-<tag>.md` | a change scoped to a single lane's contract | operator | `to-cc/` | non-decision |
+| `RATIFICATION-<date>.md` | the sitting's decision list, one row per item | operator | `to-browser/` | non-decision |
+| `UNOWNED-<date>.md` | unowned items enumerated, owner left unproposed | operator | `to-browser/` | non-decision |
+| `LEDGER-<repo>.md` | the operator's read surface, generated each batch and wrap | gen_ledger | `to-browser/` | non-decision |
+| `INBOX-dev-knowledge-<date>-<NNN>.md` | one numbered architect item | operator | `to-cc/` | non-decision |
+| `DECLARE-<item>.md` | an operator ruling that gates an item | operator | `to-cc/` | decision |
+| `BATCH-<date>-<name>-CONTRACTS.md` | one batch's lane contracts | operator | `to-cc/` | decision |
+| `GO-<name>.md` | the operator's one-question-one-answer batch GO | operator | `to-cc/` | non-decision |
+| `PLAN-<name>.md` | the architect's master plan file, revisions versioned | operator | `to-cc/` | non-decision |
+| `SUPPLEMENT-ANSWERS-<name>.md` | the answers to a lane's SUPPLEMENT-QUESTIONS | operator | `to-cc/` | non-decision |
 
 Every browser artifact — retrospectives, plans, contracts — travels on this transport rather than
 through Downloads, and `retention` above moves the consumed ones to `archive/<window-date>/` at
