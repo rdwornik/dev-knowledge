@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7242a116cb12c1deffe50200d37e22939f3ef98d4a6363b8ecec0d1f94ebe659",
+  "generated_sha256": "2736ff3c9e39d04ad24cea6c4ee22d6c014cc9b16d8eabe942e23968744864aa",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1982,6 +1982,18 @@
     {
       "task": 288,
       "file": "288-model-identity-guard-for-unattended-runs.md"
+    },
+    {
+      "task": 419,
+      "file": "419-we-run-routines-whose-output-nobody-consumes.md"
+    },
+    {
+      "task": 426,
+      "file": "426-declare-consumer-consumption-path-for-every-live.md"
+    },
+    {
+      "task": 428,
+      "file": "428-nightly-triage-reports-a-dead-producer-to-every.md"
     },
     {
       "prose": ""
