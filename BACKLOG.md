@@ -519,6 +519,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#901] [P2][S] Does [#790]'s runtime-resource organ increment exist on main today, superseded, or nowhere -- intake [#101] still says runtime resources have no owning organ · tasks/901-does-790-s-runtime-resource-increment-exist-anywh.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
+- [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
 - [#610] [P2][M] The night-batch protocol, named — with its two missing verbs · tasks/610-the-night-batch-protocol-named-with-its-two-verb.md
 - [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
 - [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
