@@ -2973,7 +2973,7 @@ prose with a placement rule, which is still strictly more than a number with nei
 ##### Layer 2 — the commands, per substrate
 
 Every line below is **probed and current 2026-08-25**. A seat copies one; it does not compose one.
-All three verbs run Claude with **bypass permissions** as a standing rule — no permission prompt
+The live verbs run Claude with **bypass permissions** as a standing rule — no permission prompt
 blocks a lane on any substrate.
 
 **1 — LOCAL background lane** (own worktree, commit-and-STOP). Run **from the target repo root**
