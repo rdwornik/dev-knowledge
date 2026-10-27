@@ -689,7 +689,7 @@ Branch prefixes are a closed enum, not free text. Four are author-chosen: `feat/
 chore/`. Four more are machine-produced lane prefixes, each admitted by a recorded ruling
 rather than invented in passing: `worktree-<name>` (native parallel-session worktrees,
 `claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes, Ch8 "Tree
-orchestration"), `claude/<slug>` (Anthropic cloud-session lanes), and `automation/<slug>`
+orchestration"), `claude/<slug>` (read-only Anthropic routine/cloud-session report branches, never merged), and `automation/<slug>`
 (organ-produced replication lanes — admitted 2026-08-06 by architect ruling, registered
 `protocols/STANDING_RULINGS.md` B5).
 
@@ -1234,7 +1234,7 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 | `ENVIRONMENT.md` | Tooling state, what's installed | Sectioned, scope-tagged | When tool adopted/deprecated | Rob, Claude Code | Living (sections updated) | Per-repo |
 | `docs/decisions/ADR-NN-*.md` | Architectural decisions | Michael Nygard format | When decision binds | Rob, future contributors | Numbered, immutable (amend in-place per ADR-29) | Per-repo |
 | `docs/decisions/transcripts/council-out-*.md` | RETIRED 2026-07-22 (ADR-43 amendment 2026-07-23) — routed-mirror retired, hub archive deleted (`b4435fad`); transcripts are canonical-only in `ai-council/output/`; row kept for legacy context | Multi-model debate transcript | n/a | Historical reference (git history) | n/a | Removed |
-| `docs/handoffs/YYYY-MM-DD-*/` (v5.4 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v5.4 (ADR-82); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
+| `docs/handoffs/YYYY-MM-DD-*/` (v7 bundle) | Chat-to-chat session summary | Flat bundle entered via `HANDOFF_BOOT.md` (operator session entry) + CC-owned residual/probe-manifest, per HANDOFF_PROCESS v7 (ADR-82; second pass ADR-128); legacy v4 `README.md` + `01_ROLE`…`07_ASK_BACK`, single-file, and v3.x `contents/` bundles preserved as history | When session boundary requires continuity | Next browser chat | Dated, immutable | `.dev-knowledge` only |
 | `docs/audits/YYYY-MM-DD-*.md` | Point-in-time analyses | Free-form audit | When deep analysis needed | Reference for follow-up work | Dated, immutable (mark SUPERSEDED if redone) | Per-repo |
 
 ### File presence (universal baseline)
@@ -1396,7 +1396,7 @@ Formats in `docs/handoffs/`, all but the current one historical:
 - **Legacy single-file (before 2026-04-27)** — one dated `YYYY-MM-DD-slug.md` free-form summary. Preserved as-is; do not migrate.
 - **v3.x folder bundle (2026-04-27 → v4 rollout)** — `upload-instructions.md` + `first-message.md` + a `contents/` subfolder of point-in-time copies. **Superseded**; preserved as point-in-time history, never regenerated.
 - **v4 bundle (2026-05-29 → v5 flip 2026-06-11; historical)** — flat `docs/handoffs/<slug>/` = `README.md` + `01_ROLE`…`07_ASK_BACK`, generated from source via a two-phase flow. **Superseded by v5**; existing bundles preserved as history, never regenerated.
-- **v5 handoff (current)** — CC-owned: a lean **residual** + **probe manifest** under `docs/handoffs/<slug>/`, plus a thin browser boot (`protocols/HANDOFF_BOOT.md`) that replaces the multi-file bundle. Generated from live state at handoff time; teeth-y forced primary-source read. Full structure in `HANDOFF_PROCESS.md` §2–§5.
+- **v7 handoff (current)** — CC-owned: a lean **residual** + **probe manifest** under `docs/handoffs/<slug>/`, plus a thin browser boot (`protocols/HANDOFF_BOOT.md`) that replaces the multi-file bundle. Generated from live state at handoff time; teeth-y forced primary-source read. Full structure in `HANDOFF_PROCESS.md` §2–§5.
 
 **Supplement authorship (transcribed 2026-07-31, [#446] window).** `SUPPLEMENT.md` answers are
 **architect-authored**; the executor supplies verified facts only. The executor may gather, quote
@@ -2109,7 +2109,9 @@ recorded addition here until the ADR is amended.)
   origin: an integrator cannot tell a lane's forgotten stash from the operator's deliberate one
   by reading it, and guessing is how real work gets dropped.
 
-`/lane-integrate` walks this list mechanically; `/lane-boot` boots one lane against it. (The two
+`/lane-integrate` walks this list mechanically (landing itself is `scripts/land_lane.py`, ADR-131: a
+script lands, a model is called only on conflict, red CI or BASE-MOVED); `/lane-boot` boots one lane
+against it. (The two
 are deliberately *not* named `/batch-*`: ADR-110 §4 records hand-rolled `/batch-*` commands as
 rejected, native `/batch` being the substrate, and these two encode lane protocol rather than
 orchestration.)
@@ -2844,8 +2846,9 @@ selecting the shape from the contract's own declared type — so the prose and t
 drift, and a contract emitted with no command line is a generator bug with a test asserting it.
 
 **Where the commands live — OPERATOR-OWNED, at L0, and deliberately not reimplemented here.**
-`Dispatch-Local`, `Dispatch-Cloud` and `Dispatch-Codespace` (with their working version-named
-aliases `Dispatch-Lane`, `Dispatch-CloudV2`) are PowerShell aliases exported by `win-tooling`
+`Dispatch-Local` and `Dispatch-Codespace` (with their working version-named
+alias `Dispatch-Lane`; `Dispatch-Cloud` / `Dispatch-CloudV2` are dropped from this roster — CL-1
+removed the cloud build substrate) are PowerShell aliases exported by `win-tooling`
 `config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared and auto-loading by that
 repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`; `dispatch` is a PATH command that is
 the hub's own shim over `scripts/dispatch.py launch` (`templates/dispatch-shim.ps1`, an operator
@@ -2896,17 +2899,17 @@ shells: `docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 li
 
 **THE RULING (operator, 2026-08-25; the local verb moved to the hub 2026-10-05).** `dispatch
 <contract.md>` is the operator verb for a LOCAL lane — and it is **local-only**: it does not read a
-contract's `Substrate` field and cannot route, so today the substrate is chosen by **which verb the
-operator types** (`dispatch` for local; `Dispatch-Cloud` / `Dispatch-Codespace` until their lanes
-land in the hub) and a contract's `Substrate:` line is **documentation only** until the Layer-3
-router lands. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
+contract's `Substrate` field and cannot route. Lane launch and routing are `dispatch.py queue`
+(ratified 2026-10-27, `RATIFICATION-2026-10-27-adr4-consolidation.md`: the queue is the only lane
+launch path, and it routes a lane to local or Codespace); the verb typed no longer picks the
+substrate. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
 PATH command, runs `scripts/dispatch.py launch` from whichever repo root it is typed in, and `uv run
 --locked python scripts/dispatch.py launch <contract.md>` is the same act typed in full from the hub
 checkout and the manual fallback; the generator emits that line for a local contract. Until 2026-10-05 the PATH verb resolved to win-tooling's
 `Invoke-Dispatch.ps1`; the operator's order of 2026-10-04 is that the harness owns local dispatch,
 so win-tooling's `Dispatch-Local` (née `Dispatch-Lane`) is no longer the documented fallback.
 Substrate-named verbs are canonical; version-named ones
-(`Dispatch-CloudV2`) are working aliases. The raw `claude --bg` / `--worktree` form is
+(`Dispatch-Lane`) are working aliases. The raw `claude --bg` / `--worktree` form is
 **FALLBACK-ONLY** and does not appear in a command file or a template. Interactive and
 primary-checkout seats keep the shape in row 3 below.
 
@@ -2916,7 +2919,7 @@ primary-checkout seats keep the shape in row 3 below.
 |---|---|---|
 | **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. **SUPERSEDED 2026-09-01: the container's `uv` is now 0.11.19 — an EXACT match to the repo's `==0.11.19` pin — measured twice by independent witnesses (`docs/audits/2026-09-01-verification-codespace-longrun-proof.md` L4 and `docs/audits/2026-09-01-verification-codespace-admission-report.md`). The 2026-08-26 'pinned-but-WRONG (0.8.17)' reading no longer holds. Routing still unchanged: the blocker is the n=2 long-run acceptance below, not the toolchain.** |
 | **Q2** | Does it need operator-disk state (contracts in the prompts dir, authenticated vendor CLIs, unpushed branches), or is it an operator-gated act (merge, push, integration)? | **LOCAL**, stop. |
-| **Q3** | Is it read-only / reconnaissance (censuses, verification, fan-out)? | **CLOUD** — own clones, cheap, unlimited parallelism. |
+| **Q3** | Is it read-only / reconnaissance (censuses, verification, fan-out)? | **CODESPACE CR2** (`claude -p` read-only on a Codespace) or local — the offload path now (QB-CLOUD, 2026-10-27); a cloud routine (CR1) only after one routine run produces a PR. |
 | **Q4** | Everything else — repo-mutating, disk-independent | **CODESPACE** (the default once the devcontainer carries Claude Code and its credential). |
 
 **THE FOUR AXES, VERBATIM (operator, ratified in chat 2026-09-01).** The table above routes by
@@ -2999,25 +3002,10 @@ dispatch <FILE.md> -DryRun          prints the resolved line, sends nothing
   120 s branch-wait timeout as a WARNING rather than a failure. Feed it the slug
   `lane-<letter>-<id>-<slug>` and it produces exactly the canonical batch-lane branch.
 
-**2 — CLOUD lane** (repo-bound, off-machine, receipt-gated):
-
-```
-Dispatch-Cloud <FILE.md> -Title '<slug>'
-```
-
-- **Argument shape:** the WHOLE file is the brief — it travels in a JSON body, so one file = one
-  lane, and a multi-lane bundle is not a thing this transport carries. Binds Revision `main`.
-- **Receipt:** three gates. G1 *created* (HTTP 200, id prefixed `session_`), G2 *bound*
-  (`config.sources[0].type == git_repository`; an **empty `sources` array is the bundle-mode
-  defect** by name), G3 *receipt* (first assistant text, soft on timeout). G1 and G2 are hard —
-  fail either and nothing ran. Watchable at `claude.ai/code`.
-- **ID TRAP:** create mints `session_<suffix>`; every read/manage endpoint wants `cse_<suffix>`.
-  Feeding the minted id to a read returns 404, which reads as "no such session".
-  Manage: `Get-CloudSession cse_01ABC` · `Archive-CloudSession cse_01ABC`.
-- **Guards:** a cloud session clones from origin and cannot see unpushed branches or local files —
-  a physical limit of the transport. Its image may carry the wrong `uv`, so a brief instructs the
-  lane to hand-run gates as `python3` and to declare that it did. `Dispatch-CloudV2` is the
-  working version-named alias; `Dispatch-CloudBrief` is superseded and prints its own notice.
+**2 — CLOUD lane — SUPERSEDED.** CL-1 removed the cloud build substrate (2026-10-24); there is
+no `Dispatch-Cloud` line to type. Read-only offload is Codespace CR2 (Layer 1, Q3 above); the
+cloud-lane rules that survive, for the read-only harvest case only, are "Cloud lanes — the receipt
+gate and the fresh-branch rule" below.
 
 **3 — INTERACTIVE** (integration, seat acts, anything needing operator GO). Start `claude`, then
 send as the FIRST message — expand the path by eye, because a chat is not a shell and nothing
@@ -3337,8 +3325,8 @@ with no conditional form has no first batch either.
 surface is one typed line"* — was written when a local contract was the only dispatch this chapter
 described, and read alone it is now false: it is true of **shape 1 of three**. `dispatch` /
 `dispatch.py launch` carries a **local** contract to a background lane; it is not the cloud
-transport and not the interactive form. A seat holding a cloud brief takes `Dispatch-CloudV2` from
-"Dispatching a session — the boundary, the dispatch table" above. Everything else in this section —
+transport and not the interactive form. The cloud shape is superseded (CL-1): see "Dispatching a
+session — the boundary, the dispatch table" above. Everything else in this section —
 contract mode, the doubled-prefix incident, the effort enum, the execution gate — stands
 unchanged, scoped to that one shape.
 
@@ -3440,9 +3428,11 @@ contract to a running session.
 ### Cloud lanes — the receipt gate and the fresh-branch rule
 <!-- scope: meta -->
 
-A cloud lane is a dispatch that runs off this machine, on a branch under the `claude/<slug>` lane
-prefix. Everything above about contracts, decision budgets, commit-and-STOP and serial integration
-applies to it unchanged. Two *rules* apply additionally — the two below — and both exist for one
+The cloud build substrate was retired (CL-1, 2026-10-24); these rules survive for the read-only
+harvest case only (CR1: a report on a `claude/<slug>` branch the hub fetches and never merges). A
+cloud lane is a read-only dispatch that runs off this machine and reports on a branch under the
+`claude/<slug>` lane prefix. Everything above about contracts, decision budgets and
+commit-and-STOP applies to it unchanged. Two *rules* apply additionally — the two below — and both exist for one
 reason: a remote lane's state is knowable only through what it reports back. A third question,
 which lanes are cloud lanes at all, is recorded at the end of this section as owed rather than
 answered.
@@ -3605,7 +3595,8 @@ with the matrix.
 **3 · How a batch is run.** "The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)"
 above: the five per-lane requirements, the integrator's refuse-to-finish checklist,
 JOURNAL-rides-the-branch as the anchoring law, the ≥2-commit integrator-branch shape, and the
-process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out. The sequence one
+process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out, and `scripts/land_lane.py`
+(ADR-131) does the landing. The sequence one
 lane travels — dispatch, execute, commit-and-STOP, harvest, teardown — is indexed at "The lane
 lifecycle — five legs, and where each one is ruled" above, which is also where the harvest leg's
 two rules live (push-before-delete; the integrator as gate-of-record for index freshness on lane
@@ -4113,17 +4104,14 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 
 **Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
 
-**Hooks** — auto vs manual: session hooks fire automatically; **most pre-commit hooks are
-currently `stages: [manual]`** (conductor `commit-gate` runs them report-only since
-2026-09-17 — only `audit-index-freshness`, `organ-index-freshness` (pre-commit) and
-`block-ff-push`, `block-unanchored-push` (pre-push) still fire locally). The canonical,
-drift-tracked roster lives in **CLAUDE.md §9** — read it there rather than maintaining a
-duplicate copy here (this table re-drifted twice already). The operational "when":
+**Hooks** — auto vs manual: session hooks fire automatically; pre-commit hooks run per the armed
+set in **CLAUDE.md §9** (the rest are `stages: [manual]`). The canonical, drift-tracked roster lives
+there — read it there rather than maintaining a duplicate copy here (this table re-drifted twice
+already). The operational "when":
 
-- **Pre-commit gates** fire on `git commit`; today only the two index-freshness hooks
-  actually run there. `audit-health` (FAIL) and `ruff` (violation) still BLOCK, but at
-  `ship-gate`/conductor, not the local commit — run `ruff check --fix` / `/save` before
-  committing regardless, since ship-gate will catch what pre-commit no longer does.
+- **Pre-commit gates** fire on `git commit` for the hooks CLAUDE.md §9 lists as armed; `audit-health`
+  (FAIL) and `ruff` (violation) block there. Run `ruff check --fix` / `/save` before committing
+  regardless.
 - **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
 - **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
 - **Session hooks** (`~/.claude/` + the project `.claude/settings.json` layer) fire at SessionStart (surfacing — fleet/triage/billing/changelog), Stop (back-pressure + notify), and PreToolUse (the OneDrive guard + transcript-immutability guard).
