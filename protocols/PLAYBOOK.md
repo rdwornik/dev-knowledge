@@ -2900,8 +2900,8 @@ shells: `docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 li
 **THE RULING (operator, 2026-08-25; the local verb moved to the hub 2026-10-05).** `dispatch
 <contract.md>` is the operator verb for a LOCAL lane — and it is **local-only**: it does not read a
 contract's `Substrate` field and cannot route. Lane launch and routing are `dispatch.py queue`
-(ratified 2026-10-27, `RATIFICATION-2026-10-27-adr4-consolidation.md`: the queue is the only lane
-launch path; it launches a local lane and reports a Codespace lane as `ROUTE-CODESPACE`, to be
+(ratified 2026-10-27, `RATIFICATION-2026-10-27-adr4-consolidation.md`, which rules the queue the
+only lane launch path; it launches a local lane and reports a Codespace lane as `ROUTE-CODESPACE`, to be
 started with the Codespace verb); the verb typed no longer picks the substrate. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
 PATH command, runs `scripts/dispatch.py launch` from whichever repo root it is typed in, and `uv run
 --locked python scripts/dispatch.py launch <contract.md>` is the same act typed in full from the hub
@@ -4109,9 +4109,10 @@ set in **CLAUDE.md §9** (the rest are `stages: [manual]`). The canonical, drift
 there — read it there rather than maintaining a duplicate copy here (this table re-drifted twice
 already). The operational "when":
 
-- **Pre-commit gates** fire on `git commit` for the hooks CLAUDE.md §9 lists as armed; `audit-health`
-  (FAIL) and `ruff` (violation) block there. Run `ruff check --fix` / `/save` before committing
-  regardless.
+- **Pre-commit gates** fire on `git commit` for the hooks CLAUDE.md §9 lists as armed. `audit-health`
+  (FAIL) and `ruff` (violation) are `stages: [manual]` in `.pre-commit-config.yaml`: they block at
+  the conductor / `ship-gate`, not the local commit — run `ruff check --fix` / `/save` before
+  committing regardless.
 - **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
 - **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
 - **Session hooks** (`~/.claude/` + the project `.claude/settings.json` layer) fire at SessionStart (surfacing — fleet/triage/billing/changelog), Stop (back-pressure + notify), and PreToolUse (the OneDrive guard + transcript-immutability guard).
