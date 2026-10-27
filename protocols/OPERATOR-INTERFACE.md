@@ -129,7 +129,7 @@ alone. `<seat>` is a session name (`filings`, `integrator`), `<date>` is `YYYY-M
 | `PLAN-<name>.md` | the architect's master plan file, revisions versioned | operator | `to-cc/` | non-decision |
 | `SUPPLEMENT-ANSWERS-<name>.md` | the answers to a lane's SUPPLEMENT-QUESTIONS | operator | `to-cc/` | non-decision |
 
-Every browser artifact — retrospectives, plans, contracts — travels on this transport rather than
+Every browser artifact — plans, contracts — travels on this transport rather than
 through Downloads, and `retention` above moves the consumed ones to `archive/<window-date>/` at
 wrap. The retired `/handoff-verify` P8 checked a bundle's transport section against this table.
 
