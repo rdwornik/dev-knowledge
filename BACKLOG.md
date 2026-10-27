@@ -920,6 +920,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1741] [P3][S] stop_check state before receipt lock · tasks/1741-lock-order.md
 - [#1742] [P2][S] Git hygiene by mechanism · tasks/1742-git-hygiene.md
 - [#1743] [P2][S] check_routine_uv_pin unwired, fate 11-09 · tasks/1743-uv-pin-fate.md
+- [#1745] [P3][M] STRENGTHEN the 43 NO-OUTCOME test nodes (no assertion-bearing call) - add an explicit assertion, remove none · tasks/1745-strengthen-the-43-no-outcome-test-nodes.md
 
 ---
 

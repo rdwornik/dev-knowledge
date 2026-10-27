@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4b6195d785ea3342248a7281c51780f32cb61c0115279bc09b75470eaaa0a471",
+  "generated_sha256": "7242a116cb12c1deffe50200d37e22939f3ef98d4a6363b8ecec0d1f94ebe659",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3522,6 +3522,10 @@
     {
       "task": 1743,
       "file": "1743-uv-pin-fate.md"
+    },
+    {
+      "task": 1745,
+      "file": "1745-strengthen-the-43-no-outcome-test-nodes.md"
     },
     {
       "prose": ""
