@@ -362,6 +362,7 @@ _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
     2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
     3: "105ae4694359d72b2490822406e8eb318a37dd8847c511af39b8cf8b5eb1c2ed",
+    4: "4b3a3707fdc13dee9854fb8dd096e9793afac070aac95a3e30bb0195ee2e5e78",
 }
 
 
@@ -554,8 +555,8 @@ def test_the_three_rulings_are_each_one_line_with_their_id():
 def test_the_boot_is_version_2_with_a_recorded_body_hash_and_reconciled_with_the_live_spec():
     text = _BOOT.read_text(encoding="utf-8")
     front, _body = _split_boot(text)
-    assert re.search(r"(?m)^boot_version:\s*3\s*$", front), front
-    assert {1, 2, 3} <= set(_BOOT_BODY_SHA256), "versions 1 and 2 stay (the history); 3's is recorded"
+    assert re.search(r"(?m)^boot_version:\s*4\s*$", front), front
+    assert {1, 2, 3, 4} <= set(_BOOT_BODY_SHA256), "versions 1 and 2 stay (the history); 4's is recorded"
     live = re.search(r"(?m)^Version:\s+v?(\d+\.\d+\.\d+)", _HP.read_text(encoding="utf-8")).group(1)
     assert re.search(rf"(?m)^reconciled_with:\s*handoff-process@{re.escape(live)}\s*$", front), (
         f"reconciled_with must equal the live spec version {live}")
@@ -780,11 +781,12 @@ def test_the_reading_rule_orders_copilot_before_agy_and_names_the_gate_and_flag(
     assert any(h.index("Copilot") < h.index("agy") for h in hits), hits
 
 
-def test_verification_is_taught_as_os_agnostic_with_a_linux_first_input_required_rule():
+def test_the_os_line_is_gone_per_qc_boot_and_the_ci_verdict_pointer_stays():
+    """QC-BOOT (RATIFICATION-2026-10-27-adr4-consolidation:33) removed the OS / Linux-first line:
+    the boot no longer teaches it, and the `Triage first` line keeps the ADR-127 CI verdict."""
     boot = _boot_text()
-    assert "ADR-127" in boot and "OS-agnostic" in boot
-    assert _boot_lines_with("Linux-first", "INPUT_REQUIRED"), \
-        "no boot line ties `Linux-first` to `INPUT_REQUIRED`"
+    assert "Linux-first" not in boot and "OS-agnostic" not in boot
+    assert "The CI row is the verdict (ADR-127)" in boot
 
 
 def test_the_r76_line_carries_the_triad():

@@ -1,7 +1,7 @@
 ---
-last_reviewed: 2026-10-24
+last_reviewed: 2026-10-27
 reconciled_with: handoff-process@7.1.0
-boot_version: 3
+boot_version: 4
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v7)
@@ -102,6 +102,8 @@ Every repo claim you make is tagged with exactly one of three marks:
 
 Orient first: pull the MAP, then the INDEX, then the newest FINDING on your topic, all before asking anyone.
 
+- **MUST-KNOW: intake.** On a new topic read its `FINDING-<seat>-INTAKE-<date>.md` (OWED / ASK / ASSUME ledger) before asking.
+- **MUST-KNOW: operator decisions.** The bundle's `Operator decisions` heading lists asks only the operator rules: one recommendation each; never re-open a ruled one.
 - READ: start each turn with `transport.py query` for your inbox (headers only); open a file only when a header names it.
 - TRANSPORT: a decision travels as a file with a carrier, not as chat (K12).
 - DISPATCH: route work by role to a seat; never compose a launch line.
@@ -191,7 +193,6 @@ The browser proposes, CC challenges, the operator decides; then an OPEN row (R10
 lane contract (`templates/lane-contract-template.md`), a lane, two reviews, a merge.
 
 - **Reading** — bulk reading goes to the Copilot CLI first; agy only through `scripts/read_gate.py` with an absolute path and `--add-dir <dir>`; CC proves each read with a quoted line (R59).
-- **OS** — code stays OS-agnostic and CI on Windows and Linux is the verdict (ADR-127); Linux-first CI was challenged INPUT_REQUIRED and is not built.
 
 **Seats.** You, the architect, boot from this file; a bundle's `SEAT-BOOT-*.md` pastes are not for
 you but for the CC seats (dispatcher, integrator, lane, handoff, filings). **Seat order:** the
@@ -203,12 +204,11 @@ session, or an existing one by name with the reason.
 
 - **Cycle** — the integrator hands over every 3 h, the dispatcher every 2 h.
 
-**Substrates** — one start line each (the dispatch map, reading path item 5, proves each):
+**Substrates** — three start lines (the dispatch map proves each):
 
 - **local** — `dispatch LANE-<slug>.md` from the target repo root, i.e. `scripts/dispatch.py launch`: a background lane in its own worktree.
 - **interactive** — `claude` in a new terminal, then paste the seat's order (the integrator and the dispatcher).
 - **codespace** — `dispatch.py plan --substrate codespace` gives the argv, then `dispatch.py codespace-exec --repo <owner/name> --slug <slug> --argv-json <argv> <CONTRACT>`.
-- **cloud** — `Dispatch-Cloud` (operator); `dispatch.py` has no start verb; read-only work only (no gate runs there).
 
 **The render is the competence probe.** GREEN = plan lint 0 BLOCKING, every local contract
 dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder; no launch
