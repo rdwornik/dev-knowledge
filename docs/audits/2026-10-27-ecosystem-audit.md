@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-27  
-**Generated:** 2026-10-27T13:19:35  
+**Generated:** 2026-10-27T13:20:19  
 **Repos audited:** 6  
 **Checks:** 934 total — 160 pass, 13 fail, 565 warn, 0 unavailable, 196 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-3hkcxojs\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-nf21hrqf\wt`  
 **Last audit:** 2026-10-27
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | PASS | conformance-dashboard: 4d stale (baseline 4d) — ecosystem/conformance.md committed 2026-10-22, newest input BACKLOG.md committed 2026-10-26 |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-10-25, newest input docs/audits committed 2026-10-25 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 7 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 8 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | WARN | 1 git stash entry(ies) present: stash@{0}: On worktree-l12-acceptance: l12-acceptance reaped copilot partial 2026-10-24 - the stash lives in the COMMON git dir, so it survives worktree teardown and every refuse-to-finish item; pop or drop it, or say why it stays |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
