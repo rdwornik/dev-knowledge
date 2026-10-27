@@ -157,9 +157,9 @@ false-PASS finding (static oracle missed an `importlib`-by-name edge):
 
 **One-graph class — PROPOSED, NOT RATIFIED (ADR-118, `Proposed`/DRAFT, 2026-09-07).** No
 row here, nothing built as a view. Landed: `scripts/file_purpose_graph.py` (FPG-1)
-answers `why <path>` over corpus-structure edges and is gated by the pre-commit hooks
-`graph-rebuild` and `graph-orphan-census` (`.pre-commit-config.yaml`; roster: `CLAUDE.md`
-§9). ADR-118 itself is still `Proposed`; the catalog/view layers it proposes are not
+answers `why <path>` over corpus-structure edges and is checked by the hooks
+`graph-rebuild` and `graph-orphan-census` (`.pre-commit-config.yaml`, `stages: [manual]`: run by
+the Actions conductor, not at the local commit; roster: `CLAUDE.md` §9). ADR-118 itself is still `Proposed`; the catalog/view layers it proposes are not
 built. State gates
 (JOURNAL spine-anchor, `block_unanchored_push.py`) judge commit-time acts, not corpus
 edges — stay gates.

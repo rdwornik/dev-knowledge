@@ -2901,8 +2901,8 @@ shells: `docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 li
 <contract.md>` is the operator verb for a LOCAL lane — and it is **local-only**: it does not read a
 contract's `Substrate` field and cannot route. Lane launch and routing are `dispatch.py queue`
 (ratified 2026-10-27, `RATIFICATION-2026-10-27-adr4-consolidation.md`: the queue is the only lane
-launch path, and it routes a lane to local or Codespace); the verb typed no longer picks the
-substrate. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
+launch path; it launches a local lane and reports a Codespace lane as `ROUTE-CODESPACE`, to be
+started with the Codespace verb); the verb typed no longer picks the substrate. **The local verb is the hub's own:** `templates/dispatch-shim.ps1`, installed as the
 PATH command, runs `scripts/dispatch.py launch` from whichever repo root it is typed in, and `uv run
 --locked python scripts/dispatch.py launch <contract.md>` is the same act typed in full from the hub
 checkout and the manual fallback; the generator emits that line for a local contract. Until 2026-10-05 the PATH verb resolved to win-tooling's

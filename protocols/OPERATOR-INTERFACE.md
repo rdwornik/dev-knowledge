@@ -116,7 +116,7 @@ alone. `<seat>` is a session name (`filings`, `integrator`), `<date>` is `YYYY-M
 | `STATUS-<seat>.md` | a seat's running findings, kept current while it works | lane | `to-browser/` | non-decision |
 | `SESSION-<seat>.md` | that seat's close-out account, written on stop | handback, lane | `to-browser/` | non-decision |
 | `QUESTION-<seat>.md` | a question raised without stopping, under night autonomy | lane | `to-browser/` | non-decision |
-| `ANSWER-<seat>.md` | the reply to one | operator | `to-cc/` | non-decision |
+| `ANSWER-<seat>.md` | the reply to one | operator | `to-cc/`, `to-browser/` | non-decision |
 | `AMEND-<batch>-<NNN>.md` | an additive clarification to a live batch contract | operator | `to-cc/` | decision |
 | `ADDENDUM-<lane>-<tag>.md` | a change scoped to a single lane's contract | operator | `to-cc/` | non-decision |
 | `RATIFICATION-<date>.md` | the sitting's decision list, one row per item | operator | `to-browser/` | non-decision |
