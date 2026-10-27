@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "593b0ab91766249215fa0c80e65f98f3b46ed33dc80c06cf750b190da750e973",
+  "generated_sha256": "4b6195d785ea3342248a7281c51780f32cb61c0115279bc09b75470eaaa0a471",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -207,14 +207,6 @@
       "file": "499-promote-the-review-artifact-coverage-leg-from-ad.md"
     },
     {
-      "task": 560,
-      "file": "560-review-artifact-coverage-reads-only-the-first-br.md"
-    },
-    {
-      "task": 573,
-      "file": "573-lychee-zero-baseline-md-link-gate.md"
-    },
-    {
       "task": 786,
       "file": "786-give-the-playbook-order-conventions-heading-a-ga.md"
     },
@@ -248,14 +240,6 @@
     {
       "task": 579,
       "file": "579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md"
-    },
-    {
-      "task": 583,
-      "file": "583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md"
-    },
-    {
-      "task": 595,
-      "file": "595-consumer-at-landing-gate-for-docs-audits-the-sub.md"
     },
     {
       "task": 615,
@@ -1243,14 +1227,6 @@
       "file": "549-fleet-hygiene-plan-of-record-has-no-carrier.md"
     },
     {
-      "task": 550,
-      "file": "550-intake-14-ruled-siem-requirements-half-dispositioned.md"
-    },
-    {
-      "task": 564,
-      "file": "564-lifecycle-archival-implemented-adrs-and-decided-int.md"
-    },
-    {
       "task": 572,
       "file": "572-intake-funnel-completion-carrier.md"
     },
@@ -1363,10 +1339,6 @@
       "prose": ""
     },
     {
-      "task": 571,
-      "file": "571-define-architecture-described-surface.md"
-    },
-    {
       "task": 542,
       "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
     },
@@ -1400,14 +1372,6 @@
       "prose": ""
     },
     {
-      "task": 551,
-      "file": "551-audit-artifacts-carry-no-status-field.md"
-    },
-    {
-      "task": 553,
-      "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
-    },
-    {
       "task": 620,
       "file": "620-retire-the-root-readme-prohibition-across-the-fl.md"
     },
@@ -1438,20 +1402,8 @@
       "file": "589-one-line-per-row-the-backlog-view-projection-wit.md"
     },
     {
-      "task": 590,
-      "file": "590-the-audits-index-is-regenerated-on-read-never-me.md"
-    },
-    {
-      "task": 607,
-      "file": "607-playbook-census-discharge-the-mechanical-half-of.md"
-    },
-    {
       "task": 617,
       "file": "617-file-distillation-the-output-half-and-the-only-w.md"
-    },
-    {
-      "task": 612,
-      "file": "612-doc-rot-row-body-archival.md"
     },
     {
       "task": 628,
@@ -1549,20 +1501,12 @@
       "file": "351-fleet-python-upgrade-ticket.md"
     },
     {
-      "task": 559,
-      "file": "559-kernel-lab-check-tiering-dev-knowledge-kernel-as.md"
-    },
-    {
       "task": 430,
       "file": "430-consumer-template-rejects-root-conftest-py-fleet.md"
     },
     {
       "task": 604,
       "file": "604-admit-win-tooling-and-terminal-setup-to-the-depl.md"
-    },
-    {
-      "task": 606,
-      "file": "606-the-win-tooling-first-slice-instantiation-arc-ru.md"
     },
     {
       "task": 644,
@@ -1686,10 +1630,6 @@
       "task": 554
     },
     {
-      "task": 568,
-      "file": "568-provider-config-as-code-dev-knowledge-as-source-of-.md"
-    },
-    {
       "task": 581,
       "file": "581-backlog-vitals-three-flow-instruments-a-committe.md"
     },
@@ -1698,20 +1638,8 @@
       "file": "582-substrate-router-one-gated-enum-a-capability-key.md"
     },
     {
-      "task": 586,
-      "file": "586-suite-red-test-no-gate-hook-or-script-reads-the.md"
-    },
-    {
       "task": 588,
       "file": "588-p-2-build-the-spine-parent-map-in-one-git-proces.md"
-    },
-    {
-      "task": 593,
-      "file": "593-codespaces-chain-repair-hub-half-uv-in-the-image.md"
-    },
-    {
-      "task": 594,
-      "file": "594-layer-3-router-the-hub-prerequisites-only-not-th.md"
     },
     {
       "task": 598,
@@ -1961,10 +1889,6 @@
     {
       "task": 491,
       "file": "491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md"
-    },
-    {
-      "task": 578,
-      "file": "578-the-earned-mitigated-rerun-one-slot-role-reminder.md"
     },
     {
       "task": 753,

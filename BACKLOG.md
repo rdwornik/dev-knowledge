@@ -57,8 +57,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#401] [P2][S] ai-council routing still ARMED at the deleted hub landing zone · tasks/401-ai-council-routing-still-armed-at-the-deleted-hu.md
 - [#451] [P2][M] CA layer-edge check — port the ai-council layer-edge review as the missing Layer-2 organ · tasks/451-ca-layer-edge-check-ai-council-precedent.md
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
-- [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
-- [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
 - [#786] [P2][S] Give the PLAYBOOK order-conventions heading a gate · tasks/786-give-the-playbook-order-conventions-heading-a-ga.md
 - [#828] [P1][S] 752 · tasks/828-752.md
 - [#829] [P1][S] 613 · tasks/829-613.md
@@ -68,8 +66,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#533] [P2][M] Decompose the `audit.py` check monolith into `scripts/audit_checks/` — one module per check plus an ordered registry · tasks/533-decompose-the-audit-py-check-monolith-into-scrip.md
 - [#552] [P2][M] Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived · tasks/552-window-close-disposition-and-archival-routine.md
 - [#579] [P1][L] Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A) · tasks/579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md
-- [#583] [P2][M] Green-by-skip sweep — a check that cannot obtain ground truth must not report OK (packet ARC-E, C18) · tasks/583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md
-- [#595] [P2][M] Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism · tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md
 - [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
@@ -325,8 +321,6 @@ So that observed failure-modes become written guidance instead of recurring.
 So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#23] [P3][S] Validate ADR frontmatter relation-fields · DEFER · tasks/23-validate-adr-frontmatter-relation-fields.md
 - [#549] [P2][S] The operator-approved Fleet-Hygiene plan-of-record (intake #13 v4) has no carrier · DEFER · tasks/549-fleet-hygiene-plan-of-record-has-no-carrier.md
-- [#550] [P3][S] Intake #14's ruled SIEM requirements outlived the ruling that shelved them, with no record of which half survives · tasks/550-intake-14-ruled-siem-requirements-half-dispositioned.md
-- [#564] [P2][M] Lifecycle archival — a pass over implemented ADRs and decided intakes, plus a check so archival cannot silently lag · tasks/564-lifecycle-archival-implemented-adrs-and-decided-int.md
 - [#572] [P2][M] Intake-funnel completion — #34 flip, #35–#37 transitions post-R7, funnel hygiene · tasks/572-intake-funnel-completion-carrier.md
 - [#616] [P2][S] FLIP-CONDITION — every ADR records what evidence would reverse it · tasks/616-flip-condition-every-adr-records-what-evidence-w.md
 - [#637] [P2][M] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled · tasks/637-nineteen-landed-audit-artifacts-carry-proposals-tha.md
@@ -358,7 +352,6 @@ So that stale ground truth stops silently misleading sessions (the repo's own VI
 - [#388] [P3][S] The "10–20 repo" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated · tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md
 - [#526] [P3][S] Root-hygiene audit — which root files MUST be root, which are movable · tasks/526-root-hygiene-audit-which-root-files-must-be-root.md
 
-- [#571] [P2][M] Define "architecture-described surface" + the architecture-freshness check (intake #33 A1) · tasks/571-define-architecture-described-surface.md
 - [#542] [P3][S] `ARCHITECTURE.md` still claims four `doc_rot` sub-detectors; there are five · tasks/542-architecture-md-still-claims-four-doc-rot-sub-dete.md
 - [#585] [P2][S] Suite RED — `test_anchor_gate_probe_distinguishes_installed_from_absent` does not discriminate: repair it, retire it, or fix the organ · tasks/585-suite-red-test-anchor-gate-probe-distinguishes-i.md
 - [#707] [P1][S] W-4 closed under a declared organ-index bypass with four repairs owed -- the committed index is one row stale against its own generator · tasks/707-w4-close-residue-organ-index-one-row-stale-under-a-declared-bypass.md
@@ -368,8 +361,6 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#420] [P3][S] Does a TOP-LEVEL `docs/archive/` still make sense? · tasks/420-does-a-top-level-docs-archive-still-make-sense.md
 - [#227] [P3][S] Relocate AGENT_FRAMEWORK.md out of protocols/ · DEFER · tasks/227-relocate-agent-framework-md-out-of-protocols.md
 
-- [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
-- [#553] [P3][S] `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places · tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md
 - [#620] [P2][M] Retire the root-README prohibition across the fleet, not only at the hub · tasks/620-retire-the-root-readme-prohibition-across-the-fl.md
 - [#621] [P2][L] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration · tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md
 - [#622] [P3][M] Promote README.md into the ADR-38 canonical mandatory set · tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md
@@ -378,10 +369,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 ---
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
-- [#590] [P2][S] The audits index is regenerated on read, never merge-resolved · tasks/590-the-audits-index-is-regenerated-on-read-never-me.md
-- [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
 - [#617] [P2][M] FILE DISTILLATION — the output half, and the only worsening series · tasks/617-file-distillation-the-output-half-and-the-only-w.md
-- [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
 - [#755] [P1][M] Finish the docs cut — `ARCHITECTURE.md` to ≤ 15 KB behind the X3 render, and the four ESSENTIALS residues the dissolution could not reach · tasks/755-finish-the-docs-cut-architecture-to-15-kb-and-t.md
 - [#757] [P1][S] Reconcile the ratified anchor topology with B2, P-1 and the `DEFINITION_OF_DONE` wording · tasks/757-reconcile-the-ratified-anchor-topology-with-b2-p1.md
@@ -407,10 +395,8 @@ So that "open any repo, same layout/governance" actually holds.
 - [#343] [P3][S] fleet_parity ship-gate-only scoping · tasks/343-fleet-parity-ship-gate-only-scoping.md
 - [#342] [P3][S] fleet_parity gate-ahead max-fidelity hardening · tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md
 - [#351] [P3][M] Fleet-Python-upgrade ticket · tasks/351-fleet-python-upgrade-ticket.md
-- [#559] [P2][L] Kernel/lab check tiering + `dev-knowledge-kernel` as an installable package · tasks/559-kernel-lab-check-tiering-dev-knowledge-kernel-as.md
 - [#430] [P2][M] Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject · tasks/430-consumer-template-rejects-root-conftest-py-fleet.md
 - [#604] [P2][S] Admit win-tooling and terminal-setup to the deploy registry and rule their onboarding profiles · tasks/604-admit-win-tooling-and-terminal-setup-to-the-depl.md
-- [#606] [P2][L] The win-tooling first-slice instantiation arc, run in the RULING-W shape · tasks/606-the-win-tooling-first-slice-instantiation-arc-ru.md
 - [#644] [P1][S] The 2026-08-29 deploy freeze has never been ruled, and it blocks the universalization order's step 4 · tasks/644-the-2026-08-29-deploy-freeze-has-never-been-ruled.md
 
 ### [S16] Manage the methodology as a living thing (essence lifecycle: transfer · sync · PRUNE)
@@ -445,13 +431,9 @@ So that cognitive overhead per session drops.
 - [#574] [P2][M] gen_lane_contract emits the batch manifest — Q6's own failure class, recurring · tasks/574-batch-manifest-emitted-by-gen-lane-contract.md
 
 - [#554] [P2][M] Devcontainer + provisioning script (NB4-G stage 1) · tasks/554-devcontainer-provisioning-script-nb4-g-stage-1.md
-- [#568] [P2][M] Provider config as code — `.dev-knowledge` as source of truth, machine-global dirs as junctions · tasks/568-provider-config-as-code-dev-knowledge-as-source-of-.md
 - [#581] [P1][L] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) · tasks/581-backlog-vitals-three-flow-instruments-a-committe.md
 - [#582] [P1][L] Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D) · tasks/582-substrate-router-one-gated-enum-a-capability-key.md
-- [#586] [P3][S] Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04) · tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
-- [#593] [P2][M] Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes · tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md
-- [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
 - [#598] [P3][S] P-6 — a slow-marker selector so tiered gating has something to select on · tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md
 - [#618] [P2][M] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild · tasks/618-the-silently-stale-codespace-clone-detection-and.md
 - [#623] [P2][S] Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect · tasks/623-mechanize-the-journal-anchor-record-line.md
@@ -515,7 +497,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#523] [P2][M] Executive-index render leg on the generated `BACKLOG.md` · tasks/523-executive-index-render-leg-on-generated-backlog.md
 - [#492] [P3][S] Grok review-lane acceptance — gated ≥ 2026-08-07, measured against terra on the same diffs · DEFER · tasks/492-grok-review-lane-acceptance-gated-2026-08-07-mea.md
 - [#491] [P3][S] Gemini scanning lane — ruling R-G plus an acceptance contract · DEFER · tasks/491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md
-- [#578] [P3][S] The earned mitigated rerun — one slot, role-reminder preamble baked in · tasks/578-the-earned-mitigated-rerun-one-slot-role-reminder.md
 - [#753] [P2][M] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry · tasks/753-the-supervised-non-claude-producer-trial.md
 - [#832] [P3][M] Re-run the three-repo comparison against the operator's named repositories · tasks/832-copilot-collections-comparison-rerun.md
 - [#885] [P1][M] The model a contract declares is the model that RUNS — resolved at freeze, verified off the transcript, refused on the receipt, with the default by lane kind in the generator · tasks/885-the-model-a-contract-declares-is-the-model-that-r.md
