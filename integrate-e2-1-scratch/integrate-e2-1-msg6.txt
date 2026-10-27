@@ -1,0 +1,3 @@
+Merge branch 'worktree-known-reds-extend' @ b4165a5a7 -- batch E2.1 lane known-reds-extend (P2, S4-KRX exception): known_reds.py extend (ratified, recorded, code-applied expiry extension) and KR-1 APPLIED: all 121 known-reds entries expiring 2026-10-31 move to cap 2026-11-09 with an extended record each, plus the generated owner/route table; files the claiming row [#1736]; regenerates BACKLOG.md, doc-counts; JOURNAL anchor
+
+kill-candidates: none -- [#1736] is the H1-X claiming row for the new test file, not a replacement for any open row

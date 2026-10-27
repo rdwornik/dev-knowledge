@@ -1,0 +1,3 @@
+Merge branch 'worktree-template-wake-fix' @ d686c8636 -- batch E2.1 lane template-wake-fix ([#1727]): the dispatcher template says a queue FIRE leaves LAUNCH-<SLUG>.json and carries the queue --watch / Monitor / 10-minute cron / re-arm-on-BIND wake section; registers the [#1727] manifest node, regenerates BACKLOG.md and doc-counts; JOURNAL anchor
+
+kill-candidates: none -- [#1727] is the lane's own filing of a defect with no existing open row

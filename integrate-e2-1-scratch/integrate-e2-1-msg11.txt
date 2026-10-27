@@ -1,0 +1,1 @@
+Merge branch 'worktree-stop-hook-cycle-check' @ 552c965b2 -- batch E2.1 lane stop-hook-cycle-check (SH1-X, R177 deviation recorded): the Stop hook records a CROSSED seat cycle in the seat state and the receipt; the batch-close digest prints cycles, max context and compactions per seat; regenerates doc-counts; JOURNAL anchor

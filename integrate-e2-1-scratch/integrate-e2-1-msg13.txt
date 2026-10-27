@@ -1,0 +1,1 @@
+Merge branch 'worktree-cloud-remove-named-list' @ 2ae600448 -- batch E2.1 lane cloud-remove-named-list (T2, R177 deviation recorded): the retired-substrate declaration check drops the directory-date grandfather; the 16 undated cloud contracts are a closed named list pinned by path and blob sha; regenerates doc-counts; JOURNAL anchor

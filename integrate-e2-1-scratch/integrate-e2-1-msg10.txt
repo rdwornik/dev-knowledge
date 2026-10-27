@@ -1,0 +1,1 @@
+Merge branch 'worktree-repair-launch-receipt' @ e6f30f4f3 -- batch E2.1 lane repair-launch-receipt (RLR-1, R177 deviation recorded): a repair launch keeps the first launch and earlier repairs in a launches history and writes the receipt where the substitution gate reads it; regenerates doc-counts; JOURNAL anchor

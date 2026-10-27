@@ -1,0 +1,2 @@
+Merge branch 'worktree-seat-cycle-fix' @ 0ab396f04 -- batch E2.1 lane seat-cycle-fix: a cycled orchestrator seat takes its successor model from the registry row seat-dispatcher (D9) and is named <role>-<batch>-cycle-<n>; regenerates doc-counts; JOURNAL anchor
+

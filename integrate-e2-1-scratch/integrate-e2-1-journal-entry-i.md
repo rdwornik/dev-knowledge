@@ -1,0 +1,12 @@
+### 2026-10-24 (i) - CC (Sonnet 5.5, INTEGRATOR-E2.1 cycle 1, batch E2.1): lane landing-class (L8, `[#1716]` P2) -- `land_lane.py` gets the K1 operator-act landing class (`--operator-act K1 --ratification <file> --lane-ref <ref>`, REFUSES exit 5 unless the id is a ratified table row, `Ratified-by:` line in the merge commit, 0 model calls) and its merge message is repaired (`chore(land): <slug> (<batch>)`, `closes [#id]`, `kill-candidates:`, same-push receipt line)
+
+**Anchors:** `36f450363` (the RED sets), `4edc93060` (the landing class and the message repair), `0cead9524` (the lane tip, repair 1: the HANDBACK at the same sha)
+
+**Did:** purity (3 lane commits on base 76e089f46), substitution gate clean (`([], [])` with the primary's receipts dir), clean `--no-commit` merge onto main 028a7542b, registered the lane's row `[#1716]` in `tasks/manifest.json` at the end of S28 (the lane files a row without the manifest node; that is the integrator's pass) and regenerated (BACKLOG.md 805 -> 806 tasks, doc-counts), carried two ledger lines: the connector-land line (merge 028a7542b) together with that lane's Codex review record `docs/audits/2026-10-23-codex-connector-land-review.md` (restored from `4e13dfb25`, its consumer is now in the same merge), and the E2.0 `e2-landing-script` line (merge 77366f4a9) from `to-browser/CARRY-LEDGER-E2.0-MERGE-RECEIPTS-2026-10-22.md`, byte-exact, sha256 checked against the carry's own hashes. Merged-tree tests and the ship-gate head leg are recorded in the receipt.
+
+**Result:** `[#1716]` stays OPEN: Done-when (5) is a real-use witness (the integrator's landing of the ADR-131 flip through this class), which has not happened. `[#1698]` is not closed. This merge itself lands with the OLD landing code (the class it adds cannot land itself), so it carries the FALLBACK paragraph and the integrator's glue; the next landing is the first through the repaired message. Owed: the receipt's `ratification` field needs `scripts/merge_receipt.py` (Done-when 3, after ci-one-verdict).
+
+**Changes:** `scripts/land_lane.py`, `scripts/merge_path.py`, `.claude/commands/lane-integrate.md`, `tasks/1716-*.md`, `tasks/manifest.json`, `BACKLOG.md`, 4 test files under `tests/`, `docs/audits/2026-10-23-codex-connector-land-review.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (the E2.0 and connector-land lines), `JOURNAL.md`.
+
+**Next:** the ADR-131 status flip through the new class (the operator-act landing, tag `archive/adr-131-accept-2026-10-22`), then the remaining lanes by U2 priority.
+

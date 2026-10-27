@@ -1,0 +1,3 @@
+Merge branch 'worktree-routine-uv-pin' @ 9e9b99fbc -- batch E2.1 lane routine-uv-pin (UV-1): check_routine_uv_pin ties a repo-hosted routine bootstrap to pyproject's exact uv pin and files [#1724]; does not fix the claude.ai cloud scheduled task; generated BACKLOG.md/tasks/manifest.json conflict regenerated (standing rule 2026-09-21); regenerates doc-counts; JOURNAL anchor
+
+kill-candidates: none -- lane-filed row [#1724] lands with its lane; no open row covers the routine uv pin

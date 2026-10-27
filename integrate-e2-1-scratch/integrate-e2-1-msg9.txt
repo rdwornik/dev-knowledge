@@ -1,0 +1,1 @@
+Merge branch 'worktree-gate-orchestrator-role' @ 79bd37a3a -- batch E2.1 lane gate-orchestrator-role (S4-GOR-1 exception, R177 deviation recorded): the pre-launch model-per-role gate judges an orchestrator-<batch>-cycle-<n> lane against the registry row seat-dispatcher (MG-1); regenerates doc-counts; JOURNAL anchor
