@@ -27,14 +27,11 @@ So that an architecture session inherits the big picture + vision while an execu
 
 ### [S2] Finish the v5 handoff machinery deferred at the #149 flip
 So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified.
-- [#293] [P3][S] Consumer runbook fan-out · tasks/293-consumer-runbook-fan-out.md
 - [#298] [P3][S] Handoff-generator polish · tasks/298-handoff-generator-polish.md
 - [#301] [P2][M] Session-plan artifact class · DEFER · tasks/301-session-plan-artifact-class.md
 - [#390] [P2][S] Resolve the ADR-87 effort-ownership contradiction, then true up the prompt template · tasks/390-resolve-the-adr-87-effort-ownership-contradictio.md
 - [#404] [P2][S] gen_handoff execution-mode SUPPLEMENT leak (mode-blind framing + P8 row) · tasks/404-gen-handoff-execution-mode-supplement-leak-mode.md
-- [#447] [P3][S] Self-referential gate family — the committing act cannot satisfy the gate's own precondition · tasks/447-ratchet-raise-local-hook-bootstrap-deadlock.md
 - [#422] [P2][S] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves · tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md
-- [#547] [P3][S] Split-brain prevention is instructed against a handoff section shape v6 does not produce · tasks/547-split-brain-prevention-has-no-referent-under-v6.md
 - [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
@@ -53,13 +50,9 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 So that a convention can't be skipped under load (the failure mode behind real aborts).
 - [#146] [P3][S] De-hardcode-first doctrine + sweep · tasks/146-de-hardcode-first-doctrine-sweep.md
 - [#112] [P2][M] adr_amend helper + ADR immutable-zone extension · tasks/112-adr-amend-helper-adr-immutable-zone-extension.md
-- [#242] [P2][M] ADR status-flip coherence check · tasks/242-adr-status-flip-coherence-check.md
 - [#153] [P2][M] Enforcement-completeness pass · DEFER · tasks/153-enforcement-completeness-pass.md
-- [#345] [P2][M] Externalize the ADR-101 frozensets → machine-readable path-pattern registry + generalize `validate_hermetization.py` · tasks/345-externalize-the-adr-101-frozensets-machine-reada.md
-- [#185] [P2][M] GAP-2 deterministic gotcha-injection guard · tasks/185-gap-2-deterministic-gotcha-injection-guard.md
 - [#188] [P3][M] Deny-rule + hook completeness audit · DEFER · tasks/188-deny-rule-hook-completeness-audit.md
 - [#485] [P3][S] A shared LF-enforcing write helper — the mechanism that replaces the CRLF gotcha · tasks/485-lf-enforcing-write-helper-replaces-a-gotcha.md
-- [#518] [P2][S] `scripts/audit.py::_git` — one call site, two REPRODUCED defects, filed as one row because they are one fix. · tasks/518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md
 - [#389] [P2][S] Prompt-lint — gate the five architect fields before a lane runs · tasks/389-prompt-lint-gate-the-five-architect-fields-befor.md
 - [#401] [P2][S] ai-council routing still ARMED at the deleted hub landing zone · tasks/401-ai-council-routing-still-armed-at-the-deleted-hu.md
 - [#451] [P2][M] CA layer-edge check — port the ai-council layer-edge review as the missing Layer-2 organ · tasks/451-ca-layer-edge-check-ai-council-precedent.md
@@ -71,11 +64,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#829] [P1][S] 613 · tasks/829-613.md
 - [#830] [P2][M] Witness · tasks/830-witness.md
 
-- [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
-- [#531] [P2][S] Lane-grammar enforcement at PROVISIONING — the enum is checkable but nothing checks it · tasks/531-lane-grammar-enforcement-at-provisioning-the-enu.md
 - [#533] [P2][M] Decompose the `audit.py` check monolith into `scripts/audit_checks/` — one module per check plus an ordered registry · tasks/533-decompose-the-audit-py-check-monolith-into-scrip.md
-- [#534] [P2][S] `scripts/audit.py:<line>` locators on four open rows died at the `[#533]` decomposition · tasks/534-audit-py-line-locators-on-four-open-rows-died-at-t.md
 - [#552] [P2][M] Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived · tasks/552-window-close-disposition-and-archival-routine.md
 - [#579] [P1][L] Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A) · tasks/579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md
 - [#583] [P2][M] Green-by-skip sweep — a check that cannot obtain ground truth must not report OK (packet ARC-E, C18) · tasks/583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md
@@ -270,7 +260,6 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#241] [P2][S] Undeclared-edge groom · tasks/241-undeclared-edge-groom.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
-- [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
 - [#654] [P2][M] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed · tasks/654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md
 
 ### [S6] Know what depends on code before removing it (ADR-89 computed edges)
@@ -284,16 +273,11 @@ So that a symbol deletion can't silently break a dependent — the code analog o
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
 - [#116] [P3][S] Hooks hygiene · DEFER · tasks/116-hooks-hygiene.md
 - [#117] [P3][S] Evaluate prompt/agent-based hooks · DEFER · tasks/117-evaluate-prompt-agent-based-hooks.md
-- [#170] [P3][M] Design + land the traceability-spine ADR · tasks/170-design-land-the-traceability-spine-adr.md
 - [#189] [P3][S] Execute in ~/.claude · DEFER · tasks/189-execute-in-claude.md
 - [#310] [P3][S] Define the cold-bundle annotation surface + annotate the 07-05 bundle as-cold · DEFER · tasks/310-define-the-cold-bundle-annotation-surface-annota.md
 - [#520] [P2][S] No sanctioned way to retire a committed bundle whose seal is wrong · tasks/520-no-sanctioned-way-to-retire-a-committed-bundle-w.md
-- [#405] [P2][S] Session-end leftover check — nothing verifies "no leftovers" · tasks/405-session-end-leftover-check-nothing-verifies-no-l.md
 - [#418] [P2][S] `automation/fleet-audit` records 0–10 baselines a day, not one · tasks/418-automation-fleet-audit-records-0-10-baselines-a.md
-- [#414] [P2][S] Self-acting-on-main incident family — a session changed `main` with no operator GO and no anchored action (n=2 this week) · tasks/414-self-acting-on-main-incident-family-a-session-ch.md
-- [#442] [P2][M] Plugin command-cache staleness — cached command text can silently outlive a workflow change · tasks/442-plugin-command-cache-staleness-cached-command-te.md
 - [#454] [P2][S] `closure_ids` negation defect — the parser reads a negated closure mention as a closure · tasks/454-closure-ids-negation-defect-negated-mention-reads.md
-- [#500] [P3][S] The Stop hook's BACKLOG advisory reads a correctly-closed task as "nothing closed" · tasks/500-the-stop-hook-s-backlog-advisory-reads-a-correct.md
 - [#519] [P1][M] The close path is two edits, and nothing makes a half-done close visible · tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md
 - [#522] [P2][M] A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole · tasks/522-re-cut-bundle-carries-predecessor-payloads.md
 - [#730] [P1][M] Work lands on main and its row stays open, because nobody hands the operator closures in bulk -- the close packet lists what the merges witnessed · tasks/730-evidenced-bulk-closure-at-every-batch-close-one-operator-word.md
@@ -313,8 +297,6 @@ So that "held by mechanism, not memory" is true for every consumer, not only the
 - [#308] [P3][S] Decide the `verify` skill's canonical home · DEFER · tasks/308-decide-the-verify-skill-s-canonical-home.md
 - [#324] [P3][M] Phase-6 axis-2 carrier · DEFER · tasks/324-phase-6-axis-2-carrier.md
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier · DEFER · tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md
-- [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
-- [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 - [#741] [P1][M] Lane launching is methodology, so the hub owns it — a floor component shipped to every consumer, OS-independent, with machine-local values staying in win-tooling · tasks/741-lane-launching-is-methodology-so-the-hub-owns-it-as-a-floor-component.md
@@ -335,7 +317,6 @@ So that observed failure-modes become written guidance instead of recurring.
 
 ---
 
-- [#538] [P2][M] The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed · tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md
 - [#793] [P1][M] A withdrawn lane's live worktree built a rival organ · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
 ## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
@@ -343,8 +324,6 @@ So that observed failure-modes become written guidance instead of recurring.
 ### [S11] Keep the decision corpus navigable and contradiction-aware
 So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#23] [P3][S] Validate ADR frontmatter relation-fields · DEFER · tasks/23-validate-adr-frontmatter-relation-fields.md
-- [#546] [P3][S] ADR-60's `docs/` taxonomy no longer describes the tree it governs · tasks/546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md
-- [#548] [P2][S] Intake #12's SETTLED ownership manifest is parked on a departed id, and three live rows depend on it by name · tasks/548-intake-12-settled-ownership-manifest-has-no-carrier.md
 - [#549] [P2][S] The operator-approved Fleet-Hygiene plan-of-record (intake #13 v4) has no carrier · DEFER · tasks/549-fleet-hygiene-plan-of-record-has-no-carrier.md
 - [#550] [P3][S] Intake #14's ruled SIEM requirements outlived the ruling that shelved them, with no record of which half survives · tasks/550-intake-14-ruled-siem-requirements-half-dispositioned.md
 - [#564] [P2][M] Lifecycle archival — a pass over implemented ADRs and decided intakes, plus a check so archival cannot silently lag · tasks/564-lifecycle-archival-implemented-adrs-and-decided-int.md
@@ -389,7 +368,6 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#420] [P3][S] Does a TOP-LEVEL `docs/archive/` still make sense? · tasks/420-does-a-top-level-docs-archive-still-make-sense.md
 - [#227] [P3][S] Relocate AGENT_FRAMEWORK.md out of protocols/ · DEFER · tasks/227-relocate-agent-framework-md-out-of-protocols.md
 
-- [#506] [P2][M] Whole-set P10 grooming arc — the open set is unreconciled · tasks/506-whole-set-p10-grooming-arc-full-open-set.md
 - [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
 - [#553] [P3][S] `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places · tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md
 - [#620] [P2][M] Retire the root-README prohibition across the fleet, not only at the hub · tasks/620-retire-the-root-readme-prohibition-across-the-fl.md
@@ -425,7 +403,6 @@ So that "open any repo, same layout/governance" actually holds.
 - [#329] [P3][S] VS Code ownership visualization · DEFER · tasks/329-vs-code-ownership-visualization.md
 - [#331] [P2][S] Consumer BACKLOG schema adoption ruling · DEFER · tasks/331-consumer-backlog-schema-adoption-ruling.md
 - [#332] [P2][M] Fleet dependency-version parity · DEFER · tasks/332-fleet-dependency-version-parity.md
-- [#334] [P3][S] Fleet-wide ruff hook id migration `ruff` → `ruff-check` · tasks/334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md
 - [#609] [P2][S] Free ruff ratchet — the zero-cost half of the Python standard · tasks/609-free-ruff-ratchet-the-zero-cost-python-standard.md
 - [#343] [P3][S] fleet_parity ship-gate-only scoping · tasks/343-fleet-parity-ship-gate-only-scoping.md
 - [#342] [P3][S] fleet_parity gate-ahead max-fidelity hardening · tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md
@@ -459,22 +436,14 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
-- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
-- [#340] [P2][S] /ship pre-flight validator honors the consumer repo's canonical test gate · tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md
-- [#341] [P2][S] Codex producer-lane activation mechanism · tasks/341-codex-producer-lane-activation-mechanism.md
-- [#431] [P2][S] `codex-review` silently drops the doc lane on any mixed diff · tasks/431-codex-review-silently-drops-the-doc-lane-on-any.md
-- [#445] [P2][S] `codex-review` wrapper path-guard reports SUCCESS having reviewed nothing · tasks/445-codex-review-wrapper-path-guard-reports-success-h.md
 - [#403] [P3][S] Extend `doc_claims` to ARCHITECTURE's machine-derivable claims · tasks/403-extend-doc-claims-to-architecture-s-machine-deri.md
-- [#487] [P2][L] Closure-proposal consumption arc — repair the pipeline first · tasks/487-closure-proposal-consumption-arc-139-parked-prop.md
-- [#509] [P3][S] `Invoke-Dispatch.ps1` resolves `CLAUDE_PROMPTS_DIR` · tasks/509-invoke-dispatch-resolves-claude-prompts-dir.md
 - [#528] [P1][M] Lane-latency — the full suite multiplied by per-lane + per-merge runs is the real batch cost · tasks/528-lane-latency-full-suite-multiplied-across-a-batch.md
 - [#576] [P2][M] Telemetry read path — the lane `[#565]` was sequenced before · tasks/576-telemetry-read-path-lane.md
 - [#575] [P2][M] Telemetry store: 98.5% of an emit, and silent drops under concurrent writers · tasks/575-telemetry-store-performance-and-silent-drops.md
 - [#574] [P2][M] gen_lane_contract emits the batch manifest — Q6's own failure class, recurring · tasks/574-batch-manifest-emitted-by-gen-lane-contract.md
 
-- [#540] [P3][S] `harvest_batch.py` — read the board, then fetch packets by `git show`, never by log-scraping · tasks/540-harvest-batch-py-read-the-board-then-fetch-packets.md
 - [#554] [P2][M] Devcontainer + provisioning script (NB4-G stage 1) · tasks/554-devcontainer-provisioning-script-nb4-g-stage-1.md
 - [#568] [P2][M] Provider config as code — `.dev-knowledge` as source of truth, machine-global dirs as junctions · tasks/568-provider-config-as-code-dev-knowledge-as-source-of-.md
 - [#581] [P1][L] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) · tasks/581-backlog-vitals-three-flow-instruments-a-committe.md
@@ -541,7 +510,6 @@ So that cognitive overhead per session drops.
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
 - [#123] [P2][S] Routine observability convention + value review · DEFER · tasks/123-routine-observability-convention-value-review.md
-- [#347] [P2][M] Formalize the engineering loop/harness end-to-end + sanctioned safe-deletion pattern · tasks/347-formalize-the-engineering-loop-harness-end-to-en.md
 - [#387] [P2][S] Rewrite the buy-vs-build intake BEFORE anything ingests it · tasks/387-rewrite-the-buy-vs-build-intake-before-anything.md
 - [#440] [P2][S] Make the `tasks/` id ledger tamper-evident — a deleted retired record is undetectable · tasks/440-make-the-tasks-id-ledger-tamper-evident-a-delete.md
 - [#523] [P2][M] Executive-index render leg on the generated `BACKLOG.md` · tasks/523-executive-index-render-leg-on-generated-backlog.md
@@ -570,13 +538,8 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#901] [P2][S] Does [#790]'s runtime-resource organ increment exist on main today, superseded, or nowhere -- intake [#101] still says runtime resources have no owning organ · tasks/901-does-790-s-runtime-resource-increment-exist-anywh.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
-- [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
 - [#610] [P2][M] The night-batch protocol, named — with its two missing verbs · tasks/610-the-night-batch-protocol-named-with-its-two-verb.md
 - [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
-- [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
-- [#426] [P2][M] Declare `consumer` + `consumption_path` for every LIVE routine · tasks/426-declare-consumer-consumption-path-for-every-live.md
-- [#428] [P2][S] `nightly-triage` reports a dead producer to every session start · tasks/428-nightly-triage-reports-a-dead-producer-to-every.md
-- [#493] [P2][S] B-2 investigation — the scheduled fleet-baseline task has been silent 10+ days · tasks/493-b-2-investigation-the-scheduled-fleet-baseline-t.md
 
 ---
 
@@ -606,7 +569,6 @@ So that unattended routines run only with a named consumer, a survival metric, a
 
 ### [S21] Discharge the ARC-5 carried items that no wave has yet absorbed
 So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later.
-- [#354] [P2][M] W6 seed-1 recurrence half · tasks/354-w6-seed-1-recurrence-half.md
 
 
 ### [S22] Discharge the silent-rule census findings
@@ -620,11 +582,9 @@ So that the four-state ledger's first measurement produces tickets rather than a
 - [#365] [P3][S] Promote `residual_completeness` from `exempt:` to `coverage_scope` · tasks/365-promote-residual-completeness-from-exempt-to-cov.md
 
 
-- [#369] [P3][S] Wire `boundary_headers.py --check` into pre-commit · tasks/369-wire-boundary-headers-py-check-into-pre-commit.md
 - [#371] [P2][S] Consumer editor-config write-through — declared at v1.4.0, never built, never ticketed · tasks/371-consumer-editor-config-write-through-declared-at.md
 - [#400] [P3][S] Ownership-model: the hub-mandated-STRUCTURE / repo-owned-CONTENT cell (rosters) — same ruling family as [#370] · tasks/400-ownership-model-the-hub-mandated-structure-repo.md
 - [#413] [P2][S] Colors semantics — visually distinguish global/hub-managed vs per-repo content in governed markdown (declared ai-council interim) · tasks/413-colors-semantics-visually-distinguish-global-hub.md
-- [#427] [P3][S] Region templates carry a repo-POSITION-DEPENDENT path · tasks/427-region-templates-carry-a-repo-position-dependent.md
 - [#448] [P2][S] A11 staged-diff guard — cover EVERY candidate bundle, not just the active one · tasks/448-a11-staged-diff-guard-cover-every-candidate-bun.md
 
 ---

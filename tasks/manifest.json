@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bd24631020f7c40409877ca6cf67c4c7631fb1e8d18a79d18145bdccc8e488e6",
+  "generated_sha256": "593b0ab91766249215fa0c80e65f98f3b46ed33dc80c06cf750b190da750e973",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -95,10 +95,6 @@
       "prose": "So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified."
     },
     {
-      "task": 293,
-      "file": "293-consumer-runbook-fan-out.md"
-    },
-    {
       "task": 298,
       "file": "298-handoff-generator-polish.md"
     },
@@ -115,16 +111,8 @@
       "file": "404-gen-handoff-execution-mode-supplement-leak-mode.md"
     },
     {
-      "task": 447,
-      "file": "447-ratchet-raise-local-hook-bootstrap-deadlock.md"
-    },
-    {
       "task": 422,
       "file": "422-reflow-framing-s-cold-filled-flip-is-partial-by.md"
-    },
-    {
-      "task": 547,
-      "file": "547-split-brain-prevention-has-no-referent-under-v6.md"
     },
     {
       "task": 599,
@@ -191,20 +179,8 @@
       "file": "112-adr-amend-helper-adr-immutable-zone-extension.md"
     },
     {
-      "task": 242,
-      "file": "242-adr-status-flip-coherence-check.md"
-    },
-    {
       "task": 153,
       "file": "153-enforcement-completeness-pass.md"
-    },
-    {
-      "task": 345,
-      "file": "345-externalize-the-adr-101-frozensets-machine-reada.md"
-    },
-    {
-      "task": 185,
-      "file": "185-gap-2-deterministic-gotcha-injection-guard.md"
     },
     {
       "task": 188,
@@ -213,10 +189,6 @@
     {
       "task": 485,
       "file": "485-lf-enforcing-write-helper-replaces-a-gotcha.md"
-    },
-    {
-      "task": 518,
-      "file": "518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md"
     },
     {
       "task": 389,
@@ -262,24 +234,12 @@
       "prose": ""
     },
     {
-      "task": 510,
-      "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
-    },
-    {
       "task": 514,
       "file": "514-two-rival-lane-branch-re-constants-reconcile-them.md"
     },
     {
-      "task": 531,
-      "file": "531-lane-grammar-enforcement-at-provisioning-the-enu.md"
-    },
-    {
       "task": 533,
       "file": "533-decompose-the-audit-py-check-monolith-into-scrip.md"
-    },
-    {
-      "task": 534,
-      "file": "534-audit-py-line-locators-on-four-open-rows-died-at-t.md"
     },
     {
       "task": 552,
@@ -1053,10 +1013,6 @@
       "file": "477-deployed-version-check-keys-registry-by-basename.md"
     },
     {
-      "task": 478,
-      "file": "478-changelog-sentinel-drops-pep-440-suffixes.md"
-    },
-    {
       "task": 654,
       "file": "654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md"
     },
@@ -1103,10 +1059,6 @@
       "file": "117-evaluate-prompt-agent-based-hooks.md"
     },
     {
-      "task": 170,
-      "file": "170-design-land-the-traceability-spine-adr.md"
-    },
-    {
       "task": 189,
       "file": "189-execute-in-claude.md"
     },
@@ -1119,28 +1071,12 @@
       "file": "520-no-sanctioned-way-to-retire-a-committed-bundle-w.md"
     },
     {
-      "task": 405,
-      "file": "405-session-end-leftover-check-nothing-verifies-no-l.md"
-    },
-    {
       "task": 418,
       "file": "418-automation-fleet-audit-records-0-10-baselines-a.md"
     },
     {
-      "task": 414,
-      "file": "414-self-acting-on-main-incident-family-a-session-ch.md"
-    },
-    {
-      "task": 442,
-      "file": "442-plugin-command-cache-staleness-cached-command-te.md"
-    },
-    {
       "task": 454,
       "file": "454-closure-ids-negation-defect-negated-mention-reads.md"
-    },
-    {
-      "task": 500,
-      "file": "500-the-stop-hook-s-backlog-advisory-reads-a-correct.md"
     },
     {
       "task": 519,
@@ -1213,14 +1149,6 @@
       "file": "325-carry-save-to-consumers-via-a-manifest-command-a.md"
     },
     {
-      "task": 497,
-      "file": "497-carrier-mesh-py-75-still-claims-the-informant-lo.md"
-    },
-    {
-      "task": 496,
-      "file": "496-organ-to-component-attributes-the-pre-push-organ.md"
-    },
-    {
       "prose": "---"
     },
     {
@@ -1288,10 +1216,6 @@
       "prose": ""
     },
     {
-      "task": 538,
-      "file": "538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md"
-    },
-    {
       "task": 793,
       "file": "793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md"
     },
@@ -1313,14 +1237,6 @@
     {
       "task": 23,
       "file": "23-validate-adr-frontmatter-relation-fields.md"
-    },
-    {
-      "task": 546,
-      "file": "546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md"
-    },
-    {
-      "task": 548,
-      "file": "548-intake-12-settled-ownership-manifest-has-no-carrier.md"
     },
     {
       "task": 549,
@@ -1484,10 +1400,6 @@
       "prose": ""
     },
     {
-      "task": 506,
-      "file": "506-whole-set-p10-grooming-arc-full-open-set.md"
-    },
-    {
       "task": 551,
       "file": "551-audit-artifacts-carry-no-status-field.md"
     },
@@ -1621,10 +1533,6 @@
       "file": "332-fleet-dependency-version-parity.md"
     },
     {
-      "task": 334,
-      "file": "334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md"
-    },
-    {
       "task": 609,
       "file": "609-free-ruff-ratchet-the-zero-cost-python-standard.md"
     },
@@ -1743,10 +1651,6 @@
       "file": "273-changelog-review-staleness-escalation.md"
     },
     {
-      "task": 274,
-      "file": "274-dogfood-signal-prior-in-the-changelog-review-ado.md"
-    },
-    {
       "task": 317,
       "file": "317-default-parallel-test-invocation-slow-tier-marke.md"
     },
@@ -1755,32 +1659,8 @@
       "file": "322-fleet-dashboard.md"
     },
     {
-      "task": 340,
-      "file": "340-ship-pre-flight-validator-honors-the-consumer-re.md"
-    },
-    {
-      "task": 341,
-      "file": "341-codex-producer-lane-activation-mechanism.md"
-    },
-    {
-      "task": 431,
-      "file": "431-codex-review-silently-drops-the-doc-lane-on-any.md"
-    },
-    {
-      "task": 445,
-      "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
-    },
-    {
       "task": 403,
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
-    },
-    {
-      "task": 487,
-      "file": "487-closure-proposal-consumption-arc-139-parked-prop.md"
-    },
-    {
-      "task": 509,
-      "file": "509-invoke-dispatch-resolves-claude-prompts-dir.md"
     },
     {
       "task": 528,
@@ -1800,10 +1680,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 540,
-      "file": "540-harvest-batch-py-read-the-board-then-fetch-packets.md"
     },
     {
       "file": "554-devcontainer-provisioning-script-nb4-g-stage-1.md",
@@ -2067,10 +1943,6 @@
       "file": "123-routine-observability-convention-value-review.md"
     },
     {
-      "task": 347,
-      "file": "347-formalize-the-engineering-loop-harness-end-to-en.md"
-    },
-    {
       "task": 387,
       "file": "387-rewrite-the-buy-vs-build-intake-before-anything.md"
     },
@@ -2180,32 +2052,12 @@
       "prose": "So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer)."
     },
     {
-      "task": 271,
-      "file": "271-nightly-proposal-loop.md"
-    },
-    {
       "task": 610,
       "file": "610-the-night-batch-protocol-named-with-its-two-verb.md"
     },
     {
       "task": 288,
       "file": "288-model-identity-guard-for-unattended-runs.md"
-    },
-    {
-      "task": 419,
-      "file": "419-we-run-routines-whose-output-nobody-consumes.md"
-    },
-    {
-      "task": 426,
-      "file": "426-declare-consumer-consumption-path-for-every-live.md"
-    },
-    {
-      "task": 428,
-      "file": "428-nightly-triage-reports-a-dead-producer-to-every.md"
-    },
-    {
-      "task": 493,
-      "file": "493-b-2-investigation-the-scheduled-fleet-baseline-t.md"
     },
     {
       "prose": ""
@@ -2302,10 +2154,6 @@
       "prose": "So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later."
     },
     {
-      "task": 354,
-      "file": "354-w6-seed-1-recurrence-half.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -2351,10 +2199,6 @@
       "prose": ""
     },
     {
-      "task": 369,
-      "file": "369-wire-boundary-headers-py-check-into-pre-commit.md"
-    },
-    {
       "task": 371,
       "file": "371-consumer-editor-config-write-through-declared-at.md"
     },
@@ -2365,10 +2209,6 @@
     {
       "task": 413,
       "file": "413-colors-semantics-visually-distinguish-global-hub.md"
-    },
-    {
-      "task": 427,
-      "file": "427-region-templates-carry-a-repo-position-dependent.md"
     },
     {
       "task": 448,
