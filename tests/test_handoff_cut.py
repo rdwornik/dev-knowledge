@@ -104,6 +104,18 @@ def test_a_surface_that_changes_between_regeneration_and_the_seal_refuses_the_cu
     assert "ledger" in str(err.value)
 
 
+def test_the_cuts_own_writes_do_not_make_the_ledger_stale(world, monkeypatch):
+    """Witness-found (clone cut): the cut writes seat-ids.yaml and the bundle AFTER the ledger is
+    regenerated, so the ledger's `working tree:` line flips clean -> DIRTY under it. That line is a
+    side effect of the cut, not a content claim: the row and the final byte-check mask it."""
+    clean = "# LEDGER\n<!-- refreshed 2026-10-28 -->\n- working tree: clean\nopen rows: 3\n"
+    dirty = clean.replace("- working tree: clean", "- working tree: DIRTY - 1 path(s)")
+    texts = iter([clean, dirty, dirty, dirty, dirty])
+    monkeypatch.setattr(gh, "_fresh_ledger_text", lambda root, name, date: next(texts))
+    assert gh._mask_refreshed(clean) == gh._mask_refreshed(dirty)
+    _cut(world)
+
+
 def test_the_cut_never_touches_the_repo_outside_the_declared_surfaces(world):
     _cut(world)
     written = {p.relative_to(world["repo"]).as_posix() for p in world["repo"].rglob("*") if p.is_file()}

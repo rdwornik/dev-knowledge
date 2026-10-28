@@ -1050,6 +1050,7 @@ def _no_transport(name: str) -> PreflightRow:
 
 
 _LEDGER_REFRESHED_RE = re.compile(r"refreshed\s+(\d{4}-\d{2}-\d{2})")
+_LEDGER_TREE_LINE_RE = re.compile(r"^- working tree: .*$", re.MULTILINE)
 
 
 #: [#1123] the ONLY files a `--filled` re-render legitimately changes: the operator's hand-fills
@@ -1308,9 +1309,12 @@ def _fresh_ledger_text(repo_root: Path, repo_name: str, date: str) -> str:
 
 
 def _mask_refreshed(text: str) -> str:
-    """The ledger with its `refreshed <date>` token blanked: the day a ledger was written is the
-    one byte-difference between two regenerations of the same state, and it is not a content claim."""
-    return _LEDGER_REFRESHED_RE.sub("refreshed <date>", text)
+    """The ledger with its `refreshed <date>` token and its `working tree:` line blanked. The day a
+    ledger was written is the one byte-difference between two regenerations of the same state; the
+    working-tree line is a side effect of the cut itself (it writes `seat-ids.yaml` and the new
+    bundle after the ledger is regenerated, so the tree is dirty by the time the row and the final
+    byte-check read it). Neither is a content claim about the window."""
+    return _LEDGER_TREE_LINE_RE.sub("- working tree: <state>", _LEDGER_REFRESHED_RE.sub("refreshed <date>", text))
 
 
 def _row_ledger_refreshed(transport, repo_name: str, today: str,
@@ -4765,12 +4769,15 @@ def run_cut(repo_root: Path = _REPO_ROOT, *, transport: "Path | None", bundle_ro
     # The last moment before the cut returns: regenerate every surface again and compare bytes
     # with the copy that ships. A difference means the inputs moved under the cut.
     stale = []
-    again = {"ledger": (surfaces["ledger"], _fresh_ledger_text(root, repo_name, date)),
-             "dispatch_map": (surfaces["dispatch_map"], dispatch_map_text(root)),
-             "seat_ids": (surfaces["seat_ids"], _seat_ids_text(seat_path, tp, repo_seat_path)),
-             "reading_path": (surfaces["reading_path"], reading_path_text(tp))}
-    for name, (rec, text) in again.items():
-        if rec["sha256"] != _sha256_text(text):
+    shipped_ledger = _file_bytes_text(tp / "to-browser" / f"LEDGER-{repo_name.lstrip('.')}.md") or ""
+    again = {"ledger": (_sha256_text(_mask_refreshed(shipped_ledger)),
+                        _sha256_text(_mask_refreshed(_fresh_ledger_text(root, repo_name, date)))),
+             "dispatch_map": (surfaces["dispatch_map"]["sha256"], _sha256_text(dispatch_map_text(root))),
+             "seat_ids": (surfaces["seat_ids"]["sha256"],
+                          _sha256_text(_seat_ids_text(seat_path, tp, repo_seat_path))),
+             "reading_path": (surfaces["reading_path"]["sha256"], _sha256_text(reading_path_text(tp)))}
+    for name, (shipped_sha, fresh_sha) in again.items():
+        if shipped_sha != fresh_sha:
             stale.append(name)
     if stale:
         raise CutStaleError(
