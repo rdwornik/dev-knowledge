@@ -36,6 +36,7 @@ JOURNAL.md / BACKLOG.md (the operator prepends the printed draft at wrap).
 from __future__ import annotations
 
 import datetime as _dt
+import functools
 import importlib
 import importlib.util
 import os
@@ -170,6 +171,8 @@ def _vhp():
 def __getattr__(name: str):
     if name in _VERIFIER_NAMES:
         return getattr(_vhp(), name)
+    if name in _ROSTER_ATTRS:  # PEP 562: the preflight roster names stay attributes, read at first use
+        return _roster()[_ROSTER_ATTRS[name]]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 _SCRIPTS = Path(__file__).resolve().parent
@@ -711,7 +714,14 @@ def _load_preflight_roster(path: Path = PREFLIGHT_ROWS_FILE) -> "tuple[tuple, tu
     return cut, non_blocking, session
 
 
-PREFLIGHT_ROW_NAMES, PREFLIGHT_NON_BLOCKING_ROWS, SESSION_START_ROWS = _load_preflight_roster()
+@functools.lru_cache(maxsize=1)
+def _roster() -> "tuple[tuple, tuple, tuple]":
+    """Read the roster at first USE, not at import: a copied `scripts/` tree (assemble_paste's
+    tests) imports this module with no `ecosystem/` beside it and must still import."""
+    return _load_preflight_roster()
+
+
+_ROSTER_ATTRS = {"PREFLIGHT_ROW_NAMES": 0, "PREFLIGHT_NON_BLOCKING_ROWS": 1, "SESSION_START_ROWS": 2}
 
 
 @dataclass(frozen=True)
@@ -2429,7 +2439,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         return [_na_row(n, "NOT-APPLICABLE",
                         "hub-only -- this transport window, the stamped-doc set and ADR-85's "
                         "JOURNAL shape are all hub-owned", "gen_handoff._is_hub")
-                for n in PREFLIGHT_ROW_NAMES]
+                for n in _roster()[0]]
     today = today or _dt.date.today().isoformat()
     repo_name = repo_name or _main_checkout(Path(repo_root)).name
     transport = transport_root() if transport is None else transport
@@ -2478,7 +2488,7 @@ def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
     it into the bundle notes (`_write_receipt`'s `preflight_notes`) rather than lose it.
     """
     rows = preflight_rows(repo_root, **kw)
-    failed = [r for r in rows if r.failed and r.name not in PREFLIGHT_NON_BLOCKING_ROWS]
+    failed = [r for r in rows if r.failed and r.name not in _roster()[1]]
     if failed:
         raise PreflightError(
             "refusing to cut a bundle: " + str(len(failed)) + " pre-handoff hygiene row(s) "
@@ -4175,7 +4185,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                    # test_gen_handoff.py) that returns `None` on success -- never iterated
                    # before this repair, now a crash if assumed to always be a list.
                    preflight_notes=[r.render() for r in (preflight_result or ())
-                                    if r.name in PREFLIGHT_NON_BLOCKING_ROWS])
+                                    if r.name in _roster()[1]])
     if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
