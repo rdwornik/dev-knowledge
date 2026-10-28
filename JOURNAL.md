@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-28 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the session-close seat-ids regeneration
+
+**Anchors:** `0f1e767d3` (regenerates `ecosystem/seat-ids.yaml`), `b8d7b06b3` (bind-handoff landing), `82145956f` (docs-boot landing), `fbe87d470` (backlog-close landing)
+
+**Did:** regenerated `ecosystem/seat-ids.yaml` with `transport.py seat-ids --write` (Tech-Architect-45 row corrected, 46 and 47 added), the one generated file the order's close names. The order carried it as a `--regen-cmd` on a landing; both E2.2 landings that followed G-3 went without it, so it lands here as its own generated-only chore merge from the integration worktree.
+
+**Result:** `seat-ids --check` was STALE before and passes after.
+
+**Changes:** `ecosystem/seat-ids.yaml`, `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** the order's close continues (LEDGER, `gen_handoff --preflight-only`, CLOSE line); H-5 the cut under ADR-132 follows under a fresh integrator.
+
 ### 2026-10-28 (b) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the bind-handoff landing -- ADR-132 build (`--cut` regenerates and byte-checks every surface), [#1746] closed, CLAUDE.md section 9 stage claim fixed
 
 **Anchors:** `b03a9d23c` (ADR-132), `ebd86256e` and `213194335` ([#1746] filed and closed), `280208ad3` (CLAUDE.md section 9, AMEND-2 R3), `5783a5a26` (`--cut`, rows as data, receipt stops/waits/surfaces), `9ca579421`, `78e42a711` (review-1 fixes), `89128cb7f` `3434877e7` `31096e92b` `27621027b` (repair 1: the five CI regression families)
