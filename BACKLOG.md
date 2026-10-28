@@ -925,6 +925,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1742] [P2][S] Git hygiene by mechanism · tasks/1742-git-hygiene.md
 - [#1743] [P2][S] check_routine_uv_pin unwired, fate 11-09 · tasks/1743-uv-pin-fate.md
 - [#1745] [P3][M] STRENGTHEN the 43 NO-OUTCOME test nodes (no assertion-bearing call) - add an explicit assertion, remove none · tasks/1745-strengthen-the-43-no-outcome-test-nodes.md
+- [#1746] [P2][S] seat-ids: the successor half of seat_ids_both moves to the successor's first transport write (ADR-132 D3) · tasks/1746-seat-ids-gate-moves-the-successor-half-to-the-first-transport-write.md
 
 ---
 
