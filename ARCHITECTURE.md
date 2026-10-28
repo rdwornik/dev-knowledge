@@ -157,8 +157,10 @@ false-PASS finding (static oracle missed an `importlib`-by-name edge):
 
 **One-graph class — PROPOSED, NOT RATIFIED (ADR-118, `Proposed`/DRAFT, 2026-09-07).** No
 row here, nothing built as a view. Landed: `scripts/file_purpose_graph.py` (FPG-1)
-answers `why <path>` over corpus-structure edges, wired into **no gate, no check, no
-hook**. The graph/catalog/orphan-census layers ADR-118 proposes do not exist. State gates
+answers `why <path>` over corpus-structure edges and is checked by the hooks
+`graph-rebuild` and `graph-orphan-census` (`.pre-commit-config.yaml`, `stages: [manual]`: run by
+the Actions conductor, not at the local commit; roster: `CLAUDE.md` §9). ADR-118 itself is still `Proposed`; the catalog/view layers it proposes are not
+built. State gates
 (JOURNAL spine-anchor, `block_unanchored_push.py`) judge commit-time acts, not corpus
 edges — stay gates.
 
@@ -179,8 +181,8 @@ on its own tree (`audit.py` pushes to `origin`). **Roster not restated here** �
 nested (commit ⊂ ship). **As of 2026-09-17 `audit-health` (the pre-commit hook) is
 itself `stages: [manual]`** (conductor `commit-gate` runs it report-only) — the
 commit-tier legs do not block a local commit today; they still gate at `ship-gate`
-(`/ship`). `fleet_health`'s SessionStart sweep is not wired (hub `SessionStart` runs only
-`arm_hooks.py`). Basis:
+(`/ship`). The SessionStart entries (incl. `fleet_health`) run as one entry — see
+`.claude/settings.json`. Basis:
 `docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
 
 - `scripts/fleet_parity.py` — fleet-wide parity checker; blocking member via

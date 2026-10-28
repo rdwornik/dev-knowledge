@@ -2967,8 +2967,8 @@ def test_handoff_boot_keeps_volatile_facts_in_boot_data_only(tmp_path):
     front_matter = re.match(r"\A---\s*\n(.*?)\n---", boot, flags=re.DOTALL)
     assert front_matter is not None
     metadata = yaml.safe_load(front_matter.group(1))
-    assert metadata["boot_version"] == 3
-    assert str(metadata["last_reviewed"]) == "2026-10-24"
+    assert metadata["boot_version"] == 4
+    assert str(metadata["last_reviewed"]) == "2026-10-27"
 
     generated = _gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md"
     rows, _prose = vhp.parse_boot_blocks(generated.read_text(encoding="utf-8"))

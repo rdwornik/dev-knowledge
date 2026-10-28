@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-28 (a) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the docs-boot landing -- HANDOFF_BOOT v4, OPERATOR-INTERFACE, ARCHITECTURE/PLAYBOOK stale claims S1-S12
+
+**Anchors:** `87ef0eb4b` (HANDOFF_BOOT v4), `d156c6966` (OPERATOR-INTERFACE), `5a895e5c7` (S1-S12), `15becc7a5` (repair 1: local start line to the queue, R1), `52a9dcd08` and `71f585213` (repair 2: Ch8 CLOUD lane heading restored, ratchet pool back to baseline, boot_version 4 hash pin moved)
+
+**Did:** landed lane `docs-boot` (`worktree-docs-boot` @ `71f585213`) with `land_lane.py` from the integration worktree after repair 2 of 2. Purity clean; S-REVIEW on the final tip: gpt-5.6-terra and gpt-6-sol, served model from the codex banner, nonce echoed, no commit after them.
+
+**Result:** The first integration run (repair-1 tip `15becc7a5`, CI 40614524472) was RED (REGRESSED, 39 tests): the lane's PLAYBOOK edit renamed the Ch8 heading that `seat_ch8.py:137` anchors on; refused as repair 2, fixed by `52a9dcd08`. Left as TODAY-GLUE for the operator/architect: PLAYBOOK:2219/:2900 still describe `dispatch.py launch` beside the queue-only ratification (two HIGH from repair 1), PLAYBOOK:2870/:3475 cloud routing (sol MED), the BD-plan probe (transport state). AMEND-2 R3 (CLAUDE.md section 9 stage claim) moved to bind-handoff (H-4).
+
+**Changes:** `ARCHITECTURE.md`, `protocols/HANDOFF_BOOT.md`, `protocols/OPERATOR-INTERFACE.md`, `protocols/PLAYBOOK.md`, `tests/test_gen_handoff.py`, `tests/test_onboarding_items.py`, `JOURNAL.md`.
+
+**Abandoned:** the first integration branch (merge `0b3491d82`, RED) was deleted from origin before the retry; its commits are all on the lane branch.
+
+**Next:** bind-handoff (H-4) lands next; then the order's close.
+
 ### 2026-10-27 (a) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close, batch E2.2): the backlog-close landing -- 55 STALE rows closed (GO-1) and [#1745] filed
 
 **Anchors:** `e7665ef2d` (closes 40 rows), `fce7ea4bd` (closes 19 rows), `40c0a7a43` (files [#1745]), `2e165923f` and `912c63946` (repair: re-open [#419] [#426] [#428] [#271])
