@@ -362,7 +362,7 @@ _BOOT_BODY_SHA256 = {
     1: "c353227c14bfcc0d3c74754a3e5c4c31e9e7ecc9e2fa269c8f771b9e1b5d68bb",
     2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
     3: "105ae4694359d72b2490822406e8eb318a37dd8847c511af39b8cf8b5eb1c2ed",
-    4: "4b3a3707fdc13dee9854fb8dd096e9793afac070aac95a3e30bb0195ee2e5e78",
+    4: "ea2fde241bd3d52cc82aa2aeda244978e2d7533aa14f7179ceb247abfaee316a",
 }
 
 
@@ -724,7 +724,7 @@ def test_each_substrate_has_exactly_one_non_wrapping_start_line():
     assert {"local", "interactive", "codespace"} <= set(names), names
     lines = _boot_text().split("\n")
     wants = {"codespace": "codespace-exec",
-             "local": "dispatch.py launch", "interactive": "claude"}
+             "local": "dispatch.py queue", "interactive": "claude"}
     problems = []
     for name in names:
         idx = [i for i, ln in enumerate(lines) if ln.startswith(f"- **{name}**")]
