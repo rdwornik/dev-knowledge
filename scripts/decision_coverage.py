@@ -375,6 +375,22 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
               "scripts/gen_handoff.py's cut path incomplete against this ADR's own Decision "
               "text"),
 
+    # -- ADR-132: Accepted AND landed in the same lane -- lane bind-handoff, batch E2.2 (H-4),
+    # repair 1. Same shape as ADR-128/129 above. What stays open is the first REAL cut under the
+    # ADR (batch step H-5): an operator-run act of the batch plan, not a unit of code, so no
+    # backlog row carries it.
+    "adr:132": Disposition(
+        reason="Accepted and self-executing: D1-D5 and C2/C3 are implemented in this SAME "
+               "lane's commits (`5783a5a26` gen_handoff.py --cut, rows as data, receipt "
+               "stops/waits/surfaces, the land verb and the process_registry row; `9ca579421`; "
+               "`213194335` the #1746 seat-ids successor half), landed with this ADR. The one "
+               "open item, the first real cut under it (batch E2.2 step H-5), is an "
+               "operator-run act, not a code gap. No open implementing work remains to file a "
+               "row for.",
+        owner="the operator's ratification of 2026-10-28 (AMEND-2, to-cc/AMEND-2-PLAN-E2-2-"
+              "SESSION-CLOSE-2026-10-28.md section C); re-open if the H-5 real cut finds "
+              "scripts/gen_handoff.py --cut incomplete against this ADR's own Decision text"),
+
     # -- pre-triage intakes (DRAFT/SEED) -- LANE-5B3-4-decision-debt --------------------------
     "intake:93": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #93"),
     "intake:95": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #95"),
