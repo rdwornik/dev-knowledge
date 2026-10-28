@@ -254,7 +254,7 @@ def _ledger_row(world, text, date=_TODAY, fresh=None):
 
 
 def test_ledger_refreshed_passes_on_the_regenerated_bytes_whatever_the_day(world):
-    ledger = f"# LEDGER\n<!-- refreshed 2026-10-20 -->\nopen rows: 3\n"
+    ledger = "# LEDGER\n<!-- refreshed 2026-10-20 -->\nopen rows: 3\n"
     fresh = f"# LEDGER\n<!-- refreshed {_TODAY} -->\nopen rows: 3\n"
     row = _ledger_row(world, ledger, fresh=fresh)
     assert row.status == gh.PREFLIGHT_PASS, row.render()
