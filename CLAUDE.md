@@ -165,8 +165,8 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 - `graph-edge-class-census` — edge-class ratchet ([#664])
 - `quality-requirements-freshness` — quality register ([#765])
 - `prepend-order` — newest-first / append-only logs ([#786])
-- `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
-- `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
+- `audit-health` — `audit.py health`; `stages: [manual]` (moved to the Actions conductor 2026-09-17), so it blocks no commit; FAIL exits 1, WARN informs
+- `ruff` — `stages: [manual]` (not re-armed 2026-09-18), so it blocks no commit; pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
 - `backlog-id-on-close` (commit-msg) — `[#id]` required when a commit removes a task
 - `backlog-filing-backpressure` (commit-msg) — a commit ADDING a task id needs a flush-left `kill-candidates:` line
