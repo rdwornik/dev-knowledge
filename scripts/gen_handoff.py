@@ -2144,7 +2144,10 @@ _SEAT_REGISTRY_RE = re.compile(r"(?m)^\s*-?\s*seat:\s*['\"]?(Tech-Architect-\d+)
 
 
 def _row_seat_ids_both(transport, repo_root: Path) -> PreflightRow:
-    """Row 14 -- the outgoing Tech-Architect seat and its successor are both registered."""
+    """Row 14 -- the OUTGOING Tech-Architect seat is registered (ADR-132 D3, [#1746]).
+
+    The successor's id cannot exist before the cut, so that half moved to the successor's first
+    transport write: `transport.write` refuses a `by:` naming an unregistered Tech-Architect id."""
     name = "seat_ids_both"
     locator = "to-cc SUPPLEMENT-ANSWERS files (one per Tech-Architect seat) x ecosystem/seat-ids.yaml"
     if transport is None:
@@ -2160,14 +2163,13 @@ def _row_seat_ids_both(transport, repo_root: Path) -> PreflightRow:
     except (OSError, UnicodeError, ValueError) as exc:
         return PreflightRow(name, PREFLIGHT_FAIL, locator,
                             f"the seat evidence could not be read ({exc}); unread is not registered")
-    outgoing = max(nums)
-    needed = [f"Tech-Architect-{outgoing}", f"Tech-Architect-{outgoing + 1}"]
-    missing = [s for s in needed if s not in registered]
-    if missing:
+    outgoing = f"Tech-Architect-{max(nums)}"
+    if outgoing not in registered:
         return PreflightRow(name, PREFLIGHT_FAIL, locator,
-                            "not registered in seat-ids.yaml: " + ", ".join(missing))
+                            f"not registered in seat-ids.yaml: {outgoing}")
     return PreflightRow(name, PREFLIGHT_PASS, locator,
-                        "both " + " and ".join(needed) + " are registered")
+                        f"outgoing {outgoing} is registered (the successor registers at its "
+                        "first transport write)")
 
 
 def _row_supplement_matches_transport(transport, bundle_dir: "Path | None") -> PreflightRow:

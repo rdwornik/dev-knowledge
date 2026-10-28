@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a045a7278cc80628ca4f24fb6d89c3a81edad5df8f16afaa1551b8b62d14b7f3",
+  "generated_sha256": "747fb1ce055e94082edd3234f54f330d06c9d0d9a28f3b72521cb986068d4836",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3542,10 +3542,6 @@
     {
       "task": 1745,
       "file": "1745-strengthen-the-43-no-outcome-test-nodes.md"
-    },
-    {
-      "task": 1746,
-      "file": "1746-seat-ids-gate-moves-the-successor-half-to-the-first-transport-write.md"
     },
     {
       "prose": ""
