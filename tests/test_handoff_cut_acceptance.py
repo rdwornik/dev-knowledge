@@ -74,6 +74,8 @@ def _run_dry_cut(tmp_path: Path, monkeypatch, *, today: str = "2026-10-01",
     """
     transport = _fixture_transport(tmp_path, today)
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+    # ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py.
+    monkeypatch.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: f"refreshed {date}\n")
     # Row 9 (worktree_owners) is a LIVE-STATE row (N2): this worktree's own `git worktree list`
     # carries every sibling lane's worktree too, which is exactly the flakiness class
     # DIGEST-HANDOFF-UNBLOCK-2026-09-30 §3 measured. Pinned to "none" for determinism

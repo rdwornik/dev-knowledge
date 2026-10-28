@@ -174,6 +174,8 @@ def _cut_architect_bundle(tmp_path_factory, name: str, *, warm: bool):
     tmp_path = tmp_path_factory.mktemp(name)
     today = date.today().isoformat()
     mp.setenv("CLAUDE_PROMPTS_DIR", str(_fixture_transport(tmp_path, today)))
+    # ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py.
+    mp.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: f"refreshed {date}\n")
     mp.setattr(gh, "_linked_worktrees", lambda repo_root: [])
     mp.setattr(dd, "find_powershell", lambda: "pwsh-fixture")
     mp.setattr(dd, "resolve_via_get_command",

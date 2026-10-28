@@ -1,0 +1,33 @@
+# ecosystem/handoff-preflight-rows.yaml -- the handoff preflight roster, as DATA (ADR-132 D3).
+# One declared home: scripts/gen_handoff.py reads PREFLIGHT_ROW_NAMES, PREFLIGHT_NON_BLOCKING_ROWS and
+# SESSION_START_ROWS from here; no tuple restates them in code. NO logic here.
+#
+#   name      the row's name (the `_row_<name>` function in scripts/gen_handoff.py)
+#   scope     cut            -- evaluated by the cut and by --preflight-only / --trial-cut
+#             session-start  -- NOT evaluated by the cut; it measures the machine, not the repository
+#   blocking  true  -- a FAIL refuses the cut
+#             false -- the verdict is carried into the receipt's `preflight_notes` and never raises
+#   why       why a non-default status holds (read by the reader, not by code)
+#
+# Order is the report order. Rows 10-19 were appended, never inserted, so the ratified register's own
+# 1-9 numbering keeps meaning what it meant.
+rows:
+  - {name: ship_gate, scope: cut, blocking: true}
+  - {name: ledger_refreshed, scope: cut, blocking: true, why: "regenerate-and-diff on the output bytes; no date compare (ADR-132 D2)"}
+  - {name: ratification_present, scope: cut, blocking: true}
+  - {name: status_byte_budget, scope: cut, blocking: true}
+  - {name: living_docs_stamped, scope: cut, blocking: true}
+  - {name: journal_anchored, scope: cut, blocking: true}
+  - {name: question_disposition, scope: cut, blocking: true}
+  - {name: memory_within_cap, scope: session-start, blocking: false, why: "measures the machine, not the repository; leaves the cut, runs at session start (ADR-132 D3)"}
+  - {name: worktree_owners, scope: cut, blocking: true, why: "a genuine precondition: no orphaned linked worktree"}
+  - {name: p11_carriage, scope: cut, blocking: true}
+  - {name: boot_citations, scope: cut, blocking: true}
+  - {name: git_hygiene, scope: cut, blocking: true}
+  - {name: fill_ins_filled, scope: cut, blocking: true}
+  - {name: seat_ids_both, scope: cut, blocking: true, why: "checks the OUTGOING seat only; the successor half is the transport write gate (ADR-132 D3, #1746)"}
+  - {name: supplement_matches_transport, scope: cut, blocking: true}
+  - {name: landed_vs_ratified, scope: cut, blocking: false, why: "ratified = transport RATIFICATION files; landed = protocols/STANDING_RULINGS.md + docs/decisions ADRs (ADR-132 C2); an independent check no generator replaces"}
+  - {name: operator_decisions_list, scope: cut, blocking: false, why: "the cut now drafts the Operator decisions section this row checks (ADR-132 D2)"}
+  - {name: digest_owed_present, scope: cut, blocking: true}
+  - {name: role_pin_current, scope: cut, blocking: true}

@@ -696,29 +696,22 @@ MEMORY_BUDGET_DECLARATION_SITE = "canonical_docs.MEMORY_BYTE_BUDGET"
 #: ceiling this constant ever set), so a timeout here would be a solution hunting the problem
 #: it used to solve.
 
-#: The row order, declared so the report is stable and a test can assert the roster.
-PREFLIGHT_ROW_NAMES = (
-    "ship_gate", "ledger_refreshed", "ratification_present", "status_byte_budget",
-    "living_docs_stamped", "journal_anchored", "question_disposition",
-    "memory_within_cap", "worktree_owners",
-    # Row 10, added 2026-09-08 by [#643]. APPENDED rather than inserted so the ratified
-    # register's own 1-9 numbering -- which two operator rulings and this module's own
-    # docstrings cite by number -- keeps meaning what it meant.
-    "p11_carriage",
-    # Row 11, added by BW lane D5 ([#1450], R95 D1), appended for the same reason row 10 was.
-    "boot_citations",
-    # Row 12, added by AMEND-1-BATCH-CUT-2026-10-17: no cut on a dirty git.
-    "git_hygiene",
-    # Rows 13-18, added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b.
-    "fill_ins_filled",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    "seat_ids_both",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    "supplement_matches_transport",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    "landed_vs_ratified",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    "operator_decisions_list",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    "digest_owed_present",  # added 2026-10-23, lane handoff-truth, riding [#1640], R6 stage L12b
-    # Row 19, added 2026-10-24, lane l12-acceptance, riding [#1640], H-Q2 of RATIFICATION-2026-10-24.
-    "role_pin_current",
-)
+#: The preflight roster, DECLARED AS DATA (ADR-132 D3): one home, `ecosystem/handoff-preflight-rows.yaml`.
+#: `PREFLIGHT_ROW_NAMES` is the cut's rows in report order, `PREFLIGHT_NON_BLOCKING_ROWS` those of them
+#: whose FAIL never refuses, `SESSION_START_ROWS` the rows that left the cut (they measure the machine).
+PREFLIGHT_ROWS_FILE = _REPO_ROOT / "ecosystem" / "handoff-preflight-rows.yaml"
+
+
+def _load_preflight_roster(path: Path = PREFLIGHT_ROWS_FILE) -> "tuple[tuple, tuple, tuple]":
+    import yaml  # noqa: PLC0415 (PyYAML is declared; read once at import)
+    rows = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("rows") or []
+    cut = tuple(r["name"] for r in rows if r.get("scope") == "cut")
+    non_blocking = tuple(r["name"] for r in rows if r.get("scope") == "cut" and not r.get("blocking"))
+    session = tuple(r["name"] for r in rows if r.get("scope") == "session-start")
+    return cut, non_blocking, session
+
+
+PREFLIGHT_ROW_NAMES, PREFLIGHT_NON_BLOCKING_ROWS, SESSION_START_ROWS = _load_preflight_roster()
 
 
 @dataclass(frozen=True)
@@ -1305,28 +1298,50 @@ def _handoff_organ_warn_only_check_names(repo_root: Path) -> tuple:
     return tuple(name.removeprefix("check_") for name in _aud.HANDOFF_ORGAN_WARN_ONLY)
 
 
-def _row_ledger_refreshed(transport, repo_name: str, today: str) -> PreflightRow:
-    """Row 2 -- the operator's read surface names THIS window's date.
+def _fresh_ledger_text(repo_root: Path, repo_name: str, date: str) -> str:
+    """The LEDGER as `gen_ledger` would write it now (offline: no `ls-remote`, so the bytes depend
+    on the repository alone). The one seam the row and the cut share; tests replace it."""
+    sys.path.insert(0, str(_SCRIPTS))
+    import gen_ledger  # noqa: PLC0415
+    return gen_ledger.render(gen_ledger.collect(Path(repo_root), offline=True), date=date,
+                             repo_name=repo_name)
 
-    The date is read from an anchored `refreshed <YYYY-MM-DD>` token in the file head, which is
-    the form the live LEDGER already carries; mtime is the fallback and the evidence line says
-    which was used, so a reader never has to guess what was measured.
-    """
+
+def _mask_refreshed(text: str) -> str:
+    """The ledger with its `refreshed <date>` token blanked: the day a ledger was written is the
+    one byte-difference between two regenerations of the same state, and it is not a content claim."""
+    return _LEDGER_REFRESHED_RE.sub("refreshed <date>", text)
+
+
+def _row_ledger_refreshed(transport, repo_name: str, today: str,
+                          repo_root: "Path | None" = None) -> PreflightRow:
+    """Row 2 -- the operator's read surface is byte-identical to a fresh regeneration (ADR-132 D2).
+
+    Regenerate-and-diff on the output bytes (the `codemap-freshness` pattern), not a date compare:
+    a ledger regenerated on an earlier day with unchanged state is fresh, and one whose content has
+    drifted is stale however recent its date. Only the `refreshed <date>` token is masked."""
+    import hashlib  # noqa: PLC0415
     if transport is None:
         return _no_transport("ledger_refreshed")
     path = Path(transport) / "to-browser" / f"LEDGER-{repo_name.lstrip('.')}.md"
     if not path.exists():
         return PreflightRow("ledger_refreshed", PREFLIGHT_FAIL, str(path),
                             "absent -- the operator's read surface was never written")
-    m = _LEDGER_REFRESHED_RE.search(path.read_text(encoding="utf-8", errors="replace")[:4000])
-    if m:
-        found, src = m.group(1), "declared `refreshed` token"
-    else:
-        found = _dt.date.fromtimestamp(path.stat().st_mtime).isoformat()
-        src = "file mtime (no `refreshed` token in the head)"
-    status = PREFLIGHT_PASS if found == today else PREFLIGHT_FAIL
-    return PreflightRow("ledger_refreshed", status, str(path),
-                        f"{src} = {found}; window = {today}")
+    try:
+        have = path.read_text(encoding="utf-8", errors="replace")
+        fresh = _fresh_ledger_text(repo_root if repo_root is not None else _REPO_ROOT, repo_name, today)
+    except Exception as exc:  # noqa: BLE001 -- an unreadable regeneration is not a fresh ledger
+        return PreflightRow("ledger_refreshed", PREFLIGHT_FAIL, str(path),
+                            f"the ledger could not be regenerated for comparison ({exc}); "
+                            "unread is not fresh")
+    sha = lambda s: hashlib.sha256(s.encode("utf-8")).hexdigest()[:12]  # noqa: E731
+    if _mask_refreshed(have) == _mask_refreshed(fresh):
+        return PreflightRow("ledger_refreshed", PREFLIGHT_PASS, str(path),
+                            f"byte-identical to a fresh regeneration (sha256 {sha(_mask_refreshed(have))}, "
+                            "`refreshed` date masked)")
+    return PreflightRow("ledger_refreshed", PREFLIGHT_FAIL, str(path),
+                        f"differs from a fresh regeneration (file {sha(_mask_refreshed(have))} vs "
+                        f"regenerated {sha(_mask_refreshed(fresh))}); run `gen_handoff.py --cut`")
 
 
 def _row_ratification_present(transport, today: str) -> PreflightRow:
@@ -2207,10 +2222,24 @@ def _row_supplement_matches_transport(transport, bundle_dir: "Path | None") -> P
         f"bundle sha256 {hashlib.sha256(b_bytes).hexdigest()})")
 
 
+_ADR_RULING_RE = re.compile(r"\bR(\d+)\b")
+
+
+def _adr_ruling_ids(repo_root: Path) -> "set[int]":
+    """The `R<n>` ruling ids the `docs/decisions` ADRs carry (the landed side's second source)."""
+    out: "set[int]" = set()
+    for adr in sorted((Path(repo_root) / "docs" / "decisions").glob("ADR-*.md")):
+        out |= {int(n) for n in _ADR_RULING_RE.findall(adr.read_text(encoding="utf-8", errors="replace"))}
+    return out
+
+
 def _row_landed_vs_ratified(transport, repo_root: Path) -> PreflightRow:
-    """Row 16 -- ruling ids ratified on the transport equal those the register has landed."""
+    """Row 16 -- ruling ids ratified on the transport equal those landed (ADR-132 C2).
+
+    Ratified = the transport's RATIFICATION files. Landed = `protocols/STANDING_RULINGS.md` bullets
+    plus the `R<n>` ids the `docs/decisions` ADRs carry. The row stays non-blocking."""
     name = "landed_vs_ratified"
-    locator = "to-browser/RATIFICATION-*.md x protocols/STANDING_RULINGS.md"
+    locator = "to-browser/RATIFICATION-*.md x protocols/STANDING_RULINGS.md + docs/decisions/ADR-*.md"
     if transport is None:
         return _no_transport(name)
     hs = _hstate()
@@ -2224,7 +2253,7 @@ def _row_landed_vs_ratified(transport, repo_root: Path) -> PreflightRow:
         for d in docs:
             text = d.read_text(encoding="utf-8", errors="replace")
             ratified |= {int(a or b) for a, b in hs._RULING_ID_RE.findall(text)}
-        landed = hs._landed_ids(repo_root)
+        landed = hs._landed_ids(repo_root) | _adr_ruling_ids(repo_root)
     except (OSError, UnicodeError, ValueError) as exc:
         return PreflightRow(name, PREFLIGHT_FAIL, locator,
                             f"the ruling sources could not be read ({exc}); unread is not equal")
@@ -2369,19 +2398,11 @@ def _row_role_pin_current(repo_root: Path, transport, bundle_dir: "Path | None")
                         f"boot sha8 {live_sha[:8]}")
 
 
-#: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
-#: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
-#: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
-#: and stays out of this tuple (its own FAIL still refuses, its own test says so). A row named
-#: here is carried into the receipt's `preflight_notes` instead of raising `PreflightError`.
-#: `landed_vs_ratified` (2026-10-23, lane handoff-truth): the register bullets 90+ rulings the
-#: transport's RATIFICATION files never restate, so the row is RED on the real tree and would
-#: refuse every cut (CI: tests/test_handoff_cut_acceptance.py). The verdict stays visible; the
-#: operator rules whether it should refuse once the two definitions of "ruling" agree.
-#: `operator_decisions_list` (2026-10-23, repair 1): the generator never authors an `Operator
-#: decisions` section (the seat writes it by hand), so a `--filled` re-render of a generated
-#: bundle refuses on it (CI: tests/test_onboarding_items.py warm-bundle fixture). FAIL stays visible.
-PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap", "landed_vs_ratified", "operator_decisions_list")
+#: The non-blocking set is DATA now (`PREFLIGHT_NON_BLOCKING_ROWS`, above; ADR-132 D3). History kept:
+#: `memory_within_cap` left the cut (it measures the machine, not the repository); `landed_vs_ratified`
+#: stays visible and non-blocking until the two definitions of a "ruling" agree (C2 fixes them);
+#: `operator_decisions_list` is non-blocking because a `--filled` re-render of an old bundle lacks the
+#: section the cut now drafts. A row named there is carried into the receipt's `preflight_notes`.
 
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
@@ -2419,14 +2440,13 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
     return [
         _row_ship_gate(repo_root, bundle_dir=bundle_dir, force_filled=force_filled),
         _cut_day_row("ledger_refreshed",
-                     lambda: _row_ledger_refreshed(transport, repo_name, today)),
+                     lambda: _row_ledger_refreshed(transport, repo_name, today, repo_root)),
         _cut_day_row("ratification_present",
                      lambda: _row_ratification_present(transport, today)),
         _row_status_budget(transport),
         _row_living_docs_stamped(repo_root),
         _row_journal_anchored(repo_root),
         _row_question_disposition(transport, today, repo_root),
-        _row_memory_within_cap(memory_path or _memory_path(repo_root)),
         _row_worktree_owners(repo_root, sessions_root),
         _row_p11_carriage(transport, repo_root),
         _row_boot_citations(repo_root, transport),
@@ -2439,6 +2459,11 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_digest_owed_present(transport),
         _row_role_pin_current(repo_root, transport, bundle_dir),
     ]
+
+
+def session_start_rows(repo_root: Path, *, memory_path=None) -> list[PreflightRow]:
+    """The rows that left the cut (`SESSION_START_ROWS`, ADR-132 D3). Read-only."""
+    return [_row_memory_within_cap(memory_path or _memory_path(repo_root))]
 
 
 def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
@@ -4201,7 +4226,7 @@ DISPATCH_EVIDENCE = {
                   "test_codespace_exec_happy_path_returns_the_receipt",),
 }
 _EVIDENCE_RE = re.compile(r"test:([A-Za-z0-9_./-]+\.py)::([A-Za-z_]\w*)")
-_MAP_REFRESH = "uv run --locked python scripts/gen_handoff.py --dispatch-map --write"
+_MAP_REFRESH = "uv run --locked python scripts/gen_handoff.py --cut"
 
 
 def _ascii(text: str) -> str:
@@ -4401,6 +4426,391 @@ def reading_path_report(transport: "Path | None", repo_root: "Path | str | None"
     return lines, 1 if failed else 0
 
 
+# ================================================ the cut (ADR-132 D2-D5, C3)
+#
+# `--cut` is ONE idempotent verb: it regenerates every surface the bundle ships against, drafts the
+# JOURNAL entry and the Operator-decisions section, builds the bundle (the preflight is the gate
+# inside `generate`), restamps the manifest, records `stops:` / `waits:` / `surfaces:` in the receipt,
+# and then byte-checks each surface once more at the last moment before the cut returns. It merges
+# nothing: merge and teardown are the separate `--land` verb (ADR-131), which is not idempotent.
+#
+# Library-first: stdlib (`hashlib`, `json`, `subprocess`) + the sibling generators this module
+# already imports lazily (`gen_ledger`, `transport`, `handoff_state`). The byte-check is the
+# `codemap-freshness` hook's regenerate-and-diff, not a stamp.
+
+#: ADR-132 D4 / census (DIGEST-HANDOFF-PROCESS-CENSUS-2026-10-27 section 7): the four hand steps that
+#: remain, each an act by a person. (census step number, name, actor)
+D4_STEPS = ((1, "ratify", "operator"), (5, "SUPPLEMENT-ANSWERS", "browser"),
+            (12, "Project upload", "operator"), (13, "ROLE PIN paste", "operator"))
+
+#: The browser seat's read set (registry + newest RATIFICATION + newest FINDING) stays within this.
+READING_PATH_BROWSER_BUDGET_BYTES = 40 * 1024
+READING_PATH_FILE = "READING_PATH.md"
+CUT_DRAFTS_FILE = "CUT_DRAFTS.md"
+
+
+class CutStaleError(RuntimeError):
+    """A surface differed between its regeneration and the last moment before the cut returned."""
+
+
+class LandRefusedError(RuntimeError):
+    """`--land` refused: the bundle branch is already merged, so landing it again would not be a no-op."""
+
+
+@dataclass(frozen=True)
+class CutResult:
+    bundle_dir: Path
+    journal_draft: str
+    surfaces: dict
+    stops: list
+    waits: list
+
+
+def _utc_stamp() -> str:
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _sha256_text(text: str) -> str:
+    import hashlib  # noqa: PLC0415
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _file_bytes_text(path: Path) -> "str | None":
+    try:
+        return path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def reading_path_text(transport: "Path | None") -> str:
+    """The reading-path file (ADR-132 D2): the `--reading-path` resolution of the boot's five items,
+    the browser seat's read set (the transport registry INDEX, the newest RATIFICATION, the newest
+    FINDING) measured against `READING_PATH_BROWSER_BUDGET_BYTES`, and the proposals and DELTA files
+    named as reference only. Flat `key: value` text, ASCII, LF, deterministic for unchanged inputs
+    (no date, no sha) -- the surface is regenerated and byte-compared, never stamped."""
+    hs = _hstate()
+    root = Path(transport) if transport is not None else None
+    out = ["by: scripts/gen_handoff.py --cut (generated; no seat writes this file by hand)", "",
+           "# READING PATH -- generated, never hand-edited", "",
+           "## Reading path -- the boot's five items", ""]
+    for i, r in enumerate(hs.resolve_reading_path(root), 1):
+        shown = r.boot_anchor
+        if r.path is not None and root is not None:
+            try:
+                shown = r.path.relative_to(root).as_posix()
+            except ValueError:
+                shown = r.path.name
+        out.append(f"{i} {r.key}: {r.status} {shown}")
+
+    def newest(prefix: str) -> "Path | None":
+        return hs._newest_transport_doc(root, prefix) if root is not None else None
+
+    read_first = [("registry", (root / "to-browser" / "INDEX.md") if root is not None else None),
+                  ("ratification", newest("RATIFICATION")), ("finding", newest("FINDING"))]
+    total = 0
+    out += ["", f"## Browser read set -- budget {READING_PATH_BROWSER_BUDGET_BYTES} bytes", ""]
+    for label, path in read_first:
+        if path is not None and path.is_file():
+            size = path.stat().st_size
+            total += size
+            out.append(f"{label}: {path.relative_to(root).as_posix()} ({size} bytes)")
+        else:
+            out.append(f"{label}: MISSING")
+    over = total - READING_PATH_BROWSER_BUDGET_BYTES
+    out.append(f"total: {total} bytes -- " + ("within budget" if over <= 0 else f"OVER BUDGET by {over} bytes"))
+    out += ["", "## Reference -- named, not read first", ""]
+    for label, prefix in (("proposal", "PROPOSAL"), ("delta", "DELTA")):
+        path = newest(prefix)
+        out.append(f"{label}: {path.relative_to(root).as_posix() if path is not None else 'none'}")
+    return _ascii("\n".join(out)) + "\n"
+
+
+def _seat_ids_text(path: Path, transport: Path, inventory_from: "Path | None" = None) -> str:
+    """`ecosystem/seat-ids.yaml` as `transport.py seat-ids --write` would render it now. The landing
+    inventory is carried from `inventory_from` (default `path`): a dry cut renders to a throwaway
+    path and still keeps the repository's inventory."""
+    import transport as _t  # noqa: PLC0415
+    seats = _t.build_seat_map(Path(transport))["seats"]
+    _cur_seats, inventory = _t.load_seat_ids(inventory_from or path)
+    return _t.render_seat_ids(seats, inventory)
+
+
+def _write_if_different(path: Path, text: str, writer) -> bool:
+    """Write `text` through `writer(path, text)` only when the bytes differ; True when it wrote."""
+    if _file_bytes_text(path) == text:
+        return False
+    writer(path, text)
+    return True
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, stage = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+        os.replace(stage, path)
+    except BaseException:
+        try:
+            os.unlink(stage)
+        except OSError:
+            pass
+        raise
+
+
+def _regenerate_surfaces(repo_root: Path, transport: Path, *, repo_name: str, date: str,
+                         seat_ids_path: Path,
+                         seat_inventory_from: "Path | None" = None) -> "dict[str, dict]":
+    """Regenerate the repo-side and transport-side surfaces; `{name: {path, sha256, changed}}`."""
+    import transport as _t  # noqa: PLC0415
+    root, tp = Path(repo_root), Path(transport)
+    ledger = tp / "to-browser" / f"LEDGER-{repo_name.lstrip('.')}.md"
+    ledger_text = _fresh_ledger_text(root, repo_name, date)
+    ledger_changed = _write_if_different(
+        ledger, ledger_text, lambda p, s: _t.emit("gen_ledger", p, s, transport_root=tp))
+    map_path = tp / DISPATCH_MAP_REL
+    map_text = dispatch_map_text(root)
+    map_changed = _write_if_different(map_path, map_text, lambda p, s: write_dispatch_map(tp, s))
+    seat_text = _seat_ids_text(seat_ids_path, tp, seat_inventory_from)
+    seat_changed = _write_if_different(seat_ids_path, seat_text, _atomic_write)
+
+    def rec(path: Path, text: str, changed: bool) -> dict:
+        try:
+            shown = path.relative_to(root).as_posix()
+        except ValueError:
+            shown = str(path)
+        return {"path": shown, "sha256": _sha256_text(text), "changed": changed}
+
+    return {"ledger": rec(ledger, ledger_text, ledger_changed),
+            "seat_ids": rec(seat_ids_path, seat_text, seat_changed),
+            "dispatch_map": rec(map_path, map_text, map_changed)}
+
+
+def _d4_stops(transport: Path, date: str, bundle_dir: Path) -> "list[dict]":
+    """The D4 hand steps the cut still stops for: ratify and SUPPLEMENT stop until their transport
+    evidence exists; the Project upload and the ROLE PIN paste are the operator's acts after the
+    build and always stop (an attestation, ADR-132 D4)."""
+    satisfied = set()
+    if _row_ratification_present(transport, date).status == PREFLIGHT_PASS:
+        satisfied.add(1)
+    if _row_supplement_matches_transport(transport, bundle_dir).status == PREFLIGHT_PASS:
+        satisfied.add(5)
+    return [{"step": n, "name": name, "actor": actor} for n, name, actor in D4_STEPS
+            if n not in satisfied]
+
+
+def _cut_waits(previous: "list[dict]", stops: "list[dict]", now: str) -> "list[dict]":
+    """The wait log: a wait opens when its step first stops the cut and closes the run that finds
+    the step satisfied. Carried from the previous receipt of the same bundle, so a re-run is the clock."""
+    pending = {s["step"] for s in stops}
+    waits = []
+    seen = set()
+    for w in previous or []:
+        w = dict(w)
+        if w.get("end") is None and w["step"] not in pending:
+            w["end"] = now
+        seen.add(w["step"])
+        waits.append(w)
+    for s in stops:
+        if s["step"] not in seen:
+            waits.append({"step": s["step"], "actor": s["actor"], "start": now, "end": None})
+    return sorted(waits, key=lambda w: w["step"])
+
+
+def _operator_decisions_section(transport: Path) -> str:
+    hs = _hstate()
+    newest = hs._newest_transport_doc(transport, "RATIFICATION")
+    lines = ["## Operator decisions", ""]
+    if newest is None:
+        return "\n".join(lines + ["- none: no RATIFICATION file on the transport"]) + "\n"
+    lines.append(f"source: {newest.relative_to(transport).as_posix()}")
+    lines.append("")
+    found = False
+    for ln in newest.read_text(encoding="utf-8", errors="replace").splitlines():
+        if hs._RULING_ID_RE.match(ln):
+            lines.append(f"- {ln.lstrip('-# ').strip()}")
+            found = True
+    if not found:
+        lines.append("- none: the newest RATIFICATION file states no ruling id")
+    return "\n".join(lines) + "\n"
+
+
+def time_to_boot(transport: "Path | None", successor_seat: str, *, merge_epoch: float) -> dict:
+    """C3: seconds from the cut's merge commit to the first transport file (at or after it) whose
+    `by:` names the successor Tech-Architect id. Read from files, no hand tally; record only."""
+    if transport is None:
+        return {"status": "unmeasured -- the transport is unresolved", "seconds": None, "file": None}
+    best = None
+    for rel, path in _transport_live_files(Path(transport)):
+        if not rel.endswith(".md"):
+            continue
+        try:
+            head = path.read_text(encoding="utf-8", errors="replace").splitlines()[:12]
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime < merge_epoch:
+            continue
+        if any(ln.startswith("by:") and successor_seat in ln for ln in head):
+            if best is None or mtime < best[0]:
+                best = (mtime, rel)
+    if best is None:
+        return {"status": f"unmeasured -- no transport file at or after the merge names {successor_seat} in `by:`",
+                "seconds": None, "file": None}
+    return {"status": "measured", "seconds": int(best[0] - merge_epoch), "file": best[1]}
+
+
+def _transport_live_files(transport: Path) -> "list[tuple[str, Path]]":
+    import transport as _t  # noqa: PLC0415
+    return _t.live_files(Path(transport))
+
+
+def _outgoing_and_successor(transport: Path) -> "dict[str, str | None]":
+    """The outgoing Tech-Architect seat (the highest id any non-superseded SUPPLEMENT-ANSWERS names)
+    and its successor, `seats:` in the receipt, so the NEXT cut can compute C3 time_to_boot."""
+    try:
+        docs = _truth_docs(transport, "SUPPLEMENT-ANSWERS", "to-cc")
+        nums = [int(m.group(1)) for d in docs if (m := _TECH_ARCHITECT_RE.search(d.name))]
+    except (OSError, ValueError):
+        nums = []
+    if not nums:
+        return {"outgoing": None, "successor": None}
+    return {"outgoing": f"Tech-Architect-{max(nums)}", "successor": f"Tech-Architect-{max(nums) + 1}"}
+
+
+def _previous_time_to_boot(repo_root: Path, transport: Path, current_slug: str) -> dict:
+    """C3, 'by the next cut': the previous cut's time_to_boot, from its receipt and the git time of
+    the commit that brought its bundle into main's first-parent line. Record only, no gate."""
+    import json  # noqa: PLC0415
+    try:
+        handoffs = Path(repo_root) / "docs" / "handoffs"
+        prior = sorted(p for p in handoffs.iterdir()
+                       if p.is_dir() and p.name != current_slug and (p / _vhp().RECEIPT_FILE).is_file())
+        if not prior:
+            return {"status": "unmeasured -- no previous bundle", "seconds": None, "file": None}
+        bundle = prior[-1]
+        receipt = json.loads((bundle / _vhp().RECEIPT_FILE).read_text(encoding="utf-8"))
+        successor = (receipt.get("seats") or {}).get("successor")
+        if not successor:
+            return {"status": f"unmeasured -- {bundle.name}'s receipt records no successor seat",
+                    "seconds": None, "file": None, "bundle": bundle.name}
+        rel = bundle.relative_to(repo_root).as_posix() + "/" + _vhp().RECEIPT_FILE
+        rc, added = _git_status(Path(repo_root), "log", "--diff-filter=A", "--format=%H", "-1", "--", rel)
+        added = added.strip()
+        if not added:
+            return {"status": f"unmeasured -- {bundle.name}'s receipt is not committed",
+                    "seconds": None, "file": None, "bundle": bundle.name}
+        _rc, chain = _git_status(Path(repo_root), "rev-list", "--first-parent", "--ancestry-path",
+                                 f"{added}..HEAD")
+        merge = (chain.split() or [added])[-1]
+        _rc, epoch = _git_status(Path(repo_root), "show", "-s", "--format=%ct", merge)
+        rec = time_to_boot(transport, successor, merge_epoch=float(epoch.strip()))
+        return {**rec, "bundle": bundle.name, "successor": successor}
+    except (OSError, ValueError) as exc:
+        return {"status": f"unmeasured -- {exc}", "seconds": None, "file": None}
+
+
+def run_cut(repo_root: Path = _REPO_ROOT, *, transport: "Path | None", bundle_root: "Path | None" = None,
+            slug: "str | None" = None, repo: "str | None" = None, date: "str | None" = None,
+            now: "str | None" = None, mode: str = "architect", dry_cut: bool = False,
+            force_filled: "bool | None" = None, allow_suffix: bool = False,
+            memory_path: "Path | None" = None, sessions_root: "Path | None" = None,
+            seat_ids_path: "Path | None" = None, generate_fn=None) -> CutResult:
+    """The cut (ADR-132 D2): regenerate, draft, build, restamp, record, byte-check. Idempotent."""
+    import json  # noqa: PLC0415
+    if transport is None:
+        raise ValueError("the transport is unresolved (CLAUDE_PROMPTS_DIR); a cut regenerates its surfaces there")
+    root = Path(repo_root)
+    tp = Path(transport)
+    repo_name = repo or root.name
+    date = date or _dt.date.today().isoformat()
+    slug = slug or f"{date}-{repo_name.lstrip('.')}-{mode}"
+    now = now or _utc_stamp()
+    bundle_root = Path(bundle_root) if bundle_root is not None else root / "docs" / "handoffs"
+    repo_seat_path = root / "ecosystem" / "seat-ids.yaml"
+    # A dry cut never writes into the repository: its seat map goes beside its bundle root.
+    seat_path = (Path(seat_ids_path) if seat_ids_path is not None
+                 else (bundle_root.parent / f"{bundle_root.name}-seat-ids.yaml" if dry_cut else repo_seat_path))
+    receipt_path = bundle_root / slug / _vhp().RECEIPT_FILE
+    try:
+        previous_waits = json.loads(receipt_path.read_text(encoding="utf-8")).get("waits") or []
+    except (OSError, ValueError):
+        previous_waits = []
+
+    surfaces = _regenerate_surfaces(root, tp, repo_name=repo_name, date=date, seat_ids_path=seat_path,
+                                    seat_inventory_from=repo_seat_path)
+    reading = reading_path_text(tp)
+
+    res = (generate_fn or generate)(
+        root, mode=mode, slug=slug, repo=repo_name, date=date, force_filled=force_filled,
+        bundle_root=bundle_root, allow_suffix=allow_suffix, dry_cut=dry_cut, memory_path=memory_path,
+        sessions_root=sessions_root, transport=tp)
+    bundle_dir = Path(res.bundle_dir)
+
+    reading_file = bundle_dir / READING_PATH_FILE
+    reading_changed = _file_bytes_text(reading_file) != reading
+    _atomic_write(reading_file, reading)
+    surfaces["reading_path"] = {"path": READING_PATH_FILE, "sha256": _sha256_text(reading),
+                                "changed": reading_changed}
+    drafts = (f"# Cut drafts -- {bundle_dir.name}\n\n"
+              "<!-- generated by scripts/gen_handoff.py --cut: drafts only. The seat reviews them; "
+              "the JOURNAL entry is the integrator's, written at landing. -->\n\n"
+              "## JOURNAL entry DRAFT\n\n" + res.journal_draft.rstrip("\n") + "\n\n"
+              + _operator_decisions_section(tp))
+    _atomic_write(bundle_dir / CUT_DRAFTS_FILE, drafts)
+
+    stops = _d4_stops(tp, date, bundle_dir)
+    waits = _cut_waits(previous_waits, stops, now)
+
+    # The last moment before the cut returns: regenerate every surface again and compare bytes
+    # with the copy that ships. A difference means the inputs moved under the cut.
+    stale = []
+    again = {"ledger": (surfaces["ledger"], _fresh_ledger_text(root, repo_name, date)),
+             "dispatch_map": (surfaces["dispatch_map"], dispatch_map_text(root)),
+             "seat_ids": (surfaces["seat_ids"], _seat_ids_text(seat_path, tp, repo_seat_path)),
+             "reading_path": (surfaces["reading_path"], reading_path_text(tp))}
+    for name, (rec, text) in again.items():
+        if rec["sha256"] != _sha256_text(text):
+            stale.append(name)
+    if stale:
+        raise CutStaleError(
+            "the cut refuses to seal: " + ", ".join(stale) + " changed between its regeneration and "
+            "the seal -- the inputs moved under the cut. Re-run `gen_handoff.py --cut`.")
+
+    receipt = json.loads(receipt_path_for(bundle_dir).read_text(encoding="utf-8"))
+    receipt.update({"stops": stops, "waits": waits, "surfaces": surfaces,
+                    "seats": _outgoing_and_successor(tp),
+                    "previous_time_to_boot": _previous_time_to_boot(root, tp, bundle_dir.name)})
+    (receipt.setdefault("manifest", {}))["files"] = _bundle_file_shas(bundle_dir)
+    receipt_path_for(bundle_dir).write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n",
+                                            encoding="utf-8", newline="\n")
+    return CutResult(bundle_dir=bundle_dir, journal_draft=res.journal_draft, surfaces=surfaces,
+                     stops=stops, waits=waits)
+
+
+def receipt_path_for(bundle_dir: Path) -> Path:
+    return Path(bundle_dir) / _vhp().RECEIPT_FILE
+
+
+def _branch_is_merged(repo_root: Path, branch: str) -> bool:
+    rc, _out = _git_status(Path(repo_root), "merge-base", "--is-ancestor", branch, "main")
+    return rc == 0
+
+
+def land_cut(repo_root: Path, branch: str, *, batch: "str | None" = None, is_merged=None,
+             runner=None) -> int:
+    """`--land`: merge and teardown of the bundle branch through `land_lane.py` (ADR-131). NOT
+    idempotent: it refuses a branch that is already an ancestor of main."""
+    if (is_merged or _branch_is_merged)(Path(repo_root), branch):
+        raise LandRefusedError(f"{branch} is already merged into main; --land is not idempotent and "
+                               "refuses to land it twice")
+    slug = branch.removeprefix("worktree-")
+    argv = ["uv", "run", "--locked", "python", "scripts/land_lane.py", "--slug", slug,
+            *(["--batch", batch] if batch else [])]
+    run = runner or (lambda a: subprocess.run(a, cwd=repo_root, check=False).returncode)
+    return run(argv)
+
+
 @click.command()
 @click.option("--mode",
               type=click.Choice(["architect", "execution", "epic", "developer", "functional"]),
@@ -4420,7 +4830,7 @@ def reading_path_report(transport: "Path | None", repo_root: "Path | str | None"
 @click.option("--emit-journal/--no-emit-journal", default=True,
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 @click.option("--preflight-only", is_flag=True, default=False,
-              help="print the nine pre-handoff hygiene rows and exit (1 on any FAIL); cut nothing")
+              help="print the preflight rows (the roster in ecosystem/handoff-preflight-rows.yaml) and exit (1 on any FAIL); cut nothing")
 @click.option("--trial-cut", "trial_cut", is_flag=True, default=False,
               help="batch-close stage (item 12/L7): like --preflight-only, but excludes the "
                    "two cut-day rows (ledger_refreshed, ratification_present), which are "
@@ -4430,24 +4840,22 @@ def reading_path_report(transport: "Path | None", repo_root: "Path | str | None"
               type=click.Path(file_okay=False, path_type=Path),
               help="render + assemble a real bundle into DIR (must be OUTSIDE the repo), skipping "
                    "the cut-boundary gates; it is never a handoff and can never be committed")
-@click.option("--restamp-manifest", "restamp", is_flag=True, default=False,
-              help="re-stamp ONLY manifest.files in the receipt of the committed bundle named by "
-                   "--slug (fill-surface content changes only; re-renders nothing)")
-@click.option("--boot-turns", type=int, default=None,
-              help="the operator's tally: turns the superseded bundle's seat took to its first "
-                   "correct dispatch (recorded in HANDOFF_RECEIPT.json boot_cost)")
-@click.option("--boot-dispatch", default=None,
-              help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
 @click.option("--reading-path", "reading_path", is_flag=True, default=False,
               help="resolve the five items of the boot's reading path (INDEX, SEAT-LESSONS, the "
                    "seat exam, the dispatch exam, the dispatch map) against the transport and "
                    "print each with its status; exit 1 on any item that is not OK; cut nothing")
 @click.option("--dispatch-map", "dispatch_map", is_flag=True, default=False,
               help="print the dispatch map generated from dispatch.py --help, the substrate "
-                   "registry and the harness; with --write, write it to "
-                   "to-browser/MAP-DISPATCH.md on the transport; cut nothing")
-@click.option("--write", "write_map", is_flag=True, default=False,
-              help="with --dispatch-map: write the map to the transport instead of printing it")
+                   "registry and the harness; cut nothing (the cut writes it)")
+@click.option("--cut", "cut", is_flag=True, default=False,
+              help="ADR-132 D2: regenerate the LEDGER, seat-ids, MAP-DISPATCH and the reading-path "
+                   "file, draft the JOURNAL entry and Operator decisions, run the preflight, build "
+                   "the bundle, restamp its manifest and byte-check every surface. Idempotent; "
+                   "merges nothing (see --land)")
+@click.option("--land", "land_branch", default=None,
+              help="ADR-132 D2: merge and tear down the named bundle branch through land_lane.py "
+                   "(ADR-131). Not idempotent: refuses a branch already merged into main")
+@click.option("--batch", "batch", default=None, help="with --land: the batch the lane belongs to")
 @click.option("--intake", "intake", is_flag=True, default=False,
               help="write ONE bounded FINDING (disposition ledger, owed ids, <=7 questions) "
                    "from --plan to to-browser/ on the transport; cut nothing")
@@ -4456,12 +4864,37 @@ def reading_path_report(transport: "Path | None", repo_root: "Path | str | None"
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
          preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
-         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
-         restamp: bool = False, reading_path: bool = False, dispatch_map: bool = False,
-         write_map: bool = False, intake: bool = False, plan: "Path | None" = None) -> None:
+         reading_path: bool = False, dispatch_map: bool = False, cut: bool = False,
+         land_branch: "str | None" = None, batch: "str | None" = None,
+         intake: bool = False, plan: "Path | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
-    if write_map and not dispatch_map:
-        raise click.UsageError("--write belongs to --dispatch-map")
+    if batch is not None and land_branch is None:
+        raise click.UsageError("--batch belongs to --land")
+    if land_branch is not None:
+        try:
+            raise SystemExit(land_cut(_REPO_ROOT, land_branch, batch=batch))
+        except LandRefusedError as exc:
+            raise SystemExit(f"[error] {exc}") from exc
+    if cut:
+        tp = transport_root()
+        if tp is None:
+            raise SystemExit("[error] the transport is unresolved (CLAUDE_PROMPTS_DIR); a cut "
+                             "regenerates its surfaces there")
+        try:
+            res = run_cut(_REPO_ROOT, transport=tp, bundle_root=dry_cut_dir, slug=slug, repo=repo,
+                          date=date, mode=mode, dry_cut=dry_cut_dir is not None,
+                          force_filled=force_filled, allow_suffix=allow_suffix)
+        except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
+                AssemblyRefusedError, DryCutTargetError, CutStaleError) as exc:
+            raise SystemExit(f"[error] {exc}") from exc
+        click.echo(f"Cut bundle: {res.bundle_dir}")
+        click.echo("surfaces:")
+        for name, rec in res.surfaces.items():
+            click.echo(f"  {name}: sha256 {rec['sha256']} ({'rewritten' if rec['changed'] else 'unchanged'})")
+        click.echo("stops (hand steps the cut stopped for):")
+        for s in res.stops:
+            click.echo(f"  step {s['step']} {s['name']} -- {s['actor']}")
+        raise SystemExit(0)
     if plan is not None and not intake:
         raise click.UsageError("--plan belongs to --intake")
     if intake:
@@ -4490,39 +4923,8 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
             click.echo(line)
         raise SystemExit(1 if transport is None else code)
     if dispatch_map:
-        text = dispatch_map_text(_REPO_ROOT)
-        if not write_map:
-            click.echo(text, nl=False)
-            raise SystemExit(0)
-        try:
-            dest = write_dispatch_map(transport_root(), text)
-        except ValueError as exc:
-            click.echo(f"[error] {exc}", err=True)
-            raise SystemExit(1) from exc
-        click.echo(f"Written: {dest} ({len(text.encode('utf-8'))} bytes)")
+        click.echo(dispatch_map_text(_REPO_ROOT), nl=False)
         raise SystemExit(0)
-    if restamp:
-        def _refuse(reason: str, bundle: "Path | None" = None) -> None:
-            _append_restamp_receipt(_REPO_ROOT, bundle, files={}, reason=reason, slug=slug)
-            raise SystemExit(f"[error] {reason}")
-
-        if not slug:
-            _refuse("--restamp-manifest needs --slug <bundle-slug>")
-        handoffs = (_REPO_ROOT / "docs" / "handoffs").resolve()
-        if (any(c in slug for c in "/\\") or slug in (".", "..") or ":" in slug
-                or Path(slug).is_absolute()):
-            _refuse(f"--slug {slug!r} must be a single path component under docs/handoffs")
-        bundle_dir = _REPO_ROOT / "docs" / "handoffs" / slug
-        if bundle_dir.resolve().parent != handoffs:
-            _refuse(f"--slug {slug!r} does not resolve directly under docs/handoffs")
-        if not bundle_dir.is_dir():
-            _refuse(f"no bundle at {bundle_dir}", bundle_dir)
-        try:
-            changed = restamp_manifest(_REPO_ROOT, bundle_dir)
-        except RestampRefusedError as exc:
-            raise SystemExit(f"[error] {exc}") from exc
-        click.echo(f"Re-stamped manifest.files of {bundle_dir.name}: {', '.join(changed)}")
-        return
     if preflight_only or trial_cut:
         rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
         label = "batch-close trial cut" if trial_cut else "preflight"
@@ -4539,8 +4941,7 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
     try:
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
-                       allow_suffix=allow_suffix, boot_turns=boot_turns,
-                       boot_dispatch=boot_dispatch, bundle_root=dry_cut_dir,
+                       allow_suffix=allow_suffix, bundle_root=dry_cut_dir,
                        dry_cut=dry_cut_dir is not None, transport=transport_root())
     except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
             AssemblyRefusedError, DryCutTargetError) as exc:

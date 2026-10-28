@@ -648,13 +648,17 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
     new members, none lost or renamed.
 
     [#1640] (l12-acceptance) adds `--intake` and `--plan` (the one read-only intake and its plan
-    file are flags of this script) -- two new members, none lost or renamed."""
+    file are flags of this script) -- two new members, none lost or renamed.
+
+    ADR-132 D2 adds `--cut`, `--land` and `--batch`, and REMOVES the hand verbs the cut now runs:
+    `--boot-turns`, `--boot-dispatch`, `--restamp-manifest` and `--dispatch-map --write` (GO-2
+    witnesses: tests/test_handoff_cut.py -- the hand verbs are gone from the CLI, and the cut writes
+    and restamps what they wrote)."""
     expected_flags = {
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
-        "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
-        "--boot-dispatch", "--restamp-manifest", "--reading-path", "--dispatch-map", "--write",
-        "--intake", "--plan",
+        "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut",
+        "--reading-path", "--dispatch-map", "--intake", "--plan", "--cut", "--land", "--batch",
     }
     actual_flags: set[str] = set()
     for p in gh.main.params:
@@ -2793,18 +2797,19 @@ def test_dispatch_map_cli_exits_0_and_prints_the_legend(tmp_path, monkeypatch):
 
 def test_dispatch_map_write_creates_the_map_file_in_the_transport_and_refuses_without_one(
         tmp_path, monkeypatch):
+    """ADR-132 D2: the write is no longer a CLI verb (`--dispatch-map --write` is gone); the cut
+    calls `write_dispatch_map`, so the function carries the same guarantees (witness for the cut's
+    own write: tests/test_handoff_cut.py::test_the_cut_regenerates_every_surface_and_records_a_sha256_per_surface)."""
     monkeypatch.setattr(gh, "_run_dispatch_help", _fake_help)
     t = _reading_transport(tmp_path)
-    res = _invoke(["--dispatch-map", "--write"], t)
-    assert res.exit_code == 0, res.output
-    written = t / "to-browser" / "MAP-DISPATCH.md"
+    written = gh.write_dispatch_map(t, gh.dispatch_map_text())
+    assert written == t / "to-browser" / "MAP-DISPATCH.md"
     assert written.read_text(encoding="utf-8") == gh.dispatch_map_text()
     assert not list((t / "to-browser").glob("*.tmp")), "the atomic write leaves no temp file"
-    monkeypatch.setattr(gh, "transport_root", lambda *a, **k: None)
-    res = _invoke(["--dispatch-map", "--write"], t)
-    assert res.exit_code == 1 and "transport" in res.output.lower()
+    with pytest.raises(ValueError, match="transport"):
+        gh.write_dispatch_map(None, "x\n")
     res = _invoke(["--write"], t)
-    assert res.exit_code != 0                                      # --write belongs to --dispatch-map
+    assert res.exit_code != 0                                      # --write is not an option any more
 
 
 def test_the_map_write_stages_in_a_unique_temp_file_and_cleans_up_when_it_fails(
@@ -2864,7 +2869,7 @@ def test_reading_path_cli_exits_1_on_a_stale_or_missing_map_file(tmp_path, monke
     gh.write_dispatch_map(t, gh.dispatch_map_text() + "state: PROVEN\n")   # a hand-edited map
     res = _invoke(["--reading-path"], t)
     assert res.exit_code == 1 and "STALE" in res.output
-    assert "gen_handoff.py --dispatch-map --write" in res.output     # names the one refresh command
+    assert "gen_handoff.py --cut" in res.output     # names the one refresh command
 
 
 def test_a_cut_prints_exactly_two_install_lines(tmp_path, capfd):

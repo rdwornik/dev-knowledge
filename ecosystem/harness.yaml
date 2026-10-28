@@ -196,3 +196,8 @@ constraints:
   - {id: C-RED, kind: deterministic, applies_when: {always: true}, reuses: "the P2 receipt + the first tests/-only commit before the first non-test commit in base..HEAD", checker: [uv, run, --locked, python, scripts/conductor.py, lane, --constraint, C-RED, --repo-root, ".", --base, "{base}", --round-dir, "{round_dir}", --row, "{row}"]}
   - {id: C-VENDOR, kind: deterministic, applies_when: {always: true}, reuses: "harness-derived receipt vendors: P6a/P6b/P7 != P3's (decide_checks evaluator rule; common rules (j)); fails closed", checker: [uv, run, --locked, python, scripts/conductor.py, lane, --constraint, C-VENDOR, --repo-root, ".", --base, "{base}", --round-dir, "{round_dir}", --row, "{row}"]}
   - {id: C-CLEAN, kind: deterministic, applies_when: {always: true}, reuses: "ruff check over the changed .py files (the pre-commit lint gate, run per round)", checker: [uv, run, --locked, python, scripts/conductor.py, lane, --constraint, C-CLEAN, --repo-root, ".", --base, "{base}", --round-dir, "{round_dir}", --row, "{row}"]}
+# process_registry (ADR-QA R1; ADR-132 D1): a PROCESS declared as data -- its trigger, the ONE module responsible for it, the gate that
+# refuses it and the receipt it leaves. `ecosystem/process-binding.yaml` keeps the bindings. The handoff is the first process through
+# the per-process loop (PO-C). NO logic here.
+process_registry:
+  - {id: handoff, trigger: "/handoff", module: scripts/gen_handoff.py, gate: preflight, receipt: HANDOFF_RECEIPT.json, roster: ecosystem/handoff-preflight-rows.yaml, decision: ADR-132}

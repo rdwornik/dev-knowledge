@@ -132,6 +132,8 @@ def dry_bundle(tmp_path_factory) -> Path:
     mp = pytest.MonkeyPatch()
     mp.setenv("CLAUDE_PROMPTS_DIR", str(transport_root))
     mp.setattr(gh, "_linked_worktrees", lambda _root: [])
+    # ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py.
+    mp.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: f"refreshed {date}\n")
     def _dispatch_drift_pass(_root):
         return [aud.Finding("dispatch_drift", "pass",
                             "stubbed for this fixture -- see dry_bundle's own docstring")]
@@ -148,7 +150,7 @@ def dry_bundle(tmp_path_factory) -> Path:
     pin_journal_spine(mp)
     try:
         res = gh.generate(_REPO, mode="architect", dry_cut=True, bundle_root=root,
-                          assemble=True, boot_turns=1, boot_dispatch="test", date=today,
+                          assemble=True, date=today,
                           memory_path=tmp_path_factory.mktemp("seat-release-memory") / "MEMORY.md",
                           sessions_root=tmp_path_factory.mktemp("seat-release-no-sessions"))
     finally:

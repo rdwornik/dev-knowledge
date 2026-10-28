@@ -15,6 +15,13 @@ import pytest
 import gen_handoff as gh
 
 _TODAY = "2026-10-23"
+
+
+@pytest.fixture(autouse=True)
+def _ledger_regeneration_is_the_stub(monkeypatch):
+    """ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py."""
+    monkeypatch.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: (
+        f"# LEDGER\n<!-- owner: browser seat - v4 refreshed {date} 00:05 -->\n"))
 _NEW_ROWS = (
     "fill_ins_filled",
     "seat_ids_both",
