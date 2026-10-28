@@ -23,7 +23,7 @@
 
 ### 2026-10-28 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the session-close seat-ids regeneration
 
-**Anchors:** `b8d7b06b3` (bind-handoff landing), `82145956f` (docs-boot landing), `fbe87d470` (backlog-close landing)
+**Anchors:** `0f1e767d3` (regenerates `ecosystem/seat-ids.yaml`), `b8d7b06b3` (bind-handoff landing), `82145956f` (docs-boot landing), `fbe87d470` (backlog-close landing)
 
 **Did:** regenerated `ecosystem/seat-ids.yaml` with `transport.py seat-ids --write` (Tech-Architect-45 row corrected, 46 and 47 added), the one generated file the order's close names. The order carried it as a `--regen-cmd` on a landing; both E2.2 landings that followed G-3 went without it, so it lands here as its own generated-only chore merge from the integration worktree.
 
