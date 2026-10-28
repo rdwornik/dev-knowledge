@@ -327,3 +327,44 @@ def test_the_handoff_is_a_declared_process_in_the_harness_registry():
     assert row["gate"] == "preflight"
     assert row["receipt"] == "HANDOFF_RECEIPT.json"
     assert (_REPO / row["module"]).is_file()
+
+
+# --- review-1 findings, fixed ------------------------------------------------------------------
+
+def _git(cwd, *args):
+    import subprocess
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+
+
+def test_a_surface_altered_after_regeneration_refuses_the_seal(world):
+    """The byte-check reads the SHIPPED bytes, not the hash recorded at regeneration."""
+    inner = _fake_generate()
+
+    def tamper(repo_root, **kw):
+        res = inner(repo_root, **kw)
+        (world["transport"] / "to-browser" / "MAP-DISPATCH.md").write_text("# tampered\n", encoding="utf-8")
+        return res
+
+    with pytest.raises(gh.CutStaleError) as err:
+        _cut(world, generate_fn=tamper)
+    assert "dispatch_map" in str(err.value)
+
+
+def test_branch_is_merged_reads_the_real_ancestry_not_a_return_code(tmp_path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "a")
+    _git(repo, "branch", "merged-x")
+    _git(repo, "checkout", "-q", "-b", "ahead-x")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "b")
+    assert gh._branch_is_merged(repo, "merged-x") is True
+    assert gh._branch_is_merged(repo, "ahead-x") is False
+
+
+def test_a_real_cut_on_main_is_refused_before_anything_is_written(world):
+    repo = world["repo"]
+    _git(repo, "init", "-q", "-b", "main")
+    with pytest.raises(gh.CutOnMainError):
+        _cut(world)
+    assert not (repo / "ecosystem" / "seat-ids.yaml").exists()

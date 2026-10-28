@@ -4457,6 +4457,10 @@ class CutStaleError(RuntimeError):
     """A surface differed between its regeneration and the last moment before the cut returned."""
 
 
+class CutOnMainError(RuntimeError):
+    """A real cut writes tracked state (seat-ids.yaml, the bundle); on `main` that is a direct write."""
+
+
 class LandRefusedError(RuntimeError):
     """`--land` refused: the bundle branch is already merged, so landing it again would not be a no-op."""
 
@@ -4731,6 +4735,12 @@ def run_cut(repo_root: Path = _REPO_ROOT, *, transport: "Path | None", bundle_ro
     slug = slug or f"{date}-{repo_name.lstrip('.')}-{mode}"
     now = now or _utc_stamp()
     bundle_root = Path(bundle_root) if bundle_root is not None else root / "docs" / "handoffs"
+    if not dry_cut:
+        ok, branch_now = _git_status(root, "branch", "--show-current")
+        if ok and branch_now == "main":
+            raise CutOnMainError(
+                "refusing a real cut on `main`: it writes ecosystem/seat-ids.yaml and the bundle into "
+                "tracked state. Cut on the handoff branch (a worktree), or use --dry-cut.")
     repo_seat_path = root / "ecosystem" / "seat-ids.yaml"
     # A dry cut never writes into the repository: its seat map goes beside its bundle root.
     seat_path = (Path(seat_ids_path) if seat_ids_path is not None
@@ -4772,10 +4782,12 @@ def run_cut(repo_root: Path = _REPO_ROOT, *, transport: "Path | None", bundle_ro
     shipped_ledger = _file_bytes_text(tp / "to-browser" / f"LEDGER-{repo_name.lstrip('.')}.md") or ""
     again = {"ledger": (_sha256_text(_mask_refreshed(shipped_ledger)),
                         _sha256_text(_mask_refreshed(_fresh_ledger_text(root, repo_name, date)))),
-             "dispatch_map": (surfaces["dispatch_map"]["sha256"], _sha256_text(dispatch_map_text(root))),
-             "seat_ids": (surfaces["seat_ids"]["sha256"],
+             "dispatch_map": (_sha256_text(_file_bytes_text(tp / DISPATCH_MAP_REL) or ""),
+                              _sha256_text(dispatch_map_text(root))),
+             "seat_ids": (_sha256_text(_file_bytes_text(seat_path) or ""),
                           _sha256_text(_seat_ids_text(seat_path, tp, repo_seat_path))),
-             "reading_path": (surfaces["reading_path"]["sha256"], _sha256_text(reading_path_text(tp)))}
+             "reading_path": (_sha256_text(_file_bytes_text(reading_file) or ""),
+                              _sha256_text(reading_path_text(tp)))}
     for name, (shipped_sha, fresh_sha) in again.items():
         if shipped_sha != fresh_sha:
             stale.append(name)
@@ -4800,8 +4812,8 @@ def receipt_path_for(bundle_dir: Path) -> Path:
 
 
 def _branch_is_merged(repo_root: Path, branch: str) -> bool:
-    rc, _out = _git_status(Path(repo_root), "merge-base", "--is-ancestor", branch, "main")
-    return rc == 0
+    ok, _out = _git_status(Path(repo_root), "merge-base", "--is-ancestor", branch, "main")
+    return ok
 
 
 def land_cut(repo_root: Path, branch: str, *, batch: "str | None" = None, is_merged=None,
@@ -4892,7 +4904,7 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
                           date=date, mode=mode, dry_cut=dry_cut_dir is not None,
                           force_filled=force_filled, allow_suffix=allow_suffix)
         except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
-                AssemblyRefusedError, DryCutTargetError, CutStaleError) as exc:
+                AssemblyRefusedError, DryCutTargetError, CutStaleError, CutOnMainError) as exc:
             raise SystemExit(f"[error] {exc}") from exc
         click.echo(f"Cut bundle: {res.bundle_dir}")
         click.echo("surfaces:")
