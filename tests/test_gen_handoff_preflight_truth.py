@@ -15,6 +15,13 @@ import pytest
 import gen_handoff as gh
 
 _TODAY = "2026-10-23"
+
+
+@pytest.fixture(autouse=True)
+def _ledger_regeneration_is_the_stub(monkeypatch):
+    """ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py."""
+    monkeypatch.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: (
+        f"# LEDGER\n<!-- owner: browser seat - v4 refreshed {date} 00:05 -->\n"))
 _NEW_ROWS = (
     "fill_ins_filled",
     "seat_ids_both",
@@ -309,17 +316,29 @@ def test_fill_in_placeholder_text_is_still_empty_in_the_2026_10_22_cut(
     assert "purpose" in row.detail
 
 
-def test_seat_registry_names_the_missing_tech_architect_47_from_the_2026_10_22_cut(
+def test_seat_registry_names_the_unregistered_outgoing_tech_architect_46(
     tmp_path, _quiet_hub
 ):
-    """Reproduces the 2026-10-22 cut's unregistered incoming Tech-Architect-47."""
+    """ADR-132 D3 ([#1746]): the row checks the OUTGOING seat only. The successor half moved to
+    the successor's first transport write; its witness is
+    tests/test_transport_seat_gate.py::test_an_unregistered_tech_architect_id_in_by_is_refused_naming_the_fix."""
     repo = _hub_stub(tmp_path)
     transport = _transport(tmp_path)
     _write_seat_evidence(repo, transport, registered=("43", "44", "45"))
     row = _row(repo, transport, "seat_ids_both")
     assert row.status == gh.PREFLIGHT_FAIL, row.render()
     assert "Tech-Architect-46" in row.detail
-    assert "Tech-Architect-47" in row.detail
+    assert "Tech-Architect-47" not in row.detail
+
+
+def test_an_unregistered_successor_does_not_refuse_the_cut(tmp_path, _quiet_hub):
+    """A successor id cannot exist before the cut (ADR-132 D3): outgoing registered is a PASS."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    _write_seat_evidence(repo, transport, registered=("43", "44", "45", "46"))
+    row = _row(repo, transport, "seat_ids_both")
+    assert row.status == gh.PREFLIGHT_PASS, row.render()
+    assert "Tech-Architect-47" not in row.detail
 
 
 def test_both_seats_registered_repairs_the_2026_10_22_seat_gap(tmp_path, _quiet_hub):

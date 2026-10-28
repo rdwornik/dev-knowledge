@@ -87,11 +87,11 @@ ITEMS: tuple[Item, ...] = (
     ),
     Item(
         "recent-adrs",
-        "Which ADR decided that CI on both Windows and Linux is what judges a change, and "
-        "what is its status?",
+        "Which ADR decided that landing a change is done by a script, with a model called only "
+        "when something goes wrong, and what is its status?",
         (".claude/generated/recent-adrs.md",),
-        "verification verdict",
-        "ADR-127 (",  # status-free: a ratification must not flip body_form; re-point when 127 leaves the last-5 (2026-10-22)
+        "red CI or",
+        "ADR-131 (",  # status-free: a ratification must not flip body_form; re-point when 131 leaves the last-5 (2026-10-28)
         (".claude/generated/recent-adrs.md",),
     ),
     Item(

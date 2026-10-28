@@ -258,6 +258,44 @@ def _lint(dest: Path, text: str, reg: list[Kind], writer: Optional[str] = None) 
     for f in findings:
         if f.code == "no-by-generated-kind":
             print(f"transport: {dest.name}: {f.reason}", file=sys.stderr)
+    if by:
+        _refuse_unregistered_seat(dest, text, transport_lint)
+
+
+def unregistered_seats(text: str, registered: set[str], by_text: str) -> list[str]:
+    """Tech-Architect ids named in `by_text` that `registered` lacks and that `text`'s own head does
+    not register: the registering write states its own pair (one id, one session slug), the shape
+    `build_seat_map` reads, so `seat-ids --write` picks it up afterwards."""
+    named = sorted(set(_TA_RE.findall(by_text)))
+    head = [m.group(1) for ln in text.lstrip("﻿").splitlines()[:HEAD_LINES]
+            if (m := _FROM_BY_RE.match(ln))]
+    head_seats = {s for v in head for s in _TA_RE.findall(v)}
+    head_slugs = {s for v in head for s in _SLUG_RE.findall(v)}
+    states_pair = len(head_seats) == 1 and len(head_slugs) == 1
+    return [s for s in named if s not in registered and not (states_pair and s in head_seats)]
+
+
+def _refuse_unregistered_seat(dest: Path, text: str, transport_lint) -> None:
+    """ADR-132 D3 ([#1746]): the successor half of the old `seat_ids_both` row. A `by:` naming a
+    Tech-Architect id the generated seat map has not registered is refused at the write. An empty
+    map has nothing to check against, so it gates nothing; an unreadable one fails closed."""
+    by_text = transport_lint.by_value(text)
+    if not by_text or not _TA_RE.search(by_text):
+        return
+    try:
+        seats, _inv = load_seat_ids(DEFAULT_SEAT_IDS)
+    except SeatIdsError as exc:
+        raise TransportWriteRefused(f"{dest.name!r}: the seat map cannot be read ({exc}); "
+                                    "an unread map registers nobody") from exc
+    if not seats:
+        return
+    missing = unregistered_seats(text, {s["seat"] for s in seats}, by_text)
+    if missing:
+        raise TransportWriteRefused(
+            f"{dest.name!r}: `by:` names {', '.join(missing)}, which {DEFAULT_SEAT_IDS.name} has not "
+            "registered (ADR-132 D3). State the seat's id and its session slug in the head "
+            "(`by: Tech-Architect-NN (<session-slug>)`), then run "
+            "`uv run --locked python scripts/transport.py seat-ids --write`")
 
 
 def _inside_known_transport(dest: Path) -> bool:

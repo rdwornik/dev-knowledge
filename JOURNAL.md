@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-28 (b) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the bind-handoff landing -- ADR-132 build (`--cut` regenerates and byte-checks every surface), [#1746] closed, CLAUDE.md section 9 stage claim fixed
+
+**Anchors:** `b03a9d23c` (ADR-132), `ebd86256e` and `213194335` ([#1746] filed and closed), `280208ad3` (CLAUDE.md section 9, AMEND-2 R3), `5783a5a26` (`--cut`, rows as data, receipt stops/waits/surfaces), `9ca579421`, `78e42a711` (review-1 fixes), `89128cb7f` `3434877e7` `31096e92b` `27621027b` (repair 1: the five CI regression families)
+
+**Did:** landed lane `bind-handoff` (`worktree-bind-handoff` @ `27621027b`) with `land_lane.py` from the integration worktree after repair 1 of 2 (REFUSED-bind-handoff, CI 40733080164 RED with 59 tests). Purity clean (14 lane commits). The lane left S-REVIEW on the repair tip to the integrator, so the integrator ran it: gpt-5.6-terra and gpt-6-sol, read-only, `git diff origin/main...HEAD`, served model from the codex banner, nonce `NONCE-E22-BIND-HANDOFF-INT-659a9930` echoed on line 1, no commit after. Both gave FINDINGS.
+
+**Result:** S-REVIEW findings on the tip, carried and not fixed (additive gate, no regression on main): terra HIGH `transport.py:282/414` the seat gate can be bypassed through `append()` (it reads the first `by:` of the combined file); terra HIGH `transport.py:270-275` the registering exception accepts a split ID/slug pair across head lines; sol HIGH `gen_handoff.py:4764` a refused cut has already rewritten the LEDGER/MAP-DISPATCH/seat-ids; sol HIGH `transport.py:274` (same family as terra's); sol MED `gen_handoff.py:4779` the Operator-decisions row runs before the cut drafts it. Carried to the operator/architect as TODAY-GLUE from the lane: the `working tree:` mask in the LEDGER byte-check is wider than ADR-132 D2 (keep it with a one-line amendment, or make `gen_ledger` ignore cut-owned paths); D4 step 1 (ratify) cannot appear in `stops:` while `ratification_present` blocks; whether `--cut` must refuse every primary-checkout cut; the 9-vs-12 state-rows defect in HANDOFF_BOOT.md (a lane that may edit it); `--dry-cut` writes the regenerated LEDGER and MAP-DISPATCH into the live transport. The lane reports 9 `test_gen_handoff.py` failures and 2 `test_graph_spine.py` failures that fail identically on a clean `fc733465d`.
+
+**Changes:** `docs/decisions/` (ADR-132 and index), `scripts/gen_handoff.py`, `scripts/transport.py`, `ecosystem/handoff-preflight-rows.yaml`, `ecosystem/harness.yaml`, `protocols/HANDOFF_PROCESS.md`, `CLAUDE.md`, `.claude/generated/recent-adrs.md`, the handoff/transport tests, `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** the order's close (seat-ids, LEDGER, gen_handoff --preflight-only, CLOSE line), then H-5 the cut under ADR-132 under a fresh integrator.
+
 ### 2026-10-28 (a) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the docs-boot landing -- HANDOFF_BOOT v4, OPERATOR-INTERFACE, ARCHITECTURE/PLAYBOOK stale claims S1-S12
 
 **Anchors:** `87ef0eb4b` (HANDOFF_BOOT v4), `d156c6966` (OPERATOR-INTERFACE), `5a895e5c7` (S1-S12), `15becc7a5` (repair 1: local start line to the queue, R1), `52a9dcd08` and `71f585213` (repair 2: Ch8 CLOUD lane heading restored, ratchet pool back to baseline, boot_version 4 hash pin moved)

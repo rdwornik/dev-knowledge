@@ -119,6 +119,14 @@ def _committed_filled_bundle(tmp_path, monkeypatch):
     return repo, bundle
 
 
+# ADR-132 D2: `--restamp-manifest` is no longer a verb -- the cut restamps the manifest as an internal
+# step. The CLI tests of the verb (its flag, its refusal exit, its slug-safety guards) went with it
+# (GO-2 witnesses): the restamp's behaviour and its R107 use receipt stay covered by the function-level
+# tests below, `tests/test_handoff_cut.py::test_the_manifest_is_restamped_after_the_extra_files_are_written`
+# covers the cut's internal step, and `test_the_hand_verbs_the_cut_replaces_are_gone_from_the_cli` holds
+# the flag gone (no slug input reaches a path any more, so the slug-safety guards have no surface).
+
+
 def test_restamp_rewrites_only_the_receipt_manifest_files_of_a_committed_bundle(
         tmp_path, monkeypatch):
     repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
@@ -215,36 +223,8 @@ def test_restamp_refuses_a_bundle_that_fails_nothing(tmp_path, monkeypatch):
     assert _snapshot(bundle) == before
 
 
-def test_cli_restamp_manifest_flag_restamps_a_committed_bundle_and_exits_zero(
-        tmp_path, monkeypatch):
-    from click.testing import CliRunner
-
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    monkeypatch.setattr(gh, "_REPO_ROOT", repo)
-    before = _snapshot(bundle)
-
-    result = CliRunner().invoke(gh.main, ["--restamp-manifest", "--slug", bundle.name])
-
-    assert result.exit_code == 0, result.output
-    after = _snapshot(bundle)
-    assert {n for n in after if after[n] != before.get(n)} == {vhp.RECEIPT_FILE}
-    assert _failing(bundle, repo) == set()
 
 
-def test_cli_restamp_manifest_refusal_exits_one_and_writes_nothing(tmp_path, monkeypatch):
-    from click.testing import CliRunner
-
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    (bundle / "SNEAKED-IN.md").write_text("not part of any fill step\n", encoding="utf-8")
-    _commit_all(repo, "add a file")
-    monkeypatch.setattr(gh, "_REPO_ROOT", repo)
-    before = _snapshot(bundle)
-
-    result = CliRunner().invoke(gh.main, ["--restamp-manifest", "--slug", bundle.name])
-
-    assert result.exit_code == 1, result.output
-    assert "SNEAKED-IN.md" in result.output
-    assert _snapshot(bundle) == before
 
 
 # --- R107: every use writes a receipt (outside the bundle); only manifest hashes change --------
@@ -334,13 +314,6 @@ def test_R107_only_the_manifest_hashes_of_the_changed_files_differ_afterwards(
 
 # --- round 2 (judge r1 6a.O1 / 6a.O2): every exit receipts; no unreceipted mutation; slug safety --
 
-def _cli(repo, monkeypatch, *args):
-    from click.testing import CliRunner
-
-    monkeypatch.setattr(gh, "_REPO_ROOT", repo)
-    return CliRunner().invoke(gh.main, ["--restamp-manifest", *args])
-
-
 def test_R107_r2_an_unexpected_exception_still_appends_one_error_receipt_and_propagates(
         tmp_path, monkeypatch):
     repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
@@ -378,36 +351,8 @@ def test_R107_r2_a_failing_receipt_append_leaves_the_bundle_receipt_byte_identic
     assert _snapshot(bundle) == before                     # no bundle change without a receipt
 
 
-def test_R107_r2_the_cli_without_a_slug_appends_one_refused_receipt_and_exits_nonzero(
-        tmp_path, monkeypatch):
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    before = _snapshot(bundle)
-
-    result = _cli(repo, monkeypatch)
-
-    assert result.exit_code != 0, result.output
-    receipts = _use_receipts(repo)
-    assert len(receipts) == 1, receipts
-    assert set(receipts[0]) == _USE_RECEIPT_KEYS
-    assert receipts[0]["outcome"] == "refused" and receipts[0]["slug"] is None
-    assert receipts[0]["reason"] and receipts[0]["files"] == {}
-    assert _snapshot(bundle) == before
 
 
-def test_R107_r2_the_cli_with_a_missing_bundle_dir_appends_one_refused_receipt_and_exits_nonzero(
-        tmp_path, monkeypatch):
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    before = _snapshot(bundle)
-
-    result = _cli(repo, monkeypatch, "--slug", "2099-01-01-no-such-bundle")
-
-    assert result.exit_code != 0, result.output
-    receipts = _use_receipts(repo)
-    assert len(receipts) == 1, receipts
-    assert set(receipts[0]) == _USE_RECEIPT_KEYS
-    assert receipts[0]["outcome"] == "refused" and receipts[0]["slug"] == "2099-01-01-no-such-bundle"
-    assert receipts[0]["reason"] and receipts[0]["files"] == {}
-    assert _snapshot(bundle) == before
 
 
 def _decoy_copy(bundle, dest):
@@ -417,40 +362,5 @@ def _decoy_copy(bundle, dest):
     return dest
 
 
-@pytest.mark.parametrize("kind", ["dotdot", "subdir", "windows_abs", "posix_abs", "dot"])
-def test_R107_r2_an_unsafe_slug_is_refused_before_anything_is_read_or_written(
-        kind, tmp_path, monkeypatch):
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    # A bundle-shaped decoy OUTSIDE docs/handoffs (it fails BD-manifest exactly like the real
-    # one, so an unchecked slug that reaches it WOULD be re-stamped).
-    outside = _decoy_copy(bundle, tmp_path / "decoy")
-    inside_docs = _decoy_copy(bundle, repo / "docs" / "x")
-    # windows_abs / "absolute decoy": the platform's native absolute path to the decoy dir
-    # (a `C:\...` form on Windows), which `docs/handoffs / slug` silently DISCARDS the prefix of.
-    slug = {"dotdot": "../x", "subdir": "a/b", "windows_abs": str(outside),
-            "posix_abs": "/tmp/x", "dot": "."}[kind]
-    snaps = {"bundle": _snapshot(bundle), "outside": _snapshot(outside), "docs_x": _snapshot(inside_docs)}
-
-    result = _cli(repo, monkeypatch, "--slug", slug)
-
-    assert result.exit_code != 0, result.output
-    receipts = _use_receipts(repo)
-    assert len(receipts) == 1, receipts
-    assert set(receipts[0]) == _USE_RECEIPT_KEYS
-    assert receipts[0]["outcome"] == "refused" and receipts[0]["slug"] == slug
-    assert receipts[0]["reason"] and receipts[0]["files"] == {}
-    assert _snapshot(bundle) == snaps["bundle"]
-    assert _snapshot(outside) == snaps["outside"]           # never modified
-    assert _snapshot(inside_docs) == snaps["docs_x"]
 
 
-def test_R107_r2_a_windows_style_and_a_posix_absolute_slug_are_both_refused(tmp_path, monkeypatch):
-    repo, bundle = _committed_filled_bundle(tmp_path, monkeypatch)
-    before = _snapshot(bundle)
-    for slug in ("C:\\Windows\\Temp\\x", "/tmp/x", "..\\x"):
-        result = _cli(repo, monkeypatch, "--slug", slug)
-        assert result.exit_code != 0, (slug, result.output)
-    receipts = _use_receipts(repo)
-    assert [r["outcome"] for r in receipts] == ["refused"] * 3, receipts
-    assert [r["slug"] for r in receipts] == ["C:\\Windows\\Temp\\x", "/tmp/x", "..\\x"]
-    assert _snapshot(bundle) == before

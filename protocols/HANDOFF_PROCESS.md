@@ -980,8 +980,7 @@ repos of the same handoff version: the #164 generator seeds/updates each repo's
 `docs/handoffs/README.md` idempotently and emits the four-file bundle — never a per-bundle README.
 **Source — as built vs as designed ([#399], 2026-08-24):** the render-from-one-template shape is the
 DEFERRED design, not the built one. No script reads `templates/handoff/v5/README.md.tmpl` (it stays a
-deferred stub until #164 lands); `scripts/seed_runbook.py` generalizes from the already-rendered hub
-`docs/handoffs/README.md`.
+deferred stub until #164 lands).
 
 **PLAN.md, the D3 four-state artifact (intake #18 A9).** An architect bundle MAY carry `PLAN.md` —
 the session plan, CC-authored, never pasted. Its lifecycle is **DRAFT → REVIEWED → APPROVED →

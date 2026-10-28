@@ -25,6 +25,13 @@ _cdocs = gh._cdocs
 _TODAY = "2026-09-07"
 
 
+@pytest.fixture(autouse=True)
+def _ledger_regeneration_is_the_stub(monkeypatch):
+    """ADR-132 D2: `ledger_refreshed` is regenerate-and-diff, so a fixture ledger must be what the regeneration returns. The stub returns the one-line ledger these fixtures write; the row's own behaviour is witnessed in tests/test_handoff_cut.py."""
+    monkeypatch.setattr(gh, "_fresh_ledger_text", lambda _root, _name, date: (
+        f"# LEDGER\n<!-- owner: browser seat - v4 refreshed {date} 00:05 -->\n"))
+
+
 def _transport(tmp_path, *, ledger_date=_TODAY, ratification_date=_TODAY,
                status_bytes=1_000, questions=(), answers=(), repo_name=".dev-knowledge"):
     """A stub prompts-dir: `to-cc/` + `to-browser/` with a CLEAN window by default."""
@@ -96,7 +103,7 @@ def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_
     row 11 — the boot's citations, R95 D1 — by BW lane D5, `[#1450]`.)"""
     repo = _hub_stub(tmp_path)
     rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
-    assert len(rows) == 19
+    assert len(rows) == 18
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     for r in rows:
         assert r.status in (gh.PREFLIGHT_PASS, gh.PREFLIGHT_FAIL, gh.PREFLIGHT_NA)
@@ -286,8 +293,10 @@ def test_memory_within_cap_over_budget_does_not_refuse_the_cut(tmp_path, monkeyp
     (`_write_receipt`'s `preflight_notes`) can carry it. `worktree_owners`, the other live-state
     row, is a genuine precondition and is untouched by this tuple -- its own FAIL still refuses
     (test_worktree_owners_* below)."""
-    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("memory_within_cap", "landed_vs_ratified",
-                                              "operator_decisions_list")
+    # ADR-132 D3: the row LEFT the cut (witness for the removed non-blocking entry); the
+    # non-blocking set is data (ecosystem/handoff-preflight-rows.yaml), two rows.
+    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("landed_vs_ratified", "operator_decisions_list")
+    assert "memory_within_cap" not in gh.PREFLIGHT_ROW_NAMES
     monkeypatch.setattr(gh._cdocs, "MEMORY_BYTE_BUDGET", 20_000, raising=False)
     mem = tmp_path / "MEMORY.md"
     mem.write_bytes(b"x" * 23_851)
@@ -299,8 +308,9 @@ def test_memory_within_cap_over_budget_does_not_refuse_the_cut(tmp_path, monkeyp
     rows = gh.assert_preflight(repo, transport=_transport(tmp_path, repo_name="repo"),
                                today=_TODAY, repo_name="repo",
                                memory_path=mem)  # must not raise
-    row = next(r for r in rows if r.name == "memory_within_cap")
-    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+    assert "memory_within_cap" not in [r.name for r in rows]       # it is no longer a cut row
+    row = gh.session_start_rows(repo, memory_path=mem)[0]            # it runs at session start
+    assert row.name == "memory_within_cap" and row.status == gh.PREFLIGHT_FAIL, row.render()
 
 
 # --- row 5: the stamped set is COMPUTED, never a roster typed into this module ------------
@@ -377,8 +387,13 @@ def test_ship_gate_row_fails_when_the_set_cannot_be_run(tmp_path, monkeypatch):
     assert row.status == gh.PREFLIGHT_FAIL and "could not be run" in row.detail
 
 
-def test_ledger_row_fails_when_the_ledger_predates_the_window(tmp_path):
-    root = _transport(tmp_path, ledger_date="2026-09-01")
+def test_ledger_row_fails_when_the_ledger_content_has_drifted_from_a_fresh_regeneration(tmp_path):
+    """ADR-132 D2: replaces the date-compare test. Witness of the protected behaviour (a stale
+    ledger refuses the cut): a ledger whose CONTENT differs from the regeneration is refused,
+    however recent its date; a ledger that differs only in its date is fresh (test_handoff_cut.py)."""
+    root = _transport(tmp_path, ledger_date=_TODAY)
+    (root / "to-browser" / "LEDGER-dev-knowledge.md").write_text(
+        f"# LEDGER\n<!-- refreshed {_TODAY} -->\nopen rows: 99\n", encoding="utf-8")
     assert gh._row_ledger_refreshed(root, ".dev-knowledge", _TODAY).status == gh.PREFLIGHT_FAIL
 
 
@@ -484,14 +499,18 @@ def test_clean_transport_lets_the_cut_through(tmp_path, monkeypatch, _quiet_hub)
     assert (res.bundle_dir / "FUNCTIONAL_BOOT.md").exists()
 
 
+def _drifted_ledger(root):
+    (root / "to-browser" / "LEDGER-dev-knowledge.md").write_text("# LEDGER\ndrifted\n", encoding="utf-8")
+    return root
+
+
 def test_refusal_names_EVERY_failing_row_not_just_the_first(tmp_path, monkeypatch, _quiet_hub):
     """Same reason `assert_boundary_hygiene` names every leftover: reporting one invites a
     fix-and-retry loop that reveals the next."""
     repo = _hub_stub(tmp_path)
     monkeypatch.setattr(gh, "transport_root",
-                        lambda **_kw: _transport(tmp_path, status_bytes=5_114,
-                                                 ledger_date="2026-09-01",
-                                                 ratification_date=None))
+                        lambda **_kw: _drifted_ledger(_transport(
+                            tmp_path, status_bytes=5_114, ratification_date=None)))
     with pytest.raises(gh.PreflightError) as exc:
         _cut(repo, tmp_path, "0000-00-00-many")
     msg = str(exc.value)
@@ -732,7 +751,7 @@ def test_the_p11_row_is_in_the_roster_and_cites_the_family_precedent(tmp_path, _
     transport = _seven_file_short(tmp_path, carriers_set=True)
     assert "p11_carriage" in gh.PREFLIGHT_ROW_NAMES
     rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
-    assert len(rows) == 19
+    assert len(rows) == 18
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     row = next(r for r in rows if r.name == "p11_carriage")
     assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
@@ -808,7 +827,7 @@ def _seed_boot(repo, boot: str) -> None:
 
 
 def test_the_boot_citations_row_is_in_the_cut_gate():
-    assert gh.PREFLIGHT_ROW_NAMES[10] == "boot_citations"   # row 12, git_hygiene, follows it
+    assert gh.PREFLIGHT_ROW_NAMES[9] == "boot_citations"   # row 12, git_hygiene, follows it
     assert "boot_citations" not in gh.PREFLIGHT_NON_BLOCKING_ROWS      # a FAIL refuses the cut
     assert "boot_citations" not in gh.TRIAL_CUT_EXCLUDED_ROWS          # and it runs at batch close
 
