@@ -215,5 +215,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-10-05
+**Last updated:** 2026-10-28
 **Maintained by:** Rob

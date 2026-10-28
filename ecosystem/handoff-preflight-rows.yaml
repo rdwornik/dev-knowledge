@@ -6,10 +6,10 @@
 #   scope     cut            -- evaluated by the cut and by --preflight-only / --trial-cut
 #             session-start  -- NOT evaluated by the cut; it measures the machine, not the repository
 #   blocking  true  -- a FAIL refuses the cut
-#             false -- the verdict is carried into the receipt's `preflight_notes` and never raises
+#             false -- the verdict is carried into the receipt's `preflight_notes` and does not raise
 #   why       why a non-default status holds (read by the reader, not by code)
 #
-# Order is the report order. Rows 10-19 were appended, never inserted, so the ratified register's own
+# Order is the report order. Rows 10-19 were appended rather than inserted, so the ratified register's own
 # 1-9 numbering keeps meaning what it meant.
 rows:
   - {name: ship_gate, scope: cut, blocking: true}
