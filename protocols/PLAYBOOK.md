@@ -689,7 +689,7 @@ Branch prefixes are a closed enum, not free text. Four are author-chosen: `feat/
 chore/`. Four more are machine-produced lane prefixes, each admitted by a recorded ruling
 rather than invented in passing: `worktree-<name>` (native parallel-session worktrees,
 `claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes, Ch8 "Tree
-orchestration"), `claude/<slug>` (read-only Anthropic routine/cloud-session report branches, never merged), and `automation/<slug>`
+orchestration"), `claude/<slug>` (read-only Anthropic routine/cloud-session report branches, not merged), and `automation/<slug>`
 (organ-produced replication lanes — admitted 2026-08-06 by architect ruling, registered
 `protocols/STANDING_RULINGS.md` B5).
 
@@ -3002,7 +3002,8 @@ dispatch <FILE.md> -DryRun          prints the resolved line, sends nothing
   120 s branch-wait timeout as a WARNING rather than a failure. Feed it the slug
   `lane-<letter>-<id>-<slug>` and it produces exactly the canonical batch-lane branch.
 
-**2 — CLOUD lane — SUPERSEDED.** CL-1 removed the cloud build substrate (2026-10-24); there is
+**2 — CLOUD lane**
+SUPERSEDED: CL-1 removed the cloud build substrate (2026-10-24); there is
 no `Dispatch-Cloud` line to type. Read-only offload is Codespace CR2 (Layer 1, Q3 above); the
 cloud-lane rules that survive, for the read-only harvest case only, are "Cloud lanes — the receipt
 gate and the fresh-branch rule" below.
@@ -3429,7 +3430,7 @@ contract to a running session.
 <!-- scope: meta -->
 
 The cloud build substrate was retired (CL-1, 2026-10-24); these rules survive for the read-only
-harvest case only (CR1: a report on a `claude/<slug>` branch the hub fetches and never merges). A
+harvest case only (CR1: a report on a `claude/<slug>` branch the hub fetches and does not merge). A
 cloud lane is a read-only dispatch that runs off this machine and reports on a branch under the
 `claude/<slug>` lane prefix. Everything above about contracts, decision budgets and
 commit-and-STOP applies to it unchanged. Two *rules* apply additionally — the two below — and both exist for one

@@ -102,8 +102,8 @@ Every repo claim you make is tagged with exactly one of three marks:
 
 Orient first: pull the MAP, then the INDEX, then the newest FINDING on your topic, all before asking anyone.
 
-- **MUST-KNOW: intake.** On a new topic read its `FINDING-<seat>-INTAKE-<date>.md` (OWED / ASK / ASSUME ledger) before asking.
-- **MUST-KNOW: operator decisions.** The bundle's `Operator decisions` heading lists asks only the operator rules: one recommendation each; never re-open a ruled one.
+- **Know: intake.** On a new topic read its `FINDING-<seat>-INTAKE-<date>.md` (OWED / ASK / ASSUME ledger) before asking.
+- **Know: operator decisions.** The bundle's `Operator decisions` heading lists asks only the operator rules: one recommendation each; do not re-open a ruled one.
 - READ: start each turn with `transport.py query` for your inbox (headers only); open a file only when a header names it.
 - TRANSPORT: a decision travels as a file with a carrier, not as chat (K12).
 - DISPATCH: route work by role to a seat; never compose a launch line.
