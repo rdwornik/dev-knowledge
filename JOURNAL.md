@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-10-30 (a) - CC (Opus 5.5, orchestrator of batch E2.2, H-5): the handoff cut `2026-10-28-dev-knowledge-architect` lands -- the first cut through ADR-132 `gen_handoff.py --cut`, supplement transcribed verbatim from Tech-Architect-47's SUPPLEMENT-ANSWERS v2, PLAN-NEXT folded
+
+**Anchors:** `25c6b393a` (the cut, pre-supplement: 16 bundle files, residual carried debt computed by `gen_handoff.carriage_verdicts` / `_question_disposition_verdict`), `b944289e5` (fold: SUPPLEMENT v2 verbatim, PLAN-NEXT into RESIDUAL section 4 and the boot purpose/destination), `b4b99e59a` (the BOOT-DATA Plan row re-derived after the operator's MASTER PLAN act, restamp-manifest; `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` +2); branch `worktree-handoff-2026-10-28`, introduced by this merge.
+
+**Did:** `gen_handoff.py --cut --mode architect --repo .dev-knowledge` (cut 1 without `--repo` named the repo after the worktree folder and left a stray LEDGER file, removed); a 2026-10-24 stash archived as tag `archive/stash-l12-acceptance-2026-10-24` and dropped so the boundary passed; the cut stopped at steps 5 (browser), 12 and 13 (operator); asked TA-47 via `to-browser/QUESTIONS-FOR-OUTGOING-2026-10-28.md`; folded both answer files; `assemble_paste` exit 0 (fixed slots, P11 leg 2 clean). `--land` refused (exit 5: no `--i-am-the-integrator`), so this lands by operator act H5-LAND (`to-browser/RATIFICATION-2026-10-28.md` Paste 3) through `land_lane.py`.
+
+**Result:** `verify_handoff_probes` 0 failing after the re-stamp; PASTE_THIS.md 12,939 B; `protocols/HANDOFF_BOOT.md` unchanged (sha8 e9a209e8). Measures: O16 AFTER in `to-browser/DIGEST-E2-2-SESSION-CLOSE-2026-10-27.md` A4.
+
+**Changes:** `docs/handoffs/2026-10-28-dev-knowledge-architect/` (new), `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl`, `JOURNAL.md`.
+
+**Next:** the operator uploads nothing new to the Project (HANDOFF_BOOT sha8 unchanged) and pastes PASTE_THIS.md into the successor seat; PLAN-NEXT item 2 carries the cut's glue (repo name, stash, carried-debt render, step-5 ask, `--land` landing class, the BD-plan row frozen at the cut).
+
 ### 2026-10-28 (c) - CC (Sonnet 5.5, INTEGRATOR-E2.2 close cycle 1, batch E2.2): the session-close seat-ids regeneration
 
 **Anchors:** `0f1e767d3` (regenerates `ecosystem/seat-ids.yaml`), `b8d7b06b3` (bind-handoff landing), `82145956f` (docs-boot landing), `fbe87d470` (backlog-close landing)
