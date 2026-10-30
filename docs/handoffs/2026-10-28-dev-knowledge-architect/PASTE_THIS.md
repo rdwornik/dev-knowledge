@@ -36,8 +36,8 @@
 <!-- BOOT-PROSE:BEGIN (hand-authored — read, not verified; byte budget gen_handoff.BOOT_PROSE_BYTE_BUDGET) -->
 | Prose | Read, not verified |
 |---|---|
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
-| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->Take the dispatch process -- the step between lanes and seats -- through the loop E2.2 ran for the handoff: census, /decide to an ADR, bind in code, measure hand relays per batch (**[E2] Enforced governance**; the handoff second pass stays under **[E1] Handoff continuity**). Start only after the operator's GO on `to-cc/PLAN-NEXT-2026-10-28.md` and rulings on SUPPLEMENT v2 section 4. Task-state: `BACKLOG.md`.<!-- FILL-IN:purpose END --> |
+| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->the browser seat writes its browser-writable transport kinds only (`protocols/OPERATOR-INTERFACE.md` section 1); repo changes go through lane contracts<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->architect: the next step is a design decision (dispatch census and /decide) before any build, PO-C order (PLAN-NEXT item 1)<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Cut by `scripts/gen_handoff.py` from **committed** state on branch `worktree-handoff-2026-10-28` — no sha, count or verdict; re-derive live (`PROBES.md` P3). |
 <!-- BOOT-PROSE:END -->
 
@@ -81,7 +81,7 @@ verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the
 - `fleet_parity` (reads the parity-surface manifest and the surfaces it names)
 
 <!-- FILL-IN:driftflags START (hand-authored — ONE judgment only: name which NEW flag above is a DECISION rather than a defect. The standing-vs-new attribution is GENERATED directly above; do not restate it. Do NOT state the ship-gate verdict, the WARN count, the [stale] status, or any drifted #id/sha — those are P7/P4's LIVE answer; naming a value here re-inverts the anti-bluff contract.) -->
-_(fill: of the NEW-and-undispositioned organs listed above, name which is a DECISION rather than a defect, and why. Nothing else belongs here — the standing-vs-new split is generated. State no verdict/count/[stale]/sha value; P7/P4 re-derive those.)_
+`fleet_parity` is a **decision**, not a defect. This window rewrote deploy-carried protocol surfaces on the hub first (`protocols/HANDOFF_BOOT.md` v4 and `protocols/OPERATOR-INTERFACE.md` by docs-boot, the ADR-132 build by bind-handoff), and consumers converge at the next deploy, which is sequenced, not owed by this cut. A `reconciled_versions` WARN, if P7 shows one, is **not** a decision: a doc declaring `reconciled_with:` a spec this window moved owes a `/check-against-spec` pass, and that carry goes to PLAN-NEXT.
 <!-- FILL-IN:driftflags END -->
 
 **OPEN decision files this handoff carries** (`carried-by: OPEN` — work, not filing; P11):
@@ -168,4 +168,10 @@ _(fill: of the NEW-and-undispositioned organs listed above, name which is a DECI
 
 ---
 
-=== END OF PASTE — 3 sections · 12067 bytes ===
+=== SUPPLEMENT.md ===
+
+The outgoing architect's ANSWERS are FILLED, in `docs/handoffs/2026-10-28-dev-knowledge-architect/SUPPLEMENT.md` below its divider — not inlined (the paste gate). Ask CC to pull them before the §13(d) operator-context beat, which then NARROWS to *"anything changed since the supplement was written?"*.
+
+---
+
+=== END OF PASTE — 4 sections · 13137 bytes ===

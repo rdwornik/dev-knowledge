@@ -60,7 +60,13 @@ Pointer, not recap: `JOURNAL.md` (newest entries) and `git log --first-parent 64
 ## §4 — Next-frontier decisions (the design "why" that travels)
 
 <!-- FILL-IN:frontier START (hand-authored — the open architecture questions + decision context the next session must resume rather than rediscover; the residual's core payload in architect mode) -->
-_(fill: the open design questions / next-frontier decisions the next session should resume — the un-committed "why." This is the residual's core payload; the generator cannot author it.)_
+Source: `to-cc/PLAN-NEXT-2026-10-28.md` (TA-47, O12; binding only on the operator's GO) and SUPPLEMENT v2 section 4 (folded verbatim in this bundle's `SUPPLEMENT.md`).
+
+- **Next process through PO-C: dispatch.** E2.2 stalled whenever no code fired the next step (L10): a REFUSED lane sat unrepaired for hours, the next lane was not queued after MERGED, a repair handback in `SESSION-<slug>-repair-<n>.md` was missed. Census first; the candidate runner the census must test is `conductor.py` / `run_phase.py` (built, unused). Measure: hand relays per batch against E2.2's TODAY-GLUE (`to-browser/DIGEST-E2-2-SESSION-CLOSE-2026-10-27.md`).
+- **Handoff second pass (ADR-132 measures over the next 3 cuts).** This cut's 5 seat glue steps become code: repo name from the repo, not the worktree dir; teardown refuses to leave a stash; `--cut` renders the carried-debt section; `--cut` writes the step-5 ask to the transport; CUT_DRAFTS before the preflight. Flip-condition: median active cut time over 32 min reopens landing-time regeneration.
+- **Six operator questions, unruled** (SUPPLEMENT v2 section 4; PLAN-NEXT P2 makes ruling or deferring each a precondition): C1 Project write with read-back; the ADR-132 LEDGER mask; step 1 (ratify) in `stops:`; `--cut` refusing every primary-checkout cut; queue-only scope (PLAYBOOK:2219/:2900, HANDOFF_BOOT:207); lanes launched with the advisor tool disallowed (R178 by mechanism).
+- **Then, in PLAN-NEXT order:** test-speed /decide (coverage-context census before any pruning), backlog as a process (one class rule for KEEP-unmapped rows; `--close-row` refuses a STAYS OPEN body, L11), isolation Stage 1 (RED author != implementer, L14), browser contract Stage 1, docs and hygiene carries, principles PR-1..PR-5 / PO-B..PO-E / DC-1 into `protocols/STANDING_RULINGS.md`.
+- **Do not re-decide** (SUPPLEMENT v2 section 5): ADR-132; GO-1..GO-4 and amendments; QC-D3; K1-STANDING; the census baseline; STEP 0 = NO.
 <!-- FILL-IN:frontier END -->
 
 ---

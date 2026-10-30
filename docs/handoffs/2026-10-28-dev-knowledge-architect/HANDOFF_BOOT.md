@@ -35,14 +35,14 @@
 <!-- BOOT-PROSE:BEGIN (hand-authored — read, not verified; byte budget gen_handoff.BOOT_PROSE_BYTE_BUDGET) -->
 | Prose | Read, not verified |
 |---|---|
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
-| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->Take the dispatch process -- the step between lanes and seats -- through the loop E2.2 ran for the handoff: census, /decide to an ADR, bind in code, measure hand relays per batch (**[E2] Enforced governance**; the handoff second pass stays under **[E1] Handoff continuity**). Start only after the operator's GO on `to-cc/PLAN-NEXT-2026-10-28.md` and rulings on SUPPLEMENT v2 section 4. Task-state: `BACKLOG.md`.<!-- FILL-IN:purpose END --> |
+| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->the browser seat writes its browser-writable transport kinds only (`protocols/OPERATOR-INTERFACE.md` section 1); repo changes go through lane contracts<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->architect: the next step is a design decision (dispatch census and /decide) before any build, PO-C order (PLAN-NEXT item 1)<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Cut by `scripts/gen_handoff.py` from **committed** state on branch `worktree-handoff-2026-10-28` — no sha, count or verdict; re-derive live (`PROBES.md` P3). |
 <!-- BOOT-PROSE:END -->
 
 ## What the operator does (paste-pointer)
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The pasted header is DATA + PROSE.** Every DATA row — identity, the destination branch, the
 > role pin's version, the launcher, each pointer — is checked by a `verify_handoff_probes` rule
@@ -63,7 +63,7 @@
 5. **Boot on the ROLE PIN alone (R30).** The browser's first move is core item 3 of
    `protocols/HANDOFF_BOOT.md`. CC holds the probe gate and runs it at the cut (HANDOFF_PROCESS §5),
    not as a boot step; an architect-mode paste carries no probe table.
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2). **The bundle states no drift-flag value:** ask CC to
    re-derive each one live from `PROBES.md`; a FAIL it reports blocks onboarding (the escalation
