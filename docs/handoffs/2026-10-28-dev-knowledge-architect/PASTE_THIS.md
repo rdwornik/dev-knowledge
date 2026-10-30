@@ -21,7 +21,7 @@
 | **Diagram** | 25 states · 22 holes · 15 glue · 3 zones |
 | **CI** | `e0dba7f` RED (1 new red(s), run 40755529734) — evidence: ci_verdict.verdict_for(ref, timeout_s=0) [LIVE-DRIFTS] |
 | **Batches** | no batch open — evidence: batch_manifest.open_batches [LIVE-DRIFTS] |
-| **Plan** | no master plan declared among the newest: PLAN-HARNESS-2026-10-23.md, PLAN-CONSOLIDATION-2026-10-27.md, PLAN-E2-2-PHASE3-2026-10-27.md, PLAN-E2-2-SESSION-CLOSE-2026-10-27.md (add `status: MASTER PLAN` to the head of the master; the newest declared master is `PLAN-HARNESS-2026-10-19.md`) — evidence: to-cc/PLAN-*.md (newest non-superseded master plan) [SLOW] |
+| **Plan** | `to-cc/PLAN-NEXT-2026-10-28.md` — evidence: to-cc/PLAN-*.md (newest non-superseded master plan) [SLOW] |
 | **Seats** | [seats] 0 live / 0 wedged / 2 absent / 0 starved (last 24 h; 8 unbound) — evidence: seat_registry.seat_health_line(elapsed=False) [LIVE-DRIFTS] |
 | **Substrates** | 3/3 live: codespace, interactive, local — evidence: ecosystem/substrate-registry.yaml [SLOW] |
 | **Transport** | 127 kind(s) registered, names-digest 4b0f2e2bb950 — evidence: ecosystem/transport-registry.yaml [SLOW] |
@@ -174,4 +174,4 @@ The outgoing architect's ANSWERS are FILLED, in `docs/handoffs/2026-10-28-dev-kn
 
 ---
 
-=== END OF PASTE — 4 sections · 13137 bytes ===
+=== END OF PASTE — 4 sections · 12881 bytes ===
