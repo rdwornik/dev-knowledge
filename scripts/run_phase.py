@@ -120,7 +120,7 @@ def stage_input(src, dest_dir) -> Path:
 
 def run_phase(argv, timeout_s, *, cwd=None, env=None, payload_path=None, nonce=None,
               input_hash=None, payload_model=None, heartbeat_path=None, heartbeat_s=60.0,
-              poll_s=0.2, stdout_path=None) -> PhaseRun:
+              poll_s=0.2, stdout_path=None, stderr_path=None) -> PhaseRun:
     contract = payload_path is not None
     if contract and (not nonce or not input_hash):
         raise ValueError("payload_path requires nonce and input_hash")
@@ -142,13 +142,18 @@ def run_phase(argv, timeout_s, *, cwd=None, env=None, payload_path=None, nonce=N
         popen_kw["start_new_session"] = True
 
     out = open(stdout_path, "wb") if stdout_path else None  # noqa: SIM115 -- closed in finally
+    err = None
+    if stdout_path and stderr_path is None:
+        stderr_path = Path(str(stdout_path) + ".stderr")
+    if stderr_path:
+        err = open(stderr_path, "wb")  # noqa: SIM115 -- closed in finally
     started = time.time()
     proc = None
     try:
         try:
             proc = subprocess.Popen(argv, cwd=cwd, env=child_env, stdin=subprocess.DEVNULL,
                                     stdout=out or subprocess.DEVNULL,
-                                    stderr=subprocess.STDOUT if out else subprocess.DEVNULL, **popen_kw)
+                                    stderr=err or subprocess.DEVNULL, **popen_kw)
         except OSError as exc:  # an absent CLI is a FAILED phase with a reason, never a crash
             finished = time.time()
             return PhaseRun(status=FAILED, exit_code=None, killed=False, targeted=(), survivors=(),
@@ -220,6 +225,8 @@ def run_phase(argv, timeout_s, *, cwd=None, env=None, payload_path=None, nonce=N
     finally:
         if out:
             out.close()
+        if err:
+            err.close()
     finished = time.time()
     return PhaseRun(
         status=status, exit_code=exit_code, killed=killed, targeted=targeted, survivors=survivors,
@@ -288,6 +295,21 @@ def _read_json(path) -> Optional[dict]:
     return data if isinstance(data, dict) else None
 
 
+def _argv_value(argv, flag) -> Optional[str]:
+    for i, tok in enumerate(argv[:-1]):
+        if tok == flag:
+            return argv[i + 1]
+    return None
+
+
+def _cli_record(argv, stdout_file) -> Optional[dict]:
+    """A copilot head reports its served model in the --usage-output-file; the others in stdout."""
+    usage = _argv_value(argv, "--usage-output-file")
+    if usage:
+        return _read_json(usage)
+    return _read_json(stdout_file) if stdout_file else None
+
+
 def _phase_hash(phase: dict, previous, ctx: dict, argv_of, file_digests) -> str:
     """What a phase's receipt is valid FOR: its argv template, its declared input files, the upstream
     phase's hash, lane, row and round. NOT the repo state -- P2 and P3 commit, and a resume after that
@@ -349,7 +371,8 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
         receipt_model = build_receipt(
             run, organ=f"phase:{phase['id']}", row=ctx["row"], lane=ctx["lane"], phase=phase["id"],
             round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
-            model_requested=phase.get("model"), cli_record=_read_json(out), substituted_from=substituted)
+            model_requested=phase.get("model") or _argv_value(argv, "--model"),
+            cli_record=_cli_record(argv, out), substituted_from=substituted)
         data = receipt_model.model_dump(by_alias=True)
         receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         ok = phase_succeeded(data)
@@ -383,10 +406,11 @@ def _cmd_run(args) -> int:
     argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
     run = run_phase(argv, args.timeout, payload_path=args.payload,
                     nonce=nonce, input_hash=digest, heartbeat_path=args.heartbeat,
-                    stdout_path=args.stdout)
+                    stdout_path=args.stdout, stderr_path=args.stderr)
     receipt = build_receipt(run, organ=args.organ, row=args.row, lane=args.lane, phase=args.phase,
                             round_no=args.round, argv=argv, input_hash=digest, nonce=nonce,
-                            inputs=inputs)
+                            inputs=inputs, cli_record=_cli_record(argv, args.stdout),
+                            model_requested=_argv_value(argv, "--model"))
     Path(args.receipt).write_text(
         json.dumps(receipt.model_dump(by_alias=True), indent=2) + "\n", encoding="utf-8",
         newline="\n")
@@ -410,6 +434,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     run.add_argument("--input", action="append", default=[])
     run.add_argument("--heartbeat")
     run.add_argument("--stdout")
+    run.add_argument("--stderr")
     run.add_argument("argv", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     if not args.argv or args.argv == ["--"]:
