@@ -550,3 +550,19 @@ def test_contract_phases_rejects_a_row_missing_a_harness_schema_key(key):
 def test_contract_phases_rejects_a_wrongly_typed_harness_schema_value(field, value):
     with pytest.raises(_conductor().ContractPhasesError):
         _conductor().contract_phases(_phases_text({**_FULL_ROW, field: value}))
+
+
+def test_lane_cli_with_a_contract_and_relative_receipts_works_from_outside_the_repo_root(tmp_path):
+    """Sol judge finding: the rendered harness and the receipts root were handed to the doit child
+    (cwd = repo root) as caller-relative paths, so a run from any other directory lost both."""
+    lane = "e30-relative-" + uuid.uuid4().hex
+    out = subprocess.run(
+        [sys.executable, str(_CONDUCTOR), "lane", "--repo-root", str(_REPO), "--lane", lane,
+         "--round", "1", "--contract", str(_CONTRACT), "--receipts", "rel-receipts"],
+        capture_output=True, text=True, encoding="utf-8", cwd=tmp_path, timeout=240)
+
+    assert out.returncode == 0, out.stdout + out.stderr
+    round_dir = tmp_path / "rel-receipts" / f"LANE-{lane}" / "r1"
+    assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3")), out.stdout
+    assert (round_dir / "harness.contract.yaml").is_file()
+    assert not (_REPO / "rel-receipts").exists(), "receipts must resolve against the caller, not the repo"
