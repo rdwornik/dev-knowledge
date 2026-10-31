@@ -566,3 +566,29 @@ def test_lane_cli_with_a_contract_and_relative_receipts_works_from_outside_the_r
     assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3")), out.stdout
     assert (round_dir / "harness.contract.yaml").is_file()
     assert not (_REPO / "rel-receipts").exists(), "receipts must resolve against the caller, not the repo"
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (["claude", "-p", "--disallowedTools=Bash"],
+     ["claude", "--disallowedTools=Bash,AskUserQuestion,advisor", "-p"]),
+    (["claude", "--disallowedTools=advisor,Edit", "-p"],
+     ["claude", "--disallowedTools=advisor,Edit,AskUserQuestion", "-p"]),
+    (["claude", "-p", "--disallowedTools", "Bash,Edit"],
+     ["claude", "--disallowedTools=Bash,Edit,AskUserQuestion,advisor", "-p"]),
+    (["claude", "-p", "--disallowed-tools=Bash"],
+     ["claude", "--disallowedTools=Bash,AskUserQuestion,advisor", "-p"]),
+])
+def test_add_disallowed_advisor_merges_into_an_existing_disallowed_tools_flag(argv, expected):
+    """Sol judge finding: a second --disallowedTools flag could override the inserted advisor block."""
+    c = _conductor()
+    for field_name in ("command", "fallback"):
+        out = c.add_disallowed_advisor([{"id": "P1", field_name: list(argv)}])[0][field_name]
+        flags = [t for t in out if t.startswith("--disallow")]
+        assert out == expected
+        assert len(flags) == 1
+        assert c.add_disallowed_advisor([{"id": "P1", field_name: out}])[0][field_name] == out
+
+
+def test_contract_phases_rejects_an_unhashable_phase_id_as_a_contract_error():
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text({**_FULL_ROW, "id": ["P1"]}))
