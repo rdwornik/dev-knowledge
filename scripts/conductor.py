@@ -953,6 +953,8 @@ def _validate_phase_rows(rows: list) -> None:
         for key in _PHASE_KEYS:
             if key not in row:
                 raise ContractPhasesError(f"{rid}: missing key '{key}'")
+        if not isinstance(rid, str):
+            raise ContractPhasesError(f"row {i}: id must be a string")
         if rid in seen:
             raise ContractPhasesError(f"{rid}: duplicate id")
         seen.add(rid)
@@ -1008,16 +1010,43 @@ def _is_claude(argv: list) -> bool:
     return head == "claude"
 
 
+_DISALLOW_FLAGS = ("--disallowedTools", "--disallowed-tools")
+_REQUIRED_DISALLOWED = ("AskUserQuestion", "advisor")
+
+
+def _merge_disallowed(argv: list[str]) -> list[str]:
+    """One `--disallowedTools=` flag at index 1: any existing flag's tools, then the required ones."""
+    tools: list[str] = []
+    rest: list[str] = [argv[0]]
+    i = 1
+    while i < len(argv):
+        tok = argv[i]
+        value = None
+        if tok in _DISALLOW_FLAGS and i + 1 < len(argv):
+            value, i = argv[i + 1], i + 1
+        else:
+            for flag in _DISALLOW_FLAGS:
+                if tok.startswith(flag + "="):
+                    value = tok[len(flag) + 1:]
+        if value is None:
+            rest.append(tok)
+        else:
+            tools += [t for t in value.split(",") if t and t not in tools]
+        i += 1
+    tools += [t for t in _REQUIRED_DISALLOWED if t not in tools]
+    return [rest[0], "--disallowedTools=" + ",".join(tools), *rest[1:]]
+
+
 def add_disallowed_advisor(phases: list[dict]) -> list[dict]:
-    """Deep copies of the rows, with the advisor-disallowing flag inserted into every claude argv."""
+    """Deep copies of the rows, each claude argv carrying ONE --disallowedTools flag naming advisor."""
     import copy  # noqa: PLC0415
 
     out = copy.deepcopy(phases)
     for row in out:
         for field_name in ("command", "fallback"):
             argv = row.get(field_name)
-            if argv and _is_claude(argv) and _ADVISOR_TOKEN not in argv:
-                argv.insert(1, _ADVISOR_TOKEN)
+            if argv and _is_claude(argv):
+                row[field_name] = _merge_disallowed(argv)
     return out
 
 
