@@ -31,10 +31,11 @@ def test_copilot_served_implement_is_accepted():
     assert problems == [] and subs == []
 
 
-def test_claude_implement_without_vendor_fail_is_refused():
+def test_admitted_claude_implement_without_vendor_fail_is_accepted():
     problems, _ = sg.check_models_block(
         _block("implement: requested=claude-sonnet-5-5/medium served=claude-sonnet-5-5"))
-    assert any("implement" in p and "REFUSED" in p for p in problems), problems
+    # GO-E3.0 R11: the admitted implement model is valid without VENDOR-FAIL evidence.
+    assert problems == []
 
 
 def test_claude_implement_with_vendor_fail_is_accepted_and_listed():

@@ -56,7 +56,8 @@ def _reg_model(role: str, provider: str | None = None, index: int = 0) -> str:
 def test_the_roles_table_is_derived_from_the_registry():
     rows = _rows(glc.render_contract(_spec()))
     implement = _row(rows, "implement")
-    assert "Copilot" in implement and next(iter(pr.copilot_gateway_served())) in implement
+    # GO-E3.0 R11: the registry's admitted Sonnet entry leads implement.
+    assert _reg_model("implement") in implement
     assert _reg_model("seat-orchestrator") in _row(rows, "lane head")
     assert "Copilot" in _row(rows, "red")
     review = _row(rows, "review")

@@ -49,16 +49,16 @@ def test_the_live_registry_validates(live):
     ProviderRegistry.model_validate(live)
 
 
-def test_implement_is_copilot_first_and_sonnet_is_vendor_fail_only(live):
+def test_implement_is_sonnet_first_and_copilot_is_second(live):
     order = ProviderRegistry.model_validate(live).roles["implement"].order
-    assert order[0].provider == "copilot-enterprise", (
-        "implement.order[0] must be Copilot (served model read from the CLI usage file); "
-        f"got {order[0].provider}")
+    # GO-E3.0 R11: admitted Sonnet 5.5 is the first implement entry.
+    assert (order[0].provider, order[0].model) == ("anthropic", SONNET)
     sonnet = [e for e in order if e.model == SONNET]
     assert len(sonnet) == 1
-    assert getattr(sonnet[0], "vendor_fail_only", False) is True, (
-        "the Claude implement entry must carry `vendor_fail_only: true`")
-    assert order[1].model == SONNET and order[2].model == "grok-4.7"
+    # GO-E3.0 R11: first-entry Sonnet no longer carries vendor_fail_only.
+    assert getattr(sonnet[0], "vendor_fail_only", False) is False
+    # GO-E3.0 R11: Copilot is second and Grok remains third.
+    assert order[1].provider == "copilot-enterprise" and order[2].model == "grok-4.7"
 
 
 def test_seat_roles_and_opus_only_roles(live):
@@ -72,21 +72,27 @@ def test_seat_roles_and_opus_only_roles(live):
         assert [e.model for e in roles[name].order] == [OPUS]
 
 
-def test_schema_refuses_a_claude_model_as_the_first_implement_entry(live):
+def test_schema_accepts_admitted_claude_as_the_first_implement_entry(live):
     def mutate(d):
         order = d["roles"]["implement"]["order"]
         claude = next(e for e in order if e.get("model") == SONNET)
         rest = [e for e in order if e is not claude]
         d["roles"]["implement"]["order"] = [claude, *rest]
 
-    _refuses(_mutated(live, mutate))
+    # GO-E3.0 R11: admission, not provider identity, governs the first implement entry.
+    assert ProviderRegistry.model_validate(_mutated(live, mutate)).roles["implement"].order[0].provider == "anthropic"
 
 
 def test_schema_refuses_an_anthropic_implement_entry_without_vendor_fail_only(live):
     def mutate(d):
-        for e in d["roles"]["implement"]["order"]:
-            if e["provider"] == "anthropic":
-                e.pop("vendor_fail_only", None)
+        order = d["roles"]["implement"]["order"]
+        sonnet = next(e for e in order if e["provider"] == "anthropic")
+        copilot = next(e for e in order if e["provider"] == "copilot-enterprise")
+        # GO-E3.0 R11: only a later Anthropic implement entry requires vendor_fail_only.
+        sonnet.pop("vendor_fail_only", None)
+        d["roles"]["implement"]["order"] = [copilot, sonnet, *[
+            e for e in order if e not in (copilot, sonnet)
+        ]]
 
     _refuses(_mutated(live, mutate))
 
@@ -107,11 +113,12 @@ def test_schema_refuses_a_non_copilot_first_implement_entry(live, provider):
 
 
 @pytest.mark.parametrize("provider", ["xai", "openai"])
-def test_the_checker_reports_a_non_copilot_first_implement_entry(live, monkeypatch, provider):
+def test_the_checker_reports_a_non_admitted_first_implement_entry(live, monkeypatch, provider):
     bad = _mutated(live, lambda d: _put_first(d, provider))
     monkeypatch.setattr(cpr._preg, "load_registry", lambda path=None: bad)
     findings = cpr.check_implement_vendor_fail(_ROOT)
-    assert any("implement" in f and "copilot-enterprise" in f for f in findings), findings
+    # GO-E3.0 R11: the checker requires an admitted first entry, not Copilot specifically.
+    assert any("implement" in f and "admitted" in f for f in findings), findings
 
 
 def test_the_checker_is_clean_on_the_live_registry():
@@ -136,12 +143,14 @@ def test_the_checker_reports_vendor_fail_only_on_a_first_entry(live, monkeypatch
 
 def test_the_checker_reports_a_claude_implement_without_the_vendor_fail_clause(live, monkeypatch):
     def mutate(d):
-        for e in d["roles"]["implement"]["order"]:
-            if e["provider"] == "anthropic":
-                e["vendor_fail_only"] = False
         order = d["roles"]["implement"]["order"]
         claude = next(e for e in order if e["provider"] == "anthropic")
-        d["roles"]["implement"]["order"] = [claude, *[e for e in order if e is not claude]]
+        copilot = next(e for e in order if e["provider"] == "copilot-enterprise")
+        # GO-E3.0 R11: test missing vendor_fail_only only for Anthropic after the first entry.
+        claude["vendor_fail_only"] = False
+        d["roles"]["implement"]["order"] = [copilot, claude, *[
+            e for e in order if e not in (copilot, claude)
+        ]]
 
     bad = _mutated(live, mutate)
     # the schema would refuse this file at load time; hand the checker the raw mapping so the

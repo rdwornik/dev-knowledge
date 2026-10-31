@@ -154,7 +154,7 @@ def test_background_claude_argv_has_no_old_partial_disallowed_tools_token():
 _TASKS = {
     1747: (
         "`ci_verdict.py` reads the retired suite-gate block on its no-baseline path and reports registry members as new reds",
-        "RED first: a test built from c6618dbb7's case (6 known-reds members) asserts 0 new reds; real-use witness: `ci_verdict.py --ref c6618dbb7` prints an empty new-red list.",
+        "RED first: a test built from c6618dbb7's case (6 known-reds members) asserts 0 new reds; real-use witness: `ci_verdict.py --ref c6618dbb7` names exactly `commit-gate` as a new red (its job is genuinely red on main since 2026-10-17, row [#1800]) and none of the six known-red ids (two registry members, four [#664] witnesses) it reported on its no-baseline path.",
     ),
     1748: (
         "the view: /decide first, then build",
