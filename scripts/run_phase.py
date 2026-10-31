@@ -371,7 +371,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
         receipt_model = build_receipt(
             run, organ=f"phase:{phase['id']}", row=ctx["row"], lane=ctx["lane"], phase=phase["id"],
             round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
-            model_requested=phase.get("model") or _argv_value(argv, "--model"),
+            model_requested=_argv_value(argv, "--model") or phase.get("model"),
             cli_record=_cli_record(argv, out), substituted_from=substituted)
         data = receipt_model.model_dump(by_alias=True)
         receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
