@@ -39,8 +39,10 @@ it moves to the field the contract did not close.
 render `conductor.py::render_suite_gate` already wrote -- `baseline sha`, and one `REGRESSION`
 line per test outside the frozen set (`logs/SUITE-BASELINE-FREEZE.md`). This organ reads that
 block back out of the job's log via `gh run view --job <id> --log` (READ-ONLY: no artifact
-download, no re-run) rather than recomputing it, so the "new reds" named here are the SAME
-regressions the runner itself judged, not a second opinion. When that block is absent -- the
+download, no re-run) rather than recomputing it. Without a baseline, a `REGRESSION` id that is a
+member of the committed known-reds registry at the sha (minus "unattributed" entries, and minus
+any id the block also lists as SIG-CHANGED / OVER-CEILING / UNATTRIBUTED) is not a new red; if
+all are excused the state is PRE-EXISTING. When that block is absent -- the
 `pytest` job never reached the gate step, or failed before it, or the run's `pytest` job is not
 even the one that failed -- `new_reds` falls back to the names of the jobs that did not conclude
 `success` or `skipped`, and `reason` says which happened.
@@ -70,6 +72,7 @@ HONEST LIMITS:
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 import time
@@ -81,6 +84,7 @@ from typing import Callable, Optional
 import click
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
+log = logging.getLogger(__name__)
 
 #: The workflow whose conclusion this organ reads -- the same runner `actions_verdict.py` reads.
 WORKFLOW = "conductor.yml"
@@ -108,6 +112,8 @@ _RUN_FIELDS = "databaseId,headSha,status,conclusion,displayTitle,url,createdAt,u
 _LOG_LINE_RE = re.compile(r"^(?:[^\t]*\t){0,2}(\S+Z) ?(.*)$")
 _BASELINE_ID_RE = re.compile(r"^baseline id\s*:\s*(\S+)$")
 _REGRESSION_RE = re.compile(r"^  REGRESSION\s+(\S.*)$")
+#: Lines naming an id that is NOT excused by registry membership, however it is listed.
+_NOT_KNOWN_RE = re.compile(r"^  (?:SIG-CHANGED|OVER-CEILING|UNATTRIBUTED)\s+(\S.*)$")
 #: `known_reds.render_compare`'s first line, matched whole so `compare-hook` / `compare-to-base` never read.
 _KNOWN_REDS_HEADER = "known-reds compare"
 #: `conductor.yml`'s pytest job, step id `known_reds` -- the enforced verdict step, and the ONLY
@@ -280,6 +286,7 @@ def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> 
     """
     baseline_id = None
     regressions = []
+    not_known = []
     found = False
     for raw in log_text.splitlines():
         m = _LOG_LINE_RE.match(raw)
@@ -301,7 +308,11 @@ def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> 
         rm = _REGRESSION_RE.match(line)
         if rm:
             regressions.append(rm.group(1))
-    return {"baseline_id": baseline_id, "regressions": tuple(regressions), "found": found}
+        nm = _NOT_KNOWN_RE.match(line)
+        if nm:
+            not_known.append(nm.group(1))
+    return {"baseline_id": baseline_id, "regressions": tuple(regressions),
+            "not_known": tuple(not_known), "found": found}
 
 
 def _duration_seconds(run: dict) -> Optional[float]:
@@ -426,6 +437,35 @@ def _resolve_head_check(head_check: Optional[Callable], injected: dict,
     return _actions_verdict().head_registry_problems
 
 
+def _resolve_known_ids_fn(known_ids_fn: Optional[Callable], injected: dict) -> Optional[Callable]:
+    """Which function reads the registry's known ids at a sha, or None for none. An explicit
+    `known_ids_fn` is used as given; otherwise the production reader is ON only when NONE of the
+    CI-fetch seams was injected -- the same rule as `_resolve_head_check`."""
+    if known_ids_fn is not None:
+        return known_ids_fn
+    if any(value is not None for value in injected.values()):
+        return None
+    return _registry_known_ids
+
+
+def _registry_known_ids(sha: str, *, repo_root: Path, os_key: Optional[str]) -> frozenset:
+    """The ids the committed registry at `sha` excuses for `os_key`: `members` plus that OS's
+    `members_by_os` bucket, minus entries attributed "unattributed" (known_reds compare counts
+    those as regressions)."""
+    registry = _actions_verdict()._read_registry_at(sha, repo_root=repo_root)
+    entries = dict(registry.members)
+    entries.update(registry.members_by_os.get(os_key, {}) if os_key else {})
+    return frozenset(node_id for node_id, entry in entries.items()
+                     if (entry or {}).get("attribution") != "unattributed")
+
+
+def _leg_os_key(leg: str) -> Optional[str]:
+    """`pytest (ubuntu-latest)` -> `ubuntu-latest`; plain `pytest` -> None."""
+    if leg.startswith(PYTEST_JOB + " (") and leg.endswith(")"):
+        return leg[len(PYTEST_JOB) + 2:-1]
+    return None
+
+
 def _head_state(check: Callable, sha: str, root: Path) -> Optional[tuple]:
     """The HEAD registry read as a refusal: `("problems", line)` when it reads and is not in date
     or not sound, `("unreadable", line)` when it cannot be read, None when it reads clean. The
@@ -454,7 +494,8 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                 fetch_base: Optional[Callable] = None,
                 registry_loader: Optional[Callable] = None,
                 run_id: Optional[int] = None,
-                head_check: Optional[Callable] = None) -> CiVerdict:
+                head_check: Optional[Callable] = None,
+                known_ids_fn: Optional[Callable] = None) -> CiVerdict:
     """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
 
     `run_id` pins the read to ONE run (see `wait_for_run`); omitted, the newest push run wins.
@@ -475,8 +516,12 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     nothing lands on a red `main` (PRE-EXISTING, its flagged buckets in `flagged`). `baseline` (the merge's first parent, the
     base `main` sha) makes a red run be CLASSIFIED by `actions_verdict.verdict_for` -- the one
     classifier -- so `new_reds` names the NEW tests per OS leg, and `state` says REGRESSED /
-    PRE-EXISTING / UNATTRIBUTED. Without a baseline the red is named from the gate's own log as
-    before.
+    PRE-EXISTING / UNATTRIBUTED. Without a baseline the red is read from the known-reds block of
+    the pytest legs' own logs, and a `REGRESSION` id that is a member of the committed registry at
+    `sha` (`known_ids_fn(sha, *, repo_root, os_key)`; production default
+    `_registry_known_ids`, on only when no CI-fetch seam is injected) is NOT a new red unless the
+    block also lists it as SIG-CHANGED / OVER-CEILING / UNATTRIBUTED. When every regression is so
+    excused the state is PRE-EXISTING; a registry that cannot be read keeps every regression.
 
     The four `_fn` defaults resolve by NAME, here, rather than as bound parameter defaults --
     a default bound at `def` time would freeze the ORIGINAL function object, so a caller (the
@@ -498,6 +543,9 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     head_fn = _resolve_head_check(head_check, {
         "list_fn": list_fn, "view_fn": view_fn, "jobs_fn": jobs_fn, "log_fn": log_fn,
         "fetch_base": fetch_base, "registry_loader": registry_loader}, baseline)
+    known_fn = None if baseline else _resolve_known_ids_fn(known_ids_fn, {
+        "list_fn": list_fn, "view_fn": view_fn, "jobs_fn": jobs_fn, "log_fn": log_fn,
+        "fetch_base": fetch_base, "registry_loader": registry_loader})
     list_fn = list_fn or list_runs
     view_fn = view_fn or fetch_run_status
     jobs_fn = jobs_fn or fetch_jobs
@@ -573,6 +621,9 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     baseline_id = None
     regressions: list = []
     gate_found = False
+    dropped = 0
+    explained_legs: set = set()
+    known_note = ""
     # EVERY pytest leg, not only a job named exactly `pytest`: the OS matrix renamed the jobs to
     # `pytest (<os>)`, and the exact-name lookup this replaces silently found none of them.
     pytest_jobs = [j for j in jobs if _is_pytest_job(j.get("name") or "")]
@@ -586,8 +637,23 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
             baseline_id = baseline_id or block["baseline_id"]
             gate_found = gate_found or block["found"]
             leg = pytest_job.get("name")
+            leg_regressions = list(block["regressions"])
+            if leg_regressions:
+                explained_legs.add(leg)
+            if known_fn is not None and leg_regressions and not baseline:
+                try:
+                    known = known_fn(sha, repo_root=root, os_key=_leg_os_key(leg or ""))
+                except Exception as exc:        # fail closed: keep every regression
+                    log.warning("known-reds registry unreadable at %s: %s", sha[:12], exc)
+                    known_note = (f"; the known-reds registry at {sha[:12]} could not be read "
+                                  f"({exc}), so every regression is kept")
+                else:
+                    not_known = set(block["not_known"])
+                    kept = [r for r in leg_regressions if r not in known or r in not_known]
+                    dropped += len(leg_regressions) - len(kept)
+                    leg_regressions = kept
             regressions += [r if leg == PYTEST_JOB else f"{leg}: {r}"
-                            for r in block["regressions"]]
+                            for r in leg_regressions]
 
     # THE HEAD REGISTRY, read once, here: after every earlier refusal above (each keeps its own
     # state), before either way out that lets `land` proceed. See the docstring.
@@ -634,15 +700,25 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                          new_reds=names, missing_contexts=missing, state=state,
                          flagged=classified.flagged, reason=reason)
 
+    unexplained = [n for n in failing if n not in explained_legs]
     if regressions:
         new_reds = tuple(regressions)
-        reason = (f"{len(new_reds)} new red(s) named by the pytest job's own suite-baseline "
-                  f"gate, against baseline {baseline_id}")
+        reason = (f"{len(new_reds)} new red(s) named by the pytest legs' known-reds block, "
+                  f"against baseline {baseline_id}")
+        if dropped:
+            reason += f" ({dropped} known-reds registry members excused)"
+        reason += known_note
+    elif dropped and not unexplained and not workflow_level_failure:
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration, baseline_id=baseline_id, new_reds=(),
+                         state=av.STATE_PRE_EXISTING, missing_contexts=missing,
+                         reason=(f"{dropped} known-reds registry members failed and no other "
+                                 f"red was named: the red is pre-existing{known_note}"))
     elif failing:
-        new_reds = tuple(failing)
-        reason = f"job(s) did not conclude success: {', '.join(failing)}"
+        new_reds = tuple(unexplained if dropped else failing)
+        reason = f"job(s) did not conclude success: {', '.join(new_reds)}"
         if not gate_found:
-            reason += (" (the pytest job's suite-baseline gate block was not found in its log "
+            reason += (" (the pytest job's known-reds block was not found in its log "
                       "-- naming jobs, not tests)")
     else:
         new_reds = (f"workflow:{run_conclusion}",)
