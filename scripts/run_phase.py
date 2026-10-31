@@ -249,6 +249,11 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
             head = head[: -len(ext)]
             break
     served = _pr.served_model_from_record(head, cli_record)
+    metrics = cli_record.get("modelMetrics") if head == "copilot" and isinstance(cli_record, dict) else None
+    if isinstance(metrics, dict):
+        current = cli_record.get("currentModel")
+        usage = {"model_metrics_keys": sorted(metrics), "multi_model": len(metrics) > 1,
+                 "served_unattested": current not in metrics, **(usage or {})}
     payload = _pr.PhasePayload.model_validate(run.payload) if run.payload is not None else None
     return _pr.PhaseReceipt.model_validate({
         "schema": "phase-receipt/1", "organ": organ, "status": run.status,

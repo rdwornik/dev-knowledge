@@ -150,6 +150,9 @@ def served_model_from_record(cli: Optional[str], record: Optional[dict]) -> Opti
         return max(usage.items(), key=_out)[0]
     key = {"codex": "model", "grok": "model", "copilot": "currentModel"}.get(cli)
     value = record.get(key) if key else None
+    metrics = record.get("modelMetrics") if cli == "copilot" else None
+    if isinstance(metrics, dict) and value not in metrics:
+        return None
     return value if isinstance(value, str) and value else None
 
 
