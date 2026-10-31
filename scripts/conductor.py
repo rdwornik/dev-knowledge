@@ -939,7 +939,9 @@ class ContractPhasesError(ValueError):
 
 
 _ADVISOR_TOKEN = "--disallowedTools=AskUserQuestion,advisor"
-_PHASE_KEYS = ("id", "name", "row_phase", "role", "cli", "gate", "timeout_s", "command")
+# every key of a harness.yaml `phases:` row except the optional `fallback`; `model` may be null
+_PHASE_KEYS = ("id", "name", "row_phase", "role", "cli", "model", "payload_model", "gate", "timeout_s",
+               "budget_usd", "max_rounds", "inputs", "command")
 
 
 def _validate_phase_rows(rows: list) -> None:
@@ -963,6 +965,16 @@ def _validate_phase_rows(rows: list) -> None:
         t = row["timeout_s"]
         if isinstance(t, bool) or not isinstance(t, int) or t <= 0:
             raise ContractPhasesError(f"{rid}: timeout_s must be a positive int")
+        mr = row["max_rounds"]
+        if isinstance(mr, bool) or not isinstance(mr, int) or mr < 1:
+            raise ContractPhasesError(f"{rid}: max_rounds must be an int >= 1")
+        budget = row["budget_usd"]
+        if isinstance(budget, bool) or not isinstance(budget, (int, float)) or budget < 0:
+            raise ContractPhasesError(f"{rid}: budget_usd must be a number >= 0")
+        if not isinstance(row["inputs"], list):
+            raise ContractPhasesError(f"{rid}: inputs must be a list")
+        if not isinstance(row["payload_model"], str) or not row["payload_model"]:
+            raise ContractPhasesError(f"{rid}: payload_model must be a non-empty string")
 
 
 def contract_phases(text: str) -> list[dict] | None:
