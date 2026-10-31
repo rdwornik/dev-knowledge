@@ -23,7 +23,7 @@ TERRA = "gpt-5.6-terra"
 
 _PHASE_ROWS = {
     # R177 split: the default implement row is Copilot (Claude implement needs VENDOR-FAIL evidence)
-    "implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |",
+    "implement": f"| implement code (lane head) | {SONNET} | local |",
     "red": "| write the RED / isolated tests | Copilot CLI `gpt-6-luna` | codespace |",
     "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
@@ -117,11 +117,19 @@ def test_a_launch_model_that_is_not_the_head_model_is_refused():
                for p in problems)
 
 
+def test_a_later_implement_entry_row_needs_a_vendor_fail_line():
+    row = {"implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |"}
+    problems, _ = _problems(_contract(rows=row))
+    assert problems, "R11: the Copilot entry is second, so its route row needs a VENDOR-FAIL line"
+    text = _contract(rows=row) + "\nVENDOR-FAIL: implement copilot quota exhausted today\n"
+    assert _problems(text)[0] == []
+
+
 def test_the_implement_row_naming_grok_is_refused():
     problems, _ = _problems(_contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
-    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
+    # R11: a Substrate `implement` row is judged against the registry's first `implement` entry, not the seat
     _assert_refusal_names(problems, lane="lane-x", role="implement", contract_model="grok-4.7",
-                          table_model="claude-sonnet-5.5")
+                          table_model="claude-sonnet-5-5")
 
 
 def test_the_red_row_naming_a_registry_model_is_refused():
@@ -294,8 +302,8 @@ def test_the_cli_refuses_a_substituted_contract_with_exit_1(tmp_path):
     done = _cli(tmp_path, _contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
     assert done.returncode == 1
     line = next(ln for ln in done.stdout.splitlines() if ln.startswith("REFUSED [model-per-role]"))
-    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
-    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "claude-sonnet-5.5" in line
+    # R11: a Substrate `implement` row is judged against the registry's first `implement` entry, not the seat
+    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "claude-sonnet-5-5" in line
 
 
 def test_the_cli_refuses_a_launch_model_that_differs_from_the_head(tmp_path):

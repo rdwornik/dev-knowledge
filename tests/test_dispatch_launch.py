@@ -1008,7 +1008,7 @@ def test_the_argv_is_built_from_the_parsed_fields_and_nothing_else(tmp_path):
     request = d.request_from_contract(path)
     assert request.argv == ["claude", "--bg", "-n", "lane-launch-adapter", "--model", "sonnet", "--effort", "high",
                             "--permission-mode", "bypassPermissions", "--worktree", "lane-launch-adapter",
-                            "--disallowedTools=AskUserQuestion", request.prompt]
+                            "--disallowedTools=AskUserQuestion,advisor", request.prompt]
 
 
 def _organ_receipts(receipts, **status_by_id):

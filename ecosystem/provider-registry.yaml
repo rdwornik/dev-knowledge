@@ -703,13 +703,30 @@ roles:
       is SECOND and `vendor_fail_only: true`, i.e. it runs only after a recorded
       `VENDOR-FAIL: implement ...`; Grok 4.7 stays third. The R153 text above is kept as the record
       of the order that stood until then.
+      SUPERSEDED 2026-10-31 by R11 (GO-E3.0, operator ruling 2026-10-31): Sonnet 5.5 implements,
+      superseding R177 "Copilot writes the code". Claude Sonnet 5.5 is FIRST and no longer
+      `vendor_fail_only`; the Copilot CLI is SECOND and plain admitted; Grok 4.7 stays third.
     routing_table_role: producer
     order:
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        substrate: codespace
+        note: >-
+          FIRST. R11 (GO-E3.0, operator ruling 2026-10-31): Sonnet 5.5 implements; the lane head
+          writes the code (Claude Code, the operator's Claude licence). `vendor_fail_only` is
+          removed. History: SECOND and `vendor_fail_only` under R177/R178 (2026-10-20), FIRST under
+          R153 (2026-10-19).
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-31"
+          evidence: to-cc/GO-E3.0.md R9/R11
       - provider: copilot-enterprise
         model: claude-sonnet-5.5
         substrate: codespace
         note: >-
-          PINNED 2026-10-23 (K3, `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
+          SECOND. R11 (GO-E3.0, operator ruling 2026-10-31): was FIRST under R177; the admission is
+          unchanged. PINNED 2026-10-23 (K3, `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the operator model
           routing of 2026-10-23): "Copilot CLI --model claude-sonnet-5.5 on EVERY call". Until then
           no model was pinned here (the served model was read from the CLI usage file); that text
           follows as history.
@@ -734,19 +751,6 @@ roles:
           decided_by: operator
           decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
-      - provider: anthropic
-        model: claude-sonnet-5-5
-        substrate: codespace
-        vendor_fail_only: true
-        note: >-
-          SECOND, and ONLY after a recorded `VENDOR-FAIL: implement ...` of the Copilot CLI
-          (R177/R178, operator; P1, R139). Was FIRST under R153 (2026-10-19). The lane head
-          writes the code in that case (Claude Code, the operator's Claude licence).
-        admission:
-          verdict: admitted
-          decided_by: operator
-          decided_on: "2026-10-14"
-          evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
         model: grok-4.7
         note: >-
@@ -890,27 +894,26 @@ roles:
         # R140: agy is laptop-only; no seeded personal token in a box.
         substrate: local
         note: >-
-          NOT ADMITTED. Licence permits (operator's own subscription) but no admission
-          measurement exists -- `[#627]` records a single `analysis` admission, which is a
-          different role. AX21-1 ranks it first here; the ranking is declared, not earned.
+          Admitted to roles.read by R11 (GO-E3.0, operator ruling 2026-10-31); laptop-only. Was NOT
+          ADMITTED: licence permits (operator's own subscription) but no admission
+          measurement existed -- `[#627]` records a single `analysis` admission, which is a
+          different role. AX21-1 ranks it first here.
           Entry point: `scripts/read_gate.py` only, which passes an absolute source path and
           `--add-dir <dir>` (agy 1.3.5 auto-denies an out-of-workspace read without one; CHALLENGE
           M2, R113 (a)); an ad-hoc `agy -p` without either is refused by
           `read_gate.agy_argv_refusal`. R104 (RATIFICATION-2026-10-14 v3, operator), carried by
           [#1536].
         admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
-      - provider: copilot-enterprise
-        note: "NOT ADMITTED and licence unknown -- the same two independent blocks as on implement."
-        admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-31"
+          evidence: to-cc/GO-E3.0.md R9/R11
       - provider: anthropic
         model: claude-haiku-5-5
         substrate: codespace
         note: >-
-          The live terminal fallback. BATCH-E2-0 v2 section 3 (2026-10-18): read-only fan-out in a
+          SECOND (R11, GO-E3.0, 2026-10-31). The live terminal fallback. BATCH-E2-0 v2 section 3
+          (2026-10-18): read-only fan-out in a
           box is Haiku 5.5, DECLARED here so it is not a substitution. Was claude-sonnet-5-5 (R104,
           [#1536]).
         admission:
@@ -918,6 +921,11 @@ roles:
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: copilot-enterprise
+        note: "NOT ADMITTED and licence unknown -- the same two independent blocks as on implement. THIRD (R11, GO-E3.0, 2026-10-31)."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
   verify:
     description: >-
       Confirm the work holds. AX21-1: "verify -> Sonnet + the lane's RED-first tests." The tests
@@ -967,6 +975,13 @@ roles:
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: xai
+        model: grok-4.7
+        requires_admission: true
+        note: "Quota backup for Copilot (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for red."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
   qa:
     description: >-
       Independent quality check of a lane's diff. Common rules section 7.5: a separate Copilot
@@ -974,7 +989,8 @@ roles:
     routing_table_role: null
     order:
       - provider: copilot-enterprise
-        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a separate Copilot session."
+        model: gpt-6-luna
+        note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a separate Copilot session. R11 (GO-E3.0, 2026-10-31): T1 writes and T2 runs in separate Copilot sessions on a non-Claude model, `gpt-6-luna`."
         admission:
           verdict: admitted
           decided_by: operator
@@ -988,6 +1004,13 @@ roles:
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: xai
+        model: grok-4.7
+        requires_admission: true
+        note: "Quota backup for Copilot (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for qa."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
   seat-orchestrator:
     description: >-
       The model the lane head seat itself runs on (R177/R178, operator): Sonnet 5.5. A seat, not a
@@ -1049,9 +1072,24 @@ roles:
     rerankable: false
     routing_table_role: null
     order:
+      - provider: openai
+        model: gpt-6-sol
+        note: "R11 (GO-E3.0, operator ruling 2026-10-31): Codex gpt-6-sol judges. Served UNVERIFIED (GO-E3.0 R9)."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-10-31"
+          evidence: to-cc/GO-E3.0.md R9/R11
+      - provider: xai
+        model: grok-4.7
+        requires_admission: true
+        note: "Quota backup for Codex (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for judge."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
       - provider: anthropic
         model: claude-opus-5-5
-        note: "Opus only, not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]."
+        note: "Opus only, not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. THIRD under R11 (GO-E3.0, 2026-10-31)."
         admission:
           verdict: admitted
           decided_by: operator

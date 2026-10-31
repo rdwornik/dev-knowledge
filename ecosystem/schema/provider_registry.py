@@ -965,21 +965,22 @@ class ProviderRegistry(_Contract):
         return self
 
     @model_validator(mode="after")
-    def _implement_is_copilot_first_and_claude_is_vendor_fail_only(self) -> "ProviderRegistry":
+    def _implement_first_entry_is_admitted_and_later_claude_is_vendor_fail_only(self) -> "ProviderRegistry":
         spec = self.roles.get("implement")
         if spec is None:
             return self
-        if spec.order[0].provider != "copilot-enterprise":
+        first = spec.order[0]
+        if first.admission is None or first.admission.verdict != "admitted":
             raise ValueError(
-                f"role `implement` order[0] is provider `{spec.order[0].provider}` — R177: the first "
-                f"implement entry must be `copilot-enterprise`; the others run only after a recorded "
-                f"VENDOR-FAIL"
+                f"role `implement` order[0] is provider `{first.provider}` without an `admitted` "
+                f"verdict — R11: the first implement entry must be admitted; the others run only "
+                f"after a recorded VENDOR-FAIL"
             )
         for i, entry in enumerate(spec.order):
-            if entry.provider == "anthropic" and not entry.vendor_fail_only:
+            if i > 0 and entry.provider == "anthropic" and not entry.vendor_fail_only:
                 raise ValueError(
                     f"role `implement` order[{i}] is anthropic without `vendor_fail_only: true` — "
-                    f"R177: a Claude implementer runs only after a recorded VENDOR-FAIL"
+                    f"R11: a later Claude implementer runs only after a recorded VENDOR-FAIL"
                 )
         return self
 

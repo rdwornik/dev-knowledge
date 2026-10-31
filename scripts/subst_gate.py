@@ -62,7 +62,8 @@ FIRST_BATCH = (2, 0)
 _BATCH_RE = re.compile(r"E([0-9]+)\.([0-9]+)")
 
 #: The lane head seat (R177/R178): the registry's `seat-orchestrator` role. The IMPLEMENTER is a different
-#: role (`implement`, Copilot first); the head row and the Dispatch line are judged against the seat.
+#: role (`implement`; R11: its first registry entry, Sonnet 5.5); the head row and the Dispatch line are
+#: judged against the seat.
 #: A lane named `orchestrator-<batch>-cycle-<n>` (e.g. `orchestrator-e2-1-cycle-4`) is the orchestrator
 #: successor seat and is judged against `DISPATCHER_ROLE` (`seat-dispatcher`, Opus, D9) instead; HEAD_ROLE
 #: stays the default for every other lane head. `head_role_for_lane` is the one function choosing.
@@ -70,7 +71,7 @@ HEAD_ROLE = "seat-orchestrator"
 DISPATCHER_ROLE = "seat-dispatcher"
 _ORCH_LANE_RE = re.compile(r"orchestrator-e[0-9]+-[0-9]+-cycle-[0-9]+")
 IMPLEMENT_ROLE = "implement"
-#: R177: a Claude `implement` row / MODELS line is legal only beside a recorded `VENDOR-FAIL: implement ...`.
+#: R11: an `implement` row / MODELS line naming a non-admitted or substituted entry is legal only beside a recorded `VENDOR-FAIL: implement ...`.
 _VENDOR_FAIL_IMPLEMENT = re.compile(r"VENDOR-FAIL:\s*(.*)$", re.IGNORECASE)
 _PLACEHOLDERS = frozenset({"none", "n/a", "na", "-", "tbd", "todo"})
 
@@ -206,31 +207,32 @@ def _cell_matches(cell: str, entry: dict, known_models: list[str]) -> bool:
     return alias in cell.lower() and not named
 
 
+def _row_names_entry(cell: str, entry: dict, known: list[str]) -> bool:
+    """The cell names this implement entry: the pinned model alone, or the provider alias leading the
+    cell with the pin inside it (`Copilot CLI claude-sonnet-5.5`)."""
+    if _cell_matches(cell, entry, known):
+        return True
+    prov = str(entry.get("provider", "")).split("-")[0].lower()
+    if not cell.lstrip(" \t*`_").lower().startswith(prov):
+        return False
+    return not entry.get("model") or entry["model"].lower() in cell.lower()
+
+
 def _implement_row_problems(lane: str, phase: str, cell: str, known: list[str], vendor_fail: bool,
                             registry_path) -> list[str]:
-    """A Where-table `implement` row: Copilot (the role's first entry), or a Claude/other registry
-    implement entry only beside a `VENDOR-FAIL: implement` line (R177)."""
+    """A Where-table `implement` row: the registry's FIRST implement entry (R11: the registry decides,
+    nothing is hard-coded); any later registry entry only beside a `VENDOR-FAIL: implement` line."""
     order = pr.role_order(IMPLEMENT_ROLE, registry_path)
     first = order[0]
-    if first.get("model"):
-        if _cell_matches(cell, first, known):
-            return []
-        # A Copilot-first row pinned to a model (K3, 2026-10-23): the cell leads with the provider and
-        # names the pin; it may also mention the declared Claude fallback (the unpinned branch below).
-        prov = str(first.get("provider", "")).split("-")[0].lower()
-        if (cell.lstrip(" 	*`_").lower().startswith(prov) and first["model"].lower() in cell.lower()):
-            return []
-    else:
-        alias = str(first.get("provider", "")).split("-")[0].lower()
-        if cell.lstrip(" \t*`_").lower().startswith(alias):
-            return []
-    if vendor_fail and any(_cell_matches(cell, e, known) for e in order[1:]):
+    if _row_names_entry(cell, first, known):
+        return []
+    if vendor_fail and any(_row_names_entry(cell, e, known) for e in order[1:]):
         return []
     why = ("" if not vendor_fail else " (a `VENDOR-FAIL: implement` line is present but the row names "
            "no later implement entry)")
     return [_refused(lane, IMPLEMENT_ROLE, cell, _entry_label(first),
                      f"phase {phase!r} (row: | {phase} | {cell} |){why}")
-            + " -- add `VENDOR-FAIL: implement <ref>` to the contract only after a recorded Copilot failure"]
+            + " -- add `VENDOR-FAIL: implement <ref>` to the contract only after a recorded failure of the admitted implementer"]
 
 
 def contract_problems(text: str, *, lane: str, batch: str = "", launch_model: str = "",
@@ -359,19 +361,28 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
         token = served.split()[0].lower()             # the served id is the first token; the rest is a note
         requested = req.group(1).strip().split("/")[0].strip().lower()
         if phase.lower().startswith("implement"):
-            # R177: implement is Copilot's (served by the gateway); anything else needs a genuine
+            # R11: the registry's admitted implement entries are judged by MODEL (requested names the
+            # entry's model and the CLI served it); anything else needs a genuine
             # `VENDOR-FAIL: implement <text>` on the line.
             copilot_arm = requested.startswith("copilot") or "copilot" in phase.lower()
-            if copilot_arm and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}:
+            req_parts = {p.strip().lower() for p in req.group(1).split("/")}
+            by_model = any(
+                pr.is_admitted(e) and not e.get("vendor_fail_only") and e.get("model")
+                and e["model"].lower() in req_parts and token == e["model"].lower()
+                and (e.get("provider") != "copilot-enterprise"
+                     or token in {s.lower() for s in COPILOT_GATEWAY_SERVED})
+                for e in pr.role_order(IMPLEMENT_ROLE))
+            if by_model or (copilot_arm and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}):
                 if fail:
                     subs.append(ln.strip())
             elif evidence:
                 subs.append(ln.strip())
             else:
                 problems.append(f"REFUSED [models-block]: phase {phase!r} (implement) was requested as "
-                                f"{req.group(1).strip()!r} and served {served!r}, not by the Copilot CLI, "
-                                f"and no `VENDOR-FAIL: implement <ref>` is on the line (R177: the registry "
-                                f"`implement` role is Copilot first)")
+                                f"{req.group(1).strip()!r} and served {served!r}, which is not an admitted "
+                                f"`implement` entry served as requested, and no "
+                                f"`VENDOR-FAIL: implement <ref>` is on the line (R11: the registry "
+                                f"`implement` role decides)")
             continue
         copilot_role = requested == "default" and bool(_COPILOT_PHASE.search(phase))
         if (requested.startswith("copilot") or token == requested

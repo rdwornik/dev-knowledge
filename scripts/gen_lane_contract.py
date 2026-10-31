@@ -992,8 +992,8 @@ def _roles_section() -> list[str]:
     out += [f"| {p} | {m} | {w} |" for p, m, w in rows]
     out.append(
         "\nThe table is rendered from `ecosystem/provider-registry.yaml` (roles `implement`, "
-        "`seat-orchestrator`, `red`, `review`, `verify`). Claude implements only after a recorded "
-        "VENDOR-FAIL of the Copilot CLI (R177); the pre-launch gate judges the `implement` and "
+        "`seat-orchestrator`, `red`, `review`, `verify`). The `implement` row reads the registry's first "
+        "`implement` entry (R11); the pre-launch gate judges the `implement` and "
         "`lane head` rows.\n")
     return out
 

@@ -44,11 +44,10 @@ def test_fixture_hash_pinned(name):
 
 @pytest.mark.parametrize("name", ["e2-rows-t5", "e2-rows-r5"])
 def test_real_rows_blocks_are_clean(name):
-    # These real rows predate R177 (Sonnet implemented); the only refusal left is that implement line.
+    # These real rows predate R177 (Sonnet implemented); under R11 the Sonnet implement line is admitted again.
     text = (FIXTURES / f"{name}.txt").read_text(encoding="utf-8")
     problems, subs = sg.check_models_block(text)
-    assert subs == [] and len(problems) == 1
-    assert "implement" in problems[0] and "R177" in problems[0]
+    assert subs == [] and problems == []
 
 
 def test_hotspot_codex_self_description_is_one_problem():
@@ -56,7 +55,7 @@ def test_hotspot_codex_self_description_is_one_problem():
     problems, _ = sg.check_models_block(text)
     codex = [p for p in problems if "review codex" in p]
     assert len(codex) == 1 and "gpt-5" in codex[0]
-    assert len(problems) == 2 and any("R177" in p for p in problems)   # the pre-R177 Sonnet implement line
+    assert len(problems) == 1   # the Sonnet implement line is admitted under R11
     fixed = text.replace("served=gpt-5 (as the CLI reported)", "served=gpt-5.6-terra (banner)")
     assert fixed != text
     assert not any("review codex" in p for p in sg.check_models_block(fixed)[0])
