@@ -592,3 +592,17 @@ def test_add_disallowed_advisor_merges_into_an_existing_disallowed_tools_flag(ar
 def test_contract_phases_rejects_an_unhashable_phase_id_as_a_contract_error():
     with pytest.raises(_conductor().ContractPhasesError):
         _conductor().contract_phases(_phases_text({**_FULL_ROW, "id": ["P1"]}))
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (["claude", "-p", "--disallowedTools"],
+     ["claude", "--disallowedTools=AskUserQuestion,advisor", "-p"]),
+    (["claude", "--disallowedTools", "--model", "x", "-p"],
+     ["claude", "--disallowedTools=AskUserQuestion,advisor", "--model", "x", "-p"]),
+])
+def test_add_disallowed_advisor_does_not_consume_an_option_as_a_bare_flags_value(argv, expected):
+    """Terra review finding: a valueless bare flag stayed in argv (two flags), or ate the next option."""
+    c = _conductor()
+    out = c.add_disallowed_advisor([{"id": "P1", "command": list(argv)}])[0]["command"]
+    assert out == expected
+    assert len([t for t in out if t.startswith("--disallow")]) == 1
