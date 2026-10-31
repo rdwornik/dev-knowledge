@@ -1069,18 +1069,22 @@ def _lane_main(args, root: Path) -> int:
     if args.lane and args.round is not None:
         run_harness = Path(args.harness) if args.harness else None
         label = str(harness)
+        receipts = Path(args.receipts) if args.receipts else None
         if args.contract:
-            rbase = (Path(args.receipts) if args.receipts else Path(os.environ["HARNESS_RECEIPTS_DIR"])
-                     if os.environ.get("HARNESS_RECEIPTS_DIR") else root / "logs" / "receipts")
+            # the doit child runs from the repo root: hand it absolute paths, never caller-relative ones
+            rbase = (receipts or (Path(os.environ["HARNESS_RECEIPTS_DIR"])
+                                  if os.environ.get("HARNESS_RECEIPTS_DIR") else root / "logs" / "receipts")).resolve()
+            receipts = rbase
             out = rbase / f"LANE-{args.lane}" / f"r{args.round}" / "harness.contract.yaml"
             try:
                 run_harness, label = render_contract_harness(Path(args.contract), harness, out)
             except (ContractPhasesError, OSError) as exc:
                 print(f"conductor lane: REFUSED -- {exc}")
                 return 1
+            run_harness = run_harness.resolve()
         print(f"harness source: {label}")
         res = run_round(args.lane, args.round, repo_root=root, harness=run_harness,
-                        receipts=Path(args.receipts) if args.receipts else None, row=args.row or "")
+                        receipts=receipts, row=args.row or "")
         print(f"conductor lane {args.lane} r{args.round}: {res.verdict}"
               + (f" at {res.halted_at}" if res.halted_at else ""))
         for pid, status in res.phases:
