@@ -3544,6 +3544,18 @@
       "file": "1745-strengthen-the-43-no-outcome-test-nodes.md"
     },
     {
+      "task": 1747,
+      "file": "1747-ci-verdict-reads-the-retired-suite-gate-block.md"
+    },
+    {
+      "task": 1748,
+      "file": "1748-the-view-decide-first-then-build.md"
+    },
+    {
+      "task": 1749,
+      "file": "1749-the-backlog-per-row-reconciliation-organ.md"
+    },
+    {
       "prose": ""
     },
     {
