@@ -155,3 +155,103 @@ def test_c6618_registry_contains_the_six_regression_ids():
 
     registry = json.loads(result.stdout)
     assert set(_C6618_REGRESSIONS) <= set(registry["members"])
+
+
+def _init_ci_verdict_registry_repo(repo_root: Path, *, with_registry: bool = True) -> str:
+    from scripts import known_reds
+
+    subprocess.run(["git", "init", "--quiet"], cwd=repo_root, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_root, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.invalid"], cwd=repo_root, check=True)
+    if with_registry:
+        owned = {
+            "attribution": "pre-freeze",
+            "task": "[#9001]",
+            "owner": "rob",
+            "expiry": "2099-01-01",
+        }
+        unattributed = {
+            "attribution": "unattributed",
+            "task": "[#9002]",
+            "owner": "rob",
+            "expiry": "2099-01-01",
+        }
+        registry = known_reds.Registry(
+            schema=known_reds.SCHEMA,
+            baseline_id="fixture",
+            measured_at_sha="fixture",
+            measured_via="local",
+            workers=4,
+            members={
+                "tests/test_shared.py::test_shared": owned,
+                "tests/test_unattributed.py::test_unattributed": unattributed,
+            },
+            members_by_os={
+                "ubuntu-latest": {"tests/test_ubuntu.py::test_ubuntu": owned},
+                "windows-latest": {"tests/test_windows.py::test_windows": owned},
+            },
+        )
+        known_reds.write_registry(repo_root / "logs" / "KNOWN-REDS-REGISTRY.json", registry)
+    else:
+        (repo_root / "README.txt").write_text("fixture\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo_root, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "fixture"], cwd=repo_root, check=True)
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+
+def test_registry_known_ids_reads_shared_and_only_the_requested_os_bucket(tmp_path: Path):
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    sha = _init_ci_verdict_registry_repo(repo_root)
+
+    ubuntu_ids = cv._registry_known_ids(sha, repo_root=repo_root, os_key="ubuntu-latest")
+    windows_ids = cv._registry_known_ids(sha, repo_root=repo_root, os_key="windows-latest")
+    shared_ids = cv._registry_known_ids(sha, repo_root=repo_root, os_key=None)
+
+    assert ubuntu_ids == frozenset({
+        "tests/test_shared.py::test_shared",
+        "tests/test_ubuntu.py::test_ubuntu",
+    })
+    assert windows_ids == frozenset({
+        "tests/test_shared.py::test_shared",
+        "tests/test_windows.py::test_windows",
+    })
+    assert shared_ids == frozenset({"tests/test_shared.py::test_shared"})
+
+
+def test_registry_known_ids_raises_when_registry_is_missing_at_sha(tmp_path: Path):
+    from scripts import known_reds
+
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    sha = _init_ci_verdict_registry_repo(repo_root, with_registry=False)
+
+    with pytest.raises(known_reds.KnownRedsError):
+        cv._registry_known_ids(sha, repo_root=repo_root, os_key="ubuntu-latest")
+
+
+def test_resolve_known_ids_fn_uses_default_only_without_injected_ci_fetch_seams():
+    def explicit(*_args, **_kwargs):
+        return frozenset()
+
+    assert cv._resolve_known_ids_fn(None, {}) is cv._registry_known_ids
+    assert cv._resolve_known_ids_fn(None, {"log_fn": object()}) is None
+    assert cv._resolve_known_ids_fn(explicit, {}) is explicit
+
+
+def test_live_registry_known_ids_contains_c6618_regressions():
+    repo_root = Path(__file__).resolve().parents[1]
+    available = subprocess.run(
+        ["git", "cat-file", "-e", f"{_C6618_REGISTRY_SHA}:logs/KNOWN-REDS-REGISTRY.json"],
+        cwd=repo_root,
+        capture_output=True,
+        check=False,
+    )
+    if available.returncode:
+        pytest.skip(f"commit {_C6618_REGISTRY_SHA} is unavailable")
+
+    assert set(_C6618_REGRESSIONS) <= cv._registry_known_ids(
+        _C6618_REGISTRY_SHA, repo_root=repo_root, os_key="ubuntu-latest")
