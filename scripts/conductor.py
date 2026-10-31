@@ -1022,8 +1022,10 @@ def _merge_disallowed(argv: list[str]) -> list[str]:
     while i < len(argv):
         tok = argv[i]
         value = None
-        if tok in _DISALLOW_FLAGS and i + 1 < len(argv):
-            value, i = argv[i + 1], i + 1
+        if tok in _DISALLOW_FLAGS:
+            value = ""
+            if i + 1 < len(argv) and not argv[i + 1].startswith("-"):
+                value, i = argv[i + 1], i + 1
         else:
             for flag in _DISALLOW_FLAGS:
                 if tok.startswith(flag + "="):
