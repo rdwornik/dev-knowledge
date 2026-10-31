@@ -85,21 +85,24 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q4: scripts/system_map.py builds the whole tree through one entry function, build_map, with no partial leg {probe: scripts/system_map.py:381}
 - Q4: render_html turns the in-memory dict into server-side markup and the page's only script is the inline _JS block {probe: scripts/system_map.py:558}
 - Q4: write_outputs writes the JSON, the HTML and the tracked record {probe: scripts/system_map.py:718}
-- Q4: scripts/system_map.py imports click and yaml at module level, so a view subcommand pays that import cost; its size is unmeasured {probe: grep -c 'import click' scripts/system_map.py}
+- Q4: scripts/system_map.py imports click at module level, so a view subcommand pays that import cost; the cost itself is unmeasured {probe: grep -c 'import click' scripts/system_map.py}
+- Q4: scripts/system_map.py is long: its CLI group sits past line 760 {probe: scripts/system_map.py:761}
 - Q3: the system-map JSON and HTML are gitignored by two explicit lines naming those two files {probe: git check-ignore ecosystem/system-map.json}
 - Q3: the ignore lines are explicit file names, at .gitignore:201 and .gitignore:202 {probe: .gitignore:201}
 - Q3: a new output name is not ignored until it has its own line; the producer's git check-ignore of a view file name exited 1 {unverified}
 - Q3: the record file ecosystem/system-map-record.json is tracked and survives a fresh clone {probe: ecosystem/system-map-record.json:1}
 - Q4: tests/test_system_map.py pins byte-identical JSON for the same tree and has no byte-identity test for the HTML {probe: tests/test_system_map.py:81}
 - Q4: scripts/gen_dashboard.py has a byte-determinism test for its generator {probe: grep -c 'test_build_is_deterministic_and_regeneration_is_idempotent' tests/test_gen_dashboard.py}
+- Q4: that determinism test is at line 558 of tests/test_gen_dashboard.py {probe: tests/test_gen_dashboard.py:558}
 - Q4: the /map command names scripts/system_map.py; the producer's repo-wide git grep finds the name only in that command, the harness fates entry, two test files and a ruling document {probe: grep -c 'system_map' .claude/commands/map.md}
 - Q4: ecosystem/harness.yaml records scripts/system_map.py in a fates entry called by the /map command, not by a moment {probe: grep -c 'scripts/system_map.py, called_by' ecosystem/harness.yaml}
+- Q4: that fates entry is at line 170 of ecosystem/harness.yaml {probe: ecosystem/harness.yaml:170}
 - Q4: ecosystem/harness.yaml declares a batch-close moment a generator could be wired to {probe: ecosystem/harness.yaml:86}
 - Q4: a batch-close step can be declared optional and non-blocking: the ci_red_age step carries continue_on_failure true {probe: grep -c 'continue_on_failure: true' ecosystem/harness.yaml}
 - Q4: the fates entry for the map says wiring it to a moment is a routing decision the operator owns {probe: grep -c 'routing decision the operator owns' ecosystem/harness.yaml}
 - Q3: no existing page carries a Subresource Integrity attribute; the subagent's count of integrity= in system_map.py, gen_dashboard.py and conformance.html is 0 {unverified}
 - Q3: the repo serves no directory over HTTP; the subagent's search for http.server found nothing {unverified}
-- Q3: ecosystem/conformance.html is a committed generated artifact that the repo itself records can go stale {probe: .gitignore:88}
+- Q3: the repo's own comment calls ecosystem/conformance.html a COMMITTED generated artifact that can go stale {probe: grep -c 'COMMITTED generated artifact' .gitignore}
 - Q2: PhaseReceipt is a pydantic model with a generated JSON schema, written per checkout under a gitignored receipts directory {probe: ecosystem/schema/phase_receipt.py:162}
 - Q2: receipts under logs/receipts are gitignored {probe: git check-ignore logs/receipts/LANE-x/r1/P1.json}
 - Q2: the launch receipt path is built by _receipt_path in scripts/dispatch.py {probe: scripts/dispatch.py:812}
@@ -128,19 +131,19 @@ Weights: coverage=20 purity=20 footprint=15 reuse=15 liveness=15 testability=15
 |---|---|---|---|---|---|---|---|
 | V0 on-demand map only | 1 | 3 | 4[^1] | 3 | 1 | 3 | 2.45 |
 | V1 extend the map organ with a view subcommand | 3 | 3 | 4[^1] | 4[^2] | 3 | 3 | 3.30 |
-| V2 new stdlib generator, own command | 3 | 3 | 4[^1] | 3 | 3 | 3 | 3.15 |
+| V2 new stdlib generator, own command | 3 | 3 | 3 | 3 | 3 | 3 | 3.00 |
 | V3 Jinja2 templates | 3 | 3 | 2 | 2 | 3 | 3 | 2.70 |
 | V4 MDX or JS build | 3 | 1 | 1 | 1 | 3 | 2 | 1.85 |
 | V5 extend gen_dashboard.py, committed page | 2 | 3 | 4[^1] | 3 | 1 | 4[^3] | 2.80 |
 | V6 extend gen_dashboard.py, gitignored output | 2 | 3 | 4[^1] | 3 | 3 | 4[^3] | 3.10 |
 
-[^1]: measured -- the stdlib html module already builds both repo pages (scripts/system_map.py:67 and scripts/gen_dashboard.py:60), and the producer's own count of a locked templating library in uv.lock (name = "jinja2") is 0
+[^1]: measured -- the stdlib html module already builds both repo pages (scripts/system_map.py:67 and scripts/gen_dashboard.py:60); this lifts footprint only for an option that extends one of those two organs or changes nothing, so the new organ of V2 gets no 4 from it
 [^2]: measured -- scripts/system_map.py:718 is a working writer with its own tests, and ecosystem/harness.yaml:170 already records it as a fated organ
 [^3]: measured -- tests/test_gen_dashboard.py:558 is a byte-determinism test of the generator V5 and V6 would extend; it measures that generator only, so it lifts no other option
 
 Reading the matrix:
-- The first draft of this matrix put V2 first at 3.50. The two evaluators showed why that was wrong (findings S1, G1, S2, S3, G2): two of V2's 4s were measured on another generator, and V2's liveness edge assumed a V1 fast leg must call the whole-tree build_map, which is not so, because a view subcommand can read the map JSON when present exactly as a sibling would. With both corrections V1 leads.
-- V1 leads V2 by 0.15 and V6 by 0.20. That margin is inside judgment noise. What separates V1 is its reuse score, the one differing 4 that is measured: a working writer, its tests and a fates entry, and no new organ to wire. The operator-side digest reached the same direction (extend the map organ, section A2).
+- The first draft of this matrix put V2 first at 3.50. The two evaluators showed why that was wrong (findings S1, G1, S2, S3, G2): two of V2's 4s were measured on another generator, and V2's liveness edge assumed a V1 fast leg must call the whole-tree build_map, which is not so, because a view subcommand can read the map JSON when present exactly as a sibling would. With both corrections V1 leads. A later review found a third error, V2's footprint 4, which broke the rule that a precedent measured on another organ lifts no unbuilt option: a new organ is more to wire and gate, so V2's footprint is 3 and its total 3.00.
+- V1 leads V6 by 0.20 and V2 by 0.30. Those margins are small. What separates V1 is its reuse score, the one differing 4 that is measured: a working writer, its tests and a fates entry, and no new organ to wire. The operator-side digest reached the same direction (extend the map organ, section A2).
 - V6 is the strongest rival to V1 that the first draft did not score (finding G9). It loses on coverage: the gen_dashboard generator is a conformance report and holds no graph or process model.
 - V0 is the baseline, not a candidate: it shows the graph and nothing about runs or state.
 - V3 and V4 lose on footprint and reuse, the two criteria ADR-106 and the library-first rule make binding.
@@ -151,15 +154,15 @@ Reading the matrix:
 
 Assume the view was built as V1 and failed six months later. The likely causes, and what the design must carry against each:
 1. The page looks empty in CI. Receipts are per-checkout and gitignored, so a scheduled run on a fresh clone sees none. A blank tile reads as zero activity. Against: every tile carries a state (OK, STALE, ABSENT, UNREADABLE, NOT COMPUTED with a reason), the conductor metrics shape.
-2. The no-prose rule decays. A string-length rule on the generator is gamed by splitting strings, and a label table is a second input a sentence can enter. Against: test the rendered output (text nodes and attributes), bound each label-table entry in length and the table in size, and pin the page's script by hash so a change to it is deliberate.
+2. The no-prose rule decays. A string-length rule on the generator is gamed by splitting strings, and a label table is a second input a sentence can enter. Against: test the rendered output (text nodes and attributes), bound each label-table entry in length and the table in size, pin the page's script by hash, and test that the script holds no string literal beyond data keys and a fixed list of selectors, so it cannot carry text.
 3. A writer changes shape and the tile silently breaks. System-map JSON and launch receipts have no JSON schema (claims above); only the phase receipt does. Against: typed readers per source that fail to UNREADABLE only on a required field, with optional fields tolerated, plus a fixture test per reader.
-4. The view couples into the map organ. The map file is large and its JSON is pinned by a byte-identity test. Against: view code lives in a sibling module the map CLI calls, the existing byte-identity test must stay green untouched, and the flip-condition names V2.
-5. The fast leg is slow to start. The map module imports click, yaml and two repo modules at load (claims above); that cost is unmeasured. Against: the build lane measures cold start of the view subcommand before the fast leg is wired to anything.
+4. The view couples into the map organ. The map file is long (claims above) and its JSON is pinned by a byte-identity test. Against: view code lives in a sibling module the map CLI calls, the existing byte-identity test must stay green untouched, and the flip-condition names V2.
+5. The fast leg is slow to start. The map module imports click at module level (claims above); the import cost is unmeasured. Against: the build lane measures cold start of the view subcommand before the fast leg is wired to anything.
 6. The two delivery modes drift or the embedded data breaks the page. Live (fetch) and frozen (embedded snapshot) are two code paths, and unescaped data in a script tag or a read during a write can corrupt the page. Against: one serialised data object consumed by both, a less-than sign escaped in the embedded copy, an atomic write of the data file, and a test that parses both and compares.
 7. The ledger or an operator-named source is missing on a clean clone. The ledger markdown is written outside the repo; the quota report, the health output and the verdict ledger were never researched. Against: each such source is read by its own typed reader and shows ABSENT or NOT COMPUTED with a reason; the build lane researches a source's shape before its tile exists.
 8. The batch-close wiring blocks a close. Against: the moment step is declared optional and continue_on_failure, as the ci_red_age step is, and the wiring is the operator's routing decision, not part of the build.
 9. The design leans on a runner or an event log that does not exist. The conductor runner is a later lane and ADR-121 is Proposed. Against: until the runner exists the fast leg is run by hand or at batch close; the design reads only files that exist today.
-10. The renderer dependency creeps in. A CDN script is the first Subresource Integrity use in the repo. Against: the library, its version and its hash are data in one place, and the text fallback is always present.
+10. The renderer dependency creeps in. A CDN script would be the first Subresource Integrity use in the repo, on the subagent's unverified count of zero. Against: the library, its version and its hash are data in one place, and the text fallback is always present.
 11. Receipts from other checkouts never reach the page. Against: the page names the checkout it was built from on every receipt tile; reading sibling worktrees is a build-lane measurement and an operator choice.
 
 ## Evaluator findings and responses
@@ -168,23 +171,23 @@ Evaluators: codex gpt-6-sol (to-browser/EVAL-VIEW-E30-sol-2026-10-31.md, ids S1 
 
 | id | objection (short) | response |
 |---|---|---|
-| S1 | V2 purity and testability 4s measure a different generator | **Accepted** -- both capped at 3 and footnote 3 now says it lifts no other option; this moved V2 from 3.50 to 3.15 |
+| S1 | V2 purity and testability 4s measure a different generator | **Accepted** -- both capped at 3 and footnote 3 now says it lifts no other option; this moved V2 from 3.50 to 3.15, and a later review's footprint correction brought it to 3.00 |
 | S2 | V1 liveness 2 against V2 3 has no evidence | **Accepted** -- V1 liveness is now 3; a view subcommand reads the map JSON as a sibling would |
 | S3 | ADR says V1 fast leg cannot afford the whole-tree build, audit shows only no partial leg | **Accepted** -- the claim is withdrawn; the fast leg never calls the whole-tree build in either option |
 | S4 | ledger source for the scheduled tracked-only run is not established | **Accepted** -- the scheduled run reads the map record and the merge receipts only; the ledger is a local-leg source read through collect() and is ABSENT where it cannot be computed |
 | S5 | the fast-leg trigger depends on a runner that does not exist | **Accepted** -- the ADR now says the fast leg is run by hand or at batch close until the runner exists |
 | S6 | receipts are per checkout, the page claims to be current | **Accepted** -- every receipt tile names its checkout; reading sibling worktrees is left to the build lane and the operator |
-| S7 | the text-node test misses script-written text, attributes and Mermaid source | **Accepted** -- the test covers text nodes and attributes, the page script is pinned by hash, Mermaid source is data shown as pre-formatted text |
+| S7 | the text-node test misses script-written text, attributes and Mermaid source | **Accepted** -- the test covers text nodes and attributes, the page script is pinned by hash and tested to hold no string literal beyond data keys and a fixed selector list (a review's finding), Mermaid source is data shown as pre-formatted text |
 | S8 | no safe embedding or write protocol for the snapshot | **Accepted** -- less-than sign escaped in the embedded copy, atomic write of the data file, parse failure keeps the snapshot |
-| G1 | the cap is broken to crown V2, margin disappears when capped | **Accepted** -- same correction as S1; V2 3.15 ties the old V1 score and the leader changes to V1 at 3.30 |
+| G1 | the cap is broken to crown V2, margin disappears when capped | **Accepted** -- same correction as S1; capped V2 fell to 3.15, then to 3.00 after the footprint correction, and the leader changes to V1 at 3.30 |
 | G2 | the stated reason for the margin is incomplete | **Accepted** -- the first draft's reading is replaced; the margin and its sources are stated per criterion |
 | G3 | V1 is rejected for coupling while V2 couples via the map build; the only-caller claim is one file | **Accepted** -- the coupling argument is dropped from the ADR as a reason against V1; the claim is reworded to what the producer's repo-wide git grep found and one probe cannot prove |
 | G4 | full leg at batch close can block the lane beside the line | **Accepted** -- the step is optional and continue_on_failure like ci_red_age, and wiring it is the operator's routing decision |
 | G5 | the ledger has three incompatible stories | **Accepted** -- resolved as in S4: collect() in the local leg, absent from the tracked-only scheduled run |
 | G6 | operator-named state sources dropped | **Accepted** -- quota report, health output and verdict ledger are named sources in the ADR; none was researched, so each gets a reader that shows ABSENT or NOT COMPUTED until its shape is measured, and this audit says so |
-| G7 | label table is an unbounded second input and script text escapes the test | **Accepted** -- label entries bounded in length, table bounded in size, script pinned by hash, attributes covered |
+| G7 | label table is an unbounded second input and script text escapes the test | **Accepted** -- label entries bounded in length, table bounded in size, script pinned by hash and tested for string literals, attributes covered, and the label table is part of the data embedded in view.json so rendering stays a function of it |
 | G8 | the new output names may not be ignored | **Accepted** -- the ignore lines are explicit file names (.gitignore:201), so the ADR requires a new ignore line for each output and a test that git check-ignore holds for both |
-| G9 | V5 mis-stated and double-penalised, gitignored rival missing | **Accepted** -- V6 added and scored (3.10); the double-penalty reading is not accepted for V5, since staleness and no live mode are different defects, but V5's text now says which is which |
+| G9 | V5 mis-stated and double-penalised, gitignored rival missing | **Accepted** -- V6 added and scored (3.10); the double-penalty reading is not accepted: V5's liveness 1 scores the missing live mode of a committed page, and staleness is the separate reason the Alternatives section gives, backed by the repo's own comment (a grep probe in the claims) |
 | G10 | D6 overrides the operator's Mermaid recommendation | **Accepted** -- D6 now adopts the operator's recommendation (pinned CDN build with an integrity hash, text fallback always present) and leaves its confirmation as an operator item |
-| G11 | STALE undefined and a clock would break byte-identity; a missing optional field could mark a receipt UNREADABLE | **Accepted** -- states are computed at assembly from each source's own timestamp and stored in the data, so rendering stays a pure function; only a missing required field is UNREADABLE |
-| G12 | footprint measurement is weaker than the ADR states and two cited lines are unprobed | **Accepted** -- footnote 1 now says exactly what was measured, the two import lines carry their own path-line probes, and the absence counts stay marked unverified |
+| G11 | STALE undefined and a clock would break byte-identity; a missing optional field could mark a receipt UNREADABLE | **Accepted** -- states are computed at assembly from each source's own timestamp and stored in the data, so rendering stays a pure function; only a missing required field is UNREADABLE; STALE means assembly time minus the source's own timestamp exceeds that source's maximum age, a bounded entry in the same data table (a review found the first answer left STALE undefined) |
+| G12 | footprint measurement is weaker than the ADR states and two cited lines are unprobed | **Accepted** -- footnote 1 now rests only on the two import-line probes and no longer cites the unverified uv.lock count, which stays marked unverified; a review found the first answer still quoted it |
