@@ -138,7 +138,7 @@ def served_model_from_record(cli: Optional[str], record: Optional[dict]) -> Opti
     """The model the CLI itself says served the run, or None when its record does not say."""
     if not cli or not isinstance(record, dict):
         return None
-    if cli == "claude":
+    if cli in ("claude", "grok") and isinstance(record.get("modelUsage"), dict) and record["modelUsage"]:
         usage = record.get("modelUsage")
         if not isinstance(usage, dict) or not usage:
             return None

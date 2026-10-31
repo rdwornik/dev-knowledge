@@ -735,3 +735,18 @@ def test_phase_task_records_copilot_served_model(tmp_path, monkeypatch):
     data = json.loads(Path(task["targets"][0]).read_text(encoding="utf-8"))
     assert data["model_requested"] == requested
     assert data["served_model"] == data["model_reported"] == "gpt-6-luna"
+
+
+def test_unattested_copilot_receipt_carries_an_unattested_reason():
+    record = {"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-5.3-codex": {}}}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested_reason"].startswith("UNATTESTED")
+    assert "gpt-6-luna" in receipt.usage["served_unattested_reason"]
+
+
+def test_grok_served_model_is_the_model_usage_key():
+    receipt = _build(["grok", "-p"], _phase_run(), {"modelUsage": {"grok-4.7": {}}})
+
+    assert receipt.served_model == receipt.model_reported == "grok-4.7"
