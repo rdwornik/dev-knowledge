@@ -395,6 +395,22 @@ def test_served_model_from_record_per_cli():
     assert pr.served_model_from_record("codex", {}) is None
 
 
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}}, "gpt-6-luna"),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}}, "gpt-6-luna"),
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-5.3-codex": {}}}, None),
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {}}, None),
+        ({"currentModel": "gpt-6-luna"}, "gpt-6-luna"),
+    ],
+)
+def test_copilot_served_model_requires_model_metrics_attestation(record, expected):
+    """Metrics contradict an unlisted currentModel; records without metrics remain legacy."""
+    assert _pr().served_model_from_record("copilot", record) == expected
+
+
 def _phase_run(status="ok", payload=None, sha=None):
     rp = _rp()
     return rp.PhaseRun(status=status, exit_code=0, killed=False, targeted=(), survivors=(),
@@ -418,6 +434,42 @@ def test_build_receipt_derives_vendor_and_served_model_from_argv_and_record():
     assert receipt.served_model == "claude-big" and receipt.model_reported == "claude-big"
     local = _build(["mytool.exe", "--x"], _phase_run(), None)
     assert local.vendor == "local" and local.served_model is None
+
+
+@pytest.mark.parametrize(
+    ("record", "expected_served", "expected_keys", "multi_model", "unattested"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}},
+         "gpt-6-luna", ["gpt-6-luna"], False, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}},
+         "gpt-6-luna", ["gpt-5.3-codex", "gpt-6-luna"], True, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"claude-haiku-5-5": {}, "gpt-5.3-codex": {}}},
+         None, ["claude-haiku-5-5", "gpt-5.3-codex"], True, True),
+    ],
+)
+def test_build_copilot_receipt_preserves_model_metrics_evidence(
+    record, expected_served, expected_keys, multi_model, unattested
+):
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model == receipt.model_reported == expected_served
+    assert receipt.usage["model_metrics_keys"] == expected_keys
+    assert receipt.usage["multi_model"] is multi_model
+    assert receipt.usage["served_unattested"] is unattested
+
+
+def test_build_copilot_receipt_without_metrics_keeps_legacy_served_model():
+    receipt = _build(["copilot", "-p"], _phase_run(), {"currentModel": "gpt-6-luna"})
+
+    assert receipt.served_model == "gpt-6-luna"
+
+
+def test_build_non_copilot_receipt_keeps_usage_none():
+    receipt = _build(["codex", "exec"], _phase_run(), {"model": "gpt-5"})
+
+    assert receipt.usage is None
 
 
 def test_build_receipt_revalidates_payload_and_computes_sha():
@@ -517,6 +569,7 @@ def _fake_cli_bin(tmp_path: Path, monkeypatch) -> Path:
     helper.write_text(
         """\
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -528,7 +581,9 @@ else:
     if "--usage-output-file" in args:
         usage_path = Path(args[args.index("--usage-output-file") + 1])
         usage_path.parent.mkdir(parents=True, exist_ok=True)
-        usage_path.write_text(json.dumps({"currentModel": "gpt-6-luna"}), encoding="utf-8")
+        record = json.loads(os.environ.get(
+            "FAKE_COPILOT_USAGE_RECORD", '{"currentModel": "gpt-6-luna"}'))
+        usage_path.write_text(json.dumps(record), encoding="utf-8")
     print("ok")
 """,
         encoding="utf-8",
@@ -610,6 +665,41 @@ def test_cli_run_reads_copilot_usage_record_and_defaults_stderr_path(tmp_path, m
     assert data["model_requested"] == requested
     assert data["served_model"] == data["model_reported"] == "gpt-6-luna"
     assert Path(str(stdout) + ".stderr").is_file()
+
+
+@pytest.mark.parametrize(
+    ("record", "expected_served", "expected_keys", "multi_model", "unattested"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}},
+         "gpt-6-luna", ["gpt-6-luna"], False, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}},
+         "gpt-6-luna", ["gpt-5.3-codex", "gpt-6-luna"], True, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"claude-haiku-5-5": {}, "gpt-5.3-codex": {}}},
+         None, ["claude-haiku-5-5", "gpt-5.3-codex"], True, True),
+    ],
+)
+def test_cli_run_copilot_receipt_preserves_model_metrics_evidence(
+    tmp_path, monkeypatch, record, expected_served, expected_keys, multi_model, unattested
+):
+    _fake_cli_bin(tmp_path, monkeypatch)
+    monkeypatch.setenv("FAKE_COPILOT_USAGE_RECORD", json.dumps(record))
+    rp = _rp()
+    usage = tmp_path / "copilot.usage.json"
+    receipt = tmp_path / "copilot.receipt.json"
+
+    result = rp.main([
+        "run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10",
+        "--", "copilot", "-p", "--usage-output-file", str(usage),
+    ])
+
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert result == 0
+    assert data["served_model"] == data["model_reported"] == expected_served
+    assert data["usage"]["model_metrics_keys"] == expected_keys
+    assert data["usage"]["multi_model"] is multi_model
+    assert data["usage"]["served_unattested"] is unattested
 
 
 def test_harness_copilot_phases_declare_round_usage_files():
