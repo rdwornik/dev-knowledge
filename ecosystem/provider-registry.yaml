@@ -1089,7 +1089,7 @@ roles:
           floors: ["AX22-1"]
       - provider: anthropic
         model: claude-opus-5-5
-        note: "Opus only, not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. THIRD under R11 (GO-E3.0, 2026-10-31)."
+        note: "Not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. THIRD under R11 (GO-E3.0, 2026-10-31); was the only judge entry before it."
         admission:
           verdict: admitted
           decided_by: operator

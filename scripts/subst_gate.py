@@ -372,7 +372,15 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
                 and (e.get("provider") != "copilot-enterprise"
                      or token in {s.lower() for s in COPILOT_GATEWAY_SERVED})
                 for e in pr.role_order(IMPLEMENT_ROLE))
-            if by_model or (copilot_arm and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}):
+            # The Copilot arm (the CLI at its default) names no model of its own; any other model it
+            # names must be an admitted Copilot implement entry (judge, 2026-10-31).
+            copilot_models = {e["model"].lower() for e in pr.role_order(IMPLEMENT_ROLE)
+                              if e.get("provider") == "copilot-enterprise" and pr.is_admitted(e)
+                              and e.get("model")}
+            copilot_names = all(p.startswith("copilot") or p in ("", "default") or p in copilot_models
+                                for p in req_parts)
+            if by_model or (copilot_arm and copilot_names
+                            and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}):
                 if fail:
                     subs.append(ln.strip())
             elif evidence:
