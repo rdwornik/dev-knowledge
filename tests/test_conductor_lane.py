@@ -522,3 +522,31 @@ def test_lane_cli_falls_back_to_the_requested_harness_when_contract_has_no_phase
     round_dir = receipts / f"LANE-{lane}" / "r1"
     assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3", "P7"))
     assert (markers / "count.txt").is_file()
+
+
+_FULL_ROW = {"id": "P1", "name": "spec", "row_phase": "build", "role": "plan", "cli": "uv", "model": None,
+             "payload_model": "PhasePayload", "gate": "exit", "timeout_s": 60, "budget_usd": 0,
+             "max_rounds": 2, "inputs": [], "command": ["uv", "run"]}
+
+
+def _phases_text(row: dict) -> str:
+    return "## Phases\n\n```yaml\n" + yaml.safe_dump({"phases": [row]}) + "```\n"
+
+
+def test_contract_phases_accepts_a_row_with_the_full_harness_schema():
+    assert _conductor().contract_phases(_phases_text(_FULL_ROW)) == [_FULL_ROW]
+
+
+@pytest.mark.parametrize("key", ["model", "payload_model", "budget_usd", "max_rounds", "inputs"])
+def test_contract_phases_rejects_a_row_missing_a_harness_schema_key(key):
+    row = {k: v for k, v in _FULL_ROW.items() if k != key}
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text(row))
+
+
+@pytest.mark.parametrize("field, value", [("inputs", "not-a-list"), ("max_rounds", 0),
+                                          ("max_rounds", "2"), ("budget_usd", -1),
+                                          ("budget_usd", "free"), ("payload_model", 3)])
+def test_contract_phases_rejects_a_wrongly_typed_harness_schema_value(field, value):
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text({**_FULL_ROW, field: value}))
