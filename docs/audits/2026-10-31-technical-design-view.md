@@ -75,10 +75,11 @@ OUTPUT: at most 400 words. Each finding is ONE bullet ending in a probe the prod
 
 Each claim is one a subagent or the producer reported and the matrix or the pre-mortem relies on. A probe was run by scripts/decide_checks.py; an absence cannot be probed by a count, so it is recorded as unverified with the producer's own count in the text.
 
-- Q1: scripts/system_map.py imports stdlib html and no templating library {probe: grep -c 'import html' scripts/system_map.py}
+- Q1: scripts/system_map.py imports stdlib html {probe: grep -c 'import html' scripts/system_map.py}
 - Q1: the import sits at line 67 of scripts/system_map.py {probe: scripts/system_map.py:67}
-- Q1: scripts/gen_dashboard.py imports stdlib html and no templating library {probe: grep -c 'import html' scripts/gen_dashboard.py}
+- Q1: scripts/gen_dashboard.py imports stdlib html {probe: grep -c 'import html' scripts/gen_dashboard.py}
 - Q1: the import sits at line 60 of scripts/gen_dashboard.py {probe: scripts/gen_dashboard.py:60}
+- Q1: neither script imports a third-party templating library; the subagent read both import lists and the producer's own reading agrees {unverified}
 - Q1: uv.lock locks no templating library; the producer's own count of name = "jinja2" in uv.lock is 0 {unverified}
 - Q1: package.json says this repo is not a node app and pins only a langserver {probe: grep -c 'NOT a node app' package.json}
 - Q1: no workflow under .github/workflows sets up Node; the subagent's count of setup-node over the three workflows is 0 {unverified}
@@ -88,13 +89,15 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q4: scripts/system_map.py imports click at module level, so a view subcommand pays that import cost; the cost itself is unmeasured {probe: grep -c 'import click' scripts/system_map.py}
 - Q4: scripts/system_map.py is long: its CLI group sits past line 760 {probe: scripts/system_map.py:761}
 - Q3: the system-map JSON and HTML are gitignored by two explicit lines naming those two files {probe: git check-ignore ecosystem/system-map.json}
-- Q3: the ignore lines are explicit file names, at .gitignore:201 and .gitignore:202 {probe: .gitignore:201}
+- Q3: the first ignore line is an explicit file name, at .gitignore:201 {probe: .gitignore:201}
+- Q3: the second ignore line is an explicit file name, at .gitignore:202 {probe: .gitignore:202}
 - Q3: a new output name is not ignored until it has its own line; the producer's git check-ignore of a view file name exited 1 {unverified}
 - Q3: the record file ecosystem/system-map-record.json is tracked and survives a fresh clone {probe: ecosystem/system-map-record.json:1}
 - Q4: tests/test_system_map.py pins byte-identical JSON for the same tree and has no byte-identity test for the HTML {probe: tests/test_system_map.py:81}
 - Q4: scripts/gen_dashboard.py has a byte-determinism test for its generator {probe: grep -c 'test_build_is_deterministic_and_regeneration_is_idempotent' tests/test_gen_dashboard.py}
 - Q4: that determinism test is at line 558 of tests/test_gen_dashboard.py {probe: tests/test_gen_dashboard.py:558}
-- Q4: the /map command names scripts/system_map.py; the producer's repo-wide git grep finds the name only in that command, the harness fates entry, two test files and a ruling document {probe: grep -c 'system_map' .claude/commands/map.md}
+- Q4: the /map command names scripts/system_map.py {probe: grep -c 'system_map' .claude/commands/map.md}
+- Q4: the producer's repo-wide git grep finds the name only in that command, the harness fates entry, two test files, a ruling document and the record file {unverified}
 - Q4: ecosystem/harness.yaml records scripts/system_map.py in a fates entry called by the /map command, not by a moment {probe: grep -c 'scripts/system_map.py, called_by' ecosystem/harness.yaml}
 - Q4: that fates entry is at line 170 of ecosystem/harness.yaml {probe: ecosystem/harness.yaml:170}
 - Q4: ecosystem/harness.yaml declares a batch-close moment a generator could be wired to {probe: ecosystem/harness.yaml:86}
@@ -116,6 +119,7 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q2: scripts/gen_ledger.py also exposes collect(), which returns the open rows and worktrees as a dict without writing a file {probe: scripts/gen_ledger.py:197}
 - Q2: ADR-121 is Proposed, so no event log exists to read {probe: grep -c 'Status:\*\* Proposed' docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md}
 - Q2: the quota_watch report, the audit.py health output and the verdict ledger the digest names were not researched by any subagent; their shapes are unknown to this audit {unverified}
+- Digest section A2 amends the operator's proposal to extend scripts/system_map.py rather than add a third HTML generator; the digest sits in the transport, outside this repo, and was not an input of the evaluators {unverified}
 
 ## Evidence and matrix
 
@@ -143,11 +147,11 @@ Weights: coverage=20 purity=20 footprint=15 reuse=15 liveness=15 testability=15
 
 Reading the matrix:
 - The first draft of this matrix put V2 first at 3.50. The two evaluators showed why that was wrong (findings S1, G1, S2, S3, G2): two of V2's 4s were measured on another generator, and V2's liveness edge assumed a V1 fast leg must call the whole-tree build_map, which is not so, because a view subcommand can read the map JSON when present exactly as a sibling would. With both corrections V1 leads. A later review found a third error, V2's footprint 4, which broke the rule that a precedent measured on another organ lifts no unbuilt option: a new organ is more to wire and gate, so V2's footprint is 3 and its total 3.00.
-- V1 leads V6 by 0.20 and V2 by 0.30. Those margins are small. What separates V1 is its reuse score, the one differing 4 that is measured: a working writer, its tests and a fates entry, and no new organ to wire. The operator-side digest reached the same direction (extend the map organ, section A2).
+- V1 leads V6 by 0.20 and V2 by 0.30. Those margins are small, and they come from different criteria. Against V6 the whole lead is coverage (+0.20): V1's reuse edge (+0.15) is cancelled by V6's testability edge (-0.15). Against V2 the lead is footprint (+0.15) and reuse (+0.15): V1 extends an organ whose writer, tests and fates entry exist and adds no organ to wire. Footprint and reuse are the two measured 4s that differ; the coverage edge over V6 is a judgment. The operator-side digest (section A2) reached the same direction, extend the map organ (a claim above, unverified).
 - V6 is the strongest rival to V1 that the first draft did not score (finding G9). It loses on coverage: the gen_dashboard generator is a conformance report and holds no graph or process model.
 - V0 is the baseline, not a candidate: it shows the graph and nothing about runs or state.
 - V3 and V4 lose on footprint and reuse, the two criteria ADR-106 and the library-first rule make binding.
-- V5 loses on liveness: its page is a committed artifact the repo records can go stale (.gitignore:88).
+- V5 loses on liveness: it is a committed page, so it has no live mode; the repo's own comment records that such a page can go stale (a grep probe in the claims).
 - Unscored: modifiability and coupling are not matrix criteria. They are the reason the ADR carries a flip-condition to V2.
 
 ## Pre-mortem
@@ -179,8 +183,8 @@ Evaluators: codex gpt-6-sol (to-browser/EVAL-VIEW-E30-sol-2026-10-31.md, ids S1 
 | S6 | receipts are per checkout, the page claims to be current | **Accepted** -- every receipt tile names its checkout; reading sibling worktrees is left to the build lane and the operator |
 | S7 | the text-node test misses script-written text, attributes and Mermaid source | **Accepted** -- the test covers text nodes and attributes, the page script is pinned by hash and tested to hold no string literal beyond data keys and a fixed selector list (a review's finding), Mermaid source is data shown as pre-formatted text |
 | S8 | no safe embedding or write protocol for the snapshot | **Accepted** -- less-than sign escaped in the embedded copy, atomic write of the data file, parse failure keeps the snapshot |
-| G1 | the cap is broken to crown V2, margin disappears when capped | **Accepted** -- same correction as S1; capped V2 fell to 3.15, then to 3.00 after the footprint correction, and the leader changes to V1 at 3.30 |
-| G2 | the stated reason for the margin is incomplete | **Accepted** -- the first draft's reading is replaced; the margin and its sources are stated per criterion |
+| G1 | the cap is broken to crown V2, margin disappears when capped | **Accepted** -- same correction as S1; capped V2 fell to 3.15, then to 3.00 after the footprint correction, and, with the liveness correction of S2 and G2, the leader changes to V1 at 3.30 |
+| G2 | the stated reason for the margin is incomplete | **Accepted** -- the reading is replaced; it now gives each margin per criterion: coverage against V6, footprint and reuse against V2 (a later review found the first replacement still misnamed them) |
 | G3 | V1 is rejected for coupling while V2 couples via the map build; the only-caller claim is one file | **Accepted** -- the coupling argument is dropped from the ADR as a reason against V1; the claim is reworded to what the producer's repo-wide git grep found and one probe cannot prove |
 | G4 | full leg at batch close can block the lane beside the line | **Accepted** -- the step is optional and continue_on_failure like ci_red_age, and wiring it is the operator's routing decision |
 | G5 | the ledger has three incompatible stories | **Accepted** -- resolved as in S4: collect() in the local leg, absent from the tracked-only scheduled run |
