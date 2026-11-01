@@ -1,6 +1,6 @@
 # ADR-130: The outer loop runs in code — Conductor E completion
 
-- **Status:** Proposed
+- **Status:** Accepted in part 2026-10-31 (GO-E3.0 R1): D1, D2, D4, D5 Accepted under the flip-condition below plus "if L4's witness fails, D1 and D2 re-open"; D3 amended in-file (see Amendment); D6 deferred to E3.1's ADR
 - **Date:** 2026-10-15
 - **Decision tier:** Path A — a `/decide` proposal for operator ratification (R14, ADR-108 §A).
 - **Related:** ADR-120 (the spine is the whole loop; doit chosen, no state machine); ADR-124 (one code standard, tach); ADR-127 (CI on Windows and Linux); rows `[#1535]` (this step), `[#689]` (Conductor E, stays open for its four §6 numbers), `[#669]` (the delivery-loop transitions); R76, R99, R104, R105 D1-D6, R106, R114.
@@ -56,3 +56,11 @@ Flip to option (d), a durable engine, if a killed round fails to resume from its
 - **(c) a state machine only, no runner** — 88 but ineligible: it fires transitions and runs nothing.
 - **(d) a durable engine (DBOS, Prefect, Temporal, Hatchet)** — 80: Prefect, Temporal and Hatchet need a server; DBOS adds a database for a resume the receipts already give. Rejected (D5).
 - **(e) (a) + python-statemachine for `[#669]` + pydantic** — 89: chosen.
+
+## Amendment 2026-10-31 - GO-E3.0 R1 (operator)
+
+Source: `to-cc/GO-E3.0.md` R1, landed in `protocols/STANDING_RULINGS.md` section AZ by lane `e30-rulings`. The Decision text above is untouched; this block and the status line are the only edits (ADR-94).
+
+- **D1, D2, D4, D5 - Accepted** under the Flip-condition above plus one added condition: **if L4's witness fails, D1 and D2 re-open.**
+- **D3 - amended in-file.** The pin is **python-statemachine 3.2.2** (not ==3.2.1), and the Q14a spike is done (`DIGEST-E21-P1-SPIKE-2026-10-20`). Scope: the P1 dispatch lane machine that L3's runner drives. `[#669]`'s row-level transitions stay a later question. The original D3 line above is kept as the record of what was proposed.
+- **D6 - deferred** to E3.1's ADR; it is not decided here.

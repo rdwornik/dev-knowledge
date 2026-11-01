@@ -7576,6 +7576,128 @@ Landed by lane `e2-boot-rules` (batch E2.0). All of R160–R166 and R176–R179 
 
 - **G29** is carried by row [#1673] (`tasks/1673-dispatch-has-no-successor-verb-g29.md`).
 
+## AZ. GO-E3.0 R1-R14 - landed verbatim from their source, each carried by a row, a lane or a written "no implementation required" (operator, 2026-10-31)
+
+Landed by lane `e30-rulings` (batch E3.0). Source: `to-cc/GO-E3.0.md` (operator, pasted 2026-10-31; text drafted by Tech-Architect-48; signs `to-browser/DIGEST-E3-0-SIGNOFF-AND-PLAN-CHALLENGE-2026-10-30.md` section 3, as amended by `to-browser/DIGEST-E3-0-PROPOSALS-EVALUATION-2026-10-31.md`). Nothing here is paraphrased by this lane; the verbatim blocks are the source lines byte for byte.
+
+**Namespace.** These are cited as `GO-E3.0 R<n>`, never bare `R<n>`: the plain R1-R14 of sections AM and AN are different, older rulings.
+
+**Clarifications of 2026-10-31 (operator).** (1) `grok-4.7` is the standing second reviewer, after Codex `gpt-5.6-terra`, and the quota backup for Copilot and Codex stages (a stage re-run on it carries `VENDOR-FAIL: <stage> <evidence>`); Sonnet is the backup only if the Anthropic weekly allowance runs low (GO-E3.0 R11). (2) `e30-bootstrap` carried two one-time exceptions: its own launch predates the `--disallowedTools` fix (operator ruling (a), GO-E3.0 R2), and it implemented through the Copilot CLI on Sonnet 5.5 (its contract Step 2), so no VENDOR-FAIL line is written for it. Neither is precedent.
+
+- **R1 - ADR-130 ratified in part; D3 amended in-file; D6 to E3.1's ADR** (operator, 2026-10-31; full text `GO-E3.0.md:10`).
+
+  **Carried by:** this lane (`e30-rulings`): the ADR-130 status line and its in-file amendment block (owner: E3.0 orchestrator); the L4 witness that can re-open D1 and D2 belongs to lane L4, not to this lane
+
+  ```verbatim to-cc/GO-E3.0.md:10-10
+  R1 ADR-130: ratify D1, D2, D4, D5 under the ADR's flip-condition plus "if L4's witness fails, D1 and D2 re-open". Amend D3 in-file: python-statemachine 3.2.2, spike done (DIGEST-E21-P1-SPIKE-2026-10-20), scope = the P1 dispatch lane machine that L3's runner drives; [#669]'s row-level transitions stay a later question. D6 goes to E3.1's ADR.
+  ```
+
+- **R2 - every lane and phase launch disallows the advisor tool** (operator, 2026-10-31; full text `GO-E3.0.md:11`).
+
+  **Carried by:** lane `e30-bootstrap` (landed): the Claude argvs carry `--disallowedTools=AskUserQuestion,advisor`; files [#1747] [#1748] [#1749]. One-time exception: `e30-bootstrap`'s own launch predates the fix (operator ruling (a), 2026-10-31)
+
+  ```verbatim to-cc/GO-E3.0.md:11-11
+  R2 Every lane and phase launch carries --disallowedTools for the advisor tool.
+  ```
+
+- **R3 - no new test red on c6618dbb7** (operator, 2026-10-31; full text `GO-E3.0.md:12`).
+
+  **Carried by:** no implementation required here - the premise is read through `logs/KNOWN-REDS-REGISTRY.json` and the T2 rule of each E3.0 lane contract; the `ci_verdict` misreading is id grant G2 (lane `e30-ci-verdict`) (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:12-12
+  R3 No new test red on c6618dbb7: the 6 are known-reds members misread by ci_verdict.
+  ```
+
+- **R4 - L4 commits the HOOK-WATCHDOG-KILLS line as [#1603]'s kill row** (operator, 2026-10-31; full text `GO-E3.0.md:13`).
+
+  **Carried by:** lane L4 and row [#1603]; whether `logs/HOOK-WATCHDOG-KILLS.jsonl` stays tracked is not decided by L4 and not by this lane
+
+  ```verbatim to-cc/GO-E3.0.md:13-13
+  R4 L4 commits the logs/HOOK-WATCHDOG-KILLS.jsonl line as [#1603]'s kill row; whether that log stays tracked is not decided by L4.
+  ```
+
+- **R5 - remove the empty husk `.claude/worktrees/handoff-2026-10-28/`** (operator, 2026-10-31; full text `GO-E3.0.md:14`).
+
+  **Carried by:** no implementation required in this lane - removal is the integrator's act and the stop-hook re-creation needs an owning row or a grant at the E3.1 sign-off (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:14-14
+  R5 Remove the empty husk .claude/worktrees/handoff-2026-10-28/; name the row owning its stop-hook re-creation or ask for a grant at the E3.1 sign-off.
+  ```
+
+- **R6 - lane L0 dropped; grant G1 withdrawn** (operator, 2026-10-31; full text `GO-E3.0.md:15`).
+
+  **Carried by:** no implementation required - a withdrawal; nothing is built (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:15-15
+  R6 Lane L0 dropped; grant G1 withdrawn.
+  ```
+
+- **R7 - stop condition: L4 landed by 2026-11-06** (operator, 2026-10-31; full text `GO-E3.0.md:16`).
+
+  **Carried by:** every E3.0 lane contract's `Stop date` line and every batch digest (this lane's contract carries it); no code (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:16-16
+  R7 Stop condition: L4 landed by 2026-11-06, else E3.1 shrinks to the GO gate + stage records; every batch digest reports this date.
+  ```
+
+- **R8 - known-reds expiry 2026-11-09** (operator, 2026-10-31; full text `GO-E3.0.md:17`).
+
+  **Carried by:** no implementation required - CC brings an evidenced proposal for a separate ruling before 2026-11-09 (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:17-17
+  R8 Known-reds expiry 2026-11-09: CC brings an evidenced proposal for a separate ruling before that date.
+  ```
+
+- **R9 - stage-6 judge is Codex; served model UNVERIFIED** (operator, 2026-10-31; full text `GO-E3.0.md:18`).
+
+  **Carried by:** lane `e30-bootstrap` (landed): `ecosystem/provider-registry.yaml` `roles.judge` entry 1 `gpt-6-sol`, evidence `to-cc/GO-E3.0.md R9/R11`; the UNVERIFIED class rides every JUDGE line
+
+  ```verbatim to-cc/GO-E3.0.md:18-18
+  R9 Stage-6 judge is Codex; its served model cannot be read by code, so the record carries UNVERIFIED and the operator accepts that class; where a CLI reports the served model, the check is enforced.
+  ```
+
+- **R10 - backlog per-row reconciliation, no class rule** (operator, 2026-10-31; full text `GO-E3.0.md:19`).
+
+  **Carried by:** id grant G4 (P2): the backlog per-row reconciliation organ, worktree `backlog-reconcile`, after L2 lands
+
+  ```verbatim to-cc/GO-E3.0.md:19-19
+  R10 Backlog: per-row reconciliation (evaluation digest section D), no class rule; the operator rules by evidence class, never row by row; code applies only what is ruled; runs after L2 lands.
+  ```
+
+- **R11 - routing as data** (operator, 2026-10-31; full text `GO-E3.0.md:20`).
+
+  **Carried by:** lane `e30-bootstrap` (landed): `ecosystem/provider-registry.yaml` `roles:` (below) and this section; E3.1 makes the distiller fill contract model cells from the registry
+
+  ```verbatim to-cc/GO-E3.0.md:20-20
+  R11 Routing as data (standing from 2026-10-31; lands in ecosystem/provider-registry.yaml and protocols/STANDING_RULINGS.md through a lane contract): Opus 5.5 orchestrates, plans, evaluates, never a subagent. Sonnet 5.5 implements and integrates (supersedes R177's "Copilot writes the code"). Gemini via agy reads (admitted to roles.read by this ruling; laptop-only), Haiku 5.5 its backup. Copilot owns tests in two separate sessions: T1 writes RED/outcome tests and test plans, T2 runs them (cloud by default) and reports failures with fix proposals; Opus triages, Sonnet fixes, T2 re-runs; Copilot runs a non-Claude model where it offers one (registry red role gpt-6-luna). Codex reviews (terra) and judges (sol). Grok backs up Copilot and Codex when their tokens or quota run out, and Sonnet only if the Anthropic weekly allowance runs low. Until E3.1 makes the distiller fill contract model cells from the registry, every E3.0 contract states these models explicitly.
+  ```
+
+- **R12 - no launch without a signed sign-off and a distiller-produced contract** (operator, 2026-10-31; full text `GO-E3.0.md:21`).
+
+  **Carried by:** `scripts/gen_lane_contract.py distill`; where it cannot yet produce a kind the contract names the gap (this lane's contract does: an unphased row is refused) (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:21-21
+  R12 No launch without (a) a sign-off the operator signed and (b) a lane contract produced by the distiller (gen_lane_contract distill), which evaluates the prompt. Where the distiller cannot yet produce a contract kind, the contract names the gap and a separate session evaluates the prompt before launch.
+  ```
+
+- **R13 - browser proposals are inputs, not decisions** (operator, 2026-10-31; full text `GO-E3.0.md:22`).
+
+  **Carried by:** E3.1's first-lane `/decide` (git memory and the read format, plan revision 3 section 5 as input); id grant G3 for the view (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:22-22
+  R13 Browser proposals are inputs, not decisions. Every structural choice (git as memory, the journal and lazygit view, the read format of agent-facing reports, the view design) is decided by /decide with independent evaluators of other vendors, challenged by CC, and ratified by the operator before anything is built. Git memory and the read format go to E3.1's first-lane /decide with plan revision 3 section 5 as its input.
+  ```
+
+- **R14 - the harness uses itself** (operator, 2026-10-31; full text `GO-E3.0.md:23`).
+
+  **Carried by:** the batch digest's hand-step list and M8 (plan revision 3 section 1); no code (owner: E3.0 orchestrator)
+
+  ```verbatim to-cc/GO-E3.0.md:23-23
+  R14 The harness uses itself: every step runs through an existing organ where one exists (distill, /decide, land_lane, ship-gate, system_map, gen_ledger). Any step done by hand is recorded as a hand step in the batch digest and counts in M8.
+  ```
+
+**R11 against the registry, quoted.** GO-E3.0 R11 names these roles; `ecosystem/provider-registry.yaml` `roles:` (landed by `e30-bootstrap`) holds them as: `orchestrate` and `plan` - `claude-opus-5-5`, no fallback; `implement` - `claude-sonnet-5-5`, then Copilot `claude-sonnet-5.5`, then `grok-4.7`; `read` - `agy` (`antigravity`, laptop-only), then `claude-haiku-5-5`, then Copilot; `red` and `qa` - Copilot `gpt-6-luna`, then `claude-sonnet-5-5`, then `grok-4.7` (quota backup); `review` - `gpt-5.6-terra`, then `grok-4.7`; `judge` - `gpt-6-sol`, then `grok-4.7`, then `claude-opus-5-5`. Triage (Opus, headless) and fix (Sonnet) are stage rules of the lane contract, not registry roles.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
