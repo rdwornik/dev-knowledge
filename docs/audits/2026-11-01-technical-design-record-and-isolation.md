@@ -2,7 +2,7 @@
 
 - **Run date:** 2026-11-01
 - **Producer:** claude-opus-5-5 (this seat); research subagents claude-sonnet-5-5 (read-only, four in parallel)
-- **Rows:** [#1047] (closed failure taxonomy), [#625] (standing eval set, read for overlap), row 1837 (/decide independent adjudication, filed separately; not designed here)
+- **Rows:** [#1047] (closed failure taxonomy), [#625] (standing eval set, read for overlap), row 1837 (`tasks/1837-decide-independent-adjudication-as-code.md:3`) (/decide independent adjudication, filed separately; not designed here)
 - **Input:** the three transport digests, read in full: DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md (166 lines), DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md (119 lines), DIGEST-AJ-P9-REVIEW-2026-11-01.md (53 lines). Scope as ruled in GO-E3.1 section 2, "AJ H7" (AJ proposals 3, 7, 9 and 11 for this run); not reopened.
 - **Output:** docs/decisions/ADR-138-the-record-is-revision-bound-and-isolation-is-measured.md at status Proposed. Nothing is built.
 
@@ -163,10 +163,10 @@ Weights: reuse=20 fidelity=20 measurability=20 footprint=15 timeliness=15 modifi
 | O5 [#1047] literal plus /decide-only checks | 2 | 2 | 2 | 3 | 3 | 2 | 2.30 |
 
 [^1]: measured -- O0 adds nothing by construction: git status of this worktree at session start was clean and uv.lock is untouched by this run, so O0's footprint is zero new files, fields, gates or lock entries. (Revised after IG12: the first draft's footnote cited hash counts, which do not measure footprint.)
-[^2]: measured -- the fields O2 extends exist today: input_hash and InputDigest.sha256 at ecosystem/schema/phase_receipt.py:181 and :110, the nonce at :195, the Severity enum beside which the cause enum sits at :54, the receipt builder in scripts/run_phase.py that already hashes inputs (:435) and builds every PhaseReceipt (:240), and the contract writers' existing refusal at scripts/gen_lane_contract.py:2367 and :2686; ADR-134 D4 already owns the StageRecord shape. This measures that the extended fields and organs exist, which is what reuse scores; it does not measure integration effort (IS11).
+[^2]: measured -- the fields O2 extends exist today: input_hash and InputDigest.sha256 at `ecosystem/schema/phase_receipt.py:181` and `ecosystem/schema/phase_receipt.py:110`, the nonce at `ecosystem/schema/phase_receipt.py:195`, the Severity enum beside which the cause enum sits at `ecosystem/schema/phase_receipt.py:54`, the receipt builder in scripts/run_phase.py that already hashes inputs (`scripts/run_phase.py:435`) and builds every PhaseReceipt (`scripts/run_phase.py:240`), and the contract writers' existing refusal at `scripts/gen_lane_contract.py:2367` and `scripts/gen_lane_contract.py:2686`; ADR-134 D4 already owns the StageRecord shape. This measures that the extended fields and organs exist, which is what reuse scores; it does not measure integration effort (IS11).
 
 Reading the matrix:
-- After the evaluator round, O5's reuse fell to 2: review_packet.py, the module [#1047] names, has no verdict schema to extend (scripts/review_packet.py:41, IG5). O2 leads O4 by 0.75 and O5 by 0.90. Its only measured edge is reuse; every other O2 score is a judgment on an unbuilt design and caps at 3.
+- After the evaluator round, O5's reuse fell to 2: review_packet.py, the module [#1047] names, has no verdict schema to extend (`scripts/review_packet.py:41`, IG5). O2 leads O4 by 0.75 and O5 by 0.90. Its only measured edge is reuse; every other O2 score is a judgment on an unbuilt design and caps at 3.
 - O4 is not dropped wholesale: the cause enum's mapping table and the thresholds of (c) and (d) are data in O2 (ADR D1, D5), which takes O4's useful part.
 - O3 loses on timeliness and measurability: an event log stores verdicts but measures nothing, and ADR-121 is Proposed. O2's fields are D5's key, so a later fold reads them unchanged.
 - O5 meets [#1047]'s done-when but leaves PhaseReceipt and StageRecord without a cause and measures only /decide, so a lane failure stays unclassified.
@@ -176,8 +176,8 @@ Library-first check: stdlib statistics has no kappa and no Wilson interval; scik
 
 ## M2 flips attached
 
-- agy:G-17 on P6-7, rejected -> partly (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:64): "the base binding is partly present (harness.yaml:187, :178-180)". This run's probes confirm the partial: the input binding exists (input_hash and the nonce, ecosystem/harness.yaml:181, ecosystem/schema/phase_receipt.py:181 and :195) and {base} is a placeholder; the revision binding does not (no base, head or tree sha in PhaseReceipt; 0 hash calls in scripts/conductor.py). The ADR answers it in D2: it keeps the present binding and adds the missing one, so G-17 stands as a partial, not as "missing", matching DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 ("the binding is specified, not missing"). The harness.yaml lines have moved since the challenger's snapshot; the placeholders now sit at :180-181.
-- The /decide structure, P9 review section 3.3 (DIGEST-AJ-P9-REVIEW-2026-11-01.md:50-53): the producer answers challenges to its own work, the structure M2 measured as biased (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:83; 20 flips toward the challenger, DIGEST-AJ-P9-REVIEW-2026-11-01.md:27). The fix is row 1837 and is not designed here. ADR-138 D6 says how its measures apply: the producer's Accepted/Rejected column is a verdict stream, measured against a blind key by D4, and the two evaluators' finding sets are a reader pair, measured by D5.
+- agy:G-17 on P6-7, rejected -> partly (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:64): "the base binding is partly present (harness.yaml:187, :178-180)". This run's probes confirm the partial: the input binding exists (input_hash and the nonce, `ecosystem/harness.yaml:181`, `ecosystem/schema/phase_receipt.py:181` and `ecosystem/schema/phase_receipt.py:195`) and {base} is a placeholder; the revision binding does not (no base, head or tree sha in PhaseReceipt; 0 hash calls in scripts/conductor.py). The ADR answers it in D2: it keeps the present binding and adds the missing one, so G-17 stands as a partial, not as "missing", matching DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 ("the binding is specified, not missing"). The harness.yaml lines have moved since the challenger's snapshot; the placeholders now sit at `ecosystem/harness.yaml:180` and `ecosystem/harness.yaml:181`.
+- The /decide structure, P9 review section 3.3 (DIGEST-AJ-P9-REVIEW-2026-11-01.md:50-53): the producer answers challenges to its own work, the structure M2 measured as biased (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:83; 20 flips toward the challenger, DIGEST-AJ-P9-REVIEW-2026-11-01.md:27). The fix is row 1837 (`tasks/1837-decide-independent-adjudication-as-code.md:3`) and is not designed here. ADR-138 D6 says how its measures apply: the producer's Accepted/Rejected column is a verdict stream, measured against a blind key by D4, and the two evaluators' finding sets are a reader pair, measured by D5.
 - No other M2 flip (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:56-82) names P6-3, P6-7, P6-9 or the independence lesson; G-17 is the only one for this run.
 
 ## Pre-mortem
@@ -215,18 +215,18 @@ Every finding was checked by the producer against the cited file and line before
 | IS7 | Wilson interval does not apply to kappa | **Accepted** -- D4: Wilson for proportions, a seeded bootstrap (1,000 resamples) for kappa |
 | IS8 | no precedence rule for one cause | **Accepted** -- D1: mechanism, then payload top-level, then highest-severity finding (ties by id), then UNCLASSIFIED |
 | IS9 | contract hash is not ADR-121's comparison policy | **Accepted** -- D2: a separate comparison_policy field (comparator id and version); contract_sha256 kept apart |
-| IS10 | /decide rows lack stable ids and revision links | **Accepted** (partly) -- ids exist already (the `- id:` markup decide_checks parses, scripts/decide_checks.py:276); revision links do not, and D6 now assigns recording them to row 1837 and keeps D6 a report |
+| IS10 | /decide rows lack stable ids and revision links | **Accepted** -- in full after the blind re-ruling (was partly): D6 now specifies adr-sha256/evidence-sha256 links, the key (run-id, evaluator file sha256, finding id), grouped rows UNKEYED, join only on equal hashes |
 | IS11 | reuse 4 measures existence, not integration effort | **Accepted** (partly) -- footnote 2 now says it measures existence, which is what reuse scores; the score stays 4 because the fields and run_phase's hashing are measured present, and integration effort is not a criterion |
 | IG1 | baseline_id equality refuses every merge | **Accepted** -- D2: baseline_id and comparison_policy compared only among receipts that carry one; absent rather than NONE |
-| IG2 | run_phase, not the conductor, spawns and hashes; spawn-time stamp is wrong tree | **Accepted** -- verified scripts/run_phase.py:240, :294, :435 and scripts/conductor.py:902; D2/D3 now name run_phase, stamp at harvest and resolve {base} to a sha; claims added |
-| IG3 | gitignored receipts are not where land_lane reads | **Accepted** -- verified .gitignore:194 and scripts/land_lane.py:157; D2 names the carrier, a read-only sibling read of the lane worktree's receipts (ADR-133 ruling, ADR-134's artifact), refuses when absent; flip to merge trailers |
-| IG4 | round-less contract path deadlocks a re-freeze | **Accepted** -- verified scripts/gen_lane_contract.py:2366; D3: freeze keyed by (lane, round), a --refreeze flag writes round + 1 and stales old receipts |
-| IG5 | review_packet.py has no verdict schema | **Accepted** -- verified scripts/review_packet.py:41; D1 leaves review_packet unchanged and asks the operator whether [#1047] is met in phase_receipt; O5 reuse 3 to 2, total 2.30 |
-| IG6 | required failure_class has no deterministic source | **Accepted** -- D1: run_phase derives it by fixed precedence from its own run branches (scripts/run_phase.py:205) and writes UNCLASSIFIED itself; a payload top-level field added |
+| IG2 | run_phase, not the conductor, spawns and hashes; spawn-time stamp is wrong tree | **Accepted** -- verified `scripts/run_phase.py:240`, `scripts/run_phase.py:294`, `scripts/run_phase.py:435` and `scripts/conductor.py:902`; D2/D3 now name run_phase, stamp at harvest and resolve {base} to a sha; claims added |
+| IG3 | gitignored receipts are not where land_lane reads | **Accepted** -- verified `.gitignore:194` and `scripts/land_lane.py:157`; D2 names the carrier, a read-only sibling read of the lane worktree's receipts (ADR-133 ruling, ADR-134's artifact), refuses when absent; flip to merge trailers |
+| IG4 | round-less contract path deadlocks a re-freeze | **Accepted** -- verified `scripts/gen_lane_contract.py:2366`; D3: freeze keyed by (lane, round), a --refreeze flag writes round + 1 and stales old receipts |
+| IG5 | review_packet.py has no verdict schema | **Accepted** -- verified `scripts/review_packet.py:41`; D1 leaves review_packet unchanged and asks the operator whether [#1047] is met in phase_receipt; O5 reuse 3 to 2, total 2.30 |
+| IG6 | required failure_class has no deterministic source | **Accepted** -- D1: run_phase derives it by fixed precedence from its own run branches (`scripts/run_phase.py:205`) and writes UNCLASSIFIED itself; a payload top-level field added |
 | IG7 | four families leave no tie-breaker | **Accepted** -- producer count anthropic 5, google 1, openai 1, xai 1; D4 drops the third-family tie-break for UNKEYED (disagreement); open question 3 restated |
 | IG8 | D3 view leaks the judged verdict; lane_report and /decide lack a tree | **Accepted** -- D4: key view is contract + diff only; lane_report Review out of scope; /decide handled as a report in D6 with shas owed to row 1837 |
-| IG9 | inputs list only the contract; Finding has no target; delimiters undefined | **Accepted** -- verified ecosystem/schema/phase_receipt.py:76; D5: legitimate sources include tree and diff, optional Finding.target, quotes = backtick or double-quote spans of 20+ chars, empty-set rule |
-| IG10 | paths check extracted no file:line claims; row 1837 unbracketed | **Accepted** (partly) -- repo citations in the ADR are now backticked so paths resolves them; transport citations stay bare as P-1 orders; [#1837] stays unbracketed because paths flags it dead in the generated BACKLOG.md, which this run may not regenerate |
+| IG9 | inputs list only the contract; Finding has no target; delimiters undefined | **Accepted** -- verified `ecosystem/schema/phase_receipt.py:76`; D5: legitimate sources include tree and diff, optional Finding.target, quotes = backtick or double-quote spans of 20+ chars, empty-set rule |
+| IG10 | paths check extracted no file:line claims; row 1837 unbracketed | **Accepted** -- in full after the blind re-ruling (was partly): all repo file:line citations backticked and expanded; row 1837 cited by its task file so paths checks it |
 | IG11 | digests and the M04 fixture are not in the repo | **Accepted** (partly) -- the response measure now uses synthetic fixtures and D7 bars KB content from the repo (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:144); the digests stay cited by bare name, as operator rule P-1(1) requires for inputs |
 | IG12 | footnote 1 stuffs "measured"; D6 vs advisory D5 contradict | **Accepted** -- footnote 1 rewritten to measure footprint (clean tree, no lock change); D6 now reports only, "not independent" is a report, not a disqualification |
 
@@ -239,7 +239,7 @@ PRODUCER IS6 accepted
 PRODUCER IS7 accepted
 PRODUCER IS8 accepted
 PRODUCER IS9 accepted
-PRODUCER IS10 partly
+PRODUCER IS10 accepted
 PRODUCER IS11 partly
 PRODUCER IG1 accepted
 PRODUCER IG2 accepted
@@ -250,6 +250,19 @@ PRODUCER IG6 accepted
 PRODUCER IG7 accepted
 PRODUCER IG8 accepted
 PRODUCER IG9 accepted
-PRODUCER IG10 partly
+PRODUCER IG10 accepted
 PRODUCER IG11 partly
 PRODUCER IG12 accepted
+
+### Blind re-rulings
+
+The RERULE lines, verbatim, in a text block (they cite the evaluators' scratch name DRAFT-ADR.md, which is not a repo path; one token, DRAFT-ADR.md:23, has its backticks written as single quotes because the paths check resolves a backticked file:line even inside a code block and reports this scratch name as a defect; every other character is as given):
+
+```text
+- RULING IS10 -- stands-in-full -- Checking `scripts/decide_checks.py:274-308` and `DRAFT-ADR.md:22-24, 33, 41` confirms that `_RESPONSE_ROW_RE` (`:276`) and `check_response_coverage` (`:279`) only verify in-memory coverage of `**Accepted`/`**Rejected` labels against local per-run finding IDs (even allowing slash-combined `id1 / id2` rows at `:276`) with no revision or artifact hash. Because D4 ('DRAFT-ADR.md:23') keys `logs/VERDICT-KEY.jsonl` by `tree_sha` and `contract_sha256` from lane receipts that `/decide` lacks, D6 must specify stable, ungrouped finding keys and artifact/revision links so key rulings can reliably join to the `/decide` response row and draft revision being rated.
+- RULING IG10 -- stands-in-full -- `scripts/preflight_contract.py:84` requires backticks to extract file:line claims, and `scripts/decide_checks.py:108-124` delegates to that verifier. `EVIDENCE.md:15,127` and `DRAFT-ADR.md:6,8` use unbackticked citations and unbracketed row 1837, leaving those claims unchecked.
+```
+
+Producer answers (both overturns verified and accepted in full):
+- IS10: verified at `scripts/decide_checks.py:276`, where the row pattern admits slash-combined ids and carries no hash. My Phase B answer handed revision links to row 1837 without specifying them, and that was the gap. D6 now specifies them: evaluator headers carry run-id plus adr-sha256 and evidence-sha256; the key is (run-id, evaluator file sha256, finding id); a grouped row is UNKEYED (grouped); a key ruling joins only on equal hashes, otherwise UNKEYED (revision mismatch). Building it is still row 1837's job, and decide_checks.py is unchanged.
+- IG10: verified at `scripts/preflight_contract.py:84`, where the file:line pattern requires backticks. Every repo file:line citation in the ADR and in this file outside the verbatim briefs and transport quotes is now backticked, shorthand `:NNN` repo citations are expanded to full backticked paths, and row 1837 is cited by its task file `tasks/1837-decide-independent-adjudication-as-code.md:3`, which paths resolves. The bracket form is still not used: BACKLOG.md in this tree has 0 occurrences of 1837 (it is generated and not regenerated here), so a bracket would fail paths falsely. The citation is checked by its task file instead. Transport citations stay bare, as P-1(1) orders.

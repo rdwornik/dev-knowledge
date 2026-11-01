@@ -104,7 +104,7 @@ The operator ruled "one state file per task + resume verb, matching the night de
 
 ### AJ 5 -- research briefs with rejection criteria ([#884])
 
-- **D8 -- a brief header, checked before fan-out.** Every subagent brief file in a `/decide` run opens with raw `key: value` lines, before any blank line. YAML is not used. The keys:
+- **D8 -- a brief header, refused at launch when missing; a step past its deadline is abandoned with what it has.** Every subagent brief file in a `/decide` run opens with raw `key: value` lines, before any blank line. YAML is not used. The keys:
   - `question`: one sub-question;
   - `prior-art`: the digests or audits checked, or `none found` with the search used ([#884] item 4);
   - `agent-cap`: an integer;
@@ -115,15 +115,18 @@ The operator ruled "one state file per task + resume verb, matching the night de
 
   A new subcommand, `decide_checks.py brief-schema <brief files>`, sits beside `subagent-exclusions`. It refuses a missing key or a non-integer cap, deadline or budget.
 
-  decide.md step 2 is amended so that both checks run on the saved brief files **before** any subagent is launched. This is the producer's own pre-launch gate, the same way this run used `subagent-exclusions`.
+  **Refusal before launch, on every research dispatch (after the blind re-ruling of IIS7).** The header is enforced where the launch happens, not after it:
+  - **Subagents (the Agent tool).** The existing Agent PreToolUse guard, `scripts/hooks/subagent_model_guard.py` (it already denies an Agent call on its model), gains a second deny: it refuses an Agent call whose `prompt` does not open with the seven keys, valid by the same parser `brief-schema` uses. A refusal spawns nothing. This covers `/decide` and every other seat that fans out subagents. The prompt is the brief, so the header travels with the call: a brief kept in a file must be pasted in, not pointed at.
+  - **Lanes (`dispatch.py launch`).** A contract whose Dispatch block declares `kind: research` must carry `agent-cap`, `deadline` and `token-budget`. The pre-launch moment refuses one that lacks any of them, before anything spawns.
+  - `decide_checks.py brief-schema` stays as the after-the-fact audit of the saved brief files, and decide.md step 2 names it.
 
-  The evidence file carries one `spend:` line per brief: tokens, tool calls and duration, copied from the Agent tool's completion record. `brief-schema --spend <evidence>` refuses when a brief has no spend line.
+  **A step past its deadline is abandoned and keeps what it has ([#884] items 2-3).**
+  - **Lanes.** `dispatch.py govern` stays a monitor that never stops a lane. When the deadline passes it prints a `DEADLINE <slug>` line. A new verb, `dispatch.py abandon <slug>`, stops the job, keeps the worktree and the transcript, and appends `abandoned` to the task state file (D3) with the transcript path and the spend so far. The dispatcher seat runs it on that line. Nothing is deleted, so the partial result survives.
+  - **Subagents.** The runtime cannot deliver a stop in the middle of a call. Under [#884] item 3, the per-agent `deadline` is the delivery: the producer launches each subagent in the background and stops it when the deadline passes, keeping its partial output. The evidence records, per brief, the stop time or the completion time. That this limit is enforced by the seat and not by code is recorded here, not implied away.
 
-  **Not built here:**
-  - enforcement for dispatches outside `/decide`;
-  - abandoning a subagent at runtime when it passes its deadline ([#884] items 1-3 beyond `/decide`).
+  The evidence file carries one `spend:` line per brief: tokens, tool calls and duration, copied from the Agent tool's completion record. `brief-schema --spend <evidence>` refuses a brief with no spend line ([#884] item 5).
 
-  These stay [#884]'s.
+  **Not built here:** a stop that reaches a session in the middle of a call without killing it. The runtime offers none.
 
 ### AJ 8 -- the clarification pass
 
@@ -145,7 +148,7 @@ Nothing is built by this ADR. It does not decide:
 - the ADR-121 event log itself, its fold or its single writer;
 - OS-level isolation of the state file;
 - the compaction re-injection hook;
-- [#884]'s runtime deadline enforcement;
+- a mid-call stop delivery, which the runtime does not offer ([#884] item 3 records the limit);
 - reserved rows 1828 and 1831;
 - a view of task state. ADR-133's view reads the file as one more source.
 
@@ -182,6 +185,7 @@ Nothing is built by this ADR. It does not decide:
   - Both the queue path and the resume verb refuse a `stopped-by-seat` job. This is [#1613]'s RED test.
   - Zero new dependencies.
   - `brief-schema` refuses a brief missing any of its seven keys.
+  - The Agent guard denies an Agent call whose prompt lacks the header; the pre-launch moment refuses a research contract with no cap, deadline or budget; `abandon` leaves an `abandoned` event and keeps the transcript (one fixture each).
   - The distiller refuses to freeze while any CQ id has no answer.
 - **Decision evidence:**
   - The matrix in the design evidence, after the evaluators: S3 3.00, then S1 2.80, S2 2.70, S5 2.70, S4 2.65, S6 1.95, S0 1.80.

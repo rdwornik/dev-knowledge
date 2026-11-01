@@ -151,7 +151,7 @@ Reading the matrix:
 
 What exists: decide.md step 1 says "state the question and its known constraints; nothing more" (.claude/commands/decide.md:30); the only brief check is the excluded-root substring (scripts/decide_checks.py:390); no brief template exists (claim above, unverified count 0). Row 884 asks for an agent cap, a per-agent deadline and a token budget before launch, refusal when missing, and a prior-art check (tasks/884-...:12). The M1 judge read the research-brief theme as hub /decide work (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:45), which confirms that its home is /decide, not a consumer carrier.
 
-Options: R0 prose in decide.md; R1 a header block in every brief file, checked by a new decide_checks subcommand `brief-schema` beside subagent-exclusions; R2 a separate brief organ with its own CLI. R1 reuses the existing gate and the brief files the run already saves; R2 adds an organ for one block of fields. Decision: R1, run before fan-out (IIS7). The fields are fixed in the ADR (D8).
+Options: R0 prose in decide.md; R1 a header block in every brief file, checked by a new decide_checks subcommand `brief-schema` beside subagent-exclusions; R2 a separate brief organ with its own CLI. R1 reuses the existing gate and the brief files the run already saves; R2 adds an organ for one block of fields. Decision: R1, enforced at launch by the existing Agent guard and the pre-launch moment (IIS7, re-ruled). The fields are fixed in the ADR (D8).
 
 ## AJ 8 -- the clarification pass in the contract
 
@@ -232,7 +232,7 @@ Each finding was checked against the repo by the producer before its response; t
 | IIS4 | a writer string and allowlist do not prove code wrote a line | **Accepted** -- a lane is the same OS user. D2 now says detection, not prevention: seq + prev_sha chain and D5's git and sha validation make a forged line inert; prevention needs ADR-121's fold or OS isolation (open question 5). |
 | IIS5 | resume has no rule for an absent file | **Accepted** -- D4 projects an absent file to no-record (distinct from never-started); D5 refuses no-record, so a pre-ADR lane is resumed by hand, never by guess. |
 | IIS6 | strictly increasing wall-clock ts rejects valid events | **Accepted** -- order is now the line's seq; D4 refuses only a missing or zero ts and records an equal or earlier ts as data. |
-| IIS7 | brief-schema checks saved files, not before launch | **Accepted** (partly) -- D8 now runs brief-schema with subagent-exclusions on the saved briefs before any subagent launches, as this run did for exclusions. Runtime deadline abandonment and non-/decide dispatches stay [#884]'s; this ADR does not claim them. |
+| IIS7 | brief-schema checks saved files, not before launch | **Accepted** -- in full after the blind re-ruling (was partly). Row 884:12 asks for refusal before launch and abandonment past the deadline. D8 now refuses at launch: the existing Agent guard (scripts/hooks/subagent_model_guard.py) denies a prompt without the header, and the pre-launch moment refuses a research contract with no bounds. It adds dispatch.py abandon on govern's DEADLINE line, and records the subagent deadline as the delivery, kept by the seat (item 3's stated limit). brief-schema stays as the audit. |
 | IIS8 | clarification answers in the same sign-off are circular | **Accepted** -- D9 is now three steps: draft contract with CQ ids, a re-signed sign-off revision with one CQ<n>: line each, re-distill that refuses to freeze without every answer and records the sign-off sha. |
 | IIS9 | checking receipt existence does not validate recorded shas | **Accepted** -- D5 now compares each receipt's sha256 with the recorded sha (ADR-134:51 records artifact shas). |
 | IIS10 | S3's measured reuse 4 measures a directory, not a writer; lead unsupported | **Accepted** -- the cited paths (conductor.py:906 per-round dir, seat_state.py:317-322 whole-file replace) reuse equally for S1. S3 reuse 3; S3 3.00, lead over S1 0.20, all of it judgment, stated in the reading. |
@@ -255,7 +255,7 @@ PRODUCER IIS3 partly
 PRODUCER IIS4 accepted
 PRODUCER IIS5 accepted
 PRODUCER IIS6 accepted
-PRODUCER IIS7 partly
+PRODUCER IIS7 accepted
 PRODUCER IIS8 accepted
 PRODUCER IIS9 accepted
 PRODUCER IIS10 accepted
@@ -271,3 +271,31 @@ PRODUCER IIG8 partly
 PRODUCER IIG9 accepted
 PRODUCER IIG10 accepted
 PRODUCER IIG11 partly
+
+### Blind re-rulings
+
+Each finding the producer marked partly was re-ruled blind by the other evaluator family. Records copied verbatim, except that two non-ASCII characters (an en dash and a right single quote) are written as ASCII. They sit in a text block because their file:line citations (EVIDENCE.md, DRAFT-ADR.md) name the re-ruler's copies, not repo paths. One citation, DRAFT-ADR.md:45, is written as "DRAFT-ADR.md line 45" because the paths gate would otherwise try to resolve it as a repo file:
+
+From ii-by-argon/OUT.md (re-ruled IIS3 and IIS7, sol's findings):
+
+```text
+    served-model: gemini-4-argon
+    attestation-source: runtime <model_information> header (model ID: gemini-4-argon)
+    role: blind re-ruler
+    - RULING IIS3 -- partly-valid -- `scripts/dispatch.py:803-806` confirms `receipts_dir()` resolves to the gitignored, per-checkout `logs/receipts/` directory, so D1's state file is indeed local-only without replication before ADR-121 ratification; however, `docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md:3,87-93` shows ADR-121 (and its D7 publication requirement) is itself still `Proposed`, and D5 only resumes in an intact local worktree where the branch and receipts already exist.
+    - RULING IIS7 -- stands-in-full -- `tasks/884-a-research-dispatch-states-its-bounds-before-launch.md:12` explicitly requires Done-when (1) refusal before launch when cap, deadline, or budget is missing and (2)-(3) abandoning steps past their deadline, while `.claude/commands/decide.md:40,94` shows `decide_checks.py` runs as a post-hoc artifact gate (Step 7) and D7 (`DRAFT-ADR.md line 45`) checks saved brief files and expressly leaves deadline abandonment unbuilt.
+
+```
+
+From ii-by-sol/OUT.md (re-ruled IIG8 and IIG11, argon's findings):
+
+```text
+    served-model: GPT-6
+    attestation-source: developer runtime header
+    role: blind re-ruler
+    - RULING IIG8 -- partly-valid -- EVIDENCE.md:29-49 shows the three briefs without DRAFT-ADR.md:31's seven headers, and EVIDENCE.md records no actual spend; those are real evidence gaps. D7 is a proposed rule for future briefs, however, so it does not require these earlier briefs to comply, and its `key: value` header requirement does not leave the basic format unspecified.
+    - RULING IIG11 -- partly-valid -- EVIDENCE.md:72-95 explicitly marks six claims `{unverified}`, so treating those negative claims as measured evidence is unwarranted. The claimed inability to inspect the worktree is wrong: I checked scripts/dispatch.py and scripts/transport.py:88 in the permitted repo read-only; the latter already defines a `QUESTION` request kind, though that alone does not establish a dispatcher path.
+```
+
+- **IIS7 (overturned, stands-in-full): Accepted in full.** The producer checked row 884:12 (Done-when (1) refusal before launch, (2)-(3) abandonment past the deadline) and decide.md: decide_checks runs on artifacts, not at launch. ADR D8 now refuses at launch through the existing Agent PreToolUse guard and dispatch's pre-launch moment, adds `dispatch.py abandon` for lanes past their deadline, and records the subagent deadline as the delivery under item 3. The table row and the PRODUCER line now read accepted.
+- **IIS3, IIG8, IIG11 (upheld, partly-valid):** the producer's partly dispositions stand. The IIG11 re-ruler notes the evaluator's claim that it could not inspect the worktree was wrong; that point is in the evaluator's text and changes nothing here.
