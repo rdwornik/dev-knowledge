@@ -124,7 +124,18 @@ Each claim is one a subagent reported and the matrix or the pre-mortem relies on
 - Q4: the registry records that agy needs --add-dir for access, which is not confinement {probe: ecosystem/provider-registry.yaml:902}
 - Q4: the registry records a model family per model {probe: ecosystem/provider-registry.yaml:1489}
 - Q4: the registry already has a distinct-family rule for a role {probe: ecosystem/provider-registry.yaml:954}
-- Row row 1837 exists for /decide independent adjudication {probe: tasks/1837-decide-independent-adjudication-as-code.md:3}
+- Row 1837 exists for /decide independent adjudication {probe: tasks/1837-decide-independent-adjudication-as-code.md:3}
+- Evaluator round (IG2): run_phase builds every PhaseReceipt {probe: scripts/run_phase.py:240}
+- Evaluator round (IG2): run_phase hashes each input file {probe: scripts/run_phase.py:435}
+- Evaluator round (IG2): run_phase resolves {base} to the ref name origin/main, not a sha {probe: scripts/run_phase.py:294}
+- Evaluator round (IG2): the conductor runs the doit round, it does not spawn phases itself {probe: scripts/conductor.py:902}
+- Evaluator round (IG5): review_packet.py assembles context and judges nothing {probe: scripts/review_packet.py:41}
+- Evaluator round (IG3): receipts are gitignored {probe: .gitignore:194}
+- Evaluator round (IG3): land_lane works on origin/worktree-<slug> from an integration worktree {probe: scripts/land_lane.py:157}
+- Evaluator round (IG4): the contract path is per slug, with no round {probe: scripts/gen_lane_contract.py:2366}
+- Evaluator round (IG6): run_phase sets a reason on each failing run branch {probe: scripts/run_phase.py:205}
+- Evaluator round (IG9): Finding has no target field {probe: ecosystem/schema/phase_receipt.py:76}
+- Evaluator round (IG7): the registry has four families; the producer's count of family lines by value is anthropic 5, google 1, openai 1, xai 1 {unverified}
 
 ## Evidence and matrix
 
@@ -149,13 +160,13 @@ Weights: reuse=20 fidelity=20 measurability=20 footprint=15 timeliness=15 modifi
 | O2 extend stage record and receipts, one measure module | 4[^2] | 3 | 3 | 3 | 3 | 3 | 3.20 |
 | O3 wait for ADR-121 | 3 | 3 | 1 | 3 | 1 | 3 | 2.30 |
 | O4 registry-driven check set | 3 | 2 | 2 | 3 | 2 | 3 | 2.45 |
-| O5 [#1047] literal plus /decide-only checks | 3 | 2 | 2 | 3 | 3 | 2 | 2.50 |
+| O5 [#1047] literal plus /decide-only checks | 2 | 2 | 2 | 3 | 3 | 2 | 2.30 |
 
-[^1]: measured -- O0 changes nothing; this session's probes show nothing new is needed to keep it (scripts/conductor.py has 0 hash calls; scripts/decide_checks.py writes no ledger).
-[^2]: measured -- the fields O2 extends exist today: input_hash and InputDigest.sha256 at ecosystem/schema/phase_receipt.py:181 and :110, the nonce at :195, the Severity enum beside which the cause enum sits at :54, and the contract writers' existing refusal at scripts/gen_lane_contract.py:2367 and :2686; ADR-134 D4 already owns the StageRecord shape.
+[^1]: measured -- O0 adds nothing by construction: git status of this worktree at session start was clean and uv.lock is untouched by this run, so O0's footprint is zero new files, fields, gates or lock entries. (Revised after IG12: the first draft's footnote cited hash counts, which do not measure footprint.)
+[^2]: measured -- the fields O2 extends exist today: input_hash and InputDigest.sha256 at ecosystem/schema/phase_receipt.py:181 and :110, the nonce at :195, the Severity enum beside which the cause enum sits at :54, the receipt builder in scripts/run_phase.py that already hashes inputs (:435) and builds every PhaseReceipt (:240), and the contract writers' existing refusal at scripts/gen_lane_contract.py:2367 and :2686; ADR-134 D4 already owns the StageRecord shape. This measures that the extended fields and organs exist, which is what reuse scores; it does not measure integration effort (IS11).
 
 Reading the matrix:
-- O2 leads O5 by 0.70 and O4 by 0.75. Its only measured edge is reuse; every other O2 score is a judgment on an unbuilt design and caps at 3.
+- After the evaluator round, O5's reuse fell to 2: review_packet.py, the module [#1047] names, has no verdict schema to extend (scripts/review_packet.py:41, IG5). O2 leads O4 by 0.75 and O5 by 0.90. Its only measured edge is reuse; every other O2 score is a judgment on an unbuilt design and caps at 3.
 - O4 is not dropped wholesale: the cause enum's mapping table and the thresholds of (c) and (d) are data in O2 (ADR D1, D5), which takes O4's useful part.
 - O3 loses on timeliness and measurability: an event log stores verdicts but measures nothing, and ADR-121 is Proposed. O2's fields are D5's key, so a later fold reads them unchanged.
 - O5 meets [#1047]'s done-when but leaves PhaseReceipt and StageRecord without a cause and measures only /decide, so a lane failure stays unclassified.
@@ -166,19 +177,79 @@ Library-first check: stdlib statistics has no kappa and no Wilson interval; scik
 ## M2 flips attached
 
 - agy:G-17 on P6-7, rejected -> partly (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:64): "the base binding is partly present (harness.yaml:187, :178-180)". This run's probes confirm the partial: the input binding exists (input_hash and the nonce, ecosystem/harness.yaml:181, ecosystem/schema/phase_receipt.py:181 and :195) and {base} is a placeholder; the revision binding does not (no base, head or tree sha in PhaseReceipt; 0 hash calls in scripts/conductor.py). The ADR answers it in D2: it keeps the present binding and adds the missing one, so G-17 stands as a partial, not as "missing", matching DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 ("the binding is specified, not missing"). The harness.yaml lines have moved since the challenger's snapshot; the placeholders now sit at :180-181.
-- The /decide structure, P9 review section 3.3 (DIGEST-AJ-P9-REVIEW-2026-11-01.md:50-53): the producer answers challenges to its own work, the structure M2 measured as biased (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:83; 20 flips toward the challenger, DIGEST-AJ-P9-REVIEW-2026-11-01.md:27). The fix is row row 1837 and is not designed here. ADR-138 D6 says how its measures apply: the producer's Accepted/Rejected column is a verdict stream, measured against a blind key by D4, and the two evaluators' finding sets are a reader pair, measured by D5.
+- The /decide structure, P9 review section 3.3 (DIGEST-AJ-P9-REVIEW-2026-11-01.md:50-53): the producer answers challenges to its own work, the structure M2 measured as biased (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:83; 20 flips toward the challenger, DIGEST-AJ-P9-REVIEW-2026-11-01.md:27). The fix is row 1837 and is not designed here. ADR-138 D6 says how its measures apply: the producer's Accepted/Rejected column is a verdict stream, measured against a blind key by D4, and the two evaluators' finding sets are a reader pair, measured by D5.
 - No other M2 flip (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:56-82) names P6-3, P6-7, P6-9 or the independence lesson; G-17 is the only one for this run.
 
 ## Pre-mortem
 
 Assume ADR-138 was built as O2 and failed six months later. Likely causes, and what the design carries:
-1. The cause enum fills with UNCLASSIFIED or a catch-all. Against: UNCLASSIFIED is a member, never a default; a failed record with no cause is a schema error; the UNCLASSIFIED share is a reported number, a WARN above its threshold.
-2. Two taxonomies drift: [#1047]'s review_packet enum and the receipt enum. Against: one Literal in ecosystem/schema, imported by review_packet.py; a test asserts identity.
+1. The cause enum fills with UNCLASSIFIED or a catch-all. Against: UNCLASSIFIED is written only by run_phase, after a fixed precedence (mechanism, payload, highest-severity finding) finds no source, so a receipt is always written; the UNCLASSIFIED share is a reported number, a WARN above its threshold. (Revised after IS8 and IG6.)
+2. Two taxonomies drift: [#1047]'s review_packet enum and the receipt enum. Against: one Literal in ecosystem/schema/phase_receipt.py and no second copy; review_packet.py is not given one, because it judges nothing (IG5).
 3. Revision binding refuses honest landings (a merge commit changes the commit sha). Against: bind the TREE sha of the reviewed tip as well as its commit; landing compares the lane tip's tree, which a --no-ff merge keeps on the second parent.
 4. A re-freeze launders a contract change. Against: a re-freeze is a new StageRecord with a new round; every receipt whose contract_sha256 differs from the current freeze is stale and its stage incomplete.
-5. The key is too small and a rate is quoted anyway. Against: below 30 adjudicated items the rate is NOT COMPUTED; every rate carries its Wilson interval.
-6. The key inherits the bias it measures. Against: key adjudicators come from two families other than the producer's and the judged reviewer's, read through ADR-134 D3's builder; ties go to a third family, never the orchestrator (the pattern of DIGEST-AJ-P9-REVIEW-2026-11-01.md:39-40).
+5. The key is too small and a rate is quoted anyway. Against: below 30 adjudicated items the rate is NOT COMPUTED; every proportion carries a Wilson interval and kappa a seeded bootstrap interval (IS7).
+6. The key inherits the bias it measures. Against: key adjudicators come from two families other than the producer's and the judged reviewer's, given only the contract and the diff (not ADR-134 D3's view, which shows the judged verdict, IG8); with four families known there is no third family for ties, so a disagreement leaves the item UNKEYED and counted, never ruled by the orchestrator (revised after IS4 and IG7; the P9 pattern at DIGEST-AJ-P9-REVIEW-2026-11-01.md:39-40 assumed three families).
 7. Disagreement is misread as rubber-stamping again. Against: the rubber-stamp rate counts only approvals where the key finds a defect, never a disagreement with another reviewer (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:42).
 8. A high finding-Jaccard is read as copying when both readers found the same real defect. Against: quote-Jaccard (verbatim spans) is the copy signal; finding-Jaccard is reported beside it; both stay advisory until two batches of data confirm the threshold.
-9. A reader reads outside its stage (agy). Against: a confinement witness: every quote must occur in a declared input; a quote found only in a sibling reader's output is a copy defect.
+9. A reader reads outside its stage (agy). Against: a quote provenance check over the reader's inputs, the tree and the diff; a quote found only in the other reader's output is a copy defect. It cannot see unquoted reading, and says so (IS5, IG9).
 10. D2's fields arrive beside ADR-134's PhaseReceipt v2 build and collide. Against: they ride the same schema bump as session_id, one version.
+
+## Evaluator findings and responses
+
+Evaluator records (header lines copied verbatim from each file; one em dash is written as -- to keep the file ASCII).
+
+EVAL-i-sol.md: served-model: gpt-6-sol (UNVERIFIED, R9: the codex banner echoes the request; the model's own header line read gpt-6-astra) / attestation-source: codex exec header (model: gpt-6-sol, echo of the request) / session: 01a19857-e42a-72e0-8e41-3031790d79bd / VERDICT: DISAGREE -- the revision and freeze guarantees are not established by the specified checks, and the proposed measurements lack necessary operational definitions.
+
+EVAL-i-argon.md: served-model: gemini-4-argon / attestation-source: copilot usage file currentModel (eval-i-argon/usage.json) / session: copilot-session-see-usage-file / VERDICT: DISAGREE -- The draft ADR contains multiple self-defeating mechanical defects verified against the worktree (the full verdict line is in the file; it names the baseline_id equality, the freeze deadlock, the gitignored receipts, the unpopulateable failure_class, the 5-family judge requirement and the false-positive confinement check).
+
+Every finding was checked by the producer against the cited file and line before it was answered; the probes the answers rely on are in Subagent claims, "Evaluator round" bullets.
+
+| id | objection (short) | response |
+|---|---|---|
+| IS1 | spawn-time tree does not prove the reviewer judged it | **Accepted** -- D2: head and tree stamped at harvest, the given diff is an input under input_hash, the payload echoes tree_sha; the ADR now says this binds what was given, not what was attended to |
+| IS2 | "any" stage 5/6 receipt lets a missing review pass | **Accepted** -- D2: land_lane requires every receipt ADR-134 stages 5 and 6 require, present, complete and on the tip's tree |
+| IS3 | a direct file write bypasses the freeze | **Accepted** -- D3: a write by other means cannot be prevented; it is detected at spawn (run_phase) and at land; the guarantee is restated as same-bytes, not unchangeable |
+| IS4 | too few eligible families, no unkeyed rule | **Accepted** -- D4: UNKEYED (no families) and UNKEYED (disagreement), both counted |
+| IS5 | quote checks cannot establish what agy read | **Accepted** (partly) -- renamed a quote provenance check with its limit stated; kept, because a copied or out-of-scope quote is a real detectable defect (AJ caught one, DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:24) |
+| IS6 | finding-Jaccard empty set and line matching undefined | **Accepted** -- D5: both empty gives NOT COMPUTED, one empty 0; match = same path, lines within 3, same tree_sha; different tree shas not compared |
+| IS7 | Wilson interval does not apply to kappa | **Accepted** -- D4: Wilson for proportions, a seeded bootstrap (1,000 resamples) for kappa |
+| IS8 | no precedence rule for one cause | **Accepted** -- D1: mechanism, then payload top-level, then highest-severity finding (ties by id), then UNCLASSIFIED |
+| IS9 | contract hash is not ADR-121's comparison policy | **Accepted** -- D2: a separate comparison_policy field (comparator id and version); contract_sha256 kept apart |
+| IS10 | /decide rows lack stable ids and revision links | **Accepted** (partly) -- ids exist already (the `- id:` markup decide_checks parses, scripts/decide_checks.py:276); revision links do not, and D6 now assigns recording them to row 1837 and keeps D6 a report |
+| IS11 | reuse 4 measures existence, not integration effort | **Accepted** (partly) -- footnote 2 now says it measures existence, which is what reuse scores; the score stays 4 because the fields and run_phase's hashing are measured present, and integration effort is not a criterion |
+| IG1 | baseline_id equality refuses every merge | **Accepted** -- D2: baseline_id and comparison_policy compared only among receipts that carry one; absent rather than NONE |
+| IG2 | run_phase, not the conductor, spawns and hashes; spawn-time stamp is wrong tree | **Accepted** -- verified scripts/run_phase.py:240, :294, :435 and scripts/conductor.py:902; D2/D3 now name run_phase, stamp at harvest and resolve {base} to a sha; claims added |
+| IG3 | gitignored receipts are not where land_lane reads | **Accepted** -- verified .gitignore:194 and scripts/land_lane.py:157; D2 names the carrier, a read-only sibling read of the lane worktree's receipts (ADR-133 ruling, ADR-134's artifact), refuses when absent; flip to merge trailers |
+| IG4 | round-less contract path deadlocks a re-freeze | **Accepted** -- verified scripts/gen_lane_contract.py:2366; D3: freeze keyed by (lane, round), a --refreeze flag writes round + 1 and stales old receipts |
+| IG5 | review_packet.py has no verdict schema | **Accepted** -- verified scripts/review_packet.py:41; D1 leaves review_packet unchanged and asks the operator whether [#1047] is met in phase_receipt; O5 reuse 3 to 2, total 2.30 |
+| IG6 | required failure_class has no deterministic source | **Accepted** -- D1: run_phase derives it by fixed precedence from its own run branches (scripts/run_phase.py:205) and writes UNCLASSIFIED itself; a payload top-level field added |
+| IG7 | four families leave no tie-breaker | **Accepted** -- producer count anthropic 5, google 1, openai 1, xai 1; D4 drops the third-family tie-break for UNKEYED (disagreement); open question 3 restated |
+| IG8 | D3 view leaks the judged verdict; lane_report and /decide lack a tree | **Accepted** -- D4: key view is contract + diff only; lane_report Review out of scope; /decide handled as a report in D6 with shas owed to row 1837 |
+| IG9 | inputs list only the contract; Finding has no target; delimiters undefined | **Accepted** -- verified ecosystem/schema/phase_receipt.py:76; D5: legitimate sources include tree and diff, optional Finding.target, quotes = backtick or double-quote spans of 20+ chars, empty-set rule |
+| IG10 | paths check extracted no file:line claims; row 1837 unbracketed | **Accepted** (partly) -- repo citations in the ADR are now backticked so paths resolves them; transport citations stay bare as P-1 orders; [#1837] stays unbracketed because paths flags it dead in the generated BACKLOG.md, which this run may not regenerate |
+| IG11 | digests and the M04 fixture are not in the repo | **Accepted** (partly) -- the response measure now uses synthetic fixtures and D7 bars KB content from the repo (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:144); the digests stay cited by bare name, as operator rule P-1(1) requires for inputs |
+| IG12 | footnote 1 stuffs "measured"; D6 vs advisory D5 contradict | **Accepted** -- footnote 1 rewritten to measure footprint (clean tree, no lock change); D6 now reports only, "not independent" is a report, not a disqualification |
+
+PRODUCER IS1 accepted
+PRODUCER IS2 accepted
+PRODUCER IS3 accepted
+PRODUCER IS4 accepted
+PRODUCER IS5 partly
+PRODUCER IS6 accepted
+PRODUCER IS7 accepted
+PRODUCER IS8 accepted
+PRODUCER IS9 accepted
+PRODUCER IS10 partly
+PRODUCER IS11 partly
+PRODUCER IG1 accepted
+PRODUCER IG2 accepted
+PRODUCER IG3 accepted
+PRODUCER IG4 accepted
+PRODUCER IG5 accepted
+PRODUCER IG6 accepted
+PRODUCER IG7 accepted
+PRODUCER IG8 accepted
+PRODUCER IG9 accepted
+PRODUCER IG10 partly
+PRODUCER IG11 partly
+PRODUCER IG12 accepted

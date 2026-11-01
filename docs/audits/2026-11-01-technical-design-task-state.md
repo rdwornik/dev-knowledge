@@ -24,6 +24,11 @@ Known constraints (no answer is pre-committed):
 
 Sub-questions fanned out: Q1 what resume and state exist today; Q2 the event and record shapes already decided; Q3 briefs, the contract template and the question path.
 
+Spend (from the Agent tool completion records; no budget was stated before launch, since this run predates D8):
+- spend: Q1 51295 tokens, 14 tool calls, 273 s
+- spend: Q2 45418 tokens, 12 tool calls, 321 s
+- spend: Q3 47370 tokens, 22 tool calls, 180 s
+
 ## Subagent briefs
 
 The sub-question of each brief is quoted below. Brief 1 is verbatim; briefs 2 and 3 are abridged (file paths shortened, the shared CONTEXT line and the common exclusion and output paragraph omitted). The full texts are the files the subagents were sent (C:\Users\1028120\.claude\jobs\05d3b2bf\tmp\briefs-e31-ii\). The three files passed `decide_checks subagent-exclusions` with 0 defects.
@@ -92,7 +97,9 @@ Every claim below was re-run by the producer this session (decide_checks subagen
 - Q3: R12 is "No launch without (a) a sign-off the operator signed and (b) a lane contract produced by the distiller" {probe: protocols/STANDING_RULINGS.md:7680}
 - Q3: the transport already has a QUESTION request kind {probe: scripts/transport.py:88}
 - Q3: gen_handoff requires every QUESTION file in to_browser to be answered or carried {probe: scripts/gen_handoff.py:1491}
-- Q3: no script carries a lane's question to the dispatcher; the subagent did not read dispatch.py for it {unverified}
+- Q3: no script carries a lane's question to the dispatcher; the producer re-checked: QUESTION occurs 0 times in scripts/dispatch.py and its hits elsewhere in scripts/ are the transport kind, the handoff generator and unrelated prose {unverified}
+- Q2 (producer, after IIS1): ADR-121 D1 stores one JSON file per event on harness-state {probe: docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md:63}
+- Q1 (producer, after IIG5): seat_registry.py already appends events through record_event {probe: scripts/seat_registry.py:184}
 
 ## Evidence and matrix (AJ 6)
 
@@ -107,7 +114,7 @@ Every claim below was re-run by the producer this session (decide_checks subagen
 
 ### Reconciling the operator's ruling with the flips
 
-The operator ruled one state FILE per task. The AJ digest and flips G-07 and G-23 rule out a model-written file and ask for progress derived from ADR-121 events. Both hold when **the one file is an append-only event log in the ADR-121 envelope, written only by code, and "state" is a pure function of it computed by the reader.** No second, mutable snapshot exists that could drift from the events (G-07's objection to a per-task file); progress is derived from events (G-23); and there is exactly one file per task (the operator). When ADR-121 is ratified, the file's lines are the lane's outbox events (D3) with no reshaping, and the reader becomes a D8 projection.
+The operator ruled one state FILE per task. The AJ digest and flips G-07 and G-23 rule out a model-written file and ask for progress derived from ADR-121 events. Both hold when **the one file is an append-only event log carrying ADR-121's D4 fields, written through one sanctioned code path (detection, not prevention, of a hand-written line: IIS4, IIG1), and "state" is a pure function of it computed by the reader.** No second, mutable snapshot exists that could drift from the events (the reading of G-07 this run adopts; its pack :297 was not read, IIS2); progress is derived from events (G-23); and there is exactly one file per task (the operator). When ADR-121 is ratified, each line maps field-for-field onto one outbox event (ADR-121 D3), but storage and authority change: ADR-121 D1 keeps one file per event on harness-state under the integrator (corrected after IIS1, IIG4). The record's six D4 fields need no reshaping; the extra fields follow ADR-121's final schema.
 
 ### Options
 
@@ -124,27 +131,27 @@ Weights: resume=25 integrity=20 compat=20 reuse=15 footprint=10 now=10
 | S0 status quo | 1 | 1 | 1 | 3 | 4[^1] | 3 | 1.80 |
 | S1 mutable JSON snapshot + resume verb | 3 | 3 | 2 | 3 | 3 | 3 | 2.80 |
 | S2 wait for ADR-121 projection | 3 | 3 | 3 | 3 | 2 | 1 | 2.70 |
-| S3 append-only event file in the ADR-121 envelope + resume verb | 3 | 3 | 3 | 4[^2] | 3 | 3 | 3.15 |
+| S3 append-only event file in the ADR-121 envelope + resume verb | 3 | 3 | 3 | 3 | 3 | 3 | 3.00 |
 | S4 per-lane git ref now | 3 | 3 | 3 | 2 | 2 | 2 | 2.65 |
 | S5 extend seat_state.py per-seat file | 2 | 3 | 2 | 4[^3] | 3 | 3 | 2.70 |
 | S6 lane-written LANE-STATE.yml (intake 80) | 2 | 1 | 1 | 3 | 3 | 3 | 1.95 |
 
 [^1]: measured -- S0 changes nothing, so it adds no code, gate or file; this session's reading of scripts/dispatch.py:1945 shows the cost it keeps, a prompt naming no refusal.
-[^2]: measured -- the directory S3 writes into is already fixed by ADR-134:64 and resolved by scripts/conductor.py:906, the receipts root by scripts/dispatch.py:815, and the atomic-write pattern exists at scripts/seat_state.py:322; all read this session.
+[^2]: (withdrawn after IIS10/IIG3) -- S3 and S1 would reuse the same directory (ADR-134:64) and receipts root (scripts/dispatch.py:815); neither reuses an append-only writer, so S3's reuse is 3, as S1's.
 [^3]: measured -- scripts/seat_state.py exists with a schema id, atomic write (:322) and torn/stale refusal, read this session.
 
 Reading the matrix:
-- S3 leads S1 by 0.35. The lead is compat (+0.20) and reuse (+0.15): S3's lines are ADR-121 outbox events, so ratification changes the transport, not the record. S1 keeps a mutable snapshot, the very artifact G-07 objects to.
+- S3 leads S1 by 0.20 (the first draft said 0.35; the reuse 4 was withdrawn after IIS10 and IIG3). The whole lead is compat, a judgment: S3's lines carry ADR-121 D4's six fields, so ratification is one field map plus a change of storage and authority (one file per event on harness-state, ADR-121:63), not a reshaping of a snapshot. S1 keeps a mutable snapshot, the very artifact G-07 objects to. The margin is small and rests on no measured score.
 - S2 and S5 tie at 2.70. S2 loses on now: row 1830 (reserved) is wave 0 and ADR-121 has been Proposed since 2026-09-23. S5 loses on resume and compat: seat_state.py is per seat, keyed by lane state enum with prose-receipt evidence, not per task, and its timestamp fill (:203) breaks Maister item 5.
 - S4 is ADR-121 D3 built before ADR-121 is ratified: it pre-empts the single-writer and fold decisions (D2, D7) that are still open.
 - S6 fails integrity by construction: the model writes the file, which the AJ ruling and G-07 exclude.
-- Every non-S0 score is a judgment except the reuse 4s. The margin S3 over S1 is moderate; the flip-condition names S1.
+- Every score except S0's footprint and S5's reuse is a judgment. The flip-condition names S1 with numeric thresholds.
 
 ## AJ 5 -- research briefs with rejection criteria ([#884])
 
 What exists: decide.md step 1 says "state the question and its known constraints; nothing more" (.claude/commands/decide.md:30); the only brief check is the excluded-root substring (scripts/decide_checks.py:390); no brief template exists (claim above, unverified count 0). Row 884 asks for an agent cap, a per-agent deadline and a token budget before launch, refusal when missing, and a prior-art check (tasks/884-...:12). The M1 judge read the research-brief theme as hub /decide work (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:45), which confirms that its home is /decide, not a consumer carrier.
 
-Options: R0 prose in decide.md; R1 a header block in every brief file, checked by a new decide_checks subcommand `brief-schema` beside subagent-exclusions; R2 a separate brief organ with its own CLI. R1 reuses the existing gate and the brief files the run already saves; R2 adds an organ for one block of fields. Decision: R1. The fields are fixed in the ADR (D7).
+Options: R0 prose in decide.md; R1 a header block in every brief file, checked by a new decide_checks subcommand `brief-schema` beside subagent-exclusions; R2 a separate brief organ with its own CLI. R1 reuses the existing gate and the brief files the run already saves; R2 adds an organ for one block of fields. Decision: R1, run before fan-out (IIS7). The fields are fixed in the ADR (D8).
 
 ## AJ 8 -- the clarification pass in the contract
 
@@ -158,8 +165,8 @@ Flips of this run's items, with how the ADR answers them:
 
 | flip | item | file:line | how the ADR answers |
 |---|---|---|---|
-| agy:G-07 partly -> accepted | P6-6 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:71 | no mutable per-task file exists; the one file is an append-only event log, state is computed (D1, D3) |
-| agy:G-23 partly -> accepted | P6-6 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:73 | progress is derived from events in the ADR-121 envelope; on ratification the lines are outbox events (D1, D6) |
+| agy:G-07 partly -> accepted | P6-6 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:71 | no mutable per-task file exists; the one file is an append-only event log, state is computed (D1, D3, D4); the cited pack :297 was not read and the reading is an open question |
+| agy:G-23 partly -> accepted | P6-6 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:73 | progress is derived from events in the ADR-121 envelope; on ratification each line maps onto one outbox event (D3, D7) |
 
 All other M2 flips of section 3 (agy:G-17 is run (i)'s and is omitted):
 
@@ -169,7 +176,7 @@ All other M2 flips of section 3 (agy:G-17 is run (i)'s and is omitted):
 | agy:G-19 rejected -> accepted | theme:M08-T02 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:59 | concerns theme:M08-T02; not an item of this run |
 | agy:G-02 rejected -> partly | B4 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:61 | concerns B4; not an item of this run |
 | agy:G-10 rejected -> partly | C2 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:62 | concerns C2; not an item of this run |
-| agy:G-12 rejected -> partly | B2 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:63 | concerns B2; not an item of this run (B2's "research goal" field is the consumer intake's, not the /decide brief of D7) |
+| agy:G-12 rejected -> partly | B2 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:63 | concerns B2; not an item of this run (B2's "research goal" field is the consumer intake's, not the /decide brief of D8) |
 | agy:G-21 rejected -> partly | mm:code-quality-pragmatist | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:65 | concerns mm:code-quality-pragmatist; not an item of this run |
 | agy:G-27 rejected -> partly | C4 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:66 | concerns C4; not an item of this run |
 | agy:G-30 rejected -> partly | mm:artifact reconciliation | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:67 | concerns mm:artifact reconciliation; not an item of this run (D5's artifact check at resume reuses no reconciliation organ) |
@@ -178,7 +185,7 @@ All other M2 flips of section 3 (agy:G-17 is run (i)'s and is omitted):
 | agy:G-16 partly -> accepted | tool:jqwik | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:72 | concerns tool:jqwik; not an item of this run |
 | agy:G-28 partly -> accepted | P6-10 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:74 | concerns P6-10; not an item of this run |
 | sol:S-01 partly -> accepted | P6-2 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:75 | concerns P6-2; not an item of this run |
-| sol:S-08 partly -> accepted | mm:quick commands | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:76 | concerns mm:quick commands; not an item of this run (read as a constraint on D8: no second launch path) |
+| sol:S-08 partly -> accepted | mm:quick commands | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:76 | concerns mm:quick commands; not an item of this run (read as a constraint on D9: no second launch path) |
 | sol:S-11 partly -> accepted | C4 | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:77 | concerns C4; not an item of this run |
 | sol:S-15 partly -> accepted | mm:product-design workflows | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:78 | concerns mm:product-design workflows; not an item of this run |
 | sol:S-18 partly -> accepted | tool:Jinja | DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:79 | concerns tool:Jinja; not an item of this run |
@@ -190,19 +197,77 @@ Section 3 lists 22 flips (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:13): 2 above, 
 ## Pre-mortem
 
 Assume S3 was built and failed six months later. Likely causes, and what the design carries against each:
-1. **The model writes the file anyway**, through a shell redirect or an Edit. Against: the writer is one module; a reader refuses a line whose writer is not on the module's allowlist of code writers; a test asserts no lane prompt or contract template names the file path.
-2. **Timestamps are guessed or zero-filled** (14/14 AJ state files were, DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:97). Against: the writer reads the clock itself and takes no ts argument; the reader refuses a missing, zero or non-monotonic ts. seat_state.py's fill (:203) is not copied.
+1. **The model writes the file anyway**, through a shell redirect or an Edit. Nothing prevents it (IIS4, IIG1): a lane is the same OS user. Against (detection only): every line carries seq and prev_sha, so an edit or insertion before the end is refused; resume refuses any recorded phase whose commit or receipt sha git does not confirm, so a forged line moves nothing. Prevention is ADR-121's integrator fold or OS isolation, not built here.
+2. **Timestamps are guessed or zero-filled** (14/14 AJ state files were, DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:97). Against: the writer reads the clock itself and takes no ts argument; the reader refuses a missing or zero ts; order is seq, so an equal or earlier ts after a clock step is data, not a refusal (IIS6, IIG6). seat_state.py's fill (:203) is not copied.
 3. **A duplicate key or a torn line passes.** Against: strict parse with object_pairs_hook rejecting duplicates; a torn final line is refused, not skipped; append with a lock (the LAUNCH-LOCK pattern) and fsync.
-4. **The resume verb trusts a stale record.** The file says phase 3 done, but the branch was reset. Against: resume validates artifacts before it renders a prompt: worktree present, branch present, every recorded commit an ancestor of the branch head, the contract's sha unchanged, the recorded receipt files present. Any mismatch refuses with the mismatch named.
+4. **The resume verb trusts a stale record.** The file says phase 3 done, but the branch was reset. Against: resume validates artifacts before it renders a prompt: worktree present, branch present, every recorded commit an ancestor of the branch head, the contract's sha unchanged, every recorded receipt present with its recorded sha256 (IIS9). Any mismatch refuses with the mismatch named. An absent file is no-record and refuses (IIS5).
 5. **ADR-121 lands with a different envelope**, for example no ts, or entity named differently. Against: the record carries ADR-121 D4's six fields by name, and ts as an extra field; the flip-condition names this; a one-shot migration is a line-by-line map, not a reshaping, because every line is already one event.
 6. **The file outlives its lane or is lost with it.** Against: it lives in the primary's gitignored logs/receipts/LANE-<slug>/ (not in the worktree), so teardown does not delete it and no leftovers are created in the tree; logs retention governs its age.
 7. **Two writers race** (dispatch stop and a phase write). Against: one lock per slug, expected_revision is the line count read under the lock, and a mismatched expected_revision is refused (ADR-121 D4 in miniature).
 8. **The resume prompt grows prose again.** Against: the prompt is rendered from the projection by a fixed template with only enum values, ids, shas and the recorded refusal text; a test pins the template.
-9. **Per task vs per lane drift.** A lane runs one task by contract today. Against: the file is keyed by task id and lane slug both; a second task in one lane is a second file.
+9. **Per task vs per lane drift.** A lane runs one task by contract today. Against: the file is keyed by task id and lane slug both; a second task in one lane is a second file, and resume and record take --task (IIG2).
+10. **The file is lost with its checkout** (IIS3). Accepted as a limit: it is gitignored and local until ADR-121's published state exists; the git checks in resume stay authoritative.
 
 ## Open for the operator
 
-1. Confirm that "one state file" may be an append-only event file whose state is computed (D1), not a mutable snapshot.
+1. Confirm that "one state file" may be an append-only event file whose state is computed (D1), not a mutable snapshot, and that G-07 (whose pack :297 was not read) objects to model-written stored state, not to any per-task file.
 2. Confirm the location: the primary's gitignored logs/receipts/LANE-<slug>/, not the worktree and not git.
 3. Should a lane's own phase boundary be recorded by a CLI verb the lane runs (code writes, the model only invokes with enum arguments), or only by the conductor and dispatch? D2 proposes both.
-4. AJ 8: confirm that the operator answers clarification questions in the sign-off (K1).
+4. AJ 8: confirm that the operator answers clarification questions in a re-signed sign-off revision (D9).
+5. D2 gives detection, not prevention, of a hand-written line: accept detection until ADR-121's fold, or ask for OS-level isolation?
+
+## Evaluator findings and responses
+
+**EVAL-ii-sol.md.** served-model: gpt-6-sol (UNVERIFIED, R9: the codex banner echoes the request) / attestation-source: codex exec header (model: gpt-6-sol, echo of the request) / session: 01a19857-fbf0-7332-acaf-b4136a7409fd. Verdict line: "VERDICT: DISAGREE. The proposed state authority and ADR-121 migration are unresolved, and several required gates cannot be verified from the specified design."
+
+**EVAL-ii-argon.md.** served-model: gemini-4-argon / attestation-source: copilot usage file currentModel (eval-ii-argon/usage.json) / session: copilot-session-see-usage-file. Verdict line: "VERDICT: AGREE-WITH-AMENDMENTS" (fix the slug vs task-id ambiguity, wire [#1613] into the daemon path, relax timestamps, define compaction and the sign-off answer schema, drop the allowlist-as-prevention claim).
+
+Each finding was checked against the repo by the producer before its response; the lines read are named in the cells.
+
+| id | objection (short) | response |
+|---|---|---|
+| IIS1 | ADR-121 stores one file per event; migration changes storage and authority | **Accepted** -- confirmed at ADR-121:63 (D1, one JSON file per event on harness-state). D7 (was D6) now says storage and authority change and only the six D4 fields map one to one; "changes the transport, not the record" removed. |
+| IIS2 | the G-07 objection is declared resolved without reading pack :297 | **Accepted** -- the pack is in the AJ KB, outside the repo, and was not read. D1 no longer claims G-07 is resolved; it states the reading adopted and the operator is asked to confirm it (open question 1). |
+| IIS3 | gitignored per-checkout file is lost with the checkout; ADR-121 D7 wants published state | **Accepted** (partly) -- the limit is real (logs/receipts is gitignored, git check-ignore logs/receipts/x) and is now stated in D7 and pre-mortem 10. No replication is added: before ADR-121 the purpose is a same-machine resume and D5's git checks stay authoritative; publishing is ADR-121's job. |
+| IIS4 | a writer string and allowlist do not prove code wrote a line | **Accepted** -- a lane is the same OS user. D2 now says detection, not prevention: seq + prev_sha chain and D5's git and sha validation make a forged line inert; prevention needs ADR-121's fold or OS isolation (open question 5). |
+| IIS5 | resume has no rule for an absent file | **Accepted** -- D4 projects an absent file to no-record (distinct from never-started); D5 refuses no-record, so a pre-ADR lane is resumed by hand, never by guess. |
+| IIS6 | strictly increasing wall-clock ts rejects valid events | **Accepted** -- order is now the line's seq; D4 refuses only a missing or zero ts and records an equal or earlier ts as data. |
+| IIS7 | brief-schema checks saved files, not before launch | **Accepted** (partly) -- D8 now runs brief-schema with subagent-exclusions on the saved briefs before any subagent launches, as this run did for exclusions. Runtime deadline abandonment and non-/decide dispatches stay [#884]'s; this ADR does not claim them. |
+| IIS8 | clarification answers in the same sign-off are circular | **Accepted** -- D9 is now three steps: draft contract with CQ ids, a re-signed sign-off revision with one CQ<n>: line each, re-distill that refuses to freeze without every answer and records the sign-off sha. |
+| IIS9 | checking receipt existence does not validate recorded shas | **Accepted** -- D5 now compares each receipt's sha256 with the recorded sha (ADR-134:51 records artifact shas). |
+| IIS10 | S3's measured reuse 4 measures a directory, not a writer; lead unsupported | **Accepted** -- the cited paths (conductor.py:906 per-round dir, seat_state.py:317-322 whole-file replace) reuse equally for S1. S3 reuse 3; S3 3.00, lead over S1 0.20, all of it judgment, stated in the reading. |
+| IIS11 | flip thresholds have no numbers | **Accepted** -- S1 flip now: project over 10,000 lines above one second, or more than 1 in 100 appends refused on expected_revision. |
+| IIG1 | lane has shell access; allowlist is obscurity | **Accepted** -- same as IIS4; D2 reworded to detection with the chain and git validation; the prompt-path test is dropped as a guarantee. |
+| IIG2 | resume takes slug, record omits lane and task | **Accepted** -- record takes --lane and --task; resume takes --task, required when LANE-<slug>/ holds more than one file. |
+| IIG3 | S3 reuse 4 vs S1 reuse 3 on the same assets | **Accepted** -- same correction as IIS10; matrix recomputed by decide_checks. |
+| IIG4 | 12-field record is not schema-identical to ADR-121 D4 | **Accepted** -- confirmed at ADR-121:75 (six fields, no ts). D3 is retitled "D4's fields inside an extended record, not an ADR-121 event as is"; D7 maps the six and lets ADR-121's final schema decide the rest. |
+| IIG5 | [#1613] needs seat_registry and the daemon path, not only the manual verb | **Accepted** -- confirmed tasks/1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md:12 names seat_registry.py and the queue/resume path; seat_registry.py:184 has record_event. New D6 keeps the event there, binds the queue path's refusal, and mirrors the event into the task file. |
+| IIG6 | same-millisecond or NTP step-back ts fail | **Accepted** -- same change as IIS6. |
+| IIG7 | compaction re-injection has no trigger | **Accepted** -- the Maister item 3 claim is removed from D5 and listed as not decided here. |
+| IIG8 | this run's briefs lack the D8 header; spend format undefined | **Accepted** (partly) -- D8 now fixes raw key: value lines and a spend: line per brief checked by brief-schema --spend; this evidence now records the three briefs' spend. The briefs are not rewritten: they were sent before the rule existed, and retro-fitting a header would misstate what the subagents received. |
+| IIG9 | no question-answer link; ambiguity detection would need a model | **Accepted** -- D9 adds CQ ids answered by CQ<n>: lines with the sign-off sha recorded, and limits questions to three deterministic rules (unresolved locator, Done-when with no checkable verb or file, touches outside refs). |
+| IIG10 | the record-verb flip condition is vacuous | **Accepted** -- that flip item is removed; D2 no longer claims a lane cannot reach the file, and the flip on D2 is now the operator asking for prevention. |
+| IIG11 | six unverified claims cannot be trusted | **Accepted** (partly) -- the producer re-ran the five zero counts this session (object_pairs_hook, PAUSED, StageRecord, QUESTION in the template, QUESTION in dispatch.py: all 0) and wrote the counts into the claims. They stay {unverified} because the markup contract's grep -c probe fails on a zero count; that is the sanctioned form for an absence, not an untested claim. |
+
+PRODUCER IIS1 accepted
+PRODUCER IIS2 accepted
+PRODUCER IIS3 partly
+PRODUCER IIS4 accepted
+PRODUCER IIS5 accepted
+PRODUCER IIS6 accepted
+PRODUCER IIS7 partly
+PRODUCER IIS8 accepted
+PRODUCER IIS9 accepted
+PRODUCER IIS10 accepted
+PRODUCER IIS11 accepted
+PRODUCER IIG1 accepted
+PRODUCER IIG2 accepted
+PRODUCER IIG3 accepted
+PRODUCER IIG4 accepted
+PRODUCER IIG5 accepted
+PRODUCER IIG6 accepted
+PRODUCER IIG7 accepted
+PRODUCER IIG8 partly
+PRODUCER IIG9 accepted
+PRODUCER IIG10 accepted
+PRODUCER IIG11 partly
