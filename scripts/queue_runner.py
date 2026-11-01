@@ -226,6 +226,11 @@ class Ledger:
                 raise LedgerHalt(f"ledger {self.path} line {number} is not valid JSON ({exc}); nothing fires") from exc
             if not isinstance(row, dict):
                 raise LedgerHalt(f"ledger {self.path} line {number} is not a JSON object; nothing fires")
+            if not (isinstance(row.get("key"), str) and row["key"] and isinstance(row.get("status"), str)):
+                # A row without the event key and status cannot say which event it records, so reading it
+                # would let a fired event look unseen after a restart.
+                raise LedgerHalt(f"ledger {self.path} line {number} has no usable `key` and `status`; "
+                                 "nothing fires")
             self.rows.append(row)
 
     def writable(self) -> bool:
