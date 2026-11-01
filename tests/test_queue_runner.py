@@ -516,3 +516,44 @@ def test_main_rejects_an_interval_below_one_second(tmp_path):
         qr.main(["watch", "--batch", "E3.0", "--state-file", str(tmp_path / "s.md"), "--transport",
                  str(tmp_path), "--contracts", str(_contracts()[0]), "--interval", "0", "--once"])
     assert exit_info.value.code == 2
+
+
+def test_a_fire_that_raises_counts_as_a_failed_fire_and_the_cap_still_holds(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    ledger_path = tmp_path / "ledger.jsonl"
+    calls = []
+
+    def raising_fire(argv, env):
+        calls.append(argv)
+        raise OSError("the child never started")
+
+    for _ in range(4):
+        qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                    fire=raising_fire)
+
+    assert len(calls) == 3
+
+
+def test_a_dry_run_of_a_machine_refused_event_prints_nothing_and_writes_nothing(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, state="STATE a MERGED abc1234 2026-11-01T10:00 5\n",
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"})
+    ledger_path = tmp_path / "ledger.jsonl"
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, []))
+    before = ledger_path.read_bytes()
+    (transport / "to-browser" / "SESSION-a.md").write_text(
+        "HANDBACK worktree-a @ 2222222222222222222222222222222222222222 code\n", encoding="utf-8")
+    lines = []
+
+    fired = qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                        fire=lambda *_a: pytest.fail("a dry run must not fire"), dry_run=True,
+                        echo=lines.append)
+
+    assert fired == [] and lines == []
+    assert ledger_path.read_bytes() == before

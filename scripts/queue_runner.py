@@ -328,6 +328,8 @@ def subprocess_fire(argv: list, env: Mapping) -> FireResult:
                               encoding="utf-8", errors="replace", timeout=FIRE_TIMEOUT_S, check=False)
     except subprocess.TimeoutExpired:
         return FireResult(124, f"dispatch.py {argv[0]} timed out after {FIRE_TIMEOUT_S}s")
+    except OSError as exc:      # the child never started: a failed fire like any other, so the cap of 3 holds
+        return FireResult(127, f"dispatch.py {argv[0]} did not start: {exc}")
     return FireResult(proc.returncode, (proc.stdout or "") + (proc.stderr or ""))
 
 
@@ -386,7 +388,11 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             ledger.record(event, STATUS_FIRED, state_after=plan.state_after)
             return
 
-        result = fire(argv, env)
+        try:
+            result = fire(argv, env)
+        except Exception as exc:    # an injected or custom fire that raises counts as a failed fire
+            logger.exception("fire raised for %s %s", event.kind, event.lane)
+            result = FireResult(125, f"fire raised {type(exc).__name__}: {exc}")
         fired.append(Fired(verb, event.lane, event.kind, argv, result.returncode))
         if result.returncode == 0:
             logger.info("fired dispatch.py %s for %s %s", verb, event.kind, event.lane)
