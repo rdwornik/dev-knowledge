@@ -27,6 +27,13 @@ USAGE:
         --state-file <integrator receipt> --transport <root> --contracts <LANE files...> \\
         [--interval 60] [--once] [--dry-run]
 
+A `repair 3 of 2` REFUSED file is outside `dispatch.py repair`'s domain: it is the event that takes the lane,
+through the machine, into `failed`, and it fires ONE `dispatch.py queue` pass (not a repair) so dependents are
+held and the slot is released at the moment the lane fails. A later integrator `STATE <lane> FAILED` line for a
+lane already `failed` is an event the machine does not allow, so it is refused and recorded with no fire; it
+is never double-fired (dispatcher ruling 2026-11-01, option C). An existing ledger that cannot be read, or has a
+malformed row, halts the runner (LedgerHalt, exit 1) rather than being read as empty and refiring.
+
 `--contracts` takes several values, which click cannot do for one option, so this CLI is argparse.
 Event order within one pass is fixed: handbacks (file name, then line order), state lines (file
 order), refusals (file name).
@@ -205,16 +212,21 @@ class Ledger:
         self.halted = False         # sticky: set when an append failed after a fire (see LedgerHalt)
         try:
             lines = self.path.read_text(encoding="utf-8").splitlines()
-        except OSError:
-            lines = []
-        for line in lines:
+        except FileNotFoundError:
+            lines = []              # no ledger yet: an empty one
+        except (OSError, UnicodeDecodeError) as exc:
+            # An existing ledger we cannot read may hold fired events: reading it as empty would refire them.
+            raise LedgerHalt(f"ledger {self.path} exists but cannot be read ({exc}); nothing fires") from exc
+        for number, line in enumerate(lines, start=1):
+            if not line.strip():
+                continue
             try:
                 row = json.loads(line)
-            except ValueError:
-                logger.warning("ledger %s: skipping an unreadable row", self.path)
-                continue
-            if isinstance(row, dict):
-                self.rows.append(row)
+            except ValueError as exc:
+                raise LedgerHalt(f"ledger {self.path} line {number} is not valid JSON ({exc}); nothing fires") from exc
+            if not isinstance(row, dict):
+                raise LedgerHalt(f"ledger {self.path} line {number} is not a JSON object; nothing fires")
+            self.rows.append(row)
 
     def writable(self) -> bool:
         """Can a row be appended right now? A live pass checks before it fires: a fire whose outcome
@@ -287,11 +299,6 @@ def plan_event(event: Event, state: str, substrate: str) -> Plan:
     if substrate not in ("local", "codespace"):   # `dispatch.SUBSTRATES`; a cloud lane has its own read-only path
         return Plan(state, False, refusal=f"substrate {substrate!r} has no handback path in this runner")
     handback_chain = ["handback", "to_integrator"] if substrate == "local" else ["box_done", "harvested"]
-    if event.kind == "failed" and state == "failed":
-        # A repair that ran out (`repair 3 of 2`) already took the lane to `failed` without a fire; the
-        # integrator's own `STATE <lane> FAILED` line is still the event that tells the queue its
-        # dependents are blocked, so it fires one pass and leaves the lane where it is.
-        return Plan("failed", True)
     if event.kind == "handback":
         facts = _gpd.LaneFacts(substrate=substrate)
         chain = handback_chain
@@ -306,7 +313,7 @@ def plan_event(event: Event, state: str, substrate: str) -> Plan:
         attempt = event.attempt or 1
         facts = _gpd.LaneFacts(substrate=substrate, refusals=attempt - 1)
         if attempt > _gpd.REFUSAL_CAP:
-            chain, fire = ["refusal", "fail"], False
+            chain, fire = ["refusal", "fail"], True     # the event that fails the lane fires one queue pass
         else:
             chain, fire = ["refusal", "repair", "repaired"], True
     if state == "running" and event.kind != "handback":
@@ -407,7 +414,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
                           detail=f"{event.kind}: no dispatch.py call")
             return
 
-        if event.kind == "refused":
+        if event.kind == "refused" and (event.attempt or 1) <= _gpd.REFUSAL_CAP:
             try:
                 model, effort = head_row(lane.contract)
             except OSError as exc:      # a contract mid-sync is not a failed fire: retried next pass, uncounted
@@ -527,7 +534,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         except RunnerAlreadyRunning as exc:
             logger.error("%s", exc)
             return 3
-    ledger = Ledger(ledger_path, persist=not args.dry_run)
+    try:
+        ledger = Ledger(ledger_path, persist=not args.dry_run)
+    except LedgerHalt as exc:       # an existing ledger that cannot be trusted: fire nothing
+        logger.error("%s", exc)
+        return 1
     while True:
         try:
             fired = run_once(batch=args.batch, state_file=state_file, transport=transport,
