@@ -63,7 +63,6 @@ MACHINE = _gpd.P1DispatchLane
 
 CALLER_ENV = "DISPATCH_CALLER"
 CALLER_VALUE = "queue_runner"
-MAX_FIRE_ATTEMPTS = 3          # a fire that exits non-zero is retried on the next pass, 3 fires in all
 FIRE_TIMEOUT_S = 1800
 
 KINDS = ("handback", "merged", "failed", "refused")
@@ -72,11 +71,11 @@ ADOPTED_STATE = {"handback": "running", "merged": "integrating", "failed": "inte
                  "refused": "integrating"}
 
 STATUS_FIRED = "fired"
-STATUS_FAILED = "failed"
+STATUS_FAILED = "FIRE-FAILED"      # a non-zero fire: recorded once, never retried (only a NEW event fires again)
 STATUS_RECORDED = "recorded"            # an event that needs no fire (a lane failing, `repair 3 of 2`)
 STATUS_MACHINE_REFUSED = "machine-refused"
 STATUS_OBSERVED = "observed"            # a lane the queue pass reported FIRE for
-_SEEN_STATUSES = (STATUS_FIRED, STATUS_RECORDED, STATUS_MACHINE_REFUSED, STATUS_OBSERVED)
+_SEEN_STATUSES = (STATUS_FIRED, STATUS_RECORDED, STATUS_MACHINE_REFUSED, STATUS_OBSERVED, STATUS_FAILED)
 
 _SESSION_FILE = re.compile(r"^SESSION-(?P<stem>.+)\.md$")
 _REPAIR_SUFFIX = re.compile(r"^(?P<slug>.+)-repair-\d+$")
@@ -191,6 +190,11 @@ def collect_events(*, transport: Path, state_file: Path, slugs: Sequence[str]) -
 
 # --- the seen-events ledger ------------------------------------------------------------------------
 
+class LedgerHalt(RuntimeError):
+    """A ledger append failed AFTER a fire: the outcome exists only in memory, so a restart would
+    refire it. The runner fires nothing more and exits 1 (dispatcher ruling 2026-11-01)."""
+
+
 class Ledger:
     """`QUEUE-RUNNER-<batch>.jsonl`: one row per event outcome. `persist=False` keeps rows in memory
     only, which is what a dry run needs to walk a lane through several events without writing."""
@@ -198,6 +202,7 @@ class Ledger:
     def __init__(self, path: Path, *, persist: bool = True):
         self.path, self.persist = Path(path), persist
         self.rows: list[dict] = []
+        self.halted = False         # sticky: set when an append failed after a fire (see LedgerHalt)
         try:
             lines = self.path.read_text(encoding="utf-8").splitlines()
         except OSError:
@@ -228,15 +233,14 @@ class Ledger:
     def in_memory_copy(self) -> "Ledger":
         copy = Ledger.__new__(Ledger)
         copy.path, copy.persist, copy.rows = self.path, False, [dict(r) for r in self.rows]
+        copy.halted = False
         return copy
 
     def failures(self, key: str) -> int:
         return sum(1 for r in self.rows if r.get("key") == key and r.get("status") == STATUS_FAILED)
 
     def seen(self, key: str) -> bool:
-        if any(r.get("key") == key and r.get("status") in _SEEN_STATUSES for r in self.rows):
-            return True
-        return self.failures(key) >= MAX_FIRE_ATTEMPTS
+        return any(r.get("key") == key and r.get("status") in _SEEN_STATUSES for r in self.rows)
 
     def lane_state(self, slug: str) -> Optional[str]:
         for row in reversed(self.rows):
@@ -256,8 +260,10 @@ class Ledger:
                 with self.path.open("a", encoding="utf-8", newline="\n") as fh:
                     fh.write(json.dumps(row, sort_keys=True) + "\n")
             except OSError as exc:
+                self.halted = True
                 logger.error("ledger %s is not writable (%s): %s %s is held in memory only, so a "
-                             "restart can refire it", self.path, exc, event.kind, event.lane)
+                             "restart can refire it; halting", self.path, exc, event.kind, event.lane)
+                raise LedgerHalt(f"ledger {self.path} could not record {event.kind} {event.lane}: {exc}") from exc
 
 
 # --- the machine ------------------------------------------------------------------------------------
@@ -353,7 +359,7 @@ def subprocess_fire(argv: list, env: Mapping) -> FireResult:
                               encoding="utf-8", errors="replace", timeout=FIRE_TIMEOUT_S, check=False)
     except subprocess.TimeoutExpired:
         return FireResult(124, f"dispatch.py {argv[0]} timed out after {FIRE_TIMEOUT_S}s")
-    except OSError as exc:      # the child never started: a failed fire like any other, so the cap of 3 holds
+    except OSError as exc:      # the child never started: a failed fire like any other, recorded once
         return FireResult(127, f"dispatch.py {argv[0]} did not start: {exc}")
     return FireResult(proc.returncode, (proc.stdout or "") + (proc.stderr or ""))
 
@@ -377,6 +383,8 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
         ledger = Ledger(ledger_path, persist=not dry_run)
     elif dry_run:
         ledger = ledger.in_memory_copy()    # a dry run never writes, whichever ledger it is handed
+    if ledger.halted:
+        raise LedgerHalt(f"ledger {ledger.path} halted the runner earlier; nothing fires")
     env = {**os.environ, CALLER_ENV: CALLER_VALUE}
     queue_argv = ["queue", "--batch", batch, "--state-file", str(state_file),
                   *[str(c) for c in contracts]]
@@ -439,11 +447,14 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
         else:
             logger.error("dispatch.py %s for %s %s exited %s: %s", verb, event.kind, event.lane,
                          result.returncode, result.output.strip()[-400:])
-            ledger.record(event, STATUS_FAILED, detail=f"exit {result.returncode}")
+            tail = result.output.strip()[-400:].replace("\n", " | ")
+            ledger.record(event, STATUS_FAILED, detail=f"exit {result.returncode}: {tail}")
 
     for event in collect_events(transport=transport, state_file=state_file, slugs=list(by_slug)):
         try:
             handle(event)
+        except LedgerHalt:
+            raise
         except Exception:  # one bad event must not end the watch: it is logged and the next one runs
             logger.exception("%s %s: unhandled error; the event stays unrecorded and is retried next pass",
                              event.kind, event.lane)
@@ -525,6 +536,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             failed = failed or any(f.returncode not in (None, 0) for f in fired)
         except KeyboardInterrupt:
             return 0
+        except LedgerHalt as exc:   # an outcome that could not be made durable: fire nothing more
+            logger.error("%s", exc)
+            return 1
         except Exception:  # a pass that cannot run (a contract unreadable mid-sync) is logged, not fatal
             logger.exception("pass failed; the watch goes on")
             failed = True
