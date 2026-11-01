@@ -661,6 +661,15 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    "scripts/queue_runner.py": Disposition(
+        reason="KEEP -- the event-driven queue runner (R130, [#1633]): the operator or the "
+               "orchestrator starts `queue_runner.py watch` once per batch and it fires "
+               "`dispatch.py queue` / `repair` on handback, merge and refusal events. The "
+               "trigger is that start, not a census-visible caller: the one edge that would "
+               "show (a `dispatch.py` verb) is barred by the PowerShell shim's help-parity "
+               "test over templates/dispatch-shim.ps1, which this lane does not own. Delete "
+               "this row when the batch order templates or a hook start the runner",
+        owner="[#1633]"),
 }
 
 

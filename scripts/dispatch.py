@@ -4736,20 +4736,6 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
             click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
 
 
-@cli.command("queue-runner", context_settings={"ignore_unknown_options": True, "allow_extra_args": True,
-                                               "help_option_names": []})
-@click.argument("runner_args", nargs=-1, type=click.UNPROCESSED)
-def queue_runner_cmd(runner_args: tuple[str, ...]) -> None:
-    """The event-driven queue runner (R130, [#1633]): `queue-runner watch ...` is
-    `scripts/queue_runner.py watch ...` -- it fires `queue` and `repair` once per handback, merge or
-    refusal and sets `DISPATCH_CALLER=queue_runner` on every call. Options: `queue-runner watch --help`."""
-    try:  # a lazy import: queue_runner imports this module at its own top
-        import queue_runner as runner
-    except ImportError:  # pragma: no cover
-        from scripts import queue_runner as runner
-    sys.exit(runner.main(list(runner_args)))
-
-
 @cli.command("repair")
 @click.argument("slug")
 @click.argument("contract", type=click.Path(path_type=Path))

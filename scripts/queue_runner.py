@@ -151,7 +151,11 @@ def collect_events(*, transport: Path, state_file: Path, slugs: Sequence[str]) -
     known = set(slugs)
     events: list[Event] = []
     inbox = Path(transport) / "to-browser"
-    files = sorted(p for p in inbox.iterdir() if p.is_file()) if inbox.is_dir() else []
+    try:
+        files = sorted(p for p in inbox.iterdir() if p.is_file()) if inbox.is_dir() else []
+    except OSError as exc:      # a Drive folder that vanishes mid-sync reads as empty this pass
+        logger.warning("%s: unreadable this pass (%s)", inbox, exc)
+        files = []
 
     for path in files:
         lane = _session_lane(path.name, known)
@@ -222,11 +226,15 @@ class Ledger:
         row = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "key": event.key,
                "kind": event.kind, "lane": event.lane, "status": status, "state_after": state_after,
                "detail": detail}
-        self.rows.append(row)
+        self.rows.append(row)       # in memory first: this process never refires what it just fired
         if self.persist:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with self.path.open("a", encoding="utf-8", newline="\n") as fh:
-                fh.write(json.dumps(row, sort_keys=True) + "\n")
+            try:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                with self.path.open("a", encoding="utf-8", newline="\n") as fh:
+                    fh.write(json.dumps(row, sort_keys=True) + "\n")
+            except OSError as exc:
+                logger.error("ledger %s is not writable (%s): %s %s is held in memory only, so a "
+                             "restart can refire it", self.path, exc, event.kind, event.lane)
 
 
 # --- the machine ------------------------------------------------------------------------------------
@@ -248,9 +256,15 @@ def _walk(state: str, facts, events: Sequence[str]) -> str:
 def plan_event(event: Event, state: str, substrate: str) -> Plan:
     """Send the event's transitions to a throwaway P1DispatchLane started at `state`."""
     substrate = substrate if substrate in ("local", "codespace") else "local"
+    handback_chain = ["handback", "to_integrator"] if substrate == "local" else ["box_done", "harvested"]
+    if event.kind == "failed" and state == "failed":
+        # A repair that ran out (`repair 3 of 2`) already took the lane to `failed` without a fire; the
+        # integrator's own `STATE <lane> FAILED` line is still the event that tells the queue its
+        # dependents are blocked, so it fires one pass and leaves the lane where it is.
+        return Plan("failed", True)
     if event.kind == "handback":
         facts = _gpd.LaneFacts(substrate=substrate)
-        chain = ["handback", "to_integrator"] if substrate == "local" else ["box_done", "harvested"]
+        chain = handback_chain
         fire = True
     elif event.kind == "merged":
         facts, chain, fire = _gpd.LaneFacts(substrate=substrate, landed=True), ["merge"], True
@@ -264,6 +278,11 @@ def plan_event(event: Event, state: str, substrate: str) -> Plan:
             chain, fire = ["refusal", "fail"], False
         else:
             chain, fire = ["refusal", "repair", "repaired"], True
+    if state == "running" and event.kind != "handback":
+        # The integrator can only write MERGED / FAILED / REFUSED for a lane that handed back. A lane the
+        # ledger still holds `running` (its handback line not read yet, or a repair that was refused
+        # again before the repair's own handback was seen) is caught up first, not dropped for good.
+        chain = handback_chain + chain
     try:
         return Plan(_walk(state, facts, chain), fire)
     except TransitionNotAllowed as exc:
@@ -331,9 +350,9 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
                   *[str(c) for c in contracts]]
     fired: list[Fired] = []
 
-    for event in collect_events(transport=transport, state_file=state_file, slugs=list(by_slug)):
+    def handle(event: Event) -> None:
         if ledger.seen(event.key):
-            continue
+            return
         lane = by_slug[event.lane]
         state = ledger.lane_state(event.lane) or ADOPTED_STATE[event.kind]
         plan = plan_event(event, state, lane.substrate)
@@ -341,11 +360,11 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             logger.warning("%s %s: refused by the machine at %s (%s)", event.kind, event.lane, state,
                            plan.refusal)
             ledger.record(event, STATUS_MACHINE_REFUSED, detail=plan.refusal)
-            continue
+            return
         if not plan.fire:
             ledger.record(event, STATUS_RECORDED, state_after=plan.state_after,
                           detail=f"{event.kind}: no dispatch.py call")
-            continue
+            return
 
         if event.kind == "refused":
             try:
@@ -353,7 +372,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             except ValueError as exc:
                 logger.error("%s", exc)
                 ledger.record(event, STATUS_FAILED, detail=str(exc))
-                continue
+                return
             verb = "repair"
             argv = ["repair", event.lane, str(lane.contract), "--model", model, "--effort", effort,
                     "--attempt", str(event.attempt), "--batch", batch]
@@ -365,7 +384,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             echo(f"[queue-runner] would-fire {verb} {event.lane} {detail}")
             fired.append(Fired(verb, event.lane, event.kind, argv))
             ledger.record(event, STATUS_FIRED, state_after=plan.state_after)
-            continue
+            return
 
         result = fire(argv, env)
         fired.append(Fired(verb, event.lane, event.kind, argv, result.returncode))
@@ -378,6 +397,13 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             logger.error("dispatch.py %s for %s %s exited %s: %s", verb, event.kind, event.lane,
                          result.returncode, result.output.strip()[-400:])
             ledger.record(event, STATUS_FAILED, detail=f"exit {result.returncode}")
+
+    for event in collect_events(transport=transport, state_file=state_file, slugs=list(by_slug)):
+        try:
+            handle(event)
+        except Exception:  # one bad event must not end the watch: it is logged and the next one runs
+            logger.exception("%s %s: unhandled error; the event stays unrecorded and is retried next pass",
+                             event.kind, event.lane)
     return fired
 
 
@@ -399,14 +425,28 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    args = _parser().parse_args(list(argv) if argv is not None else None)
+    parser = _parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.batch):
+        parser.error(f"--batch {args.batch!r} is not a plain batch id (E<major>.<minor>)")
+    if args.interval < 1:
+        parser.error("--interval must be at least 1 second")
+    # Absolute paths: the fired `dispatch.py` runs with the hub as its cwd, this process wherever it started.
+    state_file, transport = args.state_file.resolve(), args.transport.resolve()
+    contracts = [c.resolve() for c in args.contracts]
     ledger_path = _dispatch.receipts_dir() / f"QUEUE-RUNNER-{args.batch}.jsonl"
     once = args.once or args.dry_run
     failed = False
     while True:
-        fired = run_once(batch=args.batch, state_file=args.state_file, transport=args.transport,
-                         contracts=args.contracts, ledger_path=ledger_path, dry_run=args.dry_run)
-        failed = failed or any(f.returncode not in (None, 0) for f in fired)
+        try:
+            fired = run_once(batch=args.batch, state_file=state_file, transport=transport,
+                             contracts=contracts, ledger_path=ledger_path, dry_run=args.dry_run)
+            failed = failed or any(f.returncode not in (None, 0) for f in fired)
+        except KeyboardInterrupt:
+            return 0
+        except Exception:  # a pass that cannot run (a contract unreadable mid-sync) is logged, not fatal
+            logger.exception("pass failed; the watch goes on")
+            failed = True
         if once:
             return 1 if failed else 0
         try:

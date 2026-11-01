@@ -460,11 +460,59 @@ def test_a_lane_the_queue_pass_fired_is_running_so_its_handback_is_legal(tmp_pat
     assert qr.Ledger(path=ledger_path).lane_state("b") == "running"
 
 
-def test_dispatch_py_carries_the_runner_as_a_verb():
-    import dispatch as d
-    from click.testing import CliRunner
+def test_a_merge_for_a_lane_still_held_running_catches_the_lane_up_and_fires(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(tmp_path)
+    ledger_path = tmp_path / "ledger.jsonl"
+    qr_ledger_row = {"key": "fire|x|a", "kind": "fire", "lane": "a", "status": "observed",
+                     "state_after": "running"}
+    ledger_path.write_text(json.dumps(qr_ledger_row) + "\n", encoding="utf-8")
+    state_file.write_text("STATE a MERGED abc1234 2026-11-01T10:00 5\n", encoding="utf-8")
+    calls = []
 
-    result = CliRunner().invoke(d.cli, ["queue-runner", "watch", "--help"])
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, calls))
 
-    assert result.exit_code == 0, result.output
-    assert "--contracts" in result.output and "--dry-run" in result.output
+    assert len(calls) == 1
+    assert qr.Ledger(path=ledger_path).lane_state("a") == "merged"
+
+
+def test_a_failed_line_after_repair_three_of_two_still_fires_the_queue_pass(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, files={"REFUSED-b.md": "from: the INTEGRATOR\nrepair 3 of 2\n"})
+    ledger_path = tmp_path / "ledger.jsonl"
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, []))
+    state_file.write_text("STATE b FAILED - 2026-11-01T10:00 5\n", encoding="utf-8")
+    calls = []
+
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, calls))
+
+    assert [call[0][0] for call in calls] == ["queue"]
+    assert qr.Ledger(path=ledger_path).lane_state("b") == "failed"
+
+
+def test_an_unwritable_ledger_does_not_end_the_pass(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    blocker = tmp_path / "a-file"
+    blocker.write_text("x", encoding="utf-8")
+    calls = []
+
+    fired = qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=blocker / "l.jsonl"),
+                        fire=_successful_fire(qr, calls))
+
+    assert len(fired) == len(calls) == 1
+
+
+def test_main_rejects_an_interval_below_one_second(tmp_path):
+    qr = _runner()
+    with pytest.raises(SystemExit) as exit_info:
+        qr.main(["watch", "--batch", "E3.0", "--state-file", str(tmp_path / "s.md"), "--transport",
+                 str(tmp_path), "--contracts", str(_contracts()[0]), "--interval", "0", "--once"])
+    assert exit_info.value.code == 2
