@@ -796,3 +796,16 @@ def test_non_string_current_model_is_unattested_not_a_crash():
 
     assert receipt.served_model is None
     assert receipt.usage["served_unattested"] is True
+
+
+def test_cli_record_reads_the_usage_file_only_for_a_copilot_head(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "u.json"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna"}), encoding="utf-8")
+    out = tmp_path / "o.json"
+    out.write_text(json.dumps({"modelUsage": {"claude-haiku-5-5": {}}}), encoding="utf-8")
+
+    assert rp._cli_record(["claude", "-p", "--usage-output-file", str(usage)], str(out)) == {
+        "modelUsage": {"claude-haiku-5-5": {}}}
+    assert rp._cli_record(["copilot", "-p", "--usage-output-file", str(usage)], str(out)) == {
+        "currentModel": "gpt-6-luna"}
