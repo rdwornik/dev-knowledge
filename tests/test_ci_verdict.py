@@ -375,6 +375,19 @@ def test_G7_list_runs_asks_gh_for_push_runs_only(monkeypatch, tmp_path):
     assert "--event" in seen[0] and seen[0][seen[0].index("--event") + 1] == "push"
 
 
+def test_find_run_finds_a_push_run_outside_the_default_recent_window(monkeypatch):
+    sha = "target-commit-sha"
+
+    def fake_gh(command, *, repo_root, timeout=cv.GH_TIMEOUT_S):
+        if "--commit" in command and command[command.index("--commit") + 1] == sha:
+            return [_run(sha)]
+        return [_run(f"unrelated-{index}") for index in range(40)]
+
+    monkeypatch.setattr(cv, "_gh_json", fake_gh)
+
+    assert cv.find_run(sha, repo_root=None) == _run(sha)
+
+
 def test_G7_a_run_still_in_progress_at_the_poll_timeout_is_NOT_RUN_with_state_IN_PROGRESS():
     clock_fn, sleep_fn = _fake_time()
 
