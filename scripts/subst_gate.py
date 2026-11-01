@@ -371,30 +371,32 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             # entry's model and the CLI served it); anything else needs a genuine
             # `VENDOR-FAIL: implement <text>` on the line.
             copilot_arm = requested.startswith("copilot") or "copilot" in phase.lower()
-            req_parts = {p.strip().lower() for p in req.group(1).split("/")}
-            # The requested MODEL is the first part (`copilot/<model>`: the part after `copilot`);
-            # any other part is effort and never names a model (Codex terra N402200 / sol J402201).
+            # The requested MODEL is the first part; for a Copilot request (`copilot/<model>[/effort]`)
+            # it is the part after `copilot` (`default` or absent = the CLI's own default). Any other
+            # part is effort and never names a model (Codex terra N402200 / sol J402201).
             _parts = [p.strip().lower() for p in req.group(1).split("/")]
-            req_model = _parts[1] if _parts[0].startswith("copilot") and len(_parts) > 1 else _parts[0]
-            # Merge time judges the MODEL only: the route flag `vendor_fail_only` is the pre-launch
-            # check's business (`_implement_row_problems`).
-            by_model = any(
-                pr.is_admitted(e) and e.get("model")
-                and e["model"].lower() == req_model and token == e["model"].lower()
-                and (e.get("provider") != "copilot-enterprise"
-                     or token in {s.lower() for s in COPILOT_GATEWAY_SERVED})
-                for e in pr.role_order(IMPLEMENT_ROLE))
-            # The Copilot arm (the CLI at its default) names no model of its own; any other model it
-            # names must be an admitted Copilot implement entry (judge, 2026-10-31).
+            if _parts[0].startswith("copilot"):
+                req_model = _parts[1] if len(_parts) > 1 else "default"
+            else:
+                req_model = _parts[0]
+            gateway = {s.lower() for s in COPILOT_GATEWAY_SERVED}
             copilot_models = {e["model"].lower() for e in pr.role_order(IMPLEMENT_ROLE)
                               if e.get("provider") == "copilot-enterprise" and pr.is_admitted(e)
                               and e.get("model")}
-            copilot_names = all(p.startswith("copilot") or p in ("", "default") or p in copilot_models
-                                for p in req_parts)
-            # GO-E3.0 R11 + operator sonnet-id ruling: the served id must itself be an admitted
-            # Copilot implement model (it was any gateway-served id at base c6618dbb7).
-            if by_model or (copilot_arm and copilot_names and token in copilot_models
-                            and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}):
+            # GO-E3.0 R11 + operator sonnet-id ruling (grok G404 / sol J405501): a Copilot request is
+            # judged ONLY against the admitted Copilot implement entries (its model part, or the
+            # default, is served as itself by the gateway); any other request is judged ONLY against
+            # the admitted non-Copilot entries. Merge time judges the MODEL only: the route flag
+            # `vendor_fail_only` is the pre-launch check's business (`_implement_row_problems`).
+            if copilot_arm:
+                by_model = (token in copilot_models and token in gateway
+                            and req_model in ("", "default", token))
+            else:
+                by_model = any(
+                    pr.is_admitted(e) and e.get("provider") != "copilot-enterprise" and e.get("model")
+                    and e["model"].lower() == req_model and token == e["model"].lower()
+                    for e in pr.role_order(IMPLEMENT_ROLE))
+            if by_model:
                 if fail:
                     subs.append(ln.strip())
             elif evidence:
