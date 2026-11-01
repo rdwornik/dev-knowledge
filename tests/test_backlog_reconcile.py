@@ -22,7 +22,16 @@ def _copy_case(tmp_path: Path) -> tuple[Path, Path]:
     shutil.copytree(FIXTURES / "tasks", tasks_dir)
     state_dir.mkdir()
     shutil.copyfile(FIXTURES / "classification.json", state_dir / "classification.json")
+    _write_snapshot(tasks_dir, state_dir)
     return tasks_dir, state_dir
+
+
+def _write_snapshot(tasks_dir: Path, state_dir: Path) -> None:
+    """What `report` records: the sha256 of every open task file the classification describes."""
+    (state_dir / br.SNAPSHOT_NAME).write_text(
+        json.dumps({row.id: br._file_sha(row.path) for row in br.load_open_rows(tasks_dir)}),
+        encoding="utf-8",
+    )
 
 
 def _row_path(tasks_dir: Path, row_id: str) -> Path:
@@ -662,3 +671,68 @@ def test_evidence_and_verify_use_tmp_repo_and_commit_log(tmp_path):
     rejected = runner.invoke(br.cli, ["verify", "--state-dir", str(state_dir)])
     assert rejected.exit_code != 0
     assert "2200" in rejected.output or "quote" in rejected.output.lower()
+
+
+# --- hardening added after review 1 (terra, 2026-11-01): written by the implementer ------------
+
+
+def test_apply_refuses_a_task_file_changed_since_report_and_changes_nothing(tmp_path):
+    tasks_dir, state_dir = _copy_case(tmp_path)
+    shipped = _row_path(tasks_dir, "1749")
+    shipped.write_text(shipped.read_text(encoding="utf-8") + "\nedited after report\n",
+                       encoding="utf-8")
+    ruling = _write_ruling(
+        tmp_path / "ruling.yaml",
+        "ruled_by: operator\nruled_on: 2026-10-31\nclasses:\n  shipped: close\n  stale-refs: rewrite\n",
+    )
+    before = _snapshot_tasks(tasks_dir)
+
+    result = _runner_apply(tasks_dir, state_dir, "--ruling", str(ruling))
+
+    assert result.exit_code != 0
+    assert "1749" in result.output
+    assert _snapshot_tasks(tasks_dir) == before
+
+
+def test_apply_refuses_without_the_report_snapshot(tmp_path):
+    tasks_dir, state_dir = _copy_case(tmp_path)
+    (state_dir / br.SNAPSHOT_NAME).unlink()
+    ruling = _write_ruling(
+        tmp_path / "ruling.yaml",
+        "ruled_by: operator\nruled_on: 2026-10-31\nclasses:\n  shipped: close\n",
+    )
+    before = _snapshot_tasks(tasks_dir)
+
+    result = _runner_apply(tasks_dir, state_dir, "--ruling", str(ruling))
+
+    assert result.exit_code != 0
+    assert _snapshot_tasks(tasks_dir) == before
+
+
+def test_report_records_the_snapshot_apply_checks(tmp_path):
+    tasks_dir = shutil.copytree(FIXTURES / "tasks", tmp_path / "tasks")
+    state_dir = tmp_path / "state"
+    _write_report_inputs(state_dir)
+
+    result = _run_report(tasks_dir, state_dir, tmp_path / "report.md", tmp_path / "cost.json")
+
+    assert result.exit_code == 0, result.output
+    snapshot = json.loads((state_dir / br.SNAPSHOT_NAME).read_text(encoding="utf-8"))
+    assert snapshot == {row.id: br._file_sha(row.path) for row in br.load_open_rows(tasks_dir)}
+
+
+def test_run_fanout_refuses_a_gated_read_that_omits_rows(tmp_path):
+    rows = _open_rows(FIXTURES / "tasks")
+
+    def one_line_only(route, source, workdir):
+        attempt = _invoke_attempt(route, source, workdir)
+        first = attempt.output_path.read_text(encoding="utf-8").splitlines()[0]
+        attempt.output_path.write_text(first, encoding="utf-8")
+        return attempt
+
+    with pytest.raises(br.UngatedReadError) as raised:
+        br.run_fanout(rows, invoke=one_line_only, state_dir=tmp_path / "state",
+                      registry_path=FIXTURES / "registry.yaml")
+
+    assert "omitted" in str(raised.value)
+    assert not (tmp_path / "state" / "reads.json").exists()

@@ -33,6 +33,7 @@ and the scratch directory is removed afterwards (no leftovers).
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import logging
 import math
@@ -245,6 +246,13 @@ def _read_json(path: Path, default: Any = None) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+SNAPSHOT_NAME = "classification-sha.json"
+
+
+def _file_sha(path: Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
 def _write_json(path: Path, data: Any) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
@@ -352,8 +360,15 @@ def run_fanout(rows: Sequence[Row], *, invoke: read_gate.Invoker, state_dir: Pat
         if not gated.accepted or gated.output_path is None:
             raise UngatedReadError(f"batch {number:03d} refused: {gated.failure_summary()}")
         parsed = parse_read_output(gated.output_path.read_text(encoding="utf-8"))
+        omitted = [r.id for r in batch if r.id not in parsed]
+        if omitted:
+            # A gated read that answers 1 of 20 lines is not a read of the batch: refuse it
+            # rather than record the omitted rows as a verdict nobody gave.
+            raise UngatedReadError(
+                f"batch {number:03d} read omitted {len(omitted)} of {len(batch)} rows "
+                f"(first: {', '.join(omitted[:5])})")
         for row in batch:
-            verdict, quote = parsed.get(row.id, ("unclear", ""))
+            verdict, quote = parsed[row.id]
             result.reads[row.id] = {"verdict": verdict, "quote": quote,
                                     "route": gated.served_route}
         result.batches += 1
@@ -763,6 +778,7 @@ def report(tasks_dir: Path, state_dir: Path, out: Path, cost_out: Path) -> None:
             evid.get(row.id, {}), reads.get(row.id, {}).get("verdict"),
             adjudications.get(row.id, {}).get("class"))
     _write_json(state_dir / "classification.json", classification)
+    _write_json(state_dir / SNAPSHOT_NAME, {r.id: _file_sha(r.path) for r in rows})
     cost = cost_record(state_dir / "calls.jsonl")
     _write_json(cost_out, cost)
     lines = ["# Backlog reconcile report", "",
@@ -801,11 +817,27 @@ def apply(ruling: Path, tasks_dir: Path, state_dir: Path) -> None:
     classification = _read_json(state_dir / "classification.json")
     if classification is None:
         raise RulingError("classification.json is missing; run `report` before `apply`")
-    changed = 0
+    snapshot = _read_json(state_dir / SNAPSHOT_NAME)
+    if snapshot is None:
+        raise RulingError(f"{SNAPSHOT_NAME} is missing; run `report` before `apply`")
+    targets = []
     for row in load_open_rows(tasks_dir):
         action = actions.get(classification.get(row.id, ""))
-        if action and apply_action(row.path, action):
+        if action and action != "keep":
+            targets.append((row, action))
+    # The classification describes the task files AS THEY WERE at `report`. A row edited or
+    # replaced since then would receive the old row's class, so refuse before any write.
+    stale = [r.id for r, _ in targets if snapshot.get(r.id) != _file_sha(r.path)]
+    if stale:
+        raise RulingError(
+            f"task file(s) changed since `report`: {', '.join('[#' + i + ']' for i in stale)}; "
+            "re-run `report` before `apply`")
+    changed = 0
+    for row, action in targets:
+        if apply_action(row.path, action):
             changed += 1
+            snapshot[row.id] = _file_sha(row.path)
+    _write_json(state_dir / SNAPSHOT_NAME, snapshot)
     click.echo(f"apply: {changed} task file(s) changed")
 
 
