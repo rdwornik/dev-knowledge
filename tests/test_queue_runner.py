@@ -215,7 +215,8 @@ def test_restart_does_not_refire_events_already_recorded(tmp_path):
     assert len(calls) == after_first_run
 
 
-def test_failed_fires_are_retried_at_most_three_times(tmp_path):
+def test_a_failed_fire_is_recorded_once_and_never_retried(tmp_path):
+    # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path,
@@ -226,15 +227,34 @@ def test_failed_fires_are_retried_at_most_three_times(tmp_path):
 
     def failing_fire(argv, env):
         calls.append(list(argv))
-        return qr.FireResult(returncode=1, output="dispatch failed")
+        return qr.FireResult(returncode=1, output="boom\nstderr-tail-xyz")
 
-    for _ in range(4):
+    arguments = _run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path)
+    for _ in range(3):
         qr.run_once(
-            **_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+            **arguments,
             fire=failing_fire,
         )
 
-    assert len(calls) == 3
+    event_a = qr.collect_events(transport=transport, state_file=state_file, slugs=("a",))[0]
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+    assert len(calls) == 1
+    assert len(rows) == 1
+    assert rows[0]["key"] == event_a.key
+    assert rows[0]["status"] == "FIRE-FAILED"
+    assert "exit 1" in rows[0]["detail"]
+    assert "stderr-tail-xyz" in rows[0]["detail"]
+
+    restarted = qr.Ledger(path=ledger_path)
+    qr.run_once(**arguments, fire=failing_fire, ledger=restarted)
+    assert len(calls) == 1
+
+    (transport / "to-browser" / "SESSION-b.md").write_text(
+        "HANDBACK worktree-b @ 2222222222222222222222222222222222222222 code\n", encoding="utf-8")
+    qr.run_once(**arguments, fire=failing_fire, ledger=restarted)
+    assert len(calls) == 2
+    event_b = qr.collect_events(transport=transport, state_file=state_file, slugs=("a", "b"))[1]
+    assert any(row["key"] == event_b.key for row in restarted.rows)
 
 
 def test_dry_run_is_read_only_exact_and_does_not_suppress_live_fires(tmp_path):
@@ -518,7 +538,8 @@ def test_main_rejects_an_interval_below_one_second(tmp_path):
     assert exit_info.value.code == 2
 
 
-def test_a_fire_that_raises_counts_as_a_failed_fire_and_the_cap_still_holds(tmp_path):
+def test_a_fire_that_raises_is_recorded_once_and_never_retried(tmp_path):
+    # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path,
@@ -531,11 +552,85 @@ def test_a_fire_that_raises_counts_as_a_failed_fire_and_the_cap_still_holds(tmp_
         calls.append(argv)
         raise OSError("the child never started")
 
-    for _ in range(4):
-        qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
-                    fire=raising_fire)
+    arguments = _run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path)
+    for _ in range(3):
+        qr.run_once(**arguments, fire=raising_fire)
 
-    assert len(calls) == 3
+    assert len(calls) == 1
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "FIRE-FAILED"
+
+
+def test_a_failed_ledger_append_after_a_fire_halts_the_runner(tmp_path, monkeypatch):
+    # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={
+            "SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n",
+            "SESSION-b.md": "HANDBACK worktree-b @ 2222222222222222222222222222222222222222 code\n",
+        },
+    )
+    blocker = tmp_path / "ledger-blocker"
+    blocker.write_text("x", encoding="utf-8")
+    ledger_path = blocker / "ledger.jsonl"
+    ledger = qr.Ledger(path=ledger_path)
+    monkeypatch.setattr(qr.Ledger, "writable", lambda _self: True)
+    calls = []
+
+    with pytest.raises(qr.LedgerHalt):
+        qr.run_once(
+            **_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+            fire=_successful_fire(qr, calls),
+            ledger=ledger,
+        )
+    assert len(calls) == 1
+
+    with pytest.raises(qr.LedgerHalt):
+        qr.run_once(
+            **_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+            fire=_successful_fire(qr, calls),
+            ledger=ledger,
+        )
+    assert len(calls) == 1
+
+
+def test_main_exits_1_when_the_ledger_halts(tmp_path, monkeypatch):
+    # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={
+            "SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n",
+            "SESSION-b.md": "HANDBACK worktree-b @ 2222222222222222222222222222222222222222 code\n",
+        },
+    )
+    blocker = tmp_path / "ledger-blocker"
+    blocker.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(qr._dispatch, "receipts_dir", lambda: blocker)
+    monkeypatch.setattr(qr, "acquire_single_instance", lambda _path: object())
+    monkeypatch.setattr(qr.Ledger, "writable", lambda _self: True)
+    calls = []
+
+    def subprocess_fire(argv, env):
+        calls.append((list(argv), dict(env)))
+        return qr.FireResult(returncode=0, output="")
+
+    monkeypatch.setattr(qr, "subprocess_fire", subprocess_fire)
+    run_once = qr.run_once
+
+    def run_once_with_patched_fire(**kwargs):
+        return run_once(**kwargs, fire=qr.subprocess_fire)
+
+    monkeypatch.setattr(qr, "run_once", run_once_with_patched_fire)
+    result = qr.main([
+        "watch", "--batch", "E3.0", "--state-file", str(state_file), "--transport", str(transport),
+        "--contracts", *(str(contract) for contract in _contracts()), "--interval", "1", "--once",
+    ])
+
+    assert result == 1
+    assert len(calls) == 1
 
 
 def test_a_dry_run_of_a_machine_refused_event_prints_nothing_and_writes_nothing(tmp_path):
