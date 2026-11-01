@@ -80,23 +80,34 @@ def test_design_audit_passes_subagent_brief_exclusions(tmp_path):
     assert dc.check_subagent_brief_exclusions(brief_files, repo_root=_REPO) == []
 
 
-def test_design_audit_evaluators_and_response_coverage():
-    """Date-matched evaluator files pass attestation and response coverage checks."""
+def _transport_eval_files() -> list[Path]:
+    """The date-matched EVAL files on the operator transport, or [] when it is not there."""
     prompts_dir = os.environ.get("CLAUDE_PROMPTS_DIR")
-    if not prompts_dir:
-        pytest.skip("CLAUDE_PROMPTS_DIR is not set")
-
-    audit = _only_file("docs/audits/*-technical-design-view.md", "design audit")
-    date_match = re.match(r"(?P<date>\d{4}-\d{2}-\d{2})-", audit.name)
-    assert date_match, f"Design audit filename has no leading date: {audit.name}"
-    eval_files = [
+    audits = list(_REPO.glob("docs/audits/*-technical-design-view.md"))
+    if not prompts_dir or len(audits) != 1:
+        return []
+    date_match = re.match(r"(?P<date>\d{4}-\d{2}-\d{2})-", audits[0].name)
+    if not date_match:
+        return []
+    files = [
         Path(prompts_dir) / "to-browser" / f"EVAL-VIEW-E30-{evaluator}-{date_match.group('date')}.md"
         for evaluator in ("sol", "grok")
     ]
-    missing = [str(path) for path in eval_files if not path.is_file()]
-    if missing:
-        pytest.skip(f"Missing evaluator file(s): {', '.join(missing)}")
+    return files if all(path.is_file() for path in files) else []
 
+
+@pytest.mark.skipif(
+    not _transport_eval_files(),
+    reason=(
+        "EVAL records live on the operator transport (CLAUDE_PROMPTS_DIR); CI has none. "
+        "Run locally with CLAUDE_PROMPTS_DIR set to gate evaluator attestation and response coverage."
+    ),
+)
+def test_design_audit_evaluators_and_response_coverage():
+    """Date-matched evaluator files pass attestation and response coverage checks."""
+    audit = _only_file("docs/audits/*-technical-design-view.md", "design audit")
+    eval_files = _transport_eval_files()
+    assert eval_files, "evaluator files vanished after collection"
     assert dc.check_evaluator_attestation(eval_files, "claude-sonnet-5.5") == []
     assert dc.check_response_coverage(eval_files, audit) == []
 

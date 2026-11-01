@@ -80,7 +80,7 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q1: scripts/gen_dashboard.py imports stdlib html {probe: grep -c 'import html' scripts/gen_dashboard.py}
 - Q1: the import sits at line 60 of scripts/gen_dashboard.py {probe: scripts/gen_dashboard.py:60}
 - Q1: neither script imports a third-party templating library; the subagent read both import lists and the producer's own reading agrees {unverified}
-- Q1: uv.lock locks no templating library; the producer's own count of name = "jinja2" in uv.lock is 0 {unverified}
+- Q1: uv.lock has no jinja2 entry; the producer's own count of name = "jinja2" in uv.lock is 0, and other templating libraries were not searched {unverified}
 - Q1: package.json says this repo is not a node app and pins only a langserver {probe: grep -c 'NOT a node app' package.json}
 - Q1: no workflow under .github/workflows sets up Node; the subagent's count of setup-node over the three workflows is 0 {unverified}
 - Q4: scripts/system_map.py defines build_map(repo_root), the entry function that returns the whole map dict {probe: scripts/system_map.py:381}
@@ -100,7 +100,7 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q4: scripts/gen_dashboard.py has a byte-determinism test for its generator {probe: grep -c 'test_build_is_deterministic_and_regeneration_is_idempotent' tests/test_gen_dashboard.py}
 - Q4: that determinism test is at line 558 of tests/test_gen_dashboard.py {probe: tests/test_gen_dashboard.py:558}
 - Q4: the /map command names scripts/system_map.py {probe: grep -c 'system_map' .claude/commands/map.md}
-- Q4: the producer's repo-wide git grep finds the name only in that command, the harness fates entry, two test files, a ruling document and the record file {unverified}
+- Q4: the producer's repo-wide git grep finds the name in that command, the harness fates entry, two test files, a ruling document and the record file, among other files (the list is not exhaustive) {unverified}
 - Q4: ecosystem/harness.yaml records scripts/system_map.py in a fates entry called by the /map command, not by a moment {probe: grep -c 'scripts/system_map.py, called_by' ecosystem/harness.yaml}
 - Q4: that fates entry is at line 170 of ecosystem/harness.yaml {probe: ecosystem/harness.yaml:170}
 - Q4: ecosystem/harness.yaml declares a batch-close moment a generator could be wired to {probe: ecosystem/harness.yaml:86}
@@ -117,12 +117,16 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q2: receipts under logs/receipts are gitignored {probe: git check-ignore logs/receipts/LANE-x/r1/P1.json}
 - Q2: the launch receipt path is built by _receipt_path in scripts/dispatch.py {probe: scripts/dispatch.py:812}
 - Q2: launch receipts have no JSON schema and the caller field does not exist in this checkout; the producer's count of "caller" in scripts/dispatch.py is 0 {unverified}
-- Q2: logs/MERGE-RECEIPTS.jsonl is tracked and appended by scripts/merge_receipt.py {probe: scripts/merge_receipt.py:1216}
-- Q2: logs/MERGE-RECEIPTS.jsonl rows carry merge_sha {probe: grep -c 'merge_sha' logs/MERGE-RECEIPTS.jsonl}
-- Q2: scripts/conductor.py metrics() reports a value or NOT COMPUTED with a reason, the shape a tile can copy {probe: scripts/conductor.py:414}
-- Q2: the P1 Mermaid is produced by render_mermaid and stored in ecosystem/process-binding.yaml {probe: scripts/gen_process_diagrams.py:366}
+- Q2: scripts/merge_receipt.py appends to the merge-receipt ledger {probe: scripts/merge_receipt.py:1216}
+- Q2: logs/MERGE-RECEIPTS.jsonl is the tracked ledger path (LEDGER_RELPATH) {probe: scripts/merge_receipt.py:153}
+- Q2: logs/MERGE-RECEIPTS.jsonl mentions the key merge_sha {probe: grep -c 'merge_sha' logs/MERGE-RECEIPTS.jsonl}
+- Q2: scripts/conductor.py defines metrics() {probe: scripts/conductor.py:414}
+- Q2: the conductor metrics report a value or NOT COMPUTED with a reason, the shape a tile can copy {unverified}
+- Q2: the P1 Mermaid is produced by render_mermaid {probe: scripts/gen_process_diagrams.py:366}
+- Q2: write_diagram stores the generated block into ecosystem/process-binding.yaml {probe: scripts/gen_process_diagrams.py:385}
 - Q2: the stored P1 diagram sits in ecosystem/process-binding.yaml {probe: ecosystem/process-binding.yaml:872}
-- Q2: scripts/gen_ledger.py writes its markdown to the transport directory, outside the repo {probe: scripts/gen_ledger.py:76}
+- Q2: scripts/gen_ledger.py names its output to-browser/LEDGER-<repo>.md via out_relpath {probe: scripts/gen_ledger.py:76}
+- Q2: the ledger target is the transport directory, outside the repo {unverified}
 - Q2: scripts/gen_ledger.py also exposes collect(), which returns the open rows and worktrees as a dict without writing a file {probe: scripts/gen_ledger.py:197}
 - Q2: ADR-121 is Proposed, so no event log exists to read {probe: grep -c 'Status:\*\* Proposed' docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md}
 - Q2: the quota_watch report, the audit.py health output and the verdict ledger the digest names were not researched by any subagent; their shapes are unknown to this audit {unverified}
