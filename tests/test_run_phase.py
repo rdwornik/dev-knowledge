@@ -759,3 +759,9 @@ def test_claude_model_usage_keys_are_kept_and_multi_model_flagged():
     assert receipt.served_model == "claude-haiku-5-5"
     assert receipt.usage["model_usage_keys"] == ["claude-haiku-5-5", "claude-opus-5-5"]
     assert receipt.usage["multi_model"] is True
+
+
+def test_copilot_present_but_malformed_model_metrics_is_unattested():
+    receipt = _build(["copilot", "-p"], _phase_run(), {"currentModel": "gpt-6-luna", "modelMetrics": ["x"]})
+
+    assert receipt.served_model is None
