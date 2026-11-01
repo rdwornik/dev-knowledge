@@ -138,7 +138,7 @@ def served_model_from_record(cli: Optional[str], record: Optional[dict]) -> Opti
     """The model the CLI itself says served the run, or None when its record does not say."""
     if not cli or not isinstance(record, dict):
         return None
-    if cli == "claude":
+    if cli in ("claude", "grok") and isinstance(record.get("modelUsage"), dict) and record["modelUsage"]:
         usage = record.get("modelUsage")
         if not isinstance(usage, dict) or not usage:
             return None
@@ -150,6 +150,9 @@ def served_model_from_record(cli: Optional[str], record: Optional[dict]) -> Opti
         return max(usage.items(), key=_out)[0]
     key = {"codex": "model", "grok": "model", "copilot": "currentModel"}.get(cli)
     value = record.get(key) if key else None
+    metrics = record.get("modelMetrics") if cli == "copilot" else None
+    if cli == "copilot" and "modelMetrics" in record and (not isinstance(metrics, dict) or not isinstance(value, str) or value not in metrics):
+        return None
     return value if isinstance(value, str) and value else None
 
 
