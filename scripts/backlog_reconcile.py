@@ -20,7 +20,9 @@ its log is clean and every quotation is literally in the source); rates come fro
 `scripts/provider_registry.py`; the CLI is Click (already a declared dependency); frontmatter is
 edited as BYTES with a regex because a YAML round-trip would reflow every file it touches.
 
-COST: every model call appends one line to `<state>/calls.jsonl`; `report` sums it. A call whose
+COST: every model call appends one line to `<state>/calls.jsonl`; `report` sums it. The log is
+append-only for the whole run, so a re-run of a stage in the same state directory counts its
+calls again: use a fresh `--state-dir` for a new run. A call whose
 model has no registered rate carries `usd: null`, and the total sums PRICED calls only -- absent
 and free are different facts (`provider_registry.RateUnavailable`'s rule), so the record never
 reports an unpriced model as zero.
@@ -78,6 +80,8 @@ BOOKKEEPING_PREFIXES = ("tasks/", "BACKLOG.md", "JOURNAL.md", "docs/audits/")
 _PATH_RE = re.compile(r"`([A-Za-z0-9_./-]+\.(?:py|md|yaml|yml|json|toml|ps1|sh))(?::\d+(?:-\d+)?)?`")
 _PLAN_WORD_RE = re.compile(r"\b(new|create|creates|add|adds|write|writes)\b", re.IGNORECASE)
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?\r?\n)---[ \t]*\r?\n", re.DOTALL)
+#: `status: open` as `load_open_rows` selects it (optionally quoted), so `apply` edits what it selected.
+_STATUS_OPEN_RE = re.compile(r"(?m)^status:[ \t]*[\"']?open[\"']?[ \t]*(\r?\n)")
 _READ_LINE_RE = re.compile(
     r"^\s*\[?#?(\d+)\]?\s*\|\s*(done|open|obsolete|unclear)\s*\|\s*[\"“](.*)[\"”]\s*$"
 )
@@ -385,10 +389,15 @@ def run_fanout(rows: Sequence[Row], *, invoke: read_gate.Invoker, state_dir: Pat
                 raise UngatedReadError(
                     f"second read of batch {number:03d} refused: {verdict.failed_check}")
             second = parse_read_output(attempt.output_path.read_text(encoding="utf-8"))
+            omitted_second = [i for i in batch_sampled if i not in second]
+            if omitted_second:
+                raise UngatedReadError(
+                    f"second read of batch {number:03d} omitted sampled rows: "
+                    f"{', '.join(omitted_second)}")
             for row_id in batch_sampled:
-                other = second.get(row_id, ("unclear", ""))[0]
                 result.reads[row_id]["second_read"] = (
-                    "agree" if other == result.reads[row_id]["verdict"] else "disagree")
+                    "agree" if second[row_id][0] == result.reads[row_id]["verdict"]
+                    else "disagree")
                 result.second_read_ids.append(row_id)
     _write_json(state_dir / "reads.json", result.reads)
     return result
@@ -636,12 +645,11 @@ def apply_action(path: Path, action: str) -> bool:
         return False
     front = match.group(1)
     if action == "close":
-        new_front, n = re.subn(r"(?m)^status: open(\r?\n)", r"status: closed\1", front, count=1)
+        new_front, n = _STATUS_OPEN_RE.subn(r"status: closed\1", front, count=1)
     else:  # rewrite
         if re.search(r"(?m)^reconcile: rewrite\r?$", front):
             return False
-        new_front, n = re.subn(r"(?m)^status: open(\r?\n)",
-                               r"status: open\1reconcile: rewrite\1", front, count=1)
+        new_front, n = _STATUS_OPEN_RE.subn(r"status: open\1reconcile: rewrite\1", front, count=1)
     if not n:
         return False
     path.write_bytes((raw[:match.start(1)] + new_front + raw[match.end(1):]).encode("utf-8"))
@@ -769,14 +777,21 @@ def report(tasks_dir: Path, state_dir: Path, out: Path, cost_out: Path) -> None:
     evid = _read_json(state_dir / "evidence.json")
     if evid is None:
         raise click.ClickException("report needs evidence.json (run `evidence` first)")
-    reads = _read_json(state_dir / "reads.json", {})
+    reads = _read_json(state_dir / "reads.json")
+    if reads is None:
+        # A classification written without the gated reads is code-only evidence dressed as a
+        # reconciliation; the operator would rule classes nobody read (review 1, terra).
+        raise click.ClickException("report needs reads.json (run `fanout` first)")
     adjudications = _read_json(state_dir / "adjudications.json", {})
     rows = load_open_rows(tasks_dir)
     classification: dict[str, str] = {}
     for row in rows:
-        classification[row.id] = classify(
-            evid.get(row.id, {}), reads.get(row.id, {}).get("verdict"),
-            adjudications.get(row.id, {}).get("class"))
+        read = reads.get(row.id, {})
+        adjudicated = adjudications.get(row.id, {}).get("class")
+        verdict = read.get("verdict")
+        if adjudicated is None and read.get("second_read") == "disagree":
+            verdict = "unclear"  # two readers disagree and Opus has not settled it
+        classification[row.id] = classify(evid.get(row.id, {}), verdict, adjudicated)
     _write_json(state_dir / "classification.json", classification)
     _write_json(state_dir / SNAPSHOT_NAME, {r.id: _file_sha(r.path) for r in rows})
     cost = cost_record(state_dir / "calls.jsonl")

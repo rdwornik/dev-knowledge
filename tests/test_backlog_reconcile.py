@@ -736,3 +736,75 @@ def test_run_fanout_refuses_a_gated_read_that_omits_rows(tmp_path):
 
     assert "omitted" in str(raised.value)
     assert not (tmp_path / "state" / "reads.json").exists()
+
+
+# --- hardening added after review 2 of the final chain (terra HIGH, argon MEDIUM/LOW) ----------
+
+
+def test_report_refuses_without_reads_json_and_writes_nothing(tmp_path):
+    tasks_dir = shutil.copytree(FIXTURES / "tasks", tmp_path / "tasks")
+    state_dir = tmp_path / "state"
+    _write_report_inputs(state_dir)
+    (state_dir / "reads.json").unlink()
+    out, cost_out = tmp_path / "report.md", tmp_path / "cost.json"
+
+    result = _run_report(tasks_dir, state_dir, out, cost_out)
+
+    assert result.exit_code != 0
+    assert "reads.json" in result.output
+    assert not out.exists() and not cost_out.exists()
+    assert not (state_dir / "classification.json").exists()
+
+
+def test_report_classifies_a_disputed_unadjudicated_read_as_unclear(tmp_path):
+    tasks_dir = shutil.copytree(FIXTURES / "tasks", tmp_path / "tasks")
+    state_dir = tmp_path / "state"
+    _write_report_inputs(state_dir)
+    reads = json.loads((state_dir / "reads.json").read_text(encoding="utf-8"))
+    reads["1749"]["second_read"] = "disagree"
+    (state_dir / "reads.json").write_text(json.dumps(reads), encoding="utf-8")
+
+    result = _run_report(tasks_dir, state_dir, tmp_path / "report.md", tmp_path / "cost.json")
+
+    assert result.exit_code == 0, result.output
+    classification = json.loads((state_dir / "classification.json").read_text(encoding="utf-8"))
+    assert classification["1749"] == "unclear"
+
+
+def test_run_fanout_refuses_a_second_read_that_omits_a_sampled_row(tmp_path):
+    tasks_dir = tmp_path / "tasks"
+    tasks_dir.mkdir()
+    for row_id in range(2300, 2320):
+        _write_task(tasks_dir, row_id, f"second row {row_id}")
+
+    def empty_second(source, workdir):
+        output_path = workdir / "second.output.txt"
+        first = source.read_text(encoding="utf-8").splitlines()[0]
+        row_id, title = first[2:].split("] ", 1)
+        output_path.write_text(f'{row_id} | open | "{title}"', encoding="utf-8")
+        return read_gate.InvokeAttempt(output_path, status="success")
+
+    with pytest.raises(br.UngatedReadError) as raised:
+        br.run_fanout(_open_rows(tasks_dir), invoke=_faithful_invoke,
+                      state_dir=tmp_path / "state", registry_path=FIXTURES / "registry.yaml",
+                      sample_fraction=0.10, second_invoke=empty_second)
+
+    assert "second read" in str(raised.value) and "omitted" in str(raised.value)
+    assert not (tmp_path / "state" / "reads.json").exists()
+
+
+def test_apply_edits_a_row_whose_status_is_quoted(tmp_path):
+    tasks_dir, state_dir = _copy_case(tmp_path)
+    shipped = _row_path(tasks_dir, "1749")
+    shipped.write_text(shipped.read_text(encoding="utf-8").replace(
+        "\nstatus: open\n", '\nstatus: "open"\n'), encoding="utf-8")
+    _write_snapshot(tasks_dir, state_dir)
+    ruling = _write_ruling(
+        tmp_path / "ruling.yaml",
+        "ruled_by: operator\nruled_on: 2026-10-31\nclasses:\n  shipped: close\n",
+    )
+
+    result = _runner_apply(tasks_dir, state_dir, "--ruling", str(ruling))
+
+    assert result.exit_code == 0, result.output
+    assert "\nstatus: closed\n" in shipped.read_text(encoding="utf-8")
