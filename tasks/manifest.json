@@ -2712,6 +2712,18 @@
       "file": "1801-land-lane-finds-mains-base-push-run-by-commit-not-inside-a-40-run-window.md"
     },
     {
+      "task": 1845,
+      "file": "1845-seat-registry-an-integrator-seat-holds-a-set-of-batch-binds-refuse-no-live-integrator-checks.md"
+    },
+    {
+      "task": 1846,
+      "file": "1846-config-only-lane-class-a-pin-version-config-diff-lands-on-three-kept-checks-enforced-by-code.md"
+    },
+    {
+      "task": 1847,
+      "file": "1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md"
+    },
+    {
       "task": 1433,
       "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
     },
