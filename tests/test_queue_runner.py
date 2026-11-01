@@ -225,6 +225,34 @@ def test_restart_does_not_refire_events_already_recorded(tmp_path):
     assert len(calls) == after_first_run
 
 
+@pytest.mark.parametrize(
+    ("row", "should_halt"),
+    [
+        ({"status": "fired"}, True),
+        ({"key": "k"}, True),
+        ({"key": 7, "status": "fired"}, True),
+        ({"key": "k", "status": None}, True),
+        ({"key": "", "status": "fired"}, True),
+        ({"key": "k", "status": "fired", "kind": "handback", "lane": "a"}, False),
+    ],
+)
+def test_a_ledger_row_without_a_key_or_status_halts_with_the_line_number(
+    tmp_path, row, should_halt
+):
+    """Dispatcher ruling: any malformed row halts; review terra NQ-T1677829595."""
+    qr = _runner()
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    if should_halt:
+        with pytest.raises(qr.LedgerHalt) as exc_info:
+            qr.Ledger(path=ledger_path)
+        assert ledger_path.name in str(exc_info.value)
+        assert "line 1" in str(exc_info.value)
+    else:
+        assert len(qr.Ledger(path=ledger_path).rows) == 1
+
+
 def test_a_failed_fire_is_recorded_once_and_never_retried(tmp_path):
     # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
     qr = _runner()
