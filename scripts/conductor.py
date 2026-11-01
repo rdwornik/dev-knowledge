@@ -934,6 +934,138 @@ def run_round(lane: str, round_no: int, *, repo_root: Path, harness: Optional[Pa
     return result
 
 
+class ContractPhasesError(ValueError):
+    """The contract's `## Phases` section is present but unusable."""
+
+
+_ADVISOR_TOKEN = "--disallowedTools=AskUserQuestion,advisor"
+# every key of a harness.yaml `phases:` row except the optional `fallback`; `model` may be null
+_PHASE_KEYS = ("id", "name", "row_phase", "role", "cli", "model", "payload_model", "gate", "timeout_s",
+               "budget_usd", "max_rounds", "inputs", "command")
+
+
+def _validate_phase_rows(rows: list) -> None:
+    seen: set = set()
+    for i, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ContractPhasesError(f"row {i}: not a mapping")
+        rid = row.get("id", f"#{i}")
+        for key in _PHASE_KEYS:
+            if key not in row:
+                raise ContractPhasesError(f"{rid}: missing key '{key}'")
+        if not isinstance(rid, str):
+            raise ContractPhasesError(f"row {i}: id must be a string")
+        if rid in seen:
+            raise ContractPhasesError(f"{rid}: duplicate id")
+        seen.add(rid)
+        if row["gate"] not in ("payload", "exit"):
+            raise ContractPhasesError(f"{rid}: gate must be payload or exit")
+        if not isinstance(row["command"], list) or not row["command"]:
+            raise ContractPhasesError(f"{rid}: command must be a non-empty list")
+        if "fallback" in row and (not isinstance(row["fallback"], list) or not row["fallback"]):
+            raise ContractPhasesError(f"{rid}: fallback must be a non-empty list")
+        t = row["timeout_s"]
+        if isinstance(t, bool) or not isinstance(t, int) or t <= 0:
+            raise ContractPhasesError(f"{rid}: timeout_s must be a positive int")
+        mr = row["max_rounds"]
+        if isinstance(mr, bool) or not isinstance(mr, int) or mr < 1:
+            raise ContractPhasesError(f"{rid}: max_rounds must be an int >= 1")
+        budget = row["budget_usd"]
+        if isinstance(budget, bool) or not isinstance(budget, (int, float)) or budget < 0:
+            raise ContractPhasesError(f"{rid}: budget_usd must be a number >= 0")
+        if not isinstance(row["inputs"], list):
+            raise ContractPhasesError(f"{rid}: inputs must be a list")
+        if not isinstance(row["payload_model"], str) or not row["payload_model"]:
+            raise ContractPhasesError(f"{rid}: payload_model must be a non-empty string")
+
+
+def contract_phases(text: str) -> list[dict] | None:
+    """The phase rows of a contract's `## Phases` yaml block, or None when it has no such section."""
+    import yaml  # noqa: PLC0415
+
+    heading = re.search(r"^## Phases[ \t]*$", text, re.MULTILINE)
+    if not heading:
+        return None
+    rest = text[heading.end():]
+    nxt = re.search(r"^## (?!#)", rest, re.MULTILINE)
+    section = rest[:nxt.start()] if nxt else rest
+    blocks = re.findall(r"^```yaml[ \t]*\r?\n(.*?)^```[ \t]*$", section, re.MULTILINE | re.DOTALL)
+    if len(blocks) != 1:
+        raise ContractPhasesError(f"## Phases needs exactly one yaml block, found {len(blocks)}")
+    try:
+        doc = yaml.safe_load(blocks[0])
+    except yaml.YAMLError as exc:
+        raise ContractPhasesError(f"## Phases yaml does not parse: {exc}") from exc
+    rows = doc.get("phases") if isinstance(doc, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise ContractPhasesError("## Phases yaml needs a non-empty `phases` list")
+    _validate_phase_rows(rows)
+    return rows
+
+
+def _is_claude(argv: list) -> bool:
+    head = str(argv[0]).replace("\\", "/").rsplit("/", 1)[-1].lower()
+    for ext in (".exe", ".cmd", ".bat", ".ps1"):
+        head = head.removesuffix(ext)
+    return head == "claude"
+
+
+_DISALLOW_FLAGS = ("--disallowedTools", "--disallowed-tools")
+_REQUIRED_DISALLOWED = ("AskUserQuestion", "advisor")
+
+
+def _merge_disallowed(argv: list[str]) -> list[str]:
+    """One `--disallowedTools=` flag at index 1: any existing flag's tools, then the required ones."""
+    tools: list[str] = []
+    rest: list[str] = [argv[0]]
+    i = 1
+    while i < len(argv):
+        tok = argv[i]
+        value = None
+        if tok in _DISALLOW_FLAGS:
+            value = ""
+            if i + 1 < len(argv) and not argv[i + 1].startswith("-"):
+                value, i = argv[i + 1], i + 1
+        else:
+            for flag in _DISALLOW_FLAGS:
+                if tok.startswith(flag + "="):
+                    value = tok[len(flag) + 1:]
+        if value is None:
+            rest.append(tok)
+        else:
+            tools += [t for t in value.split(",") if t and t not in tools]
+        i += 1
+    tools += [t for t in _REQUIRED_DISALLOWED if t not in tools]
+    return [rest[0], "--disallowedTools=" + ",".join(tools), *rest[1:]]
+
+
+def add_disallowed_advisor(phases: list[dict]) -> list[dict]:
+    """Deep copies of the rows, each claude argv carrying ONE --disallowedTools flag naming advisor."""
+    import copy  # noqa: PLC0415
+
+    out = copy.deepcopy(phases)
+    for row in out:
+        for field_name in ("command", "fallback"):
+            argv = row.get(field_name)
+            if argv and _is_claude(argv):
+                row[field_name] = _merge_disallowed(argv)
+    return out
+
+
+def render_contract_harness(contract: Path, harness: Path, out: Path) -> tuple[Path, str]:
+    """Write `out` = the base harness with `phases:` taken from the contract; (harness path, source label)."""
+    import yaml  # noqa: PLC0415
+
+    rows = contract_phases(Path(contract).read_text(encoding="utf-8"))
+    if rows is None:
+        return harness, f"{harness} (the contract has no ## Phases section)"
+    doc = {**_harness_doc(harness), "phases": add_disallowed_advisor(rows)}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8", newline="\n") as fh:
+        yaml.safe_dump(doc, fh, sort_keys=False, allow_unicode=True)
+    return out, f"contract {contract}"
+
+
 def _lane_main(args, root: Path) -> int:
     harness = Path(args.harness) if args.harness else root / "ecosystem" / "harness.yaml"
     if args.select or args.constraints:
@@ -966,8 +1098,24 @@ def _lane_main(args, root: Path) -> int:
         print(f"{args.constraint}: {'PASS' if ok else 'FAIL'} -- {why}")
         return 0 if ok else 1
     if args.lane and args.round is not None:
-        res = run_round(args.lane, args.round, repo_root=root, harness=Path(args.harness) if args.harness else None,
-                        receipts=Path(args.receipts) if args.receipts else None, row=args.row or "")
+        run_harness = Path(args.harness) if args.harness else None
+        label = str(harness)
+        receipts = Path(args.receipts) if args.receipts else None
+        if args.contract:
+            # the doit child runs from the repo root: hand it absolute paths, never caller-relative ones
+            rbase = (receipts or (Path(os.environ["HARNESS_RECEIPTS_DIR"])
+                                  if os.environ.get("HARNESS_RECEIPTS_DIR") else root / "logs" / "receipts")).resolve()
+            receipts = rbase
+            out = rbase / f"LANE-{args.lane}" / f"r{args.round}" / "harness.contract.yaml"
+            try:
+                run_harness, label = render_contract_harness(Path(args.contract), harness, out)
+            except (ContractPhasesError, OSError) as exc:
+                print(f"conductor lane: REFUSED -- {exc}")
+                return 1
+            run_harness = run_harness.resolve()
+        print(f"harness source: {label}")
+        res = run_round(args.lane, args.round, repo_root=root, harness=run_harness,
+                        receipts=receipts, row=args.row or "")
         print(f"conductor lane {args.lane} r{args.round}: {res.verdict}"
               + (f" at {res.halted_at}" if res.halted_at else ""))
         for pid, status in res.phases:
@@ -1023,6 +1171,8 @@ def main(argv: list[str] | None = None) -> int:
     lane.add_argument("--row", default=None, help="the backlog row id")
     lane.add_argument("--harness", default=None, help="harness yaml (default: <repo-root>/ecosystem/harness.yaml)")
     lane.add_argument("--receipts", default=None, help="the receipts root (default: HARNESS_RECEIPTS_DIR)")
+    lane.add_argument("--contract", default=None,
+                      help="a lane contract whose `## Phases` section replaces the harness `phases:`")
     args = ap.parse_args(argv)
 
     for stream in (sys.stdout, sys.stderr):
