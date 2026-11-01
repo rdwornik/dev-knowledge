@@ -146,13 +146,18 @@ def _session_lane(name: str, slugs: set) -> Optional[str]:
     return repair.group("slug") if repair and repair.group("slug") in slugs else None
 
 
+def _natural_name(path: Path) -> list:
+    """File-name order with digit runs compared as numbers, so `-repair-2` sorts before `-repair-10`."""
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", path.name)]
+
+
 def collect_events(*, transport: Path, state_file: Path, slugs: Sequence[str]) -> list[Event]:
     """Every event the three sources carry, in the fixed order; the ledger decides which are new."""
     known = set(slugs)
     events: list[Event] = []
     inbox = Path(transport) / "to-browser"
     try:
-        files = sorted(p for p in inbox.iterdir() if p.is_file()) if inbox.is_dir() else []
+        files = sorted((p for p in inbox.iterdir() if p.is_file()), key=_natural_name) if inbox.is_dir() else []
     except OSError as exc:      # a Drive folder that vanishes mid-sync reads as empty this pass
         logger.warning("%s: unreadable this pass (%s)", inbox, exc)
         files = []
@@ -340,13 +345,16 @@ def _default_echo(line: str) -> None:
 
 def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequence[Path],
              ledger_path: Path, fire: Callable[[list, dict], FireResult] = subprocess_fire,
-             dry_run: bool = False, echo: Optional[Callable[[str], None]] = None) -> list[Fired]:
+             dry_run: bool = False, echo: Optional[Callable[[str], None]] = None,
+             ledger: Optional[Ledger] = None) -> list[Fired]:
     """One pass over the three sources: fire once per NEW event. Returns the fires attempted
-    (a dry run: the fires it would make)."""
+    (a dry run: the fires it would make). The watch loop passes ONE `ledger` for its whole life, so a
+    ledger file that cannot be written still stops this process refiring on every pass."""
     echo = echo or _default_echo
     lanes = _dispatch.load_queue(list(contracts))
     by_slug = {lane.slug: lane for lane in lanes}
-    ledger = Ledger(ledger_path, persist=not dry_run)
+    if ledger is None:
+        ledger = Ledger(ledger_path, persist=not dry_run)
     env = {**os.environ, CALLER_ENV: CALLER_VALUE}
     queue_argv = ["queue", "--batch", batch, "--state-file", str(state_file),
                   *[str(c) for c in contracts]]
@@ -443,10 +451,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ledger_path = _dispatch.receipts_dir() / f"QUEUE-RUNNER-{args.batch}.jsonl"
     once = args.once or args.dry_run
     failed = False
+    ledger = Ledger(ledger_path, persist=not args.dry_run)
     while True:
         try:
             fired = run_once(batch=args.batch, state_file=state_file, transport=transport,
-                             contracts=contracts, ledger_path=ledger_path, dry_run=args.dry_run)
+                             contracts=contracts, ledger_path=ledger_path, dry_run=args.dry_run,
+                             ledger=ledger)
             failed = failed or any(f.returncode not in (None, 0) for f in fired)
         except KeyboardInterrupt:
             return 0

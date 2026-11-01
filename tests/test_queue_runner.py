@@ -557,3 +557,52 @@ def test_a_dry_run_of_a_machine_refused_event_prints_nothing_and_writes_nothing(
 
     assert fired == [] and lines == []
     assert ledger_path.read_bytes() == before
+
+
+def test_an_unwritable_ledger_does_not_refire_across_the_passes_of_one_watch(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    blocker = tmp_path / "a-file"
+    blocker.write_text("x", encoding="utf-8")
+    ledger = qr.Ledger(path=blocker / "l.jsonl")
+    calls = []
+
+    for _ in range(3):
+        qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=blocker / "l.jsonl"),
+                    fire=_successful_fire(qr, calls), ledger=ledger)
+
+    assert len(calls) == 1
+
+
+def test_every_event_of_a_pass_is_seen_after_it_and_nothing_is_fired_twice(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, state="STATE a MERGED abc1234 2026-11-01T10:00 5\n",
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n",
+               "REFUSED-b.md": "from: the INTEGRATOR\nrepair 3 of 2\n"})
+    ledger_path = tmp_path / "ledger.jsonl"
+    calls = []
+    for _ in range(3):
+        qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                    fire=_successful_fire(qr, calls))
+
+    events = qr.collect_events(transport=transport, state_file=state_file, slugs=("a", "b"))
+    assert {event.kind for event in events} == {"handback", "merged", "refused"}
+    ledger = qr.Ledger(path=ledger_path)
+    assert all(ledger.seen(event.key) for event in events)
+    assert [call[0][0] for call in calls] == ["queue", "queue"]    # handback + merge, once each; repair 3 of 2 fires nothing
+
+
+def test_repair_sessions_sort_by_number_not_by_text(tmp_path):
+    qr = _runner()
+    line = "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"
+    transport, state_file = _event_tree(
+        tmp_path, files={f"SESSION-a-repair-{n}.md": line for n in (10, 2, 1)})
+
+    events = qr.collect_events(transport=transport, state_file=state_file, slugs=("a",))
+
+    assert [event.source for event in events] == [
+        "SESSION-a-repair-1.md", "SESSION-a-repair-2.md", "SESSION-a-repair-10.md"]
