@@ -370,7 +370,11 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             # R11: the registry's admitted implement entries are judged by MODEL (requested names the
             # entry's model and the CLI served it); anything else needs a genuine
             # `VENDOR-FAIL: implement <text>` on the line.
-            copilot_arm = requested.startswith("copilot") or "copilot" in phase.lower()
+            # The arm follows the requested MODEL, never the phase label alone (Codex terra N406600): a
+            # `copilot...` first part is a Copilot request, and `default`/empty on a Copilot-named
+            # phase is the CLI at its default; every other request is judged as a non-Copilot one.
+            copilot_arm = requested.startswith("copilot") or (
+                requested in ("", "default") and "copilot" in phase.lower())
             # The requested MODEL is the first part; for a Copilot request (`copilot/<model>[/effort]`)
             # it is the part after `copilot` (`default` or absent = the CLI's own default). Any other
             # part is effort and never names a model (Codex terra N402200 / sol J402201).
