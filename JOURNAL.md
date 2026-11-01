@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-01 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-phases-from-contract landing -- `conductor.py lane --contract` reads its phases from the lane contract and disallows advisor on every claude argv [#1689]
+
+**Anchors:** `e3398278f` (RED tests), `25c175c93` (the feature), `fe2a0c3ed` and `642ec6a1c` (RED and fix: contract phase rows validated against the full harness schema), `d74ec796f` and `c9cec3f28` (RED and fix: absolute harness and receipts paths for the doit child), `0b06e9c9e` (touches clause), `5b5787a24` and `39ef8c231` (RED and fix: advisor merged into one disallowedTools flag, non-string phase id refused), `b42334d20` and `527756d1c` (RED and fix: a bare disallowedTools flag never consumes an option).
+
+**Did:** landed the lane's HANDBACK `527756d1c` under integrator order revision 4 + A1 + A2 + A3 (sha256 ebf433a628ebf005); A3 (operator, 2026-11-01) lifts the ci-verdict-first rule for this lane. Purity, T1 (RED sha e3398278f, run 41214471759, concluded failure on attempt 2 after an orchestrator rerun; recorded as TODAY-GLUE), the T2 rule re-derived by me from the tip run 41252073988 against base run 41035368018 (two ids outside the registry, both the allowed doc-counts staleness), terra, grok and sol PASS. Landed with `land_lane.py` and the five `--regen-cmd`.
+
+**Result:** see logs/MERGE-RECEIPTS.jsonl for the landing line; the integrator receipt (to-browser/SESSION-integrator-E3.0-2026-10-31.md) carries the verdicts and any HAND-STEP.
+
+**Changes:** `scripts/conductor.py`, `tests/test_conductor_lane.py`, `tests/fixtures/e30-three-phase-contract.md`, `tests/fixtures/stub_phase.py`, one task file (touches clause); regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** e30-served-model (L2) @ eda41fdd9, then e30-ci-verdict, e30-rulings, e30-queue-runner, e30-view-decide, backlog-reconcile, e30-witness last.
+
 ### 2026-10-30 (a) - CC (Opus 5.5, orchestrator of batch E2.2, H-5): the handoff cut `2026-10-28-dev-knowledge-architect` lands -- the first cut through ADR-132 `gen_handoff.py --cut`, supplement transcribed verbatim from Tech-Architect-47's SUPPLEMENT-ANSWERS v2, PLAN-NEXT folded
 
 **Anchors:** `25c6b393a` (the cut, pre-supplement: 16 bundle files, residual carried debt computed by `gen_handoff.carriage_verdicts` / `_question_disposition_verdict`), `b944289e5` (fold: SUPPLEMENT v2 verbatim, PLAN-NEXT into RESIDUAL section 4 and the boot purpose/destination), `b4b99e59a` (the BOOT-DATA Plan row re-derived after the operator's MASTER PLAN act, restamp-manifest; `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` +2); branch `worktree-handoff-2026-10-28`, introduced by this merge.
