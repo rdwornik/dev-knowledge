@@ -1178,14 +1178,12 @@ def test_spawn_process_leaves_a_non_provider_argv_alone(tmp_path, monkeypatch):
 def test_launch_lane_refusal_for_a_fixture_contract_creates_no_worktree(
     tmp_path, monkeypatch, receipts, caplog
 ):
-    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): refusal at the process boundary creates no worktree.
+    # Dispatcher defect order: T1-FIX of T1 eb1c3987; refusal at the process boundary creates no worktree.
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     calls = _install_fake_process_boundary(monkeypatch)
-    contract_path = tmp_path / "LANE-a.md"
-    contract_path.write_text(
-        CONTRACT.replace("$env:CLAUDE_PROMPTS_DIR", r"C:\x\tests\fixtures\queue_runner"),
-        encoding="utf-8",
-    )
+    contract_path = tmp_path / "tests" / "fixtures" / "queue_runner" / "LANE-a.md"
+    contract_path.parent.mkdir(parents=True)
+    contract_path.write_text(CONTRACT, encoding="utf-8")
     request = _request(contract_path)
 
     with pytest.raises(d.LaunchRefused):
