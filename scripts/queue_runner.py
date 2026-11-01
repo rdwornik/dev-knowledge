@@ -367,6 +367,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
     queue_argv = ["queue", "--batch", batch, "--state-file", str(state_file),
                   *[str(c) for c in contracts]]
     fired: list[Fired] = []
+    warned = _WARNED_KEYS
 
     def handle(event: Event) -> None:
         if ledger.seen(event.key):
@@ -390,9 +391,10 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             except OSError as exc:      # a contract mid-sync is not a failed fire: retried next pass, uncounted
                 logger.warning("%s: unreadable this pass (%s)", lane.contract, exc)
                 return
-            except ValueError as exc:
-                logger.error("%s", exc)
-                ledger.record(event, STATUS_FAILED, detail=str(exc))
+            except ValueError as exc:   # no head row: nothing was fired, so it costs no attempt and is
+                if event.key not in warned:     # retried once the contract is fixed; logged once per event
+                    warned.add(event.key)
+                    logger.error("%s", exc)
                 return
             verb = "repair"
             argv = ["repair", event.lane, str(lane.contract), "--model", model, "--effort", effort,
@@ -434,6 +436,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
 
 # --- one runner per batch ---------------------------------------------------------------------------
 
+_WARNED_KEYS: set = set()    # events whose contract could not be parsed, so the log says it once, not every pass
 _HELD_LOCKS: list = []       # the open lock files; a handle that is garbage collected would drop its lock
 
 

@@ -704,3 +704,26 @@ def test_a_dry_run_handed_a_persistent_ledger_still_writes_nothing(tmp_path):
     qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
                 fire=_successful_fire(qr, calls), ledger=ledger)
     assert len(calls) == 3
+
+
+def test_a_contract_without_a_head_row_costs_no_attempt_and_is_retried_once_fixed(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, files={"REFUSED-b.md": "from: the INTEGRATOR\nrepair 1 of 2\n"})
+    broken = tmp_path / "LANE-b.md"
+    broken.write_text(_contracts()[1].read_text(encoding="utf-8").replace("| Model | Mode | Effort |", "| M | N | O |"),
+                      encoding="utf-8")
+    contracts = [_contracts()[0], broken]
+    ledger_path = tmp_path / "ledger.jsonl"
+    calls = []
+    arguments = {**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                 "contracts": contracts}
+
+    for _ in range(4):
+        qr.run_once(**arguments, fire=_successful_fire(qr, calls))
+    assert calls == []
+
+    broken.write_text(_contracts()[1].read_text(encoding="utf-8"), encoding="utf-8")
+    qr.run_once(**arguments, fire=_successful_fire(qr, calls))
+
+    assert [call[0][0] for call in calls] == ["repair"]
