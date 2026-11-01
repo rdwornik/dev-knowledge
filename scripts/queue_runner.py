@@ -377,13 +377,14 @@ def _default_echo(line: str) -> None:
 
 
 def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequence[Path],
-             ledger_path: Path, fire: Callable[[list, dict], FireResult] = subprocess_fire,
+             ledger_path: Path, fire: Optional[Callable[[list, dict], FireResult]] = None,
              dry_run: bool = False, echo: Optional[Callable[[str], None]] = None,
              ledger: Optional[Ledger] = None) -> list[Fired]:
     """One pass over the three sources: fire once per NEW event. Returns the fires attempted
     (a dry run: the fires it would make). The watch loop passes ONE `ledger` for its whole life, so a
     ledger file that cannot be written still stops this process refiring on every pass."""
     echo = echo or _default_echo
+    fire = fire or subprocess_fire      # resolved at CALL time, from the module global, so a test can replace it
     lanes = _dispatch.load_queue(list(contracts))
     by_slug = {lane.slug: lane for lane in lanes}
     if ledger is None:

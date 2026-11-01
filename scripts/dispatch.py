@@ -1050,6 +1050,29 @@ def _pre_launch_gaps(hub: Path) -> list[str]:
     return gaps
 
 
+_PROVIDER_HEADS = frozenset({"claude", "codex", "copilot"})
+
+
+def _refuse_test_launch(argv: Sequence[str], env: Mapping[str, str], cwd: Path) -> None:
+    """Refuse to start a REAL provider session from a test (dispatcher defect order, [#1633]).
+
+    A fixture contract once launched a live `claude --bg` lane because a test fired the real
+    `dispatch.py queue`. The one exec point refuses a provider head when (a) the pytest marker is in the
+    env the child would inherit (or this process's own), or (b) the argv or the cwd names a
+    `tests/fixtures/` path (the contract path rides inside the prompt argument). Nothing is spawned and
+    no worktree is created. A non-provider argv is untouched."""
+    if not argv or Path(str(argv[0])).stem.lower() not in _PROVIDER_HEADS:
+        return
+    if "PYTEST_CURRENT_TEST" in env or "PYTEST_CURRENT_TEST" in os.environ:
+        why = "PYTEST_CURRENT_TEST is set: a test must not start a real provider session"
+    elif any("tests/fixtures/" in str(part).replace("\\", "/") for part in (*argv, cwd)):
+        why = "the launch names a tests/fixtures/ path: a fixture contract is never launched"
+    else:
+        return
+    logger.error("refusing to spawn %s: %s", argv[0], why)
+    raise LaunchRefused(f"refusing to spawn {argv[0]}: {why}")
+
+
 def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
                   log_path: Optional[Path] = None) -> Spawned:
     """THE process boundary -- the one place a provider is started, and the one thing tests replace.
@@ -1058,6 +1081,7 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
     prints its job id and exits). With one, the child is DETACHED with its stdout in that file and
     this returns at once with its pid (`codex exec` runs for the length of the lane). Nothing here
     keeps a handle that could later end the child."""
+    _refuse_test_launch(argv, env, cwd)
     if log_path is None:
         done = subprocess.run(list(argv), env=dict(env), cwd=str(cwd), capture_output=True,
                               text=True, encoding="utf-8", errors="replace")
