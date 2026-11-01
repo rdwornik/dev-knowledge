@@ -170,12 +170,36 @@ def test_a_matching_models_block_is_accepted():
     assert sg.check_models_block(text) == ([], [])
 
 
-# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+# GO-E3.0 R11 + operator sonnet-id ruling
 def test_a_model_smuggled_in_the_effort_position_is_refused():
     problems, _ = sg.check_models_block(
-        "MODELS:\n  implement: requested=claude-opus-5-5/claude-sonnet-5-5 "
+        "MODELS:\n  implement: requested=claude-sonnet-5-5/claude-sonnet-5.5 "
+        "served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_naming_the_anthropic_id_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5-5 "
         "served=claude-sonnet-5-5\n")
     assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_naming_an_unadmitted_copilot_part_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/copilot-rogue "
+        "served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_with_an_effort_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5/high "
+        "served=claude-sonnet-5.5\n")
+    assert problems == []
 
 
 # GO-E3.0 R11 (Codex terra N402200 / sol J402201)
@@ -228,6 +252,14 @@ def test_copilot_implement_served_the_admitted_model_is_accepted():
     problems, _ = sg.check_models_block(
         "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=claude-sonnet-5.5\n")
     assert problems == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_implement_not_in_the_gateway_set_is_refused(monkeypatch):
+    monkeypatch.setattr(sg, "COPILOT_GATEWAY_SERVED", frozenset())
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=claude-sonnet-5.5\n")
+    assert problems
 
 
 def test_a_substitution_with_a_vendor_fail_reference_is_accepted_and_reported():
