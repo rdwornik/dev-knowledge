@@ -71,7 +71,8 @@ def test_vendor_fail_evidence_in_a_contract(text, expected):
     ("VENDOR-FAIL: implement copilot exit 1: not signed in", True),
 ])
 def test_vendor_fail_evidence_on_a_models_line(text, expected):
-    line = f"implement: requested={SONNET}/high served={SONNET} {text}"
+    # GO-E3.0 R11: Grok is not an admitted implement entry and must use VENDOR-FAIL evidence.
+    line = f"implement: requested=grok-4.7/high served=grok-4.7 {text}"
     problems, subs = sg.check_models_block(_block(line))
     assert (problems == [] and len(subs) == 1) is expected, (problems, subs)
     if not expected:
@@ -99,9 +100,10 @@ def _problems(text: str) -> list[str]:
     return sg.contract_problems(text, lane="lane-x", batch="E2.0", launch_model=SONNET)[0]
 
 
-def test_substrate_table_claude_implement_without_evidence_is_refused():
+def test_substrate_table_admitted_claude_implement_without_evidence_is_accepted():
     problems = _problems(_substrate_contract(SONNET))
-    assert any("implement" in p and SONNET in p and "REFUSED" in p for p in problems), problems
+    # GO-E3.0 R11: admitted Sonnet is first and needs no VENDOR-FAIL evidence.
+    assert problems == []
 
 
 def test_substrate_table_claude_implement_with_evidence_is_accepted():
@@ -109,8 +111,10 @@ def test_substrate_table_claude_implement_with_evidence_is_accepted():
     assert _problems(text) == []
 
 
-def test_substrate_table_copilot_implement_is_accepted():
-    assert _problems(_substrate_contract(COPILOT_CELL)) == []
+def test_substrate_table_copilot_fallback_without_evidence_is_refused():
+    problems = _problems(_substrate_contract(COPILOT_CELL))
+    # GO-E3.0 R11: the later Copilot entry requires VENDOR-FAIL evidence.
+    assert any("VENDOR-FAIL" in p for p in problems), problems
 
 
 def test_substrate_table_orchestrate_row_still_judged_against_the_head_role():
@@ -135,17 +139,19 @@ def _where_contract(header: str, row: str) -> str:
 
 
 def test_a_phase_table_with_a_trailing_notes_column_is_still_parsed():
-    text = _where_contract("| Phase | Model | Where | Notes |", f"| implement | {SONNET} | codespace | n |")
+    text = _where_contract("| Phase | Model | Where | Notes |", "| implement | grok-4.7 | codespace | n |")
+    # GO-E3.0 R11: verify the parser still sees the non-admitted model in the implement row.
     assert any("implement" in p and "REFUSED" in p for p in _problems(text))
-    ok = _where_contract("| Phase | Model | Where | Notes |", f"| implement | {COPILOT_CELL} | codespace | n |")
+    ok = _where_contract("| Phase | Model | Where | Notes |", f"| implement | {SONNET} | codespace | n |")
     assert _problems(ok) == []
 
 
 @pytest.mark.parametrize("label", ["**implement**", "`implement`", "Implement", "_implement_", "** Implement **"])
 def test_a_decorated_implement_label_in_a_where_table_is_judged_as_implement(label):
-    bad = _where_contract("| Phase | Model | Where | Notes |", f"| {label} | {SONNET} | codespace | n |")
+    bad = _where_contract("| Phase | Model | Where | Notes |", f"| {label} | grok-4.7 | codespace | n |")
+    # GO-E3.0 R11: decorated labels still identify the implement role for a non-admitted model.
     assert any("implement" in p and "REFUSED" in p for p in _problems(bad)), label
-    good = _where_contract("| Phase | Model | Where | Notes |", f"| {label} | {COPILOT_CELL} | codespace | n |")
+    good = _where_contract("| Phase | Model | Where | Notes |", f"| {label} | {SONNET} | codespace | n |")
     assert _problems(good) == [], label
 
 

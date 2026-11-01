@@ -198,8 +198,10 @@ def test_the_report_names_every_provider_admission_state(router):
     # R104 (operator, 2026-10-14; [#1536]) adds Copilot's `qa` seat and Grok's `review` seat.
     assert by_provider["copilot-enterprise"].admitted_in == ["implement", "qa", "red"]  # red pinned+admitted shape per F7 data
     assert by_provider["xai"].admitted_in == ["review"]
-    for provider in ("antigravity", "openai"):
-        assert by_provider[provider].admitted_in == [], f"{provider} is NOT ADMITTED anywhere"
+    # GO-E3.0 R11: antigravity is admitted on read and OpenAI is admitted on judge.
+    assert set(by_provider["antigravity"].admitted_in) == {"read"}
+    # GO-E3.0 R11: OpenAI's new admission is scoped to judge.
+    assert set(by_provider["openai"].admitted_in) == {"judge"}
 
 
 def test_the_report_distinguishes_reporting_from_measuring(router):
@@ -220,11 +222,10 @@ def test_the_report_carries_the_licence_alongside_the_admission(router):
     everywhere — is what still demonstrates the two-fields-are-independent point directly."""
     by_provider = {r.provider: r for r in router.admission_report()}
     assert by_provider["copilot-enterprise"].licence == "permitted"
-    # xai was this example until R104 (2026-10-14, [#1536]) admitted it on review; antigravity
-    # is now the licensed-but-unadmitted-everywhere provider that shows the independence.
+    # GO-E3.0 R11: antigravity's read admission is now recorded alongside its licence.
     assert by_provider["antigravity"].licence == "permitted"
-    assert by_provider["antigravity"].admitted_in == [], (
-        "antigravity: licensed but still unadmitted anywhere")
+    # GO-E3.0 R11: the report carries antigravity's read admission.
+    assert by_provider["antigravity"].admitted_in == ["read"]
 
 
 # --- the CLI (done-contract item 4: "Click for a CLI where one is warranted") -----------------
@@ -235,7 +236,8 @@ def test_the_cli_reports_without_touching_any_provider(router):
 
     result = CliRunner().invoke(router.cli, ["report"])
     assert result.exit_code == 0, result.output
-    assert "NOT ADMITTED" in result.output
+    # GO-E3.0 R11: the report shows the new recorded read/judge admissions.
+    assert "admitted in" in result.output and "antigravity" in result.output
     assert "copilot-enterprise" in result.output
 
 
