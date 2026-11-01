@@ -64,7 +64,8 @@ def test_harness_yaml_declares_stages_1_to_12_within_caps():
     lines = _HARNESS.read_text(encoding="utf-8").splitlines()
     # W3-A: 100 -> 200. Six moments and the 36 recorded fates (R-W3-4) are DATA rows, one line each; the cap
     # exists to keep LOGIC out of the file (`test_dodo_adapter_stays_small` and the no-logic header do that).
-    assert len(lines) < 200, f"harness.yaml is {len(lines)} lines; the cap is under 200 (W3-A: fates added)"
+    # E3.0 e30-queue-runner: +1 for one fates data row (same rationale as W3-A).
+    assert len(lines) < 201, f"harness.yaml is {len(lines)} lines; the cap is under 201 (W3-A: fates added)"
     stages = yaml.safe_load("\n".join(lines))["stages"]
     assert [s["stage"] for s in stages] == list(range(1, 13))
     for s in stages:
