@@ -38,7 +38,7 @@ def _known_reds_log(regressions: tuple[str, ...]) -> str:
 
 
 def _read_failed_pytest_verdict(
-    regressions: tuple[str, ...], *, repo_root: Path, known_ids_fn=None,
+    regressions: tuple[str, ...], *, repo_root: Path, known_ids_fn=None, extra_jobs: tuple = (),
 ) -> cv.CiVerdict:
     run = {
         "databaseId": 41,
@@ -50,7 +50,10 @@ def _read_failed_pytest_verdict(
         "createdAt": "2026-10-23T10:00:00Z",
         "updatedAt": "2026-10-23T10:10:00Z",
     }
-    jobs = [{"name": _LEG_UBUNTU, "conclusion": "failure", "databaseId": 1}]
+    jobs = [
+        *extra_jobs,
+        {"name": _LEG_UBUNTU, "conclusion": "failure", "databaseId": 1},
+    ]
     kwargs = {}
     if known_ids_fn is not None:
         kwargs["known_ids_fn"] = known_ids_fn
@@ -255,3 +258,85 @@ def test_live_registry_known_ids_contains_c6618_regressions():
 
     assert set(_C6618_REGRESSIONS) <= cv._registry_known_ids(
         _C6618_REGISTRY_SHA, repo_root=repo_root, os_key="ubuntu-latest")
+
+
+def test_registry_known_ids_does_not_excuse_members_without_attribution(tmp_path: Path):
+    from scripts import known_reds
+
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    _init_ci_verdict_registry_repo(repo_root, with_registry=False)
+
+    missing_attribution = "tests/test_missing_attribution.py::test_missing"
+    attributed = "tests/test_attributed.py::test_attributed"
+    registry_path = repo_root / "logs" / "KNOWN-REDS-REGISTRY.json"
+    registry_path.parent.mkdir(parents=True)
+    registry_path.write_text(
+        json.dumps({
+            "schema": known_reds.SCHEMA,
+            "baseline_id": "fixture",
+            "measured_at_sha": "fixture",
+            "measured_via": "local",
+            "workers": 4,
+            "members": {
+                missing_attribution: {
+                    "task": "[#9001]", "owner": "rob", "expiry": "2099-01-01",
+                },
+                attributed: {
+                    "attribution": "pre-freeze",
+                    "task": "[#9002]", "owner": "rob", "expiry": "2099-01-01",
+                },
+            },
+            "hooks": {},
+            "members_by_os": {},
+            "notes": [],
+        }),
+        encoding="utf-8",
+    )
+    subprocess.run(
+        ["git", "add", "logs/KNOWN-REDS-REGISTRY.json"], cwd=repo_root, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "-m", "add raw registry"], cwd=repo_root, check=True)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, check=True, capture_output=True, text=True,
+    ).stdout.strip()
+
+    known_ids = cv._registry_known_ids(sha, repo_root=repo_root, os_key=None)
+
+    assert missing_attribution not in known_ids
+    assert attributed in known_ids
+
+
+@pytest.mark.parametrize("malformed", [None, 42])
+def test_malformed_known_ids_result_fails_closed(
+        tmp_path: Path, malformed):
+    verdict = _read_failed_pytest_verdict(
+        _C6618_REGRESSIONS,
+        repo_root=tmp_path,
+        known_ids_fn=lambda *_args, **_kwargs: malformed,
+    )
+
+    assert verdict.new_reds == tuple(
+        f"{_LEG_UBUNTU}: {regression}" for regression in _C6618_REGRESSIONS)
+    assert "registry" in verdict.reason and "could not be read" in verdict.reason
+
+
+def test_unexplained_failing_job_stays_separate_from_known_pytest_regressions(
+        tmp_path: Path):
+    verdict = _read_failed_pytest_verdict(
+        _C6618_REGRESSIONS,
+        repo_root=tmp_path,
+        known_ids_fn=lambda *_args, **_kwargs: frozenset(_C6618_REGRESSIONS),
+        extra_jobs=({"name": "commit-gate", "conclusion": "failure", "databaseId": 2},),
+    )
+
+    assert verdict.new_reds == ("commit-gate",)
+    assert not any(regression in str(red)
+                   for red in verdict.new_reds for regression in _C6618_REGRESSIONS)
+
+
+def test_c6618_registry_lock_tests_do_not_skip():
+    source = Path(__file__).read_text(encoding="utf-8")
+    skip_call = "pytest" + ".skip("
+
+    assert skip_call not in source
