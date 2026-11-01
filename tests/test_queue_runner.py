@@ -171,7 +171,7 @@ def test_run_once_fires_exact_queue_and_repair_arguments_only_once(tmp_path):
         "b",
         str(_contracts()[1]),
         "--model",
-        "claude-sonnet-5-5",
+        "sonnet",
         "--effort",
         "high",
         "--attempt",
