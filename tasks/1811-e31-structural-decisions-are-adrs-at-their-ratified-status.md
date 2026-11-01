@@ -1,0 +1,12 @@
+---
+id: "[#1811]"
+title: "E3.1's structural decisions are ADRs at their ratified status"
+status: open
+priority: P1
+size: M
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1811] [P1][M] **E3.1's structural decisions are ADRs at their ratified status** - land the four v3 ADRs (stage-phase, git-memory, browser-surface, read-format) at Accepted, flip ADR-133 to Accepted with its ratified open-point rulings, and carry the two /decide ADRs (record and isolation; task state) to the operator at Proposed · Done when: `uv run --locked python scripts/validate_adr_status.py --all` exits 0 and `uv run --locked python scripts/decide_checks.py adr-sections <ADR>` reports 0 defects for each of the six ADRs this row adds; real-use witness: the E3.1 wave-1 build lanes cite the landed ADR numbers. · touches: `docs/decisions/README.md`, `docs/decisions/ADR-133-the-system-view.md`, `.claude/generated/recent-adrs.md`, `tests/test_e30_view_adr.py`, `tests/test_validate_adr_status.py`, `tasks/1837-decide-independent-adjudication-as-code.md`, `tasks/1838-one-id-one-ruling.md` · kill-candidates: none -- no open row owns landing the E3.1 ADRs · refs `docs/decisions/` · source: to-cc/GO-E3.1.md · decided-by: the operator, 2026-11-01, GO-E3.1 id grant
