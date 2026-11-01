@@ -250,6 +250,9 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
             break
     served = _pr.served_model_from_record(head, cli_record)
     metrics = cli_record.get("modelMetrics") if head == "copilot" and isinstance(cli_record, dict) else None
+    mu = cli_record.get("modelUsage") if head in ("claude", "grok") and isinstance(cli_record, dict) else None
+    if isinstance(mu, dict) and mu:
+        usage = {"model_usage_keys": sorted(mu), "multi_model": len(mu) > 1, **(usage or {})}
     if isinstance(metrics, dict):
         current = cli_record.get("currentModel")
         usage = {"model_metrics_keys": sorted(metrics), "multi_model": len(metrics) > 1,

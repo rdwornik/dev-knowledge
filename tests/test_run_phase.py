@@ -750,3 +750,12 @@ def test_grok_served_model_is_the_model_usage_key():
     receipt = _build(["grok", "-p"], _phase_run(), {"modelUsage": {"grok-4.7": {}}})
 
     assert receipt.served_model == receipt.model_reported == "grok-4.7"
+
+
+def test_claude_model_usage_keys_are_kept_and_multi_model_flagged():
+    record = {"modelUsage": {"claude-haiku-5-5": {"outputTokens": 9}, "claude-opus-5-5": {"outputTokens": 1}}}
+    receipt = _build(["claude", "-p"], _phase_run(), record)
+
+    assert receipt.served_model == "claude-haiku-5-5"
+    assert receipt.usage["model_usage_keys"] == ["claude-haiku-5-5", "claude-opus-5-5"]
+    assert receipt.usage["multi_model"] is True
