@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-01 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-bootstrap landing -- GO-E3.0 R11 routing in the provider registry, the merge-time implement check reads the registry, R2 advisor block on every Claude argv, rows [#1747] [#1748] [#1749] filed
+
+**Anchors:** `691a2a510` (RED tests), `74b9f3bf4` (registry R11 roles, `subst_gate` reads the registry, `dispatch.py` `--disallowedTools=AskUserQuestion,advisor`), `f51b3ae70` (Copilot arm constrained), `0c21a17a4` (R177-pinning assertions rewritten to R11/R2 by a Copilot T1 session, each citing its line), `858f54034` (manifest nodes for the three rows the lane files), `07125629c` and `3be0bc71d` (RED tests for the two merge-gate defects the grok/sol adjudication confirmed), `5f75c0d99` and `55cbb79cf` (their fixes in `scripts/subst_gate.py`).
+
+**Did:** judged the lane's final HANDBACK `55cbb79cf` (SESSION-e30-bootstrap.md line 204) under integrator order revision 4 + A1 + A2 (sha256 c7e164cba39ebb80). Purity, T1 (each RED run concluded failure on its RED sha), the T2 rule re-derived from the base run 41035368018 and the tip run 41275647054 (FAILED and ERROR lines both read: 17 new ids, every one on the allow list, cause staleness of the five regenerated files only), terra APPROVE, grok G408 six chunks, sol MERGE, both ADJUDICATE lines (terra-HIGH-2, grok-G404). Landed with `land_lane.py` and the five `--regen-cmd` in the order's sequence.
+
+**Result:** the lane's own Codex-quota stretch (terra and sol on the grok backup, VENDOR-FAIL) was held, not landed, until Codex was back; a grok High on its own new merge-gate code was adjudicated real by sol and fixed in this lane before the landing. Two hand steps recorded: the integration worktree and its state-file seeding, and this JOURNAL commit placed on a local branch above the lane tip so the merge carries it.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/check_provider_registry.py`, `scripts/dispatch.py` (argv lines), `scripts/gen_lane_contract.py` (Roles sentence), `scripts/subst_gate.py`, three task files and three manifest nodes, 17 test files; regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** e30-ci-verdict, then e30-rulings and e30-served-model, then e30-phases-from-contract (reviewed, waiting), e30-queue-runner, e30-witness last.
+
 ### 2026-10-30 (a) - CC (Opus 5.5, orchestrator of batch E2.2, H-5): the handoff cut `2026-10-28-dev-knowledge-architect` lands -- the first cut through ADR-132 `gen_handoff.py --cut`, supplement transcribed verbatim from Tech-Architect-47's SUPPLEMENT-ANSWERS v2, PLAN-NEXT folded
 
 **Anchors:** `25c6b393a` (the cut, pre-supplement: 16 bundle files, residual carried debt computed by `gen_handoff.carriage_verdicts` / `_question_disposition_verdict`), `b944289e5` (fold: SUPPLEMENT v2 verbatim, PLAN-NEXT into RESIDUAL section 4 and the boot purpose/destination), `b4b99e59a` (the BOOT-DATA Plan row re-derived after the operator's MASTER PLAN act, restamp-manifest; `logs/HANDOFF-RESTAMP-RECEIPTS.jsonl` +2); branch `worktree-handoff-2026-10-28`, introduced by this merge.

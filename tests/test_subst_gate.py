@@ -22,8 +22,8 @@ SONNET = "claude-sonnet-5-5"
 TERRA = "gpt-5.6-terra"
 
 _PHASE_ROWS = {
-    # R177 split: the default implement row is Copilot (Claude implement needs VENDOR-FAIL evidence)
-    "implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |",
+    # GO-E3.0 R11: the default implement row is the registry's first entry, admitted Sonnet
+    "implement": f"| implement code (lane head) | {SONNET} | local |",
     "red": "| write the RED / isolated tests | Copilot CLI `gpt-6-luna` | codespace |",
     "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
@@ -117,11 +117,19 @@ def test_a_launch_model_that_is_not_the_head_model_is_refused():
                for p in problems)
 
 
+def test_a_later_implement_entry_row_needs_a_vendor_fail_line():
+    row = {"implement": "| implement code (lane head) | Copilot CLI `claude-sonnet-5.5` | local |"}
+    problems, _ = _problems(_contract(rows=row))
+    assert problems, "R11: the Copilot entry is second, so its route row needs a VENDOR-FAIL line"
+    text = _contract(rows=row) + "\nVENDOR-FAIL: implement copilot quota exhausted today\n"
+    assert _problems(text)[0] == []
+
+
 def test_the_implement_row_naming_grok_is_refused():
     problems, _ = _problems(_contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
-    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
+    # R11: a Substrate `implement` row is judged against the registry's first `implement` entry, not the seat
     _assert_refusal_names(problems, lane="lane-x", role="implement", contract_model="grok-4.7",
-                          table_model="claude-sonnet-5.5")
+                          table_model="claude-sonnet-5-5")
 
 
 def test_the_red_row_naming_a_registry_model_is_refused():
@@ -162,6 +170,86 @@ def test_a_matching_models_block_is_accepted():
     assert sg.check_models_block(text) == ([], [])
 
 
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_a_model_smuggled_in_the_effort_position_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-sonnet-5-5/claude-sonnet-5.5 "
+        "served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_naming_the_anthropic_id_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5-5 "
+        "served=claude-sonnet-5-5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_naming_an_unadmitted_copilot_part_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/copilot-rogue "
+        "served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_request_with_an_effort_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5/high "
+        "served=claude-sonnet-5.5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+def test_a_sonnet_request_with_an_effort_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-sonnet-5-5/high served=claude-sonnet-5-5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_with_a_sonnet_request_is_judged_as_sonnet():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=claude-sonnet-5-5/high served=claude-sonnet-5-5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_with_a_sonnet_request_served_another_model_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=claude-sonnet-5-5/high served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_at_the_default_is_judged_as_copilot():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=default served=claude-sonnet-5.5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+def test_an_admitted_vendor_fail_only_entry_requested_and_served_passes(monkeypatch):
+    entry = dict(sg.pr.role_order("implement")[0])
+    entry.update(provider="anthropic", model="claude-opus-5-5", vendor_fail_only=True)
+    role_order = sg.pr.role_order
+
+    def patched_role_order(role, *args, **kwargs):
+        if role == "implement":
+            return [entry, *role_order(role, *args, **kwargs)]
+        return role_order(role, *args, **kwargs)
+
+    monkeypatch.setattr(sg.pr, "role_order", patched_role_order)
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-opus-5-5/high served=claude-opus-5-5\n")
+    assert problems == []
+
+
 def test_a_missing_models_block_is_a_problem():
     problems, subs = sg.check_models_block("HANDBACK lane-x @ abc\n")
     assert problems and problems[0].startswith("REFUSED [models-block]: ")
@@ -174,6 +262,28 @@ def test_a_served_model_that_differs_without_vendor_fail_is_a_problem_naming_the
     assert len(problems) == 1 and problems[0].startswith("REFUSED [models-block]: ")
     assert "implement" in problems[0]
     assert subs == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_implement_served_other_gateway_model_is_refused(monkeypatch):
+    monkeypatch.setattr(sg, "COPILOT_GATEWAY_SERVED", sg.COPILOT_GATEWAY_SERVED | {"gpt-6-luna"})
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=gpt-6-luna\n")
+    assert problems
+
+
+def test_copilot_implement_served_the_admitted_model_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=claude-sonnet-5.5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_implement_not_in_the_gateway_set_is_refused(monkeypatch):
+    monkeypatch.setattr(sg, "COPILOT_GATEWAY_SERVED", frozenset())
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=claude-sonnet-5.5\n")
+    assert problems
 
 
 def test_a_substitution_with_a_vendor_fail_reference_is_accepted_and_reported():
@@ -294,8 +404,8 @@ def test_the_cli_refuses_a_substituted_contract_with_exit_1(tmp_path):
     done = _cli(tmp_path, _contract(rows={"implement": "| implement code (lane head) | grok-4.7 | local |"}))
     assert done.returncode == 1
     line = next(ln for ln in done.stdout.splitlines() if ln.startswith("REFUSED [model-per-role]"))
-    # R177 split: a Substrate `implement` row is judged against the Copilot-first `implement` role, not the seat
-    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "claude-sonnet-5.5" in line
+    # R11: a Substrate `implement` row is judged against the registry's first `implement` entry, not the seat
+    assert "lane-x" in line and "implement" in line and "grok-4.7" in line and "claude-sonnet-5-5" in line
 
 
 def test_the_cli_refuses_a_launch_model_that_differs_from_the_head(tmp_path):

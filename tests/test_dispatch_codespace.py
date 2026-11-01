@@ -2562,8 +2562,12 @@ def test_schema_smoke_argv_is_none_for_a_non_claude_or_schemaless_head():
     argv = d.schema_smoke_argv(_CLAUDE_HEAD)
     assert argv[:9] == ["claude", "-p", "--output-format", "json", "--model", "claude-sonnet-5",
                         "--effort", "low", "--json-schema"]
-    assert argv[9] == _CLAUDE_HEAD[_CLAUDE_HEAD.index("--json-schema") + 1] and len(argv) == 11
-    assert "FAILED" in argv[10] and "schema smoke" in argv[10], "a fixed prompt asking for a minimal FAILED report"
+    # GO-E3.0 R2: the smoke argv carries the advisor restriction as one token.
+    assert argv[9] == _CLAUDE_HEAD[_CLAUDE_HEAD.index("--json-schema") + 1]
+    # GO-E3.0 R2: that one token extends the schema-smoke argv by exactly one element.
+    assert argv[10] == "--disallowedTools=AskUserQuestion,advisor" and len(argv) == 12
+    # GO-E3.0 R2: the fixed schema-smoke prompt remains the final argv element.
+    assert "FAILED" in argv[11] and "schema smoke" in argv[11], "a fixed prompt asking for a minimal FAILED report"
     assert argv == d.schema_smoke_argv(_CLAUDE_HEAD), "deterministic"
     real = d.build_plan("anthropic", "opus", "lane-x", "high", "p", streamed=True).argv
     assert d.schema_smoke_argv(real)[5] == "opus", "a real planned head is smoked with its own model"

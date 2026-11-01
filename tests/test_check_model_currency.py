@@ -101,7 +101,8 @@ def test_only_the_role_pins_whose_seams_sit_in_this_lanes_files_move() -> None:
     anthropic = [e for e in roles["implement"]["order"] if e["provider"] == "anthropic"]
     assert [e["model"] for e in anthropic] == ["claude-sonnet-5-5"]
     xai = [e for spec in roles.values() for e in spec["order"] if e["provider"] == "xai"]
-    assert len(xai) == 3  # review + implement + execute (B', operator 2026-10-23)
+    # GO-E3.0 R11: Grok is also the unevaluated judge backup.
+    assert len(xai) == 6  # review + implement + execute + judge entries
     assert all(e["model"] == "grok-4.7" for e in xai), [e["model"] for e in xai]
     assert all(e.get("currency_exception") is None for e in xai)
 

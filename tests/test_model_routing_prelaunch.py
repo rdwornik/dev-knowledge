@@ -44,31 +44,33 @@ def _problems(text: str, *, launch_model: str = SONNET) -> list[str]:
     return problems
 
 
-def test_claude_implement_without_vendor_fail_is_refused_naming_the_registry_role():
+def test_admitted_claude_implement_is_accepted_without_vendor_fail():
     problems = _problems(_contract(SONNET))
-    joined = "\n".join(problems)
-    assert problems, "the implement row names Claude but the registry implement role is Copilot-first"
-    assert "implement" in joined and "provider-registry" in joined
-    assert SONNET in joined, "the refusal must quote the contract row"
+    # GO-E3.0 R11: admitted Sonnet is the first implement entry and needs no VENDOR-FAIL.
+    assert problems == []
 
 
-def test_copilot_implement_is_accepted():
-    assert _problems(_contract(COPILOT_CELL)) == []
+def test_copilot_implement_requires_vendor_fail_after_sonnet():
+    problems = _problems(_contract(COPILOT_CELL))
+    # GO-E3.0 R11: Copilot is a later implement entry and requires VENDOR-FAIL evidence.
+    assert any("implement" in p and "VENDOR-FAIL" in p for p in problems), problems
 
 
+# GO-E3.0 R11: Sonnet leads implement; Copilot is the VENDOR-FAIL fallback.
 FROZEN_CELL = (
-    "**Copilot CLI** (Enterprise account, R146; served `claude-sonnet-5.5`, ...): Copilot WRITES the "
-    "code ...; fallback `claude-sonnet-5-5` ONLY after a recorded "
-    "`VENDOR-FAIL: implement copilot <error verbatim>`, announced in the handback (R139)"
+    "claude-sonnet-5-5 (R11: Sonnet writes the code; fallback Copilot CLI only after a recorded "
+    "`VENDOR-FAIL: implement copilot <error verbatim>`)"
 )
 
 
-def test_copilot_primary_cell_naming_the_claude_fallback_is_accepted():
+def test_sonnet_primary_cell_naming_the_copilot_fallback_is_accepted():
+    # GO-E3.0 R11: the cell names admitted Sonnet first and Copilot as its fallback.
     assert _problems(_contract(FROZEN_CELL)) == []
 
 
-def test_claude_first_cell_mentioning_copilot_fallback_is_refused():
-    assert _problems(_contract(f"{SONNET} (fallback copilot)"))
+def test_copilot_led_cell_mentioning_the_sonnet_fallback_is_refused():
+    # GO-E3.0 R11: the later implement entry (Copilot) leading a cell needs a genuine VENDOR-FAIL line, even when the cell names the first entry as a fallback; mirrors the base test that refused a cell led by the later entry.
+    assert _problems(_contract(f"copilot (fallback {SONNET})"))
 
 
 def test_claude_via_copilot_cell_is_refused():
@@ -82,7 +84,8 @@ def test_claude_implement_with_a_vendor_fail_line_is_accepted():
 
 
 def test_lane_head_row_naming_the_seat_orchestrator_passes():
-    assert _problems(_contract(COPILOT_CELL, head_row=f"| lane head | {SONNET} | local |")) == []
+    # GO-E3.0 R11: use first-entry Sonnet while checking the lane-head role independently.
+    assert _problems(_contract(SONNET, head_row=f"| lane head | {SONNET} | local |")) == []
 
 
 def test_lane_head_row_naming_opus_is_refused():
@@ -91,7 +94,7 @@ def test_lane_head_row_naming_opus_is_refused():
     assert any(OPUS in p and "REFUSED" in p for p in problems), problems
 
 
-def test_a_claude_implement_contract_is_refused_before_anything_is_launched(tmp_path):
+def test_admitted_claude_implement_contract_passes_before_launch(tmp_path):
     contract = tmp_path / "contract.md"
     contract.write_text(_contract(SONNET), encoding="utf-8")
     env = {**__import__("os").environ, "HARNESS_BATCH": "E2.0", "HARNESS_MODEL": SONNET}
@@ -100,8 +103,10 @@ def test_a_claude_implement_contract_is_refused_before_anything_is_launched(tmp_
          "--contract", str(contract)],
         capture_output=True, text=True, env=env, cwd=str(_ROOT))
     out = proc.stdout + proc.stderr
-    assert proc.returncode != 0, out
-    assert "implement" in out and "provider-registry" in out, out
+    # GO-E3.0 R11: the admitted first implementer passes the pre-launch gate.
+    assert proc.returncode == 0, out
+    # GO-E3.0 R11: accepting Sonnet must not be reported as a refusal.
+    assert "REFUSED" not in out, out
 
 
 def test_where_table_alone_does_not_make_an_out_of_batch_contract_applicable():
@@ -121,8 +126,9 @@ PROSE = "only after a recorded `VENDOR-FAIL: implement copilot <error verbatim>`
 
 
 def test_vendor_fail_prose_mention_in_paragraph_and_table_cell_does_not_exempt():
+    # GO-E3.0 R11: the later Copilot entry still needs actual VENDOR-FAIL evidence.
     extra = f"Claude implements {PROSE} in the chat.\n\n| note | {PROSE} |\n|---|---|\n"
-    assert _problems(_contract(SONNET, extra=extra)), "prose mention must not count as evidence"
+    assert _problems(_contract(COPILOT_CELL, extra=extra)), "prose mention must not count as evidence"
 
 
 def test_flush_start_vendor_fail_evidence_line_is_accepted():
