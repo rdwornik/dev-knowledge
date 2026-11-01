@@ -56,8 +56,12 @@ def _reg_model(role: str, provider: str | None = None, index: int = 0) -> str:
 def test_the_roles_table_is_derived_from_the_registry():
     rows = _rows(glc.render_contract(_spec()))
     implement = _row(rows, "implement")
-    # GO-E3.0 R11: the registry's admitted Sonnet entry leads implement.
+    # GO-E3.0 R11: the rendered implement row carries entry 0 (admitted Sonnet); the Copilot second entry is checked on the registry, since the renderer emits only the first entry.
     assert _reg_model("implement") in implement
+    entry = pr.role_order("implement")[1]
+    assert entry["provider"] == "copilot-enterprise"
+    assert pr.is_admitted(entry)
+    assert entry["model"] in pr.copilot_gateway_served()
     assert _reg_model("seat-orchestrator") in _row(rows, "lane head")
     assert "Copilot" in _row(rows, "red")
     review = _row(rows, "review")

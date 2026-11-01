@@ -184,6 +184,20 @@ def test_a_served_model_that_differs_without_vendor_fail_is_a_problem_naming_the
     assert subs == []
 
 
+# GO-E3.0 R11 + operator sonnet-id ruling
+def test_copilot_implement_served_other_gateway_model_is_refused(monkeypatch):
+    monkeypatch.setattr(sg, "COPILOT_GATEWAY_SERVED", sg.COPILOT_GATEWAY_SERVED | {"gpt-6-luna"})
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=gpt-6-luna\n")
+    assert problems
+
+
+def test_copilot_implement_served_the_admitted_model_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=copilot/claude-sonnet-5.5 served=claude-sonnet-5.5\n")
+    assert problems == []
+
+
 def test_a_substitution_with_a_vendor_fail_reference_is_accepted_and_reported():
     line = f"  implement: requested={SONNET}/high served=claude-opus-5-5 VENDOR-FAIL: implement INC-42"
     problems, subs = sg.check_models_block(f"MODELS:\n{line}\n")
