@@ -24,6 +24,7 @@ from pathlib import Path
 
 import psutil
 import pytest
+import yaml
 
 _REPO = Path(__file__).resolve().parents[1]
 _SCHEMA_FILE = _REPO / "ecosystem" / "schema" / "phase-receipt.schema.json"
@@ -394,6 +395,22 @@ def test_served_model_from_record_per_cli():
     assert pr.served_model_from_record("codex", {}) is None
 
 
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}}, "gpt-6-luna"),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}}, "gpt-6-luna"),
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-5.3-codex": {}}}, None),
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {}}, None),
+        ({"currentModel": "gpt-6-luna"}, "gpt-6-luna"),
+    ],
+)
+def test_copilot_served_model_requires_model_metrics_attestation(record, expected):
+    """Metrics contradict an unlisted currentModel; records without metrics remain legacy."""
+    assert _pr().served_model_from_record("copilot", record) == expected
+
+
 def _phase_run(status="ok", payload=None, sha=None):
     rp = _rp()
     return rp.PhaseRun(status=status, exit_code=0, killed=False, targeted=(), survivors=(),
@@ -417,6 +434,42 @@ def test_build_receipt_derives_vendor_and_served_model_from_argv_and_record():
     assert receipt.served_model == "claude-big" and receipt.model_reported == "claude-big"
     local = _build(["mytool.exe", "--x"], _phase_run(), None)
     assert local.vendor == "local" and local.served_model is None
+
+
+@pytest.mark.parametrize(
+    ("record", "expected_served", "expected_keys", "multi_model", "unattested"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}},
+         "gpt-6-luna", ["gpt-6-luna"], False, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}},
+         "gpt-6-luna", ["gpt-5.3-codex", "gpt-6-luna"], True, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"claude-haiku-5-5": {}, "gpt-5.3-codex": {}}},
+         None, ["claude-haiku-5-5", "gpt-5.3-codex"], True, True),
+    ],
+)
+def test_build_copilot_receipt_preserves_model_metrics_evidence(
+    record, expected_served, expected_keys, multi_model, unattested
+):
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model == receipt.model_reported == expected_served
+    assert receipt.usage["model_metrics_keys"] == expected_keys
+    assert receipt.usage["multi_model"] is multi_model
+    assert receipt.usage["served_unattested"] is unattested
+
+
+def test_build_copilot_receipt_without_metrics_keeps_legacy_served_model():
+    receipt = _build(["copilot", "-p"], _phase_run(), {"currentModel": "gpt-6-luna"})
+
+    assert receipt.served_model == "gpt-6-luna"
+
+
+def test_build_non_copilot_receipt_keeps_usage_none():
+    receipt = _build(["codex", "exec"], _phase_run(), {"model": "gpt-5"})
+
+    assert receipt.usage is None
 
 
 def test_build_receipt_revalidates_payload_and_computes_sha():
@@ -504,3 +557,291 @@ def test_no_schema_the_adapter_can_emit_has_a_top_level_combinator(capsys):
     schemas["--payload-schema"] = json.loads(capsys.readouterr().out)
     offenders = {name: [k for k in _COMBINATORS if k in s] for name, s in schemas.items()}
     assert not {n: ks for n, ks in offenders.items() if ks}, offenders
+
+
+# --- served-model capture ----------------------------------------------------------------------
+
+def _fake_cli_bin(tmp_path: Path, monkeypatch) -> Path:
+    """Put fake claude/copilot launchers on PATH, including Windows .cmd shims."""
+    bindir = tmp_path / "fake-bin"
+    bindir.mkdir()
+    helper = tmp_path / "fake_cli.py"
+    helper.write_text(
+        """\
+import json
+import os
+import sys
+from pathlib import Path
+
+vendor, *args = sys.argv[1:]
+if vendor == "claude":
+    print(json.dumps({"result": "ok", "modelUsage": {"claude-haiku-5-5": {"outputTokens": 3}}}))
+    print("claude stderr noise", file=sys.stderr)
+else:
+    if "--usage-output-file" in args:
+        usage_path = Path(args[args.index("--usage-output-file") + 1])
+        usage_path.parent.mkdir(parents=True, exist_ok=True)
+        record = json.loads(os.environ.get(
+            "FAKE_COPILOT_USAGE_RECORD", '{"currentModel": "gpt-6-luna"}'))
+        usage_path.write_text(json.dumps(record), encoding="utf-8")
+    print("ok")
+""",
+        encoding="utf-8",
+    )
+    for vendor in ("claude", "copilot"):
+        if os.name == "nt":
+            shim = bindir / f"{vendor}.cmd"
+            shim.write_text(
+                f'@"{sys.executable}" "{helper}" {vendor} %*\r\n',
+                encoding="utf-8",
+            )
+        else:
+            shim = bindir / vendor
+            shim.write_text(
+                f'#!/bin/sh\nexec "{sys.executable}" "{helper}" {vendor} "$@"\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bindir) + os.pathsep + os.environ.get("PATH", ""))
+    return bindir
+
+
+def test_run_phase_sends_stderr_to_default_sidecar(tmp_path):
+    """With a stdout file and no stderr path, stderr is kept in the .stderr sidecar."""
+    rp = _rp()
+    stdout = tmp_path / "phase.json"
+    stderr = Path(str(stdout) + ".stderr")
+    script = "import sys; print('out'); print('noise', file=sys.stderr)"
+
+    run = rp.run_phase([sys.executable, "-c", script], 10, stdout_path=stdout)
+
+    assert run.status == "ok"
+    assert stdout.read_text(encoding="utf-8").strip() == "out"
+    assert stderr.read_text(encoding="utf-8").strip() == "noise"
+
+
+def test_cli_run_writes_claude_json_and_requested_and_served_models(tmp_path, monkeypatch):
+    """claude stdout is pure JSON, stderr is separate, and the receipt records both models."""
+    _fake_cli_bin(tmp_path, monkeypatch)
+    rp = _rp()
+    requested = "claude-sonnet-5-5"
+    stdout = tmp_path / "claude.stdout.json"
+    stderr = tmp_path / "claude.stderr"
+    receipt = tmp_path / "claude.receipt.json"
+
+    result = rp.main([
+        "run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10",
+        "--stdout", str(stdout), "--stderr", str(stderr), "--",
+        "claude", "--model", requested,
+    ])
+
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert result == 0
+    assert json.loads(stdout.read_text(encoding="utf-8"))["result"] == "ok"
+    assert "claude stderr noise" in stderr.read_text(encoding="utf-8")
+    assert data["model_requested"] == requested
+    assert data["served_model"] == data["model_reported"] == "claude-haiku-5-5"
+
+
+def test_cli_run_reads_copilot_usage_record_and_defaults_stderr_path(tmp_path, monkeypatch):
+    """copilot currentModel comes from its usage file and model_requested comes from --model."""
+    _fake_cli_bin(tmp_path, monkeypatch)
+    rp = _rp()
+    requested = "claude-sonnet-5.5"
+    stdout = tmp_path / "copilot.stdout.txt"
+    usage = tmp_path / "copilot.usage.json"
+    receipt = tmp_path / "copilot.receipt.json"
+
+    result = rp.main([
+        "run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10",
+        "--stdout", str(stdout), "--",
+        "copilot", "-p", "--model", requested, "--usage-output-file", str(usage),
+    ])
+
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert result == 0
+    assert stdout.read_text(encoding="utf-8").strip() == "ok"
+    assert json.loads(usage.read_text(encoding="utf-8")) == {"currentModel": "gpt-6-luna"}
+    assert data["model_requested"] == requested
+    assert data["served_model"] == data["model_reported"] == "gpt-6-luna"
+    assert Path(str(stdout) + ".stderr").is_file()
+
+
+@pytest.mark.parametrize(
+    ("record", "expected_served", "expected_keys", "multi_model", "unattested"),
+    [
+        ({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}},
+         "gpt-6-luna", ["gpt-6-luna"], False, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"gpt-6-luna": {}, "gpt-5.3-codex": {}}},
+         "gpt-6-luna", ["gpt-5.3-codex", "gpt-6-luna"], True, False),
+        ({"currentModel": "gpt-6-luna",
+          "modelMetrics": {"claude-haiku-5-5": {}, "gpt-5.3-codex": {}}},
+         None, ["claude-haiku-5-5", "gpt-5.3-codex"], True, True),
+    ],
+)
+def test_cli_run_copilot_receipt_preserves_model_metrics_evidence(
+    tmp_path, monkeypatch, record, expected_served, expected_keys, multi_model, unattested
+):
+    _fake_cli_bin(tmp_path, monkeypatch)
+    monkeypatch.setenv("FAKE_COPILOT_USAGE_RECORD", json.dumps(record))
+    rp = _rp()
+    usage = tmp_path / "copilot.usage.json"
+    receipt = tmp_path / "copilot.receipt.json"
+
+    result = rp.main([
+        "run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10",
+        "--", "copilot", "-p", "--usage-output-file", str(usage),
+    ])
+
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert result == 0
+    assert data["served_model"] == data["model_reported"] == expected_served
+    assert data["usage"]["model_metrics_keys"] == expected_keys
+    assert data["usage"]["multi_model"] is multi_model
+    assert data["usage"]["served_unattested"] is unattested
+
+
+def test_harness_copilot_phases_declare_round_usage_files():
+    """P3 and P5 capture Copilot usage at a round-local .usage.json path."""
+    harness = yaml.safe_load((_REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))
+    phases = {phase["id"]: phase for phase in harness["phases"]}
+
+    for phase_id in ("P3", "P5"):
+        command = phases[phase_id]["command"]
+        usage_arg = command.index("--usage-output-file")
+        usage_path = command[usage_arg + 1]
+        assert usage_path.endswith(".usage.json")
+        assert "{round_dir}" in usage_path
+
+
+def test_phase_task_records_copilot_served_model(tmp_path, monkeypatch):
+    """A P3-style phase task records currentModel from the Copilot usage output file."""
+    _fake_cli_bin(tmp_path, monkeypatch)
+    rp = _rp()
+    requested = "claude-sonnet-5.5"
+    phase = {
+        "id": "P3", "name": "implement", "timeout_s": 10, "gate": "exit",
+        "model": requested,
+        "command": ["copilot", "-p", "--model", requested, "--usage-output-file",
+                    "{round_dir}/P3.usage.json"],
+    }
+    task = next(rp.phase_tasks(
+        [phase], {"{receipts}": str(tmp_path / "receipts"), "{lane}": "toy"},
+        lambda tokens: tokens, lambda paths: {}, tmp_path,
+    ))
+
+    assert task["actions"][0]() is True
+    data = json.loads(Path(task["targets"][0]).read_text(encoding="utf-8"))
+    assert data["model_requested"] == requested
+    assert data["served_model"] == data["model_reported"] == "gpt-6-luna"
+
+
+def test_unattested_copilot_receipt_carries_an_unattested_reason():
+    record = {"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-5.3-codex": {}}}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested_reason"].startswith("UNATTESTED")
+    assert "gpt-6-luna" in receipt.usage["served_unattested_reason"]
+
+
+def test_grok_served_model_is_the_model_usage_key():
+    receipt = _build(["grok", "-p"], _phase_run(), {"modelUsage": {"grok-4.7": {}}})
+
+    assert receipt.served_model == receipt.model_reported == "grok-4.7"
+
+
+def test_claude_model_usage_keys_are_kept_and_multi_model_flagged():
+    record = {"modelUsage": {"claude-haiku-5-5": {"outputTokens": 9}, "claude-opus-5-5": {"outputTokens": 1}}}
+    receipt = _build(["claude", "-p"], _phase_run(), record)
+
+    assert receipt.served_model == "claude-haiku-5-5"
+    assert receipt.usage["model_usage_keys"] == ["claude-haiku-5-5", "claude-opus-5-5"]
+    assert receipt.usage["multi_model"] is True
+
+
+def test_copilot_present_but_malformed_model_metrics_is_unattested():
+    receipt = _build(["copilot", "-p"], _phase_run(), {"currentModel": "gpt-6-luna", "modelMetrics": ["x"]})
+
+    assert receipt.served_model is None
+
+
+def test_a_stale_usage_file_is_not_read_as_the_new_runs_record(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "stale.usage.json"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}}),
+                     encoding="utf-8")
+    receipt = tmp_path / "r.json"
+
+    rp.main(["run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10", "--",
+             sys.executable, "-c", "print('no usage written')", "--usage-output-file", str(usage)])
+
+    assert not usage.exists()
+    assert json.loads(receipt.read_text(encoding="utf-8"))["served_model"] is None
+
+
+def test_malformed_model_metrics_carry_an_unattested_reason_and_evidence_wins_over_caller_usage():
+    record = {"currentModel": "gpt-6-luna", "modelMetrics": ["x"]}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested"] is True
+    assert receipt.usage["served_unattested_reason"].startswith("UNATTESTED")
+
+
+def test_non_string_current_model_is_unattested_not_a_crash():
+    record = {"currentModel": ["gpt-6-luna"], "modelMetrics": {"gpt-6-luna": {}}}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested"] is True
+
+
+def test_cli_record_reads_the_usage_file_only_for_a_copilot_head(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "u.json"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna"}), encoding="utf-8")
+    out = tmp_path / "o.json"
+    out.write_text(json.dumps({"modelUsage": {"claude-haiku-5-5": {}}}), encoding="utf-8")
+
+    assert rp._cli_record(["claude", "-p", "--usage-output-file", str(usage)], str(out)) == {
+        "modelUsage": {"claude-haiku-5-5": {}}}
+    assert rp._cli_record(["copilot", "-p", "--usage-output-file", str(usage)], str(out)) == {
+        "currentModel": "gpt-6-luna"}
+
+
+def test_clear_usage_file_deletes_only_a_json_file(tmp_path):
+    rp = _rp()
+    keep = tmp_path / "precious.txt"
+    keep.write_text("keep", encoding="utf-8")
+    rp._clear_usage_file(["copilot", "--usage-output-file", str(keep)])
+    assert keep.exists()
+    gone = tmp_path / "u.json"
+    gone.write_text("{}", encoding="utf-8")
+    rp._clear_usage_file(["copilot", "--usage-output-file", str(gone)])
+    assert not gone.exists()
+
+
+def test_argv_value_supports_equals_and_two_token_forms():
+    rp = _rp()
+
+    assert rp._argv_value(["--model=x"], "--model") == "x"
+    assert rp._argv_value(["--usage-output-file=path"], "--usage-output-file") == "path"
+    assert rp._argv_value(["--model", "x"], "--model") == "x"
+    assert rp._argv_value([], "--model") is None
+
+
+def test_argv_value_uses_the_last_of_a_repeated_flag():
+    rp = _rp()
+
+    assert rp._argv_value(["--model", "a", "--model=b"], "--model") == "b"
+    assert rp._argv_value(["--model=a", "--model", "b"], "--model") == "b"
+
+
+def test_cli_record_never_reads_a_non_json_usage_file(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "u.txt"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna"}), encoding="utf-8")
+
+    assert rp._cli_record(["copilot", "-p", "--usage-output-file", str(usage)], None) is None
