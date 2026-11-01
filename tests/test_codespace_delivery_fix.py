@@ -365,8 +365,10 @@ def test_claude_background_plan_passes_disallowed_tools_as_one_token():
     prompt = "Keep this prompt as the final argument"
     argv = d.build_plan("anthropic", "opus", "lane-x", "high", prompt).argv
 
-    assert "--disallowedTools=AskUserQuestion" in argv
-    assert argv.index("--disallowedTools=AskUserQuestion") < len(argv) - 1
+    # GO-E3.0 R2: every Claude argv carries AskUserQuestion and advisor as one token.
+    assert "--disallowedTools=AskUserQuestion,advisor" in argv
+    # GO-E3.0 R2: the restriction remains a single argv element before the prompt.
+    assert argv.index("--disallowedTools=AskUserQuestion,advisor") < len(argv) - 1
     assert argv[-1] == prompt
 
 
