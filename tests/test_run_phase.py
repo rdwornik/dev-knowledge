@@ -765,3 +765,17 @@ def test_copilot_present_but_malformed_model_metrics_is_unattested():
     receipt = _build(["copilot", "-p"], _phase_run(), {"currentModel": "gpt-6-luna", "modelMetrics": ["x"]})
 
     assert receipt.served_model is None
+
+
+def test_a_stale_usage_file_is_not_read_as_the_new_runs_record(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "stale.usage.json"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna", "modelMetrics": {"gpt-6-luna": {}}}),
+                     encoding="utf-8")
+    receipt = tmp_path / "r.json"
+
+    rp.main(["run", "--receipt", str(receipt), "--organ", "test", "--timeout", "10", "--",
+             sys.executable, "-c", "print('no usage written')", "--usage-output-file", str(usage)])
+
+    assert not usage.exists()
+    assert json.loads(receipt.read_text(encoding="utf-8"))["served_model"] is None

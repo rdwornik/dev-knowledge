@@ -313,6 +313,13 @@ def _argv_value(argv, flag) -> Optional[str]:
     return None
 
 
+def _clear_usage_file(argv) -> None:
+    """A usage file left by an earlier attempt must never be read as this attempt's CLI record."""
+    usage = _argv_value(argv, "--usage-output-file")
+    if usage:
+        Path(usage).unlink(missing_ok=True)
+
+
 def _cli_record(argv, stdout_file) -> Optional[dict]:
     """A copilot head reports its served model in the --usage-output-file; the others in stdout."""
     usage = _argv_value(argv, "--usage-output-file")
@@ -367,6 +374,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
                     .replace("{input_hash}", input_hash) for t in _fill(command, ctx, argv_of)]
             if payload is not None:
                 payload.unlink(missing_ok=True)  # a payload left by an earlier attempt never counts
+            _clear_usage_file(argv)
             run = run_phase(argv, phase["timeout_s"], cwd=str(root), payload_path=payload, nonce=nonce,
                             input_hash=input_hash, stdout_path=out,
                             heartbeat_path=round_dir / f"{phase['id']}.heartbeat.json")
@@ -415,6 +423,7 @@ def _cmd_run(args) -> int:
                             .encode("utf-8")).hexdigest()
     nonce = new_nonce()
     argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+    _clear_usage_file(argv)
     run = run_phase(argv, args.timeout, payload_path=args.payload,
                     nonce=nonce, input_hash=digest, heartbeat_path=args.heartbeat,
                     stdout_path=args.stdout, stderr_path=args.stderr)
