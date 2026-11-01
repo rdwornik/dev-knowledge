@@ -385,7 +385,9 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
                               and e.get("model")}
             copilot_names = all(p.startswith("copilot") or p in ("", "default") or p in copilot_models
                                 for p in req_parts)
-            if by_model or (copilot_arm and copilot_names
+            # GO-E3.0 R11 + operator sonnet-id ruling: the served id must itself be an admitted
+            # Copilot implement model (it was any gateway-served id at base c6618dbb7).
+            if by_model or (copilot_arm and copilot_names and token in copilot_models
                             and token in {s.lower() for s in COPILOT_GATEWAY_SERVED}):
                 if fail:
                     subs.append(ln.strip())
