@@ -808,3 +808,26 @@ def test_apply_edits_a_row_whose_status_is_quoted(tmp_path):
 
     assert result.exit_code == 0, result.output
     assert "\nstatus: closed\n" in shipped.read_text(encoding="utf-8")
+
+
+def test_report_refuses_a_partial_read_set_and_names_the_unread_rows(tmp_path):
+    tasks_dir = shutil.copytree(FIXTURES / "tasks", tmp_path / "tasks")
+    state_dir = tmp_path / "state"
+    _write_report_inputs(state_dir)
+    reads = json.loads((state_dir / "reads.json").read_text(encoding="utf-8"))
+    del reads["1751"]
+    (state_dir / "reads.json").write_text(json.dumps(reads), encoding="utf-8")
+    out, cost_out = tmp_path / "report.md", tmp_path / "cost.json"
+
+    result = _run_report(tasks_dir, state_dir, out, cost_out)
+
+    assert result.exit_code != 0
+    assert "1751" in result.output
+    assert not out.exists() and not cost_out.exists()
+    assert not (state_dir / "classification.json").exists()
+
+
+def test_parse_read_output_ignores_a_line_with_an_empty_quotation():
+    parsed = br.parse_read_output('1750 | open | ""\n1751 | done | "a phrase"\n')
+
+    assert parsed == {"1751": ("done", "a phrase")}

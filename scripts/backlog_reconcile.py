@@ -83,7 +83,7 @@ _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?\r?\n)---[ \t]*\r?\n", re.DOTALL)
 #: `status: open` as `load_open_rows` selects it (optionally quoted), so `apply` edits what it selected.
 _STATUS_OPEN_RE = re.compile(r"(?m)^status:[ \t]*[\"']?open[\"']?[ \t]*(\r?\n)")
 _READ_LINE_RE = re.compile(
-    r"^\s*\[?#?(\d+)\]?\s*\|\s*(done|open|obsolete|unclear)\s*\|\s*[\"“](.*)[\"”]\s*$"
+    r"^\s*\[?#?(\d+)\]?\s*\|\s*(done|open|obsolete|unclear)\s*\|\s*[\"“](.+)[\"”]\s*$"
 )
 _ADJ_LINE_RE = re.compile(r"^\s*\[?#?(\d+)\]?\s*\|\s*([a-z-]+)\s*\|\s*(.*?)\s*$")
 
@@ -784,6 +784,13 @@ def report(tasks_dir: Path, state_dir: Path, out: Path, cost_out: Path) -> None:
         raise click.ClickException("report needs reads.json (run `fanout` first)")
     adjudications = _read_json(state_dir / "adjudications.json", {})
     rows = load_open_rows(tasks_dir)
+    unread = [r.id for r in rows if reads.get(r.id, {}).get("verdict") not in VERDICTS]
+    if unread:
+        # A partial `fanout --limit N` (or a row filed after the run) must not be classified from
+        # code-only evidence and offered to `apply` as if it had been read (review 1, terra).
+        raise click.ClickException(
+            f"report needs a gated read for every open row; {len(unread)} have none "
+            f"(first: {', '.join('[#' + i + ']' for i in unread[:5])}) -- run `fanout` over all rows")
     classification: dict[str, str] = {}
     for row in rows:
         read = reads.get(row.id, {})
