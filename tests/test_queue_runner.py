@@ -442,3 +442,29 @@ def test_cli_witness_prints_the_three_expected_dry_run_events():
         for line in result.stdout.splitlines()
         if line.startswith("[queue-runner] would-fire")
     ] == EXPECTED_QUEUE_LINES
+
+
+def test_a_lane_the_queue_pass_fired_is_running_so_its_handback_is_legal(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    ledger_path = tmp_path / "ledger.jsonl"
+
+    def fire(argv, env):
+        return qr.FireResult(returncode=0, output="[queue] FIRE b: job abcd1234\n")
+
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path), fire=fire)
+
+    assert qr.Ledger(path=ledger_path).lane_state("b") == "running"
+
+
+def test_dispatch_py_carries_the_runner_as_a_verb():
+    import dispatch as d
+    from click.testing import CliRunner
+
+    result = CliRunner().invoke(d.cli, ["queue-runner", "watch", "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert "--contracts" in result.output and "--dry-run" in result.output

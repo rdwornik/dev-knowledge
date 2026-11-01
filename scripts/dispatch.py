@@ -4736,7 +4736,8 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
             click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
 
 
-@cli.command("queue-runner", context_settings={"ignore_unknown_options": True, "allow_extra_args": True})
+@cli.command("queue-runner", context_settings={"ignore_unknown_options": True, "allow_extra_args": True,
+                                               "help_option_names": []})
 @click.argument("runner_args", nargs=-1, type=click.UNPROCESSED)
 def queue_runner_cmd(runner_args: tuple[str, ...]) -> None:
     """The event-driven queue runner (R130, [#1633]): `queue-runner watch ...` is
