@@ -650,3 +650,24 @@ def test_an_unreadable_contract_does_not_burn_the_repair_cap(tmp_path, monkeypat
     assert calls == []
     assert qr.Ledger(path=ledger_path).failures(qr.collect_events(
         transport=transport, state_file=state_file, slugs=("b",))[0].key) == 0
+
+
+def test_a_second_runner_on_the_same_batch_is_refused_while_the_first_holds_the_lock(tmp_path):
+    qr = _runner()
+    lock_path = tmp_path / "QUEUE-RUNNER-E3.0.lock"
+    first = qr.acquire_single_instance(lock_path)
+    try:
+        with pytest.raises(qr.RunnerAlreadyRunning):
+            qr.acquire_single_instance(lock_path)
+    finally:
+        first.close()
+    qr.acquire_single_instance(lock_path).close()      # released with the holder
+
+
+def test_a_substrate_outside_local_and_codespace_is_refused_not_treated_as_local():
+    qr = _runner()
+    event = qr.Event("handback", "a", "k", None, "SESSION-a.md", "HANDBACK x")
+
+    plan = qr.plan_event(event, "running", "cloud")
+
+    assert plan.refusal and not plan.fire

@@ -259,7 +259,8 @@ def _walk(state: str, facts, events: Sequence[str]) -> str:
 
 def plan_event(event: Event, state: str, substrate: str) -> Plan:
     """Send the event's transitions to a throwaway P1DispatchLane started at `state`."""
-    substrate = substrate if substrate in ("local", "codespace") else "local"
+    if substrate not in ("local", "codespace"):   # `dispatch.SUBSTRATES`; a cloud lane has its own read-only path
+        return Plan(state, False, refusal=f"substrate {substrate!r} has no handback path in this runner")
     handback_chain = ["handback", "to_integrator"] if substrate == "local" else ["box_done", "harvested"]
     if event.kind == "failed" and state == "failed":
         # A repair that ran out (`repair 3 of 2`) already took the lane to `failed` without a fire; the
@@ -423,6 +424,35 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
     return fired
 
 
+# --- one runner per batch ---------------------------------------------------------------------------
+
+_HELD_LOCKS: list = []       # the open lock files; a handle that is garbage collected would drop its lock
+
+
+class RunnerAlreadyRunning(RuntimeError):
+    """Another process holds the batch's runner lock."""
+
+
+def acquire_single_instance(lock_path: Path):
+    """Hold an exclusive OS lock on `lock_path` for the life of the returned file object (released by
+    the OS when the process dies, so there is no stale lock to clean). Two watchers on one ledger would
+    each see an unseen event and each fire it."""
+    Path(lock_path).parent.mkdir(parents=True, exist_ok=True)
+    handle = open(lock_path, "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        handle.close()
+        raise RunnerAlreadyRunning(f"{lock_path} is held by another queue runner") from exc
+    return handle
+
+
 # --- the CLI ------------------------------------------------------------------------------------------
 
 def _parser() -> argparse.ArgumentParser:
@@ -453,6 +483,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ledger_path = _dispatch.receipts_dir() / f"QUEUE-RUNNER-{args.batch}.jsonl"
     once = args.once or args.dry_run
     failed = False
+    if not args.dry_run:        # a dry run writes nothing, so any number may run beside a live watch
+        try:
+            _HELD_LOCKS.append(acquire_single_instance(ledger_path.with_suffix(".lock")))
+        except RunnerAlreadyRunning as exc:
+            logger.error("%s", exc)
+            return 3
     ledger = Ledger(ledger_path, persist=not args.dry_run)
     while True:
         try:
