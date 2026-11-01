@@ -682,7 +682,7 @@ def test_a_malformed_ledger_row_halts_with_the_file_and_line_number(tmp_path):
     # Dispatcher ruling (2026-11-01): an existing ledger with any malformed row fails closed.
     qr = _runner()
     ledger_path = tmp_path / "QUEUE-RUNNER-E3.0.jsonl"
-    ledger_path.write_text('{"key":"valid"}\n{not json\n{"key":"later"}\n', encoding="utf-8")
+    ledger_path.write_text('{"key":"valid","status":"fired"}\n{not json\n{"key":"later","status":"fired"}\n', encoding="utf-8")
 
     with pytest.raises(qr.LedgerHalt) as caught:
         qr.Ledger(path=ledger_path)
@@ -690,7 +690,7 @@ def test_a_malformed_ledger_row_halts_with_the_file_and_line_number(tmp_path):
     assert ledger_path.name in str(caught.value)
     assert "line 2" in str(caught.value)
 
-    ledger_path.write_text('{"key":"first"}\n{"key":"second"}\n[1]\n', encoding="utf-8")
+    ledger_path.write_text('{"key":"first","status":"fired"}\n{"key":"second","status":"fired"}\n[1]\n', encoding="utf-8")
 
     with pytest.raises(qr.LedgerHalt) as caught:
         qr.Ledger(path=ledger_path)
@@ -707,7 +707,7 @@ def test_run_once_on_a_malformed_ledger_fires_nothing(tmp_path):
         files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
     )
     ledger_path = tmp_path / "ledger.jsonl"
-    ledger_path.write_text('{"key":"valid"}\n{not json\n', encoding="utf-8")
+    ledger_path.write_text('{"key":"valid","status":"fired"}\n{not json\n', encoding="utf-8")
     calls = []
 
     with pytest.raises(qr.LedgerHalt):
@@ -743,7 +743,7 @@ def test_main_exits_1_on_a_malformed_ledger(tmp_path, monkeypatch):
     receipts = tmp_path / "receipts"
     receipts.mkdir()
     (receipts / "QUEUE-RUNNER-E3.0.jsonl").write_text(
-        '{"key":"valid"}\n{not json\n', encoding="utf-8"
+        '{"key":"valid","status":"fired"}\n{not json\n', encoding="utf-8"
     )
     monkeypatch.setattr(qr._dispatch, "receipts_dir", lambda: receipts)
     monkeypatch.setattr(qr, "acquire_single_instance", lambda _path: object())
