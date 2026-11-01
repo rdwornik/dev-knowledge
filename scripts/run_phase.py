@@ -312,12 +312,13 @@ def _read_json(path) -> Optional[dict]:
 
 
 def _argv_value(argv, flag) -> Optional[str]:
-    for i, tok in enumerate(argv):
+    found = None
+    for i, tok in enumerate(argv):  # a repeated flag: the last occurrence is the one the CLI honours
         if tok == flag and i + 1 < len(argv):
-            return argv[i + 1]
-        if tok.startswith(flag + "="):
-            return tok[len(flag) + 1:]
-    return None
+            found = argv[i + 1]
+        elif tok.startswith(flag + "="):
+            found = tok[len(flag) + 1:]
+    return found
 
 
 def _usage_path(argv, cwd=None):

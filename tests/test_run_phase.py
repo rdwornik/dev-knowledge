@@ -830,3 +830,10 @@ def test_argv_value_supports_equals_and_two_token_forms():
     assert rp._argv_value(["--usage-output-file=path"], "--usage-output-file") == "path"
     assert rp._argv_value(["--model", "x"], "--model") == "x"
     assert rp._argv_value([], "--model") is None
+
+
+def test_argv_value_uses_the_last_of_a_repeated_flag():
+    rp = _rp()
+
+    assert rp._argv_value(["--model", "a", "--model=b"], "--model") == "b"
+    assert rp._argv_value(["--model=a", "--model", "b"], "--model") == "b"
