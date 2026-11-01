@@ -821,3 +821,12 @@ def test_clear_usage_file_deletes_only_a_json_file(tmp_path):
     gone.write_text("{}", encoding="utf-8")
     rp._clear_usage_file(["copilot", "--usage-output-file", str(gone)])
     assert not gone.exists()
+
+
+def test_argv_value_supports_equals_and_two_token_forms():
+    rp = _rp()
+
+    assert rp._argv_value(["--model=x"], "--model") == "x"
+    assert rp._argv_value(["--usage-output-file=path"], "--usage-output-file") == "path"
+    assert rp._argv_value(["--model", "x"], "--model") == "x"
+    assert rp._argv_value([], "--model") is None
