@@ -794,3 +794,26 @@ def test_m_changing_roles_clears_old_integrator_batches_and_rebind_starts_fresh(
     for batch in ("E3.0", "E3.1"):
         with pytest.raises(SeatRefusal, match="no-live-integrator"):
             sr.refuse_no_live_integrator(batch, [rebound])
+
+
+def test_dropping_the_last_batch_hands_the_seat_over(tmp_path):
+    """`unbind --batch` on the only remaining batch leaves a seat bound to nothing: it reads absent
+    (a handover), not a live integrator with an empty set."""
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "E3.0", session_id="int-1", path=path, now=T0)
+    reg.unbind(session_id="int-1", path=path, now=T0 + timedelta(minutes=1), batch="E3.0")
+
+    seat = _seats(path, now=T0 + timedelta(minutes=2))["int-1"]
+    assert (seat.state, seat.batches, seat.batch, seat.binds) == ("absent", (), None, ())
+
+
+def test_a_bind_after_a_bare_unbind_starts_a_fresh_set(tmp_path):
+    """The handover ended the old set; the revival bind does not resurrect its batches."""
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "E3.0", session_id="int-1", path=path, now=T0)
+    reg.bind("integrator", "E3.1", session_id="int-1", path=path, now=T0 + timedelta(minutes=1))
+    reg.unbind(session_id="int-1", path=path, now=T0 + timedelta(minutes=2))
+    reg.bind("integrator", "E3.2", session_id="int-1", path=path, now=T0 + timedelta(minutes=3))
+
+    seat = _seats(path, now=T0 + timedelta(minutes=4))["int-1"]
+    assert (seat.state, seat.batches) == ("live", ("E3.2",))

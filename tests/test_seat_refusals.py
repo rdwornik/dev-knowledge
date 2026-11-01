@@ -650,9 +650,7 @@ def test_e_bare_unbind_refuses_every_previous_integrator_batch(tmp_path):
 
 def test_k_priority_metadata_does_not_change_integrator_refusal_results(tmp_path):
     from dataclasses import replace
-    import importlib
 
-    seat_registry = importlib.import_module("seat_registry")
     path = _registry(tmp_path, binds=[
         ("integrator", "E3.0", "int-1"),
         ("integrator", "E3.1", "int-1"),
@@ -661,7 +659,6 @@ def test_k_priority_metadata_does_not_change_integrator_refusal_results(tmp_path
     seats = _read(path)
     original = seats[0]
     original_result = sr.refuse_no_live_integrator("E3.1", seats)
-    original_refusal = None
     with pytest.raises(sr.SeatRefusal) as original_refusal:
         sr.refuse_no_live_integrator("E3.3", seats)
 
