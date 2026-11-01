@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-10-22
+last_reviewed: 2026-11-01
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -311,13 +311,15 @@ retirement drops a task's manifest node but its file stays as the allocation rec
 (retire-not-delete). Enforced by `audit.py::check_task_tree_coherence`.
 
 **Zone register:** P0 exclusion (`OneDrive - Blue Yonder`) → `block-onedrive.ps1` (global
-PreToolUse). Immutable paths (`docs/decisions/transcripts/**`) → `block_immutable_edits.py`
-(hub PreToolUse; currently a no-op zone). `methodology_surface` scope → `audit.py
-floor_integrity` + child `.sha256` hook + `/ship` gate. **Neither PreToolUse guard is wired
-today:** hub PreToolUse blocks were removed 2026-09-17 by operator emergency order ([#863])
-and the user-level `~/.claude/settings.json` sets `disableAllHooks: true` with no
-`block-onedrive` block. Until a bounded hook returns, the P0 and ADR-77 zones rest on the
-rules (`~/.claude/rules/core-invariants.md`), not on a hook.
+PreToolUse). Immutable paths (`docs/decisions/transcripts/**`) →
+`scripts/hooks/block_immutable_edits.py` (hub PreToolUse; currently a no-op zone).
+`methodology_surface` scope → `audit.py floor_integrity` + child `.sha256` hook + `/ship`
+gate. **Wiring today:** the hub PreToolUse blocks removed 2026-09-17 by operator emergency
+order were returned 2026-10-15 under [#863] — the ADR-77 guard is wired in
+`.claude/settings.json` (`disableAllHooks: false`). The P0 exclusion guard is not: the
+user-level `~/.claude/settings.json` still sets `disableAllHooks: true` with no
+`block-onedrive` block, so that zone rests on the rules
+(`~/.claude/rules/core-invariants.md`), not on a hook.
 
 Output formatting for anything copied into browser chat: `CLAUDE.md` §4 / PLAYBOOK §8.
 
@@ -336,14 +338,16 @@ Enforcement → Dissemination — PLAYBOOK "The verification mesh".
   nightly and on demand (no longer on every push to `main`: R168 test once), **report-only, never blocks**; a green badge means "recorded,"
   never "passed" — verdict is in the job-summary table.
 - Nightly, cloud: conformance Routine (claims-vs-docs digest).
-- Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage
-  (`surface_triage.ps1`'s SessionStart leg disabled individually, [#808], expiry 2026-09-24).
+- Nightly, local: `fleet_health.py`/`audit.py run` → `scripts/surface_triage.py` + human
+  triage (its SessionStart leg runs in-process inside `scripts/hooks/session_start.py`,
+  [#1001]; the old `surface_triage.ps1` is gone).
 
 Cross-tier disagreement is expected, not a bug — PLAYBOOK "What each tier checks".
 
 **Nightly outcome loop, current status:** digest producer (cloud Routine) **alive**;
 triage/Issue producer **dead since 2026-07-09** (`82227f08`); consumer
-`surface_triage.ps1` **disabled** (see above; it was reading a fossil — 15 stale
+`surface_triage.ps1` **was disabled** and is superseded by `scripts/surface_triage.py`
+(see above; it was reading a fossil — 15 stale
 `nightly-triage` Issues). Tracked as [#428].
 
 **Deployed-version record:** `ecosystem/deployed-versions.yaml`, written only by the
