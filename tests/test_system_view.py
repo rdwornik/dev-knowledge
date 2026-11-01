@@ -100,7 +100,12 @@ def _source_payload(reader_id: str, *, title: str = "T") -> object:
                 "unexplained_count": 0,
             },
         },
-        "map-record": {"map_sha": "a" * 64, "node_count": 3},
+        "map-record": {
+            "map_sha": "a" * 64,
+            "node_count": 3,
+            "previous_sha": "c" * 64,
+            "diff": {"added_count": 0, "removed_count": 0},
+        },
         "launch-receipts": {
             "slug": "x",
             "launched_at": launched,
@@ -136,7 +141,11 @@ def _source_payload(reader_id: str, *, title: str = "T") -> object:
             "billed": 1.0,
             "measured": launched,
         },
-        "verdicts": {"rows": [{"provider": "p", "verdict": "parity"}]},
+        "verdicts": {
+            "rows": [{"provider": "p", "verdict": "parity"}],
+            "row": "[#785]",
+            "generated_by": "x",
+        },
         "tasks": {"id": "[#1]", "title": title, "status": "open", "priority": "P2"},
     }
     return payloads.get(reader_id)
@@ -572,14 +581,15 @@ def test_thresholds_table_is_bounded_and_pinned_in_one_place(tmp_path, monkeypat
 
 
 def test_git_check_ignore_holds_for_both_outputs():
-    result = subprocess.run(
-        ["git", "check-ignore", "-q", "ecosystem/view.json", "ecosystem/view.html"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0
+    for path in ("ecosystem/view.json", "ecosystem/view.html"):
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", path],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
 
 
 def test_live_and_frozen_modes_parse_and_compare_equal(tmp_path, monkeypatch):
