@@ -212,8 +212,8 @@ class Ledger:
         self.halted = False         # sticky: set when an append failed after a fire (see LedgerHalt)
         try:
             lines = self.path.read_text(encoding="utf-8").splitlines()
-        except FileNotFoundError:
-            lines = []              # no ledger yet: an empty one
+        except (FileNotFoundError, NotADirectoryError):
+            lines = []              # no ledger yet (or a parent is not a directory, so none can exist): empty
         except (OSError, UnicodeDecodeError) as exc:
             # An existing ledger we cannot read may hold fired events: reading it as empty would refire them.
             raise LedgerHalt(f"ledger {self.path} exists but cannot be read ({exc}); nothing fires") from exc
