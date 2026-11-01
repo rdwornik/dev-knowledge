@@ -661,6 +661,77 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    # ---- [#1800] (lane e30-commit-gate): ten census findings, each given its REAL caller ----
+    # These ten are red on main's commit-gate job since 2026-10-17. NONE is retired: every
+    # one is a live organ or command whose caller is a class the census does not walk -- an
+    # order/lane-contract template, a `.claude/commands/*.md` command, or the operator's own
+    # act, recorded as a `fates:` row in ecosystem/harness.yaml. A disposition is the honest
+    # verdict until [#1711] teaches the census that caller class; `tests/test_graph_spine.py::
+    # test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller` opens
+    # the caller each reason names and finds the path in it.
+    ".claude/commands/decide.md": Disposition(
+        reason="KEEP -- an operator-run command, on demand: no event fires a command. The "
+               "ecosystem/harness.yaml `fates:` row for .claude/commands/decide.md records it "
+               "as manual_until 2026-11-23 (R14: a structural decision is run through the "
+               "system on request)",
+        owner="[#1375]; the census gap for command callers is [#1711]"),
+    ".claude/commands/map.md": Disposition(
+        reason="KEEP -- an operator-run command, on demand: no event fires a command. The "
+               "ecosystem/harness.yaml `fates:` row for .claude/commands/map.md records it as "
+               "manual_until 2026-11-23, and the same file's row for scripts/system_map.py "
+               "names it as that script's caller",
+        owner="[#1375]; the census gap for command callers is [#1711]"),
+    "scripts/claim.py": Disposition(
+        reason="KEEP -- a live organ called at step 0 of every lane by the order templates: "
+               "templates/lane-contract-template.md runs `scripts/claim.py claim` and "
+               "teardown releases it (also templates/integrator-order-template.md and "
+               "templates/dispatcher-order-template.md). Its ecosystem/harness.yaml fates row "
+               "is `called_by: templates/lane-contract-template.md`. The census does not walk "
+               "templates",
+        owner="[#1711] (the census learns the template caller class)"),
+    "scripts/harness_probes.py": Disposition(
+        reason="RETIRE-CANDIDATE, NOT RETIRED -- the ecosystem/harness.yaml fates row for "
+               "scripts/harness_probes.py says `retire_candidate: true`: E1 fates digest "
+               "2026-10-19 rules RETIRE when [#1555] ADR-123 step 1 merges, keeping the "
+               "committed receipts. The operator GO is still pending, so this lane does not "
+               "delete it; delete this row in the act that retires the script",
+        owner="operator GO pending; [#1555] ADR-123 step 1"),
+    "scripts/read_gate.py": Disposition(
+        reason="KEEP -- the read verifier and route runner (AX21-1's 'CC verifies' half), "
+               "run on demand and called as a library by its named consumer lane contract. "
+               "Its ecosystem/harness.yaml fates row records manual_until 2026-11-09; wiring "
+               "a moment is that consumer's routing decision, not an unadopted organ",
+        owner="[#1327] [#1536]"),
+    "scripts/row_close.py": Disposition(
+        reason="KEEP -- run by hand by the integrator right after `merge_receipt.py close` "
+               "for each merged lane; templates/lane-contract-template.md names it as the "
+               "reader of the `closes` clause, and the ecosystem/harness.yaml fates row "
+               "records manual_until 2026-11-09. Folding the call into merge_receipt.py close "
+               "is a later lane's file",
+        owner="[#730]"),
+    "scripts/startup_probe.py": Disposition(
+        reason="KEEP -- the start-up token probe, run by hand or by a witness; its "
+               "ecosystem/harness.yaml fates row records manual_until 2026-11-09 and no "
+               "moment wires it yet (R149: no silent re-date)",
+        owner="[#1705]"),
+    "scripts/system_map.py": Disposition(
+        reason="KEEP -- run on demand by the operator through /map: "
+               ".claude/commands/map.md runs `scripts/system_map.py build`, and the "
+               "ecosystem/harness.yaml fates row is `called_by: .claude/commands/map.md`. "
+               "The census does not walk commands",
+        owner="[#1711] (the census learns the command caller class)"),
+    "scripts/task_record.py": Disposition(
+        reason="KEEP -- ADR-122 step 1: the pydantic model, converter and CLI, invoked by "
+               "hand and by tests/test_task_record.py; no moment calls it until step 2 flips "
+               "the source of truth. Its ecosystem/harness.yaml fates row records "
+               "manual_until 2026-11-23",
+        owner="[#1080]"),
+    "scripts/test_census.py": Disposition(
+        reason="KEEP -- the test census, run by hand from a lane contract and the "
+               "test-strategy digest until a moment or conductor job calls it; its "
+               "ecosystem/harness.yaml fates row records manual_until 2026-11-09 and "
+               "[#1566] owns who initiates",
+        owner="[#1566]"),
 }
 
 
