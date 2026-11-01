@@ -911,6 +911,7 @@ def test_the_lock_flake_disposition_is_not_vacuous(tmp_path, monkeypatch):
 
 
 def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller():
+    from datetime import date
     import re
 
     paths = (
@@ -925,6 +926,13 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
         "scripts/task_record.py",
         "scripts/test_census.py",
     )
+    manual_until_paths = {
+        "scripts/startup_probe.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    }
+    harness = REPO_ROOT / "ecosystem" / "harness.yaml"
+    harness_text = harness.read_text(encoding="utf-8") if harness.is_file() else ""
     failures = []
     for path in paths:
         disposition = gq.ORPHAN_DISPOSITIONS.get(path)
@@ -944,6 +952,35 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
                 failures.append(f"{path}: reason lacks a valid ecosystem/harness.yaml caller")
             continue
 
+        if path in manual_until_paths:
+            match = re.match(r"^NO-CALLER: manual_until ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\s|$)",
+                             reason)
+            if not match:
+                failures.append(f"{path}: reason must start with 'NO-CALLER: manual_until <date>'")
+                manual_date = None
+            else:
+                manual_date = match.group(1)
+                try:
+                    date.fromisoformat(manual_date)
+                except ValueError:
+                    failures.append(f"{path}: invalid manual_until date {manual_date}")
+                    manual_date = None
+                remainder = reason[match.end():]
+                if re.search(r"\b[\w.-]+\.[A-Za-z0-9_-]+\b", remainder):
+                    failures.append(f"{path}: NO-CALLER reason names a caller file")
+            matching_rows = [
+                line for line in harness_text.splitlines()
+                if f"path: {path}" in line and "manual_until:" in line
+            ]
+            if not matching_rows:
+                failures.append(f"{path}: ecosystem/harness.yaml has no manual_until row")
+            elif manual_date and not any(
+                    f"manual_until: {manual_date}" in line for line in matching_rows):
+                failures.append(
+                    f"{path}: ecosystem/harness.yaml has no same-line manual_until {manual_date}"
+                )
+            continue
+
         expected = path.removeprefix(".claude/") if path.startswith(
             ".claude/commands/") else path
         callers = []
@@ -959,5 +996,7 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
                 callers.append(candidate)
         if not callers:
             failures.append(f"{path}: reason names no existing caller whose text names it")
+        if path == "scripts/read_gate.py" and "protocols/HANDOFF_BOOT.md" not in callers:
+            failures.append(f"{path}: reason must name protocols/HANDOFF_BOOT.md as a caller")
 
     assert not failures, "Invalid ORPHAN_DISPOSITIONS:\n" + "\n".join(failures)
