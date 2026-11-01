@@ -697,10 +697,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "delete it; delete this row in the act that retires the script",
         owner="operator GO pending; [#1555] ADR-123 step 1"),
     "scripts/read_gate.py": Disposition(
-        reason="KEEP -- the read verifier and route runner (AX21-1's 'CC verifies' half), "
-               "run on demand and called as a library by its named consumer lane contract. "
-               "Its ecosystem/harness.yaml fates row records manual_until 2026-11-09; wiring "
-               "a moment is that consumer's routing decision, not an unadopted organ",
+        reason="KEEP -- the read verifier and route runner (AX21-1's 'CC verifies' half), a "
+               "live organ never retired: protocols/HANDOFF_BOOT.md runs it as a procedure "
+               "step (agy reads only through scripts/read_gate.py), and "
+               "protocols/STANDING_RULINGS.md names it. Its ecosystem/harness.yaml fates row "
+               "(line 150) records manual_until 2026-11-09; evidence: `grep -rlF read_gate.py "
+               "templates .claude/commands .github/workflows scripts protocols`",
         owner="[#1327] [#1536]"),
     "scripts/row_close.py": Disposition(
         reason="KEEP -- run by hand by the integrator right after `merge_receipt.py close` "
@@ -710,9 +712,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "is a later lane's file",
         owner="[#730]"),
     "scripts/startup_probe.py": Disposition(
-        reason="KEEP -- the start-up token probe, run by hand or by a witness; its "
-               "ecosystem/harness.yaml fates row records manual_until 2026-11-09 and no "
-               "moment wires it yet (R149: no silent re-date)",
+        reason="KEEP -- the start-up token probe, run by hand or by a witness. No template, "
+               "command, workflow or protocol calls it, so the strongest recorded caller is "
+               "the ecosystem/harness.yaml fates row (line 157): manual_until 2026-11-09, run "
+               "by hand until then (R149: no silent re-date); evidence: `grep -rlF "
+               "startup_probe.py templates .claude/commands .github/workflows scripts "
+               "protocols` finds none",
         owner="[#1705]"),
     "scripts/system_map.py": Disposition(
         reason="KEEP -- run on demand by the operator through /map: "
@@ -721,16 +726,19 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "The census does not walk commands",
         owner="[#1711] (the census learns the command caller class)"),
     "scripts/task_record.py": Disposition(
-        reason="KEEP -- ADR-122 step 1: the pydantic model, converter and CLI, invoked by "
-               "hand and by tests/test_task_record.py; no moment calls it until step 2 flips "
-               "the source of truth. Its ecosystem/harness.yaml fates row records "
-               "manual_until 2026-11-23",
+        reason="KEEP -- ADR-122 step 1: the pydantic model, converter and CLI, invoked by hand "
+               "and by tests/test_task_record.py. No template, command, workflow or protocol "
+               "calls it; the recorded caller is the ecosystem/harness.yaml fates row (line "
+               "159): manual_until 2026-11-23, run by hand until step 2 flips the source of "
+               "truth; evidence: `grep -rlF task_record.py templates .claude/commands "
+               ".github/workflows scripts protocols` finds none",
         owner="[#1080]"),
     "scripts/test_census.py": Disposition(
         reason="KEEP -- the test census, run by hand from a lane contract and the "
-               "test-strategy digest until a moment or conductor job calls it; its "
-               "ecosystem/harness.yaml fates row records manual_until 2026-11-09 and "
-               "[#1566] owns who initiates",
+               "test-strategy digest: protocols/STANDING_RULINGS.md names it. Its "
+               "ecosystem/harness.yaml fates row (line 174) records manual_until 2026-11-09, "
+               "and [#1566] owns who initiates; evidence: `grep -rlF test_census.py templates "
+               ".claude/commands .github/workflows scripts protocols`",
         owner="[#1566]"),
 }
 
