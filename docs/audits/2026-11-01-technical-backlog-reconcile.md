@@ -1,0 +1,739 @@
+# Backlog reconcile report
+
+Run date: 2026-11-01. Open rows: 711. Evidence classes below; the operator rules per class and `apply --ruling` acts on nothing else.
+
+| Class | Rows |
+|---|---|
+| shipped | 72 |
+| obsolete | 30 |
+| stale-refs | 220 |
+| live | 368 |
+| unclear | 21 |
+
+Cost: 73 calls, 2511047 input tokens, 201060 output tokens, USD 1.94 (priced calls only; models without a registered rate carry `usd: null` in the cost record).
+
+## shipped
+
+- [#171] Build the conformance dashboard at `ecosystem/conformance.md` — read: done; work commits: 11; paths missing: 0
+- [#533] Decompose the `audit.py` check monolith into `scripts/audit_checks/` — one module per check plus an ordered registry — read: done; work commits: 15; paths missing: 0
+- [#554] Devcontainer + provisioning script (NB4-G stage 1) — read: unclear; work commits: 33; paths missing: 0
+- [#588] P-2 — build the spine parent-map in ONE git process — read: done; work commits: 8; paths missing: 0
+- [#589] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone — read: done; work commits: 16; paths missing: 0
+- [#611] HANDOFF_PROCESS v7: the minimal-bundle package — read: unclear; work commits: 12; paths missing: 0
+- [#628] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane — read: unclear; work commits: 26; paths missing: 1
+- [#664] Wire FPG-1 as the delivery spine — three commit-tier queries, and organs become views — read: done; work commits: 49; paths missing: 0
+- [#675] Manifest tooling reads a heterogeneous node list with a bare `.get` default, so every node of the other shape reads as the default — read: done; work commits: 24; paths missing: 0
+- [#689] Conductor E is decided and unbuilt — GitHub Actions as the runner, state stays in tasks/, required checks as gates — read: unclear; work commits: 12; paths missing: 8
+- [#690] The three SUPERSEDED `block-onedrive` hook copies under `~/.claude/hooks/` — removed, and the removal recorded in-repo — read: done; work commits: 1; paths missing: 2
+- [#691] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter — read: unclear; work commits: 9; paths missing: 4
+- [#694] Four telemetry modules are inventory rather than harness -- each gets a trigger or is deleted, and the roster allows no third state — read: unclear; work commits: 5; paths missing: 4
+- [#730] Work lands on main and its row stays open, because nobody hands the operator closures in bulk -- the close packet lists what the merges witnessed — read: unclear; work commits: 6; paths missing: 1
+- [#737] A SEAT-BOOT render cannot express the seat's own model, so the operator's re-tiering ruling has nowhere to live but prose the next seat never reads — read: unclear; work commits: 2; paths missing: 1
+- [#746] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` — read: done; work commits: 12; paths missing: 1
+- [#786] Give the PLAYBOOK order-conventions heading a gate — read: unclear; work commits: 2; paths missing: 0
+- [#788] The local maximum is not the task-id allocator under concurrency -- a sibling branch's held id is invisible from a worktree and nothing in the repo refuses it — read: unclear; work commits: 6; paths missing: 0
+- [#792] The runtime-resource lifecycle organ: two regimes, two mechanisms, no shared thresholds — read: done; work commits: 7; paths missing: 0
+- [#802] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification — read: done; work commits: 10; paths missing: 0
+- [#804] No committed batch manifest, no dispatch; ids come from the manifest — read: done; work commits: 5; paths missing: 0
+- [#808] A hung hook wedges its session with no record; every hook needs a bound that fails OPEN loudly — read: done; work commits: 8; paths missing: 0
+- [#809] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle — read: done; work commits: 4; paths missing: 0
+- [#832] Re-run the three-repo comparison against the operator's named repositories — read: done; work commits: 0; paths missing: 0
+- [#833] A seat is not a registered entity, so a wedged, starved or absent seat is invisible until a human asks — read: done; work commits: 5; paths missing: 1
+- [#863] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started — read: done; work commits: 24; paths missing: 0
+- [#886] An emergency change records its temporary debt as DATA with an owner and an expiry -- JOURNAL prose is invisible to a gate, and a MUST surface has no waiver path at all — read: done; work commits: 3; paths missing: 0
+- [#929] The spine is the whole work loop -- map every organ onto stages 1-16 and run the loop's candidate mechanisms live before anything is built — read: unclear; work commits: 4; paths missing: 4
+- [#930] Wave 3 lane A (lane-loop-declaration) -- the one file declares every moment the loop needs — read: done; work commits: 0; paths missing: 2
+- [#932] Wave 3 lane C (lane-merge-truth) -- the merge gate reads the right lane, and the census counts real callers — read: done; work commits: 0; paths missing: 2
+- [#933] Wave 3 lane D (lane-end-hook) -- every finished lane reports itself, once, through a real event — read: unclear; work commits: 0; paths missing: 2
+- [#934] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real — read: unclear; work commits: 0; paths missing: 2
+- [#935] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts — read: done; work commits: 0; paths missing: 2
+- [#937] Wave 4a lane 1 (lane-known-reds) -- one base run per batch, so a merge takes minutes instead of an hour — read: done; work commits: 1; paths missing: 2
+- [#938] Wave 4a lane 2 (lane-merge-gates-truth) -- the merge gate reads the fates the declaration records — read: done; work commits: 2; paths missing: 2
+- [#939] Wave 4a lane 3 (lane-batch-digest) -- the morning digest names the work, written by the machine — read: done; work commits: 1; paths missing: 2
+- [#941] Wave 4a lane 5 (lane-landing-decisions) -- this window's decisions leave the transport and enter the repo — read: done; work commits: 0; paths missing: 2
+- [#956] Wave 4b lane 0 (lane-hooks-rearm) -- the eight emergency-disabled session hooks come back on evidence — read: done; work commits: 2; paths missing: 3
+- [#958] Wave 4b lane 2 (lane-handback-organ) -- a lane hands back through one organ that checks it first — read: done; work commits: 8; paths missing: 3
+- [#959] Wave 4b lane 3 (lane-gate-verdicts) -- gates speak data, and the connection test reads it — read: done; work commits: 2; paths missing: 3
+- [#961] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes — read: done; work commits: 3; paths missing: 3
+- [#962] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it — read: done; work commits: 2; paths missing: 2
+- [#965] One known-reds registry, read by CI and local, refreshed at the merge moment — read: done; work commits: 1; paths missing: 0
+- [#966] CI's full-suite verdict becomes the merge gate; local runs only Windows-only tests — read: done; work commits: 2; paths missing: 0
+- [#970] Memory admission gate: heavy runs wait for free memory; `-n` is computed, not hand-set — read: done; work commits: 1; paths missing: 0
+- [#999] R-09-19-10: 'the dispatcher dispatches' -- lands once DECLARE-NIGHT-AUTONOMY is in STANDING_RULINGS — read: done; work commits: 1; paths missing: 1
+- [#1001] SessionStart becomes one stdlib reader -- 8 interpreters to 1, p90 under 2s — read: done; work commits: 6; paths missing: 0
+- [#1009] Wave 5a lane 2 (lane-test-selection) -- prose stops pulling in the whole live_repo test set — read: unclear; work commits: 0; paths missing: 4
+- [#1079] ADR-122 step 1 remainder: 4 rows' non-canonical Done-when separator breaks the converter — read: done; work commits: 1; paths missing: 0
+- [#1080] ADR-122 step 1 remainder: eliminate legacy_body carriers (671/671 live rows, 86/86 archive records) — read: done; work commits: 1; paths missing: 0
+- [#1104] Dispose ADR-127: carried to WAVE5B-N5 planning — read: done; work commits: 1; paths missing: 1
+- [#1335] Codespace parity: a lane there works only when one task meets five parity items, and none has been measured — read: unclear; work commits: 4; paths missing: 0
+- [#1423] W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376] — read: done; work commits: 19; paths missing: 3
+- [#1439] Every transport file names the seat that wrote it, and the generated transport index groups files by seat (R91) — read: done; work commits: 19; paths missing: 1
+- [#1441] Repair the NEW reds the B+ step-2 landing put on main (350c07f7, run 37790704091) — read: done; work commits: 4; paths missing: 1
+- [#1443] Boot reading path: the generated dispatch map, the seat exam and the dispatch exam join HANDOFF_BOOT's reading path with W2-22 (R73, R80, R84) — read: done; work commits: 9; paths missing: 5
+- [#1452] Every role pin names the newest served model, and a check flags a role pinned below it (R82) — read: done; work commits: 2; paths missing: 3
+- [#1481] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner — read: done; work commits: 2; paths missing: 2
+- [#1572] `dispatch.py queue` skips an already-launched lane and fires the eligible ones instead of halting with exit 5 — read: done; work commits: 10; paths missing: 0
+- [#1616] Start-up context cut 1: `CLAUDE.md` carries only what a session needs before it can act (hooks roster and conventions detail move on demand) — read: done; work commits: 4; paths missing: 1
+- [#1617] Start-up context cut 2: the SessionStart hook output is capped at 2 KB — read: done; work commits: 5; paths missing: 0
+- [#1618] Start-up context cut 3: the auto-memory index `MEMORY.md` is held to 8 KB and the repo rule `git-discipline.md` to 2 KB — read: done; work commits: 5; paths missing: 0
+- [#1624] test_manifest_link_route's class-enum assert compares by identity, so a module reload by an earlier test in the same xdist worker reds it — read: done; work commits: 1; paths missing: 0
+- [#1625] AS-IS process model: binding file, generated diagrams, 14-row index — read: done; work commits: 3; paths missing: 4
+- [#1629] main ship-gate reads 0 hard-fail; archive-row signature current — read: done; work commits: 3; paths missing: 1
+- [#1636] R94 Stop-hook cycle gate built or withdrawn — read: unclear; work commits: 13; paths missing: 1
+- [#1687] `run_phase.py run` never passes `cli_record`/`model_requested`, so `served_model` is always null, and `--stdout` merges stderr into the CLI JSON (P3) — read: done; work commits: 18; paths missing: 1
+- [#1689] `conductor.py lane` runs the harness `phases:` table, which disagrees with the lane contract's own phases (P5) — read: done; work commits: 9; paths missing: 1
+- [#1698] A landing completes without its own MERGE-RECEIPTS line: the line rides the NEXT landing, so the last landing of a batch can lose it — read: done; work commits: 3; paths missing: 1
+- [#1706] CODESPACE-RECEIPTS.jsonl keeps every seat's tree dirty and the Stop hook says commit it — read: done; work commits: 2; paths missing: 1
+- [#1711] G-EDGE: organs called only from a command or an order template have no wiring edge (R149) — read: done; work commits: 4; paths missing: 1
+- [#1727] The dispatcher template says dispatch.py queue leaves no receipt, and carries no wake mechanism — read: done; work commits: 5; paths missing: 0
+
+## obsolete
+
+- [#632] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on — read: unclear; work commits: 5; paths missing: 1
+- [#669] Step F — the conductor: the delivery loop's transitions become a state machine over rows — read: unclear; work commits: 8; paths missing: 0
+- [#697] A detached codespace lane returns ZERO WORK and returns it quietly -- two nights of it, and nothing decides whether the substrate is repaired or retired — read: unclear; work commits: 3; paths missing: 1
+- [#733] Ratification #5: the operator never types a path and the browser never composes a boot line -- the SEAT-BOOT renders go to the transport — read: obsolete; work commits: 2; paths missing: 2
+- [#763] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set — read: unclear; work commits: 5; paths missing: 0
+- [#764] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for — read: obsolete; work commits: 1; paths missing: 4
+- [#793] A withdrawn lane's live worktree built a rival organ — read: unclear; work commits: 1; paths missing: 0
+- [#894] Lane ac-285 wedged after a successful tool call -- an unexplained single-lane wedge, cause unverified — read: obsolete; work commits: 0; paths missing: 3
+- [#912] main is RED on its own -- 45 live-state tests fail independently of every lane merged in night wave 2, with no owner — read: unclear; work commits: 13; paths missing: 0
+- [#913] Duplicate JOURNAL day-letter 2026-09-18 (f) is on main -- audit journal_day_letters FAILs — read: unclear; work commits: 1; paths missing: 0
+- [#957] Wave 4b lane 1 (lane-merge-path) -- one merge path: the moment, in an integration worktree, main only when green — read: obsolete; work commits: 0; paths missing: 3
+- [#1033] export_backlog_view.py / offload_admission.py retirement claims collide with [#563] -- needs an explicit operator GO — read: obsolete; work commits: 0; paths missing: 2
+- [#1105] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1106] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1107] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1108] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1109] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1110] Dispose AMEND-BATCH-WAVE5B-N4-HANDOFF-MIN-2026-09-27: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1111] Dispose AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1112] Dispose AMEND-BATCH-night-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1113] Dispose AMEND-DISPATCH-UNBLOCK-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1114] Dispose AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1115] Dispose AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1116] Dispose AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1117] Dispose AMEND-NIGHT-SALVAGE-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1118] Dispose AMEND-ORGAN-USE-2026-09-17: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1119] Dispose DECLARE-CENSUS-VERDICTS-2026-09-18: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1120] Dispose DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1121] Dispose DECLARE-OPERATOR-FEEDBACK-2026-09-24: carried to WAVE5B-N5 planning — read: obsolete; work commits: 0; paths missing: 2
+- [#1122] Dispose DECLARE-SEAT-KNOWLEDGE-2026-09-24: carried to WAVE5B-N5 planning — read: obsolete; work commits: 1; paths missing: 2
+
+## stale-refs
+
+- [#359] PHANTOM ENFORCEMENT — `protocols/HANDOFF_PROCESS.md` §14a FILE-BOUNDARY claims a mechanism that does not exist. — read: open; work commits: 3; paths missing: 1
+- [#393] corp-sca rot review — confirm-live-or-retire 3 candidates — read: open; work commits: 1; paths missing: 2
+- [#428] `nightly-triage` reports a dead producer to every session start — read: open; work commits: 7; paths missing: 2
+- [#634] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate — read: open; work commits: 0; paths missing: 1
+- [#646] The ceremony ratio was measured once, by hand, and nothing computes it — read: open; work commits: 0; paths missing: 1
+- [#652] A gate that passes when its precondition is ABSENT is the empty-rows shape, and the receipt check has it — read: open; work commits: 0; paths missing: 1
+- [#673] Six batch-V suite REDs are unattributed, and only a same-substrate run on the pre-batch commit can attribute them — read: open; work commits: 1; paths missing: 1
+- [#674] `[#563]`'s no-reader test checks a NAME to prove a RELATIONSHIP; it must assert the absence of a `reads` edge — read: open; work commits: 0; paths missing: 2
+- [#687] A task carries no execution position, and the row that would compute one from the spine is not required to — read: open; work commits: 1; paths missing: 2
+- [#698] The SEAT-BOOT-integrator render emits a GO line per merge where the canon it implements grants ONE GO for the batch — read: open; work commits: 1; paths missing: 1
+- [#699] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning — read: open; work commits: 0; paths missing: 1
+- [#700] AW5-4 ruled that machine-read control surfaces are STATE rather than narrative, and the ruling reached the close packet and none of the surfaces that state amendment discipline — read: open; work commits: 0; paths missing: 1
+- [#701] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure — read: open; work commits: 0; paths missing: 2
+- [#702] The repo declares zero `cron:` and zero `schedule:`, so the nightly layer `[S20]` exists to revive has nothing to revive — read: open; work commits: 0; paths missing: 1
+- [#703] Impacted-test selection can read an empty selection as \"nothing impacted\" -- the one reading that turns a selector into a silent skip — read: open; work commits: 0; paths missing: 2
+- [#704] `propose_closures` writes a new proposals file every run, so four sessions of asking produced 154 swept files where one current file was wanted — read: open; work commits: 0; paths missing: 2
+- [#707] W-4 closed under a declared organ-index bypass with four repairs owed -- the committed index is one row stale against its own generator — read: open; work commits: 0; paths missing: 1
+- [#719] `ecosystem/organ-index` entries answer to no schema -- validate them against Backstage `catalog-model`'s Component shape with our own gate — read: open; work commits: 0; paths missing: 1
+- [#722] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude — read: open; work commits: 0; paths missing: 1
+- [#725] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel — read: open; work commits: 0; paths missing: 1
+- [#728] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches — read: open; work commits: 0; paths missing: 1
+- [#729] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep — read: open; work commits: 0; paths missing: 1
+- [#736] Component lifecycle is not data, so nothing can deprecate an organ — an item untriggered and unread for 30 days stays `production` forever — read: open; work commits: 2; paths missing: 2
+- [#741] Lane launching is methodology, so the hub owns it — a floor component shipped to every consumer, OS-independent, with machine-local values staying in win-tooling — read: open; work commits: 0; paths missing: 1
+- [#745] The domain census's 16 UNKNOWN items are resolved to a live/non-live verdict by a second pass rather than carried forward — read: open; work commits: 1; paths missing: 4
+- [#747] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days — read: open; work commits: 2; paths missing: 1
+- [#755] Finish the docs cut — `ARCHITECTURE.md` to ≤ 15 KB behind the X3 render, and the four ESSENTIALS residues the dissolution could not reach — read: open; work commits: 3; paths missing: 1
+- [#762] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves — read: open; work commits: 2; paths missing: 1
+- [#766] The session boot payload has a byte budget on one file and none on the whole -- every tool, command and skill description is paid at startup — read: open; work commits: 0; paths missing: 1
+- [#819] A lane's hub half can merge while its win-tooling half sits unmerged, undetected — read: open; work commits: 0; paths missing: 1
+- [#885] The model a contract declares is the model that RUNS — resolved at freeze, verified off the transcript, refused on the receipt, with the default by lane kind in the generator — read: open; work commits: 1; paths missing: 2
+- [#887] The handoff preflight scans the whole shared transport, not the handing-off seat's own files -- a concurrent workstream's decision files refuse this seat's cut — read: open; work commits: 2; paths missing: 8
+- [#892] A seat ordered sonnet ran Opus and nothing refused -- ordered is not ran for an attended seat — read: open; work commits: 0; paths missing: 2
+- [#893] Lane cost is computable and nothing computes it at integration -- batch AC's close packet reads cost UNKNOWN — read: open; work commits: 0; paths missing: 1
+- [#895] The lane-ceiling worktree leg refuses a conforming plan -- it counts the freezing seat's own worktree as a provisioned lane — read: open; work commits: 0; paths missing: 2
+- [#896] decision_coverage -- the organ refuses correctly and its gate never fires locally (stages:[manual] behind a disabled ruleset) — read: open; work commits: 0; paths missing: 2
+- [#897] ARCHITECTURE.md is 110,357 B live, about seven times its 15 KB target -- and its down-22-percent figure pointed the wrong way across five surfaces — read: open; work commits: 0; paths missing: 1
+- [#898] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect — read: open; work commits: 0; paths missing: 4
+- [#900] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call — read: open; work commits: 0; paths missing: 2
+- [#901] Does [#790]'s runtime-resource organ increment exist on main today, superseded, or nowhere -- intake [#101] still says runtime resources have no owning organ — read: open; work commits: 0; paths missing: 1
+- [#902] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour — read: open; work commits: 0; paths missing: 1
+- [#903] The audit corpus has no retention rule -- what is an audit for after its arc closes, and what retires it — read: open; work commits: 0; paths missing: 1
+- [#904] The branch-name validator rejects a recovered/ prefix -- does recovery work get a sanctioned prefix, or ride an author prefix — read: open; work commits: 0; paths missing: 1
+- [#907] Spend is not measured by seat kind, so cost work targets the lanes while the money is in the seats — read: open; work commits: 0; paths missing: 1
+- [#920] PLAYBOOK Ch8 now describes the OLD dispatch surface -- the sole literal-command site yields wrong syntax to every correct citation — read: open; work commits: 0; paths missing: 1
+- [#936] Preflight skips an all-digit short sha -- a merge whose hash is all digits reds the pairing and passes a contract unchecked — read: open; work commits: 0; paths missing: 2
+- [#942] State as data -- the STATUS surface, the state query, and the four escalation events — read: open; work commits: 0; paths missing: 2
+- [#943] Contracts generated from rows -- the spine writes the skeleton, the architect writes only Done-when and decision budget — read: open; work commits: 0; paths missing: 2
+- [#944] The secrets field -- a contract's Dispatch block can declare a secret without leaking it to the transport — read: open; work commits: 0; paths missing: 1
+- [#945] The guards decision -- the operator's build-mode answer on write guards for the loop — read: open; work commits: 0; paths missing: 1
+- [#948] The fair `why` test -- measure the `why` skill without the bias its earlier trial carried — read: open; work commits: 0; paths missing: 2
+- [#949] Unbind verb for the integrator seat -- releasing a batch's integrator binding is currently a no-op path — read: open; work commits: 0; paths missing: 1
+- [#950] Friction ratio -- measure operator touches against merged work, as a trend, not a per-batch count — read: open; work commits: 0; paths missing: 2
+- [#951] Root-cause taxonomy -- classify why a lane stops, instead of re-deriving it by hand each time — read: open; work commits: 0; paths missing: 2
+- [#952] Gemini routing pin -- a pinned model id for the `agy` adversarial/producer role, recorded like the other providers — read: open; work commits: 0; paths missing: 2
+- [#953] Events that file rows -- some escalation events should produce a task row automatically, not just a STATUS entry — read: open; work commits: 0; paths missing: 1
+- [#954] Install the loop in a second repo -- prove stages 1-16 are not `.dev-knowledge`-specific — read: open; work commits: 0; paths missing: 1
+- [#972] Session janitor stops every poll and wake-up a lane leaves running at batch close — read: open; work commits: 0; paths missing: 1
+- [#973] Handback organ writes `HANDBACK-REFUSED-<lane>.md`, never the integrator's own `REFUSED-<lane>.md` — read: open; work commits: 0; paths missing: 1
+- [#974] One comparator: the handback organ's self-check and the integrator's call the same function — read: open; work commits: 0; paths missing: 1
+- [#975] Origin-only sync + purity check: a lane never merges a local, unverified main — read: open; work commits: 0; paths missing: 1
+- [#977] Provider fallback list: a Sonnet outage no longer stalls every lane — read: open; work commits: 0; paths missing: 1
+- [#978] Transport file-kind registry, enforced by an adapter -- no more invented names or collisions — read: open; work commits: 0; paths missing: 1
+- [#979] Path layer reads HARNESS_DRIVE_ROOT/HARNESS_PROMPTS_SUBDIR -- no direct env-var reads outside it — read: open; work commits: 0; paths missing: 1
+- [#980] Portability: a path layer + Drive API adapter + container CI job removes the Codespace blocker — read: open; work commits: 0; paths missing: 1
+- [#981] Compute: an off-box execution host, so the laptop stops being the harness's substrate — read: open; work commits: 0; paths missing: 1
+- [#984] A state store (ADR-121) carries decisions across a handoff instead of losing them to prose — read: open; work commits: 0; paths missing: 1
+- [#986] Architecture-level changes require ADR + matrix + debate + operator ratification, not a fast browser accept — read: open; work commits: 0; paths missing: 1
+- [#987] Batch close regenerates the ledger from the state store -- it stops going stale for days — read: open; work commits: 0; paths missing: 1
+- [#988] Copilot admission lands in the registry with in-repo evidence -- the router stops blocking a producer that already ran — read: open; work commits: 0; paths missing: 2
+- [#1015] `scripts/plan_lint.py` silently reads zero ownership from a contract using only an `Owns:` label — read: open; work commits: 3; paths missing: 1
+- [#1019] hooks-port: the flaky test, the slower sentinel, the bounded_hook gap and the 18 [#802] regressions have no landed digest or row — read: open; work commits: 0; paths missing: 2
+- [#1024] integrator: merge_receipt.py reports unknown-tier for every explicit model id — read: open; work commits: 1; paths missing: 2
+- [#1028] integrator: the moment:batch-close digest organ reads no receipt, treating a whole batch as one lane — read: open; work commits: 0; paths missing: 1
+- [#1032] a portability check flags Windows-only path literals ([A-Z]:\\\\, $env:, powershell) in scripts/hooks/templates -- distinct from [#980]'s adapter build — read: open; work commits: 0; paths missing: 1
+- [#1038] DIGEST-HANDOFF-DESIGN-2026-09-25 (the handoff-design research lane) has not landed — read: open; work commits: 0; paths missing: 1
+- [#1039] the execution-provenance mechanism (DECLARE-HARNESS-PROVENANCE-2026-09-08) is still LIVE, grandfathered 16+ days — read: open; work commits: 0; paths missing: 1
+- [#1040] the five operator judging rules (DECLARE-OPERATOR-FEEDBACK-2026-09-24) are not in STANDING_RULINGS — read: open; work commits: 0; paths missing: 1
+- [#1042] AC-NOT-CLOSED residue: the operator ruling on machine time vs operator latency has no home — read: open; work commits: 0; paths missing: 1
+- [#1043] AC-NOT-CLOSED residue R11: re-key the Stop-hook exemption on the seat registry plus a counter — read: open; work commits: 0; paths missing: 1
+- [#1044] CENSUS-VERDICTS W14: no keep-or-retire row exists for the ten uncalled organs — read: open; work commits: 0; paths missing: 1
+- [#1045] CENSUS-VERDICTS W16: the 17% no-organ sessions have no row — read: open; work commits: 0; paths missing: 1
+- [#1046] CENSUS-VERDICTS W17: the class-named-organ blind spot has no row — read: open; work commits: 0; paths missing: 1
+- [#1054] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 — read: open; work commits: 0; paths missing: 1
+- [#1331] The equilibrium's ruling register and cross-window state move into the repository — read: open; work commits: 0; paths missing: 2
+- [#1371] Transport files follow one grammar with one live file per subject, and a generated index and a non-deleting janitor keep it so — read: open; work commits: 1; paths missing: 1
+- [#1383] The Linux pytest leg runs in at most 420 s on two consecutive push runs, carried from B2-W1 W1-3's unmet Done item 4 — read: open; work commits: 1; paths missing: 1
+- [#1385] decision_coverage recognises an AMEND as carried when every lane it adds has merged — read: open; work commits: 0; paths missing: 1
+- [#1386] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying — read: open; work commits: 0; paths missing: 2
+- [#1410] The dispatcher enforces a lane's same-defect attempt bound in code, not by the lane's reading of its contract — read: open; work commits: 0; paths missing: 3
+- [#1411] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate — read: open; work commits: 0; paths missing: 2
+- [#1422] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset — read: open; work commits: 0; paths missing: 2
+- [#1424] W2 carries FOUNDATION lane 12: the commit-time hooks R66 moved to CI run as CI jobs — read: open; work commits: 0; paths missing: 6
+- [#1425] The handoff Dates row takes the cut's declared date, not the local clock — read: open; work commits: 0; paths missing: 2
+- [#1426] BD-ci gives a different answer for the same sha within twenty minutes — read: open; work commits: 1; paths missing: 2
+- [#1427] BD-ci counts pre-existing gate-job reds as new reds because it reads CI with no baseline — read: open; work commits: 1; paths missing: 2
+- [#1428] The --filled waiver drops BD-manifest's waiver whenever any second check fails — read: open; work commits: 0; paths missing: 2
+- [#1429] The handoff preflight and the batch-close trial cut cannot see P13 because they judge the previous bundle — read: open; work commits: 0; paths missing: 2
+- [#1430] verify_handoff_probes crashes on a cp1252 console when its output is redirected — read: open; work commits: 0; paths missing: 2
+- [#1431] The handoff cut takes the repository's name from its folder name — read: open; work commits: 0; paths missing: 2
+- [#1432] The post-fill order of the handoff cut lives in prose: --filled before assemble_paste refuses — read: open; work commits: 0; paths missing: 2
+- [#1433] A background seat has no sanctioned way to fill a handoff bundle — read: open; work commits: 0; paths missing: 2
+- [#1434] ADR-129's 120-second handoff preflight bound does not hold on the operator's laptop — read: open; work commits: 0; paths missing: 2
+- [#1435] transport_lint checks the seat-written handoff inputs when they are written: PLAN-HANDOFF section 4, the LEDGER token, RATIFICATION names — read: open; work commits: 1; paths missing: 2
+- [#1436] One handoff-readiness command runs the whole cut pipeline in a scratch clone and gates every real cut — read: open; work commits: 1; paths missing: 2
+- [#1437] Batch close generates and requires a disposition for every decision of its batch — read: open; work commits: 1; paths missing: 2
+- [#1440] Handoff readiness pins the commit and a completed CI run id across dry run and cut; every gate condition must be satisfiable after the steps it gates — read: open; work commits: 1; paths missing: 1
+- [#1444] Every merge is timed per stage from handback to main, by code on the integrator's path, with a median and p90 report (W2-24, R85) — read: open; work commits: 0; paths missing: 3
+- [#1445] Every dated item -- a known-reds expiry, a manual_until fate, a hook expiry -- warns at least 3 days before its date — read: open; work commits: 1; paths missing: 4
+- [#1447] gen_lane_contract.py check agrees with plan_lint and R82 on the live lane-contract shape — read: open; work commits: 0; paths missing: 2
+- [#1453] The Codespace reaches production: the fix-first list is closed and three consecutive end-to-end runs are all green (R83) — read: open; work commits: 2; paths missing: 4
+- [#1455] Handback to main takes at most 15 minutes at the median, and the four first-wave levers are built or disposed (R85) — read: open; work commits: 1; paths missing: 2
+- [#1456] A handoff cut reports and refuses on the four steps before it: closed batch, clean repositories, passed boot test, fresh session (R89) — read: open; work commits: 1; paths missing: 1
+- [#1482] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump — read: open; work commits: 1; paths missing: 2
+- [#1483] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item — read: open; work commits: 1; paths missing: 3
+- [#1510] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 3; paths missing: 1
+- [#1511] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1512] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1513] LANE-bw-1368-lane-report-rollup.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1514] LANE-bw-1374-lane-controller.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1515] LANE-bw-1378-rulings-landing.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1516] LANE-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1517] LANE-bw-1447-distill-kind-fix.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1518] LANE-bw-1450-boot-teaching.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1520] LANE-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1521] LANE-bw-680-handoff-gen.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1522] LANE-bw-735-reuse-gate.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1523] LANE-bw-781-system-map.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1524] LANE-bw-893-b2w3-carry.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1526] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1527] LANE-bw-958-required-tools.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 1; paths missing: 1
+- [#1528] 2026-10-10-codex-b2w2-transport-index.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 1; paths missing: 1
+- [#1529] 2026-10-13-codex-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1530] 2026-10-13-codex-lane-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1531] 2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1551] A Codespace lane carries a per-phase heartbeat, and six injected failures are detected and recovered without the operator — read: open; work commits: 1; paths missing: 2
+- [#1552] Every Codespace credential has a recorded class, issuer, expiry policy and renewal act, checked at creation — read: open; work commits: 1; paths missing: 2
+- [#1553] Codespace lanes run two, then six at once, each monitored, inside a declared core-hour cap — read: open; work commits: 1; paths missing: 2
+- [#1554] A new ask that duplicates an open row is refused at distill, naming the row, before an id is allocated — read: open; work commits: 1; paths missing: 2
+- [#1555] ADR-123 step 1: carve the harness into one versioned package, Codespace verbs included — read: open; work commits: 1; paths missing: 2
+- [#1561] impacted_tests.py selects the tests a changed workflow or ecosystem data file feeds, and the tests a removed module leaves behind (Tier-1 holes, BUILD-2a slot 1) — read: open; work commits: 1; paths missing: 2
+- [#1562] The night suite runs in four pytest-split shards per OS, and a fail-closed aggregator keeps the two pytest leg names and the known-reds compare unchanged (R119 night, BUILD-2a slot 1) — read: open; work commits: 1; paths missing: 1
+- [#1564] The night batch opens only on a live known-reds registry, and ship_gate_diff runs once on the final tip and records what it catches (R119 night, BUILD-2a slot 1) — read: open; work commits: 1; paths missing: 1
+- [#1565] Tests become graph nodes: static exercises edges in FPG, and a nightly per-sha coverage-context edge artifact (R120.1, first night) — read: open; work commits: 1; paths missing: 2
+- [#1567] mutmut runs nightly on the night's changed functions with a per-lane score, a 70 % threshold and a loud 0-mutant failure (R120 goal, first night) — read: open; work commits: 1; paths missing: 1
+- [#1568] Pre-commit refuses a removal that leaves orphan tests: the removed module's tests are deleted or rewritten in the same change (R120.2, BUILD-2b) — read: open; work commits: 1; paths missing: 1
+- [#1569] moment:merge runs without a hand-set HARNESS_CONTRACT, takes its worktree from the integration checkout, and its open-receipt file is git-ignored — read: open; work commits: 1; paths missing: 1
+- [#1570] The hook writer emits LF hooks with one shebang, so a SessionStart re-arm never undoes a repair — read: open; work commits: 0; paths missing: 1
+- [#1573] A seat hand-over launches its successor and records the launch; only a launch error becomes an OPERATOR-ACTION — read: open; work commits: 0; paths missing: 1
+- [#1577] Seat-authored transport files carry `by:`, live in the right folder, and a dispatcher never writes STATE into the repo checkout — read: open; work commits: 0; paths missing: 1
+- [#1584] The `[#863]` lane's owed items are rows: CI-environment owner, audit health, funnel and proof-layer baselines, canonical_docs derived leg — read: open; work commits: 0; paths missing: 1
+- [#1586] The provider checker is re-run from a writable seat and its DISAGREEs are resolved — read: open; work commits: 0; paths missing: 2
+- [#1587] The handoff-digest checker is re-run from a seat with a writable uv cache, covering all five bar rows — read: open; work commits: 0; paths missing: 1
+- [#1592] `session_start.py` starts no detached fleet_health producer outside the worktree, and the producer completes a pass — read: open; work commits: 0; paths missing: 2
+- [#1593] Handoff docs stop contradicting each other: v5/v6 prose, the R30 conflict, four seats, three queue verbs, dispatcher routing — read: open; work commits: 0; paths missing: 1
+- [#1595] The cloud and interactive substrates have a launcher or are removed (R112) — read: open; work commits: 1; paths missing: 1
+- [#1606] The CRUD sandbox QA suite (LEDGER v32 lane 22) is built and run once against the process matrix — read: open; work commits: 0; paths missing: 1
+- [#1612] A job in state done or blocked with a handback on the transport is stopped automatically — read: open; work commits: 0; paths missing: 1
+- [#1619] A dependency on another session's event is a WAIT, never a skip (night contract N1) — read: open; work commits: 0; paths missing: 3
+- [#1620] A session ends only when every part is DONE or BLOCKED-WITH-OWNER, or its stop condition fires (night contract N2) — read: open; work commits: 0; paths missing: 2
+- [#1621] END-EARLY is an alarm: first line of the report plus a proactive send to the operator (night contract N3) — read: open; work commits: 0; paths missing: 2
+- [#1622] A POST-CLOSE list the integrator reads every wake and executes at batch close (night contract N4) — read: open; work commits: 0; paths missing: 1
+- [#1623] plan_lint refuses a batch or night order whose dependent part names no trigger and no wait mechanism, or says \"do not poll\" without an armed wake (night contract N5) — read: open; work commits: 1; paths missing: 3
+- [#1630] R101(a) tier refusal runs in pre-launch — read: open; work commits: 0; paths missing: 1
+- [#1631] Lane distiller default model comes from a role table — read: open; work commits: 0; paths missing: 1
+- [#1632] One Substrate protocol; pre-launch for every substrate — read: open; work commits: 0; paths missing: 1
+- [#1634] Hub dispatch shim installed; duplicate launchers removed on GO — read: open; work commits: 0; paths missing: 1
+- [#1635] MAP-DISPATCH regenerated with the outside-hub entry points — read: open; work commits: 0; paths missing: 1
+- [#1641] Codespace parity C1-C5 re-run live — read: open; work commits: 0; paths missing: 1
+- [#1643] CloudSubstrate: a read-only cloud port in the hub — read: open; work commits: 1; paths missing: 1
+- [#1644] agy re-check; laptop-only (R140) — read: open; work commits: 2; paths missing: 2
+- [#1645] R133 consolidation track and plan_lint decision gate — read: open; work commits: 1; paths missing: 1
+- [#1646] M1 v2: each vendor measured in its role — read: open; work commits: 1; paths missing: 2
+- [#1647] transport_lint wants $CLAUDE_PROMPTS_DIR on transport paths — read: open; work commits: 0; paths missing: 1
+- [#1650] Architekt Jutra module review (deferred, R137 Q4) — read: open; work commits: 1; paths missing: 2
+- [#1651] agy official headless route re-check on every agy pin bump (R140) — read: open; work commits: 0; paths missing: 2
+- [#1652] Review-findings scoreboard computed from receipts (R138, P2) — read: open; work commits: 0; paths missing: 2
+- [#1653] ADR-delta PhaseReceipt contract: role, effort, USD, usage, findings (R141, P3) — read: open; work commits: 0; paths missing: 3
+- [#1654] Hypercare register: a defect found in real use becomes a row (R143) — read: open; work commits: 0; paths missing: 2
+- [#1655] Cost telemetry per vendor in every phase receipt (R144) — read: open; work commits: 0; paths missing: 3
+- [#1656] TODAY-GLUE count in every close digest (R145) — read: open; work commits: 0; paths missing: 2
+- [#1660] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) — read: open; work commits: 0; paths missing: 2
+- [#1663] Codex review of a box lane runs on the laptop against the pushed branch (defect 2; R151) — read: open; work commits: 0; paths missing: 2
+- [#1665] `merge_receipt` has no abandon verb for a refused land (defect 5) — read: open; work commits: 0; paths missing: 2
+- [#1666] `ship_gate_diff.py` fails on a relative `--repo` and runs the caller's organ code on the target tree (defect 6) — read: open; work commits: 0; paths missing: 3
+- [#1667] Handback text is lost in transport: the handback becomes a checked file, not a rendered one (defect 7) — read: open; work commits: 0; paths missing: 3
+- [#1668] The laptop slept 02:00-15:00: 13 h of no progress (the off-the-laptop goal, defect 8) — read: open; work commits: 0; paths missing: 2
+- [#1670] No silent substitution: the launcher and contract lint refuse a model not in the phase or role table (R139, P1) — read: open; work commits: 0; paths missing: 2
+- [#1671] The pins gate tolerates a patch bump within the same major.minor with a recorded line; a minor or major bump still refuses (R164, interim) — read: open; work commits: 0; paths missing: 1
+- [#1675] A finished bg lane leaves its worktree locked by a dead pid, so teardown needs a hand unlock — read: open; work commits: 0; paths missing: 1
+- [#1676] Human-head work happens outside the phase chain (P6): the `origin/` slug fix, the F1 delegation and the review fix leave no receipt — read: open; work commits: 0; paths missing: 1
+- [#1680] The learning distiller is built but its run output is absent: nothing runs it and no contract reads it (H18) — read: open; work commits: 0; paths missing: 1
+- [#1685] ADR-101 hermetization has no admissible home for a phase receipt, so the chain's own output cannot be committed (P1) — read: open; work commits: 0; paths missing: 1
+- [#1686] `claude --json-schema` rejects the `PhasePayload` schema because `--payload-schema` prints a `$schema` key (P2) — read: open; work commits: 0; paths missing: 1
+- [#1688] `run_phase` hard-wires `stdin=DEVNULL`, so R147's 'prompt on stdin' verify is impossible (P4) — read: open; work commits: 0; paths missing: 1
+- [#1690] `codex exec` waits on an open stdin on Windows unless launched with `< /dev/null` (P7) — read: open; work commits: 0; paths missing: 1
+- [#1691] The census `relativize` uses a platform-specific `is_absolute`, and backslash relative paths slip through (test_census.py:462) — read: open; work commits: 0; paths missing: 1
+- [#1692] The census `_live_edges` and `classify` compare with posix separators, so Windows paths do not match — read: open; work commits: 0; paths missing: 1
+- [#1693] The census reads the dead and collected files without handling a BOM, so the first id is corrupted — read: open; work commits: 0; paths missing: 1
+- [#1694] The census writes an edge that has no contexts without a warning — read: open; work commits: 0; paths missing: 1
+- [#1695] The census maps UNKNOWN to KEEP, so an unclassifiable test is kept silently instead of surfaced — read: open; work commits: 0; paths missing: 1
+- [#1696] Eight deferred minor findings in the test census tool (collected-line filter, newline-pin, tests encoding, NO-OUTCOME substring, `_find_function`, `load_mutmut`, O(n^2) report, .devcontainer pins) — read: open; work commits: 0; paths missing: 1
+- [#1699] The R160 merge gate has no recorded-exception mechanism, so its one bootstrap exception was a chat decision — read: open; work commits: 0; paths missing: 1
+- [#1701] A lane may kill only its own process group: the contract template says nothing about pkill — read: open; work commits: 0; paths missing: 1
+- [#1702] The Codex served model is read from the CLI banner by code, not from the model's own MODEL= line — read: open; work commits: 0; paths missing: 1
+- [#1703] Every lane branch CI shows five main-state reds that hide real regressions — read: open; work commits: 0; paths missing: 1
+- [#1704] The merge receipt reads 'FAILED step(s): suite' on a green run after a crashed first land call — read: open; work commits: 0; paths missing: 1
+- [#1710] G-STALE: 14 fates lines name organs that already have a real caller (R149) — read: open; work commits: 1; paths missing: 1
+- [#1713] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) — read: open; work commits: 0; paths missing: 1
+- [#1714] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares — read: open; work commits: 0; paths missing: 2
+- [#1733] A lane cannot register its own row in the task manifest, so its branch CI is red by construction — read: open; work commits: 0; paths missing: 2
+- [#1736] The known-reds extend routine and its test file are claimed by an open row (H1-X (a)) — read: open; work commits: 0; paths missing: 1
+- [#1737] Dispatcher template 2 h vs yaml 3 h — read: open; work commits: 0; paths missing: 1
+- [#1738] dispatch.py history read-modify-write — read: open; work commits: 0; paths missing: 1
+- [#1739] subst_gate.py:288 Substrate lane head — read: open; work commits: 0; paths missing: 1
+- [#1740] session_end:602 print, not logging — read: open; work commits: 0; paths missing: 1
+- [#1741] stop_check state before receipt lock — read: open; work commits: 0; paths missing: 1
+- [#1742] Git hygiene by mechanism — read: open; work commits: 0; paths missing: 1
+- [#1743] check_routine_uv_pin unwired, fate 11-09 — read: open; work commits: 0; paths missing: 1
+- [#1745] STRENGTHEN the 43 NO-OUTCOME test nodes (no assertion-bearing call) - add an explicit assertion, remove none — read: open; work commits: 0; paths missing: 1
+
+## live
+
+- [#112] adr_amend helper + ADR immutable-zone extension — read: open; work commits: 1; paths missing: 1
+- [#130] Memory-hygiene review — read: open; work commits: 0; paths missing: 0
+- [#145] Codification-completeness pass — read: open; work commits: 2; paths missing: 0
+- [#146] De-hardcode-first doctrine + sweep — read: open; work commits: 1; paths missing: 0
+- [#210] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule — read: open; work commits: 4; paths missing: 0
+- [#241] Undeclared-edge groom — read: open; work commits: 5; paths missing: 0
+- [#267] Scope-exercising arc extension — read: open; work commits: 6; paths missing: 0
+- [#271] Nightly proposal loop — read: open; work commits: 3; paths missing: 0
+- [#277] propose_closures signal repair — read: open; work commits: 3; paths missing: 0
+- [#298] Handoff-generator polish — read: open; work commits: 2; paths missing: 0
+- [#342] fleet_parity gate-ahead max-fidelity hardening — read: open; work commits: 0; paths missing: 0
+- [#343] fleet_parity ship-gate-only scoping — read: open; work commits: 4; paths missing: 0
+- [#351] Fleet-Python-upgrade ticket — read: open; work commits: 1; paths missing: 0
+- [#357] Silent-rule census run 2 — read: open; work commits: 1; paths missing: 0
+- [#361] ADR-immutability's real coverage is declared only in code, never in the protocol — read: open; work commits: 1; paths missing: 0
+- [#362] #242 carries a SUBSTANTIVE guard loss, not status hygiene — read: open; work commits: 4; paths missing: 0
+- [#365] Promote `residual_completeness` from `exempt:` to `coverage_scope` — read: open; work commits: 3; paths missing: 0
+- [#371] Consumer editor-config write-through — declared at v1.4.0, never built, never ticketed — read: open; work commits: 1; paths missing: 0
+- [#383] Execution waves per surface — read: open; work commits: 15; paths missing: 0
+- [#385] L4 tech-currency lane — read: open; work commits: 3; paths missing: 0
+- [#387] Rewrite the buy-vs-build intake BEFORE anything ingests it — read: open; work commits: 2; paths missing: 0
+- [#388] The \"10–20 repo\" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated — read: open; work commits: 3; paths missing: 0
+- [#389] Prompt-lint — gate the five architect fields before a lane runs — read: open; work commits: 2; paths missing: 0
+- [#390] Resolve the ADR-87 effort-ownership contradiction, then true up the prompt template — read: open; work commits: 4; paths missing: 0
+- [#392] fleet_analytics rename-alias loses history on path-reuse — read: open; work commits: 3; paths missing: 0
+- [#400] Ownership-model: the hub-mandated-STRUCTURE / repo-owned-CONTENT cell (rosters) — same ruling family as [#370] — read: open; work commits: 1; paths missing: 0
+- [#401] ai-council routing still ARMED at the deleted hub landing zone — read: open; work commits: 3; paths missing: 0
+- [#402] Intake naming clause — DEPLOY the `YYYY-MM-DD-<class>-<slug>` half of the enum ruling — read: open; work commits: 2; paths missing: 0
+- [#403] Extend `doc_claims` to ARCHITECTURE's machine-derivable claims — read: open; work commits: 3; paths missing: 0
+- [#404] gen_handoff execution-mode SUPPLEMENT leak (mode-blind framing + P8 row) — read: open; work commits: 1; paths missing: 0
+- [#413] Colors semantics — visually distinguish global/hub-managed vs per-repo content in governed markdown (declared ai-council interim) — read: open; work commits: 2; paths missing: 0
+- [#418] `automation/fleet-audit` records 0–10 baselines a day, not one — read: open; work commits: 0; paths missing: 0
+- [#419] We run routines whose output nobody consumes — read: open; work commits: 6; paths missing: 0
+- [#420] Does a TOP-LEVEL `docs/archive/` still make sense? — read: open; work commits: 4; paths missing: 0
+- [#422] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves — read: open; work commits: 8; paths missing: 0
+- [#426] Declare `consumer` + `consumption_path` for every LIVE routine — read: open; work commits: 16; paths missing: 0
+- [#430] Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject — read: unclear; work commits: 11; paths missing: 0
+- [#438] Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs — read: unclear; work commits: 3; paths missing: 0
+- [#440] Make the `tasks/` id ledger tamper-evident — a deleted retired record is undetectable — read: unclear; work commits: 3; paths missing: 0
+- [#448] A11 staged-diff guard — cover EVERY candidate bundle, not just the active one — read: open; work commits: 2; paths missing: 0
+- [#451] CA layer-edge check — port the ai-council layer-edge review as the missing Layer-2 organ — read: open; work commits: 0; paths missing: 0
+- [#454] `closure_ids` negation defect — the parser reads a negated closure mention as a closure — read: open; work commits: 0; paths missing: 0
+- [#477] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` — read: open; work commits: 0; paths missing: 0
+- [#485] A shared LF-enforcing write helper — the mechanism that replaces the CRLF gotcha — read: open; work commits: 0; paths missing: 0
+- [#511] The 30-minute handoff cut is ~99.8% session authoring, not machinery — read: open; work commits: 8; paths missing: 0
+- [#514] Two rival `LANE_BRANCH_RE` constants ship in one repo — read: open; work commits: 11; paths missing: 0
+- [#519] The close path is two edits, and nothing makes a half-done close visible — read: open; work commits: 1; paths missing: 0
+- [#520] No sanctioned way to retire a committed bundle whose seal is wrong — read: open; work commits: 1; paths missing: 0
+- [#522] A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole — read: open; work commits: 1; paths missing: 0
+- [#523] Executive-index render leg on the generated `BACKLOG.md` — read: open; work commits: 2; paths missing: 0
+- [#526] Root-hygiene audit — which root files MUST be root, which are movable — read: open; work commits: 0; paths missing: 0
+- [#535] `audit.py` has two module identities in one process, and a test's monkeypatch is invisible to one of them — read: open; work commits: 0; paths missing: 0
+- [#541] Scale-out substrate decision — unowned after two reports and a priced option set — read: open; work commits: 1; paths missing: 0
+- [#542] `ARCHITECTURE.md` still claims four `doc_rot` sub-detectors; there are five — read: open; work commits: 0; paths missing: 0
+- [#552] Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived — read: unclear; work commits: 5; paths missing: 0
+- [#567] CX53 daily-driver substrate lane — the every-prompt requirement, carried under `[#561]` — read: open; work commits: 0; paths missing: 0
+- [#570] Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger — read: open; work commits: 0; paths missing: 0
+- [#572] Intake-funnel completion — #34 flip, #35–#37 transitions post-R7, funnel hygiene — read: unclear; work commits: 1; paths missing: 0
+- [#575] Telemetry store: 98.5% of an emit, and silent drops under concurrent writers — read: unclear; work commits: 2; paths missing: 0
+- [#576] Telemetry read path — the lane `[#565]` was sequenced before — read: open; work commits: 2; paths missing: 0
+- [#579] Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A) — read: open; work commits: 1; paths missing: 0
+- [#580] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) — read: open; work commits: 0; paths missing: 0
+- [#581] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) — read: open; work commits: 0; paths missing: 0
+- [#582] Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D) — read: unclear; work commits: 2; paths missing: 0
+- [#585] Suite RED — `test_anchor_gate_probe_distinguishes_installed_from_absent` does not discriminate: repair it, retire it, or fix the organ — read: open; work commits: 1; paths missing: 0
+- [#598] P-6 — a slow-marker selector so tiered gating has something to select on — read: unclear; work commits: 3; paths missing: 0
+- [#599] Generated standing-vs-NEW drift block in the handoff residual — read: open; work commits: 0; paths missing: 0
+- [#602] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites — read: open; work commits: 1; paths missing: 0
+- [#603] An operator-interface capability file — the facts every seat re-derives about how the operator works — read: open; work commits: 0; paths missing: 0
+- [#604] Admit win-tooling and terminal-setup to the deploy registry and rule their onboarding profiles — read: open; work commits: 5; paths missing: 0
+- [#609] Free ruff ratchet — the zero-cost half of the Python standard — read: open; work commits: 0; paths missing: 0
+- [#610] The night-batch protocol, named — with its two missing verbs — read: open; work commits: 6; paths missing: 0
+- [#615] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit — read: open; work commits: 6; paths missing: 0
+- [#616] FLIP-CONDITION — every ADR records what evidence would reverse it — read: open; work commits: 2; paths missing: 0
+- [#617] FILE DISTILLATION — the output half, and the only worsening series — read: open; work commits: 4; paths missing: 0
+- [#618] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild — read: open; work commits: 1; paths missing: 0
+- [#619] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap — read: open; work commits: 3; paths missing: 0
+- [#620] Retire the root-README prohibition across the fleet, not only at the hub — read: open; work commits: 1; paths missing: 0
+- [#621] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration — read: unclear; work commits: 14; paths missing: 0
+- [#622] Promote README.md into the ADR-38 canonical mandatory set — read: open; work commits: 1; paths missing: 0
+- [#623] Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect — read: open; work commits: 1; paths missing: 0
+- [#624] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed — read: open; work commits: 3; paths missing: 0
+- [#625] The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it — read: open; work commits: 4; paths missing: 0
+- [#627] The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates — read: open; work commits: 3; paths missing: 0
+- [#629] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) — read: open; work commits: 6; paths missing: 0
+- [#631] A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change — read: open; work commits: 1; paths missing: 0
+- [#633] /boot-session gains HISTORY DELTA and EQUILIBRIUM MAP — two GENERATED sections — read: open; work commits: 1; paths missing: 0
+- [#637] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled — read: open; work commits: 1; paths missing: 0
+- [#639] Retire the verification organs that fire but never block - by measurement, not by feel — read: open; work commits: 1; paths missing: 0
+- [#640] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version — read: open; work commits: 2; paths missing: 0
+- [#641] Declare a MEMORY.md byte budget, or rule that none is owed — read: open; work commits: 1; paths missing: 0
+- [#644] The 2026-08-29 deploy freeze has never been ruled, and it blocks the universalization order's step 4 — read: unclear; work commits: 3; paths missing: 0
+- [#645] `INSTALL.md`'s repo-root path is retired to `docs/`, not allow-listed into the seal — read: open; work commits: 0; paths missing: 0
+- [#647] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced — read: open; work commits: 0; paths missing: 0
+- [#648] Two of R-6's six under-mechanised rules are still prose: locator staleness and dispatcher liveness gate nothing — read: open; work commits: 0; paths missing: 0
+- [#649] The reviewer tally carries one HIGH number where the ruling requires three — read: open; work commits: 1; paths missing: 0
+- [#650] ADR-117 sits at `Proposed` while a gate already enforces it — read: open; work commits: 0; paths missing: 0
+- [#651] The two ADR-85 organs each hold their own copy of the branch enum — read: open; work commits: 0; paths missing: 0
+- [#654] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed — read: open; work commits: 0; paths missing: 0
+- [#655] `run_retention()` has no production caller, and the ruled one is `fleet_health`'s daily run — read: open; work commits: 1; paths missing: 0
+- [#656] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has — read: open; work commits: 0; paths missing: 0
+- [#657] Orphan #33 — something outside the repo writes into it on a schedule the registry does not know — read: open; work commits: 0; paths missing: 0
+- [#658] Fourteen operator points on the critical path, nine of them mechanisable, and nothing counts them — read: open; work commits: 0; paths missing: 0
+- [#659] The `orphan_census` intake names two triggers and one of them does not exist — read: open; work commits: 0; paths missing: 0
+- [#660] S-15 — the AJ tools-and-evals table is the one deliverable of that arc still owed — read: open; work commits: 0; paths missing: 0
+- [#661] SDA-1 is a complete benchmark design that has never been run — read: open; work commits: 0; paths missing: 0
+- [#662] The R6 handoff-exception rule reached none of the three carriers it was written for — read: open; work commits: 0; paths missing: 0
+- [#663] The v7.1 boot carries no interface block and no floor item 7, and the bundle is over its own ceiling — read: unclear; work commits: 1; paths missing: 0
+- [#666] Step B — the operator rules keep, merge or cut per chapter: one sitting, one file — read: open; work commits: 0; paths missing: 0
+- [#667] Step D — the docs rewrite: ARCHITECTURE rendered, PLAYBOOK by chapter, DISPATCH split out, ESSENTIALS gone — read: unclear; work commits: 5; paths missing: 2
+- [#668] Step E — the paste test becomes a scored eval, or the whole recovery plan is graded by vibe — read: open; work commits: 0; paths missing: 0
+- [#670] Step G — floor v1.5.0 reaches corp-monorepo, and the only thing stopping it is an unmade decision — read: unclear; work commits: 10; paths missing: 0
+- [#671] A lane branch carrying NO reviewer tally at all is refused by nothing at merge tier — read: open; work commits: 0; paths missing: 0
+- [#672] `lane-contract-check` cannot express an incremental contract addition, and its docstring disagrees with its YAML — read: open; work commits: 0; paths missing: 0
+- [#677] The `gpt-6-astra` XL-class rule is doctrine at L0 with no gate, and exactly ONE codex call site pins a model — read: open; work commits: 1; paths missing: 0
+- [#678] The memory index is rolled by a seat's judgment, not by a rule, and the directory it lives in has no undo — read: open; work commits: 0; paths missing: 0
+- [#679] An architect ruling that answers a `QUESTION-*.md` does not write the `disposition:` back onto the file that asked, so the ruling is given and not landed — read: unclear; work commits: 2; paths missing: 3
+- [#680] The handoff generator emits six bundle files from templates that name no owning row, so `[#664]` clause 2 refuses the commit of every architect cut — read: unclear; work commits: 4; paths missing: 0
+- [#681] `protocols/OPERATOR-INTERFACE.md` documents a paste sentinel and a model-switch line the live organs no longer emit, so the file is present, cited, and wrong on both — read: open; work commits: 1; paths missing: 0
+- [#682] Nothing tells the operator which session a paste belongs to, so a correct paste delivered to the wrong seat is indistinguishable from a correct act — read: open; work commits: 1; paths missing: 0
+- [#686] Three handoff-gate predicates measure the wrong property — carrier existence, file bytes, and an over-globbed population — read: unclear; work commits: 5; paths missing: 3
+- [#693] The closure detector proposes the whole queue, its surfacing hook has been dead since the month-bucket move, and the run cap errors -- three defects that together make a closure proposal mean nothing — read: open; work commits: 1; paths missing: 0
+- [#695] Intake #70 (AJ second pass) is ACCEPTED with zero rows -- its operator practices were extracted and never became work — read: open; work commits: 0; paths missing: 0
+- [#696] M03 leg 1a ran to captured stdout with UNVERIFIED locators and one silent empty write, so the practices it produced rest on evidence nobody can re-open — read: open; work commits: 0; paths missing: 0
+- [#705] Nothing renders the task flow, so \"how is the batch going\" is answered by reading rows — read: unclear; work commits: 1; paths missing: 1
+- [#715] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 — read: unclear; work commits: 2; paths missing: 2
+- [#720] The browser role file carries no pointer to the standing-rulings register, so a booting seat never learns a ruling landed after its ROLE PIN — read: unclear; work commits: 1; paths missing: 1
+- [#721] `decision_coverage` does not count STANDING_RULINGS entries, so a ruling with no mechanism row is the one decision class the query cannot see — read: unclear; work commits: 3; paths missing: 2
+- [#723] Nothing reads the logs, so a model that silently stops delivering costs a whole night before anyone notices -- a log-review routine that files its own anomalies — read: unclear; work commits: 1; paths missing: 1
+- [#724] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it — read: unclear; work commits: 3; paths missing: 0
+- [#726] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch — read: unclear; work commits: 1; paths missing: 1
+- [#731] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes — read: open; work commits: 1; paths missing: 1
+- [#734] Cleanup is an act, not a note -- the census's 35 non-live items each get DELETE, TRIGGER or KEEP, as one file for one operator GO — read: unclear; work commits: 11; paths missing: 1
+- [#738] `lane-ceiling --check-worktrees` refuses on worktree PRESENCE, so a wave-2 batch is refused by a prior wave's lane awaiting merge and the only offered remedy destroys it — read: open; work commits: 0; paths missing: 0
+- [#739] `session_end_backpressure` reads the working tree but not its authorship, so it orders a seat to commit or stash a CONCURRENT seat's in-flight work — read: open; work commits: 0; paths missing: 0
+- [#748] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it — read: open; work commits: 3; paths missing: 0
+- [#749] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows — read: open; work commits: 1; paths missing: 0
+- [#753] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry — read: open; work commits: 3; paths missing: 0
+- [#754] The two backlog row ceilings measure different corpora, and the source-side one has decayed back into the percentile its own amendment abolished — read: open; work commits: 1; paths missing: 0
+- [#757] Reconcile the ratified anchor topology with B2, P-1 and the `DEFINITION_OF_DONE` wording — read: open; work commits: 1; paths missing: 0
+- [#758] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk — read: open; work commits: 2; paths missing: 0
+- [#759] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class — read: open; work commits: 1; paths missing: 0
+- [#760] X3 — `ARCHITECTURE.md` to <= 15 KB behind the step-D render, starting from the measured eleven chapters — read: open; work commits: 2; paths missing: 0
+- [#761] The edge-class census prices its own false positive as cheap, but paying it is an escalation class, so lanes route around the gate instead — read: open; work commits: 1; paths missing: 0
+- [#767] A tool description is gated only where it is generated, and no surface gates its parameters at all — read: open; work commits: 0; paths missing: 0
+- [#768] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer — read: open; work commits: 0; paths missing: 0
+- [#769] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session — read: open; work commits: 0; paths missing: 0
+- [#770] Nothing notices an external specification revising under us, and `[#729]` proposes to build on one — read: open; work commits: 0; paths missing: 0
+- [#771] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server — read: open; work commits: 0; paths missing: 0
+- [#772] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it — read: unclear; work commits: 4; paths missing: 0
+- [#781] One management map rendered from the organ index, with trigger-less organs rendered DEAD — read: unclear; work commits: 8; paths missing: 0
+- [#783] The carried-to-RESOLVED leg of decision-coverage has never once been exercised — read: open; work commits: 0; paths missing: 0
+- [#787] A test double for an external tool must CITE the real tool's contract for the behaviour it fakes -- a fixture nobody checked against the tool is a false-success surface — read: unclear; work commits: 4; paths missing: 1
+- [#791] Carry intake 101 — the runtime-resource organ — through the decision engine to a ratified ADR — read: unclear; work commits: 4; paths missing: 0
+- [#800] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money — read: open; work commits: 0; paths missing: 0
+- [#801] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it — read: open; work commits: 0; paths missing: 0
+- [#803] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane — read: open; work commits: 0; paths missing: 0
+- [#805] An integrator finishes a batch unattended on recorded defaults — read: unclear; work commits: 1; paths missing: 0
+- [#806] The silent-rule ratchet has no recorded ratification path — read: open; work commits: 0; paths missing: 0
+- [#807] The backlog-shrink instrument was aimed at the wrong corpus: `archive_row_body` relocates task-file bodies, the view renders manifest prose — read: open; work commits: 0; paths missing: 0
+- [#810] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate — read: open; work commits: 0; paths missing: 0
+- [#811] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal — read: unclear; work commits: 1; paths missing: 0
+- [#812] A figure later falsified inside an immutable artifact has no standing correction path -- the protected file keeps circulating the error — read: unclear; work commits: 1; paths missing: 0
+- [#820] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one — read: open; work commits: 0; paths missing: 0
+- [#821] `dispatch_drift` validates the repo against one machine's local deployed state, not the repo itself — read: open; work commits: 0; paths missing: 0
+- [#822] A pipe masks the exit code of the command it wraps — a reported success is not evidence of the effect — read: open; work commits: 0; paths missing: 0
+- [#823] The dispatch verb still boots a lane with no committed manifest -- only /lane-boot refuses — read: unclear; work commits: 1; paths missing: 0
+- [#824] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path — read: open; work commits: 1; paths missing: 1
+- [#825] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) — read: open; work commits: 1; paths missing: 0
+- [#826] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing — read: open; work commits: 1; paths missing: 0
+- [#827] The memory floor's per-seat constant was miscalibrated in BOTH directions -- ~7x too low at first, so admission passed work the box could not run, then ~4x too high after recalibration, so it refused work it could have run — read: open; work commits: 3; paths missing: 0
+- [#828] 752 — read: open; work commits: 0; paths missing: 0
+- [#829] 613 — read: open; work commits: 1; paths missing: 0
+- [#830] Witness — read: open; work commits: 0; paths missing: 0
+- [#834] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test — read: open; work commits: 2; paths missing: 0
+- [#839] FPG-1 represents a missing target as an explicit dangling edge — the graph stops dropping the defect class it exists to catch — read: open; work commits: 0; paths missing: 0
+- [#843] A frozen contract's premise clause is carried from a digest, not verified against main at freeze time — read: open; work commits: 1; paths missing: 0
+- [#864] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed — read: open; work commits: 0; paths missing: 0
+- [#865] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling — read: open; work commits: 0; paths missing: 0
+- [#883] The commit gate was never priced -- a mechanism ships with a counter of what it caught, and a gate with no catch in its window is removed, not tuned — read: open; work commits: 2; paths missing: 0
+- [#884] An unbounded research fan-out ran 17+ hours to re-answer a settled question -- a research dispatch states its agent cap, per-agent deadline and token budget before launch, and a step past its deadline is abandoned with what it has — read: open; work commits: 0; paths missing: 0
+- [#888] The repo has no DEGRADED state -- an emergency that removes a required component can only lie to the gate or stop work — read: unclear; work commits: 3; paths missing: 0
+- [#889] The next window's acceptance test has no row -- one lane end to end, dispatch to merged, under one hour, nothing wedged, no human decision in the middle — read: unclear; work commits: 1; paths missing: 2
+- [#890] Per-task execution-state carrier is one of the five intakes still owed -- Phase 1 must reconcile what [#664], tasks/ frontmatter, manifest.json, FPG-1 and the organ index already hold before anything new is built — read: unclear; work commits: 1; paths missing: 0
+- [#899] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it — read: open; work commits: 0; paths missing: 2
+- [#906] The primary checkout has no single writer -- two sessions committed on it concurrently during the batch AC close, and nothing refused either — read: open; work commits: 0; paths missing: 0
+- [#908] A token budget written in a prompt caps nothing -- enforce a hard cap where the agent is launched — read: unclear; work commits: 2; paths missing: 0
+- [#909] Read-only analysis burns the Claude budget while free and cheap capacity sits unused -- route it off first — read: open; work commits: 0; paths missing: 0
+- [#910] A seat below ~10% context must not begin an integration walk -- retire and boot fresh — read: open; work commits: 0; paths missing: 0
+- [#914] The transport is unreachable whenever H: is not mounted -- a post-hook must deliver to-browser artifacts regardless of mount, and refuse loudly instead of reporting success after writing to Downloads — read: unclear; work commits: 2; paths missing: 0
+- [#915] AM-5's premise is falsified -- a --bg lane launched from inside a session DOES get its own Agent View row, on the host, twice — read: open; work commits: 0; paths missing: 0
+- [#916] A lane deleted another lane's LIVE worktree -- the harness lock refuses remove, and was defeated by an explicit unlock — read: unclear; work commits: 1; paths missing: 0
+- [#917] Our own docs are wrong about the worktree lock -- a locked remove is a loud fatal (exit 128), not a silent no-op — read: open; work commits: 0; paths missing: 0
+- [#918] The seat registry is Stop-only -- it learns about a seat when it ends, so it cannot answer \"is this seat live\" — read: open; work commits: 0; paths missing: 0
+- [#919] The token cap is POLLED, not enforced -- a stop-loss, not a limit: witness A overshot 5.5x before the first poll acted — read: open; work commits: 0; paths missing: 0
+- [#921] Accumulated gate debt is seen only by the handoff cut -- 11 hard-fails and 272 unruled WARNs built up in one day of merging and nothing surfaced them — read: open; work commits: 0; paths missing: 0
+- [#922] Spine stage 7 (substrate) is invoked without its required paths argument -- exit 2, and this is where the spine now stops — read: open; work commits: 0; paths missing: 0
+- [#923] The distiller design rests on the hookmap answer -- UserPromptSubmit CAN inject, but whether a LONG injected description is used is untested — read: open; work commits: 0; paths missing: 0
+- [#924] Does a fresh session call /why unprompted? Bar >= 3/5 -- the first measurement scored 0/5 with command registration alone — read: open; work commits: 0; paths missing: 0
+- [#925] The B2 calibration's per-row read-set target (<= ~60 KB including the boot base) has no owning row and no measurement against it — read: open; work commits: 0; paths missing: 0
+- [#926] A gate that cannot recognise the only correction its own invariants permit -- journal_day_letters and substrate_declaration refuse forever by construction — read: unclear; work commits: 8; paths missing: 0
+- [#927] User-level disableAllHooks: true has disarmed block-onedrive.ps1 since 2026-09-17 -- the P0 OneDrive zone rests on rules alone, uncommitted and outliving its emergency — read: open; work commits: 0; paths missing: 0
+- [#928] The parity schema cannot express a time-bounded expectation -- settings-deny-and-point INVERSE encodes BUILD-MODE rule 8, which expires 2026-11-18, and nothing will flag it — read: open; work commits: 0; paths missing: 0
+- [#946] The tool-trial organ and its first trials -- Caveman skill, RTK, Headroom, import-linter — read: unclear; work commits: 1; paths missing: 3
+- [#947] LiteLLM behind the stage-13 adapter -- one provider interface, not four bespoke ones — read: unclear; work commits: 1; paths missing: 3
+- [#963] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes — read: unclear; work commits: 2; paths missing: 6
+- [#964] One verification stage -- every check runs once at merge, results reused — read: open; work commits: 0; paths missing: 0
+- [#967] Test selection stops being 93% prose-triggered -- a doc-test tier, not a 58-file union — read: open; work commits: 0; paths missing: 0
+- [#968] `logs/MERGE-RECEIPTS.jsonl` gets an `impacted_tests.RULES` mapping before it reds every gate — read: open; work commits: 0; paths missing: 0
+- [#969] Connection walk gets JSON verdicts and a slow-tier split; the 18m59s bar comes down — read: unclear; work commits: 1; paths missing: 0
+- [#971] Autonomy: pre-authorized ruling table, liveness watchdog, and a deny-and-point guard for root writes — read: open; work commits: 1; paths missing: 1
+- [#976] Merge receipts record the merge sha and timed steps, so batch-close can name the task — read: open; work commits: 1; paths missing: 0
+- [#982] Seat bind marks live immediately; occupancy accepts a starting record instead of exit 2 — read: open; work commits: 0; paths missing: 0
+- [#983] Decisions and audits land in the repo every wave -- a recurring step, not a one-off catch-up — read: open; work commits: 0; paths missing: 0
+- [#985] Plan lint rejects an audit order that carries no Codex verification step — read: open; work commits: 0; paths missing: 0
+- [#989] Launcher is wired to the existing provider_router -- routing stops living in prose and hard-coded models — read: open; work commits: 0; paths missing: 0
+- [#990] Opus 5.5 rate row + admission A/B for the orchestrate/plan role — read: open; work commits: 0; paths missing: 0
+- [#991] `/changelog-review` runs on a weekly conductor schedule instead of an operator-invoked one-off — read: open; work commits: 0; paths missing: 0
+- [#992] Measure `/skill-doctor` and `/doctor`'s CLAUDE.md-trim proposal; adopt `omitClaudeMd` for bounded roles — read: open; work commits: 0; paths missing: 0
+- [#993] BUILD MODE exit condition 1: the connection walk is clean on main, xfail removed — read: open; work commits: 0; paths missing: 0
+- [#994] BUILD MODE exit condition 2: one real backlog row travels row-to-merge through the whole loop — read: open; work commits: 0; paths missing: 0
+- [#995] BUILD MODE exit condition: every disabled guard is re-armed with a live pass/fail test — read: open; work commits: 0; paths missing: 0
+- [#996] Every operator request becomes a row the same day it is made -- a boot-time count, target 0 — read: open; work commits: 0; paths missing: 0
+- [#997] R-09-19-3: ARCHITECTURE.md KEPT ruling gets a STANDING_RULINGS entry, not just a BUILD-LIST line — read: open; work commits: 0; paths missing: 0
+- [#998] R-09-19-7: lane count is by need, not a fixed 6-lane ceiling -- lands in STANDING_RULINGS — read: open; work commits: 0; paths missing: 0
+- [#1002] Re-arm evidence must be measured in-session, under the real concurrent hook set, over 20+ events — read: open; work commits: 0; paths missing: 0
+- [#1003] Closure proposals run once per new commit, with a reader, not once per turn — read: open; work commits: 0; paths missing: 0
+- [#1004] Commit-gate counter survives worktree teardown; '0 runs' reads UNMEASURED, not REMOVE — read: open; work commits: 0; paths missing: 0
+- [#1005] Path protection comes back as `permissions.deny` rules -- no process per PreToolUse call — read: open; work commits: 0; paths missing: 0
+- [#1006] Boot banner stops printing re-armed hooks as 'DECLARED BROKEN' — read: unclear; work commits: 1; paths missing: 3
+- [#1007] SessionEnd writes the seat absent record; lane-start gets its trigger — read: open; work commits: 0; paths missing: 0
+- [#1008] Stale-statement sweep: reconcile 6 doc claims against live hook/organ state — read: open; work commits: 0; paths missing: 0
+- [#1012] A dispatcher-held producer shell must run as its own session or a detached process, not a bg shell the reaper can kill — read: unclear; work commits: 1; paths missing: 2
+- [#1014] A post-merge check runs before push, because a `--no-ff` merge commit bypasses nearly every pre-commit hook — read: unclear; work commits: 2; paths missing: 0
+- [#1016] registry-models: reconcile the grok-4.6 currency discrepancy rather than leaving it filed — read: open; work commits: 0; paths missing: 0
+- [#1017] registry-models: the proof_layer WARN on test_provider_router's live probe is undispositioned — read: open; work commits: 0; paths missing: 0
+- [#1018] launcher-fixes: Copilot usage governance has no reader for --usage-output-file / --output-format json — read: open; work commits: 0; paths missing: 0
+- [#1020] ci-commit-gate: a ship-gate rerun is owed, and the commit-gate job's first live reds need triage — read: open; work commits: 1; paths missing: 0
+- [#1021] trial-gh-issues: stage-2 prior-art scan has no CONTENT_ROOTS entry for decisions/intake — read: open; work commits: 0; paths missing: 0
+- [#1025] integrator: batch_janitor.py has no per-lane scope and resolves receipts under its own checkout — read: open; work commits: 0; paths missing: 0
+- [#1026] integrator: batch_janitor.py reads a removed job as live — read: open; work commits: 0; paths missing: 0
+- [#1027] integrator: the watcher self-deadline pattern (an expired Monitor leaves its loop running) needs a harness-level fix, not a per-batch workaround — read: open; work commits: 0; paths missing: 0
+- [#1029] transport-registry: docs/audits/2026-09-25-codex-transport-registry.md has no consumer — read: open; work commits: 0; paths missing: 0
+- [#1030] registry-models: docs/audits/2026-09-25-codex-lane-registry-models.md has no consumer — read: open; work commits: 0; paths missing: 0
+- [#1031] ci-commit-gate: docs/audits/2026-09-25-codex-lane-ci-commit-gate.md has no consumer (graph-task-coverage: no implements edge from an OPEN row) — read: open; work commits: 0; paths missing: 0
+- [#1034] the 8 claude.ai-synced Anthropic skills stay on although STANDING_RULINGS §AL-B9 says off — read: open; work commits: 0; paths missing: 0
+- [#1035] the 4 never-invoked project entries (preflight, spine, why, conformance-hub) need wiring or removal — read: open; work commits: 0; paths missing: 0
+- [#1036] run /doctor interactively once, per STANDING_RULINGS AL-B10 — read: open; work commits: 0; paths missing: 0
+- [#1037] the HANDOFF_BOOT integrator section is still not landed -- needs byte headroom first — read: open; work commits: 0; paths missing: 0
+- [#1041] the seat-knowledge table (DECLARE-SEAT-KNOWLEDGE-2026-09-24) has not landed under docs/audits/ — read: open; work commits: 0; paths missing: 0
+- [#1047] AJ C-1: a closed root-cause enum (9-category agent error taxonomy) belongs beside severity in review_packet.py's verdict schema — read: open; work commits: 0; paths missing: 0
+- [#1048] AJ C-2: per-lane process efficiency (VSM work over cycle time) is not computed by lane_cost.py — read: open; work commits: 0; paths missing: 0
+- [#1049] AJ C-3: a Responder/Observer rollout rule for future autonomous agents has no PLAYBOOK paragraph — read: open; work commits: 0; paths missing: 0
+- [#1050] AJ C-4: the 5-criteria task filter (real/recent/representative/full/production) has no rubric for seeding frozen contracts — read: open; work commits: 0; paths missing: 0
+- [#1051] AJ C-5: \"true throughput\" / DXI is blocked -- flagged, not built, pending the retired trend dashboard — read: open; work commits: 0; paths missing: 0
+- [#1052] AJ C-6: the Maister commit 4151c9c4d (2026-09-22) diff has not been read — read: open; work commits: 0; paths missing: 0
+- [#1053] AJ C-7: the 09-21 AJ companion digests are not landed or indexed against the current repo — read: open; work commits: 0; paths missing: 0
+- [#1076] R1a: PR / CI-gated close is the closure-sweep model — read: open; work commits: 0; paths missing: 0
+- [#1077] R1b: the whole-graph check refuses cycles and dangling ids — read: open; work commits: 0; paths missing: 0
+- [#1078] R1c: a raw-JSON projection of the records is the browser seat's view — read: open; work commits: 0; paths missing: 0
+- [#1101] logs/KNOWN-REDS-REGISTRY.json: the 4 'environment-mismatch' members no longer reproduce — read: open; work commits: 0; paths missing: 0
+- [#1102] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 — read: open; work commits: 0; paths missing: 0
+- [#1125] N5: absorb or retire the claude/conformance-* digest branches — read: unclear; work commits: 0; paths missing: 0
+- [#1126] N5: archive/* tags join R25's allowed set with an owner and an expiry — read: unclear; work commits: 0; paths missing: 0
+- [#1333] logs/QUOTA-READS.jsonl is tracked and dirty in every primary session; its home is per-user state — read: open; work commits: 0; paths missing: 0
+- [#1334] The rclone Drive token expires every 7 days and nothing in the harness tracks it — read: open; work commits: 0; paths missing: 0
+- [#1336] The integrator template says \"repair N of 2\" and \"a lane refused twice is FAILED\" two lines apart — read: open; work commits: 0; paths missing: 0
+- [#1337] No step tears down the integrator's own worktree, branch, job and claim — read: open; work commits: 0; paths missing: 0
+- [#1338] The batch template says no scheduled wake-ups; the batch practice is CronCreate and never ScheduleWakeup — read: open; work commits: 0; paths missing: 0
+- [#1339] P8a: a SUPPLEMENT answer cites a ruling, not a path — read: open; work commits: 0; paths missing: 0
+- [#1340] tests/test_boot_retrieval.py: the tracked boot base is 41,174 B against a 40,000 B ceiling and still growing — read: open; work commits: 1; paths missing: 0
+- [#1341] tests/test_generator_newlines.py: 15 text writes in scripts/ inherit platform newline translation, and the count is growing — read: unclear; work commits: 3; paths missing: 0
+- [#1343] The graph-spine orphan census names .claude/commands/decide.md, which no wiring surface reaches — read: unclear; work commits: 1; paths missing: 1
+- [#1344] Two graph-spine lock tests flake on the windows runner — read: unclear; work commits: 5; paths missing: 0
+- [#1347] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records — read: open; work commits: 1; paths missing: 0
+- [#1348] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates — read: open; work commits: 1; paths missing: 0
+- [#1349] release-lint: the floor spec pin does not match its sidecar, and five tests read it — read: open; work commits: 0; paths missing: 0
+- [#1360] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial — read: open; work commits: 0; paths missing: 0
+- [#1361] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work — read: open; work commits: 0; paths missing: 0
+- [#1362] A removal engine finds what is no longer current and brings it to removal, and it outranks new features — read: open; work commits: 0; paths missing: 0
+- [#1363] False positives have a mechanism each: detect, diagnose and repair, or stop and leave the operator the decision — read: open; work commits: 0; paths missing: 0
+- [#1364] HANDOFF_BOOT carries the browser seat's role and the fresh-session default, and SEAT-LESSONS lesson 11 is corrected — read: unclear; work commits: 1; paths missing: 0
+- [#1365] The window's capacity, speed and handoff targets are measured at every merge, not asserted — read: open; work commits: 0; paths missing: 0
+- [#1366] A Codespace lane is production only when the five end-to-end conditions hold on three consecutive runs — read: unclear; work commits: 2; paths missing: 2
+- [#1367] The integrator merges only on a green CI verdict for the exact sha, and main is protected by an enabled ruleset — read: open; work commits: 0; paths missing: 0
+- [#1368] Every lane's fate is computed and the batch-close report lists them, failures first — read: unclear; work commits: 2; paths missing: 0
+- [#1369] The R66 retire-table acts are executed one by one, each under R59's dynamic-use check — read: open; work commits: 0; paths missing: 0
+- [#1370] Volatile facts have one source and every copy is generated, and the handoff boot's version follows its content — read: open; work commits: 0; paths missing: 0
+- [#1372] The CI OS policy runs as accepted and is measured before and after, and reverted if any measure worsens — read: open; work commits: 0; paths missing: 0
+- [#1373] Every handoff is boot-tested before the cut and teaches: SEAT-LESSONS, the seat exam and the teach-back are part of it — read: unclear; work commits: 1; paths missing: 0
+- [#1374] All dispatch lives in the hub for local, Codespace and cloud, win-tooling keeps at most a shim, and an ADR amends R11(3) — read: unclear; work commits: 1; paths missing: 0
+- [#1375] Skills and commands are kept by the problem they solve, and Anthropic's built-ins are reviewed on a routine — read: open; work commits: 0; paths missing: 0
+- [#1377] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness — read: open; work commits: 0; paths missing: 0
+- [#1378] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded — read: open; work commits: 0; paths missing: 0
+- [#1379] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds — read: open; work commits: 0; paths missing: 0
+- [#1438] W2-22 adds to-browser/SEAT-LESSONS-2026-10-04.md and the seat exam to HANDOFF_BOOT's reading path — read: unclear; work commits: 2; paths missing: 5
+- [#1442] Every landing on main outside a batch still passes the merge gate (step 2 bypassed it and put 3 NEW reds on main -- see [#1441]) — read: open; work commits: 0; paths missing: 0
+- [#1451] CI runs pytest-split, a blocking no-drop coverage gate on changed modules, and the mutmut pilot nightly (R81, R86) — read: unclear; work commits: 2; paths missing: 1
+- [#1519] LANE-bw-242-adr-lifecycle.md has no consumer -- its finding is owned or dispositioned — read: open; work commits: 0; paths missing: 1
+- [#1532] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned — read: unclear; work commits: 3; paths missing: 1
+- [#1533] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind — read: open; work commits: 1; paths missing: 0
+- [#1534] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines — read: open; work commits: 1; paths missing: 0
+- [#1536] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids — read: unclear; work commits: 8; paths missing: 2
+- [#1537] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) — read: unclear; work commits: 12; paths missing: 1
+- [#1540] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict — read: unclear; work commits: 3; paths missing: 1
+- [#1571] A reaper-killed `merge_path.py land` resumes from its recorded CI run without a second integration push, and the restart-once rule is data — read: open; work commits: 0; paths missing: 0
+- [#1574] A Copilot child run is not recorded as a wedged seat, and its Stop hook resolves a real path — read: open; work commits: 0; paths missing: 0
+- [#1575] CLAUDE.md section 9, the hook_watchdog fate date and canonical_freshness tell the truth about the guards — read: open; work commits: 0; paths missing: 0
+- [#1576] The transport janitor treats `-withdrawn` like `-superseded` and never moves a file that tracked code cites by name — read: open; work commits: 0; paths missing: 0
+- [#1578] Every harness script prints `--help` and exits 0, and none crashes on a cp1252 console — read: open; work commits: 0; paths missing: 0
+- [#1579] The handoff generator's dry cut and preflight do not refuse on whole-repo rows, and its manual-until reader matches — read: open; work commits: 0; paths missing: 0
+- [#1580] Explicit model ids (`claude-opus-5-5`, `claude-sonnet-5-5`) resolve in every reader: family, enum, price and receipt — read: open; work commits: 0; paths missing: 0
+- [#1581] CI jobs report what they ran: a not-run job is not success, and the heartbeat, handoff-manifest and commit-gate jobs are green on main — read: open; work commits: 0; paths missing: 0
+- [#1582] `test_every_committed_record_still_proves_out` proves all 86 archived row bodies — read: open; work commits: 0; paths missing: 0
+- [#1585] Provider census probes only providers that exist, and each probe answers or says why — read: open; work commits: 0; paths missing: 0
+- [#1588] A hook DECLARED BROKEN is disarmed by `bounded_hook.py`, not only reported (R109) — read: open; work commits: 0; paths missing: 0
+- [#1589] Hook and gate roster claims match the config: ruff, seal-identity, lane-contract-check, decision-coverage — read: open; work commits: 0; paths missing: 0
+- [#1590] Each of the 21 DEAD organs and 11 UNEXPLAINED files is used, wired or removed (R112) — read: open; work commits: 0; paths missing: 0
+- [#1591] The generated handoff carries a branch-fate table, the defect register and the live seat/session map — read: open; work commits: 0; paths missing: 0
+- [#1594] Phase-0 residuals: R48 last-ran print, `lane_report.py`, stale ADR-121/ADR-125, Actions-minutes gauge and heartbeat timezone label — read: open; work commits: 0; paths missing: 0
+- [#1596] The `merge` moment fires on a real merge and leaves a receipt per organ, or is removed — read: open; work commits: 1; paths missing: 0
+- [#1597] The `lane-start` moment has a caller and fires on a real lane start, or is removed — read: open; work commits: 0; paths missing: 0
+- [#1598] The `batch-close` moment reads a receipt and fires at a real batch close, or is removed — read: open; work commits: 0; paths missing: 0
+- [#1599] The `seat-release` moment is run by a command or hook, not by hand, or is removed — read: open; work commits: 0; paths missing: 0
+- [#1600] Phases P1-P7 and the C-* constraints run in one real round — read: open; work commits: 0; paths missing: 0
+- [#1601] The three guards that expired 2026-10-08 are each used or removed: `block_immutable_edits.py`, the prompts-guard sweep, `logs_retention.py` — read: open; work commits: 0; paths missing: 0
+- [#1602] `deny_and_point.py` is wired and fires on a real denied call, or is removed — read: open; work commits: 0; paths missing: 0
+- [#1603] `hook_watchdog.py` kills a real hung hook and logs it, or is removed — read: open; work commits: 0; paths missing: 0
+- [#1604] The CI job `terra` runs with a credential or is removed — read: open; work commits: 0; paths missing: 0
+- [#1605] Each of the 70 `fates:` scripts is wired, dated or removed; the 11 with expired dates first — read: open; work commits: 0; paths missing: 0
+- [#1607] A `uv.lock` change (create, update, delete a dependency) is gated by a process — read: open; work commits: 0; paths missing: 0
+- [#1608] A CI workflow change (create, update, delete) is gated before it lands — read: open; work commits: 0; paths missing: 0
+- [#1609] A release or tag (create, update, delete) has a process — read: open; work commits: 0; paths missing: 0
+- [#1610] 'Superseded means code removed' (ADR-125) is enforced when an ADR is superseded or a feature deleted — read: open; work commits: 0; paths missing: 0
+- [#1611] Create and delete under `protocols/` are gated like any other doc — read: open; work commits: 0; paths missing: 0
+- [#1613] The daemon does not resume a lane that was stopped — read: open; work commits: 0; paths missing: 0
+- [#1614] The resource organ's 'free' memory figure is named 'available' and read from the OS available counter — read: open; work commits: 0; paths missing: 0
+- [#1615] A step the memory reaper killed is re-queued once, and the lane verdict stays INCOMPLETE until it ran — read: open; work commits: 0; paths missing: 0
+- [#1626] B-vs-C spike on P1 dispatch: state machine vs BPMN engine — read: unclear; work commits: 0; paths missing: 2
+- [#1627] R125 audit: every ruling since 2026-07-01 counted by adoption state — read: unclear; work commits: 1; paths missing: 2
+- [#1628] M1: measured model and effort table per role — read: unclear; work commits: 1; paths missing: 2
+- [#1633] The code runs the queue; the integrator only integrates (R130) — read: unclear; work commits: 2; paths missing: 1
+- [#1637] row_close runs in the integrator template — read: unclear; work commits: 3; paths missing: 1
+- [#1638] Generated STATUS.md is the one front door — read: unclear; work commits: 3; paths missing: 1
+- [#1639] Two-way completeness gate: node to code, entry point to node — read: unclear; work commits: 2; paths missing: 1
+- [#1642] queue does not refire a MERGED lane — read: unclear; work commits: 2; paths missing: 1
+- [#1648] plan_lint: a code lane needs an integrator — read: open; work commits: 1; paths missing: 0
+- [#1649] plan_lint: a row birth needs a ratifying act — read: unclear; work commits: 2; paths missing: 0
+- [#1661] A Codespace handback fires a Monitor WAKE (R145 hand step; defect 4) — read: unclear; work commits: 1; paths missing: 2
+- [#1669] The distiller reads none of an R130 integrator's refusals (defect 9) — read: unclear; work commits: 1; paths missing: 2
+- [#1672] The next tier1 lane owns tests/test_conductor.py and scripts/gen_handback.py to finish the [#1560] remainder and the [#1563] removal (R165, interim) — read: unclear; work commits: 0; paths missing: 2
+- [#1673] `dispatch.py` has no successor verb: `repair` frames a fresh successor lane as a repair of a refusal, and a `claude stop` is not verified (G29) — read: unclear; work commits: 3; paths missing: 1
+- [#1674] `dispatch.py queue --batch` launches without the contract grammar checks that `launch`, `codespace-exec` and `repair` run — read: unclear; work commits: 2; paths missing: 1
+- [#1677] `read_rehearsal` and `ci_red_age` call `gh` directly instead of through the shared reader (H2) — read: open; work commits: 0; paths missing: 0
+- [#1678] `write_fate` and `write_step(fate=)` are duplicate writers of the same fate record (H6) — read: open; work commits: 0; paths missing: 0
+- [#1679] `build_plan` and `build_repair_plan` are two argv builders for one launch (H7) — read: open; work commits: 0; paths missing: 0
+- [#1681] R143, R147 and R156 (hypercare, the junior rule, a killed run is failed) are not taught in the seat templates (H26) — read: open; work commits: 0; paths missing: 0
+- [#1682] R158 (REUSE CHECK before building) is not taught in the seat templates or the lane-contract generator (H29) — read: open; work commits: 0; paths missing: 0
+- [#1683] R159 (update what teaches a process in the SAME change) is not taught in the seat templates or the lane-contract generator (H30) — read: open; work commits: 0; paths missing: 0
+- [#1684] PLAN r6 carries 13 wrong goal cells (G1, G2, G4-G13, G17, G18; G2 and G8 outright wrong) (H35) — read: unclear; work commits: 0; paths missing: 0
+- [#1712] G-INSTALL: record setup-fleet-scheduler.ps1 as an installer, not a recurring process (R149) — read: open; work commits: 0; paths missing: 1
+- [#1715] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job — read: unclear; work commits: 1; paths missing: 2
+- [#1718] CI: the commit-gate job needs a proper fix (R169) — read: open; work commits: 0; paths missing: 0
+- [#1719] Anchor gate: range-level discharge lets one anchored entry clear a push — read: open; work commits: 0; paths missing: 0
+- [#1724] The claude.ai scheduled (cloud) routines run an unpinned `uv`; no check ties a routine bootstrap to pyproject's `required-version` — read: open; work commits: 0; paths missing: 0
+- [#1747] `ci_verdict.py` reads the retired suite-gate block on its no-baseline path and reports registry members as new reds — read: open; work commits: 0; paths missing: 0
+- [#1748] the view: /decide first, then build — read: open; work commits: 1; paths missing: 0
+- [#1749] the backlog per-row reconciliation organ (GO-E3.0 R10), after L2 — read: open; work commits: 2; paths missing: 0
+
+## unclear
+
+- [#457] Two live-repo tests fail on main against green gates — test-vs-organ mismatch — read: unclear; work commits: 30; paths missing: 0
+- [#528] Lane-latency — the full suite multiplied by per-lane + per-merge runs is the real batch cost — read: unclear; work commits: 19; paths missing: 0
+- [#555] Closing campaign batch 1 + kill-candidates instrument — read: unclear; work commits: 2; paths missing: 0
+- [#561] Re-base the compute plan onto the Hetzner CX shared line — read: unclear; work commits: 2; paths missing: 0
+- [#574] gen_lane_contract emits the batch manifest — Q6's own failure class, recurring — read: unclear; work commits: 2; paths missing: 0
+- [#642] The eleven carried questions from batches T and U have no owning row, so their debt is silent — read: unclear; work commits: 5; paths missing: 2
+- [#665] Step A — the chapter map of PLAYBOOK and ARCHITECTURE, without which step B's sitting cannot happen — read: unclear; work commits: 1; paths missing: 0
+- [#676] No check verifies that each provider CLI's non-interactive invocation shape still works, so a mis-invoked tool is indistinguishable from a dead one — read: unclear; work commits: 2; paths missing: 0
+- [#685] The operator GO leaves no artifact, so the authorization a lane runs under cannot be read back from the tree — read: unclear; work commits: 3; paths missing: 1
+- [#706] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns — read: unclear; work commits: 1; paths missing: 1
+- [#732] Ratification #7: a committing lane runs LOCAL overnight only, and during working hours it waits for the night or for conductor E — read: unclear; work commits: 1; paths missing: 2
+- [#735] Floor declaration is mandatory — a new organ, hook, gate, doc or command carrying no `floor: MUST | hub-only` is refused at commit — read: unclear; work commits: 7; paths missing: 4
+- [#789] The seat boot rendered its declared model split into an HTML COMMENT while the launch line was a bare `claude` — batch Z ran 100% Opus under a header claiming otherwise — read: unclear; work commits: 3; paths missing: 0
+- [#911] A gate whose precondition is passing that same gate -- the silent-rule ratchet cannot accept an operator-approved raise until the raise is already pushed — read: unclear; work commits: 1; paths missing: 0
+- [#931] Wave 3 lane B (lane-launch-adapter) -- one command launches a lane, refuses a collision, never kills a run — read: unclear; work commits: 0; paths missing: 2
+- [#940] Wave 4a lane 4 (lane-connection-hygiene) -- the connection test tells the truth, stably — read: unclear; work commits: 0; paths missing: 2
+- [#955] Wave 4b -- one merge path, handback as an organ, verification in the lanes (FR1-FR5) — read: unclear; work commits: 0; paths missing: 3
+- [#1000] Doctrine 'the backbone is code; prose is intent' lands in STANDING_RULINGS — read: unclear; work commits: 0; paths missing: 1
+- [#1022] trial-gh-issues: test_citation_regex_strips_only_real_dated_artifact_identifiers is red on base — read: unclear; work commits: 1; paths missing: 0
+- [#1327] `agy` reports SUCCESS without an output file — read: unclear; work commits: 1; paths missing: 2
+- [#1640] gen_handoff carries generated L0, process index, staleness preflight — read: unclear; work commits: 13; paths missing: 1
