@@ -1155,6 +1155,12 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
              "parity, FPG-1 `archives` already holds live pairs")),
     "scripts/file_purpose_graph.py": _not_an_edge(_measured(
         "4", "it IS FPG-1; the graph cannot owe a migration onto itself")),
+    # [#1633], e30-queue-runner (E3.0 orchestrator ruling 2026-11-01): a run-time reader, not a corpus edge.
+    "scripts/queue_runner.py": _not_an_edge(
+        "[#1633]: reads run-time state, not corpus structure -- the integrator receipt "
+        "(queue_runner.py:120), the transport inbox listing (:159), its own ledger (:202) and one "
+        "`| Model | Mode | Effort |` cell row of a contract it was handed (:336); nothing resolves a "
+        "path from a document into a corpus file, and it does not use plan_lint's grammar"),
     # ---- not-an-edge: the previously UNVERDICTED population (census section 5, one line each)
     **{f"scripts/{module}.py": _not_an_edge(_measured("5", reason)) for module, reason in (
         ("assemble_paste", "writes PASTE_THIS from a fixed manifest (borderline generation, "
