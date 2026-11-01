@@ -34,7 +34,6 @@ order), refusals (file name).
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import logging
 import os
@@ -118,7 +117,7 @@ class Fired:
 
 def _read(path: Path) -> str:
     try:
-        return Path(path).read_text(encoding="utf-8", errors="replace")
+        return Path(path).read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return ""
 
@@ -180,12 +179,12 @@ def collect_events(*, transport: Path, state_file: Path, slugs: Sequence[str]) -
         if not named or named.group("slug") not in known:
             continue
         text = _read(path)
-        repair = _REPAIR_N.search(text)
+        repairs = list(_REPAIR_N.finditer(text))
+        repair = repairs[-1] if repairs else None   # the newest refusal is the last one a file names
         if not _FROM_INTEGRATOR.search(text) or not repair:
             continue
         attempt = int(repair.group("n"))
-        digest = hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()[:16]
-        events.append(Event("refused", named.group("slug"), f"refused|{path.name}|{attempt}|{digest}",
+        events.append(Event("refused", named.group("slug"), f"refused|{path.name}|{attempt}",
                             attempt, path.name, text))
     return events
 
@@ -313,7 +312,7 @@ def _observe_fired_lanes(ledger: Ledger, event: Event, output: str, by_slug: Map
 
 def head_row(contract: Path) -> tuple[str, str]:
     """(model, effort) from the contract's `| Model | Mode | Effort |` table data row."""
-    text = _read(contract)
+    text = Path(contract).read_text(encoding="utf-8-sig", errors="replace")   # an OSError is transient: it propagates
     head = _HEAD_ROW.search(text)
     if head:
         for line in text[head.end():].splitlines():
@@ -379,6 +378,9 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
         if event.kind == "refused":
             try:
                 model, effort = head_row(lane.contract)
+            except OSError as exc:      # a contract mid-sync is not a failed fire: retried next pass, uncounted
+                logger.warning("%s: unreadable this pass (%s)", lane.contract, exc)
+                return
             except ValueError as exc:
                 logger.error("%s", exc)
                 ledger.record(event, STATUS_FAILED, detail=str(exc))

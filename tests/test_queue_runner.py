@@ -606,3 +606,47 @@ def test_repair_sessions_sort_by_number_not_by_text(tmp_path):
 
     assert [event.source for event in events] == [
         "SESSION-a-repair-1.md", "SESSION-a-repair-2.md", "SESSION-a-repair-10.md"]
+
+
+def test_a_refused_file_is_one_event_per_attempt_and_the_newest_attempt_wins(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, files={"REFUSED-b.md": "from: the INTEGRATOR\nrepair 1 of 2\n\n# first\n"})
+    first = qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+    (transport / "to-browser" / "REFUSED-b.md").write_text(
+        "from: the INTEGRATOR\nrepair 1 of 2\n\n# first, retyped\n", encoding="utf-8")
+    retyped = qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+    (transport / "to-browser" / "REFUSED-b.md").write_text(
+        "from: the INTEGRATOR\nrepair 1 of 2\n\n# first\n\nrepair 2 of 2\n", encoding="utf-8")
+    second = qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+
+    assert first[0].key == retyped[0].key
+    assert second[0].attempt == 2 and second[0].key != first[0].key
+
+
+def test_a_byte_order_mark_does_not_hide_a_handback_line(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(tmp_path)
+    (transport / "to-browser" / "SESSION-a.md").write_bytes(
+        b"\xef\xbb\xbfHANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n")
+
+    events = qr.collect_events(transport=transport, state_file=state_file, slugs=("a",))
+
+    assert [event.kind for event in events] == ["handback"]
+
+
+def test_an_unreadable_contract_does_not_burn_the_repair_cap(tmp_path, monkeypatch):
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path, files={"REFUSED-b.md": "from: the INTEGRATOR\nrepair 1 of 2\n"})
+    ledger_path = tmp_path / "ledger.jsonl"
+    monkeypatch.setattr(qr, "head_row", lambda contract: (_ for _ in ()).throw(OSError("locked")))
+    calls = []
+
+    for _ in range(4):
+        qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                    fire=_successful_fire(qr, calls))
+
+    assert calls == []
+    assert qr.Ledger(path=ledger_path).failures(qr.collect_events(
+        transport=transport, state_file=state_file, slugs=("b",))[0].key) == 0
