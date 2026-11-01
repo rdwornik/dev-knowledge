@@ -66,7 +66,7 @@ processes:
       today_glue: true
       binding:
         plan:
-          file_line: scripts/dispatch.py:2341
+          file_line: scripts/dispatch.py:2343
           anchor: '@cli.command("plan")'
       asis:
       - P1-A08
@@ -80,10 +80,10 @@ processes:
       today_glue: true
       binding:
         load_queue:
-          file_line: scripts/dispatch.py:1683
+          file_line: scripts/dispatch.py:1685
           anchor: def load_queue
         launch_order:
-          file_line: scripts/dispatch.py:1701
+          file_line: scripts/dispatch.py:1703
           anchor: def launch_order
       hole: 'trigger: nothing fires the pass on an event; today a seat runs `queue --watch` (templates/dispatcher-order-template.md:49)'
       asis:
@@ -102,10 +102,10 @@ processes:
       today_glue: false
       binding:
         dependency:
-          file_line: scripts/dispatch.py:1858
+          file_line: scripts/dispatch.py:1860
           anchor: 'if dep == DEP_WAITING:'
         serialize:
-          file_line: scripts/dispatch.py:1862
+          file_line: scripts/dispatch.py:1864
           anchor: if not serialize_group_clear(
       hole: the live set excludes codespace lanes (dispatch.py:1555-1559)
       asis:
@@ -121,10 +121,10 @@ processes:
       today_glue: false
       binding:
         cap:
-          file_line: scripts/dispatch.py:1869
+          file_line: scripts/dispatch.py:1871
           anchor: 'if local_live_count >= local_cap:'
         ram:
-          file_line: scripts/dispatch.py:1872
+          file_line: scripts/dispatch.py:1874
           anchor: 'if free_mb < floor_mb:'
       hole: 'box slot: no read of running Codespaces against the account limit'
       asis:
@@ -140,10 +140,10 @@ processes:
       today_glue: false
       binding:
         call:
-          file_line: scripts/dispatch.py:1311
+          file_line: scripts/dispatch.py:1313
           anchor: outcome = prelaunch(request)
         run:
-          file_line: scripts/dispatch.py:985
+          file_line: scripts/dispatch.py:987
           anchor: def run_prelaunch
       hole: the codespace and cloud legs never run moment:pre-launch (AS-IS P1-B04)
       asis:
@@ -161,7 +161,7 @@ processes:
       today_glue: false
       binding:
         launch_lane:
-          file_line: scripts/dispatch.py:1281
+          file_line: scripts/dispatch.py:1283
           anchor: def launch_lane(
       asis:
       - P1-A18
@@ -181,7 +181,7 @@ processes:
       today_glue: true
       binding:
         codespace:
-          file_line: scripts/dispatch.py:3361
+          file_line: scripts/dispatch.py:3363
           anchor: def codespace_exec(
       hole: 'auto-fire: queue only reports ROUTE-CODESPACE (dispatch.py:1803-1806); the argv is copied by hand'
       asis:
@@ -213,7 +213,7 @@ processes:
       today_glue: false
       binding:
         unresolved:
-          file_line: scripts/dispatch.py:1362
+          file_line: scripts/dispatch.py:1364
           anchor: 'if result.job_id == "unresolved":'
       hole: 'retry: no re-identification after exit 8'
       asis: []
@@ -226,13 +226,13 @@ processes:
       today_glue: true
       binding:
         govern:
-          file_line: scripts/dispatch.py:4470
+          file_line: scripts/dispatch.py:4472
           anchor: '@cli.command("govern")'
         monitor:
-          file_line: scripts/dispatch.py:1465
+          file_line: scripts/dispatch.py:1467
           anchor: def monitor(
         observe:
-          file_line: scripts/dispatch.py:3763
+          file_line: scripts/dispatch.py:3765
           anchor: def codespace_observe(
       hole: cloud observe has no code
       asis:
@@ -283,7 +283,7 @@ processes:
           file_line: scripts/lane_end_guard.py:381
           anchor: emit(f"WAKE
         codespace:
-          file_line: scripts/dispatch.py:3719
+          file_line: scripts/dispatch.py:3721
           anchor: _remote("cat", f"{workdir}/{RUNNER_HANDBACK_FILE}")
       hole: 'consumer: nothing forces a reader of the WAKE (AS-IS P1-B35); cloud has no handback'
       asis:
@@ -301,13 +301,13 @@ processes:
       today_glue: true
       binding:
         harvest:
-          file_line: scripts/dispatch.py:3894
+          file_line: scripts/dispatch.py:3896
           anchor: def codespace_harvest(
         verify:
-          file_line: scripts/dispatch.py:4024
+          file_line: scripts/dispatch.py:4026
           anchor: def verify_harvest_manifest(
         delete:
-          file_line: scripts/dispatch.py:4092
+          file_line: scripts/dispatch.py:4094
           anchor: def codespace_delete(
       hole: 'chain: codespace_exec never calls harvest then delete; run by hand (AS-IS P1-B12/B14)'
       asis:
@@ -371,7 +371,7 @@ processes:
       today_glue: true
       binding:
         repair:
-          file_line: scripts/dispatch.py:1966
+          file_line: scripts/dispatch.py:1968
           anchor: def repair_lane(
       hole: trigger is prose (templates/dispatcher-order-template.md:94); no pre-launch and no receipt on this path
       asis:
@@ -395,7 +395,7 @@ processes:
       today_glue: false
       binding:
         dep:
-          file_line: scripts/dispatch.py:1855
+          file_line: scripts/dispatch.py:1857
           anchor: 'if dep == DEP_BLOCKED_FAILED:'
       asis: []
     - id: S25
@@ -437,28 +437,28 @@ processes:
       target: planned
       guard: token_cap_set
       r130: false
-      file_line: scripts/dispatch.py:2341
+      file_line: scripts/dispatch.py:2343
       anchor: '@cli.command("plan")'
     - event: enqueue
       source: planned
       target: queued
       guard: no_cycle
       r130: false
-      file_line: scripts/dispatch.py:1717
+      file_line: scripts/dispatch.py:1719
       anchor: cycle = pl.find_cycle(contracts, edges)
     - event: evaluate
       source: queued
       target: merged
       guard: is_merged
       r130: false
-      file_line: scripts/dispatch.py:1847
+      file_line: scripts/dispatch.py:1849
       anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
     - event: evaluate
       source: queued
       target: running
       guard: is_live
       r130: false
-      file_line: scripts/dispatch.py:1852
+      file_line: scripts/dispatch.py:1854
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: queued
@@ -471,42 +471,42 @@ processes:
       target: blocked_failed
       guard: dep_failed
       r130: false
-      file_line: scripts/dispatch.py:1855
+      file_line: scripts/dispatch.py:1857
       anchor: 'if dep == DEP_BLOCKED_FAILED:'
     - event: evaluate
       source: queued
       target: held_dependency
       guard: blocked_by_dependency
       r130: false
-      file_line: scripts/dispatch.py:1858
+      file_line: scripts/dispatch.py:1860
       anchor: 'if dep == DEP_WAITING:'
     - event: evaluate
       source: queued
       target: held_capacity
       guard: blocked_by_capacity
       r130: false
-      file_line: scripts/dispatch.py:1869
+      file_line: scripts/dispatch.py:1871
       anchor: 'if local_live_count >= local_cap:'
     - event: evaluate
       source: queued
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1875
+      file_line: scripts/dispatch.py:1877
       anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: evaluate
       source: held_dependency
       target: merged
       guard: is_merged
       r130: false
-      file_line: scripts/dispatch.py:1847
+      file_line: scripts/dispatch.py:1849
       anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
     - event: evaluate
       source: held_dependency
       target: running
       guard: is_live
       r130: false
-      file_line: scripts/dispatch.py:1852
+      file_line: scripts/dispatch.py:1854
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: held_dependency
@@ -519,42 +519,42 @@ processes:
       target: blocked_failed
       guard: dep_failed
       r130: false
-      file_line: scripts/dispatch.py:1855
+      file_line: scripts/dispatch.py:1857
       anchor: 'if dep == DEP_BLOCKED_FAILED:'
     - event: evaluate
       source: held_dependency
       target: held_dependency
       guard: blocked_by_dependency
       r130: false
-      file_line: scripts/dispatch.py:1858
+      file_line: scripts/dispatch.py:1860
       anchor: 'if dep == DEP_WAITING:'
     - event: evaluate
       source: held_dependency
       target: held_capacity
       guard: blocked_by_capacity
       r130: false
-      file_line: scripts/dispatch.py:1869
+      file_line: scripts/dispatch.py:1871
       anchor: 'if local_live_count >= local_cap:'
     - event: evaluate
       source: held_dependency
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1875
+      file_line: scripts/dispatch.py:1877
       anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: evaluate
       source: held_capacity
       target: merged
       guard: is_merged
       r130: false
-      file_line: scripts/dispatch.py:1847
+      file_line: scripts/dispatch.py:1849
       anchor: return QueueDecision(lane.slug, ACTION_SKIP_MERGED,
     - event: evaluate
       source: held_capacity
       target: running
       guard: is_live
       r130: false
-      file_line: scripts/dispatch.py:1852
+      file_line: scripts/dispatch.py:1854
       anchor: return QueueDecision(lane.slug, ACTION_ALREADY_LAUNCHED,
     - event: evaluate
       source: held_capacity
@@ -567,35 +567,35 @@ processes:
       target: blocked_failed
       guard: dep_failed
       r130: false
-      file_line: scripts/dispatch.py:1855
+      file_line: scripts/dispatch.py:1857
       anchor: 'if dep == DEP_BLOCKED_FAILED:'
     - event: evaluate
       source: held_capacity
       target: held_dependency
       guard: blocked_by_dependency
       r130: false
-      file_line: scripts/dispatch.py:1858
+      file_line: scripts/dispatch.py:1860
       anchor: 'if dep == DEP_WAITING:'
     - event: evaluate
       source: held_capacity
       target: held_capacity
       guard: blocked_by_capacity
       r130: false
-      file_line: scripts/dispatch.py:1869
+      file_line: scripts/dispatch.py:1871
       anchor: 'if local_live_count >= local_cap:'
     - event: evaluate
       source: held_capacity
       target: prelaunch
       guard: clear
       r130: false
-      file_line: scripts/dispatch.py:1875
+      file_line: scripts/dispatch.py:1877
       anchor: return QueueDecision(lane.slug, ACTION_FIRE, "clear")
     - event: prelaunch_passed
       source: prelaunch
       target: launching_local
       guard: substrate_is_local
       r130: false
-      file_line: scripts/dispatch.py:1311
+      file_line: scripts/dispatch.py:1313
       anchor: outcome = prelaunch(request)
     - event: prelaunch_passed
       source: prelaunch
@@ -626,28 +626,28 @@ processes:
       target: queued
       guard: '!substrate_is_cloud_writing'
       r130: false
-      file_line: scripts/dispatch.py:1315
+      file_line: scripts/dispatch.py:1317
       anchor: raise LaunchRefused(f"pre-launch refused
     - event: spawned
       source: launching_local
       target: running
       guard: job_identified
       r130: false
-      file_line: scripts/dispatch.py:1347
+      file_line: scripts/dispatch.py:1349
       anchor: _identify(request, started, self_identified, agents, sleep, began)
     - event: spawn_incomplete
       source: launching_local
       target: launch_incomplete
       guard: null
       r130: false
-      file_line: scripts/dispatch.py:1362
+      file_line: scripts/dispatch.py:1364
       anchor: 'if result.job_id == "unresolved":'
     - event: launch_refused
       source: launching_local
       target: queued
       guard: launch_attempts_left
       r130: false
-      file_line: scripts/dispatch.py:1281
+      file_line: scripts/dispatch.py:1283
       anchor: def launch_lane(
     - event: launch_refused
       source: launching_local
@@ -660,7 +660,7 @@ processes:
       target: running
       guard: null
       r130: false
-      file_line: scripts/dispatch.py:3570
+      file_line: scripts/dispatch.py:3572
       anchor: rec("create", True
     - event: box_limit
       source: launching_codespace
@@ -722,7 +722,7 @@ processes:
       target: harvesting
       guard: substrate_is_codespace
       r130: false
-      file_line: scripts/dispatch.py:3719
+      file_line: scripts/dispatch.py:3721
       anchor: '_remote("cat", f"{workdir}/{RUNNER_HANDBACK_FILE}")'
     - event: cloud_done
       source: running_cloud
@@ -783,14 +783,14 @@ processes:
       target: integrating
       guard: harvest_clean_writing
       r130: false
-      file_line: scripts/dispatch.py:4024
+      file_line: scripts/dispatch.py:4026
       anchor: def verify_harvest_manifest(
     - event: refusal
       source: harvesting
       target: refused
       guard: '!harvest_clean'
       r130: true
-      file_line: scripts/dispatch.py:4024
+      file_line: scripts/dispatch.py:4026
       anchor: def verify_harvest_manifest(
     - event: refusal
       source: integrating
@@ -811,7 +811,7 @@ processes:
       target: repairing
       guard: repair_allowed
       r130: false
-      file_line: scripts/dispatch.py:1966
+      file_line: scripts/dispatch.py:1968
       anchor: def repair_lane(
     - event: fail
       source: refused
@@ -825,7 +825,7 @@ processes:
       target: running
       guard: worktree_exists
       r130: false
-      file_line: scripts/dispatch.py:2000
+      file_line: scripts/dispatch.py:2002
       anchor: started = spawn(request.argv, env, tree)
     - event: fail
       source: repairing

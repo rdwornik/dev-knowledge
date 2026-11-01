@@ -58,11 +58,16 @@ def test_a_valid_substrate_is_accepted(live):
     assert ProviderRegistry.model_validate(data).roles["verify"].order[0].substrate == "local"
 
 
-def test_implement_is_led_by_copilot_with_sonnet_vendor_fail_only_not_grok(registry):
+def test_implement_is_led_by_sonnet_with_copilot_second_not_grok(registry):
     order = registry.roles["implement"].order
-    assert (order[0].provider, order[0].substrate) == ("copilot-enterprise", "codespace")
-    assert (order[1].provider, order[1].model, order[1].substrate) == ("anthropic", "claude-sonnet-5-5", "codespace")
-    assert order[1].vendor_fail_only is True
+    # GO-E3.0 R11: admitted Sonnet is first and is not vendor-fail-only.
+    assert (order[0].provider, order[0].model, order[0].substrate) == (
+        "anthropic", "claude-sonnet-5-5", "codespace")
+    # GO-E3.0 R11: first-entry Sonnet does not require the fallback-only flag.
+    assert order[0].vendor_fail_only is False
+    # GO-E3.0 R11: admitted Copilot follows Sonnet in the registry order.
+    assert (order[1].provider, order[1].model, order[1].substrate) == (
+        "copilot-enterprise", "claude-sonnet-5.5", "codespace")
     assert not (order[0].provider == "xai" and order[0].model == "grok-4.7")
 
 
@@ -95,6 +100,10 @@ def test_read_keeps_antigravity_local_and_anthropic_on_haiku_5_5(registry):
 
 
 @pytest.mark.parametrize("role", ["judge", "orchestrate"])
-def test_judge_and_orchestrate_stay_opus_only(registry, role):
+def test_judge_uses_codex_and_orchestrate_stays_opus_only(registry, role):
     first = registry.roles[role].order[0]
-    assert (first.provider, first.model) == ("anthropic", "claude-opus-5-5")
+    if role == "judge":
+        # GO-E3.0 R11: Codex gpt-6-sol is the first judge.
+        assert (first.provider, first.model) == ("openai", "gpt-6-sol")
+    else:
+        assert (first.provider, first.model) == ("anthropic", "claude-opus-5-5")

@@ -405,26 +405,26 @@ def check_registry_shape() -> list[str]:
 
 
 def check_implement_vendor_fail(root: Path | None = None) -> list[str]:
-    """R177: the `implement` role may resolve to Claude only as a VENDOR-FAIL fallback.
+    """R11: the first `implement` entry is admitted; a later Claude entry is a VENDOR-FAIL fallback.
 
     The schema refuses this at load time; kept as a returned string for the same reason as
     `check_registry_shape`.
     """
     order = _preg.role_order("implement")
     out: list[str] = []
-    if order and order[0].get("provider") != "copilot-enterprise":
-        out.append(f"registry: role `implement` order[0] is provider `{order[0].get('provider')}` -- "
-                   f"R177: the first implement entry must be `copilot-enterprise`; the others run "
-                   f"only after a recorded VENDOR-FAIL: implement")
+    if order and not _preg.is_admitted(order[0]):
+        out.append(f"registry: role `implement` order[0] is provider `{order[0].get('provider')}` "
+                   f"without an `admitted` verdict -- R11: the first implement entry must be "
+                   f"admitted; the others run only after a recorded VENDOR-FAIL: implement")
     for role, spec in _preg.roles().items():
         first = (spec.get("order") or [{}])[0]
         if first.get("vendor_fail_only"):
             out.append(f"registry: role `{role}` order[0] carries `vendor_fail_only: true` -- a "
                        f"vendor-fail fallback needs an entry before it to fail")
     for i, entry in enumerate(order):
-        if entry.get("provider") == "anthropic" and not entry.get("vendor_fail_only"):
+        if i > 0 and entry.get("provider") == "anthropic" and not entry.get("vendor_fail_only"):
             out.append(f"registry: role `implement` order[{i}] resolves to Claude without "
-                       f"`vendor_fail_only: true` -- R177: a Claude implementer needs the "
+                       f"`vendor_fail_only: true` -- R11: a later Claude implementer needs the "
                        f"VENDOR-FAIL clause")
     return out
 

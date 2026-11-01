@@ -575,6 +575,8 @@ class SmokeResult:
 _SCHEMA_SMOKE_PROMPT = ('Reply with a minimal LANE REPORT: state FAILED, reason "schema smoke". '
                         "Do not use any tool.")
 _SCHEMA_SMOKE_TIMEOUT_S = 300
+#: R2 (GO-E3.0): every Claude argv disallows the advisor tool; AskUserQuestion stays barred (nobody is at the keyboard).
+_CLAUDE_DISALLOWED_TOOLS = "--disallowedTools=AskUserQuestion,advisor"
 
 
 def schema_smoke_argv(head_argv: Sequence[str]) -> Optional[list[str]]:
@@ -588,7 +590,7 @@ def schema_smoke_argv(head_argv: Sequence[str]) -> Optional[list[str]]:
         return None
     model = head[head.index("--model") + 1]
     return ["claude", "-p", "--output-format", "json", "--model", model, "--effort", "low",
-            "--json-schema", head[token_at], _SCHEMA_SMOKE_PROMPT]
+            "--json-schema", head[token_at], _CLAUDE_DISALLOWED_TOOLS, _SCHEMA_SMOKE_PROMPT]
 
 
 def run_schema_smoke(argv: Sequence[str]) -> SmokeResult:
@@ -662,13 +664,13 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
         # token -- the file stays the single source (`ecosystem/schema/lane_report.py`).
         argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model,
                 "--effort", eff, "--permission-mode", permission_mode,
-                "--json-schema", lane_report_schema_arg(), prompt]
+                "--json-schema", lane_report_schema_arg(), _CLAUDE_DISALLOWED_TOOLS, prompt]
         return Plan(argv, "stream")
     # `-n <slug>` names the session, so the Agent View row is the lane's own name and not the
     # contract prompt's first words. --permission-mode is not optional: nobody is at a --bg lane's
     # keyboard, so a prompt is a silent stall that looks exactly like a slow lane.
     argv = ["claude", "--bg", "-n", slug, "--model", model, "--effort", eff, "--permission-mode",
-            permission_mode, "--worktree", slug, "--disallowedTools=AskUserQuestion", prompt]
+            permission_mode, "--worktree", slug, _CLAUDE_DISALLOWED_TOOLS, prompt]
     return Plan(argv, "transcript")
 
 
@@ -1920,7 +1922,7 @@ def build_repair_plan(model: str, slug: str, attempt: int, effort: str, prompt: 
                               "(or l/m/h/x)")
     name = f"{slug}-repair-{attempt}"
     argv = ["claude", "--bg", "-n", name, "--model", model, "--effort", eff, "--permission-mode",
-            permission_mode, prompt]
+            permission_mode, _CLAUDE_DISALLOWED_TOOLS, prompt]
     return Plan(argv, "transcript")
 
 
@@ -2025,7 +2027,7 @@ def build_successor_plan(model: str, slug: str, effort: str, prompt: str,
         raise DispatchRefused(f"unknown effort {effort!r}. Valid: low, medium, high, xhigh, max "
                               "(or l/m/h/x)")
     argv = ["claude", "--bg", "-n", slug, "--model", model, "--effort", eff, "--permission-mode",
-            permission_mode, prompt]
+            permission_mode, _CLAUDE_DISALLOWED_TOOLS, prompt]
     return Plan(argv, "transcript")
 
 

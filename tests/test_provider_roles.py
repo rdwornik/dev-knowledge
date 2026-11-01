@@ -115,9 +115,8 @@ def test_order_is_a_list_not_a_set_so_position_is_meaningful(live):
     """
     registry = ProviderRegistry.model_validate(live)
     implement = [e.provider for e in registry.roles["implement"].order]
-    assert implement[0] == "copilot-enterprise", (
-        "R177 (operator, 2026-10-20): Copilot implements first, Sonnet 5.5 is a VENDOR-FAIL-only "
-        "fallback -- reversing R153")
+    # GO-E3.0 R11: admitted Sonnet leads the implement ranking.
+    assert implement[0] == "anthropic"
     assert len(implement) > 1, "a fallback chain needs somewhere to fall back to"
 
 
@@ -150,17 +149,18 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
     admission check disagree about which vendor is being routed to — one keys on `provider`,
     the other resolves through the model row."""
     def mutate(d):
-        # order[1] is the anthropic entry since R177 (copilot first).
+        # GO-E3.0 R11: order[1] is Copilot; the injected model belongs to OpenAI.
         d["roles"]["implement"]["order"][1]["model"] = "gpt-5.6-terra"
 
     message = _refuses(_mutated(live, mutate))
-    assert "openai" in message and "anthropic" in message
+    # GO-E3.0 R11: the cross-provider diagnostic names the Copilot entry and OpenAI model.
+    assert "openai" in message and "copilot-enterprise" in message
 
 
 # --- leg (b): ADMISSION — the Done-when's named RED-first test -------------------------------
 
 
-def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
+def test_admission_records_every_provider_with_an_admitted_role(live):
     """THE HALF A / HALF B BOUNDARY, asserted as a property of the shipped file.
 
     AX23-2 splits this arc: Half A builds the mechanism with no non-Claude provider ordered
@@ -186,7 +186,10 @@ def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
     }
     # `xai` joined 2026-10-14 by R104 (operator ruling, [#1536]), on the REVIEW role only --
     # pinned below so the exception cannot widen to implement unnoticed.
-    assert admitted_providers == {"anthropic", "copilot-enterprise", "xai"}
+    # GO-E3.0 R11: antigravity is admitted on read and OpenAI on review/judge.
+    assert admitted_providers == {
+        "anthropic", "antigravity", "copilot-enterprise", "openai", "xai",
+    }
     xai_admitted_in = {
         name for name, role in registry.roles.items() for entry in role.order
         if entry.provider == "xai" and entry.admission is not None
@@ -195,7 +198,7 @@ def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
     assert xai_admitted_in == {"review"}
 
 
-def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(live):
+def test_admission_r11_read_and_judge_are_admitted_but_grok_implement_is_not(live):
     """The lane contract requires exactly these to be LISTED so the router's refusals have real
     rows to bite on. Presence and non-admission are asserted together, because either alone is
     the wrong state: absent, and the refusal is untestable; admitted, and Half A has silently
@@ -212,9 +215,14 @@ def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(l
         for entry in role.order:
             admitted = entry.admission is not None and entry.admission.verdict == "admitted"
             listed[entry.provider] = listed.get(entry.provider, False) or admitted
-    for provider in ("antigravity", "openai"):
-        assert provider in listed, f"{provider} must be LISTED for the router refusal to be trip-testable"
-        assert listed[provider] is False, f"{provider} is NOT ADMITTED in Half A"
+    # GO-E3.0 R11: both providers have a recorded admission in their newly admitted roles.
+    assert listed["antigravity"] is True and listed["openai"] is True
+    # GO-E3.0 R11: antigravity is admitted on read.
+    assert any(e.provider == "antigravity" and e.admission and
+               e.admission.verdict == "admitted" for e in registry.roles["read"].order)
+    # GO-E3.0 R11: OpenAI is admitted on judge.
+    assert any(e.provider == "openai" and e.admission and
+               e.admission.verdict == "admitted" for e in registry.roles["judge"].order)
     # `xai` is admitted on review by R104 (2026-10-14) but stays the NOT ADMITTED trip-test
     # target on implement, the one admission-gated role.
     grok_implement = [e for e in registry.roles["implement"].order if e.provider == "xai"]
@@ -305,8 +313,10 @@ def test_licence_an_absent_block_reads_as_unknown_never_permitted(live):
     """The default must be the conservative one: the field's absence must not grant what its
     presence was added to withhold."""
     def mutate(d):
-        # antigravity, not xai: since R104 xai holds an admitted review entry, and an admitted
-        # entry under an unknown licence is refused at load (the leg (c) rule tested below).
+        # GO-E3.0 R11: remove antigravity's admitted read edge to isolate the licence default.
+        d["roles"]["read"]["order"] = [
+            e for e in d["roles"]["read"]["order"] if e["provider"] != "antigravity"
+        ]
         del d["providers"]["antigravity"]["licence"]
 
     registry = ProviderRegistry.model_validate(_mutated(live, mutate))
@@ -367,11 +377,19 @@ def test_licence_unknown_needs_no_decider_but_still_needs_a_reason(live):
     """The exemption is scoped to provenance, not to the reason. An `unknown` with no stated
     open question teaches the next reader nothing and is the drift the field exists to end."""
     def mutate(d):
+        # GO-E3.0 R11: keep admitted antigravity off read while testing unknown licence data.
+        d["roles"]["read"]["order"] = [
+            e for e in d["roles"]["read"]["order"] if e["provider"] != "antigravity"
+        ]
         d["providers"]["antigravity"]["licence"] = {"status": "unknown", "reason": "the open question"}
 
     ProviderRegistry.model_validate(_mutated(live, mutate))  # valid
 
     def mutate_bad(d):
+        # GO-E3.0 R11: keep admitted antigravity off read while testing the invalid licence.
+        d["roles"]["read"]["order"] = [
+            e for e in d["roles"]["read"]["order"] if e["provider"] != "antigravity"
+        ]
         d["providers"]["antigravity"]["licence"] = {"status": "unknown"}
 
     assert "reason" in _refuses(_mutated(live, mutate_bad))
@@ -530,7 +548,8 @@ def test_r1536_role_pins(live):
     assert roles["red"]["order"][0]["provider"] == "copilot-enterprise"
     assert roles["red"]["order"][1]["provider"] == "anthropic"
     assert roles["red"]["order"][1]["model"] == "claude-sonnet-5-5"
-    assert roles["judge"]["order"][0]["model"] == "claude-opus-5-5"
+    # GO-E3.0 R11: Codex gpt-6-sol is the first judge.
+    assert roles["judge"]["order"][0]["model"] == "gpt-6-sol"
     assert roles["judge"].get("rerankable") is False
     assert roles["qa"]["order"][0]["provider"] == "copilot-enterprise"
 

@@ -118,12 +118,10 @@ def test_refusal_2_a_non_admitted_producer_is_refused_on_implement(router):
     """The done-contract's second named refusal, trip-tested against the one real NOT ADMITTED
     row the registry now ships on this role: xai. (copilot-enterprise was ADMITTED here
     2026-09-23 by operator ruling O-3 — see `test_copilot_enterprise_is_now_admitted_on_implement`
-    below — so it is no longer this test's example.)"""
+    below — so it is no longer this test's example.)    """
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert got == ["copilot-enterprise", "anthropic"], (
-        "R177 (operator, 2026-10-20) puts Copilot first and Sonnet 5.5 second (vendor-fail only; reversing "
-        "R153); the unadmitted xai entry is still refused on this one admission-gated role"
-    )
+    # GO-E3.0 R11: Sonnet leads, Copilot follows, and unadmitted Grok remains refused.
+    assert got == ["anthropic", "copilot-enterprise"]
 
 
 def test_refusal_2_names_the_clause_and_the_measurement_that_would_lift_it(router):
@@ -155,10 +153,8 @@ def test_copilot_enterprise_is_now_admitted_on_implement(router):
     )
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
     assert "copilot-enterprise" in got
-    assert got.index("copilot-enterprise") == 0, (
-        "R177 (operator ruling 2026-10-20) moved Copilot back ahead of Sonnet 5.5 on implement (R153 "
-        "had Sonnet at the head) -- a ruling, not the AX22-1 measurement, recorded in the registry note"
-    )
+    # GO-E3.0 R11: Copilot remains admitted but follows the first Sonnet entry.
+    assert got.index("copilot-enterprise") == 1
 
 
 def test_the_licence_fix_also_opens_copilot_on_read_though_its_admission_there_is_untouched(
@@ -183,11 +179,8 @@ def test_the_licence_fix_also_opens_copilot_on_read_though_its_admission_there_i
         f"{verdicts['copilot-enterprise']}"
     )
     got = [c.provider for c in router.route("read", repo=".dev-knowledge")]
-    assert got == ["antigravity", "copilot-enterprise", "anthropic"], (
-        "read's declared order is unchanged; copilot-enterprise now clears every gate on it "
-        "and shows up as a survivor in its declared position, same as antigravity (also "
-        "unadmitted-but-licensed on this role)"
-    )
+    # GO-E3.0 R11: read order is antigravity, Haiku, then Copilot.
+    assert got == ["antigravity", "anthropic", "copilot-enterprise"]
 
 
 def test_refusal_2_does_NOT_apply_to_review(router):
@@ -297,7 +290,8 @@ def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):
     with_producer = [c.provider for c in
                      router.route("implement", repo=".dev-knowledge", produced_by="anthropic")]
     without_producer = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert with_producer == without_producer == ["copilot-enterprise", "anthropic"]
+    # GO-E3.0 R11: producer exclusion leaves the Sonnet-first order unchanged.
+    assert with_producer == without_producer == ["anthropic", "copilot-enterprise"]
 
 
 def test_refusal_4_reports_its_clause(router):
@@ -819,16 +813,23 @@ def _r1536_route_lines(role: str) -> list[dict]:
 def test_r1536_route_implement_order_and_models():
     rows = _r1536_route_lines("implement")
     got = [(r["provider"], r["model"]) for r in rows[:3]]
-    assert [p for p, _ in got] == ["copilot-enterprise", "anthropic", "xai"], rows
-    assert got[1][1] == "claude-sonnet-5-5", rows
+    # GO-E3.0 R11: Sonnet leads; Copilot and Grok follow in the registry order.
+    assert [p for p, _ in got] == ["anthropic", "copilot-enterprise", "xai"], rows
+    # GO-E3.0 R11: Sonnet's exact model pin occupies the first position.
+    assert got[0][1] == "claude-sonnet-5-5", rows
+    # GO-E3.0 R11: Copilot's pinned served model occupies the second position.
+    assert got[1][1] == "claude-sonnet-5.5", rows
     assert got[2][1] == "grok-4.7", rows
 
 
-def test_r1536_registry_implement_order_is_copilot_sonnet55_grok47(live_registry):
-    # R177 (2026-10-20, `e2-model-routing`) restored R104's Copilot -> Sonnet 5.5 -> Grok 4.7 (R153 had reversed it).
+def test_r1536_registry_implement_order_is_sonnet_copilot_grok(live_registry):
     order = live_registry["roles"]["implement"]["order"]
-    assert [e["provider"] for e in order[:3]] == ["copilot-enterprise", "anthropic", "xai"]
-    assert order[1]["model"] == "claude-sonnet-5-5" and order[1]["vendor_fail_only"] is True
+    # GO-E3.0 R11: Sonnet is first, Copilot second, and neither is Grok's entry.
+    assert [e["provider"] for e in order[:3]] == ["anthropic", "copilot-enterprise", "xai"]
+    # GO-E3.0 R11: the first position is Sonnet's registry model.
+    assert order[0]["model"] == "claude-sonnet-5-5"
+    # GO-E3.0 R11: Copilot's served model is pinned in second position.
+    assert order[1]["model"] == "claude-sonnet-5.5"
     assert order[2]["model"] == "grok-4.7"
 
 
