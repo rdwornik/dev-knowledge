@@ -7586,7 +7586,7 @@ Landed by lane `e30-rulings` (batch E3.0). Source: `to-cc/GO-E3.0.md` (operator,
 
 - **R1 - ADR-130 ratified in part; D3 amended in-file; D6 to E3.1's ADR** (operator, 2026-10-31; full text `GO-E3.0.md:10`).
 
-  **Carried by:** this lane (`e30-rulings`): the ADR-130 status line and its in-file amendment block (owner: E3.0 orchestrator); the L4 witness that can re-open D1 and D2 is the L4 lane's
+  **Carried by:** this lane (`e30-rulings`): the ADR-130 status line and its in-file amendment block (owner: E3.0 orchestrator); the L4 witness that can re-open D1 and D2 belongs to lane L4, not to this lane
 
   ```verbatim to-cc/GO-E3.0.md:10-10
   R1 ADR-130: ratify D1, D2, D4, D5 under the ADR's flip-condition plus "if L4's witness fails, D1 and D2 re-open". Amend D3 in-file: python-statemachine 3.2.2, spike done (DIGEST-E21-P1-SPIKE-2026-10-20), scope = the P1 dispatch lane machine that L3's runner drives; [#669]'s row-level transitions stay a later question. D6 goes to E3.1's ADR.
