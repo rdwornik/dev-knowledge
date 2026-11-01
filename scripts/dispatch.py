@@ -1414,6 +1414,25 @@ def planned_model(argv: Sequence[str]) -> str:
 #: Why a local launch receipt carries no `end`: the launcher exits when the lane starts.
 _LOCAL_END_REASON = "UNMEASURED: the launcher exits when the lane starts; it cannot observe the lane's end"
 
+#: Who fired a launch (R130, [#1633]): `scripts/queue_runner.py` sets `DISPATCH_CALLER=queue_runner` on
+#: every `dispatch.py` it runs; a seat that launches by hand sets `seat`; nothing set is the CLI typed.
+CALLER_ENV = "DISPATCH_CALLER"
+CALLERS = ("queue_runner", "dispatch-cli", "seat")
+DEFAULT_CALLER = "dispatch-cli"
+
+
+def launch_caller(environ: Optional[Mapping[str, str]] = None) -> str:
+    """The `caller` a LAUNCH receipt records. An unrecognised value is recorded as the default (a
+    launch already spawned is not worth refusing) and logged, so a typo is not silent."""
+    value = (os.environ if environ is None else environ).get(CALLER_ENV, "").strip()
+    if not value:
+        return DEFAULT_CALLER
+    if value not in CALLERS:
+        logger.warning("%s=%r is not one of %s; recording caller %r", CALLER_ENV, value,
+                       "/".join(CALLERS), DEFAULT_CALLER)
+        return DEFAULT_CALLER
+    return value
+
 
 def _write_launch_records(request: LaunchRequest, result: LaunchResult,
                           extra: Optional[Mapping[str, object]] = None) -> None:
@@ -1423,7 +1442,7 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
     receipt = {
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
-        "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON,
+        "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON, "caller": launch_caller(),
         **{k: v for k, v in asdict(result).items()}, **(extra or {})}
     if (extra or {}).get("kind") == "repair":
         # A repair rewrites the slug receipt: keep every earlier launch in `launches` so the first
