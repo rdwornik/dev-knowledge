@@ -1360,6 +1360,11 @@ def launch_lane(request: LaunchRequest, *,
         began = time.time()
         try:
             started = spawn(request.argv, env, cwd, log_path) if detached else spawn(request.argv, env, cwd)
+        except LaunchRefused:
+            # The spawn boundary refused (e.g. a test-context guard): no lane started, so the intent
+            # receipt must not linger and hold the slug.
+            _receipt_path(request.slug).unlink(missing_ok=True)
+            raise
         except OSError as exc:
             _receipt_path(request.slug).unlink(missing_ok=True)
             raise LaunchRefused(f"{request.argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "

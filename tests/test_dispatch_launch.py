@@ -1195,6 +1195,7 @@ def test_launch_lane_refusal_for_a_fixture_contract_creates_no_worktree(
     assert calls == []
     assert "refus" in caplog.text.lower()
     assert not (tmp_path / ".claude" / "worktrees" / request.slug).exists()
+    assert not d._receipt_path(request.slug).exists()  # no pending intent receipt holds the slug
 
 
 def test_a_pre_launch_with_a_missing_organ_receipt_does_not_clear_the_launch(contract, monkeypatch, receipts):
