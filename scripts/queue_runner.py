@@ -211,6 +211,11 @@ class Ledger:
             if isinstance(row, dict):
                 self.rows.append(row)
 
+    def in_memory_copy(self) -> "Ledger":
+        copy = Ledger.__new__(Ledger)
+        copy.path, copy.persist, copy.rows = self.path, False, [dict(r) for r in self.rows]
+        return copy
+
     def failures(self, key: str) -> int:
         return sum(1 for r in self.rows if r.get("key") == key and r.get("status") == STATUS_FAILED)
 
@@ -275,7 +280,8 @@ def plan_event(event: Event, state: str, substrate: str) -> Plan:
         facts, chain, fire = _gpd.LaneFacts(substrate=substrate, landed=True), ["merge"], True
     elif event.kind == "failed":
         facts = _gpd.LaneFacts(substrate=substrate, refusals=_gpd.REFUSAL_CAP)
-        chain, fire = (["refusal", "fail"] if state == "integrating" else ["fail"]), True
+        # from `running` the catch-up below lands the lane on `integrating` first, so `refusal` still leads
+        chain, fire = (["refusal", "fail"] if state in ("integrating", "running") else ["fail"]), True
     else:  # refused: `repair N of 2` has N-1 refusals behind it
         attempt = event.attempt or 1
         facts = _gpd.LaneFacts(substrate=substrate, refusals=attempt - 1)
@@ -355,6 +361,8 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
     by_slug = {lane.slug: lane for lane in lanes}
     if ledger is None:
         ledger = Ledger(ledger_path, persist=not dry_run)
+    elif dry_run:
+        ledger = ledger.in_memory_copy()    # a dry run never writes, whichever ledger it is handed
     env = {**os.environ, CALLER_ENV: CALLER_VALUE}
     queue_argv = ["queue", "--batch", batch, "--state-file", str(state_file),
                   *[str(c) for c in contracts]]

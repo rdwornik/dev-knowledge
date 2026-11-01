@@ -671,3 +671,36 @@ def test_a_substrate_outside_local_and_codespace_is_refused_not_treated_as_local
     plan = qr.plan_event(event, "running", "cloud")
 
     assert plan.refusal and not plan.fire
+
+
+def test_a_failed_line_for_a_lane_held_running_catches_up_through_refusal_and_fires(tmp_path):
+    qr = _runner()
+    transport, state_file = _event_tree(tmp_path, state="STATE a FAILED - 2026-11-01T10:00 5\n")
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger_path.write_text(json.dumps({"key": "fire|x|a", "kind": "fire", "lane": "a", "status": "observed",
+                                       "state_after": "running"}) + "\n", encoding="utf-8")
+    calls = []
+
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, calls))
+
+    assert len(calls) == 1
+    assert qr.Ledger(path=ledger_path).lane_state("a") == "failed"
+
+
+def test_a_dry_run_handed_a_persistent_ledger_still_writes_nothing(tmp_path):
+    qr = _runner()
+    transport = FIXTURES / "transport"
+    state_file = FIXTURES / "SESSION-integrator.md"
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger = qr.Ledger(path=ledger_path)
+
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=lambda *_a: pytest.fail("a dry run must not fire"), dry_run=True,
+                echo=lambda _line: None, ledger=ledger)
+
+    assert not ledger_path.exists() and ledger.rows == []
+    calls = []
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+                fire=_successful_fire(qr, calls), ledger=ledger)
+    assert len(calls) == 3
