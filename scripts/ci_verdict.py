@@ -71,6 +71,7 @@ HONEST LIMITS:
 """
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import re
@@ -198,17 +199,27 @@ def _gh_text(command: list, *, repo_root: Path, timeout: int = GH_TIMEOUT_S) -> 
     return proc.stdout
 
 
-def list_runs(*, repo_root: Path, workflow: str = WORKFLOW, limit: int = 40) -> list:
+def list_runs(*, repo_root: Path, workflow: str = WORKFLOW, limit: int = 40,
+              sha: Optional[str] = None) -> list:
     # PUSH RUNS ONLY (item 11, G7): the ruleset's required check-runs belong to the push run on
     # the sha. `find_run` repeats the filter, so a listing carrying another event (or none) can
     # never be chosen either.
-    return _gh_json(["gh", "run", "list", "--workflow", workflow, "--event", "push",
-                     "--limit", str(limit), "--json", _RUN_FIELDS], repo_root=repo_root) or []
+    # FOUND BY COMMIT, NOT BY WINDOW ([#1801]): with a `sha`, `--commit` asks GitHub for that
+    # sha's runs, so a target push run older than the newest `limit` listed is still found.
+    command = ["gh", "run", "list", "--workflow", workflow, "--event", "push"]
+    if sha:
+        command += ["--commit", sha]
+    command += ["--limit", str(limit), "--json", _RUN_FIELDS]
+    return _gh_json(command, repo_root=repo_root) or []
 
 
 def find_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
             list_fn: Callable = list_runs) -> Optional[dict]:
-    runs = list_fn(repo_root=repo_root, workflow=workflow)
+    # Only the production lister understands `sha`; an injected listing keeps its old call shape.
+    if "sha" in inspect.signature(list_fn).parameters:
+        runs = list_fn(repo_root=repo_root, workflow=workflow, sha=sha)
+    else:
+        runs = list_fn(repo_root=repo_root, workflow=workflow)
     return next((r for r in runs if r.get("event") == "push"
                  and str(r.get("headSha", "")).startswith(sha)), None)
 
