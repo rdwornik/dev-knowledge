@@ -837,3 +837,11 @@ def test_argv_value_uses_the_last_of_a_repeated_flag():
 
     assert rp._argv_value(["--model", "a", "--model=b"], "--model") == "b"
     assert rp._argv_value(["--model=a", "--model", "b"], "--model") == "b"
+
+
+def test_cli_record_never_reads_a_non_json_usage_file(tmp_path):
+    rp = _rp()
+    usage = tmp_path / "u.txt"
+    usage.write_text(json.dumps({"currentModel": "gpt-6-luna"}), encoding="utf-8")
+
+    assert rp._cli_record(["copilot", "-p", "--usage-output-file", str(usage)], None) is None

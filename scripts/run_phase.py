@@ -338,7 +338,7 @@ def _clear_usage_file(argv, cwd=None) -> None:
 def _cli_record(argv, stdout_file, cwd=None) -> Optional[dict]:
     """A copilot head reports its served model in the --usage-output-file; the others in stdout."""
     usage = _usage_path(argv, cwd)
-    if usage and Path(str(argv[0]).replace("\\", "/")).name.lower().startswith("copilot"):
+    if usage and usage.suffix.lower() == ".json" and Path(str(argv[0]).replace("\\", "/")).name.lower().startswith("copilot"):
         return _read_json(usage)
     return _read_json(stdout_file) if stdout_file else None
 
