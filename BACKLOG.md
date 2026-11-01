@@ -716,6 +716,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1430] [P2][S] verify_handoff_probes crashes on a cp1252 console when its output is redirected · tasks/1430-verify-handoff-probes-crashes-on-a-cp1252-console-when-its-output-is-redirected.md
 - [#1431] [P2][S] The handoff cut takes the repository's name from its folder name · tasks/1431-the-handoff-cut-takes-the-repository-s-name-from-its-folder-name.md
 - [#1432] [P2][S] The post-fill order of the handoff cut lives in prose: --filled before assemble_paste refuses · tasks/1432-the-post-fill-order-of-the-handoff-cut-lives-in-prose-filled-before-assemble-pas.md
+- [#1801] [P1][S] land_lane finds main's base push run by commit, not inside a 40-run window · tasks/1801-land-lane-finds-mains-base-push-run-by-commit-not-inside-a-40-run-window.md
 - [#1433] [P2][M] A background seat has no sanctioned way to fill a handoff bundle · tasks/1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md
 - [#1434] [P2][M] ADR-129's 120-second handoff preflight bound does not hold on the operator's laptop · tasks/1434-adr-129-s-120-second-handoff-preflight-bound-does-not-hold-on-the-operator-s-lap.md
 - [#1435] [P1][M] transport_lint checks the seat-written handoff inputs when they are written: PLAN-HANDOFF section 4, the LEDGER token, RATIFICATION names · tasks/1435-transport-lint-checks-the-seat-written-handoff-inputs-when-they-are-written-plan.md

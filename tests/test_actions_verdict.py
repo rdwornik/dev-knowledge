@@ -1467,3 +1467,125 @@ def test_the_production_reader_hands_the_ci_verdict_no_injection_seam(monkeypatc
     assert _INJECTION_SEAMS.isdisjoint(seen["kwargs"]), seen["kwargs"]
     assert seen["kwargs"]["baseline"] == base
     assert ("run_id" in seen["kwargs"]) == (run_id is not None)
+
+
+def test_e30_fetch_run_lists_the_requested_commit(monkeypatch, tmp_path):
+    sha = "a" * 40
+    row = {**_RUN_ROW, "databaseId": 37, "headSha": sha}
+
+    def fake_run(command, **kwargs):
+        if "list" in command:
+            if "--commit" not in command:
+                return _ok(command, "[]")
+            commit = command[command.index("--commit") + 1]
+            return _ok(command, json.dumps([row] if commit == sha else []))
+        return _ok(command, json.dumps({"jobs": [{"name": "pytest", "conclusion": "success"}]}))
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+    run = av.fetch_run(sha, repo_root=tmp_path)
+
+    assert run is not None
+    assert run["databaseId"] == 37
+    assert run["headSha"] == sha
+    assert run["jobs"] == [{"name": "pytest", "conclusion": "success"}]
+
+
+def test_e30_missing_baseline_run_is_distinct_from_no_baseline(monkeypatch):
+    tip, base = "a" * 40, "b" * 40
+    fetch = _gh({tip: _run(tip, "failure", {"ruff": "failure"}), base: None})
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert f"baseline run not found for {base}" in verdict.render()
+    assert "no baseline was given" not in verdict.render()
+    assert "no baseline was given" not in verdict.reason
+
+
+def test_e30_fetch_run_chooses_newest_push_run_for_sha(monkeypatch, tmp_path):
+    sha = "c" * 40
+    older = {**_RUN_ROW, "databaseId": 10, "headSha": sha,
+             "createdAt": "2026-10-30T10:00:00Z"}
+    newer = {**_RUN_ROW, "databaseId": 9, "headSha": sha,
+             "createdAt": "2026-10-31T10:00:00Z"}
+
+    def fake_run(command, **kwargs):
+        if "list" in command:
+            return _ok(command, json.dumps([newer, older]))
+        return _ok(command, json.dumps({"jobs": []}))
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+    run = av.fetch_run(sha, repo_root=tmp_path)
+
+    assert run is not None
+    assert run["databaseId"] == newer["databaseId"]
+    assert run["createdAt"] == newer["createdAt"]
+
+
+def test_e30_fetch_run_never_chooses_a_non_push_row(monkeypatch, tmp_path):
+    row = {**_RUN_ROW, "headSha": "abc1234", "event": "pull_request"}
+
+    def fake_run(command, **kwargs):
+        return _ok(command, json.dumps([row]))
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+    assert av.fetch_run("abc1234", repo_root=tmp_path) is None
+
+
+def test_e30_unreachable_gh_raises_actions_unavailable(monkeypatch, tmp_path):
+    def unreachable(command, **kwargs):
+        raise OSError("gh is unavailable")
+
+    monkeypatch.setattr(av.subprocess, "run", unreachable)
+
+    with pytest.raises(av.ActionsUnavailable):
+        av.fetch_run("abc1234", repo_root=tmp_path)
+
+
+def test_e30_unavailable_baseline_lookup_is_not_a_missing_baseline():
+    tip, base = "a" * 40, "b" * 40
+
+    def fetch(sha, *, repo_root=None, workflow=None):
+        if sha == tip:
+            return _run(tip, "failure", {"ruff": "failure"})
+        if sha == base:
+            raise av.ActionsUnavailable("gh is unavailable")
+        raise AssertionError(f"unexpected SHA: {sha}")
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "baseline run unavailable" in verdict.render()
+    assert "baseline run not found" not in verdict.render()
+    assert "no baseline was given" not in verdict.render()
+
+
+def test_e30_fetch_run_distinguishes_unreadable_jobs_from_empty_jobs(monkeypatch, tmp_path):
+    listing = json.dumps([_RUN_ROW])
+
+    def unreadable_jobs(command, **kwargs):
+        if "list" in command:
+            return _ok(command, listing)
+        return subprocess.CompletedProcess(command, 1, "", "view failed")
+
+    monkeypatch.setattr(av.subprocess, "run", unreadable_jobs)
+    unreadable = av.fetch_run("abc0000", repo_root=tmp_path)
+
+    assert unreadable is not None
+    assert unreadable["jobs"] is None
+    assert av._jobs_were_read(unreadable) is False
+
+    def empty_jobs(command, **kwargs):
+        if "list" in command:
+            return _ok(command, listing)
+        return _ok(command, json.dumps({"jobs": []}))
+
+    monkeypatch.setattr(av.subprocess, "run", empty_jobs)
+    empty = av.fetch_run("abc0000", repo_root=tmp_path)
+
+    assert empty is not None
+    assert empty["jobs"] == []
+    assert av._jobs_were_read(empty) is True
