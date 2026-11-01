@@ -922,7 +922,7 @@ roles:
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: copilot-enterprise
-        note: "NOT ADMITTED and licence unknown -- the same two independent blocks as on implement. THIRD (R11, GO-E3.0, 2026-10-31)."
+        note: "NOT ADMITTED for read and licence unknown (its implement entry is admitted; admission is per role). THIRD (R11, GO-E3.0, 2026-10-31)."
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]

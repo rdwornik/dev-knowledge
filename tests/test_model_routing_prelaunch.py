@@ -68,9 +68,9 @@ def test_sonnet_primary_cell_naming_the_copilot_fallback_is_accepted():
     assert _problems(_contract(FROZEN_CELL)) == []
 
 
-def test_claude_first_cell_mentioning_copilot_fallback_is_accepted():
-    # GO-E3.0 R11: an admitted first Sonnet entry is valid without a fallback clause.
-    assert _problems(_contract(f"{SONNET} (fallback copilot)")) == []
+def test_copilot_led_cell_mentioning_the_sonnet_fallback_is_refused():
+    # GO-E3.0 R11: the later implement entry (Copilot) leading a cell needs a genuine VENDOR-FAIL line, even when the cell names the first entry as a fallback; mirrors the base test that refused a cell led by the later entry.
+    assert _problems(_contract(f"copilot (fallback {SONNET})"))
 
 
 def test_claude_via_copilot_cell_is_refused():

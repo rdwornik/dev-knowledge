@@ -224,7 +224,13 @@ def _implement_row_problems(lane: str, phase: str, cell: str, known: list[str], 
     nothing is hard-coded); any later registry entry only beside a `VENDOR-FAIL: implement` line."""
     order = pr.role_order(IMPLEMENT_ROLE, registry_path)
     first = order[0]
-    if _row_names_entry(cell, first, known):
+    # A cell that LEADS with a later entry's provider (`copilot (fallback claude-sonnet-5-5)`) selects
+    # that later entry, whatever first-entry model it also names: it needs the VENDOR-FAIL line.
+    lead = cell.lstrip(" \t*`_").lower()
+    leads_later = any(str(e.get("provider", "")).split("-")[0].lower() and
+                      lead.startswith(str(e.get("provider", "")).split("-")[0].lower())
+                      for e in order[1:])
+    if _row_names_entry(cell, first, known) and not (leads_later and not vendor_fail):
         return []
     if vendor_fail and any(_row_names_entry(cell, e, known) for e in order[1:]):
         return []
