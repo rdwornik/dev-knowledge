@@ -596,6 +596,91 @@ def test_a_failed_ledger_append_after_a_fire_halts_the_runner(tmp_path, monkeypa
     assert len(calls) == 1
 
 
+def test_a_malformed_ledger_row_halts_with_the_file_and_line_number(tmp_path):
+    # Dispatcher ruling (2026-11-01): an existing ledger with any malformed row fails closed.
+    qr = _runner()
+    ledger_path = tmp_path / "QUEUE-RUNNER-E3.0.jsonl"
+    ledger_path.write_text('{"key":"valid"}\n{not json\n{"key":"later"}\n', encoding="utf-8")
+
+    with pytest.raises(qr.LedgerHalt) as caught:
+        qr.Ledger(path=ledger_path)
+
+    assert ledger_path.name in str(caught.value)
+    assert "line 2" in str(caught.value)
+
+    ledger_path.write_text('{"key":"first"}\n{"key":"second"}\n[1]\n', encoding="utf-8")
+
+    with pytest.raises(qr.LedgerHalt) as caught:
+        qr.Ledger(path=ledger_path)
+
+    assert ledger_path.name in str(caught.value)
+    assert "line 3" in str(caught.value)
+
+
+def test_run_once_on_a_malformed_ledger_fires_nothing(tmp_path):
+    # Dispatcher ruling (2026-11-01): malformed existing ledger state halts before any fire.
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    ledger_path = tmp_path / "ledger.jsonl"
+    ledger_path.write_text('{"key":"valid"}\n{not json\n', encoding="utf-8")
+    calls = []
+
+    with pytest.raises(qr.LedgerHalt):
+        qr.run_once(
+            **_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
+            fire=_successful_fire(qr, calls),
+        )
+
+    assert calls == []
+
+
+def test_an_unreadable_existing_ledger_halts(tmp_path):
+    # Dispatcher ruling (2026-11-01): an existing ledger that cannot be read fails closed.
+    qr = _runner()
+    missing_path = tmp_path / "missing.jsonl"
+    assert qr.Ledger(path=missing_path).rows == []
+
+    directory_path = tmp_path / "ledger-directory"
+    directory_path.mkdir()
+    with pytest.raises(qr.LedgerHalt) as caught:
+        qr.Ledger(path=directory_path)
+
+    assert directory_path.name in str(caught.value)
+
+
+def test_main_exits_1_on_a_malformed_ledger(tmp_path, monkeypatch):
+    # Dispatcher ruling (2026-11-01): main must fail closed when it cannot read the existing ledger.
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    (receipts / "QUEUE-RUNNER-E3.0.jsonl").write_text(
+        '{"key":"valid"}\n{not json\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(qr._dispatch, "receipts_dir", lambda: receipts)
+    monkeypatch.setattr(qr, "acquire_single_instance", lambda _path: object())
+    calls = []
+
+    def subprocess_fire(argv, env):
+        calls.append((list(argv), dict(env)))
+        return qr.FireResult(returncode=0, output="")
+
+    monkeypatch.setattr(qr, "subprocess_fire", subprocess_fire)
+    result = qr.main([
+        "watch", "--batch", "E3.0", "--state-file", str(state_file), "--transport", str(transport),
+        "--contracts", *(str(contract) for contract in _contracts()), "--interval", "1", "--once",
+    ])
+
+    assert result == 1
+    assert calls == []
+
+
 def test_main_exits_1_when_the_ledger_halts(tmp_path, monkeypatch):
     # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
     qr = _runner()
