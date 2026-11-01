@@ -661,6 +661,14 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    "scripts/backlog_reconcile.py": Disposition(
+        reason="KEEP -- the per-row backlog reconciliation organ (GO-E3.0 R10, [#1749]): the "
+               "operator runs `evidence`, `fanout`, `adjudicate` and `report` by hand and rules "
+               "per evidence class; `apply` refuses without that ruling file. No event fires it "
+               "and none should: a model-reading run over the open rows is an act of the "
+               "operator's, not of a hook. harness.yaml records the fate. Delete this row when a "
+               "moment declaration wires it into batch close",
+        owner="[#1749]"),
 }
 
 
@@ -1267,6 +1275,14 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "`## ` sections of one handover document, a transcript's JSONL, and a process "
         "command line. None of it is a relation between two corpus files, so there is no "
         "edge for FPG-1 to hold and nothing for a W-G3 lane to migrate"),
+    "scripts/backlog_reconcile.py": _not_an_edge(
+        "the per-row backlog reconciliation organ ([#1749]). The shape matched on its "
+        "five-kind vocabulary (`EVIDENCE_CLASSES`) beside its reads of `tasks/*.md` and the "
+        "paths a row body cites. The class does not apply because the five kinds are "
+        "CLASSES OF A ROW'S EVIDENCE (shipped, obsolete, stale-refs, live, unclear), not "
+        "kinds of a relation between two corpus files: the one thing it derives from a "
+        "cited path is whether it exists, a per-row fact stored in its own state "
+        "directory, and no edge is written into the graph or a file by it"),
 }
 
 
