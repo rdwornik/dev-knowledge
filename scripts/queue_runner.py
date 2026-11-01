@@ -211,6 +211,20 @@ class Ledger:
             if isinstance(row, dict):
                 self.rows.append(row)
 
+    def writable(self) -> bool:
+        """Can a row be appended right now? A live pass checks before it fires: a fire whose outcome
+        cannot be made durable would be fired again by the next restart, so nothing fires instead."""
+        if not self.persist:
+            return True
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with self.path.open("a", encoding="utf-8", newline="\n"):
+                pass
+            return True
+        except OSError as exc:
+            logger.error("ledger %s is not writable (%s)", self.path, exc)
+            return False
+
     def in_memory_copy(self) -> "Ledger":
         copy = Ledger.__new__(Ledger)
         copy.path, copy.persist, copy.rows = self.path, False, [dict(r) for r in self.rows]
@@ -409,6 +423,8 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             ledger.record(event, STATUS_FIRED, state_after=plan.state_after)
             return
 
+        if not ledger.writable():       # fail closed: an outcome that cannot be recorded is not fired
+            return
         try:
             result = fire(argv, env)
         except Exception as exc:    # an injected or custom fire that raises counts as a failed fire

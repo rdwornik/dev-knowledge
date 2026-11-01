@@ -494,7 +494,7 @@ def test_a_failed_line_after_repair_three_of_two_still_fires_the_queue_pass(tmp_
     assert qr.Ledger(path=ledger_path).lane_state("b") == "failed"
 
 
-def test_an_unwritable_ledger_does_not_end_the_pass(tmp_path):
+def test_an_unwritable_ledger_fires_nothing_and_does_not_end_the_pass(tmp_path):
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path,
@@ -507,7 +507,7 @@ def test_an_unwritable_ledger_does_not_end_the_pass(tmp_path):
     fired = qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=blocker / "l.jsonl"),
                         fire=_successful_fire(qr, calls))
 
-    assert len(fired) == len(calls) == 1
+    assert fired == [] and calls == []      # fail closed: an outcome that cannot be recorded is not fired
 
 
 def test_main_rejects_an_interval_below_one_second(tmp_path):
@@ -559,7 +559,7 @@ def test_a_dry_run_of_a_machine_refused_event_prints_nothing_and_writes_nothing(
     assert ledger_path.read_bytes() == before
 
 
-def test_an_unwritable_ledger_does_not_refire_across_the_passes_of_one_watch(tmp_path):
+def test_an_unwritable_ledger_never_fires_across_the_passes_of_one_watch(tmp_path):
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path,
@@ -574,7 +574,7 @@ def test_an_unwritable_ledger_does_not_refire_across_the_passes_of_one_watch(tmp
         qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=blocker / "l.jsonl"),
                     fire=_successful_fire(qr, calls), ledger=ledger)
 
-    assert len(calls) == 1
+    assert calls == []
 
 
 def test_every_event_of_a_pass_is_seen_after_it_and_nothing_is_fired_twice(tmp_path):
