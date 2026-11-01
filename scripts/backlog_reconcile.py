@@ -463,7 +463,10 @@ def _agy_read(source: Path, output: Path) -> read_gate.InvokeAttempt:
 
 def _agy_usage(stdout: str) -> dict[str, Any]:
     """Best-effort token counts from `agy --output-format json`; 0 when the shape lacks them."""
-    out = {"model": "agy", "input_tokens": 0, "output_tokens": 0}
+    # agy reports no served-model id in its JSON (probed 2026-11-01, agy 1.4.12), so the label
+    # says so rather than naming a Gemini version nobody verified.
+    out = {"model": "antigravity-agy (served model not reported)", "input_tokens": 0,
+           "output_tokens": 0}
     try:
         data = json.loads(stdout)
     except json.JSONDecodeError:
@@ -474,9 +477,9 @@ def _agy_usage(stdout: str) -> dict[str, Any]:
             for key, value in node.items():
                 lowered = key.lower()
                 if isinstance(value, (int, float)) and "token" in lowered:
-                    if "input" in lowered or "prompt" in lowered:
+                    if "input" in lowered or "prompt" in lowered or "cache" in lowered:
                         out["input_tokens"] += int(value)
-                    elif "output" in lowered or "candidate" in lowered or "completion" in lowered:
+                    elif any(w in lowered for w in ("output", "candidate", "completion", "thinking")):
                         out["output_tokens"] += int(value)
                 elif lowered in ("model", "modelname", "model_name") and isinstance(value, str):
                     out["model"] = value
