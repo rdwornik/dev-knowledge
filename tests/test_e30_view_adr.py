@@ -112,8 +112,34 @@ def test_design_audit_evaluators_and_response_coverage():
     assert dc.check_response_coverage(eval_files, audit) == []
 
 
+_BARE_LOCATOR = re.compile(r"(?<![\w/.-])((?:[\w.-]+/)*[\w.-]+\.(?:py|md|yaml|yml|json|toml|txt|ps1)):(\d+)(?!\d)")
+
+
 def test_adr_and_audit_paths_resolve():
-    """Every locator in the ADR and design audit resolves in this repository."""
+    """Every locator in the ADR and design audit resolves in this repository.
+
+    The decide check reads backtick-marked locators only; the ADR and audit cite most of theirs
+    as bare prose (`path:line`), so this test also resolves those directly: the file exists and
+    has at least that many lines.
+    """
     audit = _only_file("docs/audits/*-technical-design-view.md", "design audit")
     adr = _only_file("docs/decisions/ADR-*-the-system-view.md", "system-view ADR")
     assert dc.check_paths_resolve([audit, adr], repo_root=_REPO) == []
+
+    seen = 0
+    unresolved: list[str] = []
+    for doc in (audit, adr):
+        for match in _BARE_LOCATOR.finditer(doc.read_text(encoding="utf-8")):
+            rel, line = match.group(1), int(match.group(2))
+            target = _REPO / rel
+            if not target.is_file():
+                # a named file the lane itself does not own, or a transport path: not a repo locator
+                if rel.startswith(("to-browser/", "to-cc/")):
+                    continue
+                unresolved.append(f"{doc.name}: {rel}:{line} (no such file)")
+                continue
+            seen += 1
+            if sum(1 for _ in target.open(encoding="utf-8", errors="replace")) < line:
+                unresolved.append(f"{doc.name}: {rel}:{line} (file is shorter)")
+    assert seen > 0, "no bare path:line locator was found; the pattern no longer matches the documents"
+    assert unresolved == []
