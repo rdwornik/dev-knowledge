@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import sys
+from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -541,3 +542,255 @@ def test_audit_health_gains_no_finding_after_a_simulated_cycle(tmp_path, monkeyp
     assert not any("seat" in name.lower() for name in _health_findings(after))
     gained = _health_findings(after) - _health_findings(before)
     assert not gained, f"the cycle added health finding(s): {sorted(gained)}"
+
+
+# --- batch bindings: one integrator session may receive multiple batches -------------------------
+
+def test_a_integrator_binds_accumulate_in_priority_order(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.0", "E3.1", "E3.2")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+
+    seat = _seats(path, now=T0 + timedelta(minutes=3))["int-1"]
+    assert seat.batches == ("E3.0", "E3.1", "E3.2")
+    assert seat.batch == "E3.0"
+
+
+def test_b_integrator_bind_order_does_not_change_priority_order(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.2", "E3.0", "E3.1")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+
+    seat = _seats(path, now=T0 + timedelta(minutes=3))["int-1"]
+    assert seat.batches == ("E3.0", "E3.1", "E3.2")
+
+
+def test_c_batch_priority_sorts_numeric_minor_versions(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "E3.10", session_id="int-1", path=path, now=T0)
+    reg.bind("integrator", "E3.2", session_id="int-1", path=path,
+             now=T0 + timedelta(minutes=1))
+
+    seat = _seats(path, now=T0 + timedelta(minutes=2))["int-1"]
+    assert seat.batches == ("E3.2", "E3.10")
+
+
+def test_d_unbinding_one_batch_keeps_the_other_integrator_bindings(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.0", "E3.1", "E3.2")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+
+    row = reg.unbind(session_id="int-1", path=path, now=T0 + timedelta(minutes=3),
+                     batch="E3.1")
+    seat = _seats(path, now=T0 + timedelta(minutes=4))["int-1"]
+    assert row["batch"] == "E3.1"
+    assert seat.state == "live"
+    assert seat.batches == ("E3.0", "E3.2")
+
+
+def test_e_bare_unbind_reads_absent(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.0", "E3.1", "E3.2")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+    reg.unbind(session_id="int-1", path=path, now=T0 + timedelta(minutes=3))
+
+    seat = _seats(path, now=T0 + timedelta(minutes=4))["int-1"]
+    assert seat.state == "absent"
+    assert seat.batches == ("E3.0", "E3.1", "E3.2")
+
+
+def test_f_legacy_single_batch_and_lane_seats_expose_batches(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    legacy_row = {
+        "schema": reg.SCHEMA,
+        "kind": "bind",
+        "role": "integrator",
+        "batch": "AB",
+        "session_id": "legacy-int",
+        "ts": T0.isoformat(),
+    }
+    path.write_text(json.dumps(legacy_row) + "\n", encoding="utf-8")
+    _event(path, "SessionStart", "lane-1", at=T0, cwd=LANE_CWD)
+
+    seats = _seats(path, now=T0)
+    assert seats["legacy-int"].batches == ("AB",)
+    assert seats["legacy-int"].batch == "AB"
+    assert seats["lane-1"].batch == "AB"
+    assert seats["lane-1"].batches == ("AB",)
+
+
+def test_g_health_line_only_names_batches_without_a_live_integrator(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.0", "E3.1", "E3.2")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+    probes = {"pid_alive": lambda _p: True, "path_exists": lambda _p: True,
+              "transcript_mtime": lambda _p: None}
+
+    covered = reg.seat_health_line(
+        path, now=T0 + timedelta(minutes=3),
+        open_batches=["E3.0", "E3.1", "E3.2"], **probes)
+    assert covered is not None
+    assert "NO LIVE INTEGRATOR" not in covered
+
+    with_open_batch = reg.seat_health_line(
+        path, now=T0 + timedelta(minutes=3),
+        open_batches=["E3.0", "E3.1", "E3.2", "E3.3"], **probes)
+    assert with_open_batch is not None
+    assert "NO LIVE INTEGRATOR for batch E3.3" in with_open_batch
+    assert "E3.0" not in with_open_batch.split("NO LIVE INTEGRATOR", 1)[-1]
+    assert "E3.1" not in with_open_batch.split("NO LIVE INTEGRATOR", 1)[-1]
+    assert "E3.2" not in with_open_batch.split("NO LIVE INTEGRATOR", 1)[-1]
+
+
+def test_h_show_lists_each_batch_binding_in_priority_order(tmp_path, monkeypatch):
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    now = datetime.now(timezone.utc)
+    for index, batch in enumerate(("E3.2", "E3.0", "E3.1")):
+        reg.bind("integrator", batch, session_id="int-1", now=now + timedelta(seconds=index))
+
+    result = CliRunner().invoke(reg.cli, ["show"])
+    assert result.exit_code == 0, result.output
+    lines = result.output.splitlines()
+    expected = [
+        "  bind E3.0 priority=(3, 0) landing=arrival",
+        "  bind E3.1 priority=(3, 1) landing=arrival",
+        "  bind E3.2 priority=(3, 2) landing=arrival",
+    ]
+    positions = [lines.index(line) for line in expected]
+    seat_positions = [index for index, line in enumerate(lines)
+                      if "integrator" in line and "int-1" in line]
+    assert len(seat_positions) == 1
+    assert positions == list(range(seat_positions[0] + 1, seat_positions[0] + 4))
+
+
+def test_h_unbind_cli_records_optional_batch_only_when_supplied(tmp_path, monkeypatch):
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    runner = CliRunner()
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "batch-unbind")
+    selected = runner.invoke(reg.cli, ["unbind", "--batch", "E3.1"])
+    assert selected.exit_code == 0, selected.output
+
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "bare-unbind")
+    bare = runner.invoke(reg.cli, ["unbind"])
+    assert bare.exit_code == 0, bare.output
+
+    rows = [row for row in reg.read_rows(path) if row["kind"] == "unbind"]
+    assert rows[0]["batch"] == "E3.1"
+    assert "batch" not in rows[1]
+
+
+def test_i_seats_keep_stable_batch_bind_metadata_when_one_batch_is_unbound(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    for index, batch in enumerate(("E3.0", "E3.1", "E3.2")):
+        reg.bind("integrator", batch, session_id="int-1", path=path,
+                 now=T0 + timedelta(minutes=index))
+
+    seat = reg.seats(path, now=T0 + timedelta(minutes=3))[0]
+    assert len(reg.seats(path, now=T0 + timedelta(minutes=3))) == 1
+    assert seat.role == "integrator"
+    assert len(seat.binds) == 3
+    assert all(isinstance(binding, reg.BatchBind) for binding in seat.binds)
+    assert [(binding.batch, binding.priority, binding.landing) for binding in seat.binds] == [
+        ("E3.0", (3, 0), "arrival"),
+        ("E3.1", (3, 1), "arrival"),
+        ("E3.2", (3, 2), "arrival"),
+    ]
+    with pytest.raises(FrozenInstanceError):
+        seat.binds[0].priority = (9, 9)
+
+    reg.unbind(session_id="int-1", path=path, now=T0 + timedelta(minutes=4), batch="E3.1")
+    remaining = reg.seats(path, now=T0 + timedelta(minutes=5))
+    assert len(remaining) == 1
+    assert [(binding.batch, binding.priority) for binding in remaining[0].binds] == [
+        ("E3.0", (3, 0)), ("E3.2", (3, 2))]
+
+
+def test_j_legacy_registry_fixture_preserves_literal_reads_and_refusals():
+    import seat_refusals as sr
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "seat_registry" / "legacy-registry.jsonl"
+    now = datetime(2026, 11, 1, 9, 10, tzinfo=timezone.utc)
+    probes = {"pid_alive": lambda _p: True, "path_exists": lambda _p: True,
+              "transcript_mtime": lambda _p: None}
+    seats = reg.seats(fixture, now=now, **probes)
+
+    assert [(seat.session_id, seat.role, seat.batch, seat.state, seat.lane) for seat in seats] == [
+        ("brow-dddd-005", "browser", "AB", "live", None),
+        ("disp-bbbb-002", "dispatcher", "AB", "live", None),
+        ("int-aaaa-0001", "integrator", "AB", "live", None),
+        ("intcd-0003", "integrator", "CD", "wedged", None),
+        ("lane-cccc-004", "lane", "AB", "live", "lane-ab-833-seat-registry"),
+        ("unbd-eeee-006", None, None, "live", None),
+    ]
+    assert sr.refuse_no_live_integrator("AB", seats).session_id == "int-aaaa-0001"
+    with pytest.raises(SeatRefusal) as cd_refusal:
+        sr.refuse_no_live_integrator("CD", seats)
+    assert str(cd_refusal.value) == (
+        "REFUSED [no-live-integrator]: batch CD has no live integrator seat "
+        "(intcd-00 reads wedged) -- a lane dispatched now hands back to nobody -- "
+        "boot the integrator for batch CD and, from ITS OWN session, run "
+        "`uv run --locked python scripts/seat_registry.py bind --role integrator --batch CD`; "
+        "then dispatch. A dispatcher or lane never binds a role it does not hold"
+    )
+    with pytest.raises(SeatRefusal) as zz_refusal:
+        sr.refuse_no_live_integrator("ZZ", seats)
+    assert str(zz_refusal.value) == (
+        "REFUSED [no-live-integrator]: batch ZZ has no live integrator seat "
+        "(none registered) -- a lane dispatched now hands back to nobody -- "
+        "boot the integrator for batch ZZ and, from ITS OWN session, run "
+        "`uv run --locked python scripts/seat_registry.py bind --role integrator --batch ZZ`; "
+        "then dispatch. A dispatcher or lane never binds a role it does not hold"
+    )
+    assert reg.seat_health_line(
+        fixture, now=now, open_batches=["AB", "CD", "ZZ"], **probes
+    ) == (
+        "[seats] 4 live / 1 wedged / 0 absent / 0 starved "
+        "(last 24 h; 1 unbound) / WEDGED: integrator CD intcd-00 "
+        "(190 min since last event) / NO LIVE INTEGRATOR for batch CD, ZZ -- bind one: "
+        "`seat_registry.py bind --role integrator --batch <B>`"
+    )
+    assert all(seat.batches == ((seat.batch,) if seat.batch else ()) for seat in seats)
+
+
+def test_l_static_landing_paths_do_not_depend_on_batch_bind_metadata():
+    root = Path(__file__).resolve().parents[1]
+    for name in ("land_lane.py", "merge_path.py"):
+        source = (root / "scripts" / name).read_text(encoding="utf-8")
+        for forbidden in ("import seat_registry", "from seat_registry", "scripts.seat_registry",
+                          "BatchBind"):
+            assert forbidden not in source, f"{name} contains {forbidden!r}"
+
+
+def test_m_changing_roles_clears_old_integrator_batches_and_rebind_starts_fresh(tmp_path):
+    import seat_refusals as sr
+
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "E3.0", session_id="int-1", path=path, now=T0)
+    reg.bind("integrator", "E3.1", session_id="int-1", path=path,
+             now=T0 + timedelta(minutes=1))
+    reg.bind("dispatcher", "E3.0", session_id="int-1", path=path,
+             now=T0 + timedelta(minutes=2))
+
+    dispatcher = _seats(path, now=T0 + timedelta(minutes=3))["int-1"]
+    assert dispatcher.role == "dispatcher"
+    assert dispatcher.batches == ("E3.0",)
+    assert "E3.1" not in dispatcher.batches
+    for batch in ("E3.0", "E3.1"):
+        with pytest.raises(SeatRefusal, match="no-live-integrator"):
+            sr.refuse_no_live_integrator(batch, [dispatcher])
+
+    reg.bind("integrator", "E3.2", session_id="int-1", path=path,
+             now=T0 + timedelta(minutes=4))
+    rebound = _seats(path, now=T0 + timedelta(minutes=5))["int-1"]
+    assert rebound.role == "integrator"
+    assert rebound.batches == ("E3.2",)
+    for batch in ("E3.0", "E3.1"):
+        with pytest.raises(SeatRefusal, match="no-live-integrator"):
+            sr.refuse_no_live_integrator(batch, [rebound])
