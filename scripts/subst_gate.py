@@ -372,9 +372,15 @@ def check_models_block(text: str) -> tuple[list[str], list[str]]:
             # `VENDOR-FAIL: implement <text>` on the line.
             copilot_arm = requested.startswith("copilot") or "copilot" in phase.lower()
             req_parts = {p.strip().lower() for p in req.group(1).split("/")}
+            # The requested MODEL is the first part (`copilot/<model>`: the part after `copilot`);
+            # any other part is effort and never names a model (Codex terra N402200 / sol J402201).
+            _parts = [p.strip().lower() for p in req.group(1).split("/")]
+            req_model = _parts[1] if _parts[0].startswith("copilot") and len(_parts) > 1 else _parts[0]
+            # Merge time judges the MODEL only: the route flag `vendor_fail_only` is the pre-launch
+            # check's business (`_implement_row_problems`).
             by_model = any(
-                pr.is_admitted(e) and not e.get("vendor_fail_only") and e.get("model")
-                and e["model"].lower() in req_parts and token == e["model"].lower()
+                pr.is_admitted(e) and e.get("model")
+                and e["model"].lower() == req_model and token == e["model"].lower()
                 and (e.get("provider") != "copilot-enterprise"
                      or token in {s.lower() for s in COPILOT_GATEWAY_SERVED})
                 for e in pr.role_order(IMPLEMENT_ROLE))
