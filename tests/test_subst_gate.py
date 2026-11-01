@@ -170,6 +170,38 @@ def test_a_matching_models_block_is_accepted():
     assert sg.check_models_block(text) == ([], [])
 
 
+# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+def test_a_model_smuggled_in_the_effort_position_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-opus-5-5/claude-sonnet-5-5 "
+        "served=claude-sonnet-5-5\n")
+    assert problems
+
+
+# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+def test_a_sonnet_request_with_an_effort_is_accepted():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-sonnet-5-5/high served=claude-sonnet-5-5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 (Codex terra N402200 / sol J402201)
+def test_an_admitted_vendor_fail_only_entry_requested_and_served_passes(monkeypatch):
+    entry = dict(sg.pr.role_order("implement")[0])
+    entry.update(provider="anthropic", model="claude-opus-5-5", vendor_fail_only=True)
+    role_order = sg.pr.role_order
+
+    def patched_role_order(role, *args, **kwargs):
+        if role == "implement":
+            return [entry, *role_order(role, *args, **kwargs)]
+        return role_order(role, *args, **kwargs)
+
+    monkeypatch.setattr(sg.pr, "role_order", patched_role_order)
+    problems, _ = sg.check_models_block(
+        "MODELS:\n  implement: requested=claude-opus-5-5/high served=claude-opus-5-5\n")
+    assert problems == []
+
+
 def test_a_missing_models_block_is_a_problem():
     problems, subs = sg.check_models_block("HANDBACK lane-x @ abc\n")
     assert problems and problems[0].startswith("REFUSED [models-block]: ")
