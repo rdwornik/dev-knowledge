@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-01 (c) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-served-model landing -- `run_phase.py` records the served model from the CLI's own usage file, with stdout and stderr apart [#1687]
+
+**Anchors:** `2534949ab` (RED tests), `989bba6fa` (served model from the CLI record, stderr split), `8d0478f50` (model_requested from the executed argv), `dd5e17b3e` and `f5fdfa9d3` (RED and feat: every modelMetrics key kept as evidence, served unattested when currentModel is missing), `82207e42d`, `10ce46471`, `53f1ce262`, `7b4f047fc`, `04f69868a`, `b1657374c`, `9e35693f6`, `93d6a2e44`, `f08f8e356` (the usage-file and unattested-reason fixes), `6f7324128` and `1ac083313` (RED and fix: `_argv_value` reads `--flag=value`), `1ade718b8` (a repeated flag resolves to its last occurrence), `eda41fdd9` (the usage file is read only under the same .json predicate it is cleared by), `fb8705221` and `7f19692a3` (task-file claims).
+
+**Did:** landed the lane's HANDBACK `eda41fdd9` (SESSION-e30-served-model.md) under integrator order revision 4 + A1 + A2 + A3 + A4 (sha256 d3afbc4e164e5e61). Purity, the T2 rule re-derived by me against base run 41035368018, terra, grok and sol records made before A4 (they stand under A4). The two earlier RED rounds lack a recoverable Copilot session id; their usage files and served gpt-6-luna are attested, and I accepted that on the same footing the orchestrator ruled for e30-ci-verdict (cited from the CLI's own files), recorded in the integrator receipt. Landed with `land_lane.py` and the five `--regen-cmd`.
+
+**Result:** see logs/MERGE-RECEIPTS.jsonl for the landing line; the integrator receipt (to-browser/SESSION-integrator-E3.0-2026-10-31.md) carries the verdicts and the hand steps.
+
+**Changes:** `scripts/run_phase.py`, `ecosystem/schema/phase_receipt.py`, `ecosystem/harness.yaml`, `tests/test_run_phase.py`, one task file; regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** e30-rulings, then e30-actions-window [#1801], e30-ci-verdict, e30-queue-runner, e30-view-decide, backlog-reconcile, e30-witness last; the integrator seat cycles after this landing.
+
 ### 2026-11-01 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-phases-from-contract landing -- `conductor.py lane --contract` reads its phases from the lane contract and disallows advisor on every claude argv [#1689]
 
 **Anchors:** `e3398278f` (RED tests), `25c175c93` (the feature), `fe2a0c3ed` and `642ec6a1c` (RED and fix: contract phase rows validated against the full harness schema), `d74ec796f` and `c9cec3f28` (RED and fix: absolute harness and receipts paths for the doit child), `0b06e9c9e` (touches clause), `5b5787a24` and `39ef8c231` (RED and fix: advisor merged into one disallowedTools flag, non-string phase id refused), `b42334d20` and `527756d1c` (RED and fix: a bare disallowedTools flag never consumes an option).
