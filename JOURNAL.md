@@ -21,6 +21,33 @@
 
 ---
 
+### 2026-11-01 (c) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-served-model landing -- `run_phase.py` records the served model from the CLI's own usage file, with stdout and stderr apart [#1687]
+
+**Anchors:** `2534949ab` (RED tests), `989bba6fa` (served model from the CLI record, stderr split), `8d0478f50` (model_requested from the executed argv), `dd5e17b3e` and `f5fdfa9d3` (RED and feat: every modelMetrics key kept as evidence, served unattested when currentModel is missing), `82207e42d`, `10ce46471`, `53f1ce262`, `7b4f047fc`, `04f69868a`, `b1657374c`, `9e35693f6`, `93d6a2e44`, `f08f8e356` (the usage-file and unattested-reason fixes), `6f7324128` and `1ac083313` (RED and fix: `_argv_value` reads `--flag=value`), `1ade718b8` (a repeated flag resolves to its last occurrence), `eda41fdd9` (the usage file is read only under the same .json predicate it is cleared by), `fb8705221` and `7f19692a3` (task-file claims).
+
+**Did:** landed the lane's HANDBACK `eda41fdd9` (SESSION-e30-served-model.md) under integrator order revision 4 + A1 + A2 + A3 + A4 (sha256 d3afbc4e164e5e61). Purity, the T2 rule re-derived by me against base run 41035368018, terra, grok and sol records made before A4 (they stand under A4). The two earlier RED rounds lack a recoverable Copilot session id; their usage files and served gpt-6-luna are attested, and I accepted that on the same footing the orchestrator ruled for e30-ci-verdict (cited from the CLI's own files), recorded in the integrator receipt. Landed with `land_lane.py` and the five `--regen-cmd`.
+
+**Result:** see logs/MERGE-RECEIPTS.jsonl for the landing line; the integrator receipt (to-browser/SESSION-integrator-E3.0-2026-10-31.md) carries the verdicts and the hand steps.
+
+**Changes:** `scripts/run_phase.py`, `ecosystem/schema/phase_receipt.py`, `ecosystem/harness.yaml`, `tests/test_run_phase.py`, one task file; regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** e30-rulings, then e30-actions-window [#1801], e30-ci-verdict, e30-queue-runner, e30-view-decide, backlog-reconcile, e30-witness last; the integrator seat cycles after this landing.
+
+### 2026-11-01 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-phases-from-contract landing -- `conductor.py lane --contract` reads its phases from the lane contract and disallows advisor on every claude argv [#1689]
+
+**Anchors:** `e3398278f` (RED tests), `25c175c93` (the feature), `fe2a0c3ed` and `642ec6a1c` (RED and fix: contract phase rows validated against the full harness schema), `d74ec796f` and `c9cec3f28` (RED and fix: absolute harness and receipts paths for the doit child), `0b06e9c9e` (touches clause), `5b5787a24` and `39ef8c231` (RED and fix: advisor merged into one disallowedTools flag, non-string phase id refused), `b42334d20` and `527756d1c` (RED and fix: a bare disallowedTools flag never consumes an option).
+
+**Did:** landed the lane's HANDBACK `527756d1c` under integrator order revision 4 + A1 + A2 + A3 (sha256 ebf433a628ebf005); A3 (operator, 2026-11-01) lifts the ci-verdict-first rule for this lane. Purity, T1 (RED sha e3398278f, run 41214471759, concluded failure on attempt 2 after an orchestrator rerun; recorded as TODAY-GLUE), the T2 rule re-derived by me from the tip run 41252073988 against base run 41035368018 (two ids outside the registry, both the allowed doc-counts staleness), terra, grok and sol PASS. Landed with `land_lane.py` and the five `--regen-cmd`.
+
+**Result:** see logs/MERGE-RECEIPTS.jsonl for the landing line; the integrator receipt (to-browser/SESSION-integrator-E3.0-2026-10-31.md) carries the verdicts and any HAND-STEP.
+
+**Changes:** `scripts/conductor.py`, `tests/test_conductor_lane.py`, `tests/fixtures/e30-three-phase-contract.md`, `tests/fixtures/stub_phase.py`, one task file (touches clause); regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** e30-served-model (L2) @ eda41fdd9, then e30-ci-verdict, e30-rulings, e30-queue-runner, e30-view-decide, backlog-reconcile, e30-witness last.
 ### 2026-11-01 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 2, batch E3.0): the e30-bootstrap landing -- GO-E3.0 R11 routing in the provider registry, the merge-time implement check reads the registry, R2 advisor block on every Claude argv, rows [#1747] [#1748] [#1749] filed
 
 **Anchors:** `691a2a510` (RED tests), `74b9f3bf4` (registry R11 roles, `subst_gate` reads the registry, `dispatch.py` `--disallowedTools=AskUserQuestion,advisor`), `f51b3ae70` (Copilot arm constrained), `0c21a17a4` (R177-pinning assertions rewritten to R11/R2 by a Copilot T1 session, each citing its line), `858f54034` (manifest nodes for the three rows the lane files), `07125629c` and `3be0bc71d` (RED tests for the two merge-gate defects the grok/sol adjudication confirmed), `5f75c0d99` and `55cbb79cf` (their fixes in `scripts/subst_gate.py`).

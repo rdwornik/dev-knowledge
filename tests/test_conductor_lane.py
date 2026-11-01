@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import textwrap
@@ -374,3 +375,234 @@ def test_a_receipt_reading_checker_runs_as_declared_without_an_import_error(tmp_
                          timeout=120)
     assert "Traceback" not in out.stderr and "ModuleNotFoundError" not in out.stderr, out.stderr
     assert out.returncode == 1 and cid in out.stdout, (out.returncode, out.stdout, out.stderr)
+
+
+# --- lane contracts ([#1689]): phase rows come from the frozen contract -------------------------
+
+_CONTRACT = _REPO / "tests" / "fixtures" / "e30-three-phase-contract.md"
+_ADVISOR_TOKEN = "--disallowedTools=AskUserQuestion,advisor"
+
+
+def _claude_head(argv: list[str]) -> bool:
+    head = argv[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return head.removesuffix(".exe").removesuffix(".cmd") == "claude"
+
+
+def test_contract_phases_parses_the_three_phase_fixture():
+    phases = _conductor().contract_phases(_CONTRACT.read_text(encoding="utf-8"))
+    assert [phase["id"] for phase in phases] == ["P1", "P2", "P3"]
+    assert [phase["name"] for phase in phases] == ["spec", "red", "implement"]
+
+
+def test_contract_phases_returns_none_without_a_phases_section():
+    assert _conductor().contract_phases("# Contract\n\nNo phase table here.\n") is None
+
+
+@pytest.mark.parametrize("block", [
+    "other: []",
+    "phases:\n  - id: P1\n    name: spec\n    row_phase: build\n    role: plan\n"
+    "    cli: uv\n    gate: payload\n    timeout_s: 60\n",
+    "phases:\n  - id: P1\n    name: spec\n    row_phase: build\n    role: plan\n"
+    "    cli: uv\n    gate: payload\n    timeout_s: 60\n    command: []\n",
+    "phases:\n  - id: P1\n    name: spec\n    row_phase: build\n    role: plan\n"
+    "    cli: uv\n    gate: invalid\n    timeout_s: 60\n    command: [uv]\n",
+    "phases:\n  - id: P1\n    name: spec\n    row_phase: build\n    role: plan\n"
+    "    cli: uv\n    gate: exit\n    timeout_s: 60\n    command: [uv]\n"
+    "  - id: P1\n    name: duplicate\n    row_phase: build\n    role: plan\n"
+    "    cli: uv\n    gate: exit\n    timeout_s: 60\n    command: [uv]\n",
+])
+def test_contract_phases_rejects_malformed_phase_tables(block):
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(f"## Phases\n\n```yaml\n{block}```\n")
+
+
+def test_contract_phases_rejects_multiple_yaml_blocks():
+    text = "## Phases\n\n```yaml\nphases: []\n```\n\n```yaml\nphases: []\n```\n"
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(text)
+
+
+def test_contract_phases_rejects_a_phases_section_without_a_yaml_block():
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases("## Phases\n\nPhase table intentionally omitted.\n")
+
+
+@pytest.mark.parametrize("head", [
+    "claude",
+    "claude.cmd",
+    r"C:\Program Files\Claude\claude.exe",
+])
+def test_add_disallowed_advisor_handles_claude_commands_and_fallbacks_idempotently(head):
+    import copy  # noqa: PLC0415
+
+    c = _conductor()
+    rows = [{"id": "P1", "command": [head, "-p"], "fallback": ["claude", "-p"]},
+            {"id": "P2", "command": ["uv", "run"], "fallback": ["copilot", "-p"]}]
+    before = copy.deepcopy(rows)
+    transformed = c.add_disallowed_advisor(rows)
+
+    assert transformed[0]["command"] == [head, _ADVISOR_TOKEN, "-p"]
+    assert transformed[0]["fallback"] == ["claude", _ADVISOR_TOKEN, "-p"]
+    assert transformed[1] == rows[1]
+    assert c.add_disallowed_advisor(transformed) == transformed
+    assert transformed[0]["command"].count(_ADVISOR_TOKEN) == 1
+    assert transformed[0]["fallback"].count(_ADVISOR_TOKEN) == 1
+    assert rows == before, "the input rows must not be mutated"
+
+
+def test_render_contract_harness_merges_phases_preserves_constraints_and_adds_advisor(tmp_path):
+    c = _conductor()
+    original_bytes = _HARNESS.read_bytes()
+    original = yaml.safe_load(original_bytes)
+    out = tmp_path / "receipts" / "LANE-test" / "r1" / "harness.contract.yaml"
+    harness_path, source = c.render_contract_harness(_CONTRACT, _HARNESS, out)
+
+    assert harness_path == out and out.is_file()
+    assert "contract" in source.lower() and str(_CONTRACT) in source
+    rendered = yaml.safe_load(out.read_text(encoding="utf-8"))
+    assert [phase["id"] for phase in rendered["phases"]] == ["P1", "P2", "P3"]
+    assert rendered["constraints"] == original["constraints"]
+    for phase in rendered["phases"]:
+        for field in ("command", "fallback"):
+            argv = phase.get(field)
+            if argv and _claude_head(argv):
+                assert argv[1] == _ADVISOR_TOKEN
+                assert argv.count(_ADVISOR_TOKEN) == 1
+    assert hashlib.sha256(_HARNESS.read_bytes()).digest() == hashlib.sha256(original_bytes).digest()
+
+
+def test_render_contract_harness_falls_back_without_writing_output(tmp_path):
+    c = _conductor()
+    contract = tmp_path / "no-phases.md"
+    contract.write_text("# Contract\n\nNo phase table.\n", encoding="utf-8")
+    out = tmp_path / "receipts" / "LANE-test" / "r1" / "harness.contract.yaml"
+
+    harness_path, source = c.render_contract_harness(contract, _HARNESS, out)
+
+    assert harness_path == _HARNESS
+    assert "no ## phases" in source.lower() or "ecosystem/harness.yaml" in source or str(_HARNESS) in source
+    assert not out.exists()
+
+
+def test_lane_cli_runs_only_contract_phases_and_writes_the_contract_harness(tmp_path):
+    lane = "e30-test-" + uuid.uuid4().hex
+    marker = tmp_path / "phase-runs.txt"
+    receipts = tmp_path / "receipts"
+    env = {**os.environ, "STUB_PHASE_MARKER": str(marker)}
+    out = subprocess.run(
+        [sys.executable, str(_CONDUCTOR), "lane", "--lane", lane, "--round", "1",
+         "--contract", str(_CONTRACT), "--receipts", str(receipts)],
+        capture_output=True, text=True, encoding="utf-8", cwd=_REPO, env=env, timeout=240)
+
+    assert out.returncode == 0, out.stdout + out.stderr
+    source = next((line for line in out.stdout.splitlines() if line.startswith("harness source:")), "")
+    assert "contract" in source.lower() and str(_CONTRACT) in source
+    round_dir = receipts / f"LANE-{lane}" / "r1"
+    assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3"))
+    assert (round_dir / "harness.contract.yaml").is_file()
+    assert len(marker.read_text(encoding="utf-8").splitlines()) == 3
+
+
+def test_lane_cli_falls_back_to_the_requested_harness_when_contract_has_no_phases(tmp_path):
+    contract = tmp_path / "no-phases.md"
+    contract.write_text("# Contract\n\nNo phase table.\n", encoding="utf-8")
+    harness, markers = _toy_round_harness(tmp_path)
+    lane = "e30-fallback-" + uuid.uuid4().hex
+    receipts = tmp_path / "receipts"
+    out = subprocess.run(
+        [sys.executable, str(_CONDUCTOR), "lane", "--lane", lane, "--round", "1",
+         "--contract", str(contract), "--harness", str(harness), "--receipts", str(receipts)],
+        capture_output=True, text=True, encoding="utf-8", cwd=_REPO, timeout=240)
+
+    assert out.returncode == 0, out.stdout + out.stderr
+    source = next((line for line in out.stdout.splitlines() if line.startswith("harness source:")), "")
+    assert str(harness) in source
+    assert str(contract) not in source
+    assert "no ## phases" in source.lower()
+    round_dir = receipts / f"LANE-{lane}" / "r1"
+    assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3", "P7"))
+    assert (markers / "count.txt").is_file()
+
+
+_FULL_ROW = {"id": "P1", "name": "spec", "row_phase": "build", "role": "plan", "cli": "uv", "model": None,
+             "payload_model": "PhasePayload", "gate": "exit", "timeout_s": 60, "budget_usd": 0,
+             "max_rounds": 2, "inputs": [], "command": ["uv", "run"]}
+
+
+def _phases_text(row: dict) -> str:
+    return "## Phases\n\n```yaml\n" + yaml.safe_dump({"phases": [row]}) + "```\n"
+
+
+def test_contract_phases_accepts_a_row_with_the_full_harness_schema():
+    assert _conductor().contract_phases(_phases_text(_FULL_ROW)) == [_FULL_ROW]
+
+
+@pytest.mark.parametrize("key", ["model", "payload_model", "budget_usd", "max_rounds", "inputs"])
+def test_contract_phases_rejects_a_row_missing_a_harness_schema_key(key):
+    row = {k: v for k, v in _FULL_ROW.items() if k != key}
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text(row))
+
+
+@pytest.mark.parametrize("field, value", [("inputs", "not-a-list"), ("max_rounds", 0),
+                                          ("max_rounds", "2"), ("budget_usd", -1),
+                                          ("budget_usd", "free"), ("payload_model", 3)])
+def test_contract_phases_rejects_a_wrongly_typed_harness_schema_value(field, value):
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text({**_FULL_ROW, field: value}))
+
+
+def test_lane_cli_with_a_contract_and_relative_receipts_works_from_outside_the_repo_root(tmp_path):
+    """Sol judge finding: the rendered harness and the receipts root were handed to the doit child
+    (cwd = repo root) as caller-relative paths, so a run from any other directory lost both."""
+    lane = "e30-relative-" + uuid.uuid4().hex
+    out = subprocess.run(
+        [sys.executable, str(_CONDUCTOR), "lane", "--repo-root", str(_REPO), "--lane", lane,
+         "--round", "1", "--contract", str(_CONTRACT), "--receipts", "rel-receipts"],
+        capture_output=True, text=True, encoding="utf-8", cwd=tmp_path, timeout=240)
+
+    assert out.returncode == 0, out.stdout + out.stderr
+    round_dir = tmp_path / "rel-receipts" / f"LANE-{lane}" / "r1"
+    assert all((round_dir / f"{pid}.json").is_file() for pid in ("P1", "P2", "P3")), out.stdout
+    assert (round_dir / "harness.contract.yaml").is_file()
+    assert not (_REPO / "rel-receipts").exists(), "receipts must resolve against the caller, not the repo"
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (["claude", "-p", "--disallowedTools=Bash"],
+     ["claude", "--disallowedTools=Bash,AskUserQuestion,advisor", "-p"]),
+    (["claude", "--disallowedTools=advisor,Edit", "-p"],
+     ["claude", "--disallowedTools=advisor,Edit,AskUserQuestion", "-p"]),
+    (["claude", "-p", "--disallowedTools", "Bash,Edit"],
+     ["claude", "--disallowedTools=Bash,Edit,AskUserQuestion,advisor", "-p"]),
+    (["claude", "-p", "--disallowed-tools=Bash"],
+     ["claude", "--disallowedTools=Bash,AskUserQuestion,advisor", "-p"]),
+])
+def test_add_disallowed_advisor_merges_into_an_existing_disallowed_tools_flag(argv, expected):
+    """Sol judge finding: a second --disallowedTools flag could override the inserted advisor block."""
+    c = _conductor()
+    for field_name in ("command", "fallback"):
+        out = c.add_disallowed_advisor([{"id": "P1", field_name: list(argv)}])[0][field_name]
+        flags = [t for t in out if t.startswith("--disallow")]
+        assert out == expected
+        assert len(flags) == 1
+        assert c.add_disallowed_advisor([{"id": "P1", field_name: out}])[0][field_name] == out
+
+
+def test_contract_phases_rejects_an_unhashable_phase_id_as_a_contract_error():
+    with pytest.raises(_conductor().ContractPhasesError):
+        _conductor().contract_phases(_phases_text({**_FULL_ROW, "id": ["P1"]}))
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (["claude", "-p", "--disallowedTools"],
+     ["claude", "--disallowedTools=AskUserQuestion,advisor", "-p"]),
+    (["claude", "--disallowedTools", "--model", "x", "-p"],
+     ["claude", "--disallowedTools=AskUserQuestion,advisor", "--model", "x", "-p"]),
+])
+def test_add_disallowed_advisor_does_not_consume_an_option_as_a_bare_flags_value(argv, expected):
+    """Terra review finding: a valueless bare flag stayed in argv (two flags), or ate the next option."""
+    c = _conductor()
+    out = c.add_disallowed_advisor([{"id": "P1", "command": list(argv)}])[0]["command"]
+    assert out == expected
+    assert len([t for t in out if t.startswith("--disallow")]) == 1
