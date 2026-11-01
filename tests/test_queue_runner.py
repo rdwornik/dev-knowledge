@@ -24,6 +24,16 @@ def _runner():
     return importlib.import_module("queue_runner")
 
 
+@pytest.fixture(autouse=True)
+def reject_unexpected_subprocess_fire(monkeypatch):
+    qr = _runner()
+
+    def unexpected_fire(*_args, **_kwargs):
+        raise AssertionError("unexpected dispatch.py fire in a queue-runner test")
+
+    monkeypatch.setattr(qr, "subprocess_fire", unexpected_fire)
+
+
 def _contracts():
     return [FIXTURES / "LANE-a.md", FIXTURES / "LANE-b.md"]
 
@@ -952,3 +962,49 @@ def test_a_contract_without_a_head_row_costs_no_attempt_and_is_retried_once_fixe
     qr.run_once(**arguments, fire=_successful_fire(qr, calls))
 
     assert [call[0][0] for call in calls] == ["repair"]
+
+
+def test_run_once_resolves_the_fire_at_call_time(tmp_path, monkeypatch):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): fire must resolve at call time.
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    calls = []
+    monkeypatch.setattr(qr, "subprocess_fire", _successful_fire(qr, calls))
+
+    qr.run_once(**_run_arguments(tmp_path, transport, state_file))
+
+    assert len(calls) == 1
+
+
+def test_main_fires_through_the_module_level_fire(tmp_path, monkeypatch):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): main must not retain a stale fire.
+    qr = _runner()
+    transport, state_file = _event_tree(
+        tmp_path,
+        files={"SESSION-a.md": "HANDBACK worktree-a @ 1111111111111111111111111111111111111111 code\n"},
+    )
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    monkeypatch.setattr(qr._dispatch, "receipts_dir", lambda: receipts)
+    monkeypatch.setattr(qr, "acquire_single_instance", lambda _path: object())
+    calls = []
+    monkeypatch.setattr(qr, "subprocess_fire", _successful_fire(qr, calls))
+
+    result = qr.main([
+        "watch", "--batch", "E3.0", "--state-file", str(state_file), "--transport", str(transport),
+        "--contracts", *(str(contract) for contract in _contracts()), "--interval", "1", "--once",
+    ])
+
+    assert result == 0
+    assert len(calls) == 1
+
+
+def test_uninjected_module_level_fire_fails_closed():
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): missing test injection must never launch.
+    qr = _runner()
+
+    with pytest.raises(AssertionError, match="unexpected dispatch.py fire"):
+        qr.subprocess_fire([], {})

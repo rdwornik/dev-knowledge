@@ -1100,6 +1100,105 @@ def test_a_pre_launch_whose_organs_all_ran_clears_the_launch(contract, monkeypat
     assert d.run_prelaunch(_request(contract, batch="wave3")).passed is True
 
 
+def _install_fake_process_boundary(monkeypatch, *, run=None):
+    calls = []
+
+    def forbidden_run(argv, **kwargs):
+        calls.append(("run", list(argv)))
+        raise AssertionError("provider process boundary was reached")
+
+    def forbidden_popen(argv, **kwargs):
+        calls.append(("Popen", list(argv)))
+        raise AssertionError("provider process boundary was reached")
+
+    monkeypatch.setattr(d.subprocess, "run", run or forbidden_run)
+    monkeypatch.setattr(d.subprocess, "Popen", forbidden_popen)
+    return calls
+
+
+def test_spawn_process_refuses_a_provider_launch_of_a_fixture_contract(tmp_path, monkeypatch, caplog):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): a test fixture contract is never launched.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    argv = [
+        "claude", "--bg", "-n", "a",
+        r"Read and execute the frozen contract at C:\x\tests\fixtures\queue_runner\LANE-a.md",
+    ]
+
+    with pytest.raises(d.LaunchRefused):
+        d.spawn_process(argv, {}, tmp_path)
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert not (tmp_path / ".claude" / "worktrees").exists()
+
+
+@pytest.mark.parametrize(
+    ("provider", "detached", "marker_source"),
+    [("claude", False, "mapping"), ("codex", True, "mapping"), ("copilot", False, "process")],
+)
+def test_spawn_process_refuses_a_provider_launch_under_pytest(
+    tmp_path, monkeypatch, caplog, provider, detached, marker_source
+):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): PYTEST_CURRENT_TEST blocks every provider.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    argv = [provider, "--bg", "ordinary prompt"]
+    env = {}
+    if marker_source == "mapping":
+        env["PYTEST_CURRENT_TEST"] = "test_spawn_process_refuses_a_provider_launch_under_pytest"
+    else:
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "test_spawn_process_refuses_a_provider_launch_under_pytest")
+    log_path = tmp_path / "provider.log" if detached else None
+
+    with pytest.raises(d.LaunchRefused):
+        d.spawn_process(argv, env, tmp_path, log_path=log_path)
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert log_path is None or not log_path.exists()
+
+
+def test_spawn_process_leaves_a_non_provider_argv_alone(tmp_path, monkeypatch):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): non-provider commands remain permitted.
+    observed = []
+
+    def completed(argv, **kwargs):
+        observed.append((list(argv), kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="x", stderr="")
+
+    calls = _install_fake_process_boundary(monkeypatch, run=completed)
+    spawned = d.spawn_process([sys.executable, "-c", "print('x')"], {}, tmp_path)
+
+    assert spawned.returncode == 0 and spawned.stdout == "x"
+    assert len(observed) == 1
+    assert calls == []
+
+
+def test_launch_lane_refusal_for_a_fixture_contract_creates_no_worktree(
+    tmp_path, monkeypatch, receipts, caplog
+):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): refusal at the process boundary creates no worktree.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    contract_path = tmp_path / "LANE-a.md"
+    contract_path.write_text(
+        CONTRACT.replace("$env:CLAUDE_PROMPTS_DIR", r"C:\x\tests\fixtures\queue_runner"),
+        encoding="utf-8",
+    )
+    request = _request(contract_path)
+
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(
+            request, prelaunch=_pass, agents=lambda: [], cwd=tmp_path,
+            environ={"PATH": os.environ.get("PATH", "")}, sleep=lambda _seconds: None,
+        )
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert not (tmp_path / ".claude" / "worktrees" / request.slug).exists()
+
+
 def test_a_pre_launch_with_a_missing_organ_receipt_does_not_clear_the_launch(contract, monkeypatch, receipts):
     monkeypatch.setattr(d.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""))
     assert d.run_prelaunch(_request(contract, batch="wave3")).passed is False
