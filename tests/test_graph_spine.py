@@ -927,6 +927,8 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
         "scripts/test_census.py",
     )
     manual_until_paths = {
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
         "scripts/startup_probe.py",
         "scripts/task_record.py",
         "scripts/test_census.py",
@@ -994,12 +996,10 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
             if candidate != path and candidate_path.is_file() \
                     and expected in candidate_path.read_text(encoding="utf-8"):
                 if candidate == "ecosystem/harness.yaml":
-                    # A fates row is a caller only when it records one (`called_by:`), or for an
-                    # operator-invoked command, whose caller is the operator. A bare path
-                    # mention or a `manual_until:` row is not a caller (operator ruling D).
+                    # A fates row is a caller only when it records one (`called_by:`). A bare
+                    # path mention or a `manual_until:` row is not a caller (operator ruling D).
                     row = [ln for ln in harness_text.splitlines() if f"path: {path}" in ln]
-                    if not (any("called_by:" in ln for ln in row)
-                            or path.startswith(".claude/commands/") and row):
+                    if not any("called_by:" in ln for ln in row):
                         continue
                 callers.append(candidate)
         if not callers:
@@ -1011,9 +1011,15 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
 
 
 def test_the_no_caller_organs_stay_visible_to_the_census_and_are_never_reached(live_store):
-    """Operator ruling D: the three manual_until organs are never counted as callers. With the
+    """Operator ruling D: the manual_until organs are never counted as callers. With the
     register emptied, the census still flags each one -- no wiring surface reaches it."""
-    no_caller = {"scripts/startup_probe.py", "scripts/task_record.py", "scripts/test_census.py"}
+    no_caller = {
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
+        "scripts/startup_probe.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    }
     for path in no_caller:
         assert gq.ORPHAN_DISPOSITIONS[path].reason.startswith("NO-CALLER: manual_until ")
     flagged = {f.subject for f in gq.orphan_census(REPO_ROOT, live_store, dispositions={})}
