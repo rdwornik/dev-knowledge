@@ -318,16 +318,23 @@ def _argv_value(argv, flag) -> Optional[str]:
     return None
 
 
-def _clear_usage_file(argv) -> None:
+def _usage_path(argv, cwd=None):
+    usage = _argv_value(argv, "--usage-output-file")
+    if not usage:
+        return None
+    return Path(cwd) / usage if cwd else Path(usage)  # a relative path is relative to the child's cwd
+
+
+def _clear_usage_file(argv, cwd=None) -> None:
     """A usage file left by an earlier attempt must never be read as this attempt's CLI record."""
-    usage = _argv_value(argv, "--usage-output-file")
+    usage = _usage_path(argv, cwd)
     if usage:
-        Path(usage).unlink(missing_ok=True)
+        usage.unlink(missing_ok=True)
 
 
-def _cli_record(argv, stdout_file) -> Optional[dict]:
+def _cli_record(argv, stdout_file, cwd=None) -> Optional[dict]:
     """A copilot head reports its served model in the --usage-output-file; the others in stdout."""
-    usage = _argv_value(argv, "--usage-output-file")
+    usage = _usage_path(argv, cwd)
     if usage and Path(str(argv[0]).replace("\\", "/")).name.lower().startswith("copilot"):
         return _read_json(usage)
     return _read_json(stdout_file) if stdout_file else None
@@ -379,7 +386,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
                     .replace("{input_hash}", input_hash) for t in _fill(command, ctx, argv_of)]
             if payload is not None:
                 payload.unlink(missing_ok=True)  # a payload left by an earlier attempt never counts
-            _clear_usage_file(argv)
+            _clear_usage_file(argv, root)
             run = run_phase(argv, phase["timeout_s"], cwd=str(root), payload_path=payload, nonce=nonce,
                             input_hash=input_hash, stdout_path=out,
                             heartbeat_path=round_dir / f"{phase['id']}.heartbeat.json")
@@ -396,7 +403,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
             run, organ=f"phase:{phase['id']}", row=ctx["row"], lane=ctx["lane"], phase=phase["id"],
             round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
             model_requested=_argv_value(argv, "--model") or phase.get("model"),
-            cli_record=_cli_record(argv, out), substituted_from=substituted)
+            cli_record=_cli_record(argv, out, root), substituted_from=substituted)
         data = receipt_model.model_dump(by_alias=True)
         receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         ok = phase_succeeded(data)
