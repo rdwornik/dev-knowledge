@@ -670,17 +670,11 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller` opens
     # the caller each reason names and finds the path in it.
     ".claude/commands/decide.md": Disposition(
-        reason="KEEP -- an operator-run command, on demand: no event fires a command. The "
-               "ecosystem/harness.yaml `fates:` row for .claude/commands/decide.md records it "
-               "as manual_until 2026-11-23 (R14: a structural decision is run through the "
-               "system on request)",
-        owner="[#1375]; the census gap for command callers is [#1711]"),
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
     ".claude/commands/map.md": Disposition(
-        reason="KEEP -- an operator-run command, on demand: no event fires a command. The "
-               "ecosystem/harness.yaml `fates:` row for .claude/commands/map.md records it as "
-               "manual_until 2026-11-23, and the same file's row for scripts/system_map.py "
-               "names it as that script's caller",
-        owner="[#1375]; the census gap for command callers is [#1711]"),
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
     "scripts/claim.py": Disposition(
         reason="KEEP -- a live organ called at step 0 of every lane by the order templates: "
                "templates/lane-contract-template.md runs `scripts/claim.py claim` and "
