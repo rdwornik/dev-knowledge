@@ -3564,6 +3564,18 @@
       "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
     },
     {
+      "task": 1841,
+      "file": "1841-wire-startup-probe-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1842,
+      "file": "1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1843,
+      "file": "1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
       "prose": ""
     },
     {
