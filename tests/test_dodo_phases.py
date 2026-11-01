@@ -335,10 +335,11 @@ def test_stage_1_resolves_a_task_row_subject_and_still_refuses_an_unknown_one(tm
 
 # --- Done-when (8): ADR-130 and the [#689] note ---------------------------------------------------
 
-def test_adr_130_exists_proposed_and_carries_the_required_sections():
+def test_adr_130_exists_and_carries_the_required_sections():
     adr = _REPO / "docs" / "decisions" / "ADR-130-the-outer-loop-runs-in-code.md"
     assert adr.is_file()
-    assert "**Status:** Proposed" in adr.read_text(encoding="utf-8")
+    # GO-E3.0 R1: ADR-130 status flipped to Accepted in part (e30-rulings, orchestrator ruling 2026-11-01)
+    assert "**Status:** Accepted in part 2026-10-31 (GO-E3.0 R1)" in adr.read_text(encoding="utf-8")
     out = subprocess.run([sys.executable, "scripts/decide_checks.py", "adr-sections", str(adr)],
                          capture_output=True, text=True, cwd=_REPO, timeout=120)
     assert out.returncode == 0, out.stdout + out.stderr
