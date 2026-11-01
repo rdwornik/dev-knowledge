@@ -1,0 +1,6 @@
+roles:
+  read:
+    order:
+      - provider: antigravity
+      - provider: anthropic
+        model: claude-haiku-5-5
