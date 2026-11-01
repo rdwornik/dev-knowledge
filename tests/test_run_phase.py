@@ -779,3 +779,12 @@ def test_a_stale_usage_file_is_not_read_as_the_new_runs_record(tmp_path):
 
     assert not usage.exists()
     assert json.loads(receipt.read_text(encoding="utf-8"))["served_model"] is None
+
+
+def test_malformed_model_metrics_carry_an_unattested_reason_and_evidence_wins_over_caller_usage():
+    record = {"currentModel": "gpt-6-luna", "modelMetrics": ["x"]}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested"] is True
+    assert receipt.usage["served_unattested_reason"].startswith("UNATTESTED")

@@ -251,15 +251,20 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
     served = _pr.served_model_from_record(head, cli_record)
     metrics = cli_record.get("modelMetrics") if head == "copilot" and isinstance(cli_record, dict) else None
     mu = cli_record.get("modelUsage") if head in ("claude", "grok") and isinstance(cli_record, dict) else None
+    evidence = {}
     if isinstance(mu, dict) and mu:
-        usage = {"model_usage_keys": sorted(mu), "multi_model": len(mu) > 1, **(usage or {})}
-    if isinstance(metrics, dict):
+        evidence = {"model_usage_keys": sorted(mu), "multi_model": len(mu) > 1}
+    if head == "copilot" and isinstance(cli_record, dict) and "modelMetrics" in cli_record:
         current = cli_record.get("currentModel")
-        usage = {"model_metrics_keys": sorted(metrics), "multi_model": len(metrics) > 1,
-                 "served_unattested": current not in metrics, **(usage or {})}
-        if current not in metrics:
-            usage["served_unattested_reason"] = (
-                f"UNATTESTED: currentModel {current!r} is not among modelMetrics keys {sorted(metrics)}")
+        keys = sorted(metrics) if isinstance(metrics, dict) else []
+        attested = isinstance(metrics, dict) and current in metrics
+        evidence = {"model_metrics_keys": keys, "multi_model": len(keys) > 1,
+                    "served_unattested": not attested}
+        if not attested:
+            evidence["served_unattested_reason"] = (
+                f"UNATTESTED: currentModel {current!r} is not among modelMetrics keys {keys}")
+    if evidence:
+        usage = {**(usage or {}), **evidence}  # harness-derived evidence is written last
     payload = _pr.PhasePayload.model_validate(run.payload) if run.payload is not None else None
     return _pr.PhaseReceipt.model_validate({
         "schema": "phase-receipt/1", "organ": organ, "status": run.status,
