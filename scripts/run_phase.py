@@ -312,9 +312,11 @@ def _read_json(path) -> Optional[dict]:
 
 
 def _argv_value(argv, flag) -> Optional[str]:
-    for i, tok in enumerate(argv[:-1]):
-        if tok == flag:
+    for i, tok in enumerate(argv):
+        if tok == flag and i + 1 < len(argv):
             return argv[i + 1]
+        if tok.startswith(flag + "="):
+            return tok[len(flag) + 1:]
     return None
 
 
