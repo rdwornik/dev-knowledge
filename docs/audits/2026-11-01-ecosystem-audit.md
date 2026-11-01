@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-11-01  
-**Generated:** 2026-11-01T18:58:37  
+**Generated:** 2026-11-01T22:52:52  
 **Repos audited:** 6  
-**Checks:** 939 total — 159 pass, 16 fail, 568 warn, 0 unavailable, 196 n/a
+**Checks:** 938 total — 160 pass, 14 fail, 568 warn, 0 unavailable, 196 n/a
 
 ---
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-gzsl_5ih\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-fq3_k_w0\wt`  
 **Last audit:** 2026-11-01
 
 | Check | Status | Evidence |
@@ -62,7 +62,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1020 (3 history dates spanning 36d, 1021 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1601 (5 history dates spanning 33d, 1137 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#1627 (4 history dates spanning 111d, 1380 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (370 of 765 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13724 chars; row-length p50/p75/p90 over all 765 rows = 1306/2088/3141 chars; trend: +123 vs previous run (247 -> 370)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (370 of 764 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 13724 chars; row-length p50/p75/p90 over all 764 rows = 1306/2088/3141 chars; trend: +123 vs previous run (247 -> 370)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-09-14, 48d ago (> 21d cadence, ADR-41)) |
 | `doc_structure` | PASS | no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme) |
 | `doc_code_edge` | WARN | governance-backlog-implements-grammar: code_orphan (code sites=1, no declaration) |
@@ -103,7 +103,7 @@
 | `fleet_parity` | WARN | corp-monorepo claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
 | `silent_rule_ratchet` | PASS | live 452 <= baseline 452 under detector silent-rule-v5 (83 file(s) in scope) |
-| `task_tree_coherence` | FAIL | BACKLOG.md is STALE vs the tasks/ source of truth — regenerate with `gen_task_tree.py --emit-source`: BACKLOG.md does not match what tasks/ generates (regenerate with `gen_task_tree.py --emit-source`); manifest.json generated_sha256 does not match what the tree generates (regenerate with `gen_task_tree.py --emit-source`) |
+| `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (402 node(s), 31357 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17948 bytes, within its 18000-byte budget |
 | `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
@@ -113,7 +113,7 @@
 | `journal_spine_anchor` | WARN | anchored by mention, not by record: 568c7ea appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: fc73346 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 76a7e4d appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 0c299d9 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 6850bb2 appears outside an explicit 'Anchors:' record line (+1210 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30; 2026-09-18 (f), 2026-10-11 (d), 2026-10-14 (b) resolved by a later CORRECTION entry naming every colliding block ([#926] correction-by-addition, expires 2026-11-18) |
 | `preflight_backlog_ids` | WARN | 3 kill-candidates assertion(s) name a non-open row: [#303] -> #293, [#914] -> #509, [#1423] -> #1420 — advisory per the [#483] ruling R3 |
-| `review_artifact_coverage` | WARN | 295 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 73202826 chore(land): backlog-reconcile (E3.0), bed6c205 chore(land): e30-actions-window (E3.0), 72e92362 chore(land): e30-view-decide (E3.0), e00842f0 chore(land): e30-rulings (E3.0), ab2735f6 chore(land): e30-served-model (E3.0) (+290 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 296 code-impact merge(s) since 2026-08-05 carry no linked review artifact: a3006cac chore(land): e30-ci-verdict (E3.0), 73202826 chore(land): backlog-reconcile (E3.0), bed6c205 chore(land): e30-actions-window (E3.0), 72e92362 chore(land): e30-view-decide (E3.0), e00842f0 chore(land): e30-rulings (E3.0) (+291 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 26 linked artifact(s) carry no parseable **Tally:** line: 7363c99f -> 2026-10-05-codex-b2-integrator-liveness.md, e2ff4802 -> 2026-10-04-codex-b2-ci-poll.md, 42ba43c2 -> 2026-10-04-codex-b2-rulings-landing-repair-1.md, 1627e74c -> 2026-10-04-codex-b2-handoff-hardening.md, 1546090c -> 2026-10-04-codex-b2-merge-gate.md (+21 more) -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -468,7 +468,7 @@
 | `substrate_declaration` | PASS | 16 named-list exception(s) (retired-substrate records pinned by path + blob sha, 16 listed) |
 | `routing_agreement` | PASS | 4 role(s) in ecosystem/routing-table.yaml corroborated by ~/.claude/ROUTING.md |
 | `dispatch_drift` | PASS | tier host: 11 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
-| `consumer_at_landing` | PASS | 1498 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (801) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1373 files) |
+| `consumer_at_landing` | PASS | 1498 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (801) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 1372 files) |
 | `platform_matrix` | PASS | 1 declared platform matrix/matrices under .github/workflows/: .github/workflows/conductor.yml: ['${{ fromJSON(needs.plan.outputs.os) }}'] |
 | `proof_layer` | WARN | test_batch_manifest.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_batch_manifest.py::test_809_a_batch_ab_lane_merge_receives_the_exemption_under_an_open_manifest — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_block_commit_on_main_replay.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_block_commit_on_main_replay.py::test_the_integrator_replay_never_refuses_its_own_path — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
@@ -594,7 +594,6 @@
 | `proof_layer` | WARN | test_worktree_occupancy.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_worktree_occupancy.py::test_the_cli_applies_the_same_validation_to_a_sessions_file — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_worktree_seed.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_worktree_seed.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_worktree_seed.py::test_the_verdict_names_WHY_rather_than_only_failing — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
-| `funnel_lifecycle` | FAIL | row-provenance-unresolved: [#1811] tasks/1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md -- landed 2026-11-01 (on/after 2026-08-27) and no token in its provenance clause resolves: '`docs/decisions/`' |
 | `funnel_lifecycle` | WARN | ready-past-threshold: docs/intake/2026-08-24-tech-contract-integrity-gate.md -- READY for 69 days (document age), past the ruled 30-day threshold at protocols/FUNNEL_LIFECYCLE.md:322, and carries no review-date: |
 | `funnel_lifecycle` | WARN | ready-past-threshold: docs/intake/2026-08-24-tech-disposition-register-schema.md -- READY for 69 days (document age), past the ruled 30-day threshold at protocols/FUNNEL_LIFECYCLE.md:322, and carries no review-date: |
 | `funnel_lifecycle` | WARN | ready-past-threshold: docs/intake/2026-08-24-tech-ruling-register-landing-gap.md -- READY for 69 days (document age), past the ruled 30-day threshold at protocols/FUNNEL_LIFECYCLE.md:322, and carries no review-date: |
@@ -618,7 +617,7 @@
 | `organ_truth` | WARN | 2 organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: scripts/desired_state_loader.py, scripts/harness_probes.py |
 | `model_currency` | WARN | 18 flag(s) over 19 pinned ids -- stale x7: claude-opus-5-5, claude-sonnet-5-5, gemini-3.8-flash, gpt-5.6-terra +3 more; unverified x11: claude-fable-5-1, claude-haiku-4-5-20251001, claude-haiku-5-5, claude-opus-4-8 +7 more (list: uv run --locked python scripts/check_model_currency.py) |
 | `rulings_carried` | PASS | 125 of 125 gated ruling(s) (R55 on) carried by a row or a written 'no implementation required'; 74 older entries counted, not refused (decision_coverage.py rulings) |
-| `rulings_carried` | PASS | every ruling in 47 non-superseded RATIFICATION file(s) (105 read) is landed or inside the 1-batch grace period |
+| `rulings_carried` | PASS | every ruling in 48 non-superseded RATIFICATION file(s) (105 read) is landed or inside the 1-batch grace period |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -1023,8 +1022,8 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 159/939 checks passed
-- **16 failure(s)** — route findings to repo owners
+- 160/938 checks passed
+- **14 failure(s)** — route findings to repo owners
 - 568 warning(s)
 - 196 n/a (check not applicable to that repo)
 
