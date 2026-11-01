@@ -455,8 +455,11 @@ def _registry_known_ids(sha: str, *, repo_root: Path, os_key: Optional[str]) -> 
     registry = _actions_verdict()._read_registry_at(sha, repo_root=repo_root)
     entries = dict(registry.members)
     entries.update(registry.members_by_os.get(os_key, {}) if os_key else {})
-    return frozenset(node_id for node_id, entry in entries.items()
-                     if (entry or {}).get("attribution") != "unattributed")
+    def _excused(entry) -> bool:
+        attribution = entry.get("attribution") if isinstance(entry, dict) else None
+        return bool(attribution) and attribution != "unattributed"
+
+    return frozenset(node_id for node_id, entry in entries.items() if _excused(entry))
 
 
 def _leg_os_key(leg: str) -> Optional[str]:
@@ -643,6 +646,9 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
             if known_fn is not None and leg_regressions and not baseline:
                 try:
                     known = known_fn(sha, repo_root=root, os_key=_leg_os_key(leg or ""))
+                    if isinstance(known, (str, bytes)):
+                        raise TypeError(f"known-ids reader returned {type(known).__name__}")
+                    known = frozenset(known)
                 except Exception as exc:        # fail closed: keep every regression
                     log.warning("known-reds registry unreadable at %s: %s", sha[:12], exc)
                     known_note = (f"; the known-reds registry at {sha[:12]} could not be read "

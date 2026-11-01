@@ -153,8 +153,9 @@ def test_c6618_registry_contains_the_six_regression_ids():
         text=True,
         check=False,
     )
-    if result.returncode:
-        pytest.skip(f"commit {_C6618_REGISTRY_SHA} is unavailable")
+    assert result.returncode == 0, (
+        f"commit {_C6618_REGISTRY_SHA} is unreadable; CI checks out full history, so this "
+        "lock must run, not skip")
 
     registry = json.loads(result.stdout)
     assert set(_C6618_REGRESSIONS) <= set(registry["members"])
@@ -253,8 +254,9 @@ def test_live_registry_known_ids_contains_c6618_regressions():
         capture_output=True,
         check=False,
     )
-    if available.returncode:
-        pytest.skip(f"commit {_C6618_REGISTRY_SHA} is unavailable")
+    assert available.returncode == 0, (
+        f"commit {_C6618_REGISTRY_SHA} is unreadable; CI checks out full history, so this "
+        "lock must run, not skip")
 
     assert set(_C6618_REGRESSIONS) <= cv._registry_known_ids(
         _C6618_REGISTRY_SHA, repo_root=repo_root, os_key="ubuntu-latest")
