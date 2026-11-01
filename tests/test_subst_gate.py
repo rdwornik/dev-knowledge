@@ -209,6 +209,30 @@ def test_a_sonnet_request_with_an_effort_is_accepted():
     assert problems == []
 
 
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_with_a_sonnet_request_is_judged_as_sonnet():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=claude-sonnet-5-5/high served=claude-sonnet-5-5\n")
+    assert problems == []
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_with_a_sonnet_request_served_another_model_is_refused():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=claude-sonnet-5-5/high served=claude-sonnet-5.5\n")
+    assert problems
+
+
+# GO-E3.0 R11 + operator sonnet-id ruling (Codex terra N406600)
+def test_a_copilot_named_phase_at_the_default_is_judged_as_copilot():
+    problems, _ = sg.check_models_block(
+        "MODELS:\n"
+        "  implement copilot fallback: requested=default served=claude-sonnet-5.5\n")
+    assert problems == []
+
+
 # GO-E3.0 R11 (Codex terra N402200 / sol J402201)
 def test_an_admitted_vendor_fail_only_entry_requested_and_served_passes(monkeypatch):
     entry = dict(sg.pr.role_order("implement")[0])
