@@ -257,7 +257,7 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
     if head == "copilot" and isinstance(cli_record, dict) and "modelMetrics" in cli_record:
         current = cli_record.get("currentModel")
         keys = sorted(metrics) if isinstance(metrics, dict) else []
-        attested = isinstance(metrics, dict) and current in metrics
+        attested = isinstance(metrics, dict) and isinstance(current, str) and current in metrics
         evidence = {"model_metrics_keys": keys, "multi_model": len(keys) > 1,
                     "served_unattested": not attested}
         if not attested:

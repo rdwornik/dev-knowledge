@@ -788,3 +788,11 @@ def test_malformed_model_metrics_carry_an_unattested_reason_and_evidence_wins_ov
     assert receipt.served_model is None
     assert receipt.usage["served_unattested"] is True
     assert receipt.usage["served_unattested_reason"].startswith("UNATTESTED")
+
+
+def test_non_string_current_model_is_unattested_not_a_crash():
+    record = {"currentModel": ["gpt-6-luna"], "modelMetrics": {"gpt-6-luna": {}}}
+    receipt = _build(["copilot", "-p"], _phase_run(), record)
+
+    assert receipt.served_model is None
+    assert receipt.usage["served_unattested"] is True
