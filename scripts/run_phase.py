@@ -328,8 +328,8 @@ def _usage_path(argv, cwd=None):
 def _clear_usage_file(argv, cwd=None) -> None:
     """A usage file left by an earlier attempt must never be read as this attempt's CLI record."""
     usage = _usage_path(argv, cwd)
-    if usage:
-        usage.unlink(missing_ok=True)
+    if usage and usage.suffix.lower() == ".json" and usage.is_file():  # never delete a non-JSON path
+        usage.unlink()
 
 
 def _cli_record(argv, stdout_file, cwd=None) -> Optional[dict]:

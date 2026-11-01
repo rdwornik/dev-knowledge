@@ -809,3 +809,15 @@ def test_cli_record_reads_the_usage_file_only_for_a_copilot_head(tmp_path):
         "modelUsage": {"claude-haiku-5-5": {}}}
     assert rp._cli_record(["copilot", "-p", "--usage-output-file", str(usage)], str(out)) == {
         "currentModel": "gpt-6-luna"}
+
+
+def test_clear_usage_file_deletes_only_a_json_file(tmp_path):
+    rp = _rp()
+    keep = tmp_path / "precious.txt"
+    keep.write_text("keep", encoding="utf-8")
+    rp._clear_usage_file(["copilot", "--usage-output-file", str(keep)])
+    assert keep.exists()
+    gone = tmp_path / "u.json"
+    gone.write_text("{}", encoding="utf-8")
+    rp._clear_usage_file(["copilot", "--usage-output-file", str(gone)])
+    assert not gone.exists()
