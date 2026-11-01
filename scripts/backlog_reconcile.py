@@ -62,9 +62,14 @@ EVIDENCE_CLASSES: tuple[str, ...] = ("shipped", "obsolete", "stale-refs", "live"
 ACTIONS: tuple[str, ...] = ("close", "keep", "rewrite")
 VERDICTS: tuple[str, ...] = ("done", "open", "obsolete", "unclear")
 
-OPUS_MODEL = "claude-opus-5-5"
-SECOND_READ_MODEL = "claude-sonnet-5-5"
-BACKUP_READ_MODEL = "claude-haiku-5-5"
+
+
+def _alias_model(alias: str) -> str:
+    """The registry id behind a Claude CLI alias (`opus` / `sonnet` / `haiku`), resolved at call
+    time from `ecosystem/provider-registry.yaml` -- this organ carries no model-id literal
+    (`tests/test_model_id_single_source.py`)."""
+    import provider_registry  # noqa: PLC0415 -- sibling module, loaded only when a model is named
+    return provider_registry.claude_alias_ids()[alias]
 
 #: Paths a commit may touch without counting as WORK on a row: the bookkeeping surfaces.
 BOOKKEEPING_PREFIXES = ("tasks/", "BACKLOG.md", "JOURNAL.md", "docs/audits/")
@@ -243,7 +248,7 @@ def _read_json(path: Path, default: Any = None) -> Any:
 def _write_json(path: Path, data: Any) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-                          encoding="utf-8")
+                          encoding="utf-8", newline="\n")
 
 
 def record_call(model: str, stage: str, input_tokens: int, output_tokens: int,
@@ -339,7 +344,7 @@ def run_fanout(rows: Sequence[Row], *, invoke: read_gate.Invoker, state_dir: Pat
         batch = list(rows[start:start + batch_size])
         source = batch_dir / f"batch-{number:03d}.md"
         source.write_text("\n".join(_batch_line(r, evidence.get(r.id)) for r in batch) + "\n",
-                          encoding="utf-8")
+                          encoding="utf-8", newline="\n")
         workdir = state_dir / "work" / f"batch-{number:03d}"
         workdir.mkdir(parents=True, exist_ok=True)
         gated = read_gate.run_read_gate(source, registry_path=Path(registry_path), invoke=invoke,
@@ -357,7 +362,7 @@ def run_fanout(rows: Sequence[Row], *, invoke: read_gate.Invoker, state_dir: Pat
             second_source = batch_dir / f"sample-{number:03d}.md"
             second_source.write_text(
                 "\n".join(_batch_line(r, evidence.get(r.id)) for r in batch
-                          if r.id in sampled) + "\n", encoding="utf-8")
+                          if r.id in sampled) + "\n", encoding="utf-8", newline="\n")
             attempt = second_invoke(second_source, workdir)
             verdict = read_gate.verify_read(attempt.output_path, attempt.log_text,
                                             second_source.read_text(encoding="utf-8"))
@@ -435,7 +440,7 @@ def _write_claude_read(model: str, stage: str, source: Path, output: Path) -> re
     reply = run_claude(model, _read_prompt(source.read_text(encoding="utf-8")))
     record_call(reply["model"], stage, reply["input_tokens"], reply["output_tokens"],
                 reply["usd"])
-    output.write_text(reply["text"], encoding="utf-8")
+    output.write_text(reply["text"], encoding="utf-8", newline="\n")
     return read_gate.InvokeAttempt(output, status="success")
 
 
@@ -501,7 +506,7 @@ def default_invoke(route: read_gate.RouteSpec, source_path: Path,
     if route.provider == "antigravity":
         return _agy_read(source_path, output)
     if route.provider == "anthropic":
-        return _write_claude_read(route.model or BACKUP_READ_MODEL, "read-backup",
+        return _write_claude_read(route.model or _alias_model("haiku"), "read-backup",
                                   source_path, output)
     raise read_gate.ReadGateError(f"no backlog-reconcile invoker for route {route.provider!r}")
 
@@ -510,7 +515,7 @@ def default_second_invoke(source_path: Path, workdir: Path) -> read_gate.InvokeA
     """The 10% second read, Sonnet 5.5."""
     output = (workdir / "second.output.txt").resolve()
     output.unlink(missing_ok=True)
-    return _write_claude_read(SECOND_READ_MODEL, "second-read", source_path, output)
+    return _write_claude_read(_alias_model("sonnet"), "second-read", source_path, output)
 
 
 # --- adjudication --------------------------------------------------------------------------------
@@ -710,13 +715,15 @@ def fanout(tasks_dir: Path, state_dir: Path, registry: Path, limit: Optional[int
 
 @cli.command()
 @_state_option
-@click.option("--model", default=OPUS_MODEL, show_default=True)
+@click.option("--model", default=None,
+              help="Defaults to the registry's Opus (alias `opus`).")
 @click.option("--tasks-dir", type=click.Path(file_okay=False, path_type=Path), default=None,
               help="Optional: include each target row's text in the prompt.")
-def adjudicate(state_dir: Path, model: str, tasks_dir: Optional[Path]) -> None:
+def adjudicate(state_dir: Path, model: Optional[str], tasks_dir: Optional[Path]) -> None:
     """Settle the unclear or read-disputed rows with one headless Opus session."""
     global _CALLS_PATH
     _CALLS_PATH = state_dir / "calls.jsonl"
+    model = model or _alias_model("opus")
     evid = _read_json(state_dir / "evidence.json", {})
     reads = _read_json(state_dir / "reads.json", {})
     targets = _adjudication_targets(evid, reads)
@@ -780,7 +787,7 @@ def report(tasks_dir: Path, state_dir: Path, out: Path, cost_out: Path) -> None:
                 f"paths missing: {len(ev.get('paths_missing', []))}")
         lines.append("")
     Path(out).parent.mkdir(parents=True, exist_ok=True)
-    Path(out).write_text("\n".join(lines), encoding="utf-8")
+    Path(out).write_text("\n".join(lines), encoding="utf-8", newline="\n")
     click.echo(f"report: {len(rows)} rows -> {out}; cost USD {cost['usd']:.2f} -> {cost_out}")
 
 
