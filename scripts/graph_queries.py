@@ -712,13 +712,8 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "is a later lane's file",
         owner="[#730]"),
     "scripts/startup_probe.py": Disposition(
-        reason="KEEP -- the start-up token probe, run by hand or by a witness. No template, "
-               "command, workflow or protocol calls it, so the strongest recorded caller is "
-               "the ecosystem/harness.yaml fates row (line 157): manual_until 2026-11-09, run "
-               "by hand until then (R149: no silent re-date); evidence: `grep -rlF "
-               "startup_probe.py templates .claude/commands .github/workflows scripts "
-               "protocols` finds none",
-        owner="[#1705]"),
+        reason="NO-CALLER: manual_until 2026-11-09 [#1841]",
+        owner="[#1841]"),
     "scripts/system_map.py": Disposition(
         reason="KEEP -- run on demand by the operator through /map: "
                ".claude/commands/map.md runs `scripts/system_map.py build`, and the "
@@ -726,20 +721,11 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "The census does not walk commands",
         owner="[#1711] (the census learns the command caller class)"),
     "scripts/task_record.py": Disposition(
-        reason="KEEP -- ADR-122 step 1: the pydantic model, converter and CLI, invoked by hand "
-               "and by tests/test_task_record.py. No template, command, workflow or protocol "
-               "calls it; the recorded caller is the ecosystem/harness.yaml fates row (line "
-               "159): manual_until 2026-11-23, run by hand until step 2 flips the source of "
-               "truth; evidence: `grep -rlF task_record.py templates .claude/commands "
-               ".github/workflows scripts protocols` finds none",
-        owner="[#1080]"),
+        reason="NO-CALLER: manual_until 2026-11-23 [#1842]",
+        owner="[#1842]"),
     "scripts/test_census.py": Disposition(
-        reason="KEEP -- the test census, run by hand from a lane contract and the "
-               "test-strategy digest: protocols/STANDING_RULINGS.md names it. Its "
-               "ecosystem/harness.yaml fates row (line 174) records manual_until 2026-11-09, "
-               "and [#1566] owns who initiates; evidence: `grep -rlF test_census.py templates "
-               ".claude/commands .github/workflows scripts protocols`",
-        owner="[#1566]"),
+        reason="NO-CALLER: manual_until 2026-11-09 [#1843]",
+        owner="[#1843]"),
 }
 
 
