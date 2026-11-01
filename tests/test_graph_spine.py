@@ -908,3 +908,56 @@ def test_the_lock_flake_disposition_is_not_vacuous(tmp_path, monkeypatch):
                                             tmp_path=tmp_path / str(index),
                                             monkeypatch=monkeypatch, namespace=namespace)
         assert problems, f"{witness} passed the fixed-at-cause leg"
+
+
+def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller():
+    import re
+
+    paths = (
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
+        "scripts/claim.py",
+        "scripts/harness_probes.py",
+        "scripts/read_gate.py",
+        "scripts/row_close.py",
+        "scripts/startup_probe.py",
+        "scripts/system_map.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    )
+    failures = []
+    for path in paths:
+        disposition = gq.ORPHAN_DISPOSITIONS.get(path)
+        if disposition is None:
+            failures.append(f"{path}: missing disposition")
+            continue
+        if not disposition.owner:
+            failures.append(f"{path}: empty owner")
+
+        reason = disposition.reason
+        if path == "scripts/harness_probes.py":
+            harness = REPO_ROOT / "ecosystem" / "harness.yaml"
+            if "operator GO" not in reason:
+                failures.append(f"{path}: reason lacks 'operator GO'")
+            if "ecosystem/harness.yaml" not in reason or not harness.is_file() \
+                    or path not in harness.read_text(encoding="utf-8"):
+                failures.append(f"{path}: reason lacks a valid ecosystem/harness.yaml caller")
+            continue
+
+        expected = path.removeprefix(".claude/") if path.startswith(
+            ".claude/commands/") else path
+        callers = []
+        for candidate in re.findall(
+                r"(?<![\w.-])(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9_-]+", reason):
+            candidate_path = REPO_ROOT / candidate
+            try:
+                candidate_path.resolve().relative_to(REPO_ROOT.resolve())
+            except ValueError:
+                continue
+            if candidate != path and candidate_path.is_file() \
+                    and expected in candidate_path.read_text(encoding="utf-8"):
+                callers.append(candidate)
+        if not callers:
+            failures.append(f"{path}: reason names no existing caller whose text names it")
+
+    assert not failures, "Invalid ORPHAN_DISPOSITIONS:\n" + "\n".join(failures)
