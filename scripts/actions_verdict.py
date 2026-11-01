@@ -161,9 +161,9 @@ REMEDIES: dict[str, str] = {
     STATE_PRE_EXISTING: ("these jobs were already failing at the baseline. This merge did not "
                          "cause them and does not fix them; record the verdict, name the jobs "
                          "in the batch packet, and do NOT report the run as green"),
-    STATE_UNATTRIBUTED: ("no baseline was given, so nothing can be attributed. Re-run with "
-                         "--baseline <the merge's first parent> to learn whether this merge "
-                         "caused the failure"),
+    STATE_UNATTRIBUTED: ("nothing can be attributed without a readable baseline run. Re-run with "
+                         "--baseline <the merge's first parent> (or fix the lookup the reason "
+                         "line names) to learn whether this merge caused the failure"),
     STATE_NO_RUN: ("no Actions run exists for this SHA. Either the push has not landed, the "
                    "workflow did not fire, or the run is against a different SHA -- check "
                    "`gh run list` before assuming the suite ran"),
@@ -260,9 +260,12 @@ class Verdict:
                          f"{', '.join(self.pre_existing)}")
         if self.newly_passing:
             lines.append(f"  FIXED BY THIS MERGE: {', '.join(self.newly_passing)}")
-        if self.state == STATE_UNATTRIBUTED:
+        if self.state == STATE_UNATTRIBUTED and not self.baseline:
             lines.append("  no baseline was given, so this failure is UNATTRIBUTED -- missing "
                          "evidence, not evidence of innocence")
+        elif self.state == STATE_UNATTRIBUTED:
+            lines.append("  a baseline was given but could not be read, so this failure is "
+                         "UNATTRIBUTED -- missing evidence, not evidence of innocence")
         if self.jobs and not self.covers_index_regeneration:
             # Retires itself: the moment the runner gains the job, this line stops printing.
             lines.append(f"  NOTE: this runner has no `{INDEX_REGEN_JOB}` job, so index "
@@ -296,7 +299,10 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
     # the sha, so a `pull_request` or `workflow_dispatch` run for the same sha is not that
     # verdict. `--event push` narrows the listing server-side; the `event` filter below repeats it
     # so a listing that carries another event (or none) can never be chosen.
-    command = ["gh", "run", "list", "--workflow", workflow, "--event", "push", "--limit", "40",
+    # FOUND BY COMMIT, NOT BY WINDOW ([#1801]): `--commit <sha>` asks GitHub for that sha's runs,
+    # so a base push run older than the newest N listed runs is still found. A fixed `--limit 40`
+    # window lost c6618dbb7's run (position 55-56) and read the given baseline as absent.
+    command = ["gh", "run", "list", "--workflow", workflow, "--event", "push", "--commit", sha,
                "--json", "databaseId,headSha,status,conclusion,displayTitle,event,createdAt,url"]
     try:
         proc = subprocess.run(command, cwd=str(repo_root or _REPO_ROOT), capture_output=True,
@@ -647,11 +653,16 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
     base_jobs: dict[str, Optional[str]] = {}
     base_read = False
     base_run = None
+    base_reason = ""        # why a GIVEN baseline gave nothing to compare against ([#1801])
     if baseline:
         try:
             base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW)
-        except ActionsUnavailable:
+        except ActionsUnavailable as exc:
             base_run = None
+            base_reason = f"baseline run unavailable ({exc})"
+        else:
+            if base_run is None:
+                base_reason = f"baseline run not found for {baseline}"
         # `_jobs_were_read` GUARDS THIS TOO, and it is the same hole with the sign flipped
         # (`[#742]`, found resolving its locator). An unreadable BASELINE job list used to give
         # `base_jobs = {}` with `base_read = True`, so `base_failing` was empty and every
@@ -699,12 +710,16 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
     non_test = findings["non_test"] + ((f"workflow: concluded {run_conclusion}",)
                                        if workflow_level else ())
     reasons += list(findings["unattributed"])
+    if base_reason and not base_read:
+        reasons.append(base_reason)         # a GIVEN baseline that yielded nothing says so
 
     if failing_legs and not base_read:
         # A failure with nothing to compare against. Not a regression (we cannot say this merge
         # caused it) and not pre-existing (we cannot say it did not).
         state = STATE_UNATTRIBUTED
-        reasons.append("no readable baseline run to compare the failing pytest leg(s) against")
+        if not base_reason:
+            reasons.append("no readable baseline run to compare the failing pytest leg(s) "
+                           "against")
     elif not failing and not workflow_level:
         if not pytest_legs:
             # `success` with no pytest leg is not a pass on the SUITE: the leg that carries the
