@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import logging
 import os
 import re
 import shutil
@@ -276,6 +277,66 @@ def test_a_launch_writes_a_receipt_and_a_job_to_lane_record(contract, tmp_path, 
     job = json.loads((receipts / "LAUNCH-JOB-abcd1234.json").read_text(encoding="utf-8"))
     assert job["slug"] == "lane-launch-adapter" and job["job_id"] == "abcd1234"
     assert job["session_id"] == SID and job["batch"] == "wave3"
+
+
+@pytest.mark.parametrize(
+    ("caller", "expected"),
+    [(None, "dispatch-cli"), ("queue_runner", "queue_runner"), ("seat", "seat")],
+)
+def test_a_launch_receipt_records_the_dispatch_caller(
+    contract, tmp_path, receipts, monkeypatch, caller, expected
+):
+    if caller is None:
+        monkeypatch.delenv("DISPATCH_CALLER", raising=False)
+    else:
+        monkeypatch.setenv("DISPATCH_CALLER", caller)
+
+    _launch(_request(contract, batch="E3.0"), tmp_path)
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["caller"] == expected
+
+
+def test_an_unknown_dispatch_caller_defaults_and_logs_a_warning(
+    contract, tmp_path, receipts, monkeypatch, caplog
+):
+    monkeypatch.setenv("DISPATCH_CALLER", "not-a-caller")
+    with caplog.at_level(logging.WARNING):
+        _launch(_request(contract, batch="E3.0"), tmp_path)
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["caller"] == "dispatch-cli"
+    assert "DISPATCH_CALLER" in caplog.text
+
+
+def test_a_repair_launch_receipt_records_the_dispatch_caller(
+    contract, tmp_path, receipts, monkeypatch
+):
+    monkeypatch.setenv("DISPATCH_CALLER", "seat")
+    worktree = tmp_path / ".claude" / "worktrees" / "lane-launch-adapter"
+    worktree.mkdir(parents=True)
+
+    def spawn(argv, env, cwd):
+        return d.Spawned(returncode=0, stdout="backgrounded repair1234\n", pid=4321)
+
+    request = d.RepairRequest(
+        slug="lane-launch-adapter",
+        attempt=1,
+        model="sonnet",
+        effort="high",
+        contract=contract.resolve(),
+        batch="E3.0",
+    )
+    d.repair_lane(
+        request,
+        repo_root=tmp_path,
+        spawn=spawn,
+        prelaunch=lambda *_args, **_kwargs: d.PreLaunch(passed=True),
+    )
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["kind"] == "repair"
+    assert receipt["caller"] == "seat"
 
 
 def test_a_dry_run_prints_the_plan_and_starts_nothing(contract, monkeypatch, receipts):
