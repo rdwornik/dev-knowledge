@@ -8,4 +8,4 @@
 - ADR-130 (Accepted in part 2026-10-31, 2026-10-15): The outer loop runs in code — Conductor E completion
 - ADR-131 (Accepted, 2026-10-22): Landing is a script; a model is called only on conflict, red CI or BASE-MOVED
 - ADR-132 (Accepted, 2026-10-28): The handoff cut regenerates and byte-checks what it ships; a hand step remains only where the operator or the browser acts
-- ADR-133 (Proposed, 2026-10-31): The system view is a pure rendering of what organs compute
+- ADR-133 (Accepted, 2026-10-31): The system view is a pure rendering of what organs compute
