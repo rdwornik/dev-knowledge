@@ -172,6 +172,7 @@ fates:
   - {path: scripts/harness_probes.py, retire_candidate: true, reason: "E1 fates digest 2026-10-19: RETIRE, operator GO pending (retire when [#1555] ADR-123 step 1 merges; keep the committed receipts docs/audits/2026-10-13-verification-harness-probes-receipts.md)"}
   - {path: scripts/run_phase.py, manual_until: 2026-11-15, reason: "common rules ruling (a): the [#1535] adapter, called by dodo.py's phase tasks; dated until the lane phases run it live"}
   - {path: scripts/test_census.py, manual_until: 2026-11-09, reason: "the test census is run by hand from a lane contract and the test-strategy digest (docs/audits/2026-10-15-technical-test-strategy-decision.md) until a moment or conductor job calls it; [#1566] owns who initiates"}
+  - {path: scripts/backlog_reconcile.py, manual_until: 2026-11-23, reason: "GO-E3.0 R10, [#1749]: the operator runs evidence, fanout, adjudicate and report by hand and rules per evidence class; apply refuses without that ruling; no event fires it (ORPHAN_DISPOSITIONS, dispatcher ANSWER 15:10)"}
 # phases ([#1535]): `doit -f scripts/dodo.py round` runs these in order, one doit task each (`phase:<id>`), HARNESS_ROUND picks the
 # round. A phase is one vendor CLI process the harness owns (scripts/run_phase.py): it ends on a fresh nonce-bound payload, the
 # root's exit or `timeout_s`, and leaves one PhaseReceipt under <receipts>/LANE-<lane>/r<round>/<id>.json. `gate: payload` means the
