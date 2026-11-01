@@ -357,7 +357,9 @@ def test_machine_refused_event_is_seen_and_not_fired(
     assert any(row.get("status") == "machine-refused" for row in rows)
 
 
-def test_repair_three_of_two_fails_without_firing(tmp_path):
+# Dispatcher ruling (E3.0 dispatcher, 2026-11-01 15:44, option C): a refused repair 3 of 2 fires one
+# queue pass so dependents are held and the slot is released.
+def test_repair_three_of_two_fires_one_queue_pass_and_fails_the_lane(tmp_path):
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path,
@@ -370,10 +372,20 @@ def test_repair_three_of_two_fails_without_firing(tmp_path):
         **_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
         fire=_successful_fire(qr, calls),
     )
+    refused_event = next(
+        event
+        for event in qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+        if event.kind == "refused"
+    )
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
 
-    assert fired == []
-    assert calls == []
+    assert len(fired) == 1
+    assert len(calls) == 1
+    assert calls[0][0][0] == "queue"
     assert qr.Ledger(path=ledger_path).lane_state("b") == "failed"
+    refused_row = next(row for row in rows if row["key"] == refused_event.key)
+    assert refused_row["status"] == "fired"
+    assert refused_row["state_after"] == "failed"
 
 
 def test_fire_environment_identifies_queue_runner(tmp_path):
@@ -497,21 +509,53 @@ def test_a_merge_for_a_lane_still_held_running_catches_the_lane_up_and_fires(tmp
     assert qr.Ledger(path=ledger_path).lane_state("a") == "merged"
 
 
-def test_a_failed_line_after_repair_three_of_two_still_fires_the_queue_pass(tmp_path):
+# Dispatcher ruling (E3.0 dispatcher, 2026-11-01 15:44, option C): repair 3 of 2 fires one queue pass;
+# a later FAILED event for that already-failed lane is machine-refused and never fires twice.
+def test_repair_three_of_two_fires_one_queue_pass_and_a_later_failed_line_is_refused(tmp_path):
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path, files={"REFUSED-b.md": "from: the INTEGRATOR\nrepair 3 of 2\n"})
     ledger_path = tmp_path / "ledger.jsonl"
-    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
-                fire=_successful_fire(qr, []))
-    state_file.write_text("STATE b FAILED - 2026-11-01T10:00 5\n", encoding="utf-8")
     calls = []
+    arguments = _run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path)
+    refused_event = next(
+        event
+        for event in qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+        if event.kind == "refused"
+    )
 
-    qr.run_once(**_run_arguments(tmp_path, transport, state_file, ledger_path=ledger_path),
-                fire=_successful_fire(qr, calls))
+    first_fired = qr.run_once(**arguments, fire=_successful_fire(qr, calls))
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
 
-    assert [call[0][0] for call in calls] == ["queue"]
+    assert len(first_fired) == 1
+    assert len(calls) == 1
+    assert calls[0][0][0] == "queue"
     assert qr.Ledger(path=ledger_path).lane_state("b") == "failed"
+    refused_row = next(row for row in rows if row["key"] == refused_event.key)
+    assert refused_row["status"] == "fired"
+    assert refused_row["state_after"] == "failed"
+
+    state_file.write_text("STATE b FAILED - 2026-11-01T10:00 5\n", encoding="utf-8")
+    failed_event = next(
+        event
+        for event in qr.collect_events(transport=transport, state_file=state_file, slugs=("b",))
+        if event.kind == "failed"
+    )
+
+    later_fired = qr.run_once(**arguments, fire=_successful_fire(qr, calls))
+    rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines()]
+
+    assert later_fired == []
+    assert len(calls) == 1
+    assert next(row for row in rows if row["key"] == failed_event.key)["status"] == "machine-refused"
+    assert qr.Ledger(path=ledger_path).lane_state("b") == "failed"
+
+    rows_before_third_run = ledger_path.read_text(encoding="utf-8")
+    third_fired = qr.run_once(**arguments, fire=_successful_fire(qr, calls))
+
+    assert third_fired == []
+    assert len(calls) == 1
+    assert ledger_path.read_text(encoding="utf-8") == rows_before_third_run
 
 
 def test_an_unwritable_ledger_fires_nothing_and_does_not_end_the_pass(tmp_path):
@@ -758,6 +802,7 @@ def test_an_unwritable_ledger_never_fires_across_the_passes_of_one_watch(tmp_pat
 
 
 def test_every_event_of_a_pass_is_seen_after_it_and_nothing_is_fired_twice(tmp_path):
+    # Dispatcher ruling (E3.0 dispatcher, 2026-11-01 15:44, option C): repair 3 of 2 also fires one queue pass.
     qr = _runner()
     transport, state_file = _event_tree(
         tmp_path, state="STATE a MERGED abc1234 2026-11-01T10:00 5\n",
@@ -773,7 +818,7 @@ def test_every_event_of_a_pass_is_seen_after_it_and_nothing_is_fired_twice(tmp_p
     assert {event.kind for event in events} == {"handback", "merged", "refused"}
     ledger = qr.Ledger(path=ledger_path)
     assert all(ledger.seen(event.key) for event in events)
-    assert [call[0][0] for call in calls] == ["queue", "queue"]    # handback + merge, once each; repair 3 of 2 fires nothing
+    assert [call[0][0] for call in calls] == ["queue", "queue", "queue"]
 
 
 def test_repair_sessions_sort_by_number_not_by_text(tmp_path):
