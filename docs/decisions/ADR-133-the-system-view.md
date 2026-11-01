@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-10-31
 - **Decision tier:** Path A -- a `/decide` proposal for operator ratification (R13, ADR-108 section A).
-- **Related:** ADR-106 (declared dependencies), ADR-121 (event log, Proposed), ADR-130 (the outer loop); row 1748 (filed by e30-bootstrap, not yet in this tree; it stays open until the build); GO-E3.0 PR-3 (no hand-written prose).
+- **Related:** ADR-106 (declared dependencies), ADR-121 (event log, Proposed), ADR-130 (the outer loop); row 1748 (filed by e30-bootstrap, now in this tree as tasks/1748-the-view-decide-first-then-build.md; it stays open until the build); GO-E3.0 PR-3 (no hand-written prose).
 - **Decommission:** none.
 - **Source:** the design evidence docs/audits/2026-10-31-technical-design-view.md (matrix, pre-mortem, response table); the proposal is the operator's view, digest section C, 2026-10-31. Two independent evaluators (codex, requested as gpt-6-sol with the served model unverified; grok-4.7) amended the first draft; their twenty findings are all answered in the evidence file.
 

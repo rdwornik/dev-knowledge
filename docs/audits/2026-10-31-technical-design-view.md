@@ -2,7 +2,7 @@
 
 - **Run date:** 2026-10-31
 - **Producer:** claude-sonnet-5-5 (lane head); research subagents claude-sonnet-5-5 (read-only); files written through the Copilot CLI claude-sonnet-5.5
-- **Row:** refs row 1748 (filed by e30-bootstrap, not yet in this tree) (stays open: the build follows the operator's ratification)
+- **Row:** refs row 1748 (filed by e30-bootstrap, now in this tree as tasks/1748-the-view-decide-first-then-build.md) (stays open: the build follows the operator's ratification)
 - **Input:** to-browser digest DIGEST-E3-0-PROPOSALS-EVALUATION-2026-10-31, section C (the operator's view), read from the transport
 - **Output:** docs/decisions/ADR-133-the-system-view.md at status Proposed. Nothing is built.
 
@@ -83,9 +83,10 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q1: uv.lock locks no templating library; the producer's own count of name = "jinja2" in uv.lock is 0 {unverified}
 - Q1: package.json says this repo is not a node app and pins only a langserver {probe: grep -c 'NOT a node app' package.json}
 - Q1: no workflow under .github/workflows sets up Node; the subagent's count of setup-node over the three workflows is 0 {unverified}
-- Q4: scripts/system_map.py builds the whole tree through one entry function, build_map, with no partial leg {probe: scripts/system_map.py:381}
-- Q4: render_html turns the in-memory dict into server-side markup and the page's only script is the inline _JS block {probe: scripts/system_map.py:558}
-- Q4: write_outputs writes the JSON, the HTML and the tracked record {probe: scripts/system_map.py:718}
+- Q4: scripts/system_map.py defines build_map(repo_root), the entry function that returns the whole map dict {probe: scripts/system_map.py:381}
+- Q4: render_html turns the in-memory dict into server-side markup {probe: scripts/system_map.py:611}
+- Q4: the page's script is the inline _JS constant {probe: scripts/system_map.py:558}
+- Q4: write_outputs(repo_root, out_dir, record_path) is the single writer of the JSON, the HTML and the tracked record {probe: scripts/system_map.py:718}
 - Q4: scripts/system_map.py imports click at module level, so a view subcommand pays that import cost; the cost itself is unmeasured {probe: grep -c 'import click' scripts/system_map.py}
 - Q4: scripts/system_map.py is long: its CLI group sits past line 760 {probe: scripts/system_map.py:761}
 - Q3: the system-map JSON is gitignored {probe: git check-ignore ecosystem/system-map.json}
@@ -94,7 +95,8 @@ Each claim is one a subagent or the producer reported and the matrix or the pre-
 - Q3: the second ignore line is an explicit file name, at .gitignore:202 {probe: .gitignore:202}
 - Q3: a new output name is not ignored until it has its own line; the producer's git check-ignore of a view file name exited 1 {unverified}
 - Q3: the record file ecosystem/system-map-record.json is tracked and survives a fresh clone {probe: ecosystem/system-map-record.json:1}
-- Q4: tests/test_system_map.py pins byte-identical JSON for the same tree and has no byte-identity test for the HTML {probe: tests/test_system_map.py:81}
+- Q4: tests/test_system_map.py pins byte-identical JSON for the same tree {probe: tests/test_system_map.py:81}
+- Q4: tests/test_system_map.py has no byte-identity test for the HTML {unverified}
 - Q4: scripts/gen_dashboard.py has a byte-determinism test for its generator {probe: grep -c 'test_build_is_deterministic_and_regeneration_is_idempotent' tests/test_gen_dashboard.py}
 - Q4: that determinism test is at line 558 of tests/test_gen_dashboard.py {probe: tests/test_gen_dashboard.py:558}
 - Q4: the /map command names scripts/system_map.py {probe: grep -c 'system_map' .claude/commands/map.md}
