@@ -1328,3 +1328,15 @@ def test_e32_an_already_elapsed_reset_never_produces_a_wait(router):
     decision = router.route_under_quota("evaluate", ".dev-knowledge", now=_E32_NOW, codex=codex,
                                         states=states, produced_by="anthropic")
     assert decision.action != "WAIT"
+
+
+def test_e32_wait_ends_when_every_active_codex_limit_lifts(router):
+    """Judge finding (sol): with the primary window and a usage-limit record both active, the reset is the LATER one."""
+    codex = _e32_codex(primary_used_percent=97, primary_resets_at=_E32_NOW + 300,
+                       usage_limit_at=_E32_NOW + 400, usage_limit_resets_at=_E32_NOW + 900)
+    states = {p: router.ProviderState(usable=False, reason="quota")
+              for p in ("copilot-enterprise", "anthropic", "antigravity")}
+    decision = router.route_under_quota("evaluate", ".dev-knowledge", now=_E32_NOW, codex=codex,
+                                        states=states, produced_by="anthropic")
+    assert decision.action == "WAIT"
+    assert decision.resets_at == _E32_NOW + 900

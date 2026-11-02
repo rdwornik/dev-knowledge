@@ -510,12 +510,17 @@ def codex_pacing_ahead(codex: Any, now: float) -> bool:
 
 
 def _codex_reset(codex: Any, now: float) -> Optional[float]:
-    """When the window leg lifts, for the WAIT arithmetic: the primary reset, else the usage-limit record's own."""
+    """When the window leg lifts, for the WAIT arithmetic: the LATEST of the primary reset (while the primary is at
+    the out threshold) and the usage-limit record's own, because Codex is back only when every active limit lifts."""
+    candidates = []
     resets = _num(codex, "primary_resets_at")
     used = _num(codex, "primary_used_percent")
     if used is not None and used >= CODEX_OUT_PERCENT and resets is not None and resets > now:
-        return resets
-    return _num(codex, "usage_limit_resets_at")
+        candidates.append(resets)
+    limit_resets = _num(codex, "usage_limit_resets_at")
+    if limit_resets is not None and limit_resets > now:
+        candidates.append(limit_resets)
+    return max(candidates) if candidates else None
 
 
 @dataclass(frozen=True)

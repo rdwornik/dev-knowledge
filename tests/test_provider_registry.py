@@ -574,7 +574,7 @@ def test_e32_live_billing_and_provider_quota_reader_facts():
         assert "billing" in providers[provider], provider
     anthropic = providers["anthropic"]["billing"]
     assert anthropic["class"] == "subscription"
-    assert anthropic["plan"].lower() == "ultra"
+    assert anthropic["plan"] == "Ultra"
     assert providers["openai"]["billing"]["class"] == "subscription"
     copilot = providers["copilot-enterprise"]["billing"]
     assert copilot["class"] == "subscription-employer"
