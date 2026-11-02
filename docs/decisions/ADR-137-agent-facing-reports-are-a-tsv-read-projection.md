@@ -225,7 +225,7 @@ Weights: tokens=35 fidelity=20 machine=15 reuse=15 comprehension=15
 - a launch receipt is one file per slug {probe: scripts/dispatch.py:815}
 - job sidecars are a separate file per job id {probe: scripts/dispatch.py:819}
 - job_id can be pending {probe: scripts/dispatch.py:145}
-- job_id can be unresolved {probe: scripts/dispatch.py:1193}
+- job_id can be unresolved {probe: scripts/dispatch.py:1217}
 - T1 light is an extension inside an existing organ {probe: protocols/STANDING_RULINGS.md:6939}
 - plan r3 R-e asks for a JSONL source and a measured projection (to-cc/PLAN-NEXT-2026-10-30.md:76) {unverified}
 - the token, byte and lookup figures (evidence directory, scratch) {unverified}

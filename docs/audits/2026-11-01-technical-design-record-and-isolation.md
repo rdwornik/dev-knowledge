@@ -87,10 +87,10 @@ Each claim is one a subagent reported and the matrix or the pre-mortem relies on
 - Q1: ADR-122's typed lifecycle fields are status, status_reason and closure, with no failure class {probe: docs/decisions/ADR-122-a-task-is-a-typed-record-in-git-every-backlog-view-is-a-projection.md:66}
 - Q2: ADR-121 D5 keys a verdict by candidate SHA, gate, baseline ID, comparison policy and execution context {probe: docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md:79}
 - Q2: ADR-121 is Proposed {probe: grep -c 'Status:\*\* Proposed' docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md}
-- Q2: harness.yaml names the {base} placeholder and the per-spawn {payload} {nonce} {input_hash} {probe: ecosystem/harness.yaml:181}
-- Q2: harness.yaml says the phase inputs are the files whose content is part of the input hash {probe: ecosystem/harness.yaml:180}
-- Q2: the P5 qa row's inputs are the contract only {probe: ecosystem/harness.yaml:187}
-- Q2: the P6b review prompt names the diff against {base} as a placeholder {probe: ecosystem/harness.yaml:189}
+- Q2: harness.yaml names the {base} placeholder and the per-spawn {payload} {nonce} {input_hash} {probe: ecosystem/harness.yaml:182}
+- Q2: harness.yaml says the phase inputs are the files whose content is part of the input hash {probe: ecosystem/harness.yaml:181}
+- Q2: the P5 qa row's inputs are the contract only {probe: ecosystem/harness.yaml:188}
+- Q2: the P6b review prompt names the diff against {base} as a placeholder {probe: ecosystem/harness.yaml@689a537e5:189}
 - Q2: PhaseReceipt carries input_hash {probe: ecosystem/schema/phase_receipt.py:181}
 - Q2: each input carries its own sha256 (InputDigest) {probe: ecosystem/schema/phase_receipt.py:110}
 - Q2: PhaseReceipt carries a nonce {probe: ecosystem/schema/phase_receipt.py:195}
@@ -128,7 +128,7 @@ Each claim is one a subagent reported and the matrix or the pre-mortem relies on
 - Evaluator round (IG2): run_phase builds every PhaseReceipt {probe: scripts/run_phase.py:240}
 - Evaluator round (IG2): run_phase hashes each input file {probe: scripts/run_phase.py:435}
 - Evaluator round (IG2): run_phase resolves {base} to the ref name origin/main, not a sha {probe: scripts/run_phase.py:294}
-- Evaluator round (IG2): the conductor runs the doit round, it does not spawn phases itself {probe: scripts/conductor.py:902}
+- Evaluator round (IG2): the conductor runs the doit round, it does not spawn phases itself {probe: scripts/conductor.py:1057}
 - Evaluator round (IG5): review_packet.py assembles context and judges nothing {probe: scripts/review_packet.py:41}
 - Evaluator round (IG3): receipts are gitignored {probe: .gitignore:194}
 - Evaluator round (IG3): land_lane works on origin/worktree-<slug> from an integration worktree {probe: scripts/land_lane.py:157}
@@ -176,7 +176,7 @@ Library-first check: stdlib statistics has no kappa and no Wilson interval; scik
 
 ## M2 flips attached
 
-- agy:G-17 on P6-7, rejected -> partly (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:64): "the base binding is partly present (harness.yaml:187, :178-180)". This run's probes confirm the partial: the input binding exists (input_hash and the nonce, `ecosystem/harness.yaml:181`, `ecosystem/schema/phase_receipt.py:181` and `ecosystem/schema/phase_receipt.py:195`) and {base} is a placeholder; the revision binding does not (no base, head or tree sha in PhaseReceipt; 0 hash calls in scripts/conductor.py). The ADR answers it in D2: it keeps the present binding and adds the missing one, so G-17 stands as a partial, not as "missing", matching DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 ("the binding is specified, not missing"). The harness.yaml lines have moved since the challenger's snapshot; the placeholders now sit at `ecosystem/harness.yaml:180` and `ecosystem/harness.yaml:181`.
+- agy:G-17 on P6-7, rejected -> partly (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:64): "the base binding is partly present (harness.yaml:187, :178-180)". This run's probes confirm the partial: the input binding exists (input_hash and the nonce, `ecosystem/harness.yaml:182`, `ecosystem/schema/phase_receipt.py:181` and `ecosystem/schema/phase_receipt.py:195`) and {base} is a placeholder; the revision binding does not (no base, head or tree sha in PhaseReceipt; 0 hash calls in scripts/conductor.py). The ADR answers it in D2: it keeps the present binding and adds the missing one, so G-17 stands as a partial, not as "missing", matching DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 ("the binding is specified, not missing"). The harness.yaml lines have moved since the challenger's snapshot; the placeholders now sit at `ecosystem/harness.yaml:181` and `ecosystem/harness.yaml:182`.
 - The /decide structure, P9 review section 3.3 (DIGEST-AJ-P9-REVIEW-2026-11-01.md:50-53): the producer answers challenges to its own work, the structure M2 measured as biased (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:83; 20 flips toward the challenger, DIGEST-AJ-P9-REVIEW-2026-11-01.md:27). The fix is row 1837 (`tasks/1837-decide-independent-adjudication-as-code.md:3`) and is not designed here. ADR-138 D6 says how its measures apply: the producer's Accepted/Rejected column is a verdict stream, measured against a blind key by D4, and the two evaluators' finding sets are a reader pair, measured by D5.
 - No other M2 flip (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:56-82) names P6-3, P6-7, P6-9 or the independence lesson; G-17 is the only one for this run.
 
@@ -218,7 +218,7 @@ Every finding was checked by the producer against the cited file and line before
 | IS10 | /decide rows lack stable ids and revision links | **Accepted** -- in full after the blind re-ruling (was partly): D6 now specifies adr-sha256/evidence-sha256 links, the key (run-id, evaluator file sha256, finding id), grouped rows UNKEYED, join only on equal hashes |
 | IS11 | reuse 4 measures existence, not integration effort | **Accepted** (partly) -- footnote 2 now says it measures existence, which is what reuse scores; the score stays 4 because the fields and run_phase's hashing are measured present, and integration effort is not a criterion |
 | IG1 | baseline_id equality refuses every merge | **Accepted** -- D2: baseline_id and comparison_policy compared only among receipts that carry one; absent rather than NONE |
-| IG2 | run_phase, not the conductor, spawns and hashes; spawn-time stamp is wrong tree | **Accepted** -- verified `scripts/run_phase.py:240`, `scripts/run_phase.py:294`, `scripts/run_phase.py:435` and `scripts/conductor.py:902`; D2/D3 now name run_phase, stamp at harvest and resolve {base} to a sha; claims added |
+| IG2 | run_phase, not the conductor, spawns and hashes; spawn-time stamp is wrong tree | **Accepted** -- verified `scripts/run_phase.py:240`, `scripts/run_phase.py:294`, `scripts/run_phase.py:435` and `scripts/conductor.py:1057`; D2/D3 now name run_phase, stamp at harvest and resolve {base} to a sha; claims added |
 | IG3 | gitignored receipts are not where land_lane reads | **Accepted** -- verified `.gitignore:194` and `scripts/land_lane.py:157`; D2 names the carrier, a read-only sibling read of the lane worktree's receipts (ADR-133 ruling, ADR-134's artifact), refuses when absent; flip to merge trailers |
 | IG4 | round-less contract path deadlocks a re-freeze | **Accepted** -- verified `scripts/gen_lane_contract.py:2366`; D3: freeze keyed by (lane, round), a --refreeze flag writes round + 1 and stales old receipts |
 | IG5 | review_packet.py has no verdict schema | **Accepted** -- verified `scripts/review_packet.py:41`; D1 leaves review_packet unchanged and asks the operator whether [#1047] is met in phase_receipt; O5 reuse 3 to 2, total 2.30 |
