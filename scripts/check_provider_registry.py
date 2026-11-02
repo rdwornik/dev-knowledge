@@ -429,6 +429,35 @@ def check_implement_vendor_fail(root: Path | None = None) -> list[str]:
     return out
 
 
+#: The closed billing-class set ([#1833] D1); mirrors `ecosystem/schema/provider_registry.BILLING_CLASSES`, which
+#: refuses any other value at load time. Kept literal here so a finding names the vocabulary a reader must choose from.
+_BILLING_CLASSES = ("subscription", "subscription-employer", "subscription+credit", "metered")
+
+
+def check_billing_classes(root: Path | None = None) -> list[str]:
+    """[#1833] Done-contract clause 1: every provider that HOLDS a role carries `billing.class`.
+
+    The schema keeps `billing:` optional (a provider that holds no role fabricates no class), so "holds a role" is
+    the condition only this cross-collection check can state: a provider named by any `roles:` order or by the
+    `evaluation:` order must declare a class from the closed set. Returned as strings, like every seam finding.
+    """
+    registry = _preg.load_registry()
+    providers = _preg.providers()
+    routed: dict[str, str] = {}
+    for role, spec in (registry.get("roles") or {}).items():
+        for entry in spec.get("order") or []:
+            routed.setdefault(str(entry.get("provider")), role)
+    for entry in (registry.get("evaluation") or {}).get("order") or []:
+        routed.setdefault(str(entry.get("provider")), "evaluate")
+    out: list[str] = []
+    for pid, role in sorted(routed.items()):
+        klass = ((providers.get(pid) or {}).get("billing") or {}).get("class")
+        if klass not in _BILLING_CLASSES:
+            out.append(f"registry: provider `{pid}` holds role `{role}` but declares no `billing.class` from "
+                       f"{list(_BILLING_CLASSES)} (found {klass!r}) -- routing follows cost data, not memory ([#1833])")
+    return out
+
+
 def run(root: Path | None = None) -> list[str]:
     """Every violation across every seam, in seam order. Empty list == clean.
 
@@ -440,6 +469,7 @@ def run(root: Path | None = None) -> list[str]:
     findings: list[str] = []
     findings += check_registry_shape()
     findings += check_implement_vendor_fail(r)
+    findings += check_billing_classes(r)
     findings += check_s8_tool_versions(r)
     findings += check_s9_artifact_reader(r)
     findings += check_s10_conformance_hub(r)

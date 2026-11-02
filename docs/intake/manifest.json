@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "00986e60917ac628a529a64bdb1fde571aff1a4a644753b859181b2889abfcbe",
+  "source_sha256": "c2f7881fe493908973c62404419e016f2853caae670ffb11cf644934ecbc6f91",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 106,
+    "item_derived_lines": 110,
     "residue_lines": 297,
-    "total_lines": 403,
+    "total_lines": 407,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -500,6 +500,22 @@
         "disposition",
         "origin"
       ],
+      "2026-11-01-tech-adr-124-carrier-d5-quality-attributes-check.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-11-01-tech-adr-124-carrier-pyright-ci.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-11-01-tech-adr-124-carrier-ruff-families.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-11-01-tech-adr-124-carrier-tach.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-11-02-tech-equilibrium-candidates-c3-c5.md": [
         "consumed-by",
         "origin"
@@ -582,7 +598,7 @@
     },
     {
       "t": "line",
-      "v": "**106 intake documents.**"
+      "v": "**110 intake documents.**"
     },
     {
       "t": "line",
@@ -590,7 +606,7 @@
     },
     {
       "t": "line",
-      "v": "### SEED (22)"
+      "v": "### SEED (26)"
     },
     {
       "t": "line",
@@ -699,6 +715,26 @@
     {
       "t": "item",
       "file": "2026-10-16-tech-process-matrix-and-token-baseline.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-11-01-tech-adr-124-carrier-ruff-families.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-11-01-tech-adr-124-carrier-tach.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-11-01-tech-adr-124-carrier-pyright-ci.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-11-01-tech-adr-124-carrier-d5-quality-attributes-check.md",
       "status": "SEED"
     },
     {

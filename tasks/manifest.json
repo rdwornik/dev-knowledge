@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "af64bc4198d2172cce6eb868cf5a79d9eb1f1c2a3fc3c8a16789ead2c89cba64",
+  "generated_sha256": "98f6af0c967c3012ff9f4221e01be79f958d86713033a857c9b4bc17e7fea022",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2712,6 +2712,22 @@
       "file": "1801-land-lane-finds-mains-base-push-run-by-commit-not-inside-a-40-run-window.md"
     },
     {
+      "task": 1845,
+      "file": "1845-seat-registry-an-integrator-seat-holds-a-set-of-batch-binds-refuse-no-live-integrator-checks.md"
+    },
+    {
+      "task": 1846,
+      "file": "1846-config-only-lane-class-a-pin-version-config-diff-lands-on-three-kept-checks-enforced-by-code.md"
+    },
+    {
+      "task": 1847,
+      "file": "1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md"
+    },
+    {
+      "task": 1844,
+      "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
+    },
+    {
       "task": 1433,
       "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
     },
@@ -2798,6 +2814,10 @@
     {
       "task": 1483,
       "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
+    },
+    {
+      "task": 1864,
+      "file": "1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md"
     },
     {
       "task": 1510,
@@ -3558,6 +3578,38 @@
     {
       "task": 1749,
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
+    },
+    {
+      "task": 1800,
+      "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
+    },
+    {
+      "task": 1811,
+      "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
+    },
+    {
+      "task": 1837,
+      "file": "1837-decide-independent-adjudication-as-code.md"
+    },
+    {
+      "task": 1838,
+      "file": "1838-one-id-one-ruling.md"
+    },
+    {
+      "task": 1841,
+      "file": "1841-wire-startup-probe-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1842,
+      "file": "1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1843,
+      "file": "1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1848,
+      "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
     },
     {
       "prose": ""

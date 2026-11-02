@@ -308,7 +308,8 @@ def test_an_organ_that_does_not_continue_on_failure_still_stops_the_moment(tmp_p
 
 def test_batch_close_moment_declares_the_digest_run_by_the_integrator():
     moment = _moment("batch-close")
-    assert [o["id"] for o in moment["organs"]] == ["ci_red_age", "digest", "trial_cut"]
+    # system_view_full: ADR-133 D4 full leg, to-browser/RATIFICATION-2026-11-01-ADR-133.md (architect ruling Q-SV-1 = A)
+    assert [o["id"] for o in moment["organs"]] == ["ci_red_age", "digest", "trial_cut", "system_view_full"]
     digest = moment["organs"][1]
     assert digest["receipt"] == "MOMENT-BATCH-CLOSE-DIGEST.json" and digest.get("manual_until")
     assert "scripts/lane_digest.py" in digest["command"]

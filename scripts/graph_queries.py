@@ -661,6 +661,74 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    # ---- [#1800] (lane e30-commit-gate): ten census findings, each given its REAL caller ----
+    # These ten are red on main's commit-gate job since 2026-10-17. NONE is retired: every
+    # one is a live organ or command whose caller is a class the census does not walk -- an
+    # order/lane-contract template, a `.claude/commands/*.md` command, or the operator's own
+    # act, recorded as a `fates:` row in ecosystem/harness.yaml. A disposition is the honest
+    # verdict until [#1711] teaches the census that caller class; `tests/test_graph_spine.py::
+    # test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller` opens
+    # the caller each reason names and finds the path in it.
+    ".claude/commands/decide.md": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
+    ".claude/commands/map.md": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
+    "scripts/claim.py": Disposition(
+        reason="KEEP -- a live organ called at step 0 of every lane by the order templates: "
+               "templates/lane-contract-template.md runs `scripts/claim.py claim` and "
+               "teardown releases it (also templates/integrator-order-template.md and "
+               "templates/dispatcher-order-template.md). Its ecosystem/harness.yaml fates row "
+               "is `called_by: templates/lane-contract-template.md`. The census does not walk "
+               "templates",
+        owner="[#1711] (the census learns the template caller class)"),
+    "scripts/harness_probes.py": Disposition(
+        reason="RETIRE-CANDIDATE, NOT RETIRED -- the ecosystem/harness.yaml fates row for "
+               "scripts/harness_probes.py says `retire_candidate: true`: E1 fates digest "
+               "2026-10-19 rules RETIRE when [#1555] ADR-123 step 1 merges, keeping the "
+               "committed receipts. The operator GO is still pending, so this lane does not "
+               "delete it; delete this row in the act that retires the script",
+        owner="operator GO pending; [#1555] ADR-123 step 1"),
+    "scripts/read_gate.py": Disposition(
+        reason="KEEP -- the read verifier and route runner (AX21-1's 'CC verifies' half), a "
+               "live organ never retired: protocols/HANDOFF_BOOT.md runs it as a procedure "
+               "step (agy reads only through scripts/read_gate.py), and "
+               "protocols/STANDING_RULINGS.md names it. Its ecosystem/harness.yaml fates row "
+               "(line 150) records manual_until 2026-11-09; evidence: `grep -rlF read_gate.py "
+               "templates .claude/commands .github/workflows scripts protocols`",
+        owner="[#1327] [#1536]"),
+    "scripts/row_close.py": Disposition(
+        reason="KEEP -- run by hand by the integrator right after `merge_receipt.py close` "
+               "for each merged lane; templates/lane-contract-template.md names it as the "
+               "reader of the `closes` clause, and the ecosystem/harness.yaml fates row "
+               "records manual_until 2026-11-09. Folding the call into merge_receipt.py close "
+               "is a later lane's file",
+        owner="[#730]"),
+    "scripts/startup_probe.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-09 [#1841]",
+        owner="[#1841]"),
+    "scripts/system_map.py": Disposition(
+        reason="KEEP -- run on demand by the operator through /map: "
+               ".claude/commands/map.md runs `scripts/system_map.py build`, and the "
+               "ecosystem/harness.yaml fates row is `called_by: .claude/commands/map.md`. "
+               "The census does not walk commands",
+        owner="[#1711] (the census learns the command caller class)"),
+    "scripts/task_record.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1842]",
+        owner="[#1842]"),
+    "scripts/test_census.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-09 [#1843]",
+        owner="[#1843]"),
+    "scripts/queue_runner.py": Disposition(
+        reason="KEEP -- the event-driven queue runner (R130, [#1633]): the operator or the "
+               "orchestrator starts `queue_runner.py watch` once per batch and it fires "
+               "`dispatch.py queue` / `repair` on handback, merge and refusal events. The "
+               "trigger is that start, not a census-visible caller: the one edge that would "
+               "show (a `dispatch.py` verb) is barred by the PowerShell shim's help-parity "
+               "test over templates/dispatch-shim.ps1, which this lane does not own. Delete "
+               "this row when the batch order templates or a hook start the runner",
+        owner="[#1633]"),
     "scripts/backlog_reconcile.py": Disposition(
         reason="KEEP -- the per-row backlog reconciliation organ (GO-E3.0 R10, [#1749]): the "
                "operator runs `evidence`, `fanout`, `adjudicate` and `report` by hand and rules "
@@ -729,6 +797,8 @@ COVERAGE_EXEMPT: dict[str, str] = {
     "docs/intake/manifest.json": "generated by gen_intake_tree.py",
     ".claude/methodology-roster.md": "generated by gen_methodology_roster.py",
     "uv.lock": "generated by uv; ADR-106 owns its lifecycle",
+    # architect ruling Q-SV-2 = A (to-browser/DIGEST-RULINGS-MORNING-2026-11-02.md), lane e31-system-view:
+    ".gitignore": "tracked ignore list; FPG-1 does not carry it, so no implements edge is possible",
 }
 #: Directory prefixes under the same rule.
 COVERAGE_EXEMPT_PREFIXES: tuple[str, ...] = (".claude/generated/",)
@@ -1140,6 +1210,11 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
     "scripts/gen_handoff.py": _not_an_edge(_measured(
         "4", "was private template; template -> bundle is the generator's own hard-coded "
              "authoring; other legs off-tree transport")),
+    # ADR-133 / [#1748] (lane e31-system-view): the system view READS organ outputs to display them;
+    # it derives no corpus-structure relation and no graph edge from them.
+    "scripts/system_view.py": _not_an_edge(
+        "ADR-133 section D2: a pure rendering of organ outputs -- it reads receipts, a record, a task's "
+        "frontmatter and one YAML block to DISPLAY them; no relation it reads is returned as an edge"),
     "scripts/audit.py::check_doc_claims": _not_an_edge(_measured(
         "4", "was private citation, lean; 3 of 4 claims are counts, the 4th is hook-id set "
              "parity and a hook id is not a corpus file")),
@@ -1154,6 +1229,12 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
              "parity, FPG-1 `archives` already holds live pairs")),
     "scripts/file_purpose_graph.py": _not_an_edge(_measured(
         "4", "it IS FPG-1; the graph cannot owe a migration onto itself")),
+    # [#1633], e30-queue-runner (E3.0 orchestrator ruling 2026-11-01): a run-time reader, not a corpus edge.
+    "scripts/queue_runner.py": _not_an_edge(
+        "[#1633]: reads run-time state, not corpus structure -- the integrator receipt "
+        "(queue_runner.py:126), the transport inbox listing (:165), its own ledger (:214) and one "
+        "`| Model | Mode | Effort |` cell row of a contract it was handed (:354); nothing resolves a "
+        "path from a document into a corpus file, and it does not use plan_lint's grammar"),
     # ---- not-an-edge: the previously UNVERDICTED population (census section 5, one line each)
     **{f"scripts/{module}.py": _not_an_edge(_measured("5", reason)) for module, reason in (
         ("assemble_paste", "writes PASTE_THIS from a fixed manifest (borderline generation, "
