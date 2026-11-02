@@ -888,7 +888,9 @@ def _sweep_write_manifest(tasks_dir: Path, nodes: list[dict]) -> None:
         "nodes": nodes,
     }
     (tasks_dir / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
 
 
@@ -905,6 +907,8 @@ def _sweep_repo(tmp_path: Path, tasks: list[dict]) -> tuple[Path, Path]:
     _sweep_git(repo, "init", "-q", "-b", "main")
     _sweep_git(repo, "config", "user.name", "Backlog Sweep Tests")
     _sweep_git(repo, "config", "user.email", "sweep-tests@example.invalid")
+    _sweep_git(repo, "config", "core.autocrlf", "false")
+    _sweep_git(repo, "config", "core.safecrlf", "false")
     tasks_dir = repo / "tasks"
     tasks_dir.mkdir()
     nodes = [{"prose": "# Backlog"}, {"prose": "## sweep fixtures"}]
@@ -918,6 +922,7 @@ def _sweep_repo(tmp_path: Path, tasks: list[dict]) -> tuple[Path, Path]:
         (tasks_dir / filename).write_text(
             _sweep_task_text(row_id, title, body, row.get("priority", "P2")),
             encoding="utf-8",
+            newline="\n",
         )
         nodes.append({"task": row_id, "file": filename})
         _sweep_write_manifest(tasks_dir, nodes)
@@ -944,7 +949,7 @@ def _sweep_table_row(task: dict, **overrides) -> dict:
         "cited_by_open": [],
         "declared_priority": task.get("priority", "P2"),
         "sonnet": {"fit": "LINE", "priority": task.get("priority", "P2")},
-        "gemini": {"fit": "LINE", "priority": task.get("priority", "P2")},
+        "gemini": {"fit": "HARNESS-LATER", "priority": "P3"},
         "label_basis": "agreed",
         "adjudicator_followed": None,
         "reason": "fixture decision reason",
@@ -962,7 +967,7 @@ def _sweep_ruling(
 ) -> tuple[Path, Path]:
     transport = tmp_path / "transport"
     transport.mkdir(parents=True, exist_ok=True)
-    (transport / source_name).write_text(source_text, encoding="utf-8")
+    (transport / source_name).write_text(source_text, encoding="utf-8", newline="\n")
     text = "Operator ruling for the legacy-sweep test.\n"
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     decisions = decision_classes or _SWEEP_DECISIONS
@@ -987,6 +992,7 @@ def _sweep_ruling(
         "  decision_classes:\n"
         f"{decision_lines}\n",
         encoding="utf-8",
+        newline="\n",
     )
     return ruling, transport
 
@@ -1008,7 +1014,11 @@ def _sweep_run(
     rows = table_rows
     if rows is None:
         rows = [_sweep_table_row(task) for task in tasks]
-    table.write_text(json.dumps({"rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+    table.write_text(
+        json.dumps({"rows": rows}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+        newline="\n",
+    )
     home = tmp_path / "sweep-home"
     result = br.run_sweep(
         ruling_path=ruling,
@@ -1030,7 +1040,7 @@ def _sweep_file(tasks_dir: Path, row_id: str | int) -> Path:
 def _sweep_add_code(repo: Path, path: str, date: str) -> None:
     target = repo / path
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(f"# fixture {path}\n", encoding="utf-8")
+    target.write_text(f"# fixture {path}\n", encoding="utf-8", newline="\n")
     _sweep_commit(repo, date, f"update {path}")
 
 
@@ -1039,7 +1049,7 @@ def _sweep_side_ref(repo: Path, ref: str, path: str) -> None:
     _sweep_git(repo, "switch", "-q", "-c", branch, "main")
     target = repo / path
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(f"side branch change for {ref}\n", encoding="utf-8")
+    target.write_text(f"side branch change for {ref}\n", encoding="utf-8", newline="\n")
     _sweep_commit(repo, "2026-10-31", f"side work for {ref}")
     _sweep_git(repo, "update-ref", f"refs/remotes/origin/{ref}", "HEAD")
     _sweep_git(repo, "switch", "-q", "main")
@@ -1106,7 +1116,9 @@ def test_sweep_d_k2_alive_in_code_window(tmp_path):
     ruling, transport = _sweep_ruling(tmp_path)
     table = tmp_path / "step1.json"
     table.write_text(
-        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}), encoding="utf-8"
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}),
+        encoding="utf-8",
+        newline="\n",
     )
 
     result = br.run_sweep(
@@ -1128,9 +1140,11 @@ def test_sweep_d_k2_alive_in_code_window(tmp_path):
 
 def test_sweep_e_k3_both_families_agreed_keeps(tmp_path):
     task = {"id": 1106, "add_date": "2026-08-01"}
-    row = _sweep_table_row(task)
-    row["sonnet"] = {"fit": "LINE", "priority": "P2"}
-    row["gemini"] = {"fit": "LINE", "priority": "P1"}
+    row = _sweep_table_row(
+        task,
+        sonnet={"fit": "LINE", "priority": "P2"},
+        gemini={"fit": "LINE", "priority": "P2"},
+    )
     result, _, _, _, _ = _sweep_run(tmp_path, [task], table_rows=[row])
 
     assert result.kept["k3-agreed"] == ["1106"]
@@ -1266,13 +1280,21 @@ def test_sweep_k_live_lane_rows_never_close(tmp_path):
     _sweep_git(repo, "update-ref", "refs/remotes/origin/worktree-old", "main")
     transport = tmp_path / "transport"
     transport.mkdir()
-    (transport / "LANE-live.md").write_text("active contract [#1203]\n", encoding="utf-8")
-    (transport / "LANE-old.md").write_text("merged contract [#1204]\n", encoding="utf-8")
-    (transport / "LANE-no-branch.md").write_text("orphan contract [#1205]\n", encoding="utf-8")
+    (transport / "LANE-live.md").write_text(
+        "active contract [#1203]\n", encoding="utf-8", newline="\n"
+    )
+    (transport / "LANE-old.md").write_text(
+        "merged contract [#1204]\n", encoding="utf-8", newline="\n"
+    )
+    (transport / "LANE-no-branch.md").write_text(
+        "orphan contract [#1205]\n", encoding="utf-8", newline="\n"
+    )
     ruling, _ = _sweep_ruling(tmp_path)
     table = tmp_path / "step1.json"
     table.write_text(
-        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}), encoding="utf-8"
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}),
+        encoding="utf-8",
+        newline="\n",
     )
     result = br.run_sweep(
         ruling_path=ruling,
@@ -1329,7 +1351,9 @@ def test_sweep_m_revert_subset_then_rest_is_manifest_byte_identical(tmp_path):
         story=None,
     )
     later_name = "1399-later-added-task.md"
-    (next_dir / later_name).write_text(gtt.emit_task_file_text(later_task), encoding="utf-8")
+    (next_dir / later_name).write_text(
+        gtt.emit_task_file_text(later_task), encoding="utf-8", newline="\n"
+    )
     manifest["nodes"].append({"task": 1399, "file": later_name})
     _sweep_write_manifest(next_dir, manifest["nodes"])
     assert br.run_revert(tasks_dir=next_dir, home=next_home, spec="legacy-sweep") == [
@@ -1425,7 +1449,7 @@ def test_sweep_p_ruling_round_trips_and_text_hash(tmp_path):
         "Tampered ruling text for the legacy-sweep test.",
         1,
     )
-    ruling.write_text(tampered, encoding="utf-8")
+    ruling.write_text(tampered, encoding="utf-8", newline="\n")
     with pytest.raises(br.RulingError):
         br.load_sweep_ruling(ruling)
     invalid_class_dir = tmp_path / "invalid-class"
