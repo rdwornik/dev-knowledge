@@ -732,7 +732,7 @@ def capture_statusline(stdin_text: str, path: Path) -> StatuslineReading:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_suffix(target.suffix + ".tmp")
-    tmp.write_text(json.dumps({"captured_at": time.time(), "rate_limits": limits}), encoding="utf-8")
+    tmp.write_text(json.dumps({"captured_at": time.time(), "rate_limits": limits}), encoding="utf-8", newline="\n")
     os.replace(tmp, target)
     return reading
 
