@@ -516,7 +516,14 @@ def test_e32_provider_billing_class_accepts_each_declared_value(billing_class):
     """Done-contract A1: each declared billing class has a valid schema representation."""
     assert _validate(_mutate()).providers["acme"].billing is None
     d = _mutate()
-    d["providers"]["acme"]["billing"] = {"class": billing_class}
+    # E32 TEST-FIX (lane head): A2/A3 below require `subscription+credit` to carry `api_credit` and `metered` to
+    # carry `daily_budget.default_usd`, so the bare `{"class": ...}` this test first sent for those two classes
+    # contradicted them; each class is sent with the block it requires.
+    companions = {
+        "subscription+credit": {"api_credit": {"balance_usd": 1}},
+        "metered": {"daily_budget": {"default_usd": 0}},
+    }
+    d["providers"]["acme"]["billing"] = {"class": billing_class, **companions.get(billing_class, {})}
     validated = _validate(d)
     assert validated.providers["acme"].billing is not None
     assert validated.model_dump(by_alias=True)["providers"]["acme"]["billing"]["class"] == (

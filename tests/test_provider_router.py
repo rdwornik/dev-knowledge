@@ -278,8 +278,14 @@ def test_refusal_4_the_producing_provider_is_excluded_from_reviewing_its_own_wor
     excluded = [c.provider for c in
                 router.route("review", repo=".dev-knowledge", produced_by="openai")]
     assert "openai" not in excluded
-    # R104 (2026-10-14, [#1536]) admitted Grok on review, so the chain now lands there.
-    assert excluded[0] == "xai", "R104's chain: Codex terra -> Grok when Codex produced"
+    # R104 (2026-10-14, [#1536]) admitted Grok on review; [#1833] R-5 then made every xai entry per-case-only
+    # ("Grok leaves every standing fallback list", operator 2026-11-01), so the standing chain lands on the
+    # Copilot half and Grok returns only for an approved case.
+    assert excluded[0] == "copilot-enterprise", "R-1: Codex terra -> Copilot terra when Codex produced"
+    assert "xai" not in excluded
+    approved = [c.provider for c in router.route(
+        "review", repo=".dev-knowledge", produced_by="openai", case_approved=True)]
+    assert approved[0] == "xai", "R104's chain returns for an operator-approved case"
 
 
 def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):

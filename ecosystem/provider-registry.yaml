@@ -145,6 +145,43 @@ rate_card:
 providers:
   anthropic:
     display_name: Anthropic
+    # [#1833] D1/R-4/R-5, from `to-browser/DIGEST-ROUTING-COST-REGISTRY-DIFF-1833-2026-11-01.md` section 1 with the
+    # ratified corrections: A3 (RATIFICATION-2026-11-01-ROUTING-COST.md) makes the plan ULTRA, not Max 5x; C-3 says
+    # `seven_day_opus` / `seven_day_sonnet` are not official statusline fields, so the reader names only
+    # `rate_limits.five_hour` / `.seven_day` and the stream-json `rate_limit_event`. Class stays `subscription`
+    # until the A-2 reader (`quota_watch.api_credit_line`) reads a Console balance; then it is `subscription+credit`
+    # and still nothing routes to the credit pool (the schema refuses `billing_pool: api-credit` there).
+    billing:
+      class: subscription
+      plan: ultra
+      quota_reader:
+        kind: anthropic_rate_limits
+        refuse_launch_above_pct: 95
+      overflow:
+        usage_credits: disabled
+        monthly_cap_usd: 0
+    # [#1833] D4, drafted INACTIVE on merit (A-1): a second `CLAUDE_CONFIG_DIR` is not adopted. `router.select_account`
+    # never returns an `active: false` account, so these rows are inert until a ruling flips them.
+    accounts:
+      - id: anth-main
+        config_dir: "C:/Users/1028120/.claude"
+        surfaces: [claude.ai, claude-code]
+        seats: ["*"]
+        active: true
+      - id: anth-cc-1
+        config_dir: "C:/Users/1028120/.claude-cc1"
+        surfaces: [claude-code]
+        seats: [orchestrate, plan, seat-dispatcher, triage, judge]
+        active: false
+      - id: anth-cc-2
+        config_dir: "C:/Users/1028120/.claude-cc2"
+        surfaces: [claude-code]
+        seats: [implement, seat-integrator, verify, read]
+        active: false
+    account_failover:
+      "on": [five_hour, seven_day]   # quoted: a bare `on` is the boolean true in YAML 1.1
+      rule: next-active-account-in-seat-order-with-headroom
+      resume: new-session-with-handover
     council_alias: claude
     cli: claude
     # Local, no-network version probe. Read by scripts/changelog_sentinel.py (S7).
@@ -195,6 +232,15 @@ providers:
 
   openai:
     display_name: OpenAI
+    # [#1833] D1/R-4. Codex rollout `payload.rate_limits.primary` (300 min) / `.secondary` (10080 min).
+    billing:
+      class: subscription
+      plan: plus
+      quota_reader:
+        kind: codex_rollout_rate_limits
+        refuse_launch_above_pct: 95
+      overflow:
+        credits: none
     council_alias: openai
     cli: codex
     version_command: ["codex", "--version"]
@@ -219,6 +265,19 @@ providers:
 
   copilot-enterprise:
     display_name: GitHub Copilot Enterprise
+    # [#1833] D1/R-4/R-5. 1 credit = USD 0.01; usage JSON `totalNanoAiu / 1e9` = credits. Pace = included / days in month.
+    billing:
+      class: subscription-employer
+      plan: copilot_enterprise_seat_quota
+      unit: ai_credit
+      included_per_month: 25000
+      quota_reader:
+        kind: copilot_internal_user
+        refuse_launch_above_pct: 95
+      daily_budget:
+        warn_when_mtd_ahead_of_pace_x: 1.5
+        refuse_noncritical_when_mtd_above: 25000
+        overage: operator_approval_only
     # NOT a council panellist -- it is a reviewer / adversarial / analysis provider, so the
     # alias is null rather than a name the council roster does not carry.
     council_alias: null
@@ -291,6 +350,14 @@ providers:
   # subscriptions and neither account holds one. NO FURTHER PROBING from our side.
   xai:
     display_name: xAI
+    # [#1833] D1/R-5. Metered (XAI_API_KEY). Grok is OFF (operator 2026-11-01): $0 a day, and an approved case states
+    # its own cap, at most $5. Every call records `usd` from usage.json `costUsdTicks` (1e-10 USD).
+    billing:
+      class: metered
+      daily_budget:
+        default_usd: 0
+        per_case_cap_usd: 5
+        record: usage.json costUsdTicks (1e-10 USD) on every call
     council_alias: grok
     # PRESENCE REPAIRED 2026-08-25 (lane RL, presence-only truth-up). The 2026-08-23 note
     # this replaces recorded `cli: null` on the basis that `grok` was "not on PATH"; that is
@@ -408,6 +475,11 @@ providers:
       decided_on: "2026-08-26"
 
   antigravity:
+    # [#1833] D1/R-4. No usage verb exists: the route state is the last RESOURCE_EXHAUSTED (429) "Resets in <d>".
+    billing:
+      class: subscription
+      quota_reader:
+        kind: error_only
     display_name: Antigravity (Google)
     # NOT PANELLED — `protocols/AI_COUNCIL_PROCESS.md` names no Antigravity seat, and
     # `council_alias: null` is the declaration for that (check_s31_council_panel).
@@ -752,6 +824,7 @@ roles:
           decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         note: >-
           R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: THIRD. NOT ADMITTED for this role. Its only recorded verdict is a REFUSED fan-out (a
@@ -783,6 +856,7 @@ roles:
           decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         requires_admission: true
         note: >-
@@ -841,6 +915,7 @@ roles:
           verdict: unevaluated
           floors: ["AX22-1"]
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)".
         requires_admission: true
@@ -860,15 +935,32 @@ roles:
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: copilot-enterprise
-        # R138: the Copilot half of the review pair. No model is pinned: the role names the Copilot
-        # CLI at its default, and Copilot reports the model it served (recorded verbatim in the
-        # MODELS block; not a substitution). Was pinned to `gpt-6-luna` by R104.
+        # [#1833] D1/R-1: PINNED to `gpt-5.6-terra` -- the Codex-quota backup for review 1 (served twice in the week of
+        # 2026-11-01 as the fallback). R138's "no model pinned, whatever Copilot serves" is superseded for this position
+        # because S-1's second rung is a NAMED model on a family other than the producer's. Was unpinned (R138), and
+        # pinned to `gpt-6-luna` before that (R104).
+        model: gpt-5.6-terra
+        billing_pool: subscription-employer
         substrate: codespace
         paired: true
         note: >-
-          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a NON-Anthropic model
-          (`gpt-6-luna`) so the reviewer is never the producer's vendor. R138 (2026-10-18): the
-          pair's Copilot half, at the CLI's default model. NOT ADMITTED for review.
+          R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a NON-Anthropic model so the reviewer is
+          never the producer's vendor. R138 (2026-10-18): the pair's Copilot half. [#1833] R-1 / operator S-1: the
+          second rung after Codex (`provider_router.route_under_quota`), taken at once when Codex is out. NOT ADMITTED
+          for review.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: anthropic
+        model: claude-sonnet-5-5
+        # [#1844] operator S-1 (RATIFICATION-2026-11-01-ROUTING-COST-S1.md): the LAST review rung is an ISOLATED Claude
+        # session (Sonnet). AX22-2 moves, for the fallback case, from provider separation to session isolation; the
+        # router admits this same-vendor entry ONLY because of the flag, and the caller records
+        # `ISOLATED-SESSION-SAME-VENDOR` in the receipt.
+        isolated_session: true
+        note: >-
+          S-1 (operator 2026-11-01), carried by [#1844]: new `claude -p` session, no producer transcript or prose, the
+          same judge-input builder. Reached only when Codex and Copilot are both unusable.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
@@ -889,6 +981,9 @@ roles:
       failure mode is a wasted call rather than a false record. Counts and searches are done by
       code; a model only summarises with citations (operator 2026-10-23).
     routing_table_role: null   # routing-table.yaml's fan_out is retrieval-only multi-head, a different shape
+    # [#1833] R-3: bulk work (an AJ extraction, or more than 20 units in one dispatch call) waits for agy's reset and
+    # never falls back into the anthropic pool (`provider_router.bulk_route`).
+    batch_fallback: wait
     order:
       - provider: antigravity
         # R140: agy is laptop-only; no seeded personal token in a box.
@@ -955,6 +1050,7 @@ roles:
     order:
       - provider: copilot-enterprise
         model: gpt-6-luna
+        billing_pool: subscription-employer
         substrate: codespace
         note: >-
           PINNED 2026-10-23 to `gpt-6-luna` (F7; `to-browser/RATIFICATION-2026-10-23.md` D2/D9, the
@@ -967,6 +1063,13 @@ roles:
           decided_by: operator
           decided_on: "2026-10-23"
           evidence: protocols/STANDING_RULINGS.md
+      - provider: openai
+        model: gpt-6-luna
+        substrate: local
+        note: "[#1833] D1/R-1 (copilot_quota): Codex serves `gpt-6-luna` too, so a Copilot quota-out falls to the ChatGPT subscription before any Claude rung."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
       - provider: anthropic
         model: claude-sonnet-5-5
         note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. Runs only after a recorded VENDOR-FAIL of the Copilot CLI (P1, R139)."
@@ -976,6 +1079,7 @@ roles:
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         requires_admission: true
         note: "Quota backup for Copilot (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for red."
@@ -990,12 +1094,19 @@ roles:
     order:
       - provider: copilot-enterprise
         model: gpt-6-luna
+        billing_pool: subscription-employer
         note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: a separate Copilot session. R11 (GO-E3.0, 2026-10-31): T1 writes and T2 runs in separate Copilot sessions on a non-Claude model, `gpt-6-luna`."
         admission:
           verdict: admitted
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+      - provider: openai
+        model: gpt-6-luna
+        note: "[#1833] D1/R-1 (copilot_quota): Codex serves `gpt-6-luna` too -- the T2 backup when the employer seat is out of quota."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
       - provider: anthropic
         model: claude-sonnet-5-5
         note: "R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]: fallback."
@@ -1005,6 +1116,7 @@ roles:
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         requires_admission: true
         note: "Quota backup for Copilot (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for qa."
@@ -1067,8 +1179,9 @@ roles:
           evidence: protocols/STANDING_RULINGS.md
   judge:
     description: >-
-      Rule on the reviewers' findings. R104: Opus 5.5 judges; it reads the reviewers' findings and
-      the diff, never the implementer's report.
+      Rule on the reviewers' findings. R11 (GO-E3.0): Codex `gpt-6-sol` judges, then the S-1 ladder (operator
+      2026-11-01): Copilot `gpt-6.1-sol` once admitted, then an ISOLATED Opus session. The judge reads the reviewers'
+      findings and the diff, never the implementer's report (R104).
     rerankable: false
     routing_table_role: null
     order:
@@ -1081,20 +1194,75 @@ roles:
           decided_on: "2026-10-31"
           evidence: to-cc/GO-E3.0.md R9/R11
       - provider: xai
+        per_case_only: true   # [#1833] R-5: metered, routable for an operator-approved case only
         model: grok-4.7
         requires_admission: true
         note: "Quota backup for Codex (R11, GO-E3.0, operator ruling 2026-10-31). NOT ADMITTED for judge."
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
+      - provider: copilot-enterprise
+        model: gpt-6.1-sol
+        billing_pool: subscription-employer
+        # [#1833] D1: enters ONLY after one shadow-admission call has a served record (usage-file `currentModel`, R82);
+        # until then the router skips this rung and the judge falls straight to the isolated Opus entry.
+        requires_admission: true
+        note: "D1 backup for the Codex judge (operator S-1, 2026-11-01). NOT ADMITTED until its first served record."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
       - provider: anthropic
         model: claude-opus-5-5
+        # [#1844] S-1: the LAST judge rung is an ISOLATED Opus session; same-vendor, admitted only by this flag.
+        isolated_session: true
         note: "Not re-rankable. R104 (RATIFICATION-2026-10-14 v3, operator), carried by [#1536]. THIRD under R11 (GO-E3.0, 2026-10-31); was the only judge entry before it."
         admission:
           verdict: admitted
           decided_by: operator
           decided_on: "2026-10-14"
           evidence: docs/intake/2026-10-15-tech-build1-owed-rows.md
+
+# ===========================================================================================
+# EVALUATION -- ADDED 2026-11-02 ([#1833], D1 "/decide evaluation" row, operator S-1 item 7). Contract R12 and /decide
+# evaluators. A TOP-LEVEL collection, not a `roles:` entry: `ROLE_NAMES` is pinned by other tests and by
+# `cost_usage_telemetry.ROLES`. The router reaches it as the pseudo-role `evaluate`. NEVER Claude: S-1's isolated-Claude
+# rung is written for review and judge, so the schema refuses an `anthropic` entry here and the router skips one anyway.
+# Codex out -> D1's pair: Copilot `gpt-6.1-sol` (once admitted) + agy `gemini-4-argon`.
+# ===========================================================================================
+evaluation:
+  description: >-
+    Independent evaluation of a contract (R12) or a /decide proposal: the evaluator differs from the producer in model
+    family AND provider. Never routes to Claude (operator S-1 item 7).
+  excludes_producer: true
+  order:
+    - provider: openai
+      model: gpt-6-sol
+      note: "D1: Codex gpt-6-sol evaluates. Served UNVERIFIED (R9)."
+      admission:
+        verdict: unevaluated
+        floors: ["AX22-1"]
+    - provider: copilot-enterprise
+      model: gpt-6.1-sol
+      billing_pool: subscription-employer
+      requires_admission: true
+      note: "D1 backup when Codex is out; enters only after one shadow-admission call has a served record."
+      admission:
+        verdict: unevaluated
+        floors: ["AX22-1"]
+    - provider: antigravity
+      model: gemini-4-argon
+      substrate: local
+      note: "D1: a second family and a separate provider and quota (Google). Served as `gemini-4-argon-trial` on 2026-11-01, so it is routable now and its first plain served record is owed (no `requires_admission`)."
+      admission:
+        verdict: unevaluated
+        floors: ["AX22-1"]
+    - provider: xai
+      per_case_only: true
+      model: grok-4.7
+      note: "D1: only for an operator-approved case (metered)."
+      admission:
+        verdict: unevaluated
+        floors: ["AX22-1"]
 
 # ===========================================================================================
 # DISPATCHER -- ADDED 2026-09-29 (`lane-ratified-unbuilt`, WAVE5B-N5-R, R22), ALIGNING THE
@@ -1137,7 +1305,40 @@ copilot_gateway_served:
 # D2/D9). Rule as data; the ONE pure function is `fallback_due` in `ecosystem/schema/provider_registry.py`.
 # Every fallback use is recorded in the MODELS block (R139).
 fallback_triggers:
+  # [#1833] R-1 (operator S-1 replaces A-3): the STANDING route when Codex is out. The rule is code
+  # (`provider_router.codex_window_out` / `codex_pacing_ahead` / `route_under_quota`); this block is its declaration.
+  codex_quota:
+    rule: "window leg: codex-primary-used_percent>=95 with resets_at in the future OR a newer usage_limit record (review, judge, evaluate); pacing leg: secondary-used_percent>=elapsed_week_pct+10 (review 1 only)"
+    roles: [review, judge, evaluate]
+    to_provider: copilot-enterprise
+    to_model_map:
+      gpt-5.6-terra: gpt-5.6-terra
+      gpt-6-sol: gpt-6.1-sol
+    note: >-
+      Operator S-1 replaces A-3: a usable next rung is taken at once; a WAIT exists only when no rung is usable and the
+      reset is 20 minutes away or less; the review/judge ladder ends in an isolated Claude session. The draft's
+      "unless producer_provider == copilot-enterprise: wait" is superseded by that ladder.
+    decided_by: operator
+    decided_on: "2026-11-01"
+    evidence: protocols/STANDING_RULINGS.md
+  copilot_quota:
+    rule: "mtd_credits >= 25000 OR 429/quota error"
+    roles: [red, qa]
+    to_provider: openai
+    to_model: gpt-6-luna
+    decided_by: operator
+    decided_on: "2026-11-01"
+    evidence: protocols/STANDING_RULINGS.md
+  bulk_no_max_pool:
+    rule: "batch_units > 20 OR kind == aj-extraction"
+    roles: [read]
+    on_quota_out: wait
+    note: "R-3: bulk work waits for its own provider's reset and never falls back into the anthropic pool."
+    decided_by: operator
+    decided_on: "2026-11-01"
+    evidence: protocols/STANDING_RULINGS.md
   bprime:
+    enabled: false   # [#1833]: KEPT for history, disabled -- Grok is OFF except per case (operator, 2026-11-01)
     rule: "weekly-usage-exceeds-elapsed-week"
     roles: [execute, review]
     to_provider: xai
@@ -1315,6 +1516,7 @@ models:
 
   gpt-5.6-terra:
     provider: openai
+    also_served_by: [copilot-enterprise]   # [#1833]: the Copilot-served backup for review 1
     # The doctrinal review lane until 2026-10-05, when `gpt-6-astra` superseded it (R82). Kept
     # registered so a provenance attribution naming it (older review records, `reviewed_by`
     # telemetry) still resolves; it holds no live role.
@@ -1414,6 +1616,26 @@ models:
     family: anthropic
     tier: S
     roles: [read]
+    # [#1833] C-1/GP5: the OFFICIAL Haiku 5.5 rows, which the rate schema could not express until `long_context`: a
+    # prompt of 100k or less prices at the base row, a larger prompt at the second tier (every figure quoted, none
+    # derived). `provider_registry.resolve_rate(..., prompt_tokens=N)` selects the tier.
+    rates:
+      input: 0.10
+      output: 0.50
+      cache_write: 0.20
+      cache_write_5m: 0.125
+      cache_read: 0.01
+      long_context:
+        threshold_tokens: 100000
+        input: 0.50
+        output: 2.50
+        cache_write: 1.00
+        cache_write_5m: 0.625
+        cache_read: 0.05
+      source: >-
+        platform.claude.com/docs/en/about-claude/pricing, read 2026-11-01: Claude Haiku 5.5 at prompts of 100k or
+        less $0.10 in / $0.50 out, 5-minute write 0.125, 1-hour write 0.20, cache read 0.01; above 100k $0.50 / $2.50,
+        0.625, 1.00, 0.05
     pinned_at: []
 
   # ADDED 2026-10-23 (operator model routing; `to-browser/RATIFICATION-2026-10-23.md` D2/D9): the
@@ -1442,9 +1664,14 @@ models:
     rates:
       input: 2.0
       output: 10.0
+      # [#1833] C-1/GP5: OFFICIAL rows (platform.claude.com/docs/en/about-claude/pricing, read 2026-11-01). The card's
+      # shared 0.1x cache read priced Sonnet 5.5 at 0.20 against the official 0.10; the 1-hour write (4.0) is the
+      # card's 2.0x, so it needs no override; the 5-minute write (2.50) is quoted outright.
+      cache_read: 0.10
+      cache_write_5m: 2.50
       source: >-
-        claude-api skill cached Current Models table (cache date 2026-10-06): Claude Sonnet 5.5
-        $2.00/$10.00 per MTok, cache reads $0.20 (= the card's 0.1x, so no override)
+        platform.claude.com/docs/en/about-claude/pricing, read 2026-11-01: Claude Sonnet 5.5 $2.00 in / $10.00 out per
+        MTok; cache read 0.10; 5-minute write 2.50; 1-hour write 4.00 (= the card's 2.0x)
     pinned_at: []
     # Every FOUNDATION lane transcript carries `message.model` = `claude-sonnet-5-5`; the render
     # record's step 0.3 probe (job 0d5e4736) is the first read.
@@ -1477,12 +1704,31 @@ models:
   # provider only -- so the row exists so C1's served-id probe has an id to compare with.
   gpt-6-luna:
     provider: copilot-enterprise
+    also_served_by: [openai]   # [#1833]: Codex serves it too (copilot_quota)
     family: openai
     roles: [reviewer]
     pinned_at: []
     last_verified: 2026-10-06
     evidence:
       - docs/audits/2026-10-06-technical-codespace-subscription-auth-run.md
+
+  # ADDED 2026-11-02 ([#1833], D1): the Copilot judge/evaluation backup for the Codex `gpt-6-sol`. No `last_verified`:
+  # no served record exists yet, and `requires_admission` keeps it unroutable until one does (R82).
+  gpt-6.1-sol:
+    provider: copilot-enterprise
+    family: openai
+    roles: [provenance]
+    attribution_token: "gpt-6.1-sol"
+    pinned_at: []
+
+  # ADDED 2026-11-02 ([#1833], D1): reached through `agy` (a separate provider and quota) and through the Copilot CLI.
+  # Served as `gemini-4-argon-trial` on 2026-11-01; no `last_verified` until a served record names the plain id.
+  gemini-4-argon:
+    provider: antigravity
+    family: google
+    also_served_by: [copilot-enterprise]
+    roles: [reviewer]
+    pinned_at: []
 
   gemini-3.8-flash:
     provider: antigravity

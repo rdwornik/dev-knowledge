@@ -35,10 +35,16 @@ from __future__ import annotations
 import datetime
 import re
 from pathlib import PurePosixPath
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
 
+#: UNRELEASED, still 1.7.0 — `e32-provider-billing` ([#1833], [#1844]) adds, all optional with inert defaults:
+#: `Provider.billing` / `.accounts` / `.account_failover`, `RoleEntry.billing_pool` / `.per_case_only` /
+#: `.isolated_session`, `Role.batch_fallback`, `Model.also_served_by`, `ModelRates.cache_write_5m` /
+#: `.long_context`, `FallbackTrigger`'s draft section-4 shape and the top-level `ProviderRegistry.evaluation`.
+#: MINOR in kind. `SCHEMA_VERSION` is NOT bumped here: `tests/test_provider_registry_substrate.py` pins
+#: "1.7.0" and that file is outside this lane's footprint; the bump is a one-line follow-up owed to the integrator.
 #: 1.6.0 — `e2-subst-gate` (R138, R140, R153; P1) adds `RoleEntry.substrate` (where the entry runs:
 #: `local` or `codespace`) and `RoleEntry.paired` (the entry runs TOGETHER with the other paired
 #: entries of its role rather than as a fallback). MINOR: both are optional with inert defaults, so
@@ -304,6 +310,122 @@ class ModelCurrency(_Contract):
         return self
 
 
+#: [#1833] D1 (PROPOSAL-ADR-ROUTING-COST v3): the closed set of billing classes. `subscription+credit` is a flat
+#: plan that ALSO carries a pool of API credit (A-2); nothing routes to that pool without a separate ruling.
+BILLING_CLASSES: tuple[str, ...] = (
+    "subscription", "subscription-employer", "subscription+credit", "metered")
+BillingClass = Literal["subscription", "subscription-employer", "subscription+credit", "metered"]
+
+#: The `RoleEntry.billing_pool` value that names an API-credit pool (A-2): refused on a role entry of a
+#: `subscription+credit` provider.
+API_CREDIT_POOL = "api-credit"
+
+#: The pseudo-role name under which `ProviderRegistry.evaluation` is routed (contract R12 / /decide evaluation).
+#: NOT a member of `ROLE_NAMES`: other tests and `cost_usage_telemetry.ROLES` pin that vocabulary.
+EVALUATION_ROLE = "evaluate"
+
+
+class QuotaReaderSpec(_Contract):
+    """How a provider's remaining quota is read (R-4); the reader itself is code in `scripts/quota_watch.py`."""
+
+    kind: StrictStr
+    refuse_launch_above_pct: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _a_threshold_is_a_percentage(self) -> "QuotaReaderSpec":
+        t = self.refuse_launch_above_pct
+        if t is not None and not 0 < t <= 100:
+            raise ValueError(f"`refuse_launch_above_pct` {t} is outside (0, 100] -- a launch threshold is a percentage")
+        return self
+
+
+class DailyBudget(_Contract):
+    """R-5: the daily / month-to-date allowance of one provider. Every number is non-negative; zero is legal."""
+
+    default_usd: Optional[float] = None
+    per_case_cap_usd: Optional[float] = None
+    warn_when_mtd_ahead_of_pace_x: Optional[float] = None
+    refuse_noncritical_when_mtd_above: Optional[float] = None
+    overage: Optional[StrictStr] = None
+    record: Optional[Union[StrictStr, bool]] = None
+
+    @model_validator(mode="after")
+    def _no_negative_budget(self) -> "DailyBudget":
+        for name in ("default_usd", "per_case_cap_usd", "warn_when_mtd_ahead_of_pace_x",
+                     "refuse_noncritical_when_mtd_above"):
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(
+                    f"`daily_budget.{name}` is {value} -- a negative budget is not an allowance, "
+                    f"and a total compared against it would pass or fail for no reason")
+        return self
+
+
+class ApiCredit(_Contract):
+    """A-2: the API-credit pool a subscription may carry, as READ (balance + when + from where)."""
+
+    monthly_usd: Optional[float] = None
+    balance_usd: Optional[float] = None
+    read_on: Optional[datetime.date] = None
+    source: Optional[StrictStr] = None
+
+    @model_validator(mode="after")
+    def _no_negative_credit(self) -> "ApiCredit":
+        for name in ("monthly_usd", "balance_usd"):
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(f"`api_credit.{name}` is {value} -- a credit balance is not negative")
+        return self
+
+
+class Billing(_Contract):
+    """What a provider costs the operator and how its quota is read -- [#1833] D1/R-5.
+
+    Optional on `Provider` for the reason `licence` is: no fabricated values on rows that hold no role.
+    `billing_class` is the YAML key `class` (a Python keyword), so the model dumps `by_alias`.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
+
+    billing_class: BillingClass = Field(alias="class")
+    plan: Optional[StrictStr] = None
+    unit: Optional[StrictStr] = None
+    included_per_month: Optional[float] = None
+    quota_reader: Optional[QuotaReaderSpec] = None
+    daily_budget: Optional[DailyBudget] = None
+    overflow: Optional[dict[StrictStr, Union[StrictStr, int, float, bool]]] = None
+    api_credit: Optional[ApiCredit] = None
+
+    @model_validator(mode="after")
+    def _the_class_carries_what_it_implies(self) -> "Billing":
+        if self.billing_class == "subscription+credit" and self.api_credit is None:
+            raise ValueError(
+                "billing class `subscription+credit` declares no `api_credit` block -- the class "
+                "exists to record a credit pool, and a pool with no balance read is `subscription`")
+        if self.billing_class == "metered" and (
+                self.daily_budget is None or self.daily_budget.default_usd is None):
+            raise ValueError(
+                "billing class `metered` declares no `daily_budget.default_usd` -- a metered "
+                "provider's allowance is explicit (0 is legal), never implied by an absence")
+        return self
+
+
+class Account(_Contract):
+    """D4: one login of a provider. `active: false` accounts are drafted and are never selected."""
+
+    id: StrictStr
+    config_dir: StrictStr
+    surfaces: tuple[StrictStr, ...] = ()
+    seats: tuple[StrictStr, ...] = ()
+    active: bool
+
+
+class AccountFailover(_Contract):
+    on: tuple[StrictStr, ...] = ()
+    rule: StrictStr
+    resume: Optional[StrictStr] = None
+
+
 class Provider(_Contract):
     """A vendor, the CLI that reaches it, and the host-side config that pins it."""
 
@@ -332,6 +454,19 @@ class Provider(_Contract):
     changelog_source_url: Optional[StrictStr] = None
     marketplace_id: Optional[StrictStr] = None
     marketplace_source_path: Optional[StrictStr] = None
+    #: [#1833] D1/R-5. OPTIONAL: a provider that holds no role carries no fabricated billing class.
+    billing: Optional[Billing] = None
+    #: [#1833] D4: drafted accounts, INACTIVE until a ruling activates them.
+    accounts: Optional[tuple[Account, ...]] = None
+    account_failover: Optional[AccountFailover] = None
+
+    @model_validator(mode="after")
+    def _account_ids_are_unique(self) -> "Provider":
+        ids = [a.id for a in self.accounts or ()]
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if dup:
+            raise ValueError(f"account id(s) {dup} appear twice under one provider -- an account id names one login")
+        return self
 
     @model_validator(mode="after")
     def _cli_and_its_probe_agree(self) -> "Provider":
@@ -398,6 +533,29 @@ def _require_lowercase(label: str, value: str) -> None:
         )
 
 
+class LongContextRates(_Contract):
+    """The price tier above a prompt-size threshold: every rate is stated, none is derived."""
+
+    threshold_tokens: int
+    input: float
+    output: float
+    cache_write: float
+    cache_write_5m: float
+    cache_read: float
+
+    @model_validator(mode="after")
+    def _every_tier_value_is_positive(self) -> "LongContextRates":
+        if self.threshold_tokens < 1:
+            raise ValueError(f"`long_context.threshold_tokens` is {self.threshold_tokens} -- a threshold is at least 1")
+        for field in ("input", "output", "cache_write", "cache_write_5m", "cache_read"):
+            value = getattr(self, field)
+            if value <= 0:
+                raise ValueError(
+                    f"`long_context.{field}` is {value} -- a non-positive rate prices real tokens at "
+                    f"nothing or less")
+        return self
+
+
 class ModelRates(_Contract):
     """What one model costs, in the rate card's currency and unit — `[#751]`.
 
@@ -423,12 +581,16 @@ class ModelRates(_Contract):
     cache_write: Optional[float] = None
     #: Absent → `input × rate_card.cache_read_multiplier`.
     cache_read: Optional[float] = None
+    #: [#1833] C-1/GP5: the 5-minute cache write, quoted outright (the card's multiplier prices the 1-hour write).
+    cache_write_5m: Optional[float] = None
+    #: [#1833] C-1/GP5: the rates that apply when the prompt exceeds `threshold_tokens` (Haiku 5.5: 100k).
+    long_context: Optional[LongContextRates] = None
     #: Per-model provenance, for a price that did not come from the rate card's own source.
     source: Optional[StrictStr] = None
 
     @model_validator(mode="after")
     def _a_rate_is_positive(self) -> "ModelRates":
-        for field in ("input", "output", "cache_write", "cache_read"):
+        for field in ("input", "output", "cache_write", "cache_read", "cache_write_5m"):
             value = getattr(self, field)
             if value is None:
                 continue
@@ -513,6 +675,10 @@ class Model(_Contract):
     evidence: tuple[StrictStr, ...] = ()
     #: Model family (e.g. `anthropic`, `openai`); lets a role demand a distinct family.
     family: Optional[StrictStr] = None
+    #: [#1833]: OTHER providers that serve this same model id (Copilot serves `gpt-5.6-terra`, Codex serves
+    #: `gpt-6-luna`). A role entry may pin the model under one of these providers; any other cross-provider
+    #: pin stays refused. `provider` remains the OWNER (the allowlist and admission key).
+    also_served_by: tuple[StrictStr, ...] = ()
 
     @model_validator(mode="after")
     def _a_verification_date_names_its_evidence(self) -> "Model":
@@ -641,10 +807,17 @@ class FallbackTrigger(_Contract):
 
     rule: StrictStr
     roles: tuple[StrictStr, ...]
-    to_provider: StrictStr
-    to_model: StrictStr
-    override_flag: StrictStr
-    signals: dict[StrictStr, dict[str, str]]
+    #: [#1833] draft section 4: a trigger may be a pure wait rule (`bulk_no_max_pool`) with no target provider,
+    #: a model MAP (`codex_quota`) instead of one model, and may be disabled (`bprime`). All optional.
+    to_provider: Optional[StrictStr] = None
+    to_model: Optional[StrictStr] = None
+    to_model_map: dict[StrictStr, StrictStr] = {}
+    override_flag: Optional[StrictStr] = None
+    signals: dict[StrictStr, dict[str, str]] = {}
+    enabled: bool = True
+    unless: Optional[StrictStr] = None
+    on_quota_out: Optional[StrictStr] = None
+    note: Optional[StrictStr] = None
     decided_by: StrictStr
     decided_on: datetime.date
     evidence: StrictStr
@@ -728,6 +901,15 @@ class RoleEntry(_Contract):
     paired: bool = False
     #: R177: the entry runs only after a recorded `VENDOR-FAIL: implement ...` of the entry before it.
     vendor_fail_only: bool = False
+    #: [#1833] D1: which billing pool this entry spends (`subscription-employer` for Copilot). Free text, except
+    #: that `api-credit` is refused on a `subscription+credit` provider (A-2).
+    billing_pool: Optional[StrictStr] = None
+    #: [#1833] R-5: the entry is routable only for a case the operator approved (Grok). Required on every entry of a
+    #: `metered` provider.
+    per_case_only: bool = False
+    #: [#1844] operator S-1: a SAME-VENDOR entry the router may take as the last review/judge rung, because it runs in a
+    #: NEW session with no producer transcript or prose. The router refuses a same-vendor entry WITHOUT this flag.
+    isolated_session: bool = False
 
     @model_validator(mode="after")
     def _max_turns_floor_is_at_least_one(self) -> "RoleEntry":
@@ -808,6 +990,9 @@ class Role(_Contract):
     reserved_share: Optional[ReservedShare] = None
     #: Names another role whose first model must be of a different model family.
     distinct_family_from: Optional[StrictStr] = None
+    #: [#1833] R-3: what bulk work does when this role's provider is out of quota. Only `wait` exists: bulk work
+    #: never falls back into another provider's subscription pool.
+    batch_fallback: Optional[Literal["wait"]] = None
 
     @model_validator(mode="after")
     def _a_pin_and_a_no_fallback_hold_against_the_order(self) -> "Role":
@@ -870,16 +1055,36 @@ class ProviderRegistry(_Contract):
     copilot_gateway_served: list[StrictStr] = []
     #: Declared fallback rules (e.g. B'), keyed by name.
     fallback_triggers: dict[StrictStr, FallbackTrigger] = {}
+    #: [#1833] contract R12 / /decide evaluation order. A top-level collection, NOT a `roles:` entry: `ROLE_NAMES`
+    #: is pinned by other tests and by `cost_usage_telemetry.ROLES`. Routed under the pseudo-role `evaluate`.
+    evaluation: Optional[Role] = None
+
+    def routed_roles(self) -> dict[str, Role]:
+        """Every ordered fallback list, `evaluation` included under `evaluate`."""
+        out = dict(self.roles)
+        if self.evaluation is not None:
+            out[EVALUATION_ROLE] = self.evaluation
+        return out
+
+    @model_validator(mode="after")
+    def _also_served_by_names_declared_providers(self) -> "ProviderRegistry":
+        for mid, m in self.models.items():
+            for pid in m.also_served_by:
+                if pid not in self.providers:
+                    raise ValueError(
+                        f"model `{mid}` `also_served_by` names undeclared provider `{pid}`")
+        return self
 
     @model_validator(mode="after")
     def _a_fallback_trigger_names_declared_roles_and_provider(self) -> "ProviderRegistry":
         for name, trig in self.fallback_triggers.items():
-            unknown = [r for r in trig.roles if r not in self.roles]
+            declared = set(self.roles) | ({EVALUATION_ROLE} if self.evaluation is not None else set())
+            unknown = [r for r in trig.roles if r not in declared]
             if unknown:
                 raise ValueError(
                     f"fallback trigger `{name}` names role(s) {unknown} not declared in `roles:`"
                 )
-            if trig.to_provider not in self.providers:
+            if trig.to_provider is not None and trig.to_provider not in self.providers:
                 raise ValueError(
                     f"fallback trigger `{name}` names undeclared provider `{trig.to_provider}`"
                 )
@@ -996,7 +1201,7 @@ class ProviderRegistry(_Contract):
 
     @model_validator(mode="after")
     def _every_role_entry_names_a_declared_provider_and_model(self) -> "ProviderRegistry":
-        for role, spec in self.roles.items():
+        for role, spec in self.routed_roles().items():
             for i, entry in enumerate(spec.order):
                 if entry.provider not in self.providers:
                     raise ValueError(
@@ -1010,7 +1215,7 @@ class ProviderRegistry(_Contract):
                     raise ValueError(
                         f"role `{role}` order[{i}] pins undeclared model `{entry.model}`"
                     )
-                if model.provider != entry.provider:
+                if model.provider != entry.provider and entry.provider not in model.also_served_by:
                     raise ValueError(
                         f"role `{role}` order[{i}] pins model `{entry.model}`, which belongs "
                         f"to provider `{model.provider}`, not `{entry.provider}` — a pin that "
@@ -1029,7 +1234,7 @@ class ProviderRegistry(_Contract):
         depending on which collection a consumer happened to open, which is the drift the whole
         registry exists to end.
         """
-        for role, spec in self.roles.items():
+        for role, spec in self.routed_roles().items():
             for i, entry in enumerate(spec.order):
                 if entry.admission is None or entry.admission.verdict != "admitted":
                     continue
@@ -1057,7 +1262,7 @@ class ProviderRegistry(_Contract):
         that nothing becomes ROUTABLE without a licence — and `admitted` is the only state that
         makes an entry routable. Listed is not eligible.
         """
-        for role, spec in self.roles.items():
+        for role, spec in self.routed_roles().items():
             for i, entry in enumerate(spec.order):
                 if entry.admission is None or entry.admission.verdict != "admitted":
                     continue
@@ -1082,6 +1287,42 @@ class ProviderRegistry(_Contract):
         """
         provider = self.providers[provider_id]
         return provider.licence.status if provider.licence is not None else "unknown"
+
+    @model_validator(mode="after")
+    def _billing_constrains_what_a_role_entry_may_do(self) -> "ProviderRegistry":
+        """[#1833] R-5 and A-2, enforced where both collections are visible.
+
+        * every role entry of a `metered` provider is `per_case_only` -- Grok is never a standing route;
+        * no role entry of a `subscription+credit` provider spends the `api-credit` pool -- A-2: nothing routes
+          to the credit pool without a separate ruling.
+        """
+        for role, spec in self.routed_roles().items():
+            for i, entry in enumerate(spec.order):
+                billing = self.providers[entry.provider].billing if entry.provider in self.providers else None
+                if billing is None:
+                    continue
+                if billing.billing_class == "metered" and not entry.per_case_only:
+                    raise ValueError(
+                        f"role `{role}` order[{i}] is metered provider `{entry.provider}` without "
+                        f"`per_case_only: true` -- a metered provider is routable for an approved case only")
+                if billing.billing_class == "subscription+credit" and entry.billing_pool == API_CREDIT_POOL:
+                    raise ValueError(
+                        f"role `{role}` order[{i}] spends billing_pool `{API_CREDIT_POOL}` of provider "
+                        f"`{entry.provider}` -- A-2: no role routes to the API-credit pool without a separate ruling")
+        return self
+
+    @model_validator(mode="after")
+    def _evaluation_never_routes_to_claude(self) -> "ProviderRegistry":
+        """Operator S-1 item 7: S-1's isolated-Claude rung is written for review and judge; evaluation keeps
+        "never Claude"."""
+        if self.evaluation is None:
+            return self
+        for i, entry in enumerate(self.evaluation.order):
+            if entry.provider == "anthropic":
+                raise ValueError(
+                    f"evaluation order[{i}] is provider `anthropic` -- contract evaluation and /decide never "
+                    f"route to Claude (RATIFICATION-2026-11-01-ROUTING-COST-S1.md item 7)")
+        return self
 
     @model_validator(mode="after")
     def _every_model_names_a_declared_provider(self) -> "ProviderRegistry":
