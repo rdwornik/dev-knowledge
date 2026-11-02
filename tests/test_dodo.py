@@ -66,7 +66,8 @@ def test_harness_yaml_declares_stages_1_to_12_within_caps():
     # exists to keep LOGIC out of the file (`test_dodo_adapter_stays_small` and the no-logic header do that).
     # E3.0 e30-queue-runner and backlog-reconcile: one fates data row each (shared cap, dispatcher 17:07).
     # cap 200 -> 202 (dispatcher ANSWER to QUESTION backlog-reconcile 15:10: two fates entries of headroom)
-    assert len(lines) < 202, f"harness.yaml is {len(lines)} lines; the cap is under 202 (W3-A: fates added)"
+    # cap 202 -> 204: P6c ([#1848]) and system_view_full (L13), Q-PO-1/Q-SV-1 cap rule (dispatcher 13:4x)
+    assert len(lines) < 204, f"harness.yaml is {len(lines)} lines; the cap is under 204 (W3-A: fates added)"
     stages = yaml.safe_load("\n".join(lines))["stages"]
     assert [s["stage"] for s in stages] == list(range(1, 13))
     for s in stages:

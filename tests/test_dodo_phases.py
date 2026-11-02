@@ -59,8 +59,9 @@ _TOY = textwrap.dedent("""\
     sys.exit(int(code.read_text()) if code.exists() else 0)
     """)
 
+# Q-PO-1 (architect ruling 2026-11-02): P6c, the deterministic T2 verdict row
 _EXPECTED_TIMEOUTS = {"P1": 1200, "P2": 1200, "P3": 2700, "P4": 600, "P5": 1800, "P6a": 1200,
-                      "P6b": 1200, "P7": 1200}
+                      "P6b": 1200, "P6c": 1500, "P7": 1200}
 _BASELINE = ("C-TASK", "C-SCOPE", "C-RED", "C-VENDOR", "C-CLEAN")
 
 

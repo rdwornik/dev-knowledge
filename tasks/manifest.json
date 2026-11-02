@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a71b4ce3ec63a03f9d153dcf66f7afecad82f3554e1d53189ef4f9938d43a6a7",
+  "generated_sha256": "6d1e9baabe50fa92d794d56774175af942c8ba50005c8b2969da274d60ec99c7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3570,6 +3570,10 @@
     {
       "task": 1749,
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
+    },
+    {
+      "task": 1848,
+      "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
     },
     {
       "prose": ""
