@@ -1,31 +1,14 @@
 {
- "built_at": "ecc4b646c5600991a48bdb95f4c4c90525bc9751",
+ "built_at": "b962c49bbf278e88b6ce00913485975a46bdd4cd",
  "diff": {
-  "added": [
-   "file:ecosystem/handoff-preflight-rows.yaml",
-   "file:ecosystem/process-binding.yaml",
-   "file:ecosystem/seat-cycle.yaml",
-   "file:ecosystem/test-flow-ceilings.yaml",
-   "file:scripts/backlog_reconcile.py",
-   "file:scripts/gen_process_diagrams.py",
-   "file:scripts/handoff_intake.py",
-   "file:scripts/hooks/subagent_model_guard.py",
-   "file:scripts/land_lane.py",
-   "file:scripts/seat_cycle.py",
-   "file:scripts/startup_probe.py",
-   "file:scripts/subst_gate.py",
-   "file:scripts/system_view.py",
-   "file:scripts/test_census.py",
-   "file:scripts/test_flow_metrics.py",
-   "organ:session-hook:PreToolUse: subagent_model_guard.py"
-  ],
-  "added_count": 16,
+  "added": [],
+  "added_count": 0,
   "baseline": false,
   "removed": [],
   "removed_count": 0
  },
  "generator": "scripts/system_map.py build",
- "map_sha": "7ce03058b34a434036865f4d72925f351434c8ab25b6a843304088e98ec3ebf4",
+ "map_sha": "1a024ff165aea4c58407c7e3b9fa0b13bb39844ddedbefa27a07ba70764211a4",
  "node_count": 386,
  "nodes": [
   "file:.claude/agents/artifact-reader.md",
@@ -415,6 +398,6 @@
   "stage:task",
   "stage:unstaged"
  ],
- "previous_sha": "e29f090f6760a4a1d179423c32c1ddd5bb9efd1279a3444301c78306ea5845db",
+ "previous_sha": "7ce03058b34a434036865f4d72925f351434c8ab25b6a843304088e98ec3ebf4",
  "schema": "system-map-record/1"
 }
