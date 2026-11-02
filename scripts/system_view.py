@@ -108,6 +108,10 @@ SOURCES = {
               "timestamp_field": None, "max_age": None},
 }
 READER_IDS = tuple(SOURCES)
+#: The id under which assembly itself produced a top-level value (`assembled_at`, `leg`); not a reader.
+ASSEMBLY_ID = "assembly"
+#: Top-level keys that must be CELLS, so the provenance rule covers them too (ADR-133 D2).
+TOP_LEVEL_CELLS = ("assembled_at", "leg")
 #: In the scheduled leg ONLY these two readers run (D4).
 SCHEDULED_READERS = ("map-record", "merge-receipts")
 
@@ -524,16 +528,19 @@ def read_quota(root: Path, *, now: datetime, siblings=(), map_json=None) -> list
             data = json.loads(line)
             if _missing_required(data, spec["required"]):
                 return [_unreadable(reader, root)]
+            if _present(data, "measured") and _parse_time(data["measured"]) is None:
+                return [_unreadable(reader, root, "unparseable")]  # a stamp that is there but not a time
             records.append(data)
     except (OSError, ValueError):
         return [_unreadable(reader, root, "unparseable")]
     stamps = [t for t in (_parse_time(r.get("measured")) for r in records) if t is not None]
     state, staleness = _freshness(reader, max(stamps) if stamps else None, now)
-    records = records[-ROW_CAP:]
-    rows = [_row(r, reader, _QUOTA_COLUMNS) for r in records]
+    total = len(records)
+    rows = [_row(r, reader, _QUOTA_COLUMNS) for r in records[-ROW_CAP:]]
     return [_tile(reader, root, state=state, staleness=staleness,
                   reason=None if stamps else "no-timestamp",
-                  fields=[("count", _cell(len(records), reader))], columns=_QUOTA_COLUMNS, rows=rows)]
+                  fields=[("count", _cell(total, reader)), ("shown", _cell(len(rows), reader))],
+                  columns=_QUOTA_COLUMNS, rows=rows)]
 
 
 _VERDICT_COLUMNS = ("provider", "verdict", "passed", "runs")
@@ -729,6 +736,9 @@ def check_provenance(view: dict) -> None:
             for i, value in enumerate(node):
                 walk(value, f"{where}[{i}]")
 
+    for key in TOP_LEVEL_CELLS:
+        if key in view and not (isinstance(view[key], dict) and "v" in view[key]):
+            raise ProvenanceError(f"view.{key}: a bare value carries no reader id")
     walk(view, "view")
 
 
@@ -752,11 +762,11 @@ def assemble(root, *, now: datetime, leg: str = "fast", siblings: Sequence[Path]
             tiles.append(_unreadable(reader, root, "reader-failed"))
     view = {
         "schema": SCHEMA,
-        "assembled_at": now.isoformat(timespec="seconds"),
-        "leg": leg,
+        "assembled_at": _cell(now.isoformat(timespec="seconds"), ASSEMBLY_ID),
+        "leg": _cell(leg, ASSEMBLY_ID),
         "labels": dict(LABELS),
         "thresholds": dict(THRESHOLDS),
-        "readers": list(READER_IDS),
+        "readers": [*READER_IDS, ASSEMBLY_ID],
         "mermaid": {key: _cell(value, "p1-mermaid") for key, value in MERMAID.items()},
         "tiles": tiles,
     }
@@ -854,8 +864,9 @@ def render_html(view: dict) -> str:
         f"<title>{_e(labels['title'])}</title>",
         f"<style>{PAGE_CSS}</style></head><body>",
         f"<h1>{_e(labels['title'])}</h1>",
-        f"<table><tbody><tr>{_th(labels, 'assembled')}<td data-p=\"assembled_at\">"
-        f"{_e(_text(view['assembled_at']))}</td>{_th(labels, 'leg')}<td data-p=\"leg\">{_e(_text(view['leg']))}"
+        f"<table><tbody><tr>{_th(labels, 'assembled')}<td data-p=\"assembled_at.v\">"
+        f"{_e(_shown(labels, view['assembled_at']['v']))}</td>{_th(labels, 'leg')}"
+        f"<td data-p=\"leg.v\">{_e(_shown(labels, view['leg']['v']))}"
         "</td></tr></tbody></table>",
         f"<section><h2>{_e(labels['mermaid'])}</h2><table><tbody>",
     ]
