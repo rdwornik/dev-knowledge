@@ -683,7 +683,8 @@ SWEEP_INDEX = "index.md"
 R2_REFUSED_LINE = "R-2 refused: no adjudicated unique-content flag"
 KEPT_CATEGORIES: tuple[str, ...] = (
     "protected", "k2-alive", "k3-agreed", "live-excluded", "r2-refused", "absent-from-table",
-    "ungated", "unknown-decision-class", "merge-rewrite", "keep-class", "no-add-date")
+    "ungated", "unknown-decision-class", "merge-rewrite", "keep-class", "no-add-date",
+    "archived-body")
 DEFAULT_SWEEP_HOME = REPO_ROOT / "docs" / "audits" / "2026-11-02-technical-backlog-night-sweep"
 DEFAULT_TRANSPORT_ROOT = Path(os.environ.get("CLAUDE_PROMPTS_DIR") or "H:/My Drive/CLAUDE PROMPT DIR")
 
@@ -1055,6 +1056,13 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
                                          absent=["K1"], reason=_one_line(entry.get("reason")))
 
     _apply_r2(decisions, table_by_id, add_dates, cutoff)
+    for row_id, dec in list(decisions.items()):
+        # A row whose body ends in an archive pointer cannot take the close marker without
+        # breaking the row-archive-proof gate (leg B: the row must END with the pointer), so the
+        # sweep keeps it open and lists it rather than commit a refused state.
+        if dec.action == "close" and (dec.row.path.parent / "archive" / f"{row_id}.md").exists():
+            decisions[row_id] = Decision(dec.row, "keep", "archived-body",
+                                         reason="body ends in an archive pointer (row-archive-proof)")
     ordered = [decisions[r.id] for r in rows]
     return ordered, {"histogram": dict(sorted(histogram.items())), "old": old, "new": new}
 
