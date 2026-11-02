@@ -673,65 +673,7 @@ def _item1_target_phases():
     import copy  # noqa: PLC0415
 
     doc = yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))
-    phases = copy.deepcopy(doc["phases"])
-    by_id = {phase["id"]: phase for phase in phases}
-    p6a = by_id["P6a"]
-    insert_at = p6a["command"].index("read-only") + 1
-    p6a["command"][insert_at:insert_at] = ["-o", "{payload}"]
-    codex_prompt, claude_prompt = _item1_prompts()
-    p6b_prompt = (
-        "You are phase P6b (review) of lane {lane}, row {row}. Review the diff against {base} "
-        "for the contract {contract}: report only bugs and contract breaks, with evidence. Do not "
-        "edit the repository. Write ONE JSON object (a PhasePayload: nonce, input_hash, outcome "
-        "PASS or FAIL, findings, detail) to {payload}, with nonce set to {nonce} and input_hash "
-        "set to {input_hash} exactly."
-    )
-    p6b = {
-        **by_id["P6b"],
-        "name": "review-gemini",
-        "cli": "copilot",
-        "model": "gemini-4-argon",
-        "command": [
-            "copilot", "-p", p6b_prompt, "--model", "gemini-4-argon", "--allow-all-tools",
-            "--no-ask-user", "--usage-output-file", "{round_dir}/P6b.usage.json", "-s", "--no-color",
-        ],
-    }
-    phases[phases.index(by_id["P6b"])] = p6b
-    p7 = by_id["P7"]
-    p7.update({
-        "cli": "codex",
-        "model": "gpt-6-sol",
-        "inputs": [
-            "{contract}", "{round_dir}/P6c-OUTPUT.txt",
-            "{round_dir}/P6a.payload.json", "{round_dir}/P6b.payload.json",
-        ],
-        "command": [
-            "codex", "exec", "-m", "gpt-6-sol", "-s", "read-only", "-o", "{payload}", codex_prompt,
-        ],
-        "fallback": [
-            "claude", "-p", "--output-format", "json", "--model", "claude-opus-5-5",
-            "--permission-mode", "bypassPermissions", "--max-budget-usd", "5", claude_prompt,
-            "--disallowedTools=AskUserQuestion,advisor",
-        ],
-    })
-    p6b_index = next(i for i, phase in enumerate(phases) if phase["id"] == "P6b")
-    phases.insert(p6b_index + 1, {
-        "id": "P6c",
-        "name": "t2-verdict",
-        "row_phase": "build",
-        "role": "qa",
-        "cli": "uv",
-        "model": None,
-        "payload_model": "PhasePayload",
-        "gate": "exit",
-        "timeout_s": 1500,
-        "budget_usd": 0,
-        "max_rounds": 2,
-        "inputs": ["{contract}"],
-        "command": ["uv", "run", "--locked", "python", "scripts/ci_verdict.py", "--ref", "HEAD",
-                    "--timeout", "1200"],
-    })
-    return phases
+    return copy.deepcopy(doc["phases"])
 
 
 def _item1_setup(tmp_path, *, same_family=False):
@@ -863,6 +805,7 @@ def _item1_admission_case(tmp_path, *, command_changes=None, substituted_from="o
     c = _conductor()
     round_dir = tmp_path / "round"
     contract = tmp_path / "contract.md"
+    tmp_path.mkdir(parents=True, exist_ok=True)
     contract.write_text("contract\n", encoding="utf-8")
     ctx = c.LaneContext(repo_root=_REPO, base="base-ref", round_dir=round_dir, row="1848")
     _receipt_json(round_dir, "P3", vendor="copilot-enterprise", model_requested="claude-sonnet-5.5")
@@ -1065,7 +1008,7 @@ def test_item1e_prompt_constants_are_hash_pinned_and_match_both_harness_argvs():
         assert f'{values["round_dir"]}/P1' not in prompt
         assert f'{values["round_dir"]}/P2' not in prompt
         assert f'{values["round_dir"]}/P3' not in prompt
-    assert "write ONE JSON object" in claude_prompt and values["payload"] in claude_prompt
+    assert "Write ONE JSON object" in claude_prompt and values["payload"] in claude_prompt
 
 
 def test_item1f_model_families_and_receipt_model_precedence(tmp_path):
