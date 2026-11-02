@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "639ccfe887f80c8dc0639053c04b3ab9a69e1c8523a69765b664ff589b783fd7",
+  "generated_sha256": "98f6af0c967c3012ff9f4221e01be79f958d86713033a857c9b4bc17e7fea022",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2724,10 +2724,6 @@
       "file": "1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md"
     },
     {
-      "task": 1833,
-      "file": "1833-provider-billing-class-a-quota-reader-per-provider-cost-per-metered-call-and-a-daily-budget-refusal.md"
-    },
-    {
       "task": 1844,
       "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
     },
@@ -2818,6 +2814,10 @@
     {
       "task": 1483,
       "file": "1483-carry-intake-106-the-b2w2-session-review-findings.md"
+    },
+    {
+      "task": 1864,
+      "file": "1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md"
     },
     {
       "task": 1510,
