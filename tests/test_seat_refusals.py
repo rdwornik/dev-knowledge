@@ -13,6 +13,8 @@ decision file is on the transport with no carrier. So these raise.
 """
 from __future__ import annotations
 
+import itertools
+
 import pytest
 from click.testing import CliRunner
 
@@ -658,23 +660,22 @@ def test_k_priority_metadata_does_not_change_integrator_refusal_results(tmp_path
     ])
     seats = _read(path)
     original = seats[0]
-    original_result = sr.refuse_no_live_integrator("E3.1", seats)
+    batches = ("E3.0", "E3.1", "E3.2")
+    assert [binding.priority for binding in original.binds] == [(3, 0), (3, 1), (3, 2)]
     with pytest.raises(sr.SeatRefusal) as original_refusal:
         sr.refuse_no_live_integrator("E3.3", seats)
 
-    priorities = [(3, 2), (3, 1), (3, 0)]
-    permuted_binds = tuple(
-        replace(binding, priority=priority)
-        for binding, priority in zip(original.binds, priorities)
-    )
-    permuted = replace(original, binds=permuted_binds)
-    changed = [permuted]
-
-    assert sr.refuse_no_live_integrator("E3.1", changed) is permuted
-    assert original_result.session_id == permuted.session_id
-    with pytest.raises(sr.SeatRefusal) as permuted_refusal:
-        sr.refuse_no_live_integrator("E3.3", changed)
-    assert str(permuted_refusal.value) == str(original_refusal.value)
+    # Every permutation of the priorities, so each queried batch has its priority moved in at least
+    # one of them (the reversal alone leaves E3.1 where it was).
+    for priorities in itertools.permutations([(3, 0), (3, 1), (3, 2)]):
+        permuted = replace(original, binds=tuple(
+            replace(binding, priority=priority)
+            for binding, priority in zip(original.binds, priorities)))
+        for batch in batches:
+            assert sr.refuse_no_live_integrator(batch, [permuted]) is permuted
+        with pytest.raises(sr.SeatRefusal) as permuted_refusal:
+            sr.refuse_no_live_integrator("E3.3", [permuted])
+        assert str(permuted_refusal.value) == str(original_refusal.value)
 
 
 # --- R5 -- the -DryRun line is the LAST line of dispatcher step 0 (AMEND-BATCH-V-002 s1) -------
