@@ -87,11 +87,10 @@ ITEMS: tuple[Item, ...] = (
     ),
     Item(
         "recent-adrs",
-        "Which ADR decided that landing a change is done by a script, with a model called only "
-        "when something goes wrong, and what is its status?",
+        "Which ADR decided that the merges on main are the journal, with one writer for the merge trailers, and what is its status?",
         (".claude/generated/recent-adrs.md",),
-        "red CI or",
-        "ADR-131 (",  # status-free: a ratification must not flip body_form; re-point when 131 leaves the last-5 (2026-10-28)
+        "pre-push gate checks it",
+        "ADR-135 (",  # status-free: a ratification must not flip body_form; re-pointed 2026-11-02 from ADR-131 when 131 left the last-5 (GO-E3.1, architect ruling Q-L0-3); re-point again when 135 leaves it
         (".claude/generated/recent-adrs.md",),
     ),
     Item(
