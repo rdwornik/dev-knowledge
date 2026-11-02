@@ -205,7 +205,7 @@ Every revision-2 finding was accepted (17/17); R41 looked hardest where nothing 
 
 ## Amendment 2026-11-02 (architect ruling Q-L0-2)
 
-The decision text above is unchanged; only this block was added. The ruling is `to-browser/DIGEST-RULINGS-MORNING-2026-11-02.md` (row Q-L0-2, S-2), taken on the lane question in `to-browser/QUESTION-E3.1-2026-11-02-e31-decide-v3-text-defects.md`.
+The decision text above is unchanged; only this block was added. The ruling is `to-browser/DIGEST-RULINGS-MORNING-2026-11-02.md` (row Q-L0-2, S-2), taken on the lane question in `to-browser/QUESTION-E3.1-2026-11-01-e31-decide-v3-text-defects.md`.
 
 - **Consequences' `stages:` means D1's `line_stages:`.** D1 governs: `ecosystem/harness.yaml:12` already holds the spine's `stages:` key, and the new block is `line_stages:`. A build lane cites `line_stages:`.
 - **D1's table, with its `model` column, is the field authority.** The D1 prose that lists the row fields without `model` is read against that table.
