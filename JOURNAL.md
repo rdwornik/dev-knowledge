@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-02 (f) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the e31-system-view landing -- the AS-IS system view (scripts/system_view.py) and its batch-close full leg; [#1748] closed
+
+**Anchors:** `74a2650c4` (lane tip: the lane plus origin/main c1f48d243), `b9cfa9d46` (the [#1748] close with BACKLOG.md, tasks/manifest.json and ecosystem/doc-counts.md regenerated).
+
+**Did:** landed the lane's HANDBACK `74a2650c4` (SESSION-e31-system-view.md) under the E3.1 order, the E3.0 order rev 4 + A1-A7 and amendment I-1, after the dispatcher forwarded it READY. Purity: the contract's "Files you own" plus the recorded grants Q-SV-1 A (tests/test_loop_declaration.py and tests/test_spine_moments.py, one appended entry each, T1-PIN bbb22a183) and Q-SV-2 A (the .gitignore COVERAGE_EXEMPT row in scripts/graph_queries.py); tests/test_system_map.py, pyproject.toml and uv.lock untouched; harness.yaml 203 lines against the cap under 204. R2: `advisor` is in the LAUNCH receipt's --disallowedTools. Reviews terra PASS and gemini PASS (two LOW), judge sol PASS. T2 re-derived by me from run 41480470495 against main push run 41478011468 (c1f48d243): the only differences are the allowed doc-counts staleness (one test_check_derived_copies id, the doc-counts and derived-copies-rebind hooks) and the commit-gate audit-health failure, whose [!!] lines are identical to the base.
+
+**Result:** see logs/MERGE-RECEIPTS.jsonl for the landing line; the integrator receipt carries the verdicts.
+
+**Changes:** `scripts/system_view.py`, `scripts/system_map.py`, `scripts/graph_queries.py`, `scripts/queue_runner.py`, `ecosystem/harness.yaml`, `ecosystem/system-map-record.json`, `.gitignore`, `.claude/commands/map.md`, tests and fixtures, `tasks/1748-*.md` (closed); regenerated: BACKLOG.md, tasks/manifest.json, ecosystem/doc-counts.md, docs/audits/README.md, ecosystem/process-binding.yaml.
+
+**Abandoned:** nothing.
+
+**Next:** the dispatcher runs the view leg on main; known LOW limits stay documented (custom --out-dir map tile, Mermaid not redrawn on live refresh). e31-decide repair-2, then the intake hand landing.
+
 ### 2026-11-02 (e) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.0): the e30-commit-gate landing -- the commit-gate job goes green: ten orphan processes get a real caller or a dated disposition, ARCHITECTURE.md reviewed [#1800]
 
 **Anchors:** `75558fa2b` (T1 RED), `732dd8e8b` (ruling-D test), `f9163783d` (ruling-B test), `4e9ae562a` (lane tip: keep-both merge of origin/main 1f1045ec3, dispatcher-authorised mechanical resolution of graph_queries.py and tasks/manifest.json).

@@ -70,6 +70,7 @@ import logging
 import subprocess
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 import click
@@ -786,6 +787,38 @@ def build_cmd(repo_root: Path, out_dir: Path | None, record_path: Path | None) -
         click.echo(f"diff: +{diff.get('added_count', 0)} -{diff.get('removed_count', 0)} nodes")
     click.echo(f"record: {(record_path or root / RECORD_REL).as_posix()} "
                f"({'updated' if result['changed'] else 'unchanged'})")
+
+
+@cli.command("view")
+@click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path),
+              default=_REPO_ROOT, show_default=True)
+@click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path), default=None,
+              help=f"Where view.json and view.html go (default <repo-root>/{DEFAULT_OUT_REL}).")
+@click.option("--leg", type=click.Choice(["fast", "full", "scheduled"]), default="fast",
+              show_default=True,
+              help="fast: no map build. full: map build, then the view. "
+                   "scheduled: reads only the map record and the merge receipts.")
+@click.option("--sibling", "siblings", multiple=True, type=click.Path(file_okay=False, path_type=Path),
+              help="Another checkout whose receipts are read read-only (default: git worktree list).")
+@click.option("--now", "now_text", default=None, help="ISO time to assemble at (default: the clock).")
+def view_cmd(repo_root: Path, out_dir: Path | None, leg: str, siblings: tuple[Path, ...],
+             now_text: str | None) -> None:
+    """ADR-133: render the system view (view.json + view.html) from organ outputs alone."""
+    import system_view  # sibling module, stdlib only (ADR-133 D1)
+
+    root = repo_root.resolve()
+    out = out_dir or root / DEFAULT_OUT_REL
+    if leg == "full":
+        write_outputs(root, out, root / RECORD_REL)  # the map build, as /map does
+    now = datetime.fromisoformat(now_text) if now_text else datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    view = system_view.assemble(root, now=now, leg=leg, map_json=out / JSON_NAME,
+                                siblings=list(siblings) if siblings else system_view.discover_siblings(root))
+    paths = system_view.write_outputs(view, out)
+    click.echo(f"json: {paths['json_path']}")
+    click.echo(f"html: {paths['html_path']}")
+    click.echo(f"leg: {leg}; tiles: {len(view['tiles'])}")
 
 
 if __name__ == "__main__":

@@ -381,6 +381,25 @@ def subprocess_fire(argv: list, env: Mapping) -> FireResult:
     return FireResult(proc.returncode, (proc.stdout or "") + (proc.stderr or ""))
 
 
+VIEW_TIMEOUT_S = 120
+
+
+def view_fast_leg() -> None:
+    """ADR-133 D4: refresh the system view's fast leg (`system_map.py view --leg fast`). Advisory:
+    an OSError, a timeout or a non-zero exit is logged and never raised, so it cannot stop the runner."""
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "system_map.py"), "view", "--leg", "fast"]
+    try:
+        proc = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, timeout=VIEW_TIMEOUT_S, check=False)
+    except subprocess.TimeoutExpired:
+        logger.warning("system-view fast leg timed out after %ss", VIEW_TIMEOUT_S)
+        return
+    except OSError as exc:
+        logger.warning("system-view fast leg did not start: %s", exc)
+        return
+    if proc.returncode != 0:
+        logger.warning("system-view fast leg exited %s", proc.returncode)
+
+
 def _default_echo(line: str) -> None:
     sys.stdout.write(line + "\n")
     sys.stdout.flush()
@@ -389,10 +408,12 @@ def _default_echo(line: str) -> None:
 def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequence[Path],
              ledger_path: Path, fire: Optional[Callable[[list, dict], FireResult]] = None,
              dry_run: bool = False, echo: Optional[Callable[[str], None]] = None,
-             ledger: Optional[Ledger] = None) -> list[Fired]:
+             ledger: Optional[Ledger] = None,
+             view: Optional[Callable[[], object]] = None) -> list[Fired]:
     """One pass over the three sources: fire once per NEW event. Returns the fires attempted
     (a dry run: the fires it would make). The watch loop passes ONE `ledger` for its whole life, so a
-    ledger file that cannot be written still stops this process refiring on every pass."""
+    ledger file that cannot be written still stops this process refiring on every pass.
+    `view`, when given, runs once after each event this pass newly recorded (never in a dry run)."""
     echo = echo or _default_echo
     fire = fire or subprocess_fire      # resolved at CALL time, from the module global, so a test can replace it
     lanes = _dispatch.load_queue(list(contracts))
@@ -469,6 +490,7 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
             ledger.record(event, STATUS_FAILED, detail=f"exit {result.returncode}: {tail}")
 
     for event in collect_events(transport=transport, state_file=state_file, slugs=list(by_slug)):
+        was_new = not ledger.seen(event.key)
         try:
             handle(event)
         except LedgerHalt:
@@ -476,6 +498,12 @@ def run_once(*, batch: str, state_file: Path, transport: Path, contracts: Sequen
         except Exception:  # one bad event must not end the watch: it is logged and the next one runs
             logger.exception("%s %s: unhandled error; the event stays unrecorded and is retried next pass",
                              event.kind, event.lane)
+        if view is not None and was_new and not dry_run and ledger.seen(event.key):
+            try:    # ADR-133 D4: the system view's fast leg after each runner event; advisory, never fatal
+                view()
+            except Exception:
+                logger.exception("%s %s: the system-view hook failed; the pass goes on", event.kind,
+                                 event.lane)
     return fired
 
 
@@ -554,7 +582,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         try:
             fired = run_once(batch=args.batch, state_file=state_file, transport=transport,
                              contracts=contracts, ledger_path=ledger_path, dry_run=args.dry_run,
-                             ledger=ledger)
+                             ledger=ledger, view=None if args.dry_run else view_fast_leg)
             failed = failed or any(f.returncode not in (None, 0) for f in fired)
         except KeyboardInterrupt:
             return 0

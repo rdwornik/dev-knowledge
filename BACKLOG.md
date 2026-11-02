@@ -930,7 +930,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1743] [P2][S] check_routine_uv_pin unwired, fate 11-09 · tasks/1743-uv-pin-fate.md
 - [#1745] [P3][M] STRENGTHEN the 43 NO-OUTCOME test nodes (no assertion-bearing call) - add an explicit assertion, remove none · tasks/1745-strengthen-the-43-no-outcome-test-nodes.md
 - [#1747] [P2][M] `ci_verdict.py` reads the retired suite-gate block on its no-baseline path and reports registry members as new reds · tasks/1747-ci-verdict-reads-the-retired-suite-gate-block.md
-- [#1748] [P2][M] the view: /decide first, then build · tasks/1748-the-view-decide-first-then-build.md
 - [#1749] [P2][M] the backlog per-row reconciliation organ (GO-E3.0 R10), after L2 · tasks/1749-the-backlog-per-row-reconciliation-organ.md
 - [#1800] [P2][M] The commit-gate job goes green: the 10 graph-orphan-census findings get true dispositions and ARCHITECTURE.md a real review · tasks/1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md
 - [#1841] [P2][S] Wire scripts/startup_probe.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1841-wire-startup-probe-to-a-real-caller-or-remove-it-under-r56.md
