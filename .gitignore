@@ -200,7 +200,7 @@ logs/receipts/
 # ecosystem/system-map-record.json (the map sha, the previous sha and the node diff).
 ecosystem/system-map.json
 ecosystem/system-map.html
-# ADR-133 system view outputs (scripts/system_map.py view): regenerate-on-demand, never committed.
+# [#1748] ADR-133 system view outputs (scripts/system_map.py view): regenerate-on-demand, never committed.
 ecosystem/view.json
 ecosystem/view.html
 

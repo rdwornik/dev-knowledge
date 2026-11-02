@@ -1140,6 +1140,11 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
     "scripts/gen_handoff.py": _not_an_edge(_measured(
         "4", "was private template; template -> bundle is the generator's own hard-coded "
              "authoring; other legs off-tree transport")),
+    # ADR-133 / [#1748] (lane e31-system-view): the system view READS organ outputs to display them;
+    # it derives no corpus-structure relation and no graph edge from them.
+    "scripts/system_view.py": _not_an_edge(
+        "ADR-133 section D2: a pure rendering of organ outputs -- it reads receipts, a record, a task's "
+        "frontmatter and one YAML block to DISPLAY them; no relation it reads is returned as an edge"),
     "scripts/audit.py::check_doc_claims": _not_an_edge(_measured(
         "4", "was private citation, lean; 3 of 4 claims are counts, the 4th is hook-id set "
              "parity and a hook id is not a corpus file")),
