@@ -39,12 +39,11 @@ from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
 
-#: UNRELEASED, still 1.7.0 — `e32-provider-billing` ([#1833], [#1844]) adds, all optional with inert defaults:
+#: 1.8.0 — `e32-provider-billing` ([#1833], [#1844]) adds, all optional with inert defaults:
 #: `Provider.billing` / `.accounts` / `.account_failover`, `RoleEntry.billing_pool` / `.per_case_only` /
 #: `.isolated_session`, `Role.batch_fallback`, `Model.also_served_by`, `ModelRates.cache_write_5m` /
 #: `.long_context`, `FallbackTrigger`'s draft section-4 shape and the top-level `ProviderRegistry.evaluation`.
-#: MINOR in kind. `SCHEMA_VERSION` is NOT bumped here: `tests/test_provider_registry_substrate.py` pins
-#: "1.7.0" and that file is outside this lane's footprint; the bump is a one-line follow-up owed to the integrator.
+#: MINOR in kind.
 #: 1.6.0 — `e2-subst-gate` (R138, R140, R153; P1) adds `RoleEntry.substrate` (where the entry runs:
 #: `local` or `codespace`) and `RoleEntry.paired` (the entry runs TOGETHER with the other paired
 #: entries of its role rather than as a fallback). MINOR: both are optional with inert defaults, so
@@ -74,7 +73,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
 #: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
 #: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
 #: reconciliation obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.7.0"
+SCHEMA_VERSION = "1.8.0"
 
 #: The prefix that marks an evidence reference as living on the operator's transport rather than
 #: in this repository. CI cannot read the transport, so such a reference may ride beside an
