@@ -139,7 +139,7 @@ def test_the_red_row_naming_a_registry_model_is_refused():
 
 
 def test_the_copilot_review_row_not_naming_copilot_is_refused():
-    problems, _ = _problems(_contract(rows={"copilot": f"| review, Copilot half | {TERRA} | local |"}))
+    problems, _ = _problems(_contract(rows={"copilot": "| review, Copilot half | claude-opus-5-5 | local |"}))
     assert any("review" in p and TERRA in p and "Copilot" in p for p in problems)
 
 
