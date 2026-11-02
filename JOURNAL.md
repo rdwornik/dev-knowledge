@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-02 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.0): the codespace pin commit landing (hand path, Q-PIN-1 option 1) -- the box CLI pins rise to the laptop's, config only
+
+**Anchors:** `d2ce87a41` (`.devcontainer/provisioning.yaml`: claude 2.1.310 -> 2.1.316, agy 1.4.6 -> 1.4.12, copilot 1.0.103 -> 1.0.105, and the generated pins_record).
+
+**Did:** landed the one-commit config-only branch `worktree-codespace-restart` @ `d2ce87a41` by the named hand landing path the architect ruled (to-browser/DIGEST-RULINGS-MORNING-2026-11-02.md, Q-PIN-1 option 1; waiver to-cc/INTEGRATOR-PIN-WAIVER-2026-11-01.md): merge --no-ff on the integration branch, push, CI poll, the same sha to main with this JOURNAL anchor. The [models-block] and [launch-receipt] gates are waived for this commit only, in a transport record (WAIVER-RECORD in to-browser/SESSION-integrator-E3.0-2026-10-31.md); no LAUNCH receipt or MODELS block was written. The pin waiver's three kept checks bind the landing: the codespace_parity pin check on the integration tip, integration-run CI with no new red against the base, and the terra review (APPROVE, on record).
+
+**Result:** the verdicts and hand steps are in the integrator receipt (to-browser/SESSION-integrator-E3.0-2026-10-31.md). No land_lane ran, so no logs/MERGE-RECEIPTS.jsonl line was written by an organ for this commit.
+
+**Changes:** `.devcontainer/provisioning.yaml` only.
+
+**Abandoned:** nothing.
+
+**Next:** the e32 box (Codespace step 3) launches with `--branch main`; [#1846] (a config-only lane class) removes the need for a hand path next time.
+
 ### 2026-11-02 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.0): the e30-seat-registry-binds landing -- an integrator seat holds a SET of batch binds and `refuse_no_live_integrator` checks membership [#1845]
 
 **Anchors:** `415560bd5` (rows [#1845] [#1846] [#1847] filed), `a59d3613c` (RED tests, Done-contract 1 (a)-(m)), `529e06f12` (the bound-set feature), `6a0955349` and `b614b6579` (the failure-word close and its revert: [#1845] stays open with its node), `48431c4c5` (static test names, targeted unbind of a session with no set is a no-op), `cabb2277e` (batch id parsed without a second regex, so the edge-class census shape stays False), `cad2088ac` (test (k) permutes every priority ordering).
