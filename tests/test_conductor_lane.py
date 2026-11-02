@@ -1090,7 +1090,8 @@ def test_item1g_real_harness_phase_shape_and_phase_row_validation():
     rendered_fallback = next(row for row in rendered if row["id"] == "P7")["fallback"]
     assert rendered_fallback.count("--disallowedTools=AskUserQuestion,advisor") == 1
     assert "model family" in next(row for row in doc["constraints"] if row["id"] == "C-VENDOR")["reuses"]
-    assert len(lines) < 202
+    # cap 202 -> 204, the same cap as tests/test_dodo.py (Q-PO-1/Q-SV-1 cap rule): P6c ([#1848]) and system_view_full (L13)
+    assert len(lines) < 204
     c._validate_phase_rows(phases)
 
 
