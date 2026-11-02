@@ -11,7 +11,7 @@
 Question: how should the harness (a) classify a failure in ONE closed taxonomy, (b) bind an approval verdict to the exact revision it judged and freeze a lane contract by hash, refusing a contract write after its freeze, (c) measure the rubber-stamp rate of approvals against an adjudicated key, and (d) measure the independence of two readers as a computed number with a threshold?
 
 Known constraints (no answer pre-committed):
-- ADR-134 (Accepted) already decides stage records, session_id, the judge-input builder and role overlap by (provider, session_id); ADR-121 (Proposed) decides verdict identity (D5) in an event log that does not exist; ADR-122 (Proposed) makes tasks typed records. Reuse first; say what each of (a)-(d) adds.
+- ADR-134 (Accepted) already decides stage records, session_id, the judge-input builder and role overlap by (provider, session_id); ADR-121 (Proposed) decides verdict identity (D5) in an event log that does not exist; ADR-122 (Accepted) makes tasks typed records. Reuse first; say what each of (a)-(d) adds.
 - The inputs, by line: proposal 3 is DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:36; proposal 7 is DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:40 (S-03 rejected there: the nonce proves the payload was read, not that the landed tree is the reviewed tree); proposal 9 is DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:42 (key first, then rate; 13/36 reversals are disagreement, not rubber-stamping); the independence lesson is DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:24 (agy not confined by --add-dir; quote-Jaccard caught a copy defect; census maximum 0.36) and DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:123 (target Jaccard 0.324, record Jaccard 0.0, threshold 0.5; M04 quote-Jaccard 0.106).
 - No code is changed by this run; the build is a later lane after ratification.
 
@@ -266,3 +266,13 @@ The RERULE lines, verbatim, in a text block (they cite the evaluators' scratch n
 Producer answers (both overturns verified and accepted in full):
 - IS10: verified at `scripts/decide_checks.py:276`, where the row pattern admits slash-combined ids and carries no hash. My Phase B answer handed revision links to row 1837 without specifying them, and that was the gap. D6 now specifies them: evaluator headers carry run-id plus adr-sha256 and evidence-sha256; the key is (run-id, evaluator file sha256, finding id); a grouped row is UNKEYED (grouped); a key ruling joins only on equal hashes, otherwise UNKEYED (revision mismatch). Building it is still row 1837's job, and decide_checks.py is unchanged.
 - IG10: verified at `scripts/preflight_contract.py:84`, where the file:line pattern requires backticks. Every repo file:line citation in the ADR and in this file outside the verbatim briefs and transport quotes is now backticked, shorthand `:NNN` repo citations are expanded to full backticked paths, and row 1837 is cited by its task file `tasks/1837-decide-independent-adjudication-as-code.md:3`, which paths resolves. The bracket form is still not used: BACKLOG.md in this tree has 0 occurrences of 1837 (it is generated and not regenerated here), so a bracket would fail paths falsely. The citation is checked by its task file instead. Transport citations stay bare, as P-1(1) orders.
+
+RERULE records for every finding the producer marked `partly` (all re-ruled blind by the other family in a new session; `verdict=upheld` means the re-ruler ruled the finding only partly valid and the producer disposition stands, `verdict=overturned` means it stands in full and was answered above; the re-rulers' full ruling lines for the upheld findings are in the lane receipt (the RERULE lines); copilot sessions have no id, their usage file stands in):
+
+```text
+RERULE IS5 producer=partly by=gemini-4-argon session=copilot-usage:rr/i-by-argon verdict=upheld
+RERULE IS10 producer=partly by=gemini-4-argon session=copilot-usage:rr/i-by-argon verdict=overturned
+RERULE IS11 producer=partly by=gemini-4-argon session=copilot-usage:rr/i-by-argon verdict=upheld
+RERULE IG10 producer=partly by=gpt-6-sol session=01a198e7-b215-7df2-8a26-9742e262004d verdict=overturned
+RERULE IG11 producer=partly by=gpt-6-sol session=01a198e7-b215-7df2-8a26-9742e262004d verdict=upheld
+```

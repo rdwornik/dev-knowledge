@@ -92,7 +92,7 @@ Every claim below was re-run by the producer this session (decide_checks subagen
 - Q3: decide.md step 1 says questions only, no pre-committed answer {probe: .claude/commands/decide.md:30}
 - Q3: the only brief check today tests that the excluded root is named {probe: scripts/decide_checks.py:390}
 - Q3: no brief template or rejection-criteria schema exists under templates/ or .claude/; the subagent's counts were 0 {unverified}
-- Q3: the lane contract template's last section is the immutable Done-contract {probe: templates/lane-contract-template.md:94}
+- Q3: the lane contract template carries the immutable Done-contract section, followed by a Do-not section {probe: templates/lane-contract-template.md:94}
 - Q3: the lane contract template has no QUESTION section; the producer's count is 0 {unverified}
 - Q3: R12 is "No launch without (a) a sign-off the operator signed and (b) a lane contract produced by the distiller" {probe: protocols/STANDING_RULINGS.md:7680}
 - Q3: the transport already has a QUESTION request kind {probe: scripts/transport.py:88}
@@ -299,3 +299,12 @@ From ii-by-sol/OUT.md (re-ruled IIG8 and IIG11, argon's findings):
 
 - **IIS7 (overturned, stands-in-full): Accepted in full.** The producer checked row 884:12 (Done-when (1) refusal before launch, (2)-(3) abandonment past the deadline) and decide.md: decide_checks runs on artifacts, not at launch. ADR D8 now refuses at launch through the existing Agent PreToolUse guard and dispatch's pre-launch moment, adds `dispatch.py abandon` for lanes past their deadline, and records the subagent deadline as the delivery under item 3. The table row and the PRODUCER line now read accepted.
 - **IIS3, IIG8, IIG11 (upheld, partly-valid):** the producer's partly dispositions stand. The IIG11 re-ruler notes the evaluator's claim that it could not inspect the worktree was wrong; that point is in the evaluator's text and changes nothing here.
+
+RERULE records for every finding the producer marked `partly` (all re-ruled blind by the other family in a new session; `verdict=upheld` means the re-ruler ruled the finding only partly valid and the producer disposition stands, `verdict=overturned` means it stands in full and was answered above; the re-rulers' full ruling lines for the upheld findings are in the lane receipt (the RERULE lines); copilot sessions have no id, their usage file stands in):
+
+```text
+RERULE IIS3 producer=partly by=gemini-4-argon session=copilot-usage:rr/ii-by-argon verdict=upheld
+RERULE IIS7 producer=partly by=gemini-4-argon session=copilot-usage:rr/ii-by-argon verdict=overturned
+RERULE IIG8 producer=partly by=gpt-6-sol session=01a198e7-b2a6-77e3-bc01-a202f2d54fdb verdict=upheld
+RERULE IIG11 producer=partly by=gpt-6-sol session=01a198e7-b2a6-77e3-bc01-a202f2d54fdb verdict=upheld
+```
