@@ -577,7 +577,10 @@ def test_thresholds_table_is_bounded_and_pinned_in_one_place(tmp_path, monkeypat
         isinstance(age, int) and 0 < age <= 31 * 86400
         for age in system_view.THRESHOLDS.values()
     )
-    assert system_view.assemble(root, now=NOW)["thresholds"] == system_view.THRESHOLDS
+    assert {
+        key: cell["v"]
+        for key, cell in system_view.assemble(root, now=NOW)["thresholds"].items()
+    } == system_view.THRESHOLDS
 
 
 def test_git_check_ignore_holds_for_both_outputs():
@@ -954,3 +957,69 @@ def test_quota_count_is_the_source_total_not_the_shown_rows(tmp_path, monkeypatc
     count = next(field["cell"]["v"] for field in tile["fields"] if field["label"] == "count")
     assert count == 15
     assert len(tile["rows"]) == 12
+
+
+def test_schema_and_thresholds_are_cells_with_the_assembly_reader_id(
+    tmp_path, monkeypatch
+):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    view = system_view.assemble(root, now=NOW)
+
+    assert view["schema"]["v"] == system_view.SCHEMA
+    assert view["schema"]["r"] == "assembly"
+    assert all(
+        isinstance(cell, dict) and cell["r"] == "assembly"
+        for cell in view["thresholds"].values()
+    )
+    assert {
+        key: cell["v"] for key, cell in view["thresholds"].items()
+    } == system_view.THRESHOLDS
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "field-cell",
+        "row-cell",
+        "schema",
+        "threshold",
+        "extra-key",
+        "mermaid-url",
+        "tile-source",
+    ],
+)
+def test_check_provenance_is_exhaustive_over_bare_scalars(
+    mutation, tmp_path, monkeypatch
+):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    view = json.loads(json.dumps(system_view.assemble(root, now=NOW)))
+
+    if mutation == "field-cell":
+        tile = next(tile for tile in view["tiles"] if tile["fields"])
+        tile["fields"][0]["cell"] = "raw"
+    elif mutation == "row-cell":
+        tile = next(tile for tile in view["tiles"] if tile["rows"])
+        tile["rows"][0][0] = "raw"
+    elif mutation == "schema":
+        view["schema"] = "raw"
+    elif mutation == "threshold":
+        view["thresholds"][next(iter(view["thresholds"]))] = 0
+    elif mutation == "extra-key":
+        view["extra"] = "x"
+    elif mutation == "mermaid-url":
+        view["mermaid"]["url"] = "raw"
+    elif mutation == "tile-source":
+        view["tiles"][0]["source"] = "raw"
+
+    with pytest.raises(system_view.ProvenanceError):
+        system_view.check_provenance(view)
+
+
+def test_check_provenance_accepts_the_unmutated_view(tmp_path, monkeypatch):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    view = system_view.assemble(root, now=NOW)
+
+    assert system_view.check_provenance(view) is None
+    html = system_view.render_html(view)
+    assert isinstance(html, str)
+    assert view["labels"]["title"] in html
