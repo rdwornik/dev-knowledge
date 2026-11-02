@@ -1023,3 +1023,227 @@ def test_check_provenance_accepts_the_unmutated_view(tmp_path, monkeypatch):
     html = system_view.render_html(view)
     assert isinstance(html, str)
     assert view["labels"]["title"] in html
+
+
+def _queue_runner_for_fast_leg_tests():
+    import importlib
+
+    return importlib.import_module("queue_runner")
+
+
+def _queue_runner_fast_leg_case(
+    tmp_path: Path,
+    name: str,
+    *,
+    lanes: tuple[str, ...] = ("a",),
+    state_file: Path | None = None,
+) -> tuple[Path, Path, list[Path], Path]:
+    root = tmp_path / name
+    transport = root / "transport"
+    to_browser = transport / "to-browser"
+    to_browser.mkdir(parents=True)
+    for index, lane in enumerate(lanes, start=1):
+        sha = str(index) * 40
+        (to_browser / f"SESSION-{lane}.md").write_text(
+            f"HANDBACK worktree-{lane} @ {sha} code\n", encoding="utf-8"
+        )
+    if state_file is None:
+        state_file = root / "SESSION-integrator.md"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text("", encoding="utf-8")
+    fixtures = Path(__file__).parent / "fixtures" / "queue_runner"
+    contracts = [fixtures / f"LANE-{lane}.md" for lane in lanes]
+    return transport, state_file, contracts, root / "QUEUE-RUNNER-E3.1.jsonl"
+
+
+def test_runner_event_runs_the_fast_leg_exactly_once_per_new_event(tmp_path):
+    qr = _queue_runner_for_fast_leg_tests()
+    transport, state_file, contracts, ledger_path = _queue_runner_fast_leg_case(
+        tmp_path, "events", lanes=("a", "b")
+    )
+    fires = []
+    views = []
+
+    def fire(argv, env):
+        fires.append((list(argv), dict(env)))
+        return qr.FireResult(0, "")
+
+    arguments = {
+        "batch": "E3.1",
+        "state_file": state_file,
+        "transport": transport,
+        "contracts": contracts,
+        "ledger_path": ledger_path,
+    }
+    fired = qr.run_once(
+        **arguments, fire=fire, view=lambda: views.append("view")
+    )
+    second_fired = qr.run_once(
+        **arguments, fire=fire, view=lambda: views.append("view")
+    )
+
+    assert len(fired) == 2
+    assert second_fired == []
+    assert len(fires) == 2
+    assert views == ["view", "view"]
+
+
+def test_dry_run_and_the_default_never_run_the_fast_leg(tmp_path):
+    qr = _queue_runner_for_fast_leg_tests()
+    transport, state_file, contracts, ledger_path = _queue_runner_fast_leg_case(
+        tmp_path, "dry-run"
+    )
+    dry_run_views = []
+
+    qr.run_once(
+        batch="E3.1",
+        state_file=state_file,
+        transport=transport,
+        contracts=contracts,
+        ledger_path=ledger_path,
+        dry_run=True,
+        view=lambda: dry_run_views.append("view"),
+    )
+
+    assert dry_run_views == []
+    assert not ledger_path.exists()
+
+    transport, state_file, contracts, ledger_path = _queue_runner_fast_leg_case(
+        tmp_path, "default"
+    )
+    fires = []
+
+    def fire(argv, env):
+        fires.append((list(argv), dict(env)))
+        return qr.FireResult(0, "")
+
+    fired = qr.run_once(
+        batch="E3.1",
+        state_file=state_file,
+        transport=transport,
+        contracts=contracts,
+        ledger_path=ledger_path,
+        fire=fire,
+    )
+
+    assert fired
+    assert len(fires) == 1
+
+
+def test_a_raising_view_does_not_stop_the_pass_or_change_the_ledger(
+    tmp_path, monkeypatch
+):
+    qr = _queue_runner_for_fast_leg_tests()
+
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 11, 2, 12, 0, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(qr, "datetime", FrozenDateTime)
+    shared_state_file = tmp_path / "SESSION-integrator.md"
+    raised_case = _queue_runner_fast_leg_case(
+        tmp_path, "raising", lanes=("a", "b"), state_file=shared_state_file
+    )
+    baseline_case = _queue_runner_fast_leg_case(
+        tmp_path, "baseline", lanes=("a", "b"), state_file=shared_state_file
+    )
+
+    def run_case(case, *, view=None):
+        transport, state_file, contracts, ledger_path = case
+
+        def fire(argv, env):
+            return qr.FireResult(0, "")
+
+        return qr.run_once(
+            batch="E3.1",
+            state_file=state_file,
+            transport=transport,
+            contracts=contracts,
+            ledger_path=ledger_path,
+            fire=fire,
+            view=view,
+        )
+
+    def raising_view():
+        raise RuntimeError("fast leg failed")
+
+    raised_fired = run_case(raised_case, view=raising_view)
+    baseline_fired = run_case(baseline_case)
+
+    assert raised_fired == baseline_fired
+    assert raised_case[3].read_bytes() == baseline_case[3].read_bytes()
+
+
+def test_view_fast_leg_runs_system_map_view_fast_and_never_raises(monkeypatch):
+    qr = _queue_runner_for_fast_leg_tests()
+    calls = []
+
+    def successful_run(argv, **kwargs):
+        calls.append((list(argv), kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(qr.subprocess, "run", successful_run)
+
+    assert qr.view_fast_leg() is None
+    argv, kwargs = calls[0]
+    assert argv[0] == sys.executable
+    assert Path(argv[-4]).name == "system_map.py"
+    assert argv[-3:] == ["view", "--leg", "fast"]
+    assert Path(argv[-4]).parent == ROOT / "scripts"
+    assert kwargs["cwd"] == ROOT
+    assert kwargs["capture_output"] is True
+    assert kwargs["timeout"] > 0
+
+    for failure in (
+        OSError("could not start"),
+        subprocess.TimeoutExpired(argv, timeout=1),
+    ):
+        def failing_run(*_args, _failure=failure, **_kwargs):
+            raise _failure
+
+        monkeypatch.setattr(qr.subprocess, "run", failing_run)
+        assert qr.view_fast_leg() is None
+
+    monkeypatch.setattr(
+        qr.subprocess,
+        "run",
+        lambda argv, **_kwargs: subprocess.CompletedProcess(argv, 1),
+    )
+    assert qr.view_fast_leg() is None
+
+
+def test_main_watch_passes_the_fast_leg_hook_only_when_live(tmp_path, monkeypatch):
+    qr = _queue_runner_for_fast_leg_tests()
+    transport, state_file, contracts, _ledger_path = _queue_runner_fast_leg_case(
+        tmp_path, "main"
+    )
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    monkeypatch.setattr(qr._dispatch, "receipts_dir", lambda: receipts)
+    monkeypatch.setattr(qr, "acquire_single_instance", lambda _path: object())
+    calls = []
+
+    def run_once(**kwargs):
+        calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(qr, "run_once", run_once)
+    arguments = [
+        "watch",
+        "--batch",
+        "E3.1",
+        "--state-file",
+        str(state_file),
+        "--transport",
+        str(transport),
+        "--contracts",
+        *(str(contract) for contract in contracts),
+        "--once",
+    ]
+
+    assert qr.main(arguments) == 0
+    assert calls[-1]["view"] is qr.view_fast_leg
+
+    assert qr.main([*arguments, "--dry-run"]) == 0
+    assert calls[-1]["view"] is None
