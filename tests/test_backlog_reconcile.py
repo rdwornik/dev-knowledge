@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import base64
+import datetime as dt
+import hashlib
 import json
+import os
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
 import backlog_reconcile as br
+import gen_task_tree as gtt
 import read_gate
 
 
@@ -831,3 +837,723 @@ def test_parse_read_output_ignores_a_line_with_an_empty_quotation():
     parsed = br.parse_read_output('1750 | open | ""\n1751 | done | "a phrase"\n')
 
     assert parsed == {"1751": ("done", "a phrase")}
+
+
+# --- backlog legacy sweep contract ([#1854]) -----------------------------------------------------
+
+
+_SWEEP_TODAY = dt.date(2026, 11, 2)
+_SWEEP_DECISIONS = {
+    "close-shipped": "shipped",
+    "close-obsolete": "obsolete",
+    "close-duplicate": "duplicate",
+    "close-no-fit": "no-fit",
+    "close-parked": "parked",
+    "keep-P1": "keep",
+    "keep-P2": "keep",
+    "keep-P3": "keep",
+    "merge-rewrite": "keep",
+}
+
+
+def _sweep_git(repo: Path, *args: str, date: str | None = None) -> str:
+    env = os.environ.copy()
+    if date is not None:
+        stamp = f"{date}T12:00:00+00:00"
+        env["GIT_AUTHOR_DATE"] = stamp
+        env["GIT_COMMITTER_DATE"] = stamp
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def _sweep_commit(repo: Path, date: str, message: str) -> None:
+    _sweep_git(repo, "add", "-A")
+    _sweep_git(repo, "commit", "-q", "--allow-empty", "-m", message, date=date)
+
+
+def _sweep_write_manifest(tasks_dir: Path, nodes: list[dict]) -> None:
+    manifest = {
+        "schema": 2,
+        "role": "source",
+        "generates": "BACKLOG.md",
+        "generated_sha256": "x",
+        "generator": "gen_task_tree.py",
+        "nodes": nodes,
+    }
+    (tasks_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _sweep_task_text(row_id: int, title: str, body: str, priority: str = "P2") -> str:
+    raw = f"- [#{row_id}] [{priority}][M] {title} — {body}"
+    return gtt.emit_task_file_text(
+        gtt.TaskRow(id=row_id, raw=raw, theme=None, story=None)
+    )
+
+
+def _sweep_repo(tmp_path: Path, tasks: list[dict]) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _sweep_git(repo, "init", "-q", "-b", "main")
+    _sweep_git(repo, "config", "user.name", "Backlog Sweep Tests")
+    _sweep_git(repo, "config", "user.email", "sweep-tests@example.invalid")
+    tasks_dir = repo / "tasks"
+    tasks_dir.mkdir()
+    nodes = [{"prose": "# Backlog"}, {"prose": "## sweep fixtures"}]
+    _sweep_write_manifest(tasks_dir, nodes)
+    _sweep_commit(repo, "2026-01-01", "initialize task fixture")
+    for row in tasks:
+        row_id = int(row["id"])
+        title = row.get("title", f"Sweep row {row_id}")
+        body = row.get("body", "no evidence references")
+        filename = f"{row_id}-{title.lower().replace(' ', '-')}.md"
+        (tasks_dir / filename).write_text(
+            _sweep_task_text(row_id, title, body, row.get("priority", "P2")),
+            encoding="utf-8",
+        )
+        nodes.append({"task": row_id, "file": filename})
+        _sweep_write_manifest(tasks_dir, nodes)
+        _sweep_commit(repo, row["add_date"], f"add backlog row [#{row_id}]")
+        row["file"] = filename
+    _sweep_git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    return repo, tasks_dir
+
+
+def _sweep_table_row(task: dict, **overrides) -> dict:
+    row_id = str(task["id"])
+    title = task.get("title", f"Sweep row {row_id}")
+    filename = task.get("file", f"{row_id}-{title.lower().replace(' ', '-')}.md")
+    row = {
+        "id": row_id,
+        "file": f"tasks/{filename}",
+        "title": title,
+        "quote_verified": True,
+        "decision_class": "close-shipped",
+        "evidence_class": "shipped",
+        "cluster_role": None,
+        "duplicate_of": None,
+        "cluster_members": None,
+        "cited_by_open": [],
+        "declared_priority": task.get("priority", "P2"),
+        "sonnet": {"fit": "LINE", "priority": task.get("priority", "P2")},
+        "gemini": {"fit": "LINE", "priority": task.get("priority", "P2")},
+        "label_basis": "agreed",
+        "adjudicator_followed": None,
+        "reason": "fixture decision reason",
+    }
+    row.update(overrides)
+    return row
+
+
+def _sweep_ruling(
+    tmp_path: Path,
+    *,
+    source_text: str = "",
+    source_name: str = "RATIFICATION-X.md",
+    decision_classes: dict | None = None,
+) -> tuple[Path, Path]:
+    transport = tmp_path / "transport"
+    transport.mkdir(parents=True, exist_ok=True)
+    (transport / source_name).write_text(source_text, encoding="utf-8")
+    text = "Operator ruling for the legacy-sweep test.\n"
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    decisions = decision_classes or _SWEEP_DECISIONS
+    decision_lines = "\n".join(
+        f"    {name}: {label}" for name, label in decisions.items()
+    )
+    ruling = tmp_path / "ruling.yaml"
+    ruling.write_text(
+        "ruled_by: operator\n"
+        "ruled_on: 2026-11-01\n"
+        "classes: {shipped: close, obsolete: close, stale-refs: keep, live: keep, unclear: keep}\n"
+        "source: to-browser/DIGEST-X.md\n"
+        f"source_sha256: {digest}\n"
+        "text: |\n"
+        "  Operator ruling for the legacy-sweep test.\n"
+        "sweep:\n"
+        "  cutoff: 2026-10-01\n"
+        "  k2_window_days: 30\n"
+        "  legacy_class: legacy-sweep\n"
+        "  k1_sources:\n"
+        f"    - {{path: {source_name}, root: transport}}\n"
+        "  decision_classes:\n"
+        f"{decision_lines}\n",
+        encoding="utf-8",
+    )
+    return ruling, transport
+
+
+def _sweep_run(
+    tmp_path: Path,
+    tasks: list[dict],
+    *,
+    table_rows: list[dict] | None = None,
+    source_text: str = "",
+    today: dt.date = _SWEEP_TODAY,
+    decision_classes: dict | None = None,
+) -> tuple[br.SweepResult, Path, Path, Path, Path]:
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    ruling, transport = _sweep_ruling(
+        tmp_path, source_text=source_text, decision_classes=decision_classes
+    )
+    table = tmp_path / "step1.json"
+    rows = table_rows
+    if rows is None:
+        rows = [_sweep_table_row(task) for task in tasks]
+    table.write_text(json.dumps({"rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+    home = tmp_path / "sweep-home"
+    result = br.run_sweep(
+        ruling_path=ruling,
+        table_path=table,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=home,
+        transport_root=transport,
+        today=today,
+        evidence_sha="a" * 40,
+    )
+    return result, repo, tasks_dir, home, ruling
+
+
+def _sweep_file(tasks_dir: Path, row_id: str | int) -> Path:
+    return next(tasks_dir.glob(f"{row_id}-*.md"))
+
+
+def _sweep_add_code(repo: Path, path: str, date: str) -> None:
+    target = repo / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(f"# fixture {path}\n", encoding="utf-8")
+    _sweep_commit(repo, date, f"update {path}")
+
+
+def _sweep_side_ref(repo: Path, ref: str, path: str) -> None:
+    branch = f"fixture-{ref.replace('/', '-')}"
+    _sweep_git(repo, "switch", "-q", "-c", branch, "main")
+    target = repo / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(f"side branch change for {ref}\n", encoding="utf-8")
+    _sweep_commit(repo, "2026-10-31", f"side work for {ref}")
+    _sweep_git(repo, "update-ref", f"refs/remotes/origin/{ref}", "HEAD")
+    _sweep_git(repo, "switch", "-q", "main")
+
+
+def test_sweep_a_legacy_row_without_witness_closes(tmp_path):
+    task = {"id": 1101, "add_date": "2026-08-01"}
+    result, _, tasks_dir, _, _ = _sweep_run(tmp_path, [task])
+
+    assert br.SWEEP_CUTOFF == dt.date(2026, 10, 1)
+    assert br.K2_WINDOW_DAYS == 30
+    assert br.SWEEP_DECISION_CLASSES == tuple(_SWEEP_DECISIONS)
+    assert {"1748", "1800", "1854", "1863"} <= br.FIXED_LIVE_IDS
+    assert [row["id"] for row in result.closed] == ["1101"]
+    assert result.closed[0]["class"] == "legacy-sweep"
+    text = _sweep_file(tasks_dir, 1101).read_text(encoding="utf-8")
+    assert "\nstatus: closed\n" in text
+    assert "sweep-close:" in text
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert not any(node.get("task") == 1101 for node in manifest["nodes"])
+
+
+@pytest.mark.parametrize(
+    ("decision_class", "add_date"),
+    [(name, "2026-10-10") for name in _SWEEP_DECISIONS if name.startswith("close-")]
+    + [("close-shipped", "2026-08-01")],
+)
+def test_sweep_b_k1_protected_row_never_closes(tmp_path, decision_class, add_date):
+    task = {"id": 1102, "add_date": add_date}
+    row = _sweep_table_row(task, decision_class=decision_class)
+    before = _sweep_task_text(1102, "Sweep row 1102", "no evidence references")
+    result, _, tasks_dir, _, _ = _sweep_run(
+        tmp_path,
+        [task],
+        table_rows=[row],
+        source_text="Ratified work includes [#1102].\n",
+    )
+
+    assert not result.closed
+    assert result.kept["protected"] == ["1102"]
+    assert _sweep_file(tasks_dir, 1102).read_bytes() == before.encode("utf-8")
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert any(node.get("task") == 1102 for node in manifest["nodes"])
+
+
+def test_sweep_c_cited_by_open_is_kept(tmp_path):
+    task = {"id": 1103, "add_date": "2026-08-01"}
+    row = _sweep_table_row(task, cited_by_open=["[#2200]"])
+    result, _, _, _, _ = _sweep_run(tmp_path, [task], table_rows=[row])
+
+    assert result.kept["protected"] == ["1103"]
+    assert not result.closed
+
+
+def test_sweep_d_k2_alive_in_code_window(tmp_path):
+    tasks = [
+        {"id": 1104, "add_date": "2026-08-01", "body": "references `scripts/alive.py`"},
+        {"id": 1105, "add_date": "2026-08-01", "body": "references `scripts/stale.py`"},
+    ]
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    _sweep_add_code(repo, "scripts/alive.py", "2026-10-04")
+    _sweep_add_code(repo, "scripts/stale.py", "2026-10-02")
+    _sweep_git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    ruling, transport = _sweep_ruling(tmp_path)
+    table = tmp_path / "step1.json"
+    table.write_text(
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}), encoding="utf-8"
+    )
+
+    result = br.run_sweep(
+        ruling_path=ruling,
+        table_path=table,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=tmp_path / "sweep-home",
+        transport_root=transport,
+        today=_SWEEP_TODAY,
+        evidence_sha="a" * 40,
+    )
+
+    assert result.kept["k2-alive"] == ["1104"]
+    assert [(row["id"], row["class"]) for row in result.closed] == [
+        ("1105", "legacy-sweep")
+    ]
+
+
+def test_sweep_e_k3_both_families_agreed_keeps(tmp_path):
+    task = {"id": 1106, "add_date": "2026-08-01"}
+    row = _sweep_table_row(task)
+    row["sonnet"] = {"fit": "LINE", "priority": "P2"}
+    row["gemini"] = {"fit": "LINE", "priority": "P1"}
+    result, _, _, _, _ = _sweep_run(tmp_path, [task], table_rows=[row])
+
+    assert result.kept["k3-agreed"] == ["1106"]
+    assert not result.closed
+
+
+@pytest.mark.parametrize(
+    "updates",
+    [
+        {"sonnet": {"fit": "NO-FIT", "priority": "P2"}},
+        {"label_basis": "adjudicated"},
+        {"adjudicator_followed": "sonnet"},
+    ],
+)
+def test_sweep_f_k3_one_family_or_adjudicated_does_not_count(tmp_path, updates):
+    task = {"id": 1107, "add_date": "2026-08-01"}
+    row = _sweep_table_row(task)
+    row.update(updates)
+    result, _, _, _, _ = _sweep_run(tmp_path, [task], table_rows=[row])
+
+    assert [item["id"] for item in result.closed] == ["1107"]
+    assert result.closed[0]["class"] == "legacy-sweep"
+    assert "k3-agreed" not in result.kept
+
+
+def test_sweep_g_add_date_of_renamed_file_is_oldest_commit(tmp_path):
+    task = {"id": 1108, "add_date": "2026-08-01", "title": "Original sweep name"}
+    repo, tasks_dir = _sweep_repo(tmp_path, [task])
+    old_path = f"tasks/{task['file']}"
+    renamed = "tasks/1108-renamed-sweep-name.md"
+    _sweep_git(repo, "mv", old_path, renamed)
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    next(node for node in manifest["nodes"] if node.get("task") == 1108)["file"] = Path(
+        renamed
+    ).name
+    _sweep_write_manifest(tasks_dir, manifest["nodes"])
+    _sweep_commit(repo, "2026-10-20", "rename backlog task file")
+
+    assert br.task_add_date(repo, renamed) == dt.date(2026, 8, 1)
+
+
+def test_sweep_h_new_row_follows_decision_class_and_1600_kept(tmp_path):
+    ids_and_classes = [
+        (1110, "close-shipped"),
+        (1111, "close-obsolete"),
+        (1112, "close-no-fit"),
+        (1113, "close-parked"),
+        (1114, "keep-P2"),
+        (1115, "merge-rewrite"),
+        (1600, "close-shipped"),
+    ]
+    tasks = [{"id": row_id, "add_date": "2026-10-10"} for row_id, _ in ids_and_classes]
+    rows = [
+        _sweep_table_row(task, decision_class=decision_class)
+        for task, (_, decision_class) in zip(tasks, ids_and_classes, strict=True)
+    ]
+    protected_before = _sweep_task_text(1600, "Sweep row 1600", "no evidence references")
+    result, _, tasks_dir, _, _ = _sweep_run(
+        tmp_path,
+        tasks,
+        table_rows=rows,
+        source_text="Protected row [#1600].\n",
+    )
+
+    assert {row["id"]: row["class"] for row in result.closed} == {
+        "1110": "shipped",
+        "1111": "obsolete",
+        "1112": "no-fit",
+        "1113": "parked",
+    }
+    assert result.kept["keep-class"] == ["1114"]
+    assert result.kept["merge-rewrite"] == ["1115"]
+    assert result.kept["protected"] == ["1600"]
+    assert _sweep_file(tasks_dir, 1600).read_bytes() == protected_before.encode("utf-8")
+
+
+def test_sweep_i_r2_duplicates_follow_canonical_and_live_cluster_refused(tmp_path):
+    tasks = [
+        {"id": row_id, "add_date": "2026-10-10"}
+        for row_id in (1120, 1121, 1122, 1123, 1124, 1125)
+    ]
+    rows = [
+        _sweep_table_row(tasks[0], decision_class="close-obsolete",
+                         cluster_role="canonical", cluster_members=["1120", "1121"]),
+        _sweep_table_row(tasks[1], decision_class="close-duplicate", evidence_class="unclear",
+                         duplicate_of="1120", cluster_role="duplicate"),
+        _sweep_table_row(tasks[2], decision_class="close-obsolete",
+                         cluster_role="canonical", cluster_members=["1122", "1123"]),
+        _sweep_table_row(tasks[3], decision_class="close-duplicate", evidence_class="live",
+                         duplicate_of="1122", cluster_role="duplicate"),
+        _sweep_table_row(tasks[4], decision_class="close-obsolete",
+                         cluster_role="canonical", cluster_members=["1124", "1125"]),
+        _sweep_table_row(tasks[5], decision_class="close-duplicate", duplicate_of="1124",
+                         cluster_role="duplicate"),
+    ]
+    result, _, _, _, _ = _sweep_run(
+        tmp_path, tasks, table_rows=rows, source_text="Protected duplicate [#1125].\n"
+    )
+
+    closed = {row["id"]: row["class"] for row in result.closed}
+    assert closed == {"1120": "obsolete", "1121": "obsolete", "1124": "obsolete"}
+    assert result.kept["r2-refused"] == ["1122", "1123"]
+    assert result.kept["protected"] == ["1125"]
+    assert "R-2 refused: no adjudicated unique-content flag" in result.scan
+    assert "[#1122]" in result.scan and "[#1123]" in result.scan
+
+
+def test_sweep_j_absent_ungated_unknown_class_are_kept(tmp_path):
+    tasks = [{"id": row_id, "add_date": "2026-10-10"} for row_id in (1130, 1131, 1132)]
+    rows = [
+        _sweep_table_row(tasks[1], quote_verified=False),
+        _sweep_table_row(tasks[2], decision_class="invented-class"),
+    ]
+    result, _, _, _, _ = _sweep_run(tmp_path, tasks, table_rows=rows)
+
+    assert result.kept["absent-from-table"] == ["1130"]
+    assert result.kept["ungated"] == ["1131"]
+    assert result.kept["unknown-decision-class"] == ["1132"]
+    assert not result.closed
+
+
+def test_sweep_k_live_lane_rows_never_close(tmp_path):
+    tasks = [
+        {"id": 1854, "add_date": "2026-10-10"},
+        {"id": 1202, "add_date": "2026-10-10"},
+        {"id": 1203, "add_date": "2026-10-10"},
+        {"id": 1204, "add_date": "2026-10-10"},
+        {"id": 1205, "add_date": "2026-10-10"},
+    ]
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    _sweep_side_ref(repo, "worktree-x", "tasks/1202-sweep-row-1202.md")
+    _sweep_side_ref(repo, "worktree-live", "docs/live-lane.txt")
+    _sweep_git(repo, "update-ref", "refs/remotes/origin/worktree-old", "main")
+    transport = tmp_path / "transport"
+    transport.mkdir()
+    (transport / "LANE-live.md").write_text("active contract [#1203]\n", encoding="utf-8")
+    (transport / "LANE-old.md").write_text("merged contract [#1204]\n", encoding="utf-8")
+    (transport / "LANE-no-branch.md").write_text("orphan contract [#1205]\n", encoding="utf-8")
+    ruling, _ = _sweep_ruling(tmp_path)
+    table = tmp_path / "step1.json"
+    table.write_text(
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}), encoding="utf-8"
+    )
+    result = br.run_sweep(
+        ruling_path=ruling,
+        table_path=table,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=tmp_path / "sweep-home",
+        transport_root=transport,
+        today=_SWEEP_TODAY,
+        evidence_sha="a" * 40,
+    )
+
+    assert result.kept["live-excluded"] == ["1202", "1203", "1854"]
+    assert {row["id"] for row in result.closed} == {"1204", "1205"}
+
+
+def test_sweep_l_revert_legacy_sweep_restores_task_bytes(tmp_path):
+    tasks = [{"id": row_id, "add_date": "2026-08-01"} for row_id in (1300, 1301)]
+    before = {}
+    result, _, tasks_dir, home, _ = _sweep_run(tmp_path, tasks)
+    for task in tasks:
+        path = _sweep_file(tasks_dir, task["id"])
+        before[str(task["id"])] = hashlib.sha256(
+            _sweep_task_text(task["id"], f"Sweep row {task['id']}", "no evidence references").encode()
+        ).hexdigest()
+        assert path.exists()
+
+    restored = br.run_revert(tasks_dir=tasks_dir, home=home, spec="legacy-sweep")
+
+    assert set(restored) == {"1300", "1301"}
+    for row_id in restored:
+        assert hashlib.sha256(_sweep_file(tasks_dir, row_id).read_bytes()).hexdigest() == before[row_id]
+    assert result.closed
+
+
+def test_sweep_m_revert_subset_then_rest_is_manifest_byte_identical(tmp_path):
+    tasks = [{"id": row_id, "add_date": "2026-08-01"} for row_id in (1310, 1311, 1312)]
+    _, _, tasks_dir, home, _ = _sweep_run(tmp_path, tasks)
+    original_manifest = base64.b64decode(
+        json.loads((home / "ledger.json").read_text(encoding="utf-8"))["manifest_pre_b64"]
+    )
+
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="1310,1312") == ["1310", "1312"]
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="legacy-sweep") == ["1311"]
+    assert (tasks_dir / "manifest.json").read_bytes() == original_manifest
+
+    next_tasks = [{"id": row_id, "add_date": "2026-08-01"} for row_id in (1320, 1321)]
+    _, _, next_dir, next_home, _ = _sweep_run(tmp_path / "with-later-node", next_tasks)
+    manifest = json.loads((next_dir / "manifest.json").read_text(encoding="utf-8"))
+    later_task = gtt.TaskRow(
+        id=1399,
+        raw="- [#1399] [P2][M] Later added task — later row",
+        theme=None,
+        story=None,
+    )
+    later_name = "1399-later-added-task.md"
+    (next_dir / later_name).write_text(gtt.emit_task_file_text(later_task), encoding="utf-8")
+    manifest["nodes"].append({"task": 1399, "file": later_name})
+    _sweep_write_manifest(next_dir, manifest["nodes"])
+    assert br.run_revert(tasks_dir=next_dir, home=next_home, spec="legacy-sweep") == [
+        "1320",
+        "1321",
+    ]
+    final = json.loads((next_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert final["nodes"][-1] == {"task": 1399, "file": later_name}
+    assert _sweep_file(next_dir, 1320).exists() and _sweep_file(next_dir, 1321).exists()
+
+
+def test_sweep_n_repeated_revert_is_noop(tmp_path):
+    task = {"id": 1330, "add_date": "2026-08-01"}
+    _, _, tasks_dir, home, _ = _sweep_run(tmp_path, [task])
+
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="legacy-sweep") == ["1330"]
+    manifest_after_first = (tasks_dir / "manifest.json").read_bytes()
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="legacy-sweep") == []
+    assert (tasks_dir / "manifest.json").read_bytes() == manifest_after_first
+
+
+def test_sweep_o_sweep_close_line_and_atomic_pair_write(tmp_path, monkeypatch):
+    task = {"id": 1340, "add_date": "2026-08-01"}
+    _, tasks_dir = _sweep_repo(tmp_path / "sweep-pristine", [task])
+    pristine = tmp_path / "pristine"
+    shutil.copytree(tasks_dir, pristine)
+    planned = dict(
+        gtt.close_row_plan(pristine, 1340, "a" * 40, _SWEEP_TODAY.isoformat())
+    )[_sweep_file(pristine, 1340)]
+    result, _, swept_tasks, _, _ = _sweep_run(
+        tmp_path / "sweep-run", [{"id": 1340, "add_date": "2026-08-01"}]
+    )
+    closed_text = _sweep_file(swept_tasks, 1340).read_text(encoding="utf-8")
+    last_line = closed_text.splitlines()[-1]
+    assert last_line.startswith("sweep-close:")
+    assert "legacy-sweep" in last_line and "checked=" in last_line and "absent=" in last_line
+    assert closed_text.removesuffix(last_line + "\n") == planned
+    assert result.closed
+
+    atomic_dir = tmp_path / "atomic"
+    _, atomic_tasks = _sweep_repo(
+        atomic_dir, [{"id": 1340, "add_date": "2026-08-01"}]
+    )
+    task_path = _sweep_file(atomic_tasks, 1340)
+    manifest_path = atomic_tasks / "manifest.json"
+    task_before, manifest_before = task_path.read_bytes(), manifest_path.read_bytes()
+    original_replace = os.replace
+    calls = 0
+
+    def fail_second_replace(source, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected second replace failure")
+        return original_replace(source, destination)
+
+    monkeypatch.setattr(br.os, "replace", fail_second_replace)
+    with pytest.raises(OSError, match="injected second replace failure"):
+        br.close_with_sweep_line(
+            atomic_tasks,
+            1340,
+            "a" * 40,
+            _SWEEP_TODAY.isoformat(),
+            "sweep-close: legacy-sweep · witnesses checked=K1,K2,K3 absent=K1,K2,K3 · no witness",
+        )
+    assert task_path.read_bytes() == task_before
+    assert manifest_path.read_bytes() == manifest_before
+    assert sorted(path.name for path in atomic_tasks.iterdir()) == sorted(
+        [task_path.name, manifest_path.name]
+    )
+
+
+def test_sweep_p_ruling_round_trips_and_text_hash(tmp_path):
+    ruling, _ = _sweep_ruling(tmp_path)
+
+    old_api = br.load_ruling(ruling)
+    loaded = br.load_sweep_ruling(ruling)
+    assert old_api == {
+        "shipped": "close",
+        "obsolete": "close",
+        "stale-refs": "keep",
+        "live": "keep",
+        "unclear": "keep",
+    }
+    assert loaded["cutoff"] == dt.date(2026, 10, 1)
+    assert loaded["k2_window_days"] == 30
+    assert loaded["legacy_class"] == "legacy-sweep"
+    assert loaded["text"].endswith("\n")
+    assert loaded["text"] == "Operator ruling for the legacy-sweep test.\n"
+    assert hashlib.sha256(loaded["text"].encode("utf-8")).hexdigest() == loaded["source_sha256"]
+    tampered = ruling.read_text(encoding="utf-8").replace(
+        "Operator ruling for the legacy-sweep test.",
+        "Tampered ruling text for the legacy-sweep test.",
+        1,
+    )
+    ruling.write_text(tampered, encoding="utf-8")
+    with pytest.raises(br.RulingError):
+        br.load_sweep_ruling(ruling)
+    invalid_class_dir = tmp_path / "invalid-class"
+    invalid_ruling, _ = _sweep_ruling(
+        invalid_class_dir, decision_classes={"unknown-decision": "keep"}
+    )
+    with pytest.raises(br.RulingError):
+        br.load_sweep_ruling(invalid_ruling)
+
+
+def test_sweep_q_ledger_and_index_under_home_not_logs(tmp_path):
+    task = {"id": 1350, "add_date": "2026-08-01"}
+    result, _, tasks_dir, home, ruling = _sweep_run(tmp_path, [task])
+    ledger_path = home / "ledger.json"
+    index_path = home / "index.md"
+    assert ledger_path.is_file() and index_path.is_file()
+    assert not (home / "logs").exists()
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    entry = ledger["closed"][0]
+    assert ledger["version"] == 1 and ledger["swept_on"] == _SWEEP_TODAY.isoformat()
+    manifest_pre = base64.b64decode(ledger["manifest_pre_b64"])
+    assert hashlib.sha256(manifest_pre).hexdigest() == ledger["manifest_pre_sha256"]
+    assert hashlib.sha256(base64.b64decode(entry["pre_b64"])).hexdigest() == entry["pre_sha256"]
+    assert {"id", "title", "class", "witnesses_checked", "witnesses_absent", "reason",
+            "file", "pre_b64", "pre_sha256", "node_index"} <= set(entry)
+    assert "priority" not in json.dumps(ledger)
+    assert index_path.read_text(encoding="utf-8").splitlines() == [
+        "- [#1350] Sweep row 1350 | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3"
+    ]
+    assert result.receipt.startswith("SWEEP closed=1")
+
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="legacy-sweep") == ["1350"]
+    table = tmp_path / "step1.json"
+    scan = tmp_path / "scan.md"
+    cli_home = tmp_path / "cli-home"
+    cli_result = CliRunner().invoke(
+        br.cli,
+        [
+            "apply",
+            "--sweep",
+            str(ruling),
+            "--step1-table",
+            str(table),
+            "--tasks-dir",
+            str(tasks_dir),
+            "--repo-root",
+            str(tmp_path / "repo"),
+            "--home",
+            str(cli_home),
+            "--transport-root",
+            str(tmp_path / "transport"),
+            "--today",
+            _SWEEP_TODAY.isoformat(),
+            "--evidence-sha",
+            "b" * 40,
+            "--scan-out",
+            str(scan),
+        ],
+    )
+    assert cli_result.exit_code == 0, cli_result.output
+    assert cli_result.output.startswith("SWEEP closed=1")
+    assert scan.is_file()
+    revert_result = CliRunner().invoke(
+        br.cli,
+        [
+            "apply",
+            "--revert",
+            "legacy-sweep",
+            "--tasks-dir",
+            str(tasks_dir),
+            "--home",
+            str(cli_home),
+        ],
+    )
+    assert revert_result.exit_code == 0, revert_result.output
+    assert "revert: restored 1 row(s): 1350" in revert_result.output
+    missing_mode = CliRunner().invoke(
+        br.cli, ["apply", "--tasks-dir", str(tasks_dir), "--state-dir", str(tmp_path / "state")]
+    )
+    assert missing_mode.exit_code == 2
+
+
+def test_sweep_r_no_priority_edits_and_label_differences_listed(tmp_path):
+    tasks = [
+        {"id": 1360, "add_date": "2026-10-10", "priority": "P2"},
+        {"id": 1361, "add_date": "2026-08-01", "priority": "P1"},
+        {"id": 1362, "add_date": "2026-10-10", "priority": "P3"},
+        {"id": 1363, "add_date": "2026-10-10", "priority": "P2"},
+    ]
+    rows = [
+        _sweep_table_row(tasks[0], sonnet={"fit": "LINE", "priority": "P3"},
+                         gemini={"fit": "LINE", "priority": "P1"}),
+        _sweep_table_row(tasks[1], sonnet={"fit": "LINE", "priority": "P2"},
+                         gemini={"fit": "LINE", "priority": "P1"}),
+        _sweep_table_row(tasks[2], decision_class="keep-P2",
+                         sonnet={"fit": "LINE", "priority": "P1"},
+                         gemini={"fit": "LINE", "priority": "P2"}),
+        _sweep_table_row(tasks[3], decision_class="keep-P3",
+                         sonnet={"fit": "LINE", "priority": "P2"},
+                         gemini={"fit": "LINE", "priority": "P2"}),
+    ]
+    before = {
+        str(task["id"]): hashlib.sha256(_sweep_task_text(
+            task["id"], f"Sweep row {task['id']}", "no evidence references", task["priority"]
+        ).encode()).hexdigest()
+        for task in tasks
+    }
+    rows[0]["cited_by_open"] = ["[#2200]"]
+    result, _, tasks_dir, home, _ = _sweep_run(
+        tmp_path,
+        tasks,
+        table_rows=rows,
+        source_text="Source cites only another row.\n",
+    )
+
+    assert set(result.kept["protected"]) == {"1360"}
+    assert set(result.kept["k3-agreed"]) == {"1361"}
+    assert set(result.kept["keep-class"]) == {"1362", "1363"}
+    assert all(
+        hashlib.sha256(_sweep_file(tasks_dir, row_id).read_bytes()).hexdigest() == digest
+        for row_id, digest in before.items()
+    )
+    ledger = json.loads((home / "ledger.json").read_text(encoding="utf-8"))
+    assert all("priority" not in entry for entry in ledger["closed"])
+    lines = result.scan.splitlines()
+    section = lines[lines.index("## label differences") + 1 :]
+    assert section == [
+        "- [#1360] filed=P2 sonnet=P3 gemini=P1",
+        "- [#1361] filed=P1 sonnet=P2 gemini=P1",
+        "- [#1362] filed=P3 sonnet=P1 gemini=P2",
+    ]
