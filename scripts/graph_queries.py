@@ -661,6 +661,65 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    # ---- [#1800] (lane e30-commit-gate): ten census findings, each given its REAL caller ----
+    # These ten are red on main's commit-gate job since 2026-10-17. NONE is retired: every
+    # one is a live organ or command whose caller is a class the census does not walk -- an
+    # order/lane-contract template, a `.claude/commands/*.md` command, or the operator's own
+    # act, recorded as a `fates:` row in ecosystem/harness.yaml. A disposition is the honest
+    # verdict until [#1711] teaches the census that caller class; `tests/test_graph_spine.py::
+    # test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller` opens
+    # the caller each reason names and finds the path in it.
+    ".claude/commands/decide.md": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
+    ".claude/commands/map.md": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1711]",
+        owner="[#1711]"),
+    "scripts/claim.py": Disposition(
+        reason="KEEP -- a live organ called at step 0 of every lane by the order templates: "
+               "templates/lane-contract-template.md runs `scripts/claim.py claim` and "
+               "teardown releases it (also templates/integrator-order-template.md and "
+               "templates/dispatcher-order-template.md). Its ecosystem/harness.yaml fates row "
+               "is `called_by: templates/lane-contract-template.md`. The census does not walk "
+               "templates",
+        owner="[#1711] (the census learns the template caller class)"),
+    "scripts/harness_probes.py": Disposition(
+        reason="RETIRE-CANDIDATE, NOT RETIRED -- the ecosystem/harness.yaml fates row for "
+               "scripts/harness_probes.py says `retire_candidate: true`: E1 fates digest "
+               "2026-10-19 rules RETIRE when [#1555] ADR-123 step 1 merges, keeping the "
+               "committed receipts. The operator GO is still pending, so this lane does not "
+               "delete it; delete this row in the act that retires the script",
+        owner="operator GO pending; [#1555] ADR-123 step 1"),
+    "scripts/read_gate.py": Disposition(
+        reason="KEEP -- the read verifier and route runner (AX21-1's 'CC verifies' half), a "
+               "live organ never retired: protocols/HANDOFF_BOOT.md runs it as a procedure "
+               "step (agy reads only through scripts/read_gate.py), and "
+               "protocols/STANDING_RULINGS.md names it. Its ecosystem/harness.yaml fates row "
+               "(line 150) records manual_until 2026-11-09; evidence: `grep -rlF read_gate.py "
+               "templates .claude/commands .github/workflows scripts protocols`",
+        owner="[#1327] [#1536]"),
+    "scripts/row_close.py": Disposition(
+        reason="KEEP -- run by hand by the integrator right after `merge_receipt.py close` "
+               "for each merged lane; templates/lane-contract-template.md names it as the "
+               "reader of the `closes` clause, and the ecosystem/harness.yaml fates row "
+               "records manual_until 2026-11-09. Folding the call into merge_receipt.py close "
+               "is a later lane's file",
+        owner="[#730]"),
+    "scripts/startup_probe.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-09 [#1841]",
+        owner="[#1841]"),
+    "scripts/system_map.py": Disposition(
+        reason="KEEP -- run on demand by the operator through /map: "
+               ".claude/commands/map.md runs `scripts/system_map.py build`, and the "
+               "ecosystem/harness.yaml fates row is `called_by: .claude/commands/map.md`. "
+               "The census does not walk commands",
+        owner="[#1711] (the census learns the command caller class)"),
+    "scripts/task_record.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-23 [#1842]",
+        owner="[#1842]"),
+    "scripts/test_census.py": Disposition(
+        reason="NO-CALLER: manual_until 2026-11-09 [#1843]",
+        owner="[#1843]"),
     "scripts/queue_runner.py": Disposition(
         reason="KEEP -- the event-driven queue runner (R130, [#1633]): the operator or the "
                "orchestrator starts `queue_runner.py watch` once per batch and it fires "
