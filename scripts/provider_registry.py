@@ -182,6 +182,19 @@ def roles(path: Optional[Path] = None) -> dict[str, Any]:
     return load_registry(path).get("roles") or {}
 
 
+#: The pseudo-role under which the top-level `evaluation:` collection is routed ([#1833]). Not a `roles:` key.
+EVALUATION_ROLE = "evaluate"
+
+
+def evaluation(path: Optional[Path] = None) -> dict[str, Any]:
+    """The top-level `evaluation:` mapping ([#1833]: contract R12 / /decide evaluation order), or `{}`.
+
+    A collection of its own, not a `roles:` entry, because the role vocabulary is pinned elsewhere; the
+    router reaches it as the pseudo-role `evaluate` (see `role_order`).
+    """
+    return load_registry(path).get("evaluation") or {}
+
+
 def role_order(role: str, path: Optional[Path] = None) -> list[dict[str, Any]]:
     """One role's DECLARED fallback list, in file order.
 
@@ -189,8 +202,8 @@ def role_order(role: str, path: Optional[Path] = None) -> list[dict[str, Any]]:
     reorders this by measured pass rate per cost; this accessor hands back what the file says,
     and a caller presenting it as a measured ranking is the failure AX21-2 names.
     """
-    spec = roles(path).get(role)
-    if spec is None:
+    spec = evaluation(path) if role == EVALUATION_ROLE else roles(path).get(role)
+    if not spec:
         raise RegistryError(
             f"role `{role}` is not in the registry; known roles: {sorted(roles(path))}"
         )
@@ -284,6 +297,9 @@ class ModelRate(NamedTuple):
     cache_read: float
     #: Where this model's price came from, when it differs from the card's own source.
     source: Optional[str] = None
+    #: The 5-minute cache write when the row quotes it outright ([#1833] GP5); `cache_write` is the 1-hour
+    #: write the card's multiplier prices. `None` when the row quotes no 5-minute price.
+    cache_write_5m: Optional[float] = None
 
     def usd(self, *, input_tokens: int = 0, output_tokens: int = 0,
             cache_write_tokens: int = 0, cache_read_tokens: int = 0) -> float:
@@ -301,7 +317,8 @@ class ModelRate(NamedTuple):
                 + cache_read_tokens * self.cache_read) / per_unit
 
 
-def resolve_rate(model_id: str, path: Optional[Path] = None) -> ModelRate:
+def resolve_rate(model_id: str, path: Optional[Path] = None, *,
+                 prompt_tokens: Optional[int] = None) -> ModelRate:
     """The fully-resolved rate for one model, or `RateUnavailable` NAMING it.
 
     THE REFUSAL IS THE FEATURE. Three distinct absences reach this function — the file has no
@@ -326,9 +343,26 @@ def resolve_rate(model_id: str, path: Optional[Path] = None) -> ModelRate:
         raise RateUnavailable(
             f"model {model_id!r} is declared in {REGISTRY_REL} but carries no `rates:` block — "
             f"its price is unknown, which is not the same fact as zero")
+    tier = rates.get("long_context")
+    if tier and prompt_tokens is not None and prompt_tokens > int(tier["threshold_tokens"]):
+        # [#1833] GP5: the vendor prices a prompt above the threshold on a stated second tier (Haiku 5.5:
+        # 100k). Every figure of the tier is quoted, none derived, so the card's multipliers do not apply.
+        return ModelRate(
+            model=model_id,
+            currency=str(card["currency"]),
+            unit=str(card["unit"]),
+            as_of=str(card["as_of"]),
+            input=float(tier["input"]),
+            output=float(tier["output"]),
+            cache_write=float(tier["cache_write"]),
+            cache_read=float(tier["cache_read"]),
+            source=(str(rates["source"]) if rates.get("source") else None),
+            cache_write_5m=float(tier["cache_write_5m"]),
+        )
     base_input = float(rates["input"])
     cache_write = rates.get("cache_write")
     cache_read = rates.get("cache_read")
+    cache_write_5m = rates.get("cache_write_5m")
     return ModelRate(
         model=model_id,
         currency=str(card["currency"]),
@@ -341,6 +375,7 @@ def resolve_rate(model_id: str, path: Optional[Path] = None) -> ModelRate:
         cache_read=(float(cache_read) if cache_read is not None
                     else base_input * float(card["cache_read_multiplier"])),
         source=(str(rates["source"]) if rates.get("source") else None),
+        cache_write_5m=(float(cache_write_5m) if cache_write_5m is not None else None),
     )
 
 
