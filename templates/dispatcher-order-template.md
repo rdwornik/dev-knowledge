@@ -3,7 +3,7 @@ reconciled_with: handoff-process@7.1.0
 ---
 <!-- scope: meta -->
 <!--
-  templates/dispatcher-order-template.md — the DISPATCHER seat's order (`protocols/HANDOFF_PROCESS.md`
+  templates/dispatcher-order-template.md — RETIRED (R130, [#1633]): `scripts/queue_runner.py` fires the queue on events and no seat takes this order; the body below is kept only until the tests that read it are rewritten. It was the DISPATCHER seat's order (`protocols/HANDOFF_PROCESS.md`
   §1). The dispatcher launches lanes and continuation/repair sessions and writes receipts. It
   does not merge and does not build.
 
@@ -21,7 +21,7 @@ reconciled_with: handoff-process@7.1.0
   `ecosystem/provider-registry.yaml`. Replace every <angle-bracket> placeholder; delete this
   comment.
 -->
-carried-by: OPEN
+carried-by: RETIRED (R130, [#1633]) - the queue runner (scripts/queue_runner.py) replaces this seat
 lands-via: the lanes it dispatches, and its receipt in to-browser/
 date: <YYYY-MM-DD>
 from: <architect seat slug>
