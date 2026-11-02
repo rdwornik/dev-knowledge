@@ -90,7 +90,7 @@ Each claim is one a subagent reported and the matrix or the pre-mortem relies on
 - Q2: harness.yaml names the {base} placeholder and the per-spawn {payload} {nonce} {input_hash} {probe: ecosystem/harness.yaml:182}
 - Q2: harness.yaml says the phase inputs are the files whose content is part of the input hash {probe: ecosystem/harness.yaml:181}
 - Q2: the P5 qa row's inputs are the contract only {probe: ecosystem/harness.yaml:188}
-- Q2: the P6b review prompt names the diff against {base} as a placeholder {probe: ecosystem/harness.yaml@689a537e5:189}
+- Q2: the P6b review prompt names the diff against {base} as a placeholder (true at 689a537e5:189; the P6 rows were rewritten on main since) {unverified}
 - Q2: PhaseReceipt carries input_hash {probe: ecosystem/schema/phase_receipt.py:181}
 - Q2: each input carries its own sha256 (InputDigest) {probe: ecosystem/schema/phase_receipt.py:110}
 - Q2: PhaseReceipt carries a nonce {probe: ecosystem/schema/phase_receipt.py:195}

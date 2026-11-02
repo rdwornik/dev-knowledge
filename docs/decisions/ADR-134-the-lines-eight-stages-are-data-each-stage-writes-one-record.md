@@ -152,8 +152,8 @@ Revision 1 scored S3 observability 4 on a proposed table; both evaluators refuse
 - the judge description still names R104 {probe: ecosystem/provider-registry.yaml:1070}
 - ADR-130 is Proposed {probe: docs/decisions/ADR-130-the-outer-loop-runs-in-code.md:3}
 - D6 reads "dynamic workflows stay audit-only" {probe: grep -c 'dynamic workflows stay audit-only' docs/decisions/ADR-130-the-outer-loop-runs-in-code.md}
-- P7 judge reads every receipt and payload {probe: git show 689a537e5:ecosystem/harness.yaml | grep -c 'every receipt and payload'}
-- P6b grok has model null {probe: ecosystem/harness.yaml@689a537e5:189}
+- P7 judge reads every receipt and payload (true at 689a537e5; the P7 row was rewritten on main since) {unverified}
+- P6b grok has model null (true at 689a537e5:189; the P6 rows were rewritten on main since) {unverified}
 - the subst_gate phase grammar ends at 117 {probe: scripts/subst_gate.py:117}
 - a phase row the gate cannot judge is refused {probe: scripts/subst_gate.py:300}
 - PhaseReceipt embeds the payload at 195 {probe: ecosystem/schema/phase_receipt.py:195}
@@ -210,4 +210,5 @@ The decision text above is unchanged; only this block was added. The ruling is `
 - **Consequences' `stages:` means D1's `line_stages:`.** D1 governs: `ecosystem/harness.yaml:12` already holds the spine's `stages:` key, and the new block is `line_stages:`. A build lane cites `line_stages:`.
 - **D1's table, with its `model` column, is the field authority.** The D1 prose that lists the row fields without `model` is read against that table.
 - The `Numbering:` header line stays as written. It is a header, not decision text.
+- **Locators re-pointed (architect ruling Q-L0-4 = A', `to-browser/DIGEST-RULING-Q-L0-4-STALE-LOCATOR-2026-11-02.md`).** Main moved `scripts/conductor.py` and `ecosystem/harness.yaml` after this ADR was drafted, so its `path:line` locators were re-pointed to the same lines and two claims about rewritten rows were marked `{unverified}` with the sha they were true at. No decision text changed.
 - This marker touches a ratified ADR by marker only, so it is reported to the operator in the next ratification package.

@@ -59,7 +59,7 @@ SUB-QUESTION 3: (a) quote row 884's body; (b) what scripts/decide_checks.py chec
 
 Every claim below was re-run by the producer this session (decide_checks subagent-claims). Where a subagent's line probe did not quote the line it named, the producer replaced it with a probe it checked by reading the line.
 
-- Q1: the repair prompt says "read the refusal and the frozen contract" and names no refusal text {probe: `scripts/dispatch.py` `RepairRequest.prompt`}
+- Q1: the repair prompt says "read the refusal and the frozen contract" and names no refusal text {probe: grep -c 'class RepairRequest' scripts/dispatch.py}
 - Q1: the phrase "read the refusal" occurs once in dispatch.py, in that prompt {probe: grep -c 'read the refusal' scripts/dispatch.py}
 - Q1: a repair refuses when the lane's own worktree is missing {probe: grep -c 'no existing worktree' scripts/dispatch.py}
 - Q1: the slug launch receipt is logs/receipts/LAUNCH-<SLUG>.json {probe: scripts/dispatch.py:815}
@@ -99,7 +99,7 @@ Every claim below was re-run by the producer this session (decide_checks subagen
 - Q3: gen_handoff requires every QUESTION file in to_browser to be answered or carried {probe: scripts/gen_handoff.py:1491}
 - Q3: no script carries a lane's question to the dispatcher; the producer re-checked: QUESTION occurs 0 times in scripts/dispatch.py and its hits elsewhere in scripts/ are the transport kind, the handoff generator and unrelated prose {unverified}
 - Q2 (producer, after IIS1): ADR-121 D1 stores one JSON file per event on harness-state {probe: docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md:63}
-- Q1 (producer, after IIG5): seat_registry.py already appends events through record_event {probe: scripts/seat_registry.py:184}
+- Q1 (producer, after IIG5): seat_registry.py already appends events through record_event {probe: scripts/seat_registry.py:186}
 
 ## Evidence and matrix (AJ 6)
 
@@ -241,7 +241,7 @@ Each finding was checked against the repo by the producer before its response; t
 | IIG2 | resume takes slug, record omits lane and task | **Accepted** -- record takes --lane and --task; resume takes --task, required when LANE-<slug>/ holds more than one file. |
 | IIG3 | S3 reuse 4 vs S1 reuse 3 on the same assets | **Accepted** -- same correction as IIS10; matrix recomputed by decide_checks. |
 | IIG4 | 12-field record is not schema-identical to ADR-121 D4 | **Accepted** -- confirmed at ADR-121:75 (six fields, no ts). D3 is retitled "D4's fields inside an extended record, not an ADR-121 event as is"; D7 maps the six and lets ADR-121's final schema decide the rest. |
-| IIG5 | [#1613] needs seat_registry and the daemon path, not only the manual verb | **Accepted** -- confirmed tasks/1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md:12 names seat_registry.py and the queue/resume path; seat_registry.py:184 has record_event. New D6 keeps the event there, binds the queue path's refusal, and mirrors the event into the task file. |
+| IIG5 | [#1613] needs seat_registry and the daemon path, not only the manual verb | **Accepted** -- confirmed tasks/1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md:12 names seat_registry.py and the queue/resume path; seat_registry.py:186 has record_event. New D6 keeps the event there, binds the queue path's refusal, and mirrors the event into the task file. |
 | IIG6 | same-millisecond or NTP step-back ts fail | **Accepted** -- same change as IIS6. |
 | IIG7 | compaction re-injection has no trigger | **Accepted** -- the Maister item 3 claim is removed from D5 and listed as not decided here. |
 | IIG8 | this run's briefs lack the D8 header; spend format undefined | **Accepted** (partly) -- D8 now fixes raw key: value lines and a spend: line per brief checked by brief-schema --spend; this evidence now records the three briefs' spend. The briefs are not rewritten: they were sent before the rule existed, and retro-fitting a header would misstate what the subagents received. |
