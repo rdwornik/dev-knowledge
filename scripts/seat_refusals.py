@@ -862,7 +862,11 @@ def refuse_no_live_integrator(batch: str, seats: "list") -> "object":
     stopped receiving is the same loss as one addressed to nobody, only slower to find.
     """
     wanted = str(batch).upper()
-    bound = [s for s in seats if s.role == "integrator" and str(s.batch or "").upper() == wanted]
+    # MEMBERSHIP in the seat's bound set, never its first batch: one integrator receives every open
+    # batch (defect 33). A seat that predates `batches` falls back to its single `batch`. Priority
+    # is never read here -- it is display metadata only.
+    bound = [s for s in seats if s.role == "integrator" and wanted in
+             {str(b).upper() for b in (getattr(s, "batches", None) or ((s.batch,) if s.batch else ()))}]
     live = [s for s in bound if s.state == "live"]
     if live:
         return max(live, key=lambda s: s.last_event)
