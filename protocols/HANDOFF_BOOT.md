@@ -1,7 +1,7 @@
 ---
-last_reviewed: 2026-10-27
+last_reviewed: 2026-11-02
 reconciled_with: handoff-process@7.1.0
-boot_version: 4
+boot_version: 5
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v7)
@@ -48,13 +48,13 @@ scripts/gen_handoff.py --reading-path` prints all five (exit 1 on a miss). Quest
 2. **SEAT-LESSONS** — the newest non-superseded `SEAT-LESSONS-*.md`.
 3. **Seat exam** — the newest `SEAT-EXAM-*.md`, not a `SEAT-EXAM-RESULT-*` file (that holds the key).
 4. **Dispatch exam** — the newest `DIGEST-DISPATCH-ONBOARDING-*.md`, its "Dispatch exam" section only.
-5. **Dispatch map** — `to-browser/MAP-DISPATCH.md`, generated from code (`uv run --locked python
-   scripts/gen_handoff.py --dispatch-map --write`): each substrate PROVEN by a cited test, or DECLARED.
+5. **Dispatch map** — `to-browser/MAP-DISPATCH.md`, written by `gen_handoff.py --cut` (`--dispatch-map`
+   only prints it): each substrate PROVEN by a cited test, or DECLARED.
 
 ## Rulings every window carries (text: `protocols/STANDING_RULINGS.md`)
 
 - **R73** — every handoff is tested and teaches: pass the seat exam and the dispatch exam before acting; the operator confirms your teach-back.
-- **R76** — the browser proposes, CC challenges, the operator decides: you research and evaluate, and do not decide alone; CC brings evidence, checks and challenge (R41).
+- **R76** — the browser proposes, CC challenges, the operator decides: you research and evaluate, and do not decide alone; CC brings evidence, checks and challenge (R41). No launch without a signed sign-off and a distiller-evaluated contract (GO-E3.0 R12-R13; a hand check until lanes L1, L4 land).
 - **R80** — when the operator raises many topics, sort and prioritise them, show that ordered plan, then take one topic per turn, advanced by "dalej".
 - **R96**, **R97** — the B2-W4 package and how Claude Code finishes a batch: pull their text.
 
@@ -110,7 +110,7 @@ Orient first: pull the MAP, then the INDEX, then the newest FINDING on your topi
 - CHALLENGE: challenge claims, and any build that would duplicate; never decide alone.
 - PROPOSE: bring the model of the change, one recommendation, no menu.
 
-The operator holds five acts: an idea, a ratify, a GO, a destructive act, a seat release.
+The operator holds six acts: an idea, a ratify, a GO, a destructive act, a seat release, the Project upload + ROLE PIN paste.
 
 ## Live truth, failures first, no assertions, budget
 
@@ -150,13 +150,6 @@ $env:CLAUDE_PROMPTS_DIR`; False = stop with `OPERATOR-ACTION: start Google Drive
 names follow one grammar (`protocols/OPERATOR-INTERFACE.md` §1). Hand CC text as a file in
 `to-cc/`, not a long chat paste (it can arrive truncated or empty); re-read a missing or empty
 file before calling it so: a sync can lag.
-
-## R45–R48 in four lines (text: `protocols/STANDING_RULINGS.md` §AQ)
-
-- **R45** — a repair starts with its outcome test, RED; "done" is that test GREEN, verified independently.
-- **R46** — stop the line; one build stream; progress is outcome tests turned GREEN; feature freeze.
-- **R47** — you read no code; isolated agents evaluate; every change has a task ID.
-- **R48** — constraints are a registry checked by isolated agents.
 
 ## Your operating role — execution mode (default)
 
@@ -198,16 +191,17 @@ lane contract (`templates/lane-contract-template.md`), a lane, two reviews, a me
 you but for the CC seats (dispatcher, integrator, lane, handoff, filings). **Seat order:** the
 integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then `seat_registry.py bind`), the
 dispatcher next, a lane last. Each non-lane seat starts by the operator pasting its filled order
-template into a NEW session — that paste **is** the batch GO; `pre-launch` refuses `launch` to any
-seat but a lane (`no-live-integrator`). **Address every paste:** it names its target — a new
-session, or an existing one by name with the reason.
+into a NEW Claude Code Agent SDK session (model and effort set there; never a terminal line) — that
+paste **is** the batch GO; `pre-launch` refuses `launch` to any seat but a lane (`no-live-integrator`).
+**Address every paste:** it names its target session; a dispatcher message never goes into a lane.
+Lanes ask the dispatcher; the operator gets one bundled question file per batch.
 
-- **Cycle** — the integrator hands over every 3 h, the dispatcher every 2 h.
+- **Cycle** — integrator every 3 h, dispatcher every 2 h; a long seat arms a resume cron for usage-limit stops.
 
 **Substrates** — three start lines (the dispatch map proves each):
 
 - **local** — the dispatcher's `dispatch.py queue` (the only lane launch path): a background lane in its own worktree.
-- **interactive** — `claude` in a new terminal, then paste the seat's order (the integrator and the dispatcher).
+- **interactive** — a NEW Claude Code Agent SDK session (`claude`), then paste the seat's order (the integrator and the dispatcher).
 - **codespace** — `dispatch.py plan --substrate codespace` gives the argv, then `dispatch.py codespace-exec --repo <owner/name> --slug <slug> --argv-json <argv> <CONTRACT>`.
 
 **The render is the competence probe.** GREEN = plan lint 0 BLOCKING, every local contract
@@ -222,8 +216,8 @@ gates, `merge_receipt.py close`, then push — only when green. A failed lane ge
 `REFUSED-<slug>.md`; twice refused is `FAILED`. Teardown is verified by `no_leftovers.py verify`.
 
 **Cutting the next handoff.** `uv run --locked python scripts/gen_handoff.py --help` lists the cut
-command's options and `--preflight-only` prints the pre-handoff rows (it cuts nothing; exit 1 on a
-FAIL). A trial cut runs at batch close (ADR-129).
+command's options; `--cut` cuts and `--land` lands (ADR-132); `--preflight-only` prints the
+pre-handoff rows (it cuts nothing; exit 1 on a FAIL). A trial cut runs at batch close (ADR-129).
 
 ## Verification split (who checks what)
 
@@ -256,8 +250,9 @@ then emit one. Canon: **HANDOFF_PROCESS §7** (ask CC to pull it).
 
 CC self-loads code-impact detail (ADR-87); ask CC to pull one rather than re-deriving it:
 
-- **Lane tools** — `/lane-boot` provisions a lane, `/lane-integrate` lands it through
-  `scripts/merge_path.py land`, and `scripts/file_purpose_graph.py why` runs before any new file.
+- **Lane tools** — `/lane-boot` provisions a lane, `scripts/land_lane.py` is the only landing path
+  (ADR-131; it calls `scripts/merge_path.py land`; `/lane-integrate` is retired), and
+  `scripts/file_purpose_graph.py why` runs before any new file.
 - **Lane report and rollup** — a lane reports in section 3 (`ecosystem/schema/lane-report.schema.json`);
   the wave's rollup is `scripts/lane_digest.py`'s. **Your reading contract:** the rollup and the map
   sha (`ecosystem/system-map-record.json`, `/map`), not the lanes' own files.
@@ -273,4 +268,3 @@ you carry between sessions is where the enforcement lives, not its text.
   `/override` discharges no gate. An arc's `JOURNAL.md` entry rides its own branch, ahead of the
   merge, naming a SHA the merge introduces.
 
-`README.md` superseded `VISION.md` (ADR-114); the latter is at `docs/archive/VISION.md`.
