@@ -700,7 +700,7 @@ def bulk_route(*, kind: str, batch_units: int, agy: ProviderState = ProviderStat
         return BulkDecision(ACTION_ROUTE, "antigravity", None, None)
     if bulk:
         return BulkDecision(ACTION_WAIT, "antigravity", None, agy.resets_at)
-    return BulkDecision(ACTION_ROUTE, "anthropic", "claude-haiku-5-5", None)
+    return BulkDecision(ACTION_ROUTE, "anthropic", _registry.anthropic_role_model("read"), None)
 
 
 # --- accounts (D4) --------------------------------------------------------------------------

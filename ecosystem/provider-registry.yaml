@@ -161,7 +161,7 @@ providers:
         usage_credits: disabled
         monthly_cap_usd: 0
     # [#1833] D4, drafted INACTIVE on merit (A-1): a second `CLAUDE_CONFIG_DIR` is not adopted. `router.select_account`
-    # never returns an `active: false` account, so these rows are inert until a ruling flips them.
+    # returns no `active: false` account, so these rows are inert until a ruling flips them.
     accounts:
       - id: anth-main
         config_dir: "C:/Users/1028120/.claude"
@@ -982,7 +982,7 @@ roles:
       code; a model only summarises with citations (operator 2026-10-23).
     routing_table_role: null   # routing-table.yaml's fan_out is retrieval-only multi-head, a different shape
     # [#1833] R-3: bulk work (an AJ extraction, or more than 20 units in one dispatch call) waits for agy's reset and
-    # never falls back into the anthropic pool (`provider_router.bulk_route`).
+    # stays out of the anthropic pool (`provider_router.bulk_route`).
     batch_fallback: wait
     order:
       - provider: antigravity
@@ -1225,14 +1225,14 @@ roles:
 # ===========================================================================================
 # EVALUATION -- ADDED 2026-11-02 ([#1833], D1 "/decide evaluation" row, operator S-1 item 7). Contract R12 and /decide
 # evaluators. A TOP-LEVEL collection, not a `roles:` entry: `ROLE_NAMES` is pinned by other tests and by
-# `cost_usage_telemetry.ROLES`. The router reaches it as the pseudo-role `evaluate`. NEVER Claude: S-1's isolated-Claude
+# `cost_usage_telemetry.ROLES`. The router reaches it as the pseudo-role `evaluate`. Claude is excluded: S-1's isolated-Claude
 # rung is written for review and judge, so the schema refuses an `anthropic` entry here and the router skips one anyway.
 # Codex out -> D1's pair: Copilot `gpt-6.1-sol` (once admitted) + agy `gemini-4-argon`.
 # ===========================================================================================
 evaluation:
   description: >-
     Independent evaluation of a contract (R12) or a /decide proposal: the evaluator differs from the producer in model
-    family AND provider. Never routes to Claude (operator S-1 item 7).
+    family AND provider. Claude is excluded (operator S-1 item 7).
   excludes_producer: true
   order:
     - provider: openai
@@ -1333,7 +1333,7 @@ fallback_triggers:
     rule: "batch_units > 20 OR kind == aj-extraction"
     roles: [read]
     on_quota_out: wait
-    note: "R-3: bulk work waits for its own provider's reset and never falls back into the anthropic pool."
+    note: "R-3: bulk work waits for its own provider's reset and stays out of the anthropic pool."
     decided_by: operator
     decided_on: "2026-11-01"
     evidence: protocols/STANDING_RULINGS.md

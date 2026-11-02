@@ -756,23 +756,49 @@ class RouteState:
     reason: Optional[str] = None
 
 
-_AGY_QUOTA_RE = re.compile(r"RESOURCE_EXHAUSTED|\b429\b", re.IGNORECASE)
-_AGY_RESETS_RE = re.compile(r"Resets?\s+in\s+((?:\d+\s*[hms]\s*)+)", re.IGNORECASE)
 _AGY_UNIT_SECONDS = {"h": 3600, "m": 60, "s": 1}
+
+
+def _agy_quota_text(error_text: str) -> bool:
+    """`RESOURCE_EXHAUSTED` or a standalone `429` token (plain string work, no regex: see the edge-class census)."""
+    if "RESOURCE_EXHAUSTED" in error_text.upper():
+        return True
+    return "429" in "".join(c if c.isalnum() else " " for c in error_text).split()
+
+
+def _agy_reset_seconds(error_text: str) -> Optional[int]:
+    """Seconds named by "Resets in 1h 30m 5s" (case-insensitive; `2h30m` also reads); None when no such phrase."""
+    lowered = error_text.lower()
+    start = -1
+    for marker in ("resets in", "reset in"):
+        start = lowered.find(marker)
+        if start >= 0:
+            start += len(marker)
+            break
+    if start < 0:
+        return None
+    total, digits, found = 0, "", False
+    for ch in lowered[start:]:
+        if ch.isdigit():
+            digits += ch
+        elif ch.isspace():
+            continue
+        elif ch in _AGY_UNIT_SECONDS and digits:
+            total += int(digits) * _AGY_UNIT_SECONDS[ch]
+            digits, found = "", True
+        else:
+            break
+    return total if found else None
 
 
 def read_agy_route_state(error_text: Optional[str], *, observed_at: float) -> RouteState:
     """agy exposes no usage verb: its route is OUT from a `RESOURCE_EXHAUSTED` / 429 until the stated "Resets in
     <d>"; with no such error it says nothing (`unknown`, usable). A 429 with no stated reset is out with no
     `resets_at`, so the router cannot WAIT on it and the bound makes that a REFUSED-NO-ROUTE."""
-    if not error_text or not _AGY_QUOTA_RE.search(error_text):
+    if not error_text or not _agy_quota_text(error_text):
         return RouteState()
-    match = _AGY_RESETS_RE.search(error_text)
-    resets_at = None
-    if match:
-        seconds = sum(int(n) * _AGY_UNIT_SECONDS[u.lower()]
-                      for n, u in re.findall(r"(\d+)\s*([hms])", match.group(1), re.IGNORECASE))
-        resets_at = observed_at + seconds
+    seconds = _agy_reset_seconds(error_text)
+    resets_at = None if seconds is None else observed_at + seconds
     return RouteState(status="ok", usable=False, resets_at=resets_at,
                       reason="agy quota exhausted (RESOURCE_EXHAUSTED / 429)")
 
