@@ -1362,3 +1362,16 @@ def test_e32_without_an_approved_case_route_under_quota_never_returns_an_xai_row
             assert all(c.provider != "xai" for c in decision.rungs)
             assert decision.candidate is None or decision.candidate.provider != "xai"
             assert any(k.startswith("xai/") for k in decision.reasons), decision.reasons
+
+
+def test_e32_an_inactive_usage_limit_reset_does_not_stretch_the_wait(router):
+    """Review finding (terra + argon, final round): a usage-limit record NOT newer than the primary reset is not an
+    active leg, so its later `resets_at` must not become the WAIT/REFUSED arithmetic."""
+    codex = _e32_codex(primary_used_percent=97, primary_resets_at=_E32_NOW + 300,
+                       usage_limit_at=_E32_NOW - 5000, usage_limit_resets_at=_E32_NOW + 5000)
+    states = {p: router.ProviderState(usable=False, reason="quota")
+              for p in ("copilot-enterprise", "anthropic", "antigravity")}
+    decision = router.route_under_quota("evaluate", ".dev-knowledge", now=_E32_NOW, codex=codex,
+                                        states=states, produced_by="anthropic")
+    assert decision.action == "WAIT"
+    assert decision.resets_at == _E32_NOW + 300

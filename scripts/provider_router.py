@@ -517,8 +517,9 @@ def _codex_reset(codex: Any, now: float) -> Optional[float]:
     used = _num(codex, "primary_used_percent")
     if used is not None and used >= CODEX_OUT_PERCENT and resets is not None and resets > now:
         candidates.append(resets)
-    limit_resets = _num(codex, "usage_limit_resets_at")
-    if limit_resets is not None and limit_resets > now:
+    limit_at, limit_resets = _num(codex, "usage_limit_at"), _num(codex, "usage_limit_resets_at")
+    limit_active = limit_at is not None and (resets is None or limit_at > resets)   # codex_window_out's own condition
+    if limit_active and limit_resets is not None and limit_resets > now:
         candidates.append(limit_resets)
     return max(candidates) if candidates else None
 
