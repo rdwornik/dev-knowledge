@@ -191,9 +191,9 @@ lane contract (`templates/lane-contract-template.md`), a lane, two reviews, a me
 you but for the CC seats (dispatcher, integrator, lane, handoff, filings). **Seat order:** the
 integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then `seat_registry.py bind`), the
 dispatcher next, a lane last. Each non-lane seat starts by the operator pasting its filled order
-into a NEW Claude Code Agent SDK session (model and effort set there; never a terminal line) — that
+into a NEW Claude Code Agent SDK session (model and effort set there; a lane's are read from its contract's Dispatch block by `scripts/dispatch.py`) — that
 paste **is** the batch GO; `pre-launch` refuses `launch` to any seat but a lane (`no-live-integrator`).
-**Address every paste:** it names its target session; a dispatcher message never goes into a lane.
+**Address every paste:** it names its target session; a dispatcher message is a `dispatcher`-role write that `scripts/transport.py` admits only for kinds listing it.
 Lanes ask the dispatcher; the operator gets one bundled question file per batch.
 
 - **Cycle** — integrator every 3 h, dispatcher every 2 h; a long seat arms a resume cron for usage-limit stops.
