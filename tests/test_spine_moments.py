@@ -335,7 +335,8 @@ _MOMENT_ORGANS = {
     # ADR-129 item 12/L7: `trial_cut` joins `digest` in `batch-close` (optional,
     # manual_until: 2026-10-05) -- the batch-close stage's trial cut of the handoff organ set.
     # G-REDAGE: `ci_red_age` runs before the digest and writes the JSON the digest reads.
-    "batch-close": ["ci_red_age", "digest", "trial_cut"],
+    # system_view_full: ADR-133 D4 full leg, to-browser/RATIFICATION-2026-11-01-ADR-133.md (architect ruling Q-SV-1 = A)
+    "batch-close": ["ci_red_age", "digest", "trial_cut", "system_view_full"],
     "seat-release": ["seat_release.notes", "seat_release.bundle", "seat_release.manifest",
                      "seat_release.copy"],
 }
