@@ -17,7 +17,7 @@ The plan names eight stages; the conductor runs seven phase rows (P6 has two). M
 - Stage 2's distiller is not a phase. P1 `spec` writes a second spec from an already-frozen contract. C-SCOPE refuses a lane without a P1 payload (`scripts/conductor.py:791`).
 - Stage 3 RED is P2 on `claude`/`claude-sonnet-5-5`. R11 says Copilot T1 on `gpt-6-luna`.
 - Stage 6's judge is P7 on `claude-opus-5-5`. P7 reads "every receipt and payload in {round_dir}". The registry's `judge` order is gpt-6-sol first since e30-bootstrap (`:1075`); its `description:` still names R104's Opus (`:1070`).
-- P3 implement and P5 qa run Copilot `claude-sonnet-5.5` (`harness.yaml:185`, `:187`). R11: Sonnet implements through `claude`; T2 runs `gpt-6-luna`.
+- P3 implement and P5 qa run Copilot `claude-sonnet-5.5` (`harness.yaml:186`, `:188`). R11: Sonnet implements through `claude`; T2 runs `gpt-6-luna`.
 - `harness.yaml:12` already holds a `stages:` key: the spine's eight contract-preparation stages (kind-subject to provider-model-version). A second block cannot share the name.
 - A Copilot `--usage-output-file` carries no session id; the id is the `~/.copilot/session-state/` folder created at the file's start time.
 - P6b `review-grok` has `model: null`, so declared == served cannot be evaluated.
@@ -145,15 +145,15 @@ Revision 1 scored S3 observability 4 on a proposed table; both evaluators refuse
 ## Subagent claims
 
 - harness.yaml already holds the spine's stages key {probe: ecosystem/harness.yaml:12}
-- P3 implement runs copilot {probe: ecosystem/harness.yaml:185}
-- P5 qa runs copilot {probe: ecosystem/harness.yaml:187}
+- P3 implement runs copilot {probe: ecosystem/harness.yaml:186}
+- P5 qa runs copilot {probe: ecosystem/harness.yaml:188}
 - contract_phases reads a contract's Phases section on main {probe: scripts/conductor.py:1148}
 - a copilot review phase rule exists {probe: scripts/subst_gate.py:111}
 - the judge description still names R104 {probe: ecosystem/provider-registry.yaml:1070}
 - ADR-130 is Proposed {probe: docs/decisions/ADR-130-the-outer-loop-runs-in-code.md:3}
 - D6 reads "dynamic workflows stay audit-only" {probe: grep -c 'dynamic workflows stay audit-only' docs/decisions/ADR-130-the-outer-loop-runs-in-code.md}
-- P7 judge reads every receipt and payload {probe: grep -c 'every receipt and payload' ecosystem/harness.yaml}
-- P6b grok has model null {probe: ecosystem/harness.yaml@689a537e5:188}
+- P7 judge reads every receipt and payload {probe: git show 689a537e5:ecosystem/harness.yaml | grep -c 'every receipt and payload'}
+- P6b grok has model null {probe: ecosystem/harness.yaml@689a537e5:189}
 - the subst_gate phase grammar ends at 117 {probe: scripts/subst_gate.py:117}
 - a phase row the gate cannot judge is refused {probe: scripts/subst_gate.py:300}
 - PhaseReceipt embeds the payload at 195 {probe: ecosystem/schema/phase_receipt.py:195}
@@ -196,7 +196,7 @@ Unchanged and verbatim in revision 2, `to-browser/PROPOSAL-ADR-STAGE-PHASE-2026-
 Every revision-2 finding was accepted (17/17); R41 looked hardest where nothing was defended.
 - SP-R1 (stale base): the judge order is already gpt-6-sol first (`ecosystem/provider-registry.yaml:1075`, e30-bootstrap). "Depends on" closed; Q-D3 recorded as ruled; the stale `description:` (`:1070`) moved to Consequences.
 - SP-R2 (name collision, undefended): `harness.yaml:12` already holds `stages:` (the spine's eight stages). Neither evaluator saw it. D1's block is `line_stages:`.
-- SP-R3 (incomplete): P3 and P5 run Copilot `claude-sonnet-5.5` (`harness.yaml:185`, `:187`), which also contradicts R11; revision 2 named only P2, P6b, P7. Consequences and S0 now list all five.
+- SP-R3 (incomplete): P3 and P5 run Copilot `claude-sonnet-5.5` (`harness.yaml:186`, `:188`), which also contradicts R11; revision 2 named only P2, P6b, P7. Consequences and S0 now list all five.
 - SP-R4 (stale): [#1689] landed at 13023da42 (`scripts/conductor.py:1148`); the "main has 0" bullet is replaced.
 - SP-R5 (vacuous check): a Copilot usage file has no session id, so a session-only overlap check reads every Copilot RED as UNVERIFIED. D4 judges (provider, session).
 - SP-R6 (operator ruling Q-D2): the judge input is diff + reviewer findings + T2 results; no producer prose, no commit messages; adjudications use the same builder (night defect 9). This matches the registry's own judge text (`:1070-1071`, "never the implementer's report").

@@ -28,7 +28,7 @@
 - `slug` alone repeats 11 times.
 - `slug + merge_sha` repeats twice, and `merge_sha` is missing on 67 records (it is optional, RFG5).
 - `slug + opened` has 0 duplicates and 0 missing.
-- For launches, the receipt's file stem is unique by construction. `job_id` can be `pending` or `unresolved` (`scripts/dispatch.py:145`, `:1193`; re-pointed on main 13023da42).
+- For launches, the receipt's file stem is unique by construction. `job_id` can be `pending` or `unresolved` (`scripts/dispatch.py:145`, `:1217`; re-pointed on main 13023da42).
 
 **Corpora:**
 - the last 20 lines of `logs/MERGE-RECEIPTS.jsonl`;
@@ -258,7 +258,7 @@ Unchanged and verbatim in revision 2, `to-browser/PROPOSAL-ADR-READ-FORMAT-2026-
 
 Every revision-2 finding was accepted (15/15); R41 looked hardest where nothing was defended.
 - RF-R1 (contradiction, undefended): the response measure and flip 1 put a 20-lookup Haiku call "at landing". ADR-131 makes landing a script that calls a model only on conflict, red CI or BASE-MOVED. The rerun moves to the build lane before HANDBACK, and its result travels in the lane receipt.
-- RF-R2 (stale locators): e30-bootstrap moved `dispatch.py`; the receipt writers are now at `:815` / `:819`, and `pending` / `unresolved` at `:145` / `:1193`. The claims are re-pointed; no figure changes.
+- RF-R2 (stale locators): e30-bootstrap moved `dispatch.py`; the receipt writers are now at `:815` / `:819`, and `pending` / `unresolved` at `:145` / `:1217`. The claims are re-pointed; no figure changes.
 - RF-R3 (ruling): Q-R1 yes, so E3.1 lane L11 builds D2-D4 with the browser surface. The git-memory generator, which also calls `project`, is built in E3.2.
 - Not changed, stated again: one tokenizer (Claude's), a producer-written question set, one run per form; the cross-vendor flip stays the watch.
 - Matrix unchanged.
