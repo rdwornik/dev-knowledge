@@ -25,7 +25,7 @@ _PHASE_ROWS = {
     # GO-E3.0 R11: the default implement row is the registry's first entry, admitted Sonnet
     "implement": f"| implement code (lane head) | {SONNET} | local |",
     "red": "| write the RED / isolated tests | Copilot CLI `gpt-6-luna` | codespace |",
-    "copilot": "| review, Copilot half | Copilot CLI (default model) | codespace |",
+    "copilot": "| review, Copilot half | Copilot CLI gpt-5.6-terra | codespace |",
     "codex": f"| review, Codex half | {TERRA} | local |",
     "verify": f"| isolated verify | {SONNET} | local |",
     "orchestrate": f"| orchestrate the batch | {SONNET} | local |",
