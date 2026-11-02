@@ -108,12 +108,13 @@ def _payload_dict(**kw) -> dict:
 
 
 def _write_receipt(round_dir: Path, phase: str, head: str, vendor: str, *, payload: dict | None = None,
-                   substituted_from: str | None = None, status: str = "ok") -> None:
+                   substituted_from: str | None = None, status: str = "ok",
+                   model_requested: str | None = None) -> None:
     round_dir.mkdir(parents=True, exist_ok=True)
     sha = (hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
            if payload is not None else None)
     data = {"schema": "phase-receipt/1", "organ": f"phase:{phase}", "status": status, "exit_code": 0,
-            "duration_ms": 1, "input_hash": _HEX, "model_requested": None, "model_reported": None,
+            "duration_ms": 1, "input_hash": _HEX, "model_requested": model_requested, "model_reported": None,
             "command": [head, "-p", "x"], "finished_at": _NOW, "row": "toy-row", "lane": "toy", "phase": phase,
             "round": 1, "vendor": vendor, "cli_version": None, "served_model": None, "started_at": _NOW,
             "inputs": [], "nonce": "n" * 16, "usage": None, "payload_sha256": sha, "payload": payload,
@@ -121,11 +122,19 @@ def _write_receipt(round_dir: Path, phase: str, head: str, vendor: str, *, paylo
     (round_dir / f"{phase}.json").write_text(json.dumps(data), encoding="utf-8")
 
 
-def _vendors(round_dir: Path, *, p3="claude", p6a="codex", p6b="grok", p7="copilot", p3_sub: str | None = None) -> None:
+def _vendors(round_dir: Path, *, p3="copilot", p6a="codex", p6b="copilot", p7="codex",
+             p3_model="claude-sonnet-5.5", p6a_model="gpt-5.6-terra",
+             p6b_model="gemini-4-argon", p7_model="gpt-6-sol",
+             p3_sub: str | None = None) -> None:
     heads = {"claude": "anthropic", "codex": "openai", "grok": "xai", "copilot": "copilot-enterprise",
              "python": "local"}
-    for phase, head, sub in (("P3", p3, p3_sub), ("P6a", p6a, None), ("P6b", p6b, None), ("P7", p7, None)):
-        _write_receipt(round_dir, phase, head, heads[head], substituted_from=sub)
+    for phase, head, model, sub in (
+        ("P3", p3, p3_model, p3_sub),
+        ("P6a", p6a, p6a_model, None),
+        ("P6b", p6b, p6b_model, None),
+        ("P7", p7, p7_model, None),
+    ):
+        _write_receipt(round_dir, phase, head, heads[head], substituted_from=sub, model_requested=model)
 
 
 # --- Done-when (4): the registry is selected, never assumed -------------------------------------
@@ -262,23 +271,43 @@ def test_c_red_refuses_code_before_tests_and_a_missing_p2_receipt_and_passes_tes
     assert c.check_constraint("C-RED", _ctx(twin, no_p2))[0] is False, "no P2 receipt fails closed"
 
 
-def test_c_vendor_refuses_a_reviewer_or_judge_of_the_producers_vendor_and_a_missing_receipt(tmp_path):
+def test_c_vendor_at_p4_needs_only_a_readable_p3_receipt_and_family_independence_is_checked_after_p7(tmp_path):
     c = _conductor()
     repo = _new_repo(tmp_path, "vendor")
-    twin, same_reviewer, same_judge, substituted, partial = (
-        tmp_path / n for n in ("twin", "same-reviewer", "same-judge", "substituted", "partial"))
+    p3_only, full, missing_p3 = (tmp_path / n for n in ("p3-only", "full", "missing-p3"))
+    _write_receipt(p3_only, "P3", "copilot", "copilot-enterprise", model_requested="claude-sonnet-5.5")
+    _vendors(full)
+    _vendors(missing_p3)
+    (missing_p3 / "P3.json").unlink()
+    assert c.check_constraint("C-VENDOR", _ctx(repo, p3_only))[0] is True
+    assert c.check_constraint("C-VENDOR", _ctx(repo, full))[0] is True
+    bad, why = c.check_constraint("C-VENDOR", _ctx(repo, missing_p3))
+    assert bad is False and "P3" in why, "a missing P3 receipt fails closed"
+
+    independent = tmp_path / "independent"
+    _vendors(independent)
+    ok, why, phase = c.check_independence(_ctx(repo, independent))
+    assert (ok, phase) == (True, None), why
+
+    for phase, model_kw in (
+        ("P6a", {"p6a_model": "claude-sonnet-5.5"}),
+        ("P6b", {"p6b_model": "claude-sonnet-5.5"}),
+        ("P7", {"p7_model": "claude-sonnet-5.5"}),
+    ):
+        seed, twin = tmp_path / f"same-{phase}", tmp_path / f"twin-{phase}"
+        _vendors(seed, **model_kw)
+        _vendors(twin)
+        ok, why, refused_phase = c.check_independence(_ctx(repo, seed))
+        assert (ok, refused_phase) == (False, phase), why
+        assert c.check_independence(_ctx(repo, twin))[0] is True
+
+    missing, twin = tmp_path / "missing-P6a", tmp_path / "twin-missing-P6a"
+    _vendors(missing)
     _vendors(twin)
-    _vendors(same_reviewer, p6a="claude")
-    _vendors(same_judge, p7="claude")
-    _vendors(substituted, p7="claude", p3_sub="openai")
-    _vendors(partial)
-    (partial / "P7.json").unlink()
-    assert c.check_constraint("C-VENDOR", _ctx(repo, twin))[0] is True
-    assert c.check_constraint("C-VENDOR", _ctx(repo, same_reviewer))[0] is False
-    assert c.check_constraint("C-VENDOR", _ctx(repo, same_judge))[0] is False
-    assert c.check_constraint("C-VENDOR", _ctx(repo, substituted))[0] is True, \
-        "a substituted anthropic producer may be judged by anthropic (common rules (j))"
-    assert c.check_constraint("C-VENDOR", _ctx(repo, partial))[0] is False, "a missing receipt fails closed"
+    (missing / "P6a.json").unlink()
+    ok, why, phase = c.check_independence(_ctx(repo, missing))
+    assert (ok, phase) == (False, "P6a") and "P6a" in why
+    assert c.check_independence(_ctx(repo, twin))[0] is True
 
 
 def test_c_clean_refuses_a_changed_python_file_ruff_rejects_and_passes_a_clean_one(tmp_path):
