@@ -442,3 +442,303 @@ def test_dispatcher_template_runs_the_pre_launch_veto():
 def test_integrator_template_writes_the_close_cost_line():
     text = (REPO_ROOT / "templates" / "integrator-order-template.md").read_text(encoding="utf-8")
     assert "quota_watch.py line" in text
+
+
+_E32_NOW = 1_793_000_000.0
+
+
+def _e32_token_count(primary=97.0, secondary=78.0, primary_reset=1_793_003_600.0,
+                     secondary_reset=1_793_400_000.0):
+    return {
+        "timestamp": "2026-11-02T10:00:00.000Z",
+        "type": "event_msg",
+        "payload": {
+            "type": "token_count",
+            "rate_limits": {
+                "primary": {
+                    "used_percent": primary,
+                    "window_minutes": 300,
+                    "resets_at": primary_reset,
+                },
+                "secondary": {
+                    "used_percent": secondary,
+                    "window_minutes": 10080,
+                    "resets_at": secondary_reset,
+                },
+            },
+        },
+    }
+
+
+def _e32_write_rollout(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(
+            (row if isinstance(row, str) else json.dumps(row)) + "\n"
+            for row in rows
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_e32_codex_reader_uses_newest_rollout_and_last_token_count(tmp_path):
+    """Done-contract D1: the newest session file and its final token-count event are authoritative."""
+    import os
+
+    older = tmp_path / "old" / "rollout-old.jsonl"
+    newest = tmp_path / "new" / "rollout-new.jsonl"
+    _e32_write_rollout(older, [_e32_token_count(primary=30)])
+    _e32_write_rollout(
+        newest,
+        [
+            _e32_token_count(primary=40),
+            _e32_token_count(
+                primary=97,
+                secondary=78,
+                primary_reset=_E32_NOW + 3600,
+                secondary_reset=_E32_NOW + 3_000_000,
+            ),
+        ],
+    )
+    os.utime(older, (100.0, 100.0))
+    os.utime(newest, (200.0, 200.0))
+    reading = qw.read_codex_rate_limits(tmp_path, now=_E32_NOW)
+    assert reading.status == "ok"
+    assert reading.primary_used_percent == 97
+    assert reading.primary_resets_at == _E32_NOW + 3600
+    assert reading.secondary_used_percent == 78
+    assert reading.secondary_resets_at == _E32_NOW + 3_000_000
+    assert reading.secondary_window_minutes == 10080
+    assert reading.usage_limit_at is None
+    assert reading.usage_limit_resets_at is None
+
+
+@pytest.mark.parametrize("rows", [[], [{"payload": {"type": "token_count"}}], ["not-json"]])
+def test_e32_codex_reader_returns_unknown_and_none_for_unread_fields(tmp_path, rows):
+    """Done-contract D1: absent, incomplete, and malformed rate data is never numeric zero."""
+    sessions = tmp_path / "sessions"
+    if rows:
+        _e32_write_rollout(sessions / "rollout-one.jsonl", rows)
+    else:
+        sessions.mkdir()
+    reading = qw.read_codex_rate_limits(sessions, now=_E32_NOW)
+    assert reading.status == "unknown"
+    for field in (
+        "primary_used_percent",
+        "primary_resets_at",
+        "secondary_used_percent",
+        "secondary_resets_at",
+        "secondary_window_minutes",
+        "usage_limit_at",
+        "usage_limit_resets_at",
+    ):
+        assert getattr(reading, field) is None
+
+
+def test_e32_codex_reader_extracts_usage_limit_timestamp_and_reset(tmp_path):
+    """Done-contract D1: a usage-limit event preserves its epoch timestamp and optional reset."""
+    from datetime import datetime, timezone
+
+    sessions = tmp_path / "sessions"
+    _e32_write_rollout(
+        sessions / "rollout-limit.jsonl",
+        [
+            _e32_token_count(),
+            {
+                "timestamp": "2026-11-02T10:30:00.000Z",
+                "type": "event_msg",
+                "payload": {
+                    "type": "error",
+                    "codex_error_info": "usage_limit_exceeded",
+                    "resets_at": _E32_NOW + 7200,
+                },
+            },
+        ],
+    )
+    reading = qw.read_codex_rate_limits(sessions, now=_E32_NOW)
+    expected_at = datetime(2026, 11, 2, 10, 30, tzinfo=timezone.utc).timestamp()
+    assert reading.usage_limit_at == expected_at
+    assert reading.usage_limit_resets_at == _E32_NOW + 7200
+
+
+def test_e32_copilot_credit_reader_returns_bounded_values_or_unknown():
+    """Done-contract D2: only a bounded premium-interactions snapshot becomes a reading."""
+    reading = qw.read_copilot_credits_mtd(_load("copilot_user.json"))
+    assert reading.status == "ok"
+    assert reading.credits_used == 285
+    assert reading.entitlement == 22500
+    for data in (
+        {},
+        {"quota_snapshots": {"premium_interactions": {"unlimited": True}}},
+        {
+            "quota_snapshots": {
+                "premium_interactions": {
+                    "unlimited": True,
+                    "credits_used": 0,
+                    "entitlement": 0,
+                }
+            }
+        },
+    ):
+        unknown = qw.read_copilot_credits_mtd(data)
+        assert unknown.status == "unknown"
+        assert unknown.credits_used is None
+        assert unknown.entitlement is None
+
+
+def test_e32_anthropic_rate_limit_reader_keeps_latest_event_per_window():
+    """Done-contract D3: stream-json events are latest-per-type and malformed rows are ignored."""
+    lines = [
+        "not-json",
+        json.dumps({"type": "assistant", "rate_limit_info": {"rateLimitType": "five_hour"}}),
+        json.dumps({
+            "type": "rate_limit_event",
+            "rate_limit_info": {
+                "status": "allowed",
+                "resetsAt": _E32_NOW + 100,
+                "rateLimitType": "five_hour",
+                "utilization": 0.42,
+            },
+        }),
+        json.dumps({
+            "type": "rate_limit_event",
+            "rate_limit_info": {
+                "status": "allowed",
+                "resetsAt": _E32_NOW + 200,
+                "rateLimitType": "five_hour",
+                "utilization": 0.73,
+            },
+        }),
+        json.dumps({
+            "type": "rate_limit_event",
+            "rate_limit_info": {
+                "status": "over_limit",
+                "resetsAt": _E32_NOW + 300,
+                "rateLimitType": "seven_day",
+                "utilization": 0.96,
+            },
+        }),
+    ]
+    reading = qw.read_anthropic_rate_limit_events(lines)
+    assert reading.status == "ok"
+    assert reading.by_type["five_hour"].utilization == 0.73
+    assert reading.by_type["five_hour"].resets_at == _E32_NOW + 200
+    assert reading.by_type["seven_day"].status == "over_limit"
+    empty = qw.read_anthropic_rate_limit_events(["{}", "broken"])
+    assert empty.status == "unknown"
+    assert empty.by_type == {}
+
+
+def test_e32_statusline_parser_reads_official_rate_limits_only():
+    """Done-contract D4: official five-hour/seven-day fields parse; invented tier keys do not."""
+    payload = {
+        "rate_limits": {
+            "five_hour": {"used_percentage": 42.0, "resets_at": _E32_NOW + 100},
+            "seven_day": {"used_percentage": 68.0, "resets_at": _E32_NOW + 200},
+            "seven_day_opus": {"used_percentage": 99.0, "resets_at": _E32_NOW + 300},
+            "seven_day_sonnet": {"used_percentage": 98.0, "resets_at": _E32_NOW + 400},
+        }
+    }
+    reading = qw.parse_statusline_rate_limits(json.dumps(payload))
+    assert reading.status == "ok"
+    assert reading.five_hour_pct == 42
+    assert reading.five_hour_resets_at == _E32_NOW + 100
+    assert reading.seven_day_pct == 68
+    assert reading.seven_day_resets_at == _E32_NOW + 200
+    assert not hasattr(reading, "seven_day_opus")
+    assert not hasattr(reading, "seven_day_sonnet")
+    assert qw.parse_statusline_rate_limits(payload).seven_day_pct == 68
+    unknown = qw.parse_statusline_rate_limits({})
+    assert unknown.status == "unknown"
+    assert unknown.five_hour_pct is None
+    assert unknown.five_hour_resets_at is None
+    assert unknown.seven_day_pct is None
+    assert unknown.seven_day_resets_at is None
+
+
+def test_e32_statusline_capture_round_trips_and_does_not_replace_good_data(tmp_path):
+    """Done-contract D5: only an official rate-limit payload updates the durable capture."""
+    path = tmp_path / "state" / "statusline.json"
+    payload = {
+        "rate_limits": {
+            "five_hour": {"used_percentage": 42.0, "resets_at": _E32_NOW + 100},
+            "seven_day": {"used_percentage": 68.0, "resets_at": _E32_NOW + 200},
+        }
+    }
+    captured = qw.capture_statusline(json.dumps(payload), path)
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(on_disk["captured_at"], float)
+    assert on_disk["rate_limits"] == payload["rate_limits"]
+    reread = qw.read_statusline_capture(path)
+    assert reread.status == "ok"
+    assert reread.five_hour_pct == captured.five_hour_pct == 42
+    original = path.read_bytes()
+    qw.capture_statusline('{"display": "no rate data"}', path)
+    assert path.read_bytes() == original
+    path.write_text("{", encoding="utf-8")
+    assert qw.read_statusline_capture(path).status == "unknown"
+    assert qw.read_statusline_capture(tmp_path / "absent.json").status == "unknown"
+
+
+@pytest.mark.parametrize(
+    ("error_text", "usable", "seconds", "status"),
+    [
+        (None, True, None, "unknown"),
+        ("", True, None, "unknown"),
+        ("RESOURCE_EXHAUSTED; Resets in 1h 30m", False, 5400, "ok"),
+        ("429 RESOURCE_EXHAUSTED; Resets in 45m", False, 2700, "ok"),
+        ("RESOURCE_EXHAUSTED; Resets in 2h", False, 7200, "ok"),
+        ("RESOURCE_EXHAUSTED", False, None, "ok"),
+        ("HTTP 429 quota exceeded", False, None, "ok"),
+        ("unrelated client error", True, None, "unknown"),
+    ],
+)
+def test_e32_antigravity_route_state_interprets_quota_reset_text(
+    error_text, usable, seconds, status
+):
+    """Done-contract D6: quota errors block with a parsed reset, while other text stays unknown."""
+    reading = qw.read_agy_route_state(error_text, observed_at=_E32_NOW)
+    assert reading.status == status
+    assert reading.usable is usable
+    assert reading.resets_at == (
+        None if seconds is None else _E32_NOW + seconds
+    )
+
+
+def test_e32_copilot_pace_warning_uses_month_progress_threshold():
+    """Done-contract D7: the warning threshold is 1.5x linear monthly pace."""
+    assert qw.copilot_pace_warning(18750, day_of_month=15, days_in_month=30) is True
+    assert qw.copilot_pace_warning(18749, day_of_month=15, days_in_month=30) is False
+    assert qw.copilot_pace_warning(
+        15000, day_of_month=15, days_in_month=30, included=20000
+    ) is True
+    assert qw.copilot_pace_warning(None, day_of_month=30, days_in_month=30) is False
+
+
+def test_e32_billing_status_lines_never_turn_unread_values_into_zero():
+    """Done-contract D8: API credit and Ultra verification lines distinguish unread from false."""
+    assert qw.api_credit_line(12.5) == "API-CREDIT-BALANCE 12.50"
+    assert qw.api_credit_line(None, "dashboard unavailable") == (
+        "API-CREDIT-BALANCE unread dashboard unavailable"
+    )
+    with pytest.raises(ValueError):
+        qw.api_credit_line(None)
+    assert qw.ultra_verified_line(True) == "ULTRA-VERIFIED yes"
+    assert qw.ultra_verified_line(False) == "ULTRA-VERIFIED no"
+    assert qw.ultra_verified_line(None) == "ULTRA-VERIFIED unread"
+
+
+def test_e32_copilot_credit_reader_is_unknown_when_a_snapshot_figure_is_missing():
+    """Review finding (terra, MAJOR): a bounded snapshot missing a figure is unread, never a fabricated 0.0."""
+    for snap in ({"credits_used": 10}, {"entitlement": 22500}, {"credits_used": None, "entitlement": 5}):
+        reading = qw.read_copilot_credits_mtd({"quota_snapshots": {"premium_interactions": snap}})
+        assert reading.status == "unknown"
+        assert reading.credits_used is None and reading.entitlement is None
+
+
+def test_e32_codex_reader_is_unknown_when_rate_limit_dicts_carry_no_number(tmp_path):
+    """Review finding (argon, MINOR): empty primary/secondary dicts say nothing, so the status is unknown."""
+    sessions = tmp_path / "sessions"
+    _e32_write_rollout(sessions / "rollout-one.jsonl", [
+        {"payload": {"type": "token_count", "rate_limits": {"primary": {}, "secondary": {"used_percent": "n/a"}}}}])
+    assert qw.read_codex_rate_limits(sessions, now=_E32_NOW).status == "unknown"

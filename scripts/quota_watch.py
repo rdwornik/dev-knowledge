@@ -70,10 +70,11 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 import click
 import platformdirs
@@ -519,6 +520,322 @@ def cost_line(codespaces_status: Optional[SkuStatus], actions_status: Optional[S
     return " / ".join(parts)
 
 
+# =========================================================================== [#1833] provider readers
+#
+# ONE READER PER PROVIDER (Done-contract clause 2, R-4). Each returns a small frozen record whose `status` is `"ok"` or
+# `"unknown"`, and EVERY value it could not read is `None` -- never 0. A reader that fell back to zero would make an
+# empty reading look like a provider with headroom, which is the exact failure `unknown` exists to prevent; the router
+# (`provider_router.route_under_quota`) reads these records by attribute name and treats an unknown one as "launch goes
+# ahead, receipt records `quota: unread`" (R-4), not as OUT.
+#
+#   codex        rollout `payload.rate_limits.primary` / `.secondary`  (read_codex_rate_limits)
+#   copilot      `gh api copilot_internal/user` premium_interactions    (read_copilot_credits_mtd)
+#   anthropic    stream-json `rate_limit_event`; statusline `rate_limits` (read_anthropic_rate_limit_events,
+#                parse_statusline_rate_limits, capture_statusline -- GP12, the first build named by the token-economy GO T-2)
+#   agy          error-only: a 429 RESOURCE_EXHAUSTED "Resets in <d>"    (read_agy_route_state)
+
+#: Env override for the durable statusline capture (tests, a relocated state home).
+STATUSLINE_CAPTURE_ENV = "DEV_KNOWLEDGE_STATUSLINE_CAPTURE"
+STATUSLINE_CAPTURE_FILENAME = "STATUSLINE-RATE-LIMITS.json"
+#: Codex `payload.codex_error_info` value of a usage-limit stop.
+CODEX_USAGE_LIMIT_ERROR = "usage_limit_exceeded"
+
+
+def _as_float(value) -> Optional[float]:
+    """A numeric reading as a float, or None. Booleans and non-numbers are NOT readings."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _iso_to_epoch(text) -> Optional[float]:
+    if not isinstance(text, str):
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+
+
+@dataclass(frozen=True)
+class CodexReading:
+    """The Codex rate-limit state; the attribute names are the router's contract (`provider_router` header)."""
+
+    status: str = "unknown"
+    primary_used_percent: Optional[float] = None
+    primary_resets_at: Optional[float] = None
+    secondary_used_percent: Optional[float] = None
+    secondary_resets_at: Optional[float] = None
+    secondary_window_minutes: Optional[float] = None
+    usage_limit_at: Optional[float] = None
+    usage_limit_resets_at: Optional[float] = None
+
+
+def read_codex_rate_limits(sessions_dir: Path, *, now: float) -> CodexReading:
+    """The newest rollout's last `token_count` rate limits, plus its newest usage-limit record.
+
+    `now` is accepted so a reader can later age a stale rollout; the freshness judgement itself ("a rollout older
+    than its own `resets_at` counts as reset") is the ROUTER's, which owns the window arithmetic, so the reading
+    reports what the file says and nothing is dropped here.
+    """
+    root = Path(sessions_dir)
+    files = [f for f in root.rglob("rollout-*.jsonl") if f.is_file()] if root.is_dir() else []
+    if not files:
+        return CodexReading()
+    newest = max(files, key=lambda f: f.stat().st_mtime)
+    limits = None
+    usage_at = usage_resets = None
+    try:
+        text = newest.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return CodexReading()
+    for line in text.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        payload = row.get("payload") if isinstance(row, dict) else None
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("type") == "token_count" and isinstance(payload.get("rate_limits"), dict):
+            candidate = payload["rate_limits"]
+            if isinstance(candidate.get("primary"), dict) or isinstance(candidate.get("secondary"), dict):
+                limits = candidate
+        elif payload.get("type") == "error" and payload.get("codex_error_info") == CODEX_USAGE_LIMIT_ERROR:
+            usage_at = _iso_to_epoch(row.get("timestamp"))
+            usage_resets = _as_float(payload.get("resets_at"))
+    if limits is None and usage_at is None:
+        return CodexReading()
+    primary = (limits or {}).get("primary") or {}
+    secondary = (limits or {}).get("secondary") or {}
+    figures = [_as_float(primary.get("used_percent")), _as_float(primary.get("resets_at")),
+               _as_float(secondary.get("used_percent")), _as_float(secondary.get("resets_at")), usage_at]
+    if all(f is None for f in figures):
+        return CodexReading()           # rate_limits dicts with no readable number say nothing: unknown, not ok
+    return CodexReading(
+        status="ok",
+        primary_used_percent=_as_float(primary.get("used_percent")),
+        primary_resets_at=_as_float(primary.get("resets_at")),
+        secondary_used_percent=_as_float(secondary.get("used_percent")),
+        secondary_resets_at=_as_float(secondary.get("resets_at")),
+        secondary_window_minutes=_as_float(secondary.get("window_minutes")),
+        usage_limit_at=usage_at,
+        usage_limit_resets_at=usage_resets,
+    )
+
+
+@dataclass(frozen=True)
+class CreditReading:
+    status: str = "unknown"
+    credits_used: Optional[float] = None
+    entitlement: Optional[float] = None
+
+
+def read_copilot_credits_mtd(data: dict) -> CreditReading:
+    """Copilot AI credits month-to-date. `parse_copilot_credits` raises when the seat carries no bounded snapshot;
+    this reader reports `unknown` instead, because the caller is a router that must keep routing."""
+    snap = ((data or {}).get("quota_snapshots") or {}).get("premium_interactions") or {}
+    for key in ("credits_used", "entitlement"):
+        value = snap.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return CreditReading()      # a snapshot missing a figure is unread, never a fabricated 0.0
+    try:
+        used, entitlement = parse_copilot_credits(data or {})
+    except QuotaWatchError:
+        return CreditReading()
+    return CreditReading(status="ok", credits_used=used, entitlement=entitlement)
+
+
+@dataclass(frozen=True)
+class RateLimitInfo:
+    status: str
+    resets_at: Optional[float] = None
+    utilization: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class AnthropicReading:
+    status: str = "unknown"
+    by_type: dict = field(default_factory=dict)
+
+
+def read_anthropic_rate_limit_events(lines: Iterable[str]) -> AnthropicReading:
+    """The latest stream-json `rate_limit_event` per `rateLimitType` (`five_hour`, `seven_day`).
+
+    C-3: only the types the stream actually names are keyed; nothing here invents a per-model pool.
+    """
+    by_type: dict[str, RateLimitInfo] = {}
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict) or row.get("type") != "rate_limit_event":
+            continue
+        info = row.get("rate_limit_info")
+        if not isinstance(info, dict) or not isinstance(info.get("rateLimitType"), str):
+            continue
+        by_type[info["rateLimitType"]] = RateLimitInfo(
+            status=str(info.get("status", "unknown")),
+            resets_at=_as_float(info.get("resetsAt")),
+            utilization=_as_float(info.get("utilization")))
+    return AnthropicReading(status="ok" if by_type else "unknown", by_type=by_type)
+
+
+@dataclass(frozen=True)
+class StatuslineReading:
+    status: str = "unknown"
+    five_hour_pct: Optional[float] = None
+    five_hour_resets_at: Optional[float] = None
+    seven_day_pct: Optional[float] = None
+    seven_day_resets_at: Optional[float] = None
+
+
+def parse_statusline_rate_limits(stdin) -> StatuslineReading:
+    """The statusline stdin JSON's `rate_limits.five_hour` / `.seven_day` (`used_percentage`, `resets_at`).
+
+    C-3: `seven_day_opus` / `seven_day_sonnet` are not official statusline fields. A payload carrying them still
+    parses, and the reading has no attribute for them.
+    """
+    if isinstance(stdin, (str, bytes)):
+        try:
+            stdin = json.loads(stdin)
+        except ValueError:
+            return StatuslineReading()
+    limits = stdin.get("rate_limits") if isinstance(stdin, dict) else None
+    if not isinstance(limits, dict):
+        return StatuslineReading()
+    five, seven = limits.get("five_hour") or {}, limits.get("seven_day") or {}
+    if not isinstance(five, dict) or not isinstance(seven, dict):
+        return StatuslineReading()
+    reading = StatuslineReading(
+        status="ok",
+        five_hour_pct=_as_float(five.get("used_percentage")),
+        five_hour_resets_at=_as_float(five.get("resets_at")),
+        seven_day_pct=_as_float(seven.get("used_percentage")),
+        seven_day_resets_at=_as_float(seven.get("resets_at")))
+    if all(v is None for v in (reading.five_hour_pct, reading.seven_day_pct)):
+        return StatuslineReading()
+    return reading
+
+
+def statusline_capture_path() -> Path:
+    """The durable capture's home: `$DEV_KNOWLEDGE_STATUSLINE_CAPTURE`, else the per-user state directory (private,
+    like the quota-read ledger; never inside a repository)."""
+    override = os.environ.get(STATUSLINE_CAPTURE_ENV)
+    if override:
+        return Path(override)
+    return Path(platformdirs.user_state_dir(_STATE_APP_NAME, appauthor=False)) / STATUSLINE_CAPTURE_FILENAME
+
+
+def capture_statusline(stdin_text: str, path: Path) -> StatuslineReading:
+    """GP12: persist the statusline's `rate_limits` so a non-interactive launcher can read it later.
+
+    Only a payload that CARRIES `rate_limits` writes; a statusline tick before the first API response has none, and
+    must not overwrite the last good capture with nothing. The write is atomic (temp file + replace).
+    """
+    reading = parse_statusline_rate_limits(stdin_text)
+    if reading.status != "ok":
+        return reading
+    limits = json.loads(stdin_text)["rate_limits"] if isinstance(stdin_text, (str, bytes)) else stdin_text["rate_limits"]
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(json.dumps({"captured_at": time.time(), "rate_limits": limits}), encoding="utf-8", newline="\n")
+    os.replace(tmp, target)
+    return reading
+
+
+def read_statusline_capture(path: Path) -> StatuslineReading:
+    """The last capture, or `unknown` when the file is absent or unreadable."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return StatuslineReading()
+    return parse_statusline_rate_limits(data if isinstance(data, dict) else {})
+
+
+@dataclass(frozen=True)
+class RouteState:
+    """agy's route state: error-only, so `unknown` + `usable` is the resting state (R-4)."""
+
+    status: str = "unknown"
+    usable: bool = True
+    resets_at: Optional[float] = None
+    reason: Optional[str] = None
+
+
+_AGY_UNIT_SECONDS = {"h": 3600, "m": 60, "s": 1}
+
+
+def _agy_quota_text(error_text: str) -> bool:
+    """`RESOURCE_EXHAUSTED` or a standalone `429` token (plain string work, no regex: see the edge-class census)."""
+    if "RESOURCE_EXHAUSTED" in error_text.upper():
+        return True
+    return "429" in "".join(c if c.isalnum() else " " for c in error_text).split()
+
+
+def _agy_reset_seconds(error_text: str) -> Optional[int]:
+    """Seconds named by "Resets in 1h 30m 5s" (case-insensitive; `2h30m` also reads); None when no such phrase."""
+    lowered = error_text.lower()
+    start = -1
+    for marker in ("resets in", "reset in"):
+        start = lowered.find(marker)
+        if start >= 0:
+            start += len(marker)
+            break
+    if start < 0:
+        return None
+    total, digits, found = 0, "", False
+    for ch in lowered[start:]:
+        if ch.isdigit():
+            digits += ch
+        elif ch.isspace():
+            continue
+        elif ch in _AGY_UNIT_SECONDS and digits:
+            total += int(digits) * _AGY_UNIT_SECONDS[ch]
+            digits, found = "", True
+        else:
+            break
+    return total if found else None
+
+
+def read_agy_route_state(error_text: Optional[str], *, observed_at: float) -> RouteState:
+    """agy exposes no usage verb: its route is OUT from a `RESOURCE_EXHAUSTED` / 429 until the stated "Resets in
+    <d>"; with no such error it says nothing (`unknown`, usable). A 429 with no stated reset is out with no
+    `resets_at`, so the router cannot WAIT on it and the bound makes that a REFUSED-NO-ROUTE."""
+    if not error_text or not _agy_quota_text(error_text):
+        return RouteState()
+    seconds = _agy_reset_seconds(error_text)
+    resets_at = None if seconds is None else observed_at + seconds
+    return RouteState(status="ok", usable=False, resets_at=resets_at,
+                      reason="agy quota exhausted (RESOURCE_EXHAUSTED / 429)")
+
+
+def copilot_pace_warning(mtd_credits: Optional[float], *, day_of_month: int, days_in_month: int,
+                         included: float = 25000.0) -> bool:
+    """R-5: warn when month-to-date credits run 1.5x or more ahead of the linear monthly pace."""
+    if mtd_credits is None:
+        return False
+    return mtd_credits >= 1.5 * included / days_in_month * day_of_month - 1e-9
+
+
+def api_credit_line(balance_usd: Optional[float], reason: str = "") -> str:
+    """Done-contract clause 6, line 2: `API-CREDIT-BALANCE <usd>` or `API-CREDIT-BALANCE unread <reason>`.
+    An unread balance is never rendered as 0.00, and an unread line must say why."""
+    if balance_usd is None:
+        if not reason.strip():
+            raise ValueError("an unread API-CREDIT-BALANCE line must carry its reason")
+        return f"API-CREDIT-BALANCE unread {reason.strip()}"
+    return f"API-CREDIT-BALANCE {balance_usd:.2f}"
+
+
+def ultra_verified_line(verified: Optional[bool]) -> str:
+    """Done-contract clause 6, line 1: `ULTRA-VERIFIED yes|no|unread` (Settings > Usage shows no "Current session"
+    bar). No code reads that page: `unread` is the honest value until the operator's hand step reports one."""
+    return "ULTRA-VERIFIED " + ("unread" if verified is None else "yes" if verified else "no")
+
+
 # ======================================================================================== gh api
 
 def _gh_api(path: str, account: str) -> dict:
@@ -712,6 +1029,17 @@ def cmd_line(registry: Optional[Path], billing_json: Optional[str],
     except QuotaWatchError:
         pass
     click.echo(cost_line(cs_status, ac_status, copilot_used, copilot_quota, cloud_sessions))
+
+
+@cli.command("statusline-capture")
+@click.option("--path", type=click.Path(path_type=Path), default=None,
+              help="Capture file override (default: the per-user state dir).")
+def cmd_statusline_capture(path: Optional[Path]) -> None:
+    """GP12: read a statusline stdin JSON from stdin and persist its `rate_limits` (a no-op without them).
+
+    Always exits 0: a statusline tick must never fail a session, and an absent capture reads as `unknown`."""
+    reading = capture_statusline(sys.stdin.read(), path or statusline_capture_path())
+    click.echo(f"statusline rate_limits: {reading.status}")
 
 
 if __name__ == "__main__":

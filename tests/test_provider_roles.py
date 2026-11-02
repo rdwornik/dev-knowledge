@@ -150,7 +150,7 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
     the other resolves through the model row."""
     def mutate(d):
         # GO-E3.0 R11: order[1] is Copilot; the injected model belongs to OpenAI.
-        d["roles"]["implement"]["order"][1]["model"] = "gpt-5.6-terra"
+        d["roles"]["implement"]["order"][1]["model"] = "gpt-6-sol"
 
     message = _refuses(_mutated(live, mutate))
     # GO-E3.0 R11: the cross-provider diagnostic names the Copilot entry and OpenAI model.
@@ -417,7 +417,7 @@ def test_the_review_fallback_order_is_ax22_2s_own(live):
     # SUPERSEDED 2026-10-14 by R104 ([#1536]): "Codex (terra) -> Grok -> Copilot with a
     # non-Anthropic model -> Gemini"; the reviewer is never the producer's vendor.
     assert [e.provider for e in registry.roles["review"].order] == [
-        "openai", "xai", "copilot-enterprise", "antigravity"]
+        "openai", "xai", "copilot-enterprise", "anthropic", "antigravity"]
 
 
 # --- AX21-1's one non-re-rankable line -------------------------------------------------------
@@ -546,8 +546,8 @@ def test_r1536_role_pins(live):
     # BATCH-E2-0 v2 section 3 (`e2-subst-gate`): the Copilot CLI writes the RED tests; Sonnet 5.5
     # (R104's writer) is now the entry after it, used only after a recorded VENDOR-FAIL (P1).
     assert roles["red"]["order"][0]["provider"] == "copilot-enterprise"
-    assert roles["red"]["order"][1]["provider"] == "anthropic"
-    assert roles["red"]["order"][1]["model"] == "claude-sonnet-5-5"
+    assert roles["red"]["order"][1]["provider"] == "openai"
+    assert roles["red"]["order"][1]["model"] == "gpt-6-luna"
     # GO-E3.0 R11: Codex gpt-6-sol is the first judge.
     assert roles["judge"]["order"][0]["model"] == "gpt-6-sol"
     assert roles["judge"].get("rerankable") is False
