@@ -253,6 +253,32 @@ def test_a_ledger_row_without_a_key_or_status_halts_with_the_line_number(
         assert len(qr.Ledger(path=ledger_path).rows) == 1
 
 
+def test_a_ledger_row_with_an_unknown_status_halts_with_the_line_number(tmp_path):
+    qr = _runner()
+    ledger_path = tmp_path / "ledger.jsonl"
+
+    for contents, line_number in (
+        ('{"key":"k","status":"bogus"}\n', "line 1"),
+        ('{"key":"k","status":"fired"}\n{"key":"k","status":"bogus"}\n', "line 2"),
+    ):
+        ledger_path.write_text(contents, encoding="utf-8")
+        with pytest.raises(qr.LedgerHalt) as exc_info:
+            qr.Ledger(path=ledger_path)
+        assert ledger_path.name in str(exc_info.value)
+        assert line_number in str(exc_info.value)
+
+    rows = [
+        {"key": f"k-{status}", "status": status}
+        for status in qr._SEEN_STATUSES
+    ]
+    ledger_path.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    assert [row["status"] for row in qr.Ledger(path=ledger_path).rows] == list(
+        qr._SEEN_STATUSES
+    )
+
+
 def test_a_failed_fire_is_recorded_once_and_never_retried(tmp_path):
     # Dispatcher ruling (2026-11-01 ~14:50): the contract says the runner "fires queue / repair once per event".
     qr = _runner()
