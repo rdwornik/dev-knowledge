@@ -1,0 +1,87 @@
+ruled_by: operator
+ruled_on: 2026-11-01
+# The five-evidence-class mapping `apply --ruling` reads; the sweep path (`apply --sweep`) reads
+# only the `sweep:` block below. The operator ruling is the verbatim `text`.
+classes: {shipped: close, obsolete: close, stale-refs: keep, live: keep, unclear: keep}
+source: to-browser/DIGEST-BACKLOG-NIGHT-SWEEP-2026-11-01.md
+source_sha256: 19a16aeb115d9d49fface9f527c0ce19c118b2e94aec5d4d16765e10148e8ced
+sweep:
+  cutoff: 2026-10-01
+  k2_window_days: 30
+  legacy_class: legacy-sweep
+  # K1 sources: a CLOSED list of paths (repo = this checkout, transport = the prompt transport root).
+  # A missing source stops the sweep (fail closed). ADRs protect only at status Accepted.
+  k1_sources:
+    - {glob: "to-browser/RATIFICATION-*.md", root: transport}
+    - {path: to-cc/GO-E3.0.md, root: transport}
+    - {path: to-cc/GO-E3.1.md, root: transport}
+    - {glob: "docs/decisions/ADR-*.md", root: repo, requires_status: Accepted}
+    - {path: to-browser/DIGEST-E3-0-SIGNOFF-AND-PLAN-CHALLENGE-2026-10-30.md, root: transport}
+    - {path: to-browser/DIGEST-E3-1-SIGNOFF-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-E3-1-SIGNOFF-AMENDMENT-1-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-E3-1-SIGNOFF-AMENDMENT-2-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-E3-SIGNOFF-AMENDMENT-3-LINE-REPAIR-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-E3-1-ID-GRANT-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md, root: transport}
+    - {path: to-browser/DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md, root: transport}
+    - {path: to-browser/DIGEST-LINE-REPAIR-PROGRAM-2026-11-01.md, root: transport}
+  # Step 2 R-3, as narrowed by Q-SW-1: merge-rewrite is KEPT and listed; keep-* is kept; no priority edits.
+  decision_classes:
+    close-shipped: shipped
+    close-obsolete: obsolete
+    close-duplicate: duplicate
+    close-no-fit: no-fit
+    close-parked: parked
+    keep-P1: keep
+    keep-P2: keep
+    keep-P3: keep
+    merge-rewrite: keep
+text: |
+  by: Tech-Architect-48 (browser architect seat, claude-opus-5-5)
+  date: 2026-11-01 ~23:40 local
+  kind: DIGEST (night-sweep mechanism; amends DIGEST-BACKLOG-REVIEW-STEP2-2026-11-01 for rows filed before the cutoff; binding once pasted)
+  operator (~23:35):
+  - Close as much as possible, above all the old rows. The backlog used to be a dead line in the process; it is now a managed stage, so newer rows are more likely to matter.
+  - No arbitrary decisions: the harness evaluates each row against code, with protection by code.
+  - Run it as tonight's night batch.
+
+  # Backlog night sweep - "old rows close unless evidence keeps them"
+
+  ## 1. The rule (burden of proof flips for old rows)
+  - **Cutoff: rows filed before 2026-10-01** (git add-date; for renamed files, the oldest commit touching the path).
+    - This is one month before the E3.x line.
+    - The night DIGEST prints the age histogram, so the operator can see what the cutoff cut.
+  - **A row OLDER than the cutoff is closed as `legacy-sweep`** unless at least one KEEP witness holds. Each witness is checked by code:
+    - **K1 protected:** cited by a ratified GO or RATIFICATION, an Accepted ADR, an E3.x sign-off or id grant, the AJ proposal lists, DIGEST-LINE-REPAIR-PROGRAM-2026-11-01, or an open row (`cited_by_open > 0`). This is step 2's R-1.
+    - **K2 alive in code:** the row names a file, organ or command that exists on main, AND a commit touched it in the last 30 days.
+    - **K3 both families agree** in step 1 that the row is LINE with P1 or P2. Agreed only; an adjudicated label is not enough.
+  - **A row NEWER than the cutoff** takes step 2's per-class ruling (R-1..R-3) unchanged.
+  - **Every closed row records:**
+    - its class: legacy-sweep / shipped / obsolete / duplicate / no-fit / parked;
+    - the witnesses checked, and which were absent;
+    - a one-line reason.
+  - **Closing is a status edit; no file is deleted.**
+
+  ## 2. Reversible by construction
+  - `backlog_reconcile.py apply --revert <class|ids>` reopens a closed set from the sweep's own ledger in one command. It gets a test.
+  - The sweep writes one index of everything it closed (id, title, class, witnesses), so nothing is lost from sight.
+
+  ## 3. Night mission (pre-authorized; no operator gate between paste and start)
+  1. **One lane:**
+     - extend `apply` with the `legacy-sweep` class and witnesses K1-K3, R-1/R-2, and `--revert`;
+     - RED-first tests, including: a seeded protected row is never closed, and `--revert` restores a closed set byte-identically.
+     - Model use is minimal: K1/K2 are code. K3 reuses step 1's labels.
+  2. **Run the sweep** on a worktree tip with the operator's ruling file.
+  3. **Write the morning DIGEST:**
+     - counts per class, old and new;
+     - the age histogram;
+     - the protected moves;
+     - 10 seeded samples per close class for the architect's check;
+     - the revert command per class.
+  4. **Hand back.** The integrator lands it under the normal stages and the S-1 routing.
+  - **Stop conditions:**
+    - a seeded protected row closes;
+    - `--revert` is not byte-identical;
+    - CI shows a new red.
+  - **Morning acceptance (architect):** a sample error above 10% in a class means that class is reverted with one command and re-ruled. Otherwise it stays closed.
+  - **Priority:** tonight, beside the R1 defect lanes, under the shared cap and the memory admission gate. If the cap or memory blocks it, it runs after R1's launches in the same night.

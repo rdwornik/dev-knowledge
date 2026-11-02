@@ -700,16 +700,29 @@ def _git(repo_root: Path, *args: str) -> subprocess.CompletedProcess:
                           encoding="utf-8", errors="replace", check=False)
 
 
+def _dates_of(proc: subprocess.CompletedProcess) -> list[dt.date]:
+    return [dt.date.fromisoformat(line.strip()[:10])
+            for line in proc.stdout.splitlines() if line.strip()]
+
+
 def task_add_date(repo_root: Path, rel_path: str, ref: str = "HEAD") -> dt.date:
     """The OLDEST author date among the commits that ADD `rel_path` along its rename history
-    (`git log --follow --diff-filter=A`): a renamed file keeps the age of its first name."""
+    (`git log --follow --diff-filter=A`): a renamed file keeps the age of its first name.
+
+    A file that entered the tree inside a merge commit has no `A` entry under `--follow`; its age
+    is then the oldest commit touching any `<dir>/<id>-*` path (the id prefix survives a rename),
+    which is the contract's "oldest commit touching any of its paths"."""
     proc = _git(repo_root, "log", "--follow", "--diff-filter=A", "--format=%aI", ref, "--",
                 rel_path)
-    dates = []
-    for line in proc.stdout.splitlines():
-        if line.strip():
-            dates.append(dt.date.fromisoformat(line.strip()[:10]))
-    if proc.returncode != 0 or not dates:
+    dates = _dates_of(proc)
+    if not dates:
+        rel = rel_path.replace("\\", "/")
+        head, _, name = rel.rpartition("/")
+        found = re.match(r"(\d+)-", name)
+        if found:
+            pattern = f"{head}/{found.group(1)}-*" if head else f"{found.group(1)}-*"
+            dates = _dates_of(_git(repo_root, "log", "--format=%aI", ref, "--", pattern))
+    if not dates:
         raise SweepError(f"no add-date for {rel_path} on {ref}: {proc.stderr.strip()[:200]}")
     return min(dates)
 
@@ -942,6 +955,11 @@ class SweepResult:
     scan: str = ""
 
 
+def _short_witnesses(held: Sequence[str], limit: int = 3) -> str:
+    shown = ", ".join(held[:limit])
+    return shown + (f" (+{len(held) - limit} more)" if len(held) > limit else "")
+
+
 def _one_line(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "")).strip()
 
@@ -998,12 +1016,13 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
             decisions[row.id] = keep("no-add-date")
             continue
         k1 = k1_protected(row.id, source_texts=sources, cited_by_open=entry.get("cited_by_open") or [])
+        k1_note = _short_witnesses(k1)
         mapped = mapping[dclass]
         if added < cutoff:
             old += 1
             would = ruling["legacy_class"]
             if k1:
-                d = keep("protected", "K1: " + ", ".join(k1))
+                d = keep("protected", "K1: " + k1_note)
                 d.would_close_as = would
                 decisions[row.id] = d
                 continue
@@ -1023,7 +1042,7 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
             continue
         new += 1
         if k1:
-            d = keep("protected", "K1: " + ", ".join(k1))
+            d = keep("protected", "K1: " + k1_note)
             d.would_close_as = mapped if mapped != "keep" else None
             decisions[row.id] = d
             continue
