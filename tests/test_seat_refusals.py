@@ -13,6 +13,8 @@ decision file is on the transport with no carrier. So these raise.
 """
 from __future__ import annotations
 
+import itertools
+
 import pytest
 from click.testing import CliRunner
 
@@ -593,6 +595,87 @@ def test_write_decision_file_refuses_BEFORE_it_writes(tmp_path):
     assert not target.exists()
     sr.write_decision_file(target, _CARRIED)
     assert target.read_text(encoding="utf-8") == _CARRIED
+
+
+# --- integrator membership follows the batch set, not the seat's first batch --------------------
+
+def test_a_refusal_admits_every_batch_bound_to_one_live_integrator(tmp_path):
+    path = _registry(tmp_path, binds=[
+        ("integrator", "E3.0", "int-1"),
+        ("integrator", "E3.1", "int-1"),
+        ("integrator", "E3.2", "int-1"),
+    ])
+    seats = _read(path)
+
+    for batch in ("E3.0", "E3.1", "E3.2"):
+        assert sr.refuse_no_live_integrator(batch, seats).session_id == "int-1"
+
+
+def test_d_removing_one_binding_only_refuses_that_batch(tmp_path):
+    import importlib
+    from datetime import timedelta
+
+    seat_registry = importlib.import_module("seat_registry")
+    path = _registry(tmp_path, binds=[
+        ("integrator", "E3.0", "int-1"),
+        ("integrator", "E3.1", "int-1"),
+        ("integrator", "E3.2", "int-1"),
+    ])
+    seat_registry.unbind(session_id="int-1", path=path,
+                         now=_T0 + timedelta(minutes=1), batch="E3.1")
+    seats = _read(path, minutes=2)
+
+    with pytest.raises(sr.SeatRefusal, match="no-live-integrator"):
+        sr.refuse_no_live_integrator("E3.1", seats)
+    assert sr.refuse_no_live_integrator("E3.0", seats).session_id == "int-1"
+    assert sr.refuse_no_live_integrator("E3.2", seats).session_id == "int-1"
+
+
+def test_e_bare_unbind_refuses_every_previous_integrator_batch(tmp_path):
+    import importlib
+    from datetime import timedelta
+
+    seat_registry = importlib.import_module("seat_registry")
+    path = _registry(tmp_path, binds=[
+        ("integrator", "E3.0", "int-1"),
+        ("integrator", "E3.1", "int-1"),
+        ("integrator", "E3.2", "int-1"),
+    ])
+    seat_registry.unbind(session_id="int-1", path=path, now=_T0 + timedelta(minutes=1))
+    seats = _read(path, minutes=2)
+
+    assert seats[0].state == "absent"
+    for batch in ("E3.0", "E3.1", "E3.2"):
+        with pytest.raises(sr.SeatRefusal, match="no-live-integrator"):
+            sr.refuse_no_live_integrator(batch, seats)
+
+
+def test_k_priority_metadata_does_not_change_integrator_refusal_results(tmp_path):
+    from dataclasses import replace
+
+    path = _registry(tmp_path, binds=[
+        ("integrator", "E3.0", "int-1"),
+        ("integrator", "E3.1", "int-1"),
+        ("integrator", "E3.2", "int-1"),
+    ])
+    seats = _read(path)
+    original = seats[0]
+    batches = ("E3.0", "E3.1", "E3.2")
+    assert [binding.priority for binding in original.binds] == [(3, 0), (3, 1), (3, 2)]
+    with pytest.raises(sr.SeatRefusal) as original_refusal:
+        sr.refuse_no_live_integrator("E3.3", seats)
+
+    # Every permutation of the priorities, so each queried batch has its priority moved in at least
+    # one of them (the reversal alone leaves E3.1 where it was).
+    for priorities in itertools.permutations([(3, 0), (3, 1), (3, 2)]):
+        permuted = replace(original, binds=tuple(
+            replace(binding, priority=priority)
+            for binding, priority in zip(original.binds, priorities)))
+        for batch in batches:
+            assert sr.refuse_no_live_integrator(batch, [permuted]) is permuted
+        with pytest.raises(sr.SeatRefusal) as permuted_refusal:
+            sr.refuse_no_live_integrator("E3.3", [permuted])
+        assert str(permuted_refusal.value) == str(original_refusal.value)
 
 
 # --- R5 -- the -DryRun line is the LAST line of dispatcher step 0 (AMEND-BATCH-V-002 s1) -------
