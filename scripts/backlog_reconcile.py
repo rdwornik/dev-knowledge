@@ -961,6 +961,18 @@ def _short_witnesses(held: Sequence[str], limit: int = 3) -> str:
     return shown + (f" (+{len(held) - limit} more)" if len(held) > limit else "")
 
 
+def open_dependency_ids(rows: Sequence[Row]) -> set[str]:
+    """Ids named by the `depends-on:` frontmatter of an open row: closing one of them leaves a
+    dangling dependency, which `validate_backlog` refuses (K1 witness `depends-on of open row`)."""
+    named: set[str] = set()
+    for row in rows:
+        match = _FRONTMATTER_RE.match(row.path.read_text(encoding="utf-8"))
+        value = _frontmatter_value(match.group(1), "depends-on") if match else None
+        if value:
+            named |= set(_CITE_RE.findall(value)) | set(re.findall(r"\[#(\d+)\]", value))
+    return named
+
+
 def _one_line(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "")).strip()
 
@@ -980,6 +992,7 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
     sources = _read_k1_sources(ruling, repo_root, transport_root)
     mapping = ruling["decision_classes"]
     cutoff = ruling["cutoff"]
+    depended_on = open_dependency_ids(rows)
     decisions: dict[str, Decision] = {}
     histogram: dict[str, int] = {}
     old = new = 0
@@ -1017,6 +1030,8 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
             decisions[row.id] = keep("no-add-date")
             continue
         k1 = k1_protected(row.id, source_texts=sources, cited_by_open=entry.get("cited_by_open") or [])
+        if row.id in depended_on:
+            k1.append("depends-on of an open row")
         k1_note = _short_witnesses(k1)
         mapped = mapping[dclass]
         if added < cutoff:

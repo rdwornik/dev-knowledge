@@ -28,6 +28,9 @@ sweep:
     # The architect's step-2 review names rows it found live or wrongly labelled (#1047, #1027,
     # #1600); a row it names stays protected from any class that would close it.
     - {path: to-browser/DIGEST-BACKLOG-REVIEW-STEP2-2026-11-01.md, root: transport}
+    # Q-SW-2 (provisional default A, night order N1): the known-reds registry names owner rows;
+    # closing one fails tests/test_known_reds.py and tests/test_known_reds_owner_rows.py.
+    - {path: logs/KNOWN-REDS-REGISTRY.json, root: repo}
   # Step 2 R-3, as narrowed by Q-SW-1: merge-rewrite is KEPT and listed; keep-* is kept; no priority edits.
   decision_classes:
     close-shipped: shipped
