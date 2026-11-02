@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-02 (j) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the intake landing -- intake 123 (the equilibrium-night CANDIDATEs C-3, C-4, C-5) enters docs/intake/ as a SEED
+
+**Anchors:** `f20039360` (the intake branch's one commit: the SEED doc, README row, manifest node), the landing branch's merge of origin/main (cf7f21ed7) that this landing adds on top.
+
+**Did:** landed the intake branch `docs/intake-equilibrium-c3-c5` @ f20039360 by the one-off hand path of ruling Q-IN-1 = B (`to-browser/DIGEST-RULING-Q-IN-1-2026-11-02.md`): no lane handback exists, so the substitution gate's models-block and launch-receipt legs are waived for f20039360 only. The branch was based on 74715e5b7; origin/main moved, so `docs/intake/README.md` and `docs/intake/manifest.json` conflicted and were resolved by taking main's version and regenerating with `gen_intake_index.py --write` and `gen_intake_tree.py --write` (Q-RG-1 A: the second landing regenerates). [#1864], landed first by the Q-FU-3 follow-up (cf7f21ed7), is the OPEN carrier row that claims the SEED doc, so graph-task-coverage sees it.
+
+**Result:** the integrator receipt (to-browser/SESSION-integrator-E3.1-2026-11-01.md) carries the integration-run verdicts and the waiver record; there is no MERGE-RECEIPTS organ line for a hand landing.
+
+**Changes:** `docs/intake/2026-11-02-tech-equilibrium-candidates-c3-c5.md` (new), `docs/intake/README.md` and `docs/intake/manifest.json` (regenerated).
+
+**Abandoned:** nothing.
+
+**Next:** [#1864] carries the intake to an ADR-111 outcome per item (C-3, C-4, C-5).
+
 ### 2026-11-02 (i) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the tasks-only follow-up, rebuilt (Q-FU-2 option A) -- [#1833] closed, carrier row [#1864] filed for intake 123 with its refs clause, [#1811] touches gains tests/boot_retrieval.py
 
 **Anchors:** `123523b09` (the follow-up's tasks commit: the [#1833] close, [#1864], the [#1811] touches fix), `8963b0340` (the e32-provider-billing landing that delivered [#1833]).
