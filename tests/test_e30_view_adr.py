@@ -26,11 +26,12 @@ def test_adr_exists():
     assert adr_files[0].is_file()
 
 
-def test_adr_status_is_proposed():
-    """The system-view ADR remains proposed before ratification."""
+def test_adr_status_is_accepted():
+    """The system-view ADR is accepted after operator ratification."""
     adr = _only_file("docs/decisions/ADR-*-the-system-view.md", "system-view ADR")
     text = adr.read_text(encoding="utf-8")
-    assert re.search(r"^- \*\*Status:\*\* Proposed\b", text, re.MULTILINE)
+    # Operator ratification of 2026-11-01: to-browser/RATIFICATION-2026-11-01-ADR-133.md.
+    assert re.search(r"^- \*\*Status:\*\* Accepted\b", text, re.MULTILINE)
 
 
 def test_adr_has_decide_sections():

@@ -1,6 +1,6 @@
 # ADR-133: The system view is a pure rendering of what organs compute
 
-- **Status:** Proposed
+- **Status:** Accepted (ADR-94; ratified 2026-11-01 by the operator, to-browser/RATIFICATION-2026-11-01-ADR-133.md)
 - **Date:** 2026-10-31
 - **Decision tier:** Path A -- a `/decide` proposal for operator ratification (R13, ADR-108 section A).
 - **Related:** ADR-106 (declared dependencies), ADR-121 (event log, Proposed), ADR-130 (the outer loop); row 1748 (filed by e30-bootstrap, now in this tree as tasks/1748-the-view-decide-first-then-build.md; it stays open until the build); GO-E3.0 PR-3 (no hand-written prose).
@@ -48,3 +48,22 @@ Nothing is built by this ADR. The build is a later lane that starts only after t
 - **V3 Jinja2 templates:** rejected; a new locked dependency for output the stdlib already produces (2.70).
 - **V4 MDX or a JS build:** rejected; a second toolchain in a repo that records it is not a node app, and a format built for hand-written prose (1.85).
 - **V5 extend scripts/gen_dashboard.py, committed page:** rejected; its page is a committed artifact with no live mode, and the repo's own comment (.gitignore:88 to 90) records that the committed page was once found five days stale, so it cannot serve a live view (2.50).
+
+## Amendment 2026-11-01 (operator ratification)
+
+The operator ratified this ADR as written on 2026-11-01. The decision text above is unchanged; only the status line (ADR-94) and this block changed. The ruling file is `to-browser/RATIFICATION-2026-11-01-ADR-133.md`.
+
+The four points the ADR left open are ruled one by one:
+
+1. **D6 (the CDN renderer): yes.** Pinned CDN Mermaid with SRI, served mode only, source text as fallback.
+2. **Sibling-worktree receipts: yes.** The view reads receipts of sibling lane worktrees too, read-only, each tile naming its checkout.
+3. **D4 (batch-close wiring): yes.** The full leg is wired to batch close (optional, continue_on_failure); the fast leg runs after each runner event once e30-queue-runner is on main.
+4. **The one free-text pair: allowed.** The task title of a row, bounded to 100 characters, marked as source text.
+
+These rulings resolve the text of D2 (a receipt tile names its checkout; this ADR proposed no free-text pair), D4 (the batch-close wiring), D6 (the two points left for the operator) and the paragraph beginning "Open for the operator". That text stays in place unedited as the record of what was asked.
+
+The operator's ruling, verbatim from the ratification file:
+
+```
+Operator, 2026-11-01 - ratification of ADR-133 (the system view, row [#1748]). I ratify ADR-133 as written, with its open points ruled: D6 yes (pinned CDN Mermaid with SRI, served mode only, source text as fallback); the view reads receipts of sibling lane worktrees too, read-only, each tile naming its checkout; D4 yes - the full leg wired to batch close (optional, continue_on_failure), the fast leg after each runner event once e30-queue-runner is on main; one free-text pair allowed: the task title of a row, bounded to 100 characters, marked as source text. Write this verbatim as a RATIFICATION addendum (writer operator, hand step). E3.1 L0 lands ADR-133's status flip to Accepted with the other four. Add the build of ADR-133 to E3.1 wave 1 as a lane on row [#1748] beside L11 (both use the map-diff slot): distil and evaluate its contract as usual, under the shared cap; record the sign-off amendment.
+```

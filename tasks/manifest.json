@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f862b04699dbd94443339da52d84ab160d5962a73927814768d508c0d7baecc7",
+  "generated_sha256": "639ccfe887f80c8dc0639053c04b3ab9a69e1c8523a69765b664ff589b783fd7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3582,6 +3582,18 @@
     {
       "task": 1800,
       "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
+    },
+    {
+      "task": 1811,
+      "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
+    },
+    {
+      "task": 1837,
+      "file": "1837-decide-independent-adjudication-as-code.md"
+    },
+    {
+      "task": 1838,
+      "file": "1838-one-id-one-ruling.md"
     },
     {
       "task": 1841,
