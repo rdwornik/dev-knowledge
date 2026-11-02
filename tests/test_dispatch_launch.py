@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import logging
 import os
 import re
 import shutil
@@ -276,6 +277,66 @@ def test_a_launch_writes_a_receipt_and_a_job_to_lane_record(contract, tmp_path, 
     job = json.loads((receipts / "LAUNCH-JOB-abcd1234.json").read_text(encoding="utf-8"))
     assert job["slug"] == "lane-launch-adapter" and job["job_id"] == "abcd1234"
     assert job["session_id"] == SID and job["batch"] == "wave3"
+
+
+@pytest.mark.parametrize(
+    ("caller", "expected"),
+    [(None, "dispatch-cli"), ("queue_runner", "queue_runner"), ("seat", "seat")],
+)
+def test_a_launch_receipt_records_the_dispatch_caller(
+    contract, tmp_path, receipts, monkeypatch, caller, expected
+):
+    if caller is None:
+        monkeypatch.delenv("DISPATCH_CALLER", raising=False)
+    else:
+        monkeypatch.setenv("DISPATCH_CALLER", caller)
+
+    _launch(_request(contract, batch="E3.0"), tmp_path)
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["caller"] == expected
+
+
+def test_an_unknown_dispatch_caller_defaults_and_logs_a_warning(
+    contract, tmp_path, receipts, monkeypatch, caplog
+):
+    monkeypatch.setenv("DISPATCH_CALLER", "not-a-caller")
+    with caplog.at_level(logging.WARNING):
+        _launch(_request(contract, batch="E3.0"), tmp_path)
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["caller"] == "dispatch-cli"
+    assert "DISPATCH_CALLER" in caplog.text
+
+
+def test_a_repair_launch_receipt_records_the_dispatch_caller(
+    contract, tmp_path, receipts, monkeypatch
+):
+    monkeypatch.setenv("DISPATCH_CALLER", "seat")
+    worktree = tmp_path / ".claude" / "worktrees" / "lane-launch-adapter"
+    worktree.mkdir(parents=True)
+
+    def spawn(argv, env, cwd):
+        return d.Spawned(returncode=0, stdout="backgrounded repair1234\n", pid=4321)
+
+    request = d.RepairRequest(
+        slug="lane-launch-adapter",
+        attempt=1,
+        model="sonnet",
+        effort="high",
+        contract=contract.resolve(),
+        batch="E3.0",
+    )
+    d.repair_lane(
+        request,
+        repo_root=tmp_path,
+        spawn=spawn,
+        prelaunch=lambda *_args, **_kwargs: d.PreLaunch(passed=True),
+    )
+
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["kind"] == "repair"
+    assert receipt["caller"] == "seat"
 
 
 def test_a_dry_run_prints_the_plan_and_starts_nothing(contract, monkeypatch, receipts):
@@ -1037,6 +1098,104 @@ def test_a_pre_launch_whose_organs_all_ran_clears_the_launch(contract, monkeypat
     _organ_receipts(receipts)
     monkeypatch.setattr(d.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""))
     assert d.run_prelaunch(_request(contract, batch="wave3")).passed is True
+
+
+def _install_fake_process_boundary(monkeypatch, *, run=None):
+    calls = []
+
+    def forbidden_run(argv, **kwargs):
+        calls.append(("run", list(argv)))
+        raise AssertionError("provider process boundary was reached")
+
+    def forbidden_popen(argv, **kwargs):
+        calls.append(("Popen", list(argv)))
+        raise AssertionError("provider process boundary was reached")
+
+    monkeypatch.setattr(d.subprocess, "run", run or forbidden_run)
+    monkeypatch.setattr(d.subprocess, "Popen", forbidden_popen)
+    return calls
+
+
+def test_spawn_process_refuses_a_provider_launch_of_a_fixture_contract(tmp_path, monkeypatch, caplog):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): a test fixture contract is never launched.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    argv = [
+        "claude", "--bg", "-n", "a",
+        r"Read and execute the frozen contract at C:\x\tests\fixtures\queue_runner\LANE-a.md",
+    ]
+
+    with pytest.raises(d.LaunchRefused):
+        d.spawn_process(argv, {}, tmp_path)
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert not (tmp_path / ".claude" / "worktrees").exists()
+
+
+@pytest.mark.parametrize(
+    ("provider", "detached", "marker_source"),
+    [("claude", False, "mapping"), ("codex", True, "mapping"), ("copilot", False, "process")],
+)
+def test_spawn_process_refuses_a_provider_launch_under_pytest(
+    tmp_path, monkeypatch, caplog, provider, detached, marker_source
+):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): PYTEST_CURRENT_TEST blocks every provider.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    argv = [provider, "--bg", "ordinary prompt"]
+    env = {}
+    if marker_source == "mapping":
+        env["PYTEST_CURRENT_TEST"] = "test_spawn_process_refuses_a_provider_launch_under_pytest"
+    else:
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "test_spawn_process_refuses_a_provider_launch_under_pytest")
+    log_path = tmp_path / "provider.log" if detached else None
+
+    with pytest.raises(d.LaunchRefused):
+        d.spawn_process(argv, env, tmp_path, log_path=log_path)
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert log_path is None or not log_path.exists()
+
+
+def test_spawn_process_leaves_a_non_provider_argv_alone(tmp_path, monkeypatch):
+    # Dispatcher defect order (E3.0 dispatcher 17:3x, [#1633]): non-provider commands remain permitted.
+    observed = []
+
+    def completed(argv, **kwargs):
+        observed.append((list(argv), kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout="x", stderr="")
+
+    calls = _install_fake_process_boundary(monkeypatch, run=completed)
+    spawned = d.spawn_process([sys.executable, "-c", "print('x')"], {}, tmp_path)
+
+    assert spawned.returncode == 0 and spawned.stdout == "x"
+    assert len(observed) == 1
+    assert calls == []
+
+
+def test_launch_lane_refusal_for_a_fixture_contract_creates_no_worktree(
+    tmp_path, monkeypatch, receipts, caplog
+):
+    # Dispatcher defect order: T1-FIX of T1 eb1c3987; refusal at the process boundary creates no worktree.
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    calls = _install_fake_process_boundary(monkeypatch)
+    contract_path = tmp_path / "tests" / "fixtures" / "queue_runner" / "LANE-a.md"
+    contract_path.parent.mkdir(parents=True)
+    contract_path.write_text(CONTRACT, encoding="utf-8")
+    request = _request(contract_path)
+
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(
+            request, prelaunch=_pass, agents=lambda: [], cwd=tmp_path,
+            environ={"PATH": os.environ.get("PATH", "")}, sleep=lambda _seconds: None,
+        )
+
+    assert calls == []
+    assert "refus" in caplog.text.lower()
+    assert not (tmp_path / ".claude" / "worktrees" / request.slug).exists()
+    assert not d._receipt_path(request.slug).exists()  # no pending intent receipt holds the slug
 
 
 def test_a_pre_launch_with_a_missing_organ_receipt_does_not_clear_the_launch(contract, monkeypatch, receipts):

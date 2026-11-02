@@ -661,6 +661,15 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    "scripts/queue_runner.py": Disposition(
+        reason="KEEP -- the event-driven queue runner (R130, [#1633]): the operator or the "
+               "orchestrator starts `queue_runner.py watch` once per batch and it fires "
+               "`dispatch.py queue` / `repair` on handback, merge and refusal events. The "
+               "trigger is that start, not a census-visible caller: the one edge that would "
+               "show (a `dispatch.py` verb) is barred by the PowerShell shim's help-parity "
+               "test over templates/dispatch-shim.ps1, which this lane does not own. Delete "
+               "this row when the batch order templates or a hook start the runner",
+        owner="[#1633]"),
     "scripts/backlog_reconcile.py": Disposition(
         reason="KEEP -- the per-row backlog reconciliation organ (GO-E3.0 R10, [#1749]): the "
                "operator runs `evidence`, `fanout`, `adjudicate` and `report` by hand and rules "
@@ -1161,6 +1170,12 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
              "parity, FPG-1 `archives` already holds live pairs")),
     "scripts/file_purpose_graph.py": _not_an_edge(_measured(
         "4", "it IS FPG-1; the graph cannot owe a migration onto itself")),
+    # [#1633], e30-queue-runner (E3.0 orchestrator ruling 2026-11-01): a run-time reader, not a corpus edge.
+    "scripts/queue_runner.py": _not_an_edge(
+        "[#1633]: reads run-time state, not corpus structure -- the integrator receipt "
+        "(queue_runner.py:126), the transport inbox listing (:165), its own ledger (:214) and one "
+        "`| Model | Mode | Effort |` cell row of a contract it was handed (:354); nothing resolves a "
+        "path from a document into a corpus file, and it does not use plan_lint's grammar"),
     # ---- not-an-edge: the previously UNVERDICTED population (census section 5, one line each)
     **{f"scripts/{module}.py": _not_an_edge(_measured("5", reason)) for module, reason in (
         ("assemble_paste", "writes PASTE_THIS from a fixed manifest (borderline generation, "
