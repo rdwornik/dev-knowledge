@@ -36,7 +36,7 @@ def _entry(registry, role, provider):
 
 
 def test_the_schema_version_is_1_7_0():
-    assert SCHEMA_VERSION == "1.7.0"
+    assert SCHEMA_VERSION == "1.8.0"
 
 
 def test_a_role_entry_has_substrate_and_paired_with_safe_defaults():
@@ -84,7 +84,7 @@ def test_review_is_a_pair_of_codex_local_and_copilot_codespace(registry):
     codex = _entry(registry, "review", "openai")
     copilot = _entry(registry, "review", "copilot-enterprise")
     assert (codex.model, codex.substrate, codex.paired) == ("gpt-5.6-terra", "local", True)
-    assert (copilot.model, copilot.substrate, copilot.paired) == (None, "codespace", True)
+    assert (copilot.model, copilot.substrate, copilot.paired) == ("gpt-5.6-terra", "codespace", True)
     assert role.excludes_producer is True
 
 

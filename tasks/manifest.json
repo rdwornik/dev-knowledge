@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "50d2b4baf3c80c77cfc8859083d3935d2402ba7ca288cda9c36015de91bff782",
+  "generated_sha256": "f862b04699dbd94443339da52d84ab160d5962a73927814768d508c0d7baecc7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2722,6 +2722,14 @@
     {
       "task": 1847,
       "file": "1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md"
+    },
+    {
+      "task": 1833,
+      "file": "1833-provider-billing-class-a-quota-reader-per-provider-cost-per-metered-call-and-a-daily-budget-refusal.md"
+    },
+    {
+      "task": 1844,
+      "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
     },
     {
       "task": 1433,

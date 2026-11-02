@@ -74,9 +74,9 @@ from __future__ import annotations
 
 import importlib.util
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Collection, Mapping, Optional
 
 import yaml
 
@@ -117,6 +117,9 @@ ADMISSION_GATED_ROLES: frozenset[str] = frozenset({"implement"})
 #: an unruled licence is not a permission.
 PERMITTING_LICENCE = "permitted"
 
+#: [#1833] the pseudo-role under which the registry's `evaluation:` collection is routed.
+EVALUATION_ROLE = "evaluate"
+
 
 class RouterRefusal(RuntimeError):
     """Every refusal this module raises.
@@ -137,6 +140,8 @@ class Candidate:
     position: int
     note: Optional[str] = None
     max_turns_floor: Optional[int] = None
+    #: [#1844] S-1: the entry is a SAME-VENDOR rung that runs in a NEW session (no producer transcript or prose).
+    isolated_session: bool = False
 
 
 @dataclass(frozen=True)
@@ -155,6 +160,7 @@ class Verdict:
     refusal: Optional[str]
     reason: str
     max_turns_floor: Optional[int] = None
+    isolated_session: bool = False
 
 
 def manifest_path(path: Optional[Path] = None) -> Path:
@@ -204,7 +210,9 @@ def declared_order(role: str, registry_path: Optional[Path] = None) -> list[dict
 
 
 def _role_spec(role: str, registry_path: Optional[Path] = None) -> dict[str, Any]:
-    spec = _registry.roles(registry_path).get(role)
+    # [#1833] `evaluate` is the top-level `evaluation:` collection, not a `roles:` key.
+    spec = (_registry.evaluation(registry_path) if role == EVALUATION_ROLE
+            else _registry.roles(registry_path).get(role)) or None
     if spec is None:
         raise RouterRefusal(
             f"role `{role}` is not in the registry; known roles: "
@@ -220,6 +228,8 @@ def explain(
     produced_by: Optional[str] = None,
     registry_path: Optional[Path] = None,
     manifest: Optional[Path] = None,
+    admitted_models: Collection[str] = frozenset(),
+    case_approved: bool = False,
 ) -> list[Verdict]:
     """Every declared candidate for `role` in `repo`, each with its disposition.
 
@@ -244,7 +254,8 @@ def explain(
         provider = str(entry["provider"])
         model = entry.get("model")
         common = dict(provider=provider, model=model, position=position,
-                      max_turns_floor=entry.get("max_turns_floor"))
+                      max_turns_floor=entry.get("max_turns_floor"),
+                      isolated_session=bool(entry.get("isolated_session")))
 
         if provider not in allowed:
             verdicts.append(Verdict(
@@ -268,7 +279,11 @@ def explain(
                 )))
             continue
 
-        if (gated or entry.get("requires_admission")) and not _registry.is_admitted(entry):
+        # `admitted_models` ([#1833] D1): model ids that already have a served shadow-admission record, so an
+        # entry that `requires_admission` is routable on that record before the registry row is flipped.
+        served_admitted = model is not None and model in admitted_models
+        if (gated or entry.get("requires_admission")) and not (
+                _registry.is_admitted(entry) or served_admitted):
             verdicts.append(Verdict(
                 **common, refusal="not-admitted",
                 reason=(
@@ -280,14 +295,26 @@ def explain(
                 )))
             continue
 
-        if excludes_producer and produced_by is not None and provider == produced_by:
+        if entry.get("per_case_only") and not case_approved:
+            verdicts.append(Verdict(
+                **common, refusal="per-case-only",
+                reason=(
+                    f"provider `{provider}` is routable for an operator-approved case only "
+                    f"(R-5: a metered provider is never a standing route; Grok is OFF unless the "
+                    f"operator approves a case). Pass `case_approved=True` for an approved case"
+                )))
+            continue
+
+        if (excludes_producer and produced_by is not None and provider == produced_by
+                and not entry.get("isolated_session")):
             verdicts.append(Verdict(
                 **common, refusal="reviewer-is-producer",
                 reason=(
                     f"provider `{provider}` produced the artifact under review (AX22-2: "
                     f"reviewer != producer, always). The registry sets excludes_producer on "
                     f"this role; the next eligible candidate in the declared order answers "
-                    f"instead"
+                    f"instead. A same-vendor entry is admitted ONLY when it carries "
+                    f"`isolated_session: true` (operator S-1, [#1844])"
                 )))
             continue
 
@@ -303,6 +330,8 @@ def route(
     registry_path: Optional[Path] = None,
     manifest: Optional[Path] = None,
     strict: bool = True,
+    admitted_models: Collection[str] = frozenset(),
+    case_approved: bool = False,
 ) -> list[Candidate]:
     """The eligible candidates for `role` in `repo`, in declared rank order.
 
@@ -318,10 +347,11 @@ def route(
     role later is a registry edit rather than a code change.
     """
     verdicts = explain(role, repo, produced_by=produced_by,
-                       registry_path=registry_path, manifest=manifest)
+                       registry_path=registry_path, manifest=manifest,
+                       admitted_models=admitted_models, case_approved=case_approved)
     eligible = [
         Candidate(provider=v.provider, model=v.model, position=v.position,
-                  max_turns_floor=v.max_turns_floor)
+                  max_turns_floor=v.max_turns_floor, isolated_session=v.isolated_session)
         for v in verdicts if v.refusal is None
     ]
     if eligible or not strict:
@@ -396,6 +426,314 @@ def record_routing_call(
         batch_id=batch_id,
         db_path=db_path,
     )
+
+
+# =============================================================================================
+# [#1833] / [#1844] -- ROUTING UNDER QUOTA (operator S-1, replacing A-3), BUDGETS, BULK, ACCOUNTS
+# =============================================================================================
+#
+# PURE FUNCTIONS OVER READINGS. Nothing here reads a rollout, a statusline or a billing API: the readers are
+# `scripts/quota_watch.py`, and they hand this module plain readings. A Codex reading is any object with the
+# attributes below (read with getattr-default-None, so a reader may grow fields without breaking the router);
+# `None` always means "not read", never zero, and an unread Codex is NOT out (R-4: a launch with no current
+# reading goes ahead and the receipt records `quota: unread`).
+#
+#     status                   "ok" | "unknown"
+#     primary_used_percent     the 5-hour window, 0..100
+#     primary_resets_at        epoch seconds
+#     secondary_used_percent   the weekly window
+#     secondary_resets_at      epoch seconds
+#     secondary_window_minutes defaults to 10080
+#     usage_limit_at           epoch seconds of the newest usage-limit error record
+#     usage_limit_resets_at    epoch seconds that record said the limit lifts, when it said so
+
+#: R-1 window leg: Codex is OUT at or above this primary used-percent while its reset is still in the future.
+CODEX_OUT_PERCENT = 95.0
+#: R-1 pacing leg: weekly usage leading the elapsed fraction of the week by this many points moves review 1 only.
+CODEX_PACING_LEAD_POINTS = 10.0
+#: Operator S-1: the longest any stage waits for a reset. A usable next rung is ALWAYS taken at once; WAIT exists
+#: only when no rung is usable and the reset is this close.
+WAIT_BOUND_SECONDS = 1200.0
+#: What the caller records in the receipt when an isolated same-vendor session runs (S-1).
+ISOLATED_SESSION_MARKER = "ISOLATED-SESSION-SAME-VENDOR"
+#: Roles that never route to an anthropic provider, whatever the registry says (S-1 item 7: evaluation keeps
+#: "never Claude"; the isolated-Claude rung is written for review and judge only).
+NEVER_CLAUDE_ROLES: frozenset[str] = frozenset({EVALUATION_ROLE})
+#: R-3: more than this many units in one dispatch call is bulk work.
+BULK_UNIT_THRESHOLD = 20
+BULK_KINDS: frozenset[str] = frozenset({"aj-extraction"})
+#: R-5.
+COPILOT_PROVIDER = "copilot-enterprise"
+ACTION_ROUTE = "ROUTE"
+ACTION_WAIT = "WAIT"
+ACTION_REFUSED = "REFUSED-NO-ROUTE"
+
+
+def _num(obj: Any, name: str) -> Optional[float]:
+    value = getattr(obj, name, None)
+    return None if value is None else float(value)
+
+
+def _codex_ok(codex: Any) -> bool:
+    return codex is not None and getattr(codex, "status", "ok") != "unknown"
+
+
+def codex_window_out(codex: Any, now: float) -> bool:
+    """R-1 window leg: is Codex OUT right now?
+
+    OUT while the newest rollout's primary window reads 95 % or more with its `resets_at` still in the future, OR
+    a usage-limit record is newer than that `resets_at` (the limit was hit in a window the rollout does not
+    describe) and the record's own reset, when it named one, has not passed. A rollout older than its own
+    `resets_at` counts as reset, and `None` / an unknown reading is never out.
+    """
+    if not _codex_ok(codex):
+        return False
+    used, resets = _num(codex, "primary_used_percent"), _num(codex, "primary_resets_at")
+    if used is not None and used >= CODEX_OUT_PERCENT and resets is not None and resets > now:
+        return True
+    limit_at, limit_resets = _num(codex, "usage_limit_at"), _num(codex, "usage_limit_resets_at")
+    if limit_at is not None and (resets is None or limit_at > resets):
+        return limit_resets is None or limit_resets > now
+    return False
+
+
+def codex_pacing_ahead(codex: Any, now: float) -> bool:
+    """R-1 pacing leg: does weekly usage lead the elapsed share of the week by 10 points or more?"""
+    if not _codex_ok(codex):
+        return False
+    used, resets = _num(codex, "secondary_used_percent"), _num(codex, "secondary_resets_at")
+    if used is None or resets is None:
+        return False
+    window = _num(codex, "secondary_window_minutes") or 10080.0
+    elapsed = min(100.0, max(0.0, (1 - (resets - now) / (window * 60)) * 100))
+    return used - elapsed >= CODEX_PACING_LEAD_POINTS - 1e-9
+
+
+def _codex_reset(codex: Any, now: float) -> Optional[float]:
+    """When the window leg lifts, for the WAIT arithmetic: the LATEST of the primary reset (while the primary is at
+    the out threshold) and the usage-limit record's own, because Codex is back only when every active limit lifts."""
+    candidates = []
+    resets = _num(codex, "primary_resets_at")
+    used = _num(codex, "primary_used_percent")
+    if used is not None and used >= CODEX_OUT_PERCENT and resets is not None and resets > now:
+        candidates.append(resets)
+    limit_at, limit_resets = _num(codex, "usage_limit_at"), _num(codex, "usage_limit_resets_at")
+    limit_active = limit_at is not None and (resets is None or limit_at > resets)   # codex_window_out's own condition
+    if limit_active and limit_resets is not None and limit_resets > now:
+        candidates.append(limit_resets)
+    return max(candidates) if candidates else None
+
+
+@dataclass(frozen=True)
+class ProviderState:
+    """One provider's usability right now, as a reader reported it. A provider with no state is usable."""
+
+    usable: bool = True
+    reason: Optional[str] = None
+    resets_at: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class RouteDecision:
+    """The answer of `route_under_quota`: take a rung now, wait a bounded time, or refuse with the facts.
+
+    `rungs` is every usable candidate in order (so the evaluation PAIR is visible), `candidate` is `rungs[0]` for a
+    ROUTE, `reasons` maps `provider/model` to why each skipped rung was skipped, `resets_at` is the soonest known
+    reset among the unusable rungs, and `trigger` names the fallback rule that skipped Codex.
+    """
+
+    action: str
+    role: str
+    candidate: Optional[Candidate] = None
+    rungs: tuple[Candidate, ...] = ()
+    resets_at: Optional[float] = None
+    reasons: dict[str, str] = field(default_factory=dict)
+    trigger: Optional[str] = None
+    marker: Optional[str] = None
+
+
+def route_under_quota(
+    role: str,
+    repo: str,
+    *,
+    now: float,
+    codex: Any = None,
+    states: Optional[Mapping[str, ProviderState]] = None,
+    produced_by: Optional[str] = None,
+    admitted_models: Collection[str] = frozenset(),
+    case_approved: bool = False,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
+) -> RouteDecision:
+    """Operator S-1 on [#1833]'s R-1 legs: who answers for `review`, `judge` or `evaluate` NOW.
+
+    Walks the role's eligible entries in declared order (every existing gate still applies: allowlist, licence,
+    admission, per-case, producer exclusion) and returns the FIRST USABLE rung at once, whatever any reset time is.
+    Codex is skipped while its window leg holds (any role) or, for `review` alone, while its pacing leg holds.
+    A provider whose `ProviderState` is unusable is skipped. Only when NO rung is usable does time matter: a known
+    reset 20 minutes away or less is a bounded WAIT, anything else is REFUSED-NO-ROUTE carrying the role, the
+    soonest reset and each skipped rung's reason -- never an unbounded wait.
+    """
+    states = states or {}
+    verdicts = explain(role, repo, produced_by=produced_by, registry_path=registry_path, manifest=manifest,
+                       admitted_models=admitted_models, case_approved=case_approved)
+    window_out = codex_window_out(codex, now)
+    pacing = role == "review" and codex_pacing_ahead(codex, now)
+    codex_reset = _codex_reset(codex, now) if window_out else None
+
+    reasons: dict[str, str] = {}
+    resets: list[float] = []
+    rungs: list[Candidate] = []
+    trigger: Optional[str] = None
+    for v in verdicts:
+        key = f"{v.provider}/{v.model or 'default'}"
+        if v.refusal is not None:
+            reasons[key] = f"{v.refusal}: {v.reason}"
+            continue
+        if role in NEVER_CLAUDE_ROLES and v.provider == "anthropic":
+            reasons[key] = f"role `{role}` never routes to Claude (operator S-1 item 7)"
+            continue
+        if v.provider == "openai" and window_out:
+            trigger = trigger or "codex_quota.window"
+            reasons[key] = "Codex is out: primary window at 95% or more, or a newer usage-limit record (R-1 window leg)"
+            if codex_reset is not None:
+                resets.append(codex_reset)
+            continue
+        if v.provider == "openai" and pacing:
+            trigger = trigger or "codex_quota.pacing"
+            reasons[key] = "Codex weekly usage leads the elapsed week by 10 points or more (R-1 pacing leg: review 1 only)"
+            continue
+        state = states.get(v.provider)
+        if state is not None and not state.usable:
+            reasons[key] = state.reason or f"provider `{v.provider}` is unusable right now"
+            if state.resets_at is not None and state.resets_at > now:
+                resets.append(state.resets_at)
+            continue
+        rungs.append(Candidate(provider=v.provider, model=v.model, position=v.position,
+                               max_turns_floor=v.max_turns_floor, isolated_session=v.isolated_session))
+    soonest = min(resets) if resets else None
+    if rungs:
+        chosen = rungs[0]
+        marker = (ISOLATED_SESSION_MARKER
+                  if chosen.isolated_session and produced_by is not None and chosen.provider == produced_by
+                  else None)
+        return RouteDecision(ACTION_ROUTE, role, chosen, tuple(rungs), soonest, reasons, trigger, marker)
+    if soonest is not None and soonest - now <= WAIT_BOUND_SECONDS:
+        return RouteDecision(ACTION_WAIT, role, None, (), soonest, reasons, trigger, None)
+    return RouteDecision(ACTION_REFUSED, role, None, (), soonest, reasons, trigger, None)
+
+
+# --- budgets (R-5) --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class BudgetVerdict:
+    allowed: bool
+    reason: str
+
+
+def _billing(provider: str, registry_path: Optional[Path]) -> dict[str, Any]:
+    return (_registry.providers(registry_path).get(provider) or {}).get("billing") or {}
+
+
+def check_budget(
+    provider: str,
+    *,
+    requested_usd: float = 0.0,
+    spent_today_usd: float = 0.0,
+    case_cap_usd: Optional[float] = None,
+    mtd_credits: Optional[float] = None,
+    requested_credits: float = 0.0,
+    approved: bool = False,
+    registry_path: Optional[Path] = None,
+) -> BudgetVerdict:
+    """R-5: may this provider take a call of this size today? Read from the registry's `billing:` block.
+
+    * `metered` (xai): the day's budget is the approved case's cap, else `default_usd` (0). A cap above
+      `per_case_cap_usd` is refused. A budget of 0 refuses EVERY call. Refused when today's spend plus the request
+      would pass the budget.
+    * `copilot-enterprise`: refused when month-to-date plus the request would pass
+      `refuse_noncritical_when_mtd_above` (25,000 credits) without operator `approved`; an unread month-to-date is
+      allowed and SAYS so ("unread"), because R-4 sends a launch ahead on no reading.
+    * a flat subscription is allowed.
+    """
+    billing = _billing(provider, registry_path)
+    klass = billing.get("class")
+    budget = billing.get("daily_budget") or {}
+    if klass == "metered":
+        default = float(budget.get("default_usd") or 0.0)
+        per_case = budget.get("per_case_cap_usd")
+        if case_cap_usd is not None and per_case is not None and case_cap_usd > float(per_case):
+            return BudgetVerdict(False, f"case cap ${case_cap_usd:g} exceeds the per-case ceiling ${float(per_case):g} for `{provider}`")
+        day = float(case_cap_usd) if case_cap_usd is not None else default
+        if day <= 0:
+            return BudgetVerdict(False, f"`{provider}` is metered with a ${day:g} daily budget: every call is refused until the operator approves a case")
+        if spent_today_usd + requested_usd > day + 1e-12:
+            return BudgetVerdict(False, f"`{provider}` call of ${requested_usd:g} on ${spent_today_usd:g} spent today passes the ${day:g} daily budget")
+        return BudgetVerdict(True, f"within the ${day:g} daily budget for `{provider}`")
+    if klass == "subscription-employer" and budget.get("refuse_noncritical_when_mtd_above") is not None:
+        ceiling = float(budget["refuse_noncritical_when_mtd_above"])
+        if mtd_credits is None:
+            return BudgetVerdict(True, f"`{provider}` month-to-date credits unread: the launch goes ahead (R-4)")
+        if mtd_credits + requested_credits > ceiling and not approved:
+            return BudgetVerdict(False, f"`{provider}` month-to-date {mtd_credits:g} + {requested_credits:g} credits passes {ceiling:g}: overage needs operator approval")
+        return BudgetVerdict(True, f"`{provider}` month-to-date {mtd_credits:g} credits within {ceiling:g}")
+    return BudgetVerdict(True, f"`{provider}` is a flat subscription: no per-call budget")
+
+
+def enforce_budget(provider: str, **kwargs: Any) -> BudgetVerdict:
+    """`check_budget`, raising `RouterRefusal` when the call is not allowed."""
+    verdict = check_budget(provider, **kwargs)
+    if not verdict.allowed:
+        raise RouterRefusal(verdict.reason)
+    return verdict
+
+
+# --- bulk work (R-3) ------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class BulkDecision:
+    action: str
+    provider: str
+    model: Optional[str] = None
+    resets_at: Optional[float] = None
+
+
+def bulk_route(*, kind: str, batch_units: int, agy: ProviderState = ProviderState()) -> BulkDecision:
+    """R-3: bulk work (an AJ extraction, or more than 20 units in one dispatch call) waits for its own provider's
+    reset and NEVER falls back into the anthropic pool. A single read with agy out may fall back to Haiku."""
+    bulk = kind in BULK_KINDS or batch_units > BULK_UNIT_THRESHOLD
+    if agy.usable:
+        return BulkDecision(ACTION_ROUTE, "antigravity", None, None)
+    if bulk:
+        return BulkDecision(ACTION_WAIT, "antigravity", None, agy.resets_at)
+    return BulkDecision(ACTION_ROUTE, "anthropic", _registry.anthropic_role_model("read"), None)
+
+
+# --- accounts (D4) --------------------------------------------------------------------------
+
+def select_account(
+    accounts: Optional[list[Mapping[str, Any]]],
+    seat: str,
+    *,
+    quota_for: Optional[Callable[[Mapping[str, Any]], Optional[tuple[Optional[float], Optional[float]]]]] = None,
+) -> Optional[Mapping[str, Any]]:
+    """D4: the first ACTIVE account that serves `seat` and has headroom, else None.
+
+    An inactive account is never returned, however much headroom it has: drafted accounts are inert until a ruling
+    activates them. `quota_for(account)` returns `(five_hour_pct, seven_day_pct)`; either may be None (unread, so
+    not a reason to skip, R-4), and so may the whole return.
+    """
+    for account in accounts or ():
+        if not account.get("active"):
+            continue
+        seats = list(account.get("seats") or ())
+        if seat not in seats and "*" not in seats:
+            continue
+        reading = quota_for(account) if quota_for is not None else None
+        if reading is not None and any(v is not None and v >= CODEX_OUT_PERCENT for v in reading):
+            continue
+        return account
+    return None
 
 
 # =============================================================================================

@@ -813,3 +813,69 @@ def test_r1536_sonnet_5_5_prices_positive_usd():
     cost = lc.price_usage("claude-sonnet-5-5", usage)
     assert cost.is_priced, cost.unpriced_reason
     assert cost.usd > 0
+
+
+def test_e32_provider_usage_units_convert_nano_aiu_and_xai_ticks():
+    """Done-contract E1: provider-native cost units convert without a rounded integer step."""
+    assert lc.copilot_credits(1_250_000_000) == pytest.approx(1.25)
+    assert lc.xai_usd(125_000_000) == pytest.approx(0.0125)
+
+
+def test_e32_metered_call_records_preserve_served_model_and_units():
+    """Done-contract E2: metered calls record native cost and explicit model verification state."""
+    copilot = lc.metered_call_record(
+        "copilot-enterprise",
+        {"totalNanoAiu": 2_500_000_000},
+        served_model="gpt-6-luna",
+    )
+    assert copilot["served_model"] == "gpt-6-luna"
+    assert copilot["credits"] == pytest.approx(2.5)
+    xai = lc.metered_call_record("xai", {"costUsdTicks": 125_000_000}, served_model=None)
+    assert xai["served_model"] == "UNVERIFIED (R9)"
+    assert xai["usd"] == pytest.approx(0.0125)
+    for provider in ("openai", "anthropic", "antigravity"):
+        flat = lc.metered_call_record(provider, {}, served_model=None)
+        assert flat["served_model"] == "UNVERIFIED (R9)"
+        assert "credits" not in flat
+        assert "usd" not in flat
+
+
+@pytest.mark.parametrize(
+    ("provider", "usage"),
+    [
+        ("copilot-enterprise", {}),
+        ("xai", {}),
+        ("unknown-provider", {"totalNanoAiu": 100}),
+    ],
+)
+def test_e32_metered_call_record_refuses_missing_or_unknown_cost_sources(provider, usage):
+    """Done-contract E2: missing native cost data and unknown vendors are never recorded as zero."""
+    with pytest.raises(lc.CostError, match=provider):
+        lc.metered_call_record(provider, usage, served_model="model")
+
+
+def test_e32_sonnet_5_5_prices_one_hour_cache_at_the_official_row():
+    """Done-contract E3 clause 5: Sonnet's official input/output/cache rates total $0.067."""
+    usage = lc.TokenUsage(
+        input_tokens=1000,
+        output_tokens=500,
+        cache_write_tokens=10000,
+        cache_read_tokens=200000,
+        calls=1,
+    )
+    cost = lc.price_usage("claude-sonnet-5-5", usage)
+    assert cost.usd == pytest.approx(0.067)
+
+
+def test_e32_haiku_prices_a_small_context_request_at_the_low_tier():
+    """Done-contract E3 clause 5: Haiku's <=100k tier prices each token class explicitly."""
+    usage = lc.TokenUsage(
+        input_tokens=1000,
+        output_tokens=500,
+        cache_write_tokens=10000,
+        cache_read_tokens=200000,
+        calls=1,
+    )
+    expected = (1000 * 0.10 + 500 * 0.50 + 10000 * 0.20 + 200000 * 0.01) / 1e6
+    cost = lc.price_usage("claude-haiku-5-5", usage)
+    assert cost.usd == pytest.approx(expected)

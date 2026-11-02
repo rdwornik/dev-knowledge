@@ -506,6 +506,56 @@ def price_usage(model: str, usage: TokenUsage,
         cache_read_tokens=usage.cache_read_tokens))
 
 
+# --- metered calls (R-6) -----------------------------------------------------------------
+
+#: Provider-NATIVE cost units, not rates: the Copilot usage file reports `totalNanoAiu` (1e9 nano-AIU = 1 AI credit,
+#: and 1 credit = USD 0.01 -- GitHub), and the xAI `usage.json` reports `costUsdTicks` in 1e-10 USD. These convert a
+#: recorded unit to the unit the budget is written in; they price nothing, which is why they are named here and not
+#: read from the registry (the dollar RATES stay in `ecosystem/provider-registry.yaml`).
+NANO_AIU_PER_CREDIT = 1_000_000_000
+USD_PER_COST_TICK = 1e-10
+
+#: What a receipt says when the served model could not be read from the tool's own log (R9: Codex judge).
+UNVERIFIED_SERVED_MODEL = "UNVERIFIED (R9)"
+
+#: Providers whose calls are flat (subscription): they record the served model and NO `usd` / `credits`.
+FLAT_PROVIDERS: frozenset[str] = frozenset({"openai", "anthropic", "antigravity"})
+
+
+def copilot_credits(total_nano_aiu: float) -> float:
+    """Copilot AI credits from the usage file's `totalNanoAiu`."""
+    return float(total_nano_aiu) / NANO_AIU_PER_CREDIT
+
+
+def xai_usd(cost_usd_ticks: float) -> float:
+    """USD from the xAI usage file's `costUsdTicks`."""
+    return float(cost_usd_ticks) * USD_PER_COST_TICK
+
+
+def metered_call_record(provider: str, usage: dict, *, served_model: Optional[str]) -> dict:
+    """R-6: the record one call leaves -- `served_model` always, plus `credits` (Copilot) or `usd` (xAI).
+
+    A non-flat call whose usage lacks its native cost field RAISES `CostError` naming the provider: a metered call
+    that recorded nothing would pass any daily budget, and an unknown provider is not assumed flat.
+    """
+    record = {"provider": provider, "served_model": served_model or UNVERIFIED_SERVED_MODEL}
+    if provider in FLAT_PROVIDERS:
+        return record
+    if provider == "copilot-enterprise":
+        field, convert, key = "totalNanoAiu", copilot_credits, "credits"
+    elif provider == "xai":
+        field, convert, key = "costUsdTicks", xai_usd, "usd"
+    else:
+        raise CostError(f"provider {provider!r} is neither a flat subscription provider nor a known metered one; "
+                        f"refusing to record a call with no cost basis")
+    value = (usage or {}).get(field)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise CostError(f"{provider} call carries no `{field}` in its usage record: a metered call is recorded with "
+                        f"its cost (R-6), never as zero")
+    record[key] = convert(value)
+    return record
+
+
 @dataclass(frozen=True)
 class LaneCost:
     """One lane's tokens and money, itemised per model. The cost half of the lane receipt."""
