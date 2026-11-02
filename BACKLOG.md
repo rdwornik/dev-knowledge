@@ -720,7 +720,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1845] [P1][M] seat_registry: an integrator seat holds a SET of batch binds; refuse_no_live_integrator checks membership · tasks/1845-seat-registry-an-integrator-seat-holds-a-set-of-batch-binds-refuse-no-live-integrator-checks.md
 - [#1846] [P2][M] config-only lane class: a pin/version/config diff lands on three kept checks, enforced by code · tasks/1846-config-only-lane-class-a-pin-version-config-diff-lands-on-three-kept-checks-enforced-by-code.md
 - [#1847] [P1][L] batch close compares the merge clock and the lane clock with their targets; a missed target queues the next line-throughput /decide by code · tasks/1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md
-- [#1833] [P1][L] Provider billing class, a quota reader per provider, cost per metered call and a daily-budget refusal · tasks/1833-provider-billing-class-a-quota-reader-per-provider-cost-per-metered-call-and-a-daily-budget-refusal.md
 - [#1844] [P1][M] provider_router: S-1 review/judge fallback ends in an isolated Claude session · tasks/1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md
 - [#1433] [P2][M] A background seat has no sanctioned way to fill a handoff bundle · tasks/1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md
 - [#1434] [P2][M] ADR-129's 120-second handoff preflight bound does not hold on the operator's laptop · tasks/1434-adr-129-s-120-second-handoff-preflight-bound-does-not-hold-on-the-operator-s-lap.md
@@ -744,6 +743,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
 - [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
 - [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
+- [#1864] [P2][S] Carry intake 123 — the equilibrium-night CANDIDATEs C-3, C-4, C-5 — to an ADR-111 outcome per item · tasks/1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md
 - [#1510] [P3][S] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned · tasks/1510-lane-bw-1001-hook-launcher-has-no-consumer.md
 - [#1511] [P3][S] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned · tasks/1511-lane-bw-1001-sessionstart-one-has-no-consumer.md
 - [#1512] [P3][S] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned · tasks/1512-lane-bw-1103-registry-repoint-has-no-consumer.md
@@ -932,7 +932,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1743] [P2][S] check_routine_uv_pin unwired, fate 11-09 · tasks/1743-uv-pin-fate.md
 - [#1745] [P3][M] STRENGTHEN the 43 NO-OUTCOME test nodes (no assertion-bearing call) - add an explicit assertion, remove none · tasks/1745-strengthen-the-43-no-outcome-test-nodes.md
 - [#1747] [P2][M] `ci_verdict.py` reads the retired suite-gate block on its no-baseline path and reports registry members as new reds · tasks/1747-ci-verdict-reads-the-retired-suite-gate-block.md
-- [#1748] [P2][M] the view: /decide first, then build · tasks/1748-the-view-decide-first-then-build.md
 - [#1749] [P2][M] the backlog per-row reconciliation organ (GO-E3.0 R10), after L2 · tasks/1749-the-backlog-per-row-reconciliation-organ.md
 - [#1800] [P2][M] The commit-gate job goes green: the 10 graph-orphan-census findings get true dispositions and ARCHITECTURE.md a real review · tasks/1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md
 - [#1811] [P1][M] E3.1's structural decisions are ADRs at their ratified status · tasks/1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md
