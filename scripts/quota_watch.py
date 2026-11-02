@@ -608,6 +608,10 @@ def read_codex_rate_limits(sessions_dir: Path, *, now: float) -> CodexReading:
         return CodexReading()
     primary = (limits or {}).get("primary") or {}
     secondary = (limits or {}).get("secondary") or {}
+    figures = [_as_float(primary.get("used_percent")), _as_float(primary.get("resets_at")),
+               _as_float(secondary.get("used_percent")), _as_float(secondary.get("resets_at")), usage_at]
+    if all(f is None for f in figures):
+        return CodexReading()           # rate_limits dicts with no readable number say nothing: unknown, not ok
     return CodexReading(
         status="ok",
         primary_used_percent=_as_float(primary.get("used_percent")),
@@ -630,6 +634,11 @@ class CreditReading:
 def read_copilot_credits_mtd(data: dict) -> CreditReading:
     """Copilot AI credits month-to-date. `parse_copilot_credits` raises when the seat carries no bounded snapshot;
     this reader reports `unknown` instead, because the caller is a router that must keep routing."""
+    snap = ((data or {}).get("quota_snapshots") or {}).get("premium_interactions") or {}
+    for key in ("credits_used", "entitlement"):
+        value = snap.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return CreditReading()      # a snapshot missing a figure is unread, never a fabricated 0.0
     try:
         used, entitlement = parse_copilot_credits(data or {})
     except QuotaWatchError:

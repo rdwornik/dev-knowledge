@@ -1317,3 +1317,14 @@ def test_e32_account_selection_skips_inactive_and_quota_exhausted_accounts(route
     assert router.select_account(
         live_accounts, "review", quota_for=lambda account: (97.0, None)
     ) is None
+
+
+def test_e32_an_already_elapsed_reset_never_produces_a_wait(router):
+    """Review finding (argon, MAJOR): a past `resets_at` on an unusable provider is not a reset to wait for."""
+    codex = _e32_codex(primary_used_percent=97, primary_resets_at=_E32_NOW + 7200)
+    past = _E32_NOW - 600
+    states = {p: router.ProviderState(usable=False, reason="quota", resets_at=past)
+              for p in ("copilot-enterprise", "anthropic", "antigravity")}
+    decision = router.route_under_quota("evaluate", ".dev-knowledge", now=_E32_NOW, codex=codex,
+                                        states=states, produced_by="anthropic")
+    assert decision.action != "WAIT"

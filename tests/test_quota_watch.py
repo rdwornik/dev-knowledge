@@ -726,3 +726,19 @@ def test_e32_billing_status_lines_never_turn_unread_values_into_zero():
     assert qw.ultra_verified_line(True) == "ULTRA-VERIFIED yes"
     assert qw.ultra_verified_line(False) == "ULTRA-VERIFIED no"
     assert qw.ultra_verified_line(None) == "ULTRA-VERIFIED unread"
+
+
+def test_e32_copilot_credit_reader_is_unknown_when_a_snapshot_figure_is_missing():
+    """Review finding (terra, MAJOR): a bounded snapshot missing a figure is unread, never a fabricated 0.0."""
+    for snap in ({"credits_used": 10}, {"entitlement": 22500}, {"credits_used": None, "entitlement": 5}):
+        reading = qw.read_copilot_credits_mtd({"quota_snapshots": {"premium_interactions": snap}})
+        assert reading.status == "unknown"
+        assert reading.credits_used is None and reading.entitlement is None
+
+
+def test_e32_codex_reader_is_unknown_when_rate_limit_dicts_carry_no_number(tmp_path):
+    """Review finding (argon, MINOR): empty primary/secondary dicts say nothing, so the status is unknown."""
+    sessions = tmp_path / "sessions"
+    _e32_write_rollout(sessions / "rollout-one.jsonl", [
+        {"payload": {"type": "token_count", "rate_limits": {"primary": {}, "secondary": {"used_percent": "n/a"}}}}])
+    assert qw.read_codex_rate_limits(sessions, now=_E32_NOW).status == "unknown"

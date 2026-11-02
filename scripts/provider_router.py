@@ -600,7 +600,7 @@ def route_under_quota(
         state = states.get(v.provider)
         if state is not None and not state.usable:
             reasons[key] = state.reason or f"provider `{v.provider}` is unusable right now"
-            if state.resets_at is not None:
+            if state.resets_at is not None and state.resets_at > now:
                 resets.append(state.resets_at)
             continue
         rungs.append(Candidate(provider=v.provider, model=v.model, position=v.position,
