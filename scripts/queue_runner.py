@@ -231,6 +231,11 @@ class Ledger:
                 # would let a fired event look unseen after a restart.
                 raise LedgerHalt(f"ledger {self.path} line {number} has no usable `key` and `status`; "
                                  "nothing fires")
+            if row["status"] not in _SEEN_STATUSES:
+                # seen() only honours the known statuses, so an unknown one would read as unseen and a
+                # restart could refire the event it records (judge NQ-J7770005).
+                raise LedgerHalt(f"ledger {self.path} line {number} has unknown status {row['status']!r}; "
+                                 "nothing fires")
             self.rows.append(row)
 
     def writable(self) -> bool:
