@@ -1581,3 +1581,43 @@ def test_sweep_r_no_priority_edits_and_label_differences_listed(tmp_path):
         "- [#1361] filed=P1 sonnet=P2 gemini=P1",
         "- [#1362] filed=P3 sonnet=P1 gemini=P2",
     ]
+
+
+def test_sweep_s_archived_body_row_is_kept_open(tmp_path):
+    tasks = [
+        {"id": 1901, "add_date": "2026-08-01"},
+        {"id": 1902, "add_date": "2026-08-01"},
+    ]
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    archived_body = tasks_dir / "archive" / "1902.md"
+    archived_body.parent.mkdir()
+    archived_body.write_text("Archived task body.\n", encoding="utf-8", newline="\n")
+    archived_task = _sweep_file(tasks_dir, 1902)
+    archived_bytes = archived_task.read_bytes()
+    ruling, transport = _sweep_ruling(tmp_path)
+    table = tmp_path / "step1.json"
+    table.write_text(
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}, indent=2),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    result = br.run_sweep(
+        ruling_path=ruling,
+        table_path=table,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=tmp_path / "sweep-home",
+        transport_root=transport,
+        today=_SWEEP_TODAY,
+        evidence_sha="a" * 40,
+    )
+
+    assert [(row["id"], row["class"]) for row in result.closed] == [
+        ("1901", "legacy-sweep")
+    ]
+    assert result.kept["archived-body"] == ["1902"]
+    assert all(row["id"] != "1902" for row in result.closed)
+    assert archived_task.read_bytes() == archived_bytes
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert any(node.get("task") == 1902 for node in manifest["nodes"])
