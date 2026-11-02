@@ -908,3 +908,119 @@ def test_the_lock_flake_disposition_is_not_vacuous(tmp_path, monkeypatch):
                                             tmp_path=tmp_path / str(index),
                                             monkeypatch=monkeypatch, namespace=namespace)
         assert problems, f"{witness} passed the fixed-at-cause leg"
+
+
+def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_caller():
+    from datetime import date
+    import re
+
+    paths = (
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
+        "scripts/claim.py",
+        "scripts/harness_probes.py",
+        "scripts/read_gate.py",
+        "scripts/row_close.py",
+        "scripts/startup_probe.py",
+        "scripts/system_map.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    )
+    manual_until_paths = {
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
+        "scripts/startup_probe.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    }
+    harness = REPO_ROOT / "ecosystem" / "harness.yaml"
+    harness_text = harness.read_text(encoding="utf-8") if harness.is_file() else ""
+    failures = []
+    for path in paths:
+        disposition = gq.ORPHAN_DISPOSITIONS.get(path)
+        if disposition is None:
+            failures.append(f"{path}: missing disposition")
+            continue
+        if not disposition.owner:
+            failures.append(f"{path}: empty owner")
+
+        reason = disposition.reason
+        if path == "scripts/harness_probes.py":
+            harness = REPO_ROOT / "ecosystem" / "harness.yaml"
+            if "operator GO" not in reason:
+                failures.append(f"{path}: reason lacks 'operator GO'")
+            if "ecosystem/harness.yaml" not in reason or not harness.is_file() \
+                    or path not in harness.read_text(encoding="utf-8"):
+                failures.append(f"{path}: reason lacks a valid ecosystem/harness.yaml caller")
+            continue
+
+        if path in manual_until_paths:
+            match = re.match(r"^NO-CALLER: manual_until ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\s|$)",
+                             reason)
+            if not match:
+                failures.append(f"{path}: reason must start with 'NO-CALLER: manual_until <date>'")
+                manual_date = None
+            else:
+                manual_date = match.group(1)
+                try:
+                    date.fromisoformat(manual_date)
+                except ValueError:
+                    failures.append(f"{path}: invalid manual_until date {manual_date}")
+                    manual_date = None
+                remainder = reason[match.end():]
+                if re.search(r"\b[\w.-]+\.[A-Za-z0-9_-]+\b", remainder):
+                    failures.append(f"{path}: NO-CALLER reason names a caller file")
+            matching_rows = [
+                line for line in harness_text.splitlines()
+                if f"path: {path}" in line and "manual_until:" in line
+            ]
+            if not matching_rows:
+                failures.append(f"{path}: ecosystem/harness.yaml has no manual_until row")
+            elif manual_date and not any(
+                    f"manual_until: {manual_date}" in line for line in matching_rows):
+                failures.append(
+                    f"{path}: ecosystem/harness.yaml has no same-line manual_until {manual_date}"
+                )
+            continue
+
+        expected = path.removeprefix(".claude/") if path.startswith(
+            ".claude/commands/") else path
+        callers = []
+        for candidate in re.findall(
+                r"(?<![\w.-])(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9_-]+", reason):
+            candidate_path = REPO_ROOT / candidate
+            try:
+                candidate_path.resolve().relative_to(REPO_ROOT.resolve())
+            except ValueError:
+                continue
+            if candidate != path and candidate_path.is_file() \
+                    and expected in candidate_path.read_text(encoding="utf-8"):
+                if candidate == "ecosystem/harness.yaml":
+                    # A fates row is a caller only when it records one (`called_by:`). A bare
+                    # path mention or a `manual_until:` row is not a caller (operator ruling D).
+                    row = [ln for ln in harness_text.splitlines() if f"path: {path}" in ln]
+                    if not any("called_by:" in ln for ln in row):
+                        continue
+                callers.append(candidate)
+        if not callers:
+            failures.append(f"{path}: reason names no existing caller whose text names it")
+        if path == "scripts/read_gate.py" and "protocols/HANDOFF_BOOT.md" not in callers:
+            failures.append(f"{path}: reason must name protocols/HANDOFF_BOOT.md as a caller")
+
+    assert not failures, "Invalid ORPHAN_DISPOSITIONS:\n" + "\n".join(failures)
+
+
+def test_the_no_caller_organs_stay_visible_to_the_census_and_are_never_reached(live_store):
+    """Operator ruling D: the manual_until organs are never counted as callers. With the
+    register emptied, the census still flags each one -- no wiring surface reaches it."""
+    no_caller = {
+        ".claude/commands/decide.md",
+        ".claude/commands/map.md",
+        "scripts/startup_probe.py",
+        "scripts/task_record.py",
+        "scripts/test_census.py",
+    }
+    for path in no_caller:
+        assert gq.ORPHAN_DISPOSITIONS[path].reason.startswith("NO-CALLER: manual_until ")
+    flagged = {f.subject for f in gq.orphan_census(REPO_ROOT, live_store, dispositions={})}
+    assert no_caller <= flagged, f"reached by a wiring surface: {no_caller - flagged}"

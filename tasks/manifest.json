@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6d1e9baabe50fa92d794d56774175af942c8ba50005c8b2969da274d60ec99c7",
+  "generated_sha256": "50d2b4baf3c80c77cfc8859083d3935d2402ba7ca288cda9c36015de91bff782",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3572,6 +3572,10 @@
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
     },
     {
+      "task": 1800,
+      "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
+    },
+    {
       "task": 1811,
       "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
     },
@@ -3582,6 +3586,18 @@
     {
       "task": 1838,
       "file": "1838-one-id-one-ruling.md"
+    },
+    {
+      "task": 1841,
+      "file": "1841-wire-startup-probe-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1842,
+      "file": "1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md"
+    },
+    {
+      "task": 1843,
+      "file": "1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md"
     },
     {
       "task": 1848,
