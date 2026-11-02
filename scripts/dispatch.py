@@ -1050,6 +1050,29 @@ def _pre_launch_gaps(hub: Path) -> list[str]:
     return gaps
 
 
+_PROVIDER_HEADS = frozenset({"claude", "codex", "copilot"})
+
+
+def _refuse_test_launch(argv: Sequence[str], env: Mapping[str, str], cwd: Path) -> None:
+    """Refuse to start a REAL provider session from a test (dispatcher defect order, [#1633]).
+
+    A fixture contract once launched a live `claude --bg` lane because a test fired the real
+    `dispatch.py queue`. The one exec point refuses a provider head when (a) the pytest marker is in the
+    env the child would inherit (or this process's own), or (b) the argv or the cwd names a
+    `tests/fixtures/` path (the contract path rides inside the prompt argument). Nothing is spawned and
+    no worktree is created. A non-provider argv is untouched."""
+    if not argv or Path(str(argv[0])).stem.lower() not in _PROVIDER_HEADS:
+        return
+    if "PYTEST_CURRENT_TEST" in env or "PYTEST_CURRENT_TEST" in os.environ:
+        why = "PYTEST_CURRENT_TEST is set: a test must not start a real provider session"
+    elif any("tests/fixtures/" in str(part).replace("\\", "/") for part in (*argv, cwd)):
+        why = "the launch names a tests/fixtures/ path: a fixture contract is never launched"
+    else:
+        return
+    logger.error("refusing to spawn %s: %s", argv[0], why)
+    raise LaunchRefused(f"refusing to spawn {argv[0]}: {why}")
+
+
 def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
                   log_path: Optional[Path] = None) -> Spawned:
     """THE process boundary -- the one place a provider is started, and the one thing tests replace.
@@ -1058,6 +1081,7 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
     prints its job id and exits). With one, the child is DETACHED with its stdout in that file and
     this returns at once with its pid (`codex exec` runs for the length of the lane). Nothing here
     keeps a handle that could later end the child."""
+    _refuse_test_launch(argv, env, cwd)
     if log_path is None:
         done = subprocess.run(list(argv), env=dict(env), cwd=str(cwd), capture_output=True,
                               text=True, encoding="utf-8", errors="replace")
@@ -1336,6 +1360,11 @@ def launch_lane(request: LaunchRequest, *,
         began = time.time()
         try:
             started = spawn(request.argv, env, cwd, log_path) if detached else spawn(request.argv, env, cwd)
+        except LaunchRefused:
+            # The spawn boundary refused (e.g. a test-context guard): no lane started, so the intent
+            # receipt must not linger and hold the slug.
+            _receipt_path(request.slug).unlink(missing_ok=True)
+            raise
         except OSError as exc:
             _receipt_path(request.slug).unlink(missing_ok=True)
             raise LaunchRefused(f"{request.argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
@@ -1414,6 +1443,25 @@ def planned_model(argv: Sequence[str]) -> str:
 #: Why a local launch receipt carries no `end`: the launcher exits when the lane starts.
 _LOCAL_END_REASON = "UNMEASURED: the launcher exits when the lane starts; it cannot observe the lane's end"
 
+#: Who fired a launch (R130, [#1633]): `scripts/queue_runner.py` sets `DISPATCH_CALLER=queue_runner` on
+#: every `dispatch.py` it runs; a seat that launches by hand sets `seat`; nothing set is the CLI typed.
+CALLER_ENV = "DISPATCH_CALLER"
+CALLERS = ("queue_runner", "dispatch-cli", "seat")
+DEFAULT_CALLER = "dispatch-cli"
+
+
+def launch_caller(environ: Optional[Mapping[str, str]] = None) -> str:
+    """The `caller` a LAUNCH receipt records. An unrecognised value is recorded as the default (a
+    launch already spawned is not worth refusing) and logged, so a typo is not silent."""
+    value = (os.environ if environ is None else environ).get(CALLER_ENV, "").strip()
+    if not value:
+        return DEFAULT_CALLER
+    if value not in CALLERS:
+        logger.warning("%s=%r is not one of %s; recording caller %r", CALLER_ENV, value,
+                       "/".join(CALLERS), DEFAULT_CALLER)
+        return DEFAULT_CALLER
+    return value
+
 
 def _write_launch_records(request: LaunchRequest, result: LaunchResult,
                           extra: Optional[Mapping[str, object]] = None) -> None:
@@ -1423,7 +1471,7 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
     receipt = {
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
-        "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON,
+        "substrate": "local", "end": None, "end_reason": _LOCAL_END_REASON, "caller": launch_caller(),
         **{k: v for k, v in asdict(result).items()}, **(extra or {})}
     if (extra or {}).get("kind") == "repair":
         # A repair rewrites the slug receipt: keep every earlier launch in `launches` so the first
