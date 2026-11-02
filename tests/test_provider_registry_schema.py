@@ -497,3 +497,431 @@ def test_a_role_entrys_currency_exception_with_full_provenance_is_legal():
         }
     }
     assert _validate(d) is not None
+
+
+def _e32_role(data, *, provider="acme", model="acme-1", **entry_fields):
+    data["roles"] = {
+        "review": {
+            "description": "Review a change.",
+            "order": [{"provider": provider, "model": model, **entry_fields}],
+        }
+    }
+    return data
+
+
+@pytest.mark.parametrize(
+    "billing_class", ["subscription", "subscription-employer", "subscription+credit", "metered"]
+)
+def test_e32_provider_billing_class_accepts_each_declared_value(billing_class):
+    """Done-contract A1: each declared billing class has a valid schema representation."""
+    assert _validate(_mutate()).providers["acme"].billing is None
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {"class": billing_class}
+    validated = _validate(d)
+    assert validated.providers["acme"].billing is not None
+    assert validated.model_dump(by_alias=True)["providers"]["acme"]["billing"]["class"] == (
+        billing_class
+    )
+
+
+def test_e32_provider_billing_class_refuses_an_undeclared_value():
+    """Done-contract A1: `free` is not a billing class."""
+    supported = _mutate()
+    supported["providers"]["acme"]["billing"] = {"class": "subscription"}
+    assert _validate(supported).providers["acme"].billing is not None
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {"class": "free"}
+    with pytest.raises(ValidationError, match="class"):
+        _validate(d)
+
+
+def test_e32_billing_accepts_optional_quota_budget_overflow_and_credit_fields():
+    """Done-contract A1: the optional nested billing surface stays explicit and extensible."""
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {
+        "class": "subscription",
+        "plan": "Ultra",
+        "unit": "credits/month",
+        "included_per_month": 25000,
+        "quota_reader": {
+            "kind": "internal_user",
+            "refuse_launch_above_pct": 95.0,
+        },
+        "daily_budget": {
+            "default_usd": 20,
+            "per_case_cap_usd": 5,
+            "warn_when_mtd_ahead_of_pace_x": 1.5,
+            "refuse_noncritical_when_mtd_above": 25000,
+            "overage": "refuse",
+            "record": True,
+        },
+        "overflow": {"provider": "openai", "model": "gpt-6-sol"},
+        "api_credit": {
+            "monthly_usd": 20,
+            "balance_usd": 12.5,
+            "read_on": "2026-11-01",
+            "source": "provider dashboard",
+        },
+    }
+    billing = _validate(d).providers["acme"].billing
+    assert billing.quota_reader.refuse_launch_above_pct == 95.0
+    assert billing.daily_budget.overage == "refuse"
+    assert billing.overflow["provider"] == "openai"
+    assert billing.api_credit.balance_usd == 12.5
+
+
+def test_e32_subscription_credit_requires_an_api_credit_block():
+    """Done-contract A2: a subscription-plus-credit provider must declare its credit block."""
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {"class": "subscription+credit"}
+    with pytest.raises(ValidationError, match="api_credit"):
+        _validate(d)
+
+
+def test_e32_subscription_credit_accepts_its_api_credit_block():
+    """Done-contract A2: an API-credit balance and its provenance are valid billing data."""
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {
+        "class": "subscription+credit",
+        "api_credit": {
+            "monthly_usd": 20,
+            "balance_usd": 12.5,
+            "read_on": "2026-11-01",
+            "source": "provider dashboard",
+        },
+    }
+    assert _validate(d).providers["acme"].billing.api_credit.balance_usd == 12.5
+
+
+def test_e32_metered_billing_requires_a_daily_default_and_allows_zero():
+    """Done-contract A3: metered billing requires `default_usd`; zero remains representable."""
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {"class": "metered", "daily_budget": {}}
+    with pytest.raises(ValidationError, match="default_usd"):
+        _validate(d)
+    d["providers"]["acme"]["billing"]["daily_budget"]["default_usd"] = 0
+    assert _validate(d).providers["acme"].billing.daily_budget.default_usd == 0
+
+
+@pytest.mark.parametrize(
+    "budget",
+    [
+        {"default_usd": -0.01},
+        {"default_usd": 1, "per_case_cap_usd": -1},
+        {"default_usd": 1, "warn_when_mtd_ahead_of_pace_x": -1},
+        {"default_usd": 1, "refuse_noncritical_when_mtd_above": -1},
+    ],
+)
+def test_e32_daily_budget_refuses_negative_numbers(budget):
+    """Done-contract A3: negative budget values cannot become a plausible allowance."""
+    valid = _mutate()
+    valid["providers"]["acme"]["billing"] = {
+        "class": "metered",
+        "daily_budget": {"default_usd": 1},
+    }
+    assert _validate(valid).providers["acme"].billing.daily_budget.default_usd == 1
+    d = _mutate()
+    d["providers"]["acme"]["billing"] = {
+        "class": "metered",
+        "daily_budget": {"default_usd": 1, **budget},
+    }
+    with pytest.raises(ValidationError, match="budget|positive|negative|greater"):
+        _validate(d)
+
+
+def test_e32_role_entry_accepts_billing_flags_and_read_batch_fallback():
+    """Done-contract A4: role routing carries pool/session metadata and the `wait` policy."""
+    d = _e32_role(
+        _mutate(),
+        billing_pool="subscription-employer",
+        per_case_only=True,
+        isolated_session=True,
+    )
+    d["roles"]["review"]["batch_fallback"] = "wait"
+    validated = _validate(d)
+    assert validated.roles["review"].order[0].billing_pool == "subscription-employer"
+    assert validated.roles["review"].order[0].per_case_only is True
+    assert validated.roles["review"].order[0].isolated_session is True
+    assert validated.roles["review"].batch_fallback == "wait"
+    d["roles"]["review"]["batch_fallback"] = "route"
+    with pytest.raises(ValidationError, match="batch_fallback"):
+        _validate(d)
+    defaults = _e32_role(_mutate())
+    entry = _validate(defaults).roles["review"].order[0]
+    assert entry.billing_pool is None
+    assert entry.per_case_only is False
+    assert entry.isolated_session is False
+
+
+def test_e32_metered_role_entries_must_be_per_case_only():
+    """Done-contract A5: no ordinary role route may spend a metered provider."""
+    d = _e32_role(_mutate())
+    d["providers"]["acme"]["billing"] = {
+        "class": "metered",
+        "daily_budget": {"default_usd": 1},
+    }
+    with pytest.raises(ValidationError, match="per_case_only"):
+        _validate(d)
+    d["roles"]["review"]["order"][0]["per_case_only"] = True
+    assert _validate(d).roles["review"].order[0].per_case_only is True
+
+
+def test_e32_api_credit_pool_cannot_be_a_subscription_credit_role_route():
+    """Done-contract A6: API credits are tracked but never selected by a role."""
+    d = _e32_role(_mutate(), billing_pool="api-credit")
+    d["providers"]["acme"]["billing"] = {
+        "class": "subscription+credit",
+        "api_credit": {"balance_usd": 2},
+    }
+    with pytest.raises(ValidationError, match="api-credit"):
+        _validate(d)
+    d["providers"]["acme"]["billing"] = {"class": "subscription"}
+    assert _validate(d).roles["review"].order[0].billing_pool == "api-credit"
+
+
+def test_e32_provider_accounts_and_failover_are_valid_and_account_ids_are_unique():
+    """Done-contract A7: account identity is per-provider and inactive seats remain explicit."""
+    account = {
+        "id": "acct-1",
+        "config_dir": "~/.config/acme",
+        "surfaces": ["cli"],
+        "seats": ["*"],
+        "active": True,
+    }
+    d = _mutate()
+    d["providers"]["acme"]["accounts"] = [account]
+    d["providers"]["acme"]["account_failover"] = {
+        "on": ["quota"],
+        "rule": "select the next active account",
+        "resume": "retry when reset",
+    }
+    assert _validate(d).providers["acme"].accounts[0].active is True
+    d["providers"]["acme"]["accounts"] = [account, {**account}]
+    with pytest.raises(ValidationError, match="account"):
+        _validate(d)
+    missing_active = {key: value for key, value in account.items() if key != "active"}
+    d["providers"]["acme"]["accounts"] = [missing_active]
+    with pytest.raises(ValidationError, match="active"):
+        _validate(d)
+
+
+def test_e32_cross_provider_model_pin_requires_also_served_by():
+    """Done-contract A8: cross-provider pins require an explicit serving declaration."""
+    d = _mutate()
+    d["providers"]["p2"] = {"display_name": "Provider Two"}
+    d["roles"] = {
+        "review": {
+            "description": "Review.",
+            "order": [{"provider": "p2", "model": "acme-1"}],
+        }
+    }
+    with pytest.raises(ValidationError, match="belongs to provider"):
+        _validate(d)
+    d["models"]["acme-1"]["also_served_by"] = ["p2"]
+    assert _validate(d).roles["review"].order[0].provider == "p2"
+    d["models"]["acme-1"]["also_served_by"] = ["ghost"]
+    with pytest.raises(ValidationError, match="undeclared provider"):
+        _validate(d)
+
+
+def test_e32_evaluation_is_a_separate_optional_role_collection():
+    """Done-contract A9: evaluation uses Role shape without changing ROLE_NAMES."""
+    s = _schema()
+    assert "evaluate" not in s.ROLE_NAMES
+    assert _validate(_mutate()).evaluation is None
+    d = _mutate()
+    d["evaluation"] = {
+        "description": "Independent evaluation.",
+        "excludes_producer": True,
+        "order": [
+            {
+                "provider": "acme",
+                "model": "acme-1",
+                "requires_admission": True,
+            }
+        ],
+    }
+    validated = _validate(d)
+    assert validated.evaluation.excludes_producer is True
+    assert validated.evaluation.order[0].requires_admission is True
+    d["providers"]["p2"] = {"display_name": "Provider Two"}
+    d["evaluation"]["order"] = [
+        {"provider": "p2", "model": "acme-1", "requires_admission": True}
+    ]
+    with pytest.raises(ValidationError, match="belongs to provider"):
+        _validate(d)
+    d["models"]["acme-1"]["also_served_by"] = ["p2"]
+    assert _validate(d).evaluation.order[0].requires_admission is True
+
+
+def test_e32_evaluation_refuses_unknown_targets_and_anthropic():
+    """Done-contract A9: evaluation entries use normal reference checks and exclude Claude."""
+    d = _mutate()
+    d["evaluation"] = {
+        "description": "Independent evaluation.",
+        "order": [{"provider": "ghost", "model": "acme-1"}],
+    }
+    with pytest.raises(ValidationError, match="undeclared provider"):
+        _validate(d)
+    d["evaluation"]["order"] = [{"provider": "acme", "model": "missing"}]
+    with pytest.raises(ValidationError, match="undeclared model"):
+        _validate(d)
+    d["providers"]["anthropic"] = {"display_name": "Anthropic"}
+    d["models"]["anthropic-1"] = {"provider": "anthropic"}
+    d["evaluation"]["order"] = [{"provider": "anthropic", "model": "anthropic-1"}]
+    with pytest.raises(ValidationError, match="anthropic"):
+        _validate(d)
+
+
+def test_e32_model_rates_accept_short_cache_and_long_context_rates():
+    """Done-contract A10: optional short-cache and large-context tiers are positive rates."""
+    d = _mutate()
+    d["rate_card"] = {
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "as_of": "2026-11-01",
+        "basis": "list-price",
+        "source": "official pricing",
+        "cache_write_multiplier": 2,
+        "cache_read_multiplier": 0.1,
+    }
+    d["models"]["acme-1"]["rates"] = {
+        "input": 1,
+        "output": 2,
+        "cache_write_5m": 0.5,
+        "long_context": {
+            "threshold_tokens": 100000,
+            "input": 2,
+            "output": 4,
+            "cache_write": 4,
+            "cache_write_5m": 1,
+            "cache_read": 0.2,
+        },
+    }
+    rates = _validate(d).models["acme-1"].rates
+    assert rates.cache_write_5m == 0.5
+    assert rates.long_context.threshold_tokens == 100000
+
+
+@pytest.mark.parametrize(
+    "rates",
+    [
+        {"cache_write_5m": 0},
+        {"cache_write_5m": -0.1},
+        {"long_context": {"threshold_tokens": 0, "input": 1, "output": 1,
+                          "cache_write": 1, "cache_write_5m": 1, "cache_read": 1}},
+        {"long_context": {"threshold_tokens": 100, "input": 0, "output": 1,
+                          "cache_write": 1, "cache_write_5m": 1, "cache_read": 1}},
+        {"long_context": {"threshold_tokens": 100, "input": 1, "output": 1,
+                          "cache_write": 1, "cache_write_5m": 1, "cache_read": -1}},
+        {"long_context": {"threshold_tokens": 100, "input": 1, "output": 0,
+                          "cache_write": 1, "cache_write_5m": 1, "cache_read": 1}},
+        {"long_context": {"threshold_tokens": 100, "input": 1, "output": 1,
+                          "cache_write": 0, "cache_write_5m": 1, "cache_read": 1}},
+        {"long_context": {"threshold_tokens": 100, "input": 1, "output": 1,
+                          "cache_write": 1, "cache_write_5m": 0, "cache_read": 1}},
+    ],
+)
+def test_e32_model_rates_refuse_nonpositive_cache_and_long_context_values(rates):
+    """Done-contract A10: every optional rate and its threshold must be positive."""
+    valid = _mutate()
+    valid["rate_card"] = {
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "as_of": "2026-11-01",
+        "basis": "list-price",
+        "source": "official pricing",
+        "cache_write_multiplier": 2,
+        "cache_read_multiplier": 0.1,
+    }
+    valid["models"]["acme-1"]["rates"] = {
+        "input": 1,
+        "output": 2,
+        "cache_write_5m": 0.5,
+        "long_context": {
+            "threshold_tokens": 100,
+            "input": 2,
+            "output": 4,
+            "cache_write": 4,
+            "cache_write_5m": 1,
+            "cache_read": 0.2,
+        },
+    }
+    assert _validate(valid).models["acme-1"].rates.cache_write_5m == 0.5
+    d = _mutate()
+    d["rate_card"] = {
+        "currency": "USD",
+        "unit": "per_million_tokens",
+        "as_of": "2026-11-01",
+        "basis": "list-price",
+        "source": "official pricing",
+        "cache_write_multiplier": 2,
+        "cache_read_multiplier": 0.1,
+    }
+    d["models"]["acme-1"]["rates"] = {"input": 1, "output": 2, **rates}
+    with pytest.raises(ValidationError):
+        _validate(d)
+
+
+def test_e32_fallback_trigger_accepts_model_map_and_optional_draft_fields():
+    """Done-contract A11: the draft trigger shape needs no single target model or signal."""
+    d = _mutate()
+    d["roles"] = {
+        "review": {
+            "description": "Review.",
+            "order": [{"provider": "acme", "model": "acme-1"}],
+        }
+    }
+    d["fallback_triggers"] = {
+        "codex_quota": {
+            "rule": "route after quota",
+            "roles": ["review"],
+            "to_provider": "acme",
+            "to_model_map": {"model-a": "model-b"},
+            "decided_by": "operator",
+            "decided_on": "2026-11-01",
+            "evidence": "docs/audit.md",
+        }
+    }
+    trigger = _validate(d).fallback_triggers["codex_quota"]
+    assert trigger.to_model_map == {"model-a": "model-b"}
+    assert trigger.enabled is True
+    assert trigger.signals == {}
+    d["fallback_triggers"]["codex_quota"].update(
+        enabled=False,
+        unless="operator override",
+        on_quota_out="wait",
+        note="retain the current rung",
+    )
+    optional_fields = _validate(d).fallback_triggers["codex_quota"]
+    assert optional_fields.enabled is False
+    assert optional_fields.unless == "operator override"
+    assert optional_fields.on_quota_out == "wait"
+    assert optional_fields.note == "retain the current rung"
+
+
+def test_e32_fallback_trigger_still_refuses_an_undeclared_role():
+    """Done-contract A11: making trigger fields optional does not loosen role references."""
+    d = _mutate()
+    d["roles"] = {
+        "review": {
+            "description": "Review.",
+            "order": [{"provider": "acme", "model": "acme-1"}],
+        }
+    }
+    d["fallback_triggers"] = {
+        "bad": {
+            "rule": "route after quota",
+            "roles": ["ghost"],
+            "to_provider": "acme",
+            "to_model_map": {},
+            "decided_by": "operator",
+            "decided_on": "2026-11-01",
+            "evidence": "docs/audit.md",
+        }
+    }
+    valid = copy.deepcopy(d)
+    valid["fallback_triggers"]["bad"]["roles"] = ["review"]
+    assert _validate(valid).fallback_triggers["bad"].roles == ("review",)
+    with pytest.raises(ValidationError, match="ghost"):
+        _validate(d)

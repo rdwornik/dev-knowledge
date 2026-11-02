@@ -532,3 +532,225 @@ def test_a_dispatcher_evidence_citing_a_missing_artifact_is_caught(tree):
     (tree / rel).unlink()
     findings = cpr.run(tree)
     assert any(f.startswith("dispatcher:") for f in findings), findings
+
+
+def _e32_pairs(order):
+    return [(entry["provider"], entry.get("model")) for entry in order]
+
+
+def _e32_before(order, first, second):
+    pairs = _e32_pairs(order)
+    assert first in pairs, pairs
+    assert second in pairs, pairs
+    assert pairs.index(first) < pairs.index(second), pairs
+
+
+def test_e32_every_routed_provider_has_a_declared_billing_class():
+    """Done-contract B1: every provider reachable from a role has explicit billing semantics."""
+    registry = preg.load_registry()
+    billing_classes = {
+        "subscription", "subscription-employer", "subscription+credit", "metered"
+    }
+    role_specs = list(preg.roles().values())
+    if registry.get("evaluation") is not None:
+        role_specs.append(registry["evaluation"])
+    used = {
+        entry["provider"]
+        for role in role_specs
+        for entry in role["order"]
+    }
+    assert used
+    for provider in used:
+        fields = registry["providers"][provider]
+        assert "billing" in fields, provider
+        assert fields["billing"].get("class") in billing_classes, provider
+
+
+def test_e32_live_billing_and_provider_quota_reader_facts():
+    """Done-contract B2-B3: named billing plans, caps, and reader kinds match the live registry."""
+    providers = preg.providers()
+    for provider in ("anthropic", "openai", "copilot-enterprise", "antigravity", "xai"):
+        assert "billing" in providers[provider], provider
+    anthropic = providers["anthropic"]["billing"]
+    assert anthropic["class"] == "subscription"
+    assert anthropic["plan"].lower() == "ultra"
+    assert providers["openai"]["billing"]["class"] == "subscription"
+    copilot = providers["copilot-enterprise"]["billing"]
+    assert copilot["class"] == "subscription-employer"
+    assert copilot["included_per_month"] == 25000
+    assert copilot["daily_budget"]["refuse_noncritical_when_mtd_above"] == 25000
+    assert copilot["daily_budget"]["warn_when_mtd_ahead_of_pace_x"] == 1.5
+    assert providers["antigravity"]["billing"]["quota_reader"]["kind"] == "error_only"
+    xai = providers["xai"]["billing"]
+    assert xai["class"] == "metered"
+    assert xai["daily_budget"]["default_usd"] == 0
+    assert xai["daily_budget"]["per_case_cap_usd"] == 5
+    xai_entries = [
+        entry
+        for role in preg.roles().values()
+        for entry in role["order"]
+        if entry["provider"] == "xai"
+    ]
+    assert xai_entries
+    assert all(entry.get("per_case_only") is True for entry in xai_entries)
+    expected_readers = {
+        "anthropic": "anthropic_rate_limits",
+        "openai": "codex_rollout_rate_limits",
+        "copilot-enterprise": "copilot_internal_user",
+    }
+    for provider, kind in expected_readers.items():
+        assert providers[provider]["billing"]["quota_reader"]["kind"] == kind
+
+
+def test_e32_anthropic_accounts_keep_inactive_seats_out_of_routing():
+    """Done-contract B4: account identity and active status are explicit, not inferred as roles."""
+    anthropic = preg.providers()["anthropic"]
+    assert "accounts" in anthropic
+    accounts = {row["id"]: row for row in anthropic["accounts"]}
+    assert accounts["anth-main"]["active"] is True
+    assert "*" in accounts["anth-main"]["seats"]
+    assert accounts["anth-cc-1"]["active"] is False
+    assert accounts["anth-cc-2"]["active"] is False
+
+
+def test_e32_review_and_judge_orders_pin_the_billing_and_isolation_boundaries():
+    """Done-contract B5: Codex leads; employer seat precedes isolated Claude fallback."""
+    roles = preg.roles()
+    review = roles["review"]
+    review_order = review["order"]
+    terra = ("openai", "gpt-5.6-terra")
+    copilot = ("copilot-enterprise", "gpt-5.6-terra")
+    sonnet = ("anthropic", "claude-sonnet-5-5")
+    _e32_before(review_order, terra, copilot)
+    _e32_before(review_order, copilot, sonnet)
+    review_copilot = next(e for e in review_order if _e32_pairs([e])[0] == copilot)
+    review_sonnet = next(e for e in review_order if _e32_pairs([e])[0] == sonnet)
+    assert review_copilot["billing_pool"] == "subscription-employer"
+    assert review_sonnet["isolated_session"] is True
+    assert review["excludes_producer"] is True
+
+    judge = roles["judge"]
+    judge_order = judge["order"]
+    judge_openai = ("openai", "gpt-6-sol")
+    judge_copilot = ("copilot-enterprise", "gpt-6.1-sol")
+    judge_anthropic = ("anthropic", "claude-opus-5-5")
+    _e32_before(judge_order, judge_openai, judge_copilot)
+    _e32_before(judge_order, judge_copilot, judge_anthropic)
+    judge_copilot_entry = next(
+        e for e in judge_order if _e32_pairs([e])[0] == judge_copilot
+    )
+    judge_anthropic_entry = next(
+        e for e in judge_order if _e32_pairs([e])[0] == judge_anthropic
+    )
+    assert judge_copilot_entry["requires_admission"] is True
+    assert judge_copilot_entry["billing_pool"] == "subscription-employer"
+    assert judge_anthropic_entry["isolated_session"] is True
+    assert "R104: Opus 5.5 judges" not in judge["description"]
+
+
+def test_e32_evaluation_is_a_separate_claude_free_ordered_collection():
+    """Done-contract B5: evaluation is top-level, excludes Claude, and supports evaluate lookups."""
+    registry = preg.load_registry()
+    assert "evaluation" in registry
+    evaluation = registry["evaluation"]
+    assert "evaluate" not in preg.roles()
+    assert evaluation["excludes_producer"] is True
+    order = evaluation["order"]
+    openai = ("openai", "gpt-6-sol")
+    copilot = ("copilot-enterprise", "gpt-6.1-sol")
+    agy = ("antigravity", "gemini-4-argon")
+    _e32_before(order, openai, copilot)
+    _e32_before(order, copilot, agy)
+    assert next(e for e in order if _e32_pairs([e])[0] == copilot)["requires_admission"]
+    assert all(entry["provider"] != "anthropic" for entry in order)
+    assert preg.evaluation() == evaluation
+    assert preg.role_order("evaluate") == order
+
+
+def test_e32_red_qa_read_and_isolated_session_role_contracts():
+    """Done-contract B5: parallel review models, wait fallback, and narrowly isolated Claude."""
+    roles = preg.roles()
+    for role in ("red", "qa"):
+        order = roles[role]["order"]
+        _e32_before(
+            order,
+            ("copilot-enterprise", "gpt-6-luna"),
+            ("openai", "gpt-6-luna"),
+        )
+    assert roles["read"]["batch_fallback"] == "wait"
+    for role, model in (("review", "claude-sonnet-5-5"), ("judge", "claude-opus-5-5")):
+        assert next(
+            entry for entry in roles[role]["order"]
+            if entry["provider"] == "anthropic" and entry.get("model") == model
+        )["isolated_session"] is True
+    for role, spec in roles.items():
+        for entry in spec["order"]:
+            if entry.get("isolated_session"):
+                assert entry["provider"] == "anthropic"
+                assert (role, entry.get("model")) in {
+                    ("review", "claude-sonnet-5-5"),
+                    ("judge", "claude-opus-5-5"),
+                }
+
+
+def test_e32_also_served_models_cover_cross_provider_routing():
+    """Done-contract B6: shared served models are declared without changing their owner."""
+    models = preg.models()
+    assert "also_served_by" in models["gpt-5.6-terra"]
+    assert "also_served_by" in models["gpt-6-luna"]
+    assert "also_served_by" in models["gemini-4-argon"]
+    assert "copilot-enterprise" in models["gpt-5.6-terra"]["also_served_by"]
+    assert "openai" in models["gpt-6-luna"]["also_served_by"]
+    assert models["gpt-6.1-sol"]["provider"] == "copilot-enterprise"
+    assert models["gpt-6.1-sol"]["family"] == "openai"
+    assert models["gemini-4-argon"]["provider"] == "antigravity"
+    assert models["gemini-4-argon"]["family"] == "google"
+    assert "copilot-enterprise" in models["gemini-4-argon"]["also_served_by"]
+
+
+def test_e32_fallback_triggers_route_quota_and_preserve_explicit_waits():
+    """Done-contract B7: quota maps, role scopes, and disabled triggers stay machine-readable."""
+    registry = preg.load_registry()
+    assert "fallback_triggers" in registry
+    triggers = registry["fallback_triggers"]
+    assert "codex_quota" in triggers
+    codex = triggers["codex_quota"]
+    assert codex["to_provider"] == "copilot-enterprise"
+    assert set(codex["roles"]) >= {"review", "judge", "evaluate"}
+    assert codex["to_model_map"] == {
+        "gpt-5.6-terra": "gpt-5.6-terra",
+        "gpt-6-sol": "gpt-6.1-sol",
+    }
+    copilot = triggers["copilot_quota"]
+    assert set(copilot["roles"]) == {"red", "qa"}
+    assert copilot["to_provider"] == "openai"
+    assert triggers["bulk_no_max_pool"]["on_quota_out"] == "wait"
+    assert triggers["bprime"]["enabled"] is False
+
+
+def test_e32_official_anthropic_rates_resolve_with_context_tiers_and_short_cache():
+    """Done-contract B8: 2026-11-01 official rates resolve by prompt-size tier."""
+    sonnet = preg.resolve_rate("claude-sonnet-5-5")
+    assert (sonnet.input, sonnet.output) == (2.0, 10.0)
+    assert sonnet.cache_read == 0.10
+    assert sonnet.cache_write == 4.0
+    assert hasattr(sonnet, "cache_write_5m")
+    assert sonnet.cache_write_5m == 2.50
+    unquoted_short_cache = preg.resolve_rate("claude-opus-5-5")
+    assert unquoted_short_cache.cache_write_5m is None
+
+    haiku = preg.resolve_rate("claude-haiku-5-5")
+    assert (haiku.input, haiku.output) == (0.10, 0.50)
+    assert haiku.cache_write_5m == 0.125
+    assert haiku.cache_write == 0.20
+    assert haiku.cache_read == 0.01
+    at_boundary = preg.resolve_rate("claude-haiku-5-5", prompt_tokens=100000)
+    assert (at_boundary.input, at_boundary.output) == (0.10, 0.50)
+    above_boundary = preg.resolve_rate("claude-haiku-5-5", prompt_tokens=100001)
+    assert (above_boundary.input, above_boundary.output) == (0.50, 2.50)
+    assert above_boundary.cache_write_5m == 0.625
+    assert above_boundary.cache_write == 1.0
+    assert above_boundary.cache_read == 0.05
+    assert preg.resolve_rate("claude-sonnet-5-5", preg.DEFAULT_REGISTRY_PATH).model == (
+        "claude-sonnet-5-5"
+    )

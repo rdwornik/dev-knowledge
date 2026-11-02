@@ -842,3 +842,472 @@ def test_r1536_route_review_order_grok_max_turns_and_copilot_non_anthropic():
     # R138 (`e2-subst-gate`): the Copilot half of the review pair runs at the CLI's default model, so
     # no model is pinned here; it is still never an Anthropic pin.
     assert not rows[2]["model"].startswith("claude-"), rows[2]["line"]
+
+
+_E32_NOW = 1_793_000_000.0
+
+
+def _e32_codex(**overrides):
+    """A quota reader-shaped object; every unavailable numeric reading stays None."""
+    from types import SimpleNamespace
+
+    fields = {
+        "status": "ok",
+        "primary_used_percent": None,
+        "primary_resets_at": None,
+        "secondary_used_percent": None,
+        "secondary_resets_at": None,
+        "secondary_window_minutes": 10080,
+        "usage_limit_at": None,
+        "usage_limit_resets_at": None,
+    }
+    fields.update(overrides)
+    return SimpleNamespace(**fields)
+
+
+def test_e32_codex_window_out_uses_live_resets_and_usage_limit_records(router):
+    """Done-contract C: the Codex hard window and newer usage-limit record are distinct legs."""
+    assert router.codex_window_out(None, _E32_NOW) is False
+    assert router.codex_window_out(_e32_codex(status="unknown"), _E32_NOW) is False
+    assert router.codex_window_out(
+        _e32_codex(primary_used_percent=94.9, primary_resets_at=_E32_NOW + 1), _E32_NOW
+    ) is False
+    assert router.codex_window_out(
+        _e32_codex(primary_used_percent=95, primary_resets_at=_E32_NOW + 1), _E32_NOW
+    ) is True
+    assert router.codex_window_out(
+        _e32_codex(primary_used_percent=99, primary_resets_at=_E32_NOW), _E32_NOW
+    ) is False
+    assert router.codex_window_out(
+        _e32_codex(
+            primary_used_percent=10,
+            primary_resets_at=_E32_NOW + 100,
+            usage_limit_at=_E32_NOW + 200,
+            usage_limit_resets_at=_E32_NOW + 300,
+        ),
+        _E32_NOW,
+    ) is True
+    assert router.codex_window_out(
+        _e32_codex(
+            primary_used_percent=10,
+            primary_resets_at=None,
+            usage_limit_at=_E32_NOW + 1,
+        ),
+        _E32_NOW,
+    ) is True
+    assert router.codex_window_out(
+        _e32_codex(
+            primary_used_percent=10,
+            primary_resets_at=_E32_NOW + 200,
+            usage_limit_at=_E32_NOW + 100,
+        ),
+        _E32_NOW,
+    ) is False
+    assert router.codex_window_out(
+        _e32_codex(
+            primary_used_percent=10,
+            usage_limit_at=_E32_NOW + 200,
+            usage_limit_resets_at=_E32_NOW,
+        ),
+        _E32_NOW,
+    ) is False
+
+
+def test_e32_codex_pacing_ahead_uses_elapsed_week_percent(router):
+    """Done-contract C: pacing compares weekly usage with elapsed time, including equality."""
+    reset = _E32_NOW + (10080 * 60 * 0.41)
+    assert router.codex_pacing_ahead(
+        _e32_codex(secondary_used_percent=78, secondary_resets_at=reset), _E32_NOW
+    ) is True
+    assert router.codex_pacing_ahead(
+        _e32_codex(secondary_used_percent=68.9, secondary_resets_at=reset), _E32_NOW
+    ) is False
+    assert router.codex_pacing_ahead(
+        _e32_codex(secondary_used_percent=69, secondary_resets_at=reset), _E32_NOW
+    ) is True
+    assert router.codex_pacing_ahead(None, _E32_NOW) is False
+    assert router.codex_pacing_ahead(
+        _e32_codex(status="unknown", secondary_used_percent=99, secondary_resets_at=reset),
+        _E32_NOW,
+    ) is False
+
+
+def test_e32_provider_state_and_candidate_keep_frozen_defaults(router):
+    """Done-contract C: state is frozen and Candidate's new isolation flag is backwards-compatible."""
+    from dataclasses import FrozenInstanceError, is_dataclass
+
+    state = router.ProviderState()
+    assert is_dataclass(state)
+    assert (state.usable, state.reason, state.resets_at) == (True, None, None)
+    with pytest.raises(FrozenInstanceError):
+        state.usable = False
+    candidate = router.Candidate("openai", "gpt-6-sol", 0)
+    assert candidate.isolated_session is False
+
+
+def test_e32_route_under_quota_takes_copilot_immediately_on_codex_window_out(router):
+    """Done-contract C1: a five-hour Codex reset does not delay a usable next review rung."""
+    reset = _E32_NOW + 5 * 3600
+    decision = router.route_under_quota(
+        "review",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=_e32_codex(primary_used_percent=97, primary_resets_at=reset),
+        produced_by="anthropic",
+    )
+    assert decision.action == "ROUTE"
+    assert decision.candidate.provider == "copilot-enterprise"
+    assert decision.candidate.model == "gpt-5.6-terra"
+    assert decision.trigger == "codex_quota.window"
+    assert decision.resets_at == reset
+    assert decision.rungs[0] == decision.candidate
+    from dataclasses import FrozenInstanceError
+
+    with pytest.raises(FrozenInstanceError):
+        decision.action = "WAIT"
+
+
+def test_e32_judge_admission_and_isolated_claude_fallback(router):
+    """Done-contract C2: shadow admission opens Copilot; otherwise isolated Claude may judge."""
+    codex = _e32_codex(
+        primary_used_percent=97, primary_resets_at=_E32_NOW + 5 * 3600
+    )
+    admitted = router.route_under_quota(
+        "judge",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=codex,
+        produced_by="anthropic",
+        admitted_models={"gpt-6.1-sol"},
+    )
+    assert admitted.action == "ROUTE"
+    assert (admitted.candidate.provider, admitted.candidate.model) == (
+        "copilot-enterprise", "gpt-6.1-sol"
+    )
+
+    fallback = router.route_under_quota(
+        "judge",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=codex,
+        produced_by="anthropic",
+    )
+    assert fallback.action == "ROUTE"
+    assert (fallback.candidate.provider, fallback.candidate.model) == (
+        "anthropic", "claude-opus-5-5"
+    )
+    assert fallback.candidate.isolated_session is True
+    assert fallback.marker == "ISOLATED-SESSION-SAME-VENDOR"
+    assert "copilot-enterprise/gpt-6.1-sol" in fallback.reasons
+
+
+def test_e32_pacing_fallback_is_review_only(router):
+    """Done-contract C3: pacing redirects review but leaves judge and evaluation on Codex."""
+    reset = _E32_NOW + (10080 * 60 * 0.41)
+    codex = _e32_codex(
+        primary_used_percent=10,
+        primary_resets_at=_E32_NOW + 3600,
+        secondary_used_percent=78,
+        secondary_resets_at=reset,
+    )
+    review = router.route_under_quota(
+        "review", ".dev-knowledge", now=_E32_NOW, codex=codex
+    )
+    judge = router.route_under_quota(
+        "judge", ".dev-knowledge", now=_E32_NOW, codex=codex
+    )
+    evaluation = router.route_under_quota(
+        "evaluate", ".dev-knowledge", now=_E32_NOW, codex=codex
+    )
+    assert (review.candidate.provider, review.candidate.model) == (
+        "copilot-enterprise", "gpt-5.6-terra"
+    )
+    assert review.trigger == "codex_quota.pacing"
+    assert (judge.candidate.provider, judge.candidate.model) == ("openai", "gpt-6-sol")
+    assert (evaluation.candidate.provider, evaluation.candidate.model) == (
+        "openai", "gpt-6-sol"
+    )
+
+
+def test_e32_unusable_copilot_falls_to_isolated_anthropic_sessions(router):
+    """Done-contract C4: a blocked employer seat falls through to isolated review and judge."""
+    codex = _e32_codex(
+        primary_used_percent=97, primary_resets_at=_E32_NOW + 2 * 3600
+    )
+    states = {
+        "copilot-enterprise": router.ProviderState(
+            usable=False, reason="quota", resets_at=_E32_NOW + 7200
+        )
+    }
+    for role, model in (("review", "claude-sonnet-5-5"), ("judge", "claude-opus-5-5")):
+        decision = router.route_under_quota(
+            role,
+            ".dev-knowledge",
+            now=_E32_NOW,
+            codex=codex,
+            states=states,
+            produced_by="anthropic",
+        )
+        assert decision.action == "ROUTE"
+        assert (decision.candidate.provider, decision.candidate.model) == ("anthropic", model)
+        assert decision.candidate.isolated_session is True
+        assert decision.marker == "ISOLATED-SESSION-SAME-VENDOR"
+
+
+def test_e32_evaluate_never_exposes_an_anthropic_candidate_or_rung(router):
+    """Done-contract C5: evaluation has a hard Claude exclusion in every quota state."""
+    codex_out = _e32_codex(
+        primary_used_percent=97, primary_resets_at=_E32_NOW + 3600
+    )
+    cases = [
+        ({"codex": codex_out}, {}),
+        ({"codex": codex_out,
+          "states": {"copilot-enterprise": router.ProviderState(usable=False)}}, {}),
+        ({"codex": codex_out,
+          "states": {"antigravity": router.ProviderState(usable=False)}}, {}),
+        ({"codex": codex_out,
+          "states": {
+              "copilot-enterprise": router.ProviderState(usable=False),
+              "antigravity": router.ProviderState(usable=False),
+          }}, {}),
+        ({"produced_by": "anthropic"}, {}),
+        ({}, {"admitted_models": {"gpt-6.1-sol"}}),
+    ]
+    for kwargs, extra in cases:
+        decision = router.route_under_quota(
+            "evaluate", ".dev-knowledge", now=_E32_NOW, **kwargs, **extra
+        )
+        assert decision.candidate is None or decision.candidate.provider != "anthropic"
+        assert all(candidate.provider != "anthropic" for candidate in decision.rungs)
+
+    decision = router.route_under_quota(
+        "evaluate",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=codex_out,
+        admitted_models={"gpt-6.1-sol"},
+    )
+    assert (decision.candidate.provider, decision.candidate.model) == (
+        "copilot-enterprise", "gpt-6.1-sol"
+    )
+    assert tuple(candidate.provider for candidate in decision.rungs) == (
+        "copilot-enterprise", "antigravity"
+    )
+
+
+def test_e32_route_under_quota_wait_boundary_never_delays_a_usable_rung(router):
+    """Done-contract C6: a usable route wins immediately, independent of the reset horizon."""
+    immediate = router.route_under_quota(
+        "review",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=_e32_codex(
+            primary_used_percent=97, primary_resets_at=_E32_NOW + 1199
+        ),
+    )
+    assert immediate.action == "ROUTE"
+    assert immediate.candidate.provider == "copilot-enterprise"
+
+    reset = _E32_NOW + 600
+    waiting = router.route_under_quota(
+        "evaluate",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=_e32_codex(primary_used_percent=97, primary_resets_at=reset),
+        admitted_models={"gpt-6.1-sol"},
+        states={
+            "copilot-enterprise": router.ProviderState(usable=False),
+            "antigravity": router.ProviderState(usable=False),
+        },
+    )
+    assert waiting.action == "WAIT"
+    assert waiting.resets_at == reset
+
+    too_late = router.route_under_quota(
+        "evaluate",
+        ".dev-knowledge",
+        now=_E32_NOW,
+        codex=_e32_codex(primary_used_percent=97, primary_resets_at=_E32_NOW + 1201),
+        admitted_models={"gpt-6.1-sol"},
+        states={
+            "copilot-enterprise": router.ProviderState(usable=False),
+            "antigravity": router.ProviderState(usable=False),
+        },
+    )
+    assert too_late.action == "REFUSED-NO-ROUTE"
+
+
+def test_e32_isolated_same_vendor_review_is_eligible_only_with_its_flag(
+    router, live_registry, tmp_path
+):
+    """Done-contract C7: same-vendor review needs the registry's isolated-session declaration."""
+    registry = copy.deepcopy(live_registry)
+    anthropic = next(
+        (
+            entry for entry in registry["roles"]["review"]["order"]
+            if entry["provider"] == "anthropic"
+        ),
+        None,
+    )
+    assert anthropic is not None, "review must declare its isolated Anthropic fallback"
+    anthropic.pop("isolated_session")
+    path = tmp_path / "provider-registry.yaml"
+    path.write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+    without_flag = router.explain(
+        "review", ".dev-knowledge", produced_by="anthropic", registry_path=path
+    )
+    refused = next(item for item in without_flag if item.provider == "anthropic")
+    assert refused.refusal == "reviewer-is-producer"
+    with_flag = router.explain(
+        "review", ".dev-knowledge", produced_by="anthropic"
+    )
+    eligible = next(item for item in with_flag if item.provider == "anthropic")
+    assert eligible.refusal is None
+
+
+def test_e32_all_unusable_rungs_refuse_with_complete_reasons_and_codex_reset(router):
+    """Done-contract C8: exhaustion reports each skipped rung and preserves the soonest reset."""
+    reset = _E32_NOW + 3 * 3600
+    codex = _e32_codex(primary_used_percent=97, primary_resets_at=reset)
+    states = {
+        provider: router.ProviderState(usable=False, reason=f"{provider} quota")
+        for provider in ("anthropic", "copilot-enterprise", "antigravity")
+    }
+    for role in ("review", "judge", "evaluate"):
+        decision = router.route_under_quota(
+            role,
+            ".dev-knowledge",
+            now=_E32_NOW,
+            codex=codex,
+            states=states,
+            admitted_models={"gpt-6.1-sol"},
+        )
+        assert decision.action == "REFUSED-NO-ROUTE"
+        assert decision.role == role
+        assert decision.resets_at == reset
+        assert decision.reasons
+        assert all(isinstance(reason, str) and reason for reason in decision.reasons.values())
+
+
+def test_e32_per_case_only_routes_are_gated_by_explicit_approval(router):
+    """Done-contract C9: the metered xAI rung is absent except for an approved case."""
+    import inspect
+
+    for surface in (router.route, router.explain):
+        parameters = inspect.signature(surface).parameters
+        assert "case_approved" in parameters
+        assert "admitted_models" in parameters
+    ordinary = router.route("review", ".dev-knowledge", strict=False)
+    approved = router.route(
+        "review", ".dev-knowledge", strict=False, case_approved=True
+    )
+    assert all(candidate.provider != "xai" for candidate in ordinary)
+    assert any(candidate.provider == "xai" for candidate in approved)
+    ordinary_explain = router.explain("review", ".dev-knowledge")
+    approved_explain = router.explain(
+        "review", ".dev-knowledge", case_approved=True
+    )
+    ordinary_xai = [item for item in ordinary_explain if item.provider == "xai"]
+    approved_xai = [item for item in approved_explain if item.provider == "xai"]
+    assert ordinary_xai and ordinary_xai[0].refusal == "per-case-only"
+    assert approved_xai and approved_xai[0].refusal is None
+
+
+def test_e32_budget_verdict_enforces_metered_zero_caps_and_daily_spend(router):
+    """Done-contract C10: metered calls cannot exceed their explicit per-case/daily budget."""
+    zero = router.check_budget("xai", requested_usd=0.01)
+    assert zero.allowed is False
+    capped = router.check_budget("xai", requested_usd=0.01, case_cap_usd=5.01)
+    assert capped.allowed is False
+    over = router.check_budget(
+        "xai", requested_usd=1, spent_today_usd=4.5, case_cap_usd=5
+    )
+    assert over.allowed is False
+    at_cap = router.check_budget(
+        "xai", requested_usd=0.5, spent_today_usd=4.5, case_cap_usd=5
+    )
+    assert at_cap.allowed is True
+    with pytest.raises(router.RouterRefusal):
+        router.enforce_budget("xai", requested_usd=0.01)
+
+
+def test_e32_budget_verdict_enforces_employer_mtd_credits_and_unread_state(router):
+    """Done-contract C10: Copilot overage refuses unless approved; unread data is stated."""
+    over = router.check_budget(
+        "copilot-enterprise",
+        mtd_credits=25000,
+        requested_credits=1,
+    )
+    assert over.allowed is False
+    assert router.check_budget(
+        "copilot-enterprise",
+        mtd_credits=25000,
+        requested_credits=1,
+        approved=True,
+    ).allowed is True
+    unread = router.check_budget("copilot-enterprise", mtd_credits=None)
+    assert unread.allowed is True
+    assert "unread" in unread.reason.lower()
+    for provider in ("openai", "anthropic", "antigravity"):
+        assert router.check_budget(provider, requested_usd=1000).allowed is True
+
+
+def test_e32_bulk_routes_wait_on_antigravity_quota_and_keep_nonbulk_claude_fallback(router):
+    """Done-contract C10: bulk never spills into Claude; small reads retain their fallback."""
+    unavailable = router.ProviderState(
+        usable=False, reason="quota", resets_at=_E32_NOW + 3600
+    )
+    for kwargs in ({"kind": "aj-extraction", "batch_units": 1},
+                   {"kind": "read", "batch_units": 21}):
+        waiting = router.bulk_route(**kwargs, agy=unavailable)
+        assert waiting.action == "WAIT"
+        assert waiting.provider == "antigravity"
+        assert waiting.resets_at == unavailable.resets_at
+        assert waiting.provider != "anthropic"
+    available = router.bulk_route(
+        kind="aj-extraction", batch_units=1, agy=router.ProviderState()
+    )
+    assert available.action == "ROUTE"
+    assert available.provider == "antigravity"
+    small = router.bulk_route(kind="read", batch_units=20, agy=unavailable)
+    assert (small.action, small.provider, small.model) == (
+        "ROUTE", "anthropic", "claude-haiku-5-5"
+    )
+
+
+def test_e32_account_selection_skips_inactive_and_quota_exhausted_accounts(router):
+    """Done-contract C10: account selection honors active seats and never picks exhausted seats."""
+    accounts = [
+        {
+            "id": "inactive",
+            "config_dir": "~/.claude-inactive",
+            "seats": ["*"],
+            "active": False,
+        },
+        {
+            "id": "wrong-seat",
+            "config_dir": "~/.claude-other",
+            "seats": ["other"],
+            "active": True,
+        },
+        {
+            "id": "headroom",
+            "config_dir": "~/.claude-main",
+            "seats": ["review"],
+            "active": True,
+        },
+    ]
+    selected = router.select_account(
+        accounts, "review", quota_for=lambda account: (50.0, 60.0)
+    )
+    assert selected["id"] == "headroom"
+    exhausted = router.select_account(
+        accounts,
+        "review",
+        quota_for=lambda account: (97.0, None) if account["id"] == "headroom" else None,
+    )
+    assert exhausted is None
+    live_accounts = preg.providers()["anthropic"]["accounts"]
+    assert router.select_account(
+        live_accounts, "review", quota_for=lambda account: (97.0, None)
+    ) is None
