@@ -830,3 +830,11 @@ def test_a_targeted_unbind_of_a_session_with_no_bound_set_hands_nothing_over(tmp
 
     seat = _seats(path, now=T0 + timedelta(minutes=2))["lane-1"]
     assert (seat.state, seat.batches) == ("live", ("AB",))
+
+
+def test_batch_priority_reads_only_e_major_minor_with_ascii_digits():
+    assert reg.batch_priority("E3.10") == (3, 10)
+    assert reg.batch_priority("e3.2") == (3, 2)
+    unranked = reg.batch_priority("AB")
+    assert unranked == reg.batch_priority("E3.x") == reg.batch_priority("E3") == reg.batch_priority("E².1")
+    assert unranked > reg.batch_priority("E99.99")

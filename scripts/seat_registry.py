@@ -294,7 +294,6 @@ def record_hook_event(payload: Mapping) -> Optional[dict]:
 #: refusal and no landing decision reads it (`tests/test_seat_registry.py` pins both readers).
 LANDING = "arrival"
 
-_BATCH_ID_RE = re.compile(r"^E(\d+)\.(\d+)$")
 #: Priority of a batch id that is not `E<major>.<minor>` (a legacy id such as `AB`): after every
 #: numbered batch, and printable.
 _UNRANKED: tuple[int, int] = (999_999, 0)
@@ -303,8 +302,12 @@ _UNRANKED: tuple[int, int] = (999_999, 0)
 def batch_priority(batch: str) -> tuple[int, int]:
     """The batch id's own numeric key, `E3.2 -> (3, 2)`. NUMERIC, so `E3.10` sorts after `E3.2`
     (a text sort puts it before). Stable: it is a function of the id alone, never re-ranked."""
-    match = _BATCH_ID_RE.match(str(batch).upper())
-    return (int(match.group(1)), int(match.group(2))) if match else _UNRANKED
+    text = str(batch).upper()
+    if text.startswith("E"):                         # `E<major>.<minor>`, ASCII digits only
+        major, dot, minor = text[1:].partition(".")
+        if dot and major.isascii() and major.isdigit() and minor.isascii() and minor.isdigit():
+            return int(major), int(minor)
+    return _UNRANKED
 
 
 @dataclass(frozen=True)
