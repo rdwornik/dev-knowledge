@@ -1340,3 +1340,25 @@ def test_e32_wait_ends_when_every_active_codex_limit_lifts(router):
                                         states=states, produced_by="anthropic")
     assert decision.action == "WAIT"
     assert decision.resets_at == _E32_NOW + 900
+
+
+@pytest.mark.parametrize("role", ["review", "judge", "evaluate"])
+@pytest.mark.parametrize("codex_out", [False, True])
+def test_e32_without_an_approved_case_route_under_quota_never_returns_an_xai_row(router, role, codex_out):
+    """Architect ruling Q-E32-4 condition: the xai rows stay in the registry (per_case_only) but
+    `route_under_quota` skips them unless `case_approved` (provider_router.py: explain's per-case refusal),
+    for review, judge and evaluation, with Codex fine or out and every other rung usable or not."""
+    codex = _e32_codex(primary_used_percent=97 if codex_out else 10,
+                       primary_resets_at=_E32_NOW + (7200 if codex_out else 3600))
+    scenarios = (
+        None,
+        {p: router.ProviderState(usable=False, reason="quota", resets_at=_E32_NOW + 100)
+         for p in ("copilot-enterprise", "anthropic", "antigravity")},
+    )
+    for states in scenarios:
+        for admitted in (frozenset(), frozenset({"grok-4.7"})):
+            decision = router.route_under_quota(role, ".dev-knowledge", now=_E32_NOW, codex=codex, states=states,
+                                                produced_by="anthropic", admitted_models=admitted)
+            assert all(c.provider != "xai" for c in decision.rungs)
+            assert decision.candidate is None or decision.candidate.provider != "xai"
+            assert any(k.startswith("xai/") for k in decision.reasons), decision.reasons
