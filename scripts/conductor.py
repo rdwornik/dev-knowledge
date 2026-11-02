@@ -886,7 +886,6 @@ ISOLATED_JUDGE_PROMPT_CLAUDE = (
     "Decide whether the round is accepted against the contract's Done-contract. "
     'Write ONE JSON object (a PhasePayload: nonce, input_hash, outcome ACCEPT or REFUSE, findings, detail) to {payload}, with nonce set to {nonce} and input_hash set to {input_hash} exactly.'
 )
-_PRIMARY_P7 = ["codex", "exec", "-m", "gpt-6-sol", "-s", "read-only", "-o", "{payload}", ISOLATED_JUDGE_PROMPT_CODEX]
 # a CLOSED prefix table: an id matching neither the registry's `family:` nor a prefix FAILS closed
 _PREFIX_FAMILIES = (("claude-", "anthropic"), ("gpt-", "openai"), ("gemini-", "google"), ("grok-", "xai"))
 _SESSION_FLAGS = ("--resume", "--continue", "-c", "-r", "--session-id")
@@ -942,7 +941,22 @@ def _render(template: str, values: dict[str, str]) -> str:
     return template
 
 
-def _same_family_judge_admitted(ctx: LaneContext, p7, phases: Optional[list]) -> tuple[bool, str]:
+def _is_configured_primary(row: dict, registry: Optional[Path]) -> bool:
+    """P7's primary is the Codex row of GO-E3.0 R11: `codex exec -m <its own model> -s read-only -o {payload}
+    <ISOLATED_JUDGE_PROMPT_CODEX>`, of the openai family. The model id is read from the row, not typed here:
+    a model-id literal in a script is a registry-bypass (tests/test_model_id_single_source.py)."""
+    model = row.get("model")
+    expected = ["codex", "exec", "-m", model, "-s", "read-only", "-o", "{payload}", ISOLATED_JUDGE_PROMPT_CODEX]
+    if row.get("cli") != "codex" or [str(t) for t in row.get("command") or []] != expected:
+        return False
+    try:
+        return model_family(str(model), registry) == "openai"
+    except FamilyError:
+        return False
+
+
+def _same_family_judge_admitted(ctx: LaneContext, p7, phases: Optional[list],
+                                registry: Optional[Path] = None) -> tuple[bool, str]:
     """The ONE admission predicate for a P7 whose family is the producer's: legs (i), (iii), (iv) and the
     conditional refusal (ii). A missing, cut-off or unparseable P7-OUTPUT.txt never refuses."""
     argv = [str(t) for t in p7.command]
@@ -959,7 +973,7 @@ def _same_family_judge_admitted(ctx: LaneContext, p7, phases: Optional[list]) ->
     if phases is None:
         phases = _harness_doc(ctx.repo_root / "ecosystem" / "harness.yaml").get("phases") or []
     row = next((p for p in phases if isinstance(p, dict) and p.get("id") == "P7"), {})
-    if [str(t) for t in row.get("command") or []] != _PRIMARY_P7:
+    if not _is_configured_primary(row, registry):
         return False, "harness.yaml's P7 primary is not the configured Codex row"
     mine = _claude_session_id(ctx.round_dir / "P7-OUTPUT.txt")
     if mine is not None:
@@ -989,7 +1003,7 @@ def check_independence(ctx: LaneContext, phases: Optional[list] = None,
         if fam[ph] == fam["P3"]:
             return False, f"{ph} reviewer model family {fam['P3']} is the producer's", ph
     if fam["P7"] == fam["P3"]:
-        ok, why = _same_family_judge_admitted(ctx, got["P7"], phases)
+        ok, why = _same_family_judge_admitted(ctx, got["P7"], phases, registry)
         if not ok:
             return False, f"P7 judge model family {fam['P3']} is the producer's: {why}", "P7"
     return True, "reviewers and judge are of a model family other than the producer's", None
