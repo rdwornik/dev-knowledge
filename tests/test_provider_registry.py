@@ -704,9 +704,11 @@ def test_e32_also_served_models_cover_cross_provider_routing():
     assert "openai" in models["gpt-6-luna"]["also_served_by"]
     assert models["gpt-6.1-sol"]["provider"] == "copilot-enterprise"
     assert models["gpt-6.1-sol"]["family"] == "openai"
-    assert models["gemini-4-argon"]["provider"] == "antigravity"
+    # E32 TEST-FIX (lane head): owned by `copilot-enterprise`, served by `antigravity`. `codespace_parity.expected_models`
+    # reads agy's expected id from the SOLE `antigravity` models row, so a second row there breaks C1 for agy.
+    assert models["gemini-4-argon"]["provider"] == "copilot-enterprise"
     assert models["gemini-4-argon"]["family"] == "google"
-    assert "copilot-enterprise" in models["gemini-4-argon"]["also_served_by"]
+    assert "antigravity" in models["gemini-4-argon"]["also_served_by"]
 
 
 def test_e32_fallback_triggers_route_quota_and_preserve_explicit_waits():

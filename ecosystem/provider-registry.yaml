@@ -1721,12 +1721,15 @@ models:
     attribution_token: "gpt-6.1-sol"
     pinned_at: []
 
-  # ADDED 2026-11-02 ([#1833], D1): reached through `agy` (a separate provider and quota) and through the Copilot CLI.
+  # ADDED 2026-11-02 ([#1833], D1): review 2's model on the Copilot CLI, which `agy` also serves (a separate provider and
+  # quota, the evaluation backup). OWNED by `copilot-enterprise` and served by `antigravity`, not the other way round:
+  # `codespace_parity.expected_models` derives agy's expected id from the SOLE `antigravity` models row, and a second
+  # row there would leave agy with no expected id (C1 would compare against nothing).
   # Served as `gemini-4-argon-trial` on 2026-11-01; no `last_verified` until a served record names the plain id.
   gemini-4-argon:
-    provider: antigravity
+    provider: copilot-enterprise
     family: google
-    also_served_by: [copilot-enterprise]
+    also_served_by: [antigravity]
     roles: [reviewer]
     pinned_at: []
 
