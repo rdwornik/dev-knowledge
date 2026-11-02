@@ -25,6 +25,9 @@ sweep:
     - {path: to-browser/DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md, root: transport}
     - {path: to-browser/DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md, root: transport}
     - {path: to-browser/DIGEST-LINE-REPAIR-PROGRAM-2026-11-01.md, root: transport}
+    # The architect's step-2 review names rows it found live or wrongly labelled (#1047, #1027,
+    # #1600); a row it names stays protected from any class that would close it.
+    - {path: to-browser/DIGEST-BACKLOG-REVIEW-STEP2-2026-11-01.md, root: transport}
   # Step 2 R-3, as narrowed by Q-SW-1: merge-rewrite is KEPT and listed; keep-* is kept; no priority edits.
   decision_classes:
     close-shipped: shipped
