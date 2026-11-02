@@ -27,7 +27,9 @@ THE FIELD, AND WHO MAY WRITE IT
     disagrees with its event, or a row of an unknown kind. The write-time refusal alone would be
     decoration: anyone can append a line to a file.
   * `bind` records IDENTITY (role, batch) for a seat in the primary checkout, and never a state.
-    Its CLI binds `CLAUDE_CODE_SESSION_ID` -- the id the RUNTIME set -- and offers no `--session`,
+    An INTEGRATOR holds a SET of batches (one integrator receives every open batch, defect 33):
+    successive `--role integrator` binds ADD to it, a bind to any other role replaces the role and
+    clears the set, and `unbind --batch B` drops one. Its CLI binds `CLAUDE_CODE_SESSION_ID` -- the id the RUNTIME set -- and offers no `--session`,
     so a seat cannot bind someone else.
   * `unbind` is the outgoing seat's own terminal handover event (the dispatcher order's Cycle
     section calls it before the new seat starts): the session then reads `absent`, never the
@@ -232,18 +234,23 @@ def bind(role: str, batch: str, *, session_id: str, path: Optional[Path] = None,
 
 
 def unbind(*, session_id: str, path: Optional[Path] = None,
-           now: Optional[datetime] = None) -> dict:
+           now: Optional[datetime] = None, batch: Optional[str] = None) -> dict:
     """Record a seat's HANDOVER: the terminal event of an outgoing seat. Never a state.
 
     A cycled seat writes nothing more, so it would age to `wedged` and be named as a stall; the
     reader treats a session whose newest bind/unbind row is an unbind as `absent`, as for a
     `SessionEnd`. Later hook events of that session (its own Stop) do not revive it; a fresh
-    `bind` of the same session does."""
+    `bind` of the same session does.
+
+    With `batch`, the row removes THAT batch from the session's bound set and nothing else; the
+    seat is handed over only when its last batch goes."""
     if not session_id:
         raise SeatRefusal("unknown-role", "no session id to unbind",
                           remedy="unbind from inside the outgoing seat's own Claude Code session")
     row = {"schema": SCHEMA, "kind": "unbind", "session_id": session_id,
            "ts": (now or _now()).isoformat()}
+    if batch:
+        row["batch"] = str(batch).upper()
     _append(Path(path) if path else REGISTRY_PATH, row)
     return row
 
@@ -282,16 +289,52 @@ def record_hook_event(payload: Mapping) -> Optional[dict]:
 
 # ===================================================================================== reading
 
+#: Landing order of a bound batch. The I-1 rule (to-cc/INTEGRATOR-ORDER-AMENDMENT-I1-2026-11-01.md):
+#: ready lanes land in ARRIVAL order. `priority` is display and identification metadata only; no
+#: refusal and no landing decision reads it (`tests/test_seat_registry.py` pins both readers).
+LANDING = "arrival"
+
+#: Priority of a batch id that is not `E<major>.<minor>` (a legacy id such as `AB`): after every
+#: numbered batch, and printable.
+_UNRANKED: tuple[int, int] = (999_999, 0)
+
+
+def batch_priority(batch: str) -> tuple[int, int]:
+    """The batch id's own numeric key, `E3.2 -> (3, 2)`. NUMERIC, so `E3.10` sorts after `E3.2`
+    (a text sort puts it before). Stable: it is a function of the id alone, never re-ranked."""
+    text = str(batch).upper()
+    if text.startswith("E"):                         # `E<major>.<minor>`, ASCII digits only
+        major, dot, minor = text[1:].partition(".")
+        if dot and major.isascii() and major.isdigit() and minor.isascii() and minor.isdigit():
+            return int(major), int(minor)
+    return _UNRANKED
+
+
+@dataclass(frozen=True)
+class BatchBind:
+    batch: str
+    priority: tuple[int, int]
+    landing: str = LANDING
+
+
+def _binds_of(batches: Iterable[str]) -> tuple[BatchBind, ...]:
+    """One `BatchBind` per batch, lowest priority first (id text breaks a tie)."""
+    ordered = sorted(set(batches), key=lambda b: (batch_priority(b), b))
+    return tuple(BatchBind(b, batch_priority(b)) for b in ordered)
+
+
 @dataclass(frozen=True)
 class Seat:
     session_id: str
     role: Optional[str]
-    batch: Optional[str]
+    batch: Optional[str]                  # the FIRST of `batches`: a single-batch reader still works
     lane: Optional[str]
     state: str
     last_event: datetime
     last_kind: str
     minutes_since: float
+    batches: tuple[str, ...] = ()         # every bound batch, lowest priority first
+    binds: tuple[BatchBind, ...] = ()     # the same batches with their priority and landing
 
 
 def _valid(row: object) -> bool:
@@ -307,7 +350,7 @@ def _valid(row: object) -> bool:
     if row.get("kind") == "bind":
         return row.get("role") in ROLES and "state" not in row
     if row.get("kind") == "unbind":
-        return "state" not in row
+        return "state" not in row and isinstance(row.get("batch", ""), str)
     return False
 
 
@@ -373,23 +416,43 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
     """Every session the registry has seen, each with its READ state."""
     moment = now or _now()
     events: dict[str, list[dict]] = {}
-    binds: dict[str, dict] = {}
+    binds: dict[str, dict] = {}                       # session -> its newest bind row
+    bound_batches: dict[str, set[str]] = {}           # session -> the batches it is bound to
     handed_over: dict[str, str] = {}                  # session -> the unbind row's ts
     for row in sorted(read_rows(path), key=lambda r: r["ts"]):
+        session = row["session_id"]
         if row["kind"] == "bind":
-            binds[row["session_id"]] = row
-            handed_over.pop(row["session_id"], None)
+            # Only successive INTEGRATOR binds accumulate (one integrator receives every open
+            # batch). A bind to any other role -- or the first bind after a handover -- starts the
+            # set afresh, so a seat that changed role is never read as a live integrator.
+            keep = (row["role"] == "integrator" and session in binds
+                    and binds[session]["role"] == "integrator" and session not in handed_over)
+            bound_batches[session] = (bound_batches[session] if keep else set()) | {row["batch"]}
+            binds[session] = row
+            handed_over.pop(session, None)
         elif row["kind"] == "unbind":
-            handed_over[row["session_id"]] = row["ts"]
+            if row.get("batch"):
+                # A targeted drop touches the bound set only. A session that holds no set (a lane,
+                # or one never bound) has nothing to drop, so it is not handed over by it.
+                if session not in bound_batches:
+                    continue
+                bound_batches[session].discard(row["batch"])
+                if bound_batches[session]:
+                    continue                          # the other batches stay bound
+            handed_over[session] = row["ts"]
         else:
-            events.setdefault(row["session_id"], []).append(row)
+            events.setdefault(session, []).append(row)
     out: list[Seat] = []
     for session in sorted(set(events) | set(binds)):
         rows = sorted(events.get(session, []), key=lambda r: r["ts"])
         lane = next((r["lane"] for r in reversed(rows) if r.get("lane")), None)
         bound = binds.get(session)
         role = bound["role"] if bound else ("lane" if lane else None)
-        batch = bound["batch"] if bound else (_batch_of(lane) if lane else None)
+        if bound:
+            held = _binds_of(bound_batches[session])
+        else:
+            held = _binds_of([_batch_of(lane)] if lane else [])
+        batch = held[0].batch if held else None
         if session in handed_over:
             # The outgoing seat said so itself (`unbind`): terminal until it binds again.
             activity, kind, state = datetime.fromisoformat(handed_over[session]), "unbind", "absent"
@@ -409,7 +472,8 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
                                             path_exists=path_exists,
                                             transcript_mtime=transcript_mtime)
         out.append(Seat(session, role, batch, lane, state, activity, kind,
-                        round((moment - activity).total_seconds() / 60.0, 1)))
+                        round((moment - activity).total_seconds() / 60.0, 1),
+                        tuple(b.batch for b in held), held))
     return out
 
 
@@ -484,7 +548,7 @@ def seat_health_line(path: Optional[Path] = None, *, now: Optional[datetime] = N
         if named:
             line += f" / {state.upper()}: " + "; ".join(named)
     unreceived = [b.upper() for b in open_batches
-                  if not any(s.role == "integrator" and s.batch == b.upper()
+                  if not any(s.role == "integrator" and b.upper() in s.batches
                              and s.state == "live" for s in roled)]
     if unreceived:
         line += (" / NO LIVE INTEGRATOR for batch " + ", ".join(sorted(set(unreceived)))
@@ -518,19 +582,26 @@ def cmd_bind(role: str, batch: str) -> None:
 
 
 @cli.command("unbind")
-def cmd_unbind() -> None:
-    """Hand THIS session (CLAUDE_CODE_SESSION_ID) over: it reads `absent`, not `wedged`."""
+@click.option("--batch", default=None,
+              help="Drop only this batch from the seat's bound set; omit it to hand the seat over.")
+def cmd_unbind(batch: Optional[str]) -> None:
+    """Hand THIS session (CLAUDE_CODE_SESSION_ID) over: it reads `absent`, not `wedged`.
+
+    With `--batch B` an integrator that holds several batches drops just B."""
     session = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
     if not session:
         click.echo("REFUSED [unknown-role]: CLAUDE_CODE_SESSION_ID is unset -- unbind from inside "
                    "the outgoing seat's own Claude Code session; a typed session id is not accepted")
         raise SystemExit(1)
     try:
-        row = unbind(session_id=session)
+        row = unbind(session_id=session, batch=batch)
     except SeatRefusal as exc:
         click.echo(str(exc))
         raise SystemExit(1) from exc
-    click.echo(f"unbound {row['session_id']} (handover)")
+    if row.get("batch"):
+        click.echo(f"unbound {row['session_id']} from batch {row['batch']}")
+    else:
+        click.echo(f"unbound {row['session_id']} (handover)")
 
 
 @cli.command("show")
@@ -542,6 +613,10 @@ def cmd_show() -> None:
             click.echo(f"{seat.state:8} {seat.role or 'unbound':10} {seat.batch or '-':4} "
                        f"{seat.session_id} {seat.lane or ''} last={seat.last_kind} "
                        f"{seat.minutes_since:.0f} min")
+            if seat.role != "lane":                  # a lane's batch is its worktree's, not a bind
+                for held in seat.binds:
+                    click.echo(f"  bind {held.batch} priority={held.priority} "
+                               f"landing={held.landing}")
 
 
 if __name__ == "__main__":
