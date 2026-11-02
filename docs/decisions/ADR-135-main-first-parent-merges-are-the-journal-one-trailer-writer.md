@@ -28,7 +28,7 @@ Measured on main c6618dbb7 (revision 2); the landing shape re-measured on main 1
 - Each landing writes two first-parent merges:
   - the land merge, message from `land_lane.build_merge_message` (`scripts/land_lane.py:115`) or the operator's `--message` override (`:556`);
   - the receipt merge, made after CI (`chore(receipt)`, `:399`).
-- Fallback landings exist: `merge_path.py`, and hand merges (JOURNAL.md:274 records one on 2026-10-24).
+- Fallback landings exist: `merge_path.py`, and hand merges (the JOURNAL entry headed `### 2026-10-24 (m)`, lane `land-lane-receipt-anchor`, records a landing through `merge_path.py` as a FALLBACK).
 - Confirmed on the two E3.0 landings: d3c578306 + 7993b70a9 and bcef4742c + 13023da42. Each receipt merge carries 0 trailers; the land merge d3c578306 carries `kill-candidates` only.
 - The land merge's second parent is a JOURNAL anchor commit (6f4368782, `docs(journal)`), written because `block-unanchored-push` (ADR-85) refuses a main push whose range has no JOURNAL anchor. Every landing today therefore also writes JOURNAL.md by hand.
 
@@ -38,7 +38,7 @@ Measured on main c6618dbb7 (revision 2); the landing shape re-measured on main 1
 - No `scripts/*.py` writes a tag; only tests do.
 
 **Gates**
-- A `--no-ff` merge runs no pre-commit hooks (JOURNAL.md:4479).
+- A `--no-ff` merge runs no pre-commit hooks (the JOURNAL entry headed `### 2026-09-15 (r)`: "a `--no-ff` merge runs ZERO pre-commit hooks").
 - The blocking leg on main is pre-push, and it fails closed.
 - The batch-token grammar is letters only: `BATCH_TOKEN = r"[a-z]{1,3}"` (`scripts/validate_branch_naming.py:92`).
 
@@ -187,7 +187,7 @@ Weights: requirements=25 enforced=20 tokens=15 view=15 buildcost=15 practice=10
 - close_receipt appends the ledger {probe: scripts/merge_receipt.py:1216}
 - R25 makes leaving nothing behind a gate {probe: protocols/STANDING_RULINGS.md:5008}
 - the batch token grammar is letters only {probe: scripts/validate_branch_naming.py:92}
-- a --no-ff merge runs zero pre-commit hooks {probe: JOURNAL.md:4479}
+- a --no-ff merge runs zero pre-commit hooks {probe: grep -c 'runs ZERO pre-commit hooks' JOURNAL.md}
 - 0 refs under refs/notes, 61 tags, 55 archive/*, 21 of 48 merges with trailers (git, re-measured by the producer) {unverified}
 - Beads stores issues in Dolt; .beads/issues.jsonl is an export (github.com/steveyegge/beads, read 2026-10-31) {unverified}
 - GitHub stopped displaying git notes on 2014-08-14 (github.blog) {unverified}
@@ -211,7 +211,7 @@ Unchanged and verbatim in revision 2, `to-browser/PROPOSAL-ADR-GIT-MEMORY-2026-1
 | GMG1 | --message and merge_path skip trailers | **Accepted** -- covered by D2's single writer |
 | GMG2 | not every merge came from the builder | **Accepted** -- Context now lists all landing paths; footnote removed |
 | GMG3 | ADR-131 amendment overclaims | **Accepted** -- "Adds to" a new decision item; ADR-131 is not amended |
-| GMG4 | lesson slug invented | **Accepted** -- cites JOURNAL.md:4479 instead; the slug was the producer's auto-memory, not a repo lesson |
+| GMG4 | lesson slug invented | **Accepted** -- cites the JOURNAL entry headed `### 2026-09-15 (r)` instead; the slug was the producer's auto-memory, not a repo lesson |
 | GMG5 | tag-writer claim over-broad | **Accepted** -- narrowed to scripts/*.py |
 | GMG6 | arithmetic fine; counts unverifiable | **Accepted** -- counts stay marked as producer-measured git output |
 | GMG7 | flips observable | **Accepted** -- kept; GMC7 tightened the post-freeze leg |

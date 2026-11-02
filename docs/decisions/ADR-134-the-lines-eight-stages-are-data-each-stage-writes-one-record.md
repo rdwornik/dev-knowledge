@@ -6,26 +6,26 @@
 - **Numbering:** PROPOSAL-ADR-STAGE-PHASE = ADR-134, PROPOSAL-ADR-GIT-MEMORY = ADR-135, PROPOSAL-ADR-BROWSER-SURFACE = ADR-136, PROPOSAL-ADR-READ-FORMAT = ADR-137, ADR-124 stays ADR-124. Where the text below names a proposal, read its ADR number.
 - **Decision tier:** Path A — operator ratification.
 - **Amends:** ADR-130 D1 (where the phase table comes from, and its models). **Disposes:** ADR-130 D6, which GO-E3.0 R1 sent to E3.1.
-- **Depends on:** nothing open. GO-E3.0 R11 is in `ecosystem/provider-registry.yaml` since e30-bootstrap (7993b70a9): the judge order starts with gpt-6-sol (`:1075`).
+- **Depends on:** nothing open. GO-E3.0 R11 is in `ecosystem/provider-registry.yaml` since e30-bootstrap (7993b70a9): the judge order starts with gpt-6-sol (`ecosystem/provider-registry.yaml` `roles.judge.order[0]`).
 - **Uses:** [#1689] (phases from the contract), [#1687] (served model in every receipt), GO-E3.0 R9 (the UNVERIFIED class).
-- **Source:** plan r3 §3 (transport `to-cc/PLAN-NEXT-2026-10-30.md:40-51`); `ecosystem/harness.yaml@689a537e5:181-189`; `scripts/subst_gate.py:109-117`; `ecosystem/schema/phase_receipt.py:162-196`; `scripts/conductor.py:791,1043`; research brief D.
+- **Source:** plan r3 §3 (transport `to-cc/PLAN-NEXT-2026-10-30.md:40-51`); `ecosystem/harness.yaml@689a537e5:181-189`; `scripts/subst_gate.py:109-117`; `ecosystem/schema/phase_receipt.py:162-196`; `scripts/conductor.py` (`run_round`, and the C-SCOPE `_receipt(ctx, "P1")` check); research brief D.
 
 ## Context
 
 The plan names eight stages; the conductor runs seven phase rows (P6 has two). Measured on main c6618dbb7 (revision 2), re-measured on main 13023da42 (revision 3):
 - Stages 1 (sign-off), 7 (land) and 8 (used) have no phase. `sign-?off` has 0 matches in harness.yaml.
-- Stage 2's distiller is not a phase. P1 `spec` writes a second spec from an already-frozen contract. C-SCOPE refuses a lane without a P1 payload (`scripts/conductor.py:791`).
+- Stage 2's distiller is not a phase. P1 `spec` writes a second spec from an already-frozen contract. C-SCOPE refuses a lane without a P1 payload (`scripts/conductor.py`, the C-SCOPE `_receipt(ctx, "P1")` check).
 - Stage 3 RED is P2 on `claude`/`claude-sonnet-5-5`. R11 says Copilot T1 on `gpt-6-luna`.
-- Stage 6's judge is P7 on `claude-opus-5-5`. P7 reads "every receipt and payload in {round_dir}". The registry's `judge` order is gpt-6-sol first since e30-bootstrap (`:1075`); its `description:` still names R104's Opus (`:1070`).
-- P3 implement and P5 qa run Copilot `claude-sonnet-5.5` (`harness.yaml:186`, `:188`). R11: Sonnet implements through `claude`; T2 runs `gpt-6-luna`.
-- `harness.yaml:12` already holds a `stages:` key: the spine's eight contract-preparation stages (kind-subject to provider-model-version). A second block cannot share the name.
+- Stage 6's judge is P7 on `claude-opus-5-5`. P7 reads "every receipt and payload in {round_dir}". The registry's `judge` order is gpt-6-sol first since e30-bootstrap (`ecosystem/provider-registry.yaml` `roles.judge.order[0]`); its `description:` still names R104's Opus (`roles.judge.description`).
+- P3 implement and P5 qa run Copilot `claude-sonnet-5.5` (the `P3` and `P5` rows of `ecosystem/harness.yaml`). R11: Sonnet implements through `claude`; T2 runs `gpt-6-luna`.
+- `ecosystem/harness.yaml:12` already holds a `stages:` key: the spine's eight contract-preparation stages (kind-subject to provider-model-version). A second block cannot share the name.
 - A Copilot `--usage-output-file` carries no session id; the id is the `~/.copilot/session-state/` folder created at the file's start time.
 - P6b `review-grok` has `model: null`, so declared == served cannot be evaluated.
 - P4 constraints is mandatory (ADR-130 D4) and has no plan stage.
-- subst_gate's `_PHASE_RULES` maps role words. Of the harness phase names, 5 of 8 (spec, constraints, qa, review-grok, judge) map to no rule and are refused at `:289`.
-- `PhaseReceipt` v1 has 24 fields, with no session id. It embeds its payload, `detail` included (`:195`).
+- subst_gate's `_PHASE_RULES` maps role words. Of the harness phase names, 5 of 8 (spec, constraints, qa, review-grok, judge) map to no rule and are refused at `:297`.
+- `PhaseReceipt` v1 has 24 fields, with no session id. It embeds its payload, `detail` included (`:198`).
 - No record type exists for a moment stage.
-- [#1689] has landed (13023da42): `contract_phases()` reads a contract's `## Phases` (`scripts/conductor.py:1148`).
+- [#1689] has landed (13023da42): `contract_phases()` reads a contract's `## Phases` (`scripts/conductor.py` `contract_phases`).
 
 ## Decision
 
@@ -42,7 +42,7 @@ The plan names eight stages; the conductor runs seven phase rows (P6 has two). M
 | 7 land | moment, merge | `land_lane.py` via the integrator | Sonnet integrator | merge receipt |
 | 8 used | moment, post-merge | the consumer named in the sign-off | code | usage witness recorded |
 
-**D2. The contract carries the phases** ([#1689], landed 13023da42). The harness `phases:` block is the default only for a contract that declares none. P1 leaves a distilled contract only after C-SCOPE (`conductor.py:791`) and the P2/P3 prompts read the frozen contract instead of the P1 payload (Q-D1). Phase models come from the registry roles, where R11 now stands.
+**D2. The contract carries the phases** ([#1689], landed 13023da42). The harness `phases:` block is the default only for a contract that declares none. P1 leaves a distilled contract only after C-SCOPE (`scripts/conductor.py`) and the P2/P3 prompts read the frozen contract instead of the P1 payload (Q-D1). Phase models come from the registry roles, where R11 now stands.
 
 **D3. Stage 6 has a defined input view (Q-D2).** One input builder gives P7: the contract, `git diff <base>..<tip>` (the diff only, no commit messages), the P5 (T2) receipt, and the P6 reviewer receipts reduced to `outcome` + `findings`. It never gives a payload's `detail`, the P3 payload, a HANDBACK, LANE-END or SESSION text, or a transcript: nothing the producer wrote about its own work. Every adjudication of a reviewer finding, inside P7 or outside it, is built by the same builder (E3.0 night defect 9: an adjudication carried the lane's description of its code instead of the diff). A test pins the redaction. P7's (provider, session) differs from those of stages 3-5.
 
@@ -150,13 +150,13 @@ Revision 1 scored S3 observability 4 on a proposed table; both evaluators refuse
 - contract_phases reads a contract's Phases section on main {probe: scripts/conductor.py:1148}
 - a copilot review phase rule exists {probe: scripts/subst_gate.py:111}
 - the judge description still names R104 {probe: ecosystem/provider-registry.yaml:1070}
-- ADR-130 is Proposed {probe: docs/decisions/ADR-130-the-outer-loop-runs-in-code.md:3}
+- ADR-130 is Accepted in part 2026-10-31 (GO-E3.0 R1) {probe: grep -c 'Accepted in part 2026-10-31' docs/decisions/ADR-130-the-outer-loop-runs-in-code.md}
 - D6 reads "dynamic workflows stay audit-only" {probe: grep -c 'dynamic workflows stay audit-only' docs/decisions/ADR-130-the-outer-loop-runs-in-code.md}
 - P7 judge reads every receipt and payload (true at 689a537e5; the P7 row was rewritten on main since) {unverified}
 - P6b grok has model null (true at 689a537e5:189; the P6 rows were rewritten on main since) {unverified}
 - the subst_gate phase grammar ends at 117 {probe: scripts/subst_gate.py:117}
 - a phase row the gate cannot judge is refused {probe: scripts/subst_gate.py:300}
-- PhaseReceipt embeds the payload at 195 {probe: ecosystem/schema/phase_receipt.py:195}
+- PhaseReceipt embeds the payload at 198 {probe: ecosystem/schema/phase_receipt.py:198}
 - C-SCOPE reads the P1 payload {probe: scripts/conductor.py:791}
 - run_round is the round runner {probe: grep -c 'def run_round' scripts/conductor.py}
 - the registry judge order starts with gpt-6-sol, R11 {probe: ecosystem/provider-registry.yaml:1075}
@@ -194,13 +194,13 @@ Unchanged and verbatim in revision 2, `to-browser/PROPOSAL-ADR-STAGE-PHASE-2026-
 ## Revision 3 - CC's R41 challenge (2026-11-01, on main 13023da42) and what changed
 
 Every revision-2 finding was accepted (17/17); R41 looked hardest where nothing was defended.
-- SP-R1 (stale base): the judge order is already gpt-6-sol first (`ecosystem/provider-registry.yaml:1075`, e30-bootstrap). "Depends on" closed; Q-D3 recorded as ruled; the stale `description:` (`:1070`) moved to Consequences.
-- SP-R2 (name collision, undefended): `harness.yaml:12` already holds `stages:` (the spine's eight stages). Neither evaluator saw it. D1's block is `line_stages:`.
-- SP-R3 (incomplete): P3 and P5 run Copilot `claude-sonnet-5.5` (`harness.yaml:186`, `:188`), which also contradicts R11; revision 2 named only P2, P6b, P7. Consequences and S0 now list all five.
-- SP-R4 (stale): [#1689] landed at 13023da42 (`scripts/conductor.py:1148`); the "main has 0" bullet is replaced.
+- SP-R1 (stale base): the judge order is already gpt-6-sol first (`ecosystem/provider-registry.yaml` `roles.judge.order[0]`, e30-bootstrap). "Depends on" closed; Q-D3 recorded as ruled; the stale `description:` (`roles.judge.description`) moved to Consequences.
+- SP-R2 (name collision, undefended): `ecosystem/harness.yaml:12` already holds `stages:` (the spine's eight stages). Neither evaluator saw it. D1's block is `line_stages:`.
+- SP-R3 (incomplete): P3 and P5 run Copilot `claude-sonnet-5.5` (the `P3` and `P5` rows of `ecosystem/harness.yaml`), which also contradicts R11; revision 2 named only P2, P6b, P7. Consequences and S0 now list all five.
+- SP-R4 (stale): [#1689] landed at 13023da42 (`scripts/conductor.py` `contract_phases`); the "main has 0" bullet is replaced.
 - SP-R5 (vacuous check): a Copilot usage file has no session id, so a session-only overlap check reads every Copilot RED as UNVERIFIED. D4 judges (provider, session).
-- SP-R6 (operator ruling Q-D2): the judge input is diff + reviewer findings + T2 results; no producer prose, no commit messages; adjudications use the same builder (night defect 9). This matches the registry's own judge text (`:1070-1071`, "never the implementer's report").
-- SP-R7 (operator review routing, 2026-11-01): stage 5 = Codex terra + Copilot gemini-4-argon (Google; in Copilot's CAPI catalog by the 2026-11-01 probe; served once). Fallback gpt-6-luna. The ruled last resort "Sonnet in a new isolated session" is held: `scripts/provider_router.py:283` refuses a reviewer of the producer's provider (`excludes_producer: true`, `ecosystem/provider-registry.yaml:824`). See H-Q2 in `to-browser/DIGEST-E3-1-SIGNOFF-2026-11-01.md`.
+- SP-R6 (operator ruling Q-D2): the judge input is diff + reviewer findings + T2 results; no producer prose, no commit messages; adjudications use the same builder (night defect 9). This matches the registry's own judge text (`roles.judge.description`, "never the implementer's report").
+- SP-R7 (operator review routing, 2026-11-01): stage 5 = Codex terra + Copilot gemini-4-argon (Google; in Copilot's CAPI catalog by the 2026-11-01 probe; served once). Fallback gpt-6-luna. The ruled last resort "Sonnet in a new isolated session" is held: `scripts/provider_router.py:283` refuses a reviewer of the producer's provider (`excludes_producer: true`, `ecosystem/provider-registry.yaml` `roles.review.excludes_producer`). See H-Q2 in `to-browser/DIGEST-E3-1-SIGNOFF-2026-11-01.md`.
 - Matrix unchanged: none of the above moves a score; the S2/S3 tie and its reason stand.
 
 ## Amendment 2026-11-02 (architect ruling Q-L0-2)

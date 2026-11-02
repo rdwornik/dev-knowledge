@@ -11,7 +11,7 @@
 
 A paused, crashed or stopped lane has no record of its progress that a successor can trust. The repair verb's prompt says "read the refusal and the frozen contract ... fix only what the refusal names" (`scripts/dispatch.py` `RepairRequest.prompt`) and passes no refusal: that is the night defect of reserved row 1830. A stopped job can be resumed by the daemon ([#1613]). The only code-written state file is per seat (scripts/seat_state.py), and it fills a missing timestamp with the current time (:203). No JSON reader in it rejects duplicate keys.
 
-The operator ruled "one state file per task + resume verb, matching the night defects" (GO-E3.1 section 2). The AJ digest, amended by P8, says "a per-task state VIEW projected from ADR-121 events, plus a resume verb ... never a model-written task file" (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:39). Flips agy:G-07 ("a per-task file contradicts pack :297") and agy:G-23 ("derive progress from ADR-121 events") went partly -> accepted (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:71, :73). The pack G-07 cites is in the AJ KB, outside the repo, and was not read; this ADR reads G-07 as the digest words it ("never a model-written task file") and asks the operator to confirm that reading. ADR-121 is Proposed. ADR-134 already fixes the per-lane receipt directory logs/receipts/LANE-<slug>/ (ADR-134:64; scripts/conductor.py:1061).
+The operator ruled "one state file per task + resume verb, matching the night defects" (GO-E3.1 section 2). The AJ digest, amended by P8, says "a per-task state VIEW projected from ADR-121 events, plus a resume verb ... never a model-written task file" (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:39). Flips agy:G-07 ("a per-task file contradicts pack :297") and agy:G-23 ("derive progress from ADR-121 events") went partly -> accepted (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:71, :73). The pack G-07 cites is in the AJ KB, outside the repo, and was not read; this ADR reads G-07 as the digest words it ("never a model-written task file") and asks the operator to confirm that reading. ADR-121 is Proposed. ADR-134 already fixes the per-lane receipt directory logs/receipts/LANE-<slug>/ (ADR-134:64; `scripts/conductor.py` `run_round`).
 
 ## Decision
 
@@ -191,7 +191,7 @@ Nothing is built by this ADR. It does not decide:
   - The matrix in the design evidence, after the evaluators: S3 3.00, then S1 2.80, S2 2.70, S5 2.70, S4 2.65, S6 1.95, S0 1.80.
   - The probes of its Subagent claims, among them:
     - the repair prompt (`scripts/dispatch.py` `RepairRequest.prompt`);
-    - the per-lane directory (ADR-134:64, scripts/conductor.py:1061);
+    - the per-lane directory (ADR-134:64, `scripts/conductor.py` `run_round`);
     - the timestamp fill in seat_state.py (:203);
     - ADR-121 D1 and D4 (ADR-121:63, :75).
 
