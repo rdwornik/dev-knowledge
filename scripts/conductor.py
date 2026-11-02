@@ -825,17 +825,13 @@ def _c_red(ctx: LaneContext) -> tuple[bool, str]:
 
 
 def _c_vendor(ctx: LaneContext) -> tuple[bool, str]:
-    got = {ph: _receipt(ctx, ph) for ph in ("P3", "P6a", "P6b", "P7")}
-    absent = [ph for ph, rc in got.items() if rc is None]
-    if absent:
-        return False, "missing receipt(s): " + ", ".join(absent)
-    producer = got["P3"].vendor
-    for ph in ("P6a", "P6b"):
-        if got[ph].vendor == producer:
-            return False, f"{ph} reviewer vendor {producer} is the producer's"
-    if got["P7"].vendor == producer and not (got["P3"].substituted_from and producer == "anthropic"):
-        return False, f"P7 judge vendor {producer} is the producer's"
-    return True, "reviewers and judge are independent of the producer"
+    """P4's slice of C-VENDOR ([#1848]): only what ran BEFORE P4 -- P3's receipt present and readable.
+
+    The reviewers and the judge run after P4, so their receipts cannot exist yet; their independence of
+    the producer (by MODEL FAMILY) is `check_independence`, run by `run_round` after P7."""
+    if _receipt(ctx, "P3") is None:
+        return False, "missing receipt: P3"
+    return True, "P3's receipt is present; reviewer/judge independence is checked by model family after P7"
 
 
 def _c_clean(ctx: LaneContext) -> tuple[bool, str]:
@@ -869,6 +865,165 @@ class RoundResult:
     phases: list[tuple[str, str]] = field(default_factory=list)
     halted_at: Optional[str] = None
     exit_code: int = 1
+    refused_by: Optional[str] = None
+
+
+# --- independence by MODEL FAMILY, after P7 ([#1848], GO-E3.0 R11 D-1) ---------------------------
+# The reviewers (P6a, P6b) and the judge (P7) run AFTER P4, so P4 cannot check them. `check_independence`
+# is the full producer-independence check; `run_round` calls it once every phase has succeeded.
+ISOLATED_JUDGE_PROMPT_CODEX = (
+    'You are phase P7 (judge) of lane {lane}, row {row}. '
+    'Judge ONLY from these inputs: the contract {contract}; the diff (git diff {base}...HEAD); {round_dir}/P6c-OUTPUT.txt, the pushed-run CI verdict of HEAD; and the review payloads {round_dir}/P6a.payload.json and {round_dir}/P6b.payload.json. '
+    'Read no other file in {round_dir} and no producer prose (no P1, P2 or P3 payload or OUTPUT file). '
+    "Decide whether the round is accepted against the contract's Done-contract. "
+    'Your final message is ONLY one JSON object (a PhasePayload: nonce, input_hash, outcome ACCEPT or REFUSE, findings, detail) with nonce set to {nonce} and input_hash set to {input_hash} exactly.'
+)
+# the Claude fallback WRITES its payload (Codex's `-o` writes its final message), so only the last sentence differs
+ISOLATED_JUDGE_PROMPT_CLAUDE = (
+    'You are phase P7 (judge) of lane {lane}, row {row}. '
+    'Judge ONLY from these inputs: the contract {contract}; the diff (git diff {base}...HEAD); {round_dir}/P6c-OUTPUT.txt, the pushed-run CI verdict of HEAD; and the review payloads {round_dir}/P6a.payload.json and {round_dir}/P6b.payload.json. '
+    'Read no other file in {round_dir} and no producer prose (no P1, P2 or P3 payload or OUTPUT file). '
+    "Decide whether the round is accepted against the contract's Done-contract. "
+    'Write ONE JSON object (a PhasePayload: nonce, input_hash, outcome ACCEPT or REFUSE, findings, detail) to {payload}, with nonce set to {nonce} and input_hash set to {input_hash} exactly.'
+)
+# a CLOSED prefix table: an id matching neither the registry's `family:` nor a prefix FAILS closed
+_PREFIX_FAMILIES = (("claude-", "anthropic"), ("gpt-", "openai"), ("gemini-", "google"), ("grok-", "xai"))
+_SESSION_FLAGS = ("--resume", "--continue", "-c", "-r", "--session-id")
+
+
+class FamilyError(ValueError):
+    """A model id whose family cannot be established (neither the registry nor the prefix table)."""
+
+
+def _registry_families(registry: Optional[Path]) -> dict[str, str]:
+    import yaml  # noqa: PLC0415
+
+    path = Path(registry) if registry else _REPO_ROOT / "ecosystem" / "provider-registry.yaml"
+    try:
+        models = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("models") or {}
+    except (OSError, yaml.YAMLError, AttributeError):
+        return {}
+    return {str(k): str(v["family"]) for k, v in models.items() if isinstance(v, dict) and v.get("family")}
+
+
+def model_family(model_id: str, registry: Optional[Path] = None) -> str:
+    """The family of a model id: the registry's `family:` when it has one, else the closed prefix table."""
+    families = _registry_families(registry)
+    if model_id in families:
+        return families[model_id]
+    for prefix, family in _PREFIX_FAMILIES:
+        if model_id.startswith(prefix):
+            return family
+    raise FamilyError(f"no model family for {model_id!r}: not in the registry and not a known prefix")
+
+
+def receipt_model_id(receipt) -> Optional[str]:
+    """The model a receipt judges by: its served model unless empty or UNVERIFIED, else the requested one."""
+    served = (getattr(receipt, "served_model", None) or "").strip()
+    if served and served.upper() != "UNVERIFIED":
+        return served
+    return (getattr(receipt, "model_requested", None) or "").strip() or None
+
+
+def _claude_session_id(path: Path) -> Optional[str]:
+    """`session_id` of a file holding Claude's `--output-format json` result, else None (never an error)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    sid = data.get("session_id") if isinstance(data, dict) else None
+    return sid if isinstance(sid, str) and sid else None
+
+
+def _render(template: str, values: dict[str, str]) -> str:
+    for key, value in values.items():
+        template = template.replace(key, value)
+    return template
+
+
+def _is_configured_primary(row: dict, registry: Optional[Path]) -> bool:
+    """P7's primary is the Codex row of GO-E3.0 R11: `codex exec -m <its own model> -s read-only -o {payload}
+    <ISOLATED_JUDGE_PROMPT_CODEX>`, of the openai family. The model id is read from the row, not typed here:
+    a model-id literal in a script is a registry-bypass (tests/test_model_id_single_source.py)."""
+    model = row.get("model")
+    expected = ["codex", "exec", "-m", model, "-s", "read-only", "-o", "{payload}", ISOLATED_JUDGE_PROMPT_CODEX]
+    if row.get("cli") != "codex" or [str(t) for t in row.get("command") or []] != expected:
+        return False
+    try:
+        return model_family(str(model), registry) == "openai"
+    except FamilyError:
+        return False
+
+
+def _same_family_judge_admitted(ctx: LaneContext, p7, phases: Optional[list],
+                                registry: Optional[Path] = None) -> tuple[bool, str]:
+    """The ONE admission predicate for a P7 whose family is the producer's: legs (i), (iii), (iv) and the
+    conditional refusal (ii). A missing, cut-off or unparseable P7-OUTPUT.txt never refuses."""
+    argv = [str(t) for t in p7.command]
+    if any(t == f or t.startswith(f + "=") for t in argv for f in _SESSION_FLAGS):
+        return False, "its argv resumes or names a session (not an isolated new session)"
+    values = {"{lane}": p7.lane, "{row}": p7.row, "{contract}": p7.inputs[0].path if p7.inputs else "",
+              "{base}": ctx.base, "{round_dir}": str(ctx.round_dir),
+              "{payload}": str(ctx.round_dir / "P7.payload.json"), "{nonce}": p7.nonce,
+              "{input_hash}": p7.input_hash}
+    if _render(ISOLATED_JUDGE_PROMPT_CLAUDE, values) not in argv:
+        return False, "its prompt is not ISOLATED_JUDGE_PROMPT_CLAUDE rendered"
+    if p7.substituted_from != "openai":
+        return False, f"substituted_from is {p7.substituted_from!r}, not the Codex primary's vendor 'openai'"
+    if phases is None:
+        phases = _harness_doc(ctx.repo_root / "ecosystem" / "harness.yaml").get("phases") or []
+    row = next((p for p in phases if isinstance(p, dict) and p.get("id") == "P7"), {})
+    if not _is_configured_primary(row, registry):
+        return False, "harness.yaml's P7 primary is not the configured Codex row"
+    mine = _claude_session_id(ctx.round_dir / "P7-OUTPUT.txt")
+    if mine is not None:
+        for ph in ("P1", "P2", "P3"):
+            if _claude_session_id(ctx.round_dir / f"{ph}-OUTPUT.txt") == mine:
+                return False, f"its session_id equals {ph}'s (not an isolated session)"
+    return True, "isolated fallback judge"
+
+
+def check_independence(ctx: LaneContext, phases: Optional[list] = None,
+                       registry: Optional[Path] = None) -> tuple[bool, str, Optional[str]]:
+    """(ok, why, phase): P6a, P6b and P7 are of a MODEL FAMILY other than P3's. Fails closed, naming the phase."""
+    got = {ph: _receipt(ctx, ph) for ph in ("P3", "P6a", "P6b", "P7")}
+    for ph, rc in got.items():
+        if rc is None:
+            return False, f"missing receipt: {ph}", ph
+    fam: dict[str, str] = {}
+    for ph, rc in got.items():
+        mid = receipt_model_id(rc)
+        if not mid:
+            return False, f"{ph} receipt records no model id (fails closed)", ph
+        try:
+            fam[ph] = model_family(mid, registry)
+        except FamilyError as exc:
+            return False, f"{ph}: {exc}", ph
+    for ph in ("P6a", "P6b"):
+        if fam[ph] == fam["P3"]:
+            return False, f"{ph} reviewer model family {fam['P3']} is the producer's", ph
+    if fam["P7"] == fam["P3"]:
+        ok, why = _same_family_judge_admitted(ctx, got["P7"], phases, registry)
+        if not ok:
+            return False, f"P7 judge model family {fam['P3']} is the producer's: {why}", "P7"
+    return True, "reviewers and judge are of a model family other than the producer's", None
+
+
+def _t2_stale(ctx: LaneContext) -> Optional[str]:
+    """Why the T2 evidence (P6c-OUTPUT.txt) is not for the tree evaluated, or None. C-CLEAN is a ruff check,
+    not a clean-tree check, so this binds the verdict to a clean tree whose HEAD is the sha ci_verdict read."""
+    rc, status = _git_out(ctx, "status", "--porcelain")
+    if rc != 0 or status.strip():
+        return "the working tree is not clean" if rc == 0 else "git status failed"
+    rc, head = _git_out(ctx, "rev-parse", "HEAD")
+    try:
+        sha = json.loads((ctx.round_dir / "P6c-OUTPUT.txt").read_text(encoding="utf-8")).get("sha")
+    except (OSError, ValueError, AttributeError):
+        sha = None
+    if rc != 0 or not sha or sha != head.strip():
+        return f"P6c-OUTPUT.txt sha {sha!r} is not HEAD {head.strip()!r}"
+    return None
+
 
 
 def _run_phase():
@@ -920,6 +1075,17 @@ def run_round(lane: str, round_no: int, *, repo_root: Path, harness: Optional[Pa
     halted = next((pid for pid, _, d in seen if not (d and rp.phase_succeeded(d))), None)
     if ran.returncode != 0 or halted:
         result.halted_at = halted or (seen[-1][0] if seen else None)
+        return result
+    ctx = LaneContext(repo_root, child.get("HARNESS_BASE") or "origin/main", round_dir, row)
+    declared = {p["id"] for p in phases}
+    refused = None
+    if declared & {"P6a", "P6b"}:  # a harness with no reviewers makes no independence claim
+        ok, why, phase = check_independence(ctx, phases)
+        refused = None if ok else f"C-VENDOR:{phase}"
+    if refused is None and "P6c" in declared and _t2_stale(ctx):
+        refused = "T2-STALE:P6c"
+    if refused:
+        result.verdict, result.exit_code, result.refused_by = "REFUSED", _EXIT_REFUSED, refused
         return result
     last = outcomes[-1] if outcomes else None
     if last == "ACCEPT":
@@ -1077,7 +1243,7 @@ def _lane_main(args, root: Path) -> int:
         if args.select:
             print("\n".join(r["id"] for r in rows))
             return 0
-    ctx = LaneContext(root, args.base, Path(args.round_dir) if args.round_dir
+    ctx = LaneContext(root, args.base or "origin/main", Path(args.round_dir) if args.round_dir
                       else root / "logs" / "receipts", args.row or "")
     if args.constraints:
         failed = 0
@@ -1115,9 +1281,10 @@ def _lane_main(args, root: Path) -> int:
             run_harness = run_harness.resolve()
         print(f"harness source: {label}")
         res = run_round(args.lane, args.round, repo_root=root, harness=run_harness,
-                        receipts=receipts, row=args.row or "")
+                        receipts=receipts, row=args.row or "", env={"HARNESS_BASE": args.base} if args.base else None)
         print(f"conductor lane {args.lane} r{args.round}: {res.verdict}"
-              + (f" at {res.halted_at}" if res.halted_at else ""))
+              + (f" at {res.halted_at}" if res.halted_at else "")
+              + (f" by {res.refused_by}" if res.refused_by else ""))
         for pid, status in res.phases:
             print(f"  {pid}: {status}")
         return res.exit_code
@@ -1166,7 +1333,8 @@ def main(argv: list[str] | None = None) -> int:
     lane.add_argument("--select", action="store_true", help="print the selected constraint ids")
     lane.add_argument("--change-kind", default=None, help="change kind for conditional constraints")
     lane.add_argument("--path", action="append", default=None, help="a changed path (repeatable)")
-    lane.add_argument("--base", default="origin/main", help="the base ref the lane diverged from")
+    lane.add_argument("--base", default=None,
+                      help="the base ref the lane diverged from (default origin/main; forwarded to the phases as HARNESS_BASE)")
     lane.add_argument("--round-dir", default=None, help="the round's receipts directory")
     lane.add_argument("--row", default=None, help="the backlog row id")
     lane.add_argument("--harness", default=None, help="harness yaml (default: <repo-root>/ecosystem/harness.yaml)")

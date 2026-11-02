@@ -932,6 +932,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1747] [P2][M] `ci_verdict.py` reads the retired suite-gate block on its no-baseline path and reports registry members as new reds · tasks/1747-ci-verdict-reads-the-retired-suite-gate-block.md
 - [#1748] [P2][M] the view: /decide first, then build · tasks/1748-the-view-decide-first-then-build.md
 - [#1749] [P2][M] the backlog per-row reconciliation organ (GO-E3.0 R10), after L2 · tasks/1749-the-backlog-per-row-reconciliation-organ.md
+- [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
 
 ---
 
