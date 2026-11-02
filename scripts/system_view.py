@@ -110,8 +110,6 @@ SOURCES = {
 READER_IDS = tuple(SOURCES)
 #: The id under which assembly itself produced a top-level value (`assembled_at`, `leg`); not a reader.
 ASSEMBLY_ID = "assembly"
-#: Top-level keys that must be CELLS, so the provenance rule covers them too (ADR-133 D2).
-TOP_LEVEL_CELLS = ("assembled_at", "leg")
 #: In the scheduled leg ONLY these two readers run (D4).
 SCHEDULED_READERS = ("map-record", "merge-receipts")
 
@@ -719,27 +717,56 @@ def read_source(reader_id: str, root: Path, *, now: datetime, siblings: Sequence
 # ---------------------------------------------------------------------------------------- assembly
 
 
+#: The only top-level keys of a view. Anything else is refused (a value no reader produced).
+VIEW_KEYS = ("schema", "assembled_at", "leg", "labels", "thresholds", "readers", "mermaid", "tiles")
+_TILE_CELLS = ("source", "checkout", "state", "staleness")
+_TILE_KEYS = ("id", "reader", "columns", "fields", "rows", "reason", *_TILE_CELLS)
+
+
 def check_provenance(view: dict) -> None:
-    """Refuse a value no reader produced: every cell (a dict with key "v") needs a known reader id."""
+    """Refuse a value no reader produced (ADR-133 D2, EXHAUSTIVE).
+
+    Every value in the view that is not a label is a CELL `{"v", "r"}` whose `r` is a known reader id
+    (`assembly` for the values assembly itself produced). The only bare things are the structural
+    identifiers: the keys of the view, the label table, the reader roster, and in a tile its `id`,
+    `reader`, `columns` and each field's `label` (label keys). Anything else bare is refused."""
     known = set(view.get("readers") or ())
 
-    def walk(node, where: str) -> None:
-        if isinstance(node, dict):
-            if "v" in node:
-                if node.get("r") not in known:
-                    raise ProvenanceError(f"{where}: value {node.get('v')!r} carries reader id "
-                                          f"{node.get('r')!r}, which is not a reader")
-                return
-            for key, value in node.items():
-                walk(value, f"{where}.{key}")
-        elif isinstance(node, list):
-            for i, value in enumerate(node):
-                walk(value, f"{where}[{i}]")
+    def cell(node, where: str) -> None:
+        if not (isinstance(node, dict) and "v" in node):
+            raise ProvenanceError(f"{where}: a bare value carries no reader id")
+        if node.get("r") not in known:
+            raise ProvenanceError(f"{where}: value {node.get('v')!r} carries reader id "
+                                  f"{node.get('r')!r}, which is not a reader")
 
-    for key in TOP_LEVEL_CELLS:
-        if key in view and not (isinstance(view[key], dict) and "v" in view[key]):
-            raise ProvenanceError(f"view.{key}: a bare value carries no reader id")
-    walk(view, "view")
+    for key in view:
+        if key not in VIEW_KEYS:
+            raise ProvenanceError(f"view.{key}: not a key of a view; the value has no reader")
+    for key in ("schema", "assembled_at", "leg"):
+        if key in view:
+            cell(view[key], f"view.{key}")
+    for key, value in (view.get("thresholds") or {}).items():
+        cell(value, f"view.thresholds.{key}")
+    for key, value in (view.get("mermaid") or {}).items():
+        cell(value, f"view.mermaid.{key}")
+    for i, tile in enumerate(view.get("tiles") or ()):
+        where = f"view.tiles[{i}]"
+        if not isinstance(tile, dict):
+            raise ProvenanceError(f"{where}: a bare value carries no reader id")
+        for key, value in tile.items():
+            if key not in _TILE_KEYS:
+                raise ProvenanceError(f"{where}.{key}: not a key of a tile; the value has no reader")
+            if key in _TILE_CELLS:
+                cell(value, f"{where}.{key}")
+            elif key == "reason" and value is not None:
+                cell(value, f"{where}.reason")
+            elif key == "fields":
+                for j, field in enumerate(value):
+                    cell(field.get("cell") if isinstance(field, dict) else None, f"{where}.fields[{j}].cell")
+            elif key == "rows":
+                for r, row in enumerate(value):
+                    for c, item in enumerate(row):
+                        cell(item, f"{where}.rows[{r}][{c}]")
 
 
 def _skipped_tile(reader: str, root: Path) -> dict:
@@ -761,11 +788,11 @@ def assemble(root, *, now: datetime, leg: str = "fast", siblings: Sequence[Path]
         except Exception:  # noqa: BLE001 -- a reader that raises is shown UNREADABLE, never a blank page
             tiles.append(_unreadable(reader, root, "reader-failed"))
     view = {
-        "schema": SCHEMA,
+        "schema": _cell(SCHEMA, ASSEMBLY_ID),
         "assembled_at": _cell(now.isoformat(timespec="seconds"), ASSEMBLY_ID),
         "leg": _cell(leg, ASSEMBLY_ID),
         "labels": dict(LABELS),
-        "thresholds": dict(THRESHOLDS),
+        "thresholds": {key: _cell(value, ASSEMBLY_ID) for key, value in THRESHOLDS.items()},
         "readers": [*READER_IDS, ASSEMBLY_ID],
         "mermaid": {key: _cell(value, "p1-mermaid") for key, value in MERMAID.items()},
         "tiles": tiles,
