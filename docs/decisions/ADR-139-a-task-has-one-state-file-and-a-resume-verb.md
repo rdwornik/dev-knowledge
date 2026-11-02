@@ -4,12 +4,12 @@
 - **Date:** 2026-11-01
 - **Decision tier:** Path A -- a `/decide` proposal for operator ratification (R13, ADR-108 section A).
 - **Related:** ADR-121 (event log, Proposed: D1 one file per event, D3 lane outbox, D4 envelope, D7 published state, D8 projection), ADR-122 (a task is a typed record), ADR-130 (conductor phases and receipts), ADR-134 (StageRecord, PhaseReceipt v2, logs/receipts/LANE-<slug>/); rows [#890], [#1613], [#884]; reserved rows 1830 (repair names a real refusal), 1822 (a lane's question reaches the dispatcher by code), 1828 and 1831 (DIGEST-E3-1-ID-GRANT-2026-11-01.md:16, :22, :24, :25).
-- **Decommission:** the free-text repair prompt in `scripts/dispatch.py` (`RepairRequest.prompt`, scripts/dispatch.py:1945) is replaced by D5's rendered prompt.
+- **Decommission:** the free-text repair prompt in `scripts/dispatch.py` (`scripts/dispatch.py` `RepairRequest.prompt`) is replaced by D5's rendered prompt.
 - **Source:** the design evidence docs/audits/2026-11-01-technical-design-task-state.md (matrix, pre-mortem, M2 flips, evaluator responses); the scope is the operator's GO-E3.1 section 2 "AJ H7"; the inputs are DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md section 2 items 5, 6 and 8 and section 6, and DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md section 3 (flips agy:G-07, agy:G-23). Two evaluators (codex gpt-6-sol, served model unverified; Copilot gemini-4-argon) amended the first draft; their 22 findings are answered in the evidence file.
 
 ## Context
 
-A paused, crashed or stopped lane has no record of its progress that a successor can trust. The repair verb's prompt says "read the refusal and the frozen contract ... fix only what the refusal names" (scripts/dispatch.py:1945) and passes no refusal: that is the night defect of reserved row 1830. A stopped job can be resumed by the daemon ([#1613]). The only code-written state file is per seat (scripts/seat_state.py), and it fills a missing timestamp with the current time (:203). No JSON reader in it rejects duplicate keys.
+A paused, crashed or stopped lane has no record of its progress that a successor can trust. The repair verb's prompt says "read the refusal and the frozen contract ... fix only what the refusal names" (`scripts/dispatch.py` `RepairRequest.prompt`) and passes no refusal: that is the night defect of reserved row 1830. A stopped job can be resumed by the daemon ([#1613]). The only code-written state file is per seat (scripts/seat_state.py), and it fills a missing timestamp with the current time (:203). No JSON reader in it rejects duplicate keys.
 
 The operator ruled "one state file per task + resume verb, matching the night defects" (GO-E3.1 section 2). The AJ digest, amended by P8, says "a per-task state VIEW projected from ADR-121 events, plus a resume verb ... never a model-written task file" (DIGEST-AJ-FULL-ANALYSIS-2026-10-31.md:39). Flips agy:G-07 ("a per-task file contradicts pack :297") and agy:G-23 ("derive progress from ADR-121 events") went partly -> accepted (DIGEST-AJ-P78-MEASUREMENT-2026-11-01.md:71, :73). The pack G-07 cites is in the AJ KB, outside the repo, and was not read; this ADR reads G-07 as the digest words it ("never a model-written task file") and asks the operator to confirm that reading. ADR-121 is Proposed. ADR-134 already fixes the per-lane receipt directory logs/receipts/LANE-<slug>/ (ADR-134:64; scripts/conductor.py:906).
 
@@ -190,7 +190,7 @@ Nothing is built by this ADR. It does not decide:
 - **Decision evidence:**
   - The matrix in the design evidence, after the evaluators: S3 3.00, then S1 2.80, S2 2.70, S5 2.70, S4 2.65, S6 1.95, S0 1.80.
   - The probes of its Subagent claims, among them:
-    - the repair prompt (scripts/dispatch.py:1945);
+    - the repair prompt (`scripts/dispatch.py` `RepairRequest.prompt`);
     - the per-lane directory (ADR-134:64, scripts/conductor.py:906);
     - the timestamp fill in seat_state.py (:203);
     - ADR-121 D1 and D4 (ADR-121:63, :75).

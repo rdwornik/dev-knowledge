@@ -59,7 +59,7 @@ SUB-QUESTION 3: (a) quote row 884's body; (b) what scripts/decide_checks.py chec
 
 Every claim below was re-run by the producer this session (decide_checks subagent-claims). Where a subagent's line probe did not quote the line it named, the producer replaced it with a probe it checked by reading the line.
 
-- Q1: the repair prompt says "read the refusal and the frozen contract" and names no refusal text {probe: scripts/dispatch.py:1945}
+- Q1: the repair prompt says "read the refusal and the frozen contract" and names no refusal text {probe: `scripts/dispatch.py` `RepairRequest.prompt`}
 - Q1: the phrase "read the refusal" occurs once in dispatch.py, in that prompt {probe: grep -c 'read the refusal' scripts/dispatch.py}
 - Q1: a repair refuses when the lane's own worktree is missing {probe: grep -c 'no existing worktree' scripts/dispatch.py}
 - Q1: the slug launch receipt is logs/receipts/LAUNCH-<SLUG>.json {probe: scripts/dispatch.py:815}
@@ -105,7 +105,7 @@ Every claim below was re-run by the producer this session (decide_checks subagen
 
 ### What exists, quoted
 
-- **Repair today.** `RepairRequest.prompt` is "Repair for {slug} (attempt {n}): read the refusal and the frozen contract at {contract}; fix only what the refusal names; hand back per the common rules." (scripts/dispatch.py:1945). No refusal is passed in: the night defect row 1830 (reserved) is that the prompt points at a document that does not exist. The repair runs in the lane's own worktree and rewrites the slug receipt with `kind: repair` (scripts/dispatch.py:1428).
+- **Repair today.** `RepairRequest.prompt` is "Repair for {slug} (attempt {n}): read the refusal and the frozen contract at {contract}; fix only what the refusal names; hand back per the common rules." (`scripts/dispatch.py` `RepairRequest.prompt`). No refusal is passed in: the night defect row 1830 (reserved) is that the prompt points at a document that does not exist. The repair runs in the lane's own worktree and rewrites the slug receipt with `kind: repair` (scripts/dispatch.py:1428).
 - **Receipts.** One JSON per slug, LAUNCH-<SLUG>.json (scripts/dispatch.py:815), in gitignored logs/receipts, written non-atomically (:828). ADR-134 already fixes the per-lane directory logs/receipts/LANE-<slug>/ for PhaseReceipts v2 and StageRecords (ADR-134:64), and the conductor uses it (scripts/conductor.py:906).
 - **A code-written state file already exists, per seat.** scripts/seat_state.py ("the per-lane state an orchestrator seat hands to its own successor") writes atomically (:322), refuses torn and stale files, and requires evidence on every row. Two gaps measured against the Maister items: it fills a missing ts with the current time (:203), which is a guess; and no reader rejects duplicate keys (object_pairs_hook count 0).
 - **Intake 80** (docs/intake/2026-09-07-tech-per-lane-resumable-state-file.md, DRAFT) proposed a lane-written LANE-STATE.yml in the worktree, at phase boundaries, with phase, completed, failed, last_commit. Its own open question is "Gitignored or committed?". The AJ ruling "never a model-written task file" rules out its writer, not its fields.
@@ -136,7 +136,7 @@ Weights: resume=25 integrity=20 compat=20 reuse=15 footprint=10 now=10
 | S5 extend seat_state.py per-seat file | 2 | 3 | 2 | 4[^3] | 3 | 3 | 2.70 |
 | S6 lane-written LANE-STATE.yml (intake 80) | 2 | 1 | 1 | 3 | 3 | 3 | 1.95 |
 
-[^1]: measured -- S0 changes nothing, so it adds no code, gate or file; this session's reading of scripts/dispatch.py:1945 shows the cost it keeps, a prompt naming no refusal.
+[^1]: measured -- S0 changes nothing, so it adds no code, gate or file; this session's reading of `scripts/dispatch.py` `RepairRequest.prompt` shows the cost it keeps, a prompt naming no refusal.
 [^2]: (withdrawn after IIS10/IIG3) -- S3 and S1 would reuse the same directory (ADR-134:64) and receipts root (scripts/dispatch.py:815); neither reuses an append-only writer, so S3's reuse is 3, as S1's.
 [^3]: measured -- scripts/seat_state.py exists with a schema id, atomic write (:322) and torn/stale refusal, read this session.
 
