@@ -881,3 +881,76 @@ def test_harness_batch_close_carries_the_full_leg_step():
         }
     ]
     assert any("{receipts}" in item for item in organ["command"])
+
+
+@pytest.mark.parametrize("leg", ["fast", "scheduled"])
+def test_assembled_at_and_leg_are_cells_with_a_reader_id(tmp_path, monkeypatch, leg):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    view = system_view.assemble(root, now=NOW, leg=leg)
+
+    assert view["assembled_at"] == {"v": NOW.isoformat(timespec="seconds"), "r": "assembly"}
+    assert view["leg"] == {"v": leg, "r": "assembly"}
+    assert set(view["readers"]) == set(READER_IDS) | {"assembly"}
+    assert system_view.check_provenance(view) is None
+
+
+@pytest.mark.parametrize("field", ["leg", "assembled_at"])
+@pytest.mark.parametrize("invalid", ["bare", "unknown-reader"])
+def test_check_provenance_refuses_a_bare_top_level_value(
+    field, invalid, tmp_path, monkeypatch
+):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    view = system_view.assemble(root, now=NOW)
+    value = view[field].get("v") if isinstance(view[field], dict) else view[field]
+    if invalid == "bare":
+        view[field] = value
+    else:
+        view[field] = {"v": value, "r": "nope"}
+
+    with pytest.raises(system_view.ProvenanceError):
+        system_view.check_provenance(view)
+
+
+def test_quota_with_a_malformed_measured_is_unreadable(tmp_path, monkeypatch):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    path = Path(os.environ["DEV_KNOWLEDGE_QUOTA_READS_LEDGER"])
+    _write(
+        path,
+        json.dumps(
+            {
+                "group": "g",
+                "cycle": "2026-11-01",
+                "used": 1.0,
+                "quota": 10.0,
+                "pct": 10.0,
+                "measured": "not-a-time",
+            }
+        )
+        + "\n",
+    )
+
+    tile = _tile("quota", root)
+    assert tile["state"]["v"] == "UNREADABLE"
+    assert tile["reason"]["v"] == "unparseable"
+
+
+def test_quota_count_is_the_source_total_not_the_shown_rows(tmp_path, monkeypatch):
+    root = _fixture_repo(tmp_path, monkeypatch)
+    path = Path(os.environ["DEV_KNOWLEDGE_QUOTA_READS_LEDGER"])
+    lines = [
+        {
+            "group": "g",
+            "cycle": "2026-11-01",
+            "used": 1.0,
+            "quota": 10.0,
+            "pct": 10.0,
+            "measured": NOW.isoformat(),
+        }
+        for _ in range(15)
+    ]
+    _write(path, "".join(json.dumps(line) + "\n" for line in lines))
+
+    tile = _tile("quota", root)
+    count = next(field["cell"]["v"] for field in tile["fields"] if field["label"] == "count")
+    assert count == 15
+    assert len(tile["rows"]) == 12
