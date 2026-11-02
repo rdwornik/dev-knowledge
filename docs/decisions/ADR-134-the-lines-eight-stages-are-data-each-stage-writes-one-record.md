@@ -202,3 +202,12 @@ Every revision-2 finding was accepted (17/17); R41 looked hardest where nothing 
 - SP-R6 (operator ruling Q-D2): the judge input is diff + reviewer findings + T2 results; no producer prose, no commit messages; adjudications use the same builder (night defect 9). This matches the registry's own judge text (`:1070-1071`, "never the implementer's report").
 - SP-R7 (operator review routing, 2026-11-01): stage 5 = Codex terra + Copilot gemini-4-argon (Google; in Copilot's CAPI catalog by the 2026-11-01 probe; served once). Fallback gpt-6-luna. The ruled last resort "Sonnet in a new isolated session" is held: `scripts/provider_router.py:283` refuses a reviewer of the producer's provider (`excludes_producer: true`, `ecosystem/provider-registry.yaml:824`). See H-Q2 in `to-browser/DIGEST-E3-1-SIGNOFF-2026-11-01.md`.
 - Matrix unchanged: none of the above moves a score; the S2/S3 tie and its reason stand.
+
+## Amendment 2026-11-02 (architect ruling Q-L0-2)
+
+The decision text above is unchanged; only this block was added. The ruling is `to-browser/DIGEST-RULINGS-MORNING-2026-11-02.md` (row Q-L0-2, S-2), taken on the lane question in `to-browser/QUESTION-E3.1-2026-11-02-e31-decide-v3-text-defects.md`.
+
+- **Consequences' `stages:` means D1's `line_stages:`.** D1 governs: `ecosystem/harness.yaml:12` already holds the spine's `stages:` key, and the new block is `line_stages:`. A build lane cites `line_stages:`.
+- **D1's table, with its `model` column, is the field authority.** The D1 prose that lists the row fields without `model` is read against that table.
+- The `Numbering:` header line stays as written. It is a header, not decision text.
+- This marker touches a ratified ADR by marker only, so it is reported to the operator in the next ratification package.
