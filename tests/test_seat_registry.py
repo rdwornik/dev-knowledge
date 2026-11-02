@@ -22,6 +22,7 @@ is injected, so the proof cannot be skipped on the machine that breaks the prope
 from __future__ import annotations
 
 import json
+import re
 import sys
 from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
@@ -766,6 +767,8 @@ def test_l_static_landing_paths_do_not_depend_on_batch_bind_metadata():
         for forbidden in ("import seat_registry", "from seat_registry", "scripts.seat_registry",
                           "BatchBind"):
             assert forbidden not in source, f"{name} contains {forbidden!r}"
+        for word in ("binds", "priority"):
+            assert not re.search(rf"\b{word}\b", source), f"{name} names {word!r}"
 
 
 def test_m_changing_roles_clears_old_integrator_batches_and_rebind_starts_fresh(tmp_path):
@@ -817,3 +820,13 @@ def test_a_bind_after_a_bare_unbind_starts_a_fresh_set(tmp_path):
 
     seat = _seats(path, now=T0 + timedelta(minutes=4))["int-1"]
     assert (seat.state, seat.batches) == ("live", ("E3.2",))
+
+
+def test_a_targeted_unbind_of_a_session_with_no_bound_set_hands_nothing_over(tmp_path):
+    """`unbind --batch B` drops from a bound set; a lane seat holds none, so it stays live."""
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "lane-1", at=T0, cwd=LANE_CWD)
+    reg.unbind(session_id="lane-1", path=path, now=T0 + timedelta(minutes=1), batch="AB")
+
+    seat = _seats(path, now=T0 + timedelta(minutes=2))["lane-1"]
+    assert (seat.state, seat.batches) == ("live", ("AB",))

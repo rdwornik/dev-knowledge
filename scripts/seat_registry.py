@@ -428,7 +428,11 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
             binds[session] = row
             handed_over.pop(session, None)
         elif row["kind"] == "unbind":
-            if row.get("batch") and session in bound_batches:
+            if row.get("batch"):
+                # A targeted drop touches the bound set only. A session that holds no set (a lane,
+                # or one never bound) has nothing to drop, so it is not handed over by it.
+                if session not in bound_batches:
+                    continue
                 bound_batches[session].discard(row["batch"])
                 if bound_batches[session]:
                     continue                          # the other batches stay bound
