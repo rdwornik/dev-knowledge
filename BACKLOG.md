@@ -210,7 +210,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#1012] [P1][M] A dispatcher-held producer shell must run as its own session or a detached process, not a bg shell the reaper can kill · tasks/1012-a-dispatcher-held-producer-shell-must-run-as-its.md
 - [#1014] [P1][M] A post-merge check runs before push, because a `--no-ff` merge commit bypasses nearly every pre-commit hook · tasks/1014-a-post-merge-check-runs-before-push-because-a-no.md
 - [#1015] [P2][S] `scripts/plan_lint.py` silently reads zero ownership from a contract using only an `Owns:` label · tasks/1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md
-- [#1855] [P1][M] distill --row writes the frozen LANE-<slug>.md by code (## Phases, ## Dispatch, model table) and boot_frontier picks the row and hands it to distill (C06 + C07) · tasks/1855-distill-row-writes-the-frozen-lane-contract-by-code-and-boot-frontier-picks-the-row.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -660,7 +659,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
 - [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
 - [#1864] [P2][S] Carry intake 123 — the equilibrium-night CANDIDATEs C-3, C-4, C-5 — to an ADR-111 outcome per item · tasks/1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md
-- [#1861] [P1][M] dispatch: a conductor-engine contract is launched as a model prompt, not as conductor.py lane --run in its own worktree - the launch half of C04 · tasks/1861-dispatch-launches-a-conductor-engine-contract-as-a-run.md
+- [#1866] [P1][S] The dispatch-queue racing-launches test is deterministic - diagnose the race window in `test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once` and make it fail or pass for a reason, not for timing · tasks/1866-the-dispatch-queue-racing-launches-test-is-deterministic.md
+- [#1867] [P1][M] backlog_reconcile apply/revert fail closed and restore nodes by task id - the two round-3 judge blockers of the legacy sweep `[#1854]`, plus the live-set and merge-revival candidates · tasks/1867-backlog-reconcile-apply-revert-fail-closed-and-restore-nodes-by-task-id.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md

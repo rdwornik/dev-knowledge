@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "71b8bd58cc570ef0a4059b9be2ee8274f0ca21d85f2f569a1ee091dbca52cac7",
+  "generated_sha256": "25bc0df9363f1267d65a1ba7db606f8b3423bdbe814de683e618191bacc8d744",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -816,10 +816,6 @@
     {
       "task": 1015,
       "file": "1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md"
-    },
-    {
-      "task": 1855,
-      "file": "1855-distill-row-writes-the-frozen-lane-contract-by-code-and-boot-frontier-picks-the-row.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -2484,8 +2480,12 @@
       "file": "1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md"
     },
     {
-      "task": 1861,
-      "file": "1861-dispatch-launches-a-conductor-engine-contract-as-a-run.md"
+      "task": 1866,
+      "file": "1866-the-dispatch-queue-racing-launches-test-is-deterministic.md"
+    },
+    {
+      "task": 1867,
+      "file": "1867-backlog-reconcile-apply-revert-fail-closed-and-restore-nodes-by-task-id.md"
     },
     {
       "task": 1718,

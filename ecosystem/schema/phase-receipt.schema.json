@@ -315,6 +315,18 @@
       ],
       "default": null,
       "title": "Substituted From"
+    },
+    "head_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Head Sha"
     }
   },
   "required": [

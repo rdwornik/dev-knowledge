@@ -197,6 +197,7 @@ class PhaseReceipt(BaseModel):
     payload_sha256: Optional[_Hex64]
     payload: Optional[PhasePayload]
     substituted_from: Optional[str] = None
+    head_sha: Optional[str] = None  # `git rev-parse HEAD` just BEFORE the phase spawned; None when git cannot answer
 
     @model_validator(mode="after")
     def _derived_facts_hold(self) -> "PhaseReceipt":
