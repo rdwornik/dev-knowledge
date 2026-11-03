@@ -679,7 +679,9 @@ SWEEP_DECISION_CLASSES: tuple[str, ...] = (
 FIXED_LIVE_IDS: frozenset[str] = frozenset(
     str(n) for n in (1748, 1800, 1811, 1833, 1837, 1838, *range(1844, 1864)))
 SWEEP_LEDGER = "ledger.json"
-SWEEP_INDEX = "index.md"
+# A dated name: consumer_at_landing counts a docs/audits file as consumed only when a governance
+# surface cites a DATED name, so a file called index.md could never be consumed (Q-SW-2 (e)).
+SWEEP_INDEX = "2026-11-02-technical-backlog-night-sweep-index.md"
 R2_REFUSED_LINE = "R-2 refused: no adjudicated unique-content flag"
 KEPT_CATEGORIES: tuple[str, ...] = (
     "protected", "k2-alive", "k3-agreed", "live-excluded", "r2-refused", "absent-from-table",
@@ -969,7 +971,7 @@ def open_dependency_ids(rows: Sequence[Row]) -> set[str]:
         match = _FRONTMATTER_RE.match(row.path.read_text(encoding="utf-8"))
         value = _frontmatter_value(match.group(1), "depends-on") if match else None
         if value:
-            named |= set(_CITE_RE.findall(value)) | set(re.findall(r"\[#(\d+)\]", value))
+            named |= set(re.findall(r"\d+", value))
     return named
 
 

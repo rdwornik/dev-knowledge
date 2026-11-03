@@ -1464,8 +1464,10 @@ def test_sweep_q_ledger_and_index_under_home_not_logs(tmp_path):
     task = {"id": 1350, "add_date": "2026-08-01"}
     result, _, tasks_dir, home, ruling = _sweep_run(tmp_path, [task])
     ledger_path = home / "ledger.json"
-    index_path = home / "index.md"
+    assert br.SWEEP_INDEX == "2026-11-02-technical-backlog-night-sweep-index.md"
+    index_path = home / br.SWEEP_INDEX
     assert ledger_path.is_file() and index_path.is_file()
+    assert not (home / "index.md").exists()
     assert not (home / "logs").exists()
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     entry = ledger["closed"][0]
@@ -1621,3 +1623,59 @@ def test_sweep_s_archived_body_row_is_kept_open(tmp_path):
     assert archived_task.read_bytes() == archived_bytes
     manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
     assert any(node.get("task") == 1902 for node in manifest["nodes"])
+
+
+def test_sweep_t_row_named_by_an_open_depends_on_is_kept(tmp_path):
+    tasks = [
+        {
+            "id": 1903,
+            "add_date": "2026-08-01",
+            "body": "no evidence references · depends-on: #1904",
+        },
+        {"id": 1904, "add_date": "2026-08-01"},
+    ]
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    rows = br.load_open_rows(tasks_dir)
+    protected_before = _sweep_file(tasks_dir, 1904).read_bytes()
+    assert "1904" in br.open_dependency_ids(rows)
+
+    ruling_path, transport_root = _sweep_ruling(tmp_path)
+    table_path = tmp_path / "step1.json"
+    table_path.write_text(
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}, indent=2),
+        encoding="utf-8",
+        newline="\n",
+    )
+    decisions, _ = br.plan_sweep(
+        ruling=br.load_sweep_ruling(ruling_path),
+        table=br.load_step1_table(table_path),
+        rows=rows,
+        repo_root=repo,
+        transport_root=transport_root,
+        today=_SWEEP_TODAY,
+        main_ref="origin/main",
+    )
+    dependency_decision = next(decision for decision in decisions if decision.row.id == "1904")
+    assert dependency_decision.action == "keep"
+    assert dependency_decision.category == "protected"
+    assert "depends-on of an open row" in dependency_decision.reason
+
+    result = br.run_sweep(
+        ruling_path=ruling_path,
+        table_path=table_path,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=tmp_path / "sweep-home",
+        transport_root=transport_root,
+        today=_SWEEP_TODAY,
+        evidence_sha="a" * 40,
+    )
+
+    assert result.kept["protected"] == ["1904"]
+    assert [(row["id"], row["class"]) for row in result.closed] == [
+        ("1903", "legacy-sweep")
+    ]
+    assert all(row["id"] != "1904" for row in result.closed)
+    assert _sweep_file(tasks_dir, 1904).read_bytes() == protected_before
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert any(node.get("task") == 1904 for node in manifest["nodes"])
