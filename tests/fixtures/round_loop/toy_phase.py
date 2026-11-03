@@ -47,7 +47,9 @@ elif phase == "P3":
     Path("src/x.py").write_text("value = 1\n", encoding="utf-8")
 
 payload_path = os.environ.get("PHASE_PAYLOAD")
-if payload_path:
+# a payload-gated phase is COMPLETE whenever a fresh valid payload exists, whatever the exit code
+# (run_phase.py), so a phase the test wants FAILED must exit non-zero WITHOUT writing its payload
+if payload_path and not exit_codes.get(phase):
     payload = {
         "nonce": os.environ["PHASE_NONCE"],
         "input_hash": os.environ["PHASE_INPUT_HASH"],

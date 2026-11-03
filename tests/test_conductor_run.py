@@ -140,6 +140,12 @@ def _world(tmp_path: Path, *, changes: dict[str, dict] | None = None,
         _git(repo, "config", "user.email", "round-loop@example.invalid")
         _git(repo, "config", "commit.gpgsign", "false")
         _git(repo, "config", "core.autocrlf", "false")
+        if _git(repo, "status", "--porcelain").stdout:
+            # a `changes=` world rewrote the tracked contract: make that the BASE (main + origin/main),
+            # so the lane starts from a clean tree and the contract is not a changed path of its own
+            _git(repo, "add", "-A")
+            _git(repo, "commit", "-m", "base: world contract")
+            _git(repo, "push", "origin", "HEAD:refs/heads/main")
         status = _git(repo, "status", "--porcelain")
         assert status.stdout == "", status.stdout
         _git(repo, "checkout", "-b", f"worktree-{lane}")
