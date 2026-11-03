@@ -334,7 +334,7 @@ def _check_already_landed(ctx: _Ctx) -> Optional[LandOutcome]:
     if code != 0:
         return None
     stop = _stop_path(ctx.receipts, ctx.slug)
-    if stop.exists():
+    if stop.exists() or stop.is_symlink():          # a dangling symlink is still a stop receipt
         return _refuse("UNRESOLVED-STOP",
                        f"{sha[:12]} is on origin/main but {stop} exists: land_lane may have stopped "
                        f"after the main push. Verify the carry file, then delete that receipt")

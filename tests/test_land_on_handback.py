@@ -988,6 +988,25 @@ def test_e_handback_and_receipt_rows_refuse_or_skip_before_land(
     assert calls == []
 
 
+def test_x_a_dangling_symlink_stop_receipt_still_blocks_an_already_landed_replay(case):
+    line, _ = _prepare(case)
+    _git(case.env.seed, "fetch", "origin")
+    _git(case.env.seed, "merge", "--no-ff", f"origin/worktree-{SLUG}", "-m", "land lane")
+    _git(case.env.seed, "push", "origin", "main")
+    stop = _stop_path(case)
+    stop.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        stop.symlink_to(case.tmp_path / "no-such-target.json")
+    except (OSError, NotImplementedError):
+        pytest.skip("this box cannot create a symlink")
+    calls = []
+
+    outcome = _one(case, SLUG, line, land_lane_fn=_stub(_report(), calls))
+
+    assert outcome.state == "UNRESOLVED-STOP" and outcome.exit_code == 5
+    assert calls == []
+
+
 def test_e_session_handback_is_passed_and_receipts_env_is_scoped(case, monkeypatch):
     line, _ = _prepare(case)
     monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
