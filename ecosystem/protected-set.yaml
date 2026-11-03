@@ -1,0 +1,10 @@
+# ecosystem/protected-set.yaml -- the protected set: the task ids `scripts/boot_frontier.py --pick`
+# is allowed to hand to the distiller (`--pick --distill`). A COMMITTED list of task ids, so the
+# operator's choice of which rows the harness may pick on its own is a recorded data edit.
+#
+# Adding or removing an id is a data edit here, not a code change; the reason goes in the commit
+# message. An empty list means no row is protected, so `--pick` finds none (exit 3): a state, not a
+# refusal. The file ships empty -- the first member is added by the run that needs one.
+#
+# Shape: one key, `task_ids:`, a YAML list of non-negative integers without duplicates.
+task_ids: []
