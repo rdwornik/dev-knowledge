@@ -59,6 +59,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -68,6 +70,8 @@ from typing import Callable, Optional
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
+if str(_SCRIPTS.parent) not in sys.path:   # `ecosystem.schema.phase_receipt` (the receipts legs)
+    sys.path.insert(0, str(_SCRIPTS.parent))
 
 import ship_gate_diff as _sgd  # noqa: E402
 import transport as _transport  # noqa: E402
@@ -315,6 +319,124 @@ def transport_write_check(lane: str,
     return CheckResult("transport-write", True, "to-cc/ carries nothing naming this lane")
 
 
+# --- legs 7 and 8 (only with --receipts-dir): the MODELS block and the LAUNCH receipt ---------------
+#
+# A conductor-run lane has no model hand-writing its MODELS block, so the organ builds it from the
+# round's PhaseReceipts ([#1857], C10). Both legs reuse `subst_gate`'s own functions -- the ones
+# `merge_path.land` calls at landing -- so a refusal moves from landing to here and nothing is judged twice.
+
+_RECEIPT_NAME = re.compile(r"^P[0-9]+[a-z]*\.json$")   # a round dir also holds P<id>.payload/.usage/.heartbeat.json
+_PHASE_KEY = re.compile(r"^P([0-9]+)([a-z]*)$")
+_PHASE_LABELS = {"P1": "spec", "P2": "red", "P3": "implement", "P4": "constraints", "P5": "qa",
+                 "P6a": "review-1", "P6b": "review-2", "P6c": "ci-verdict", "P7": "judge"}
+
+
+class ModelsBlockError(ValueError):
+    """The round's receipts cannot be rendered as a MODELS block (none, or one unreadable/invalid)."""
+
+
+def _phase_order(name: str) -> tuple:
+    m = _PHASE_KEY.match(name[:-5])
+    return (int(m.group(1)), m.group(2)) if m else (10 ** 6, name)
+
+
+def models_block_from_receipts(round_dir: Path) -> str:
+    """The `MODELS:` block of the phase receipts in `round_dir`, in phase order (pure; raises
+    `ModelsBlockError` naming the receipt that is unreadable or invalid, or saying there are none)."""
+    from ecosystem.schema.phase_receipt import PhaseReceipt  # noqa: PLC0415 -- organ path only
+
+    round_dir = Path(round_dir)
+    names = sorted((p.name for p in round_dir.glob("P*.json") if _RECEIPT_NAME.match(p.name)), key=_phase_order) \
+        if round_dir.is_dir() else []
+    if not names:
+        raise ModelsBlockError(f"no phase receipts (P<id>.json) in {round_dir}")
+    lines = ["MODELS:"]
+    for name in names:
+        pid = name[:-5]
+        try:
+            receipt = PhaseReceipt.model_validate_json(Path(round_dir / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:   # pydantic's ValidationError is a ValueError
+            raise ModelsBlockError(f"receipt {name} is unreadable or invalid: {str(exc).splitlines()[0][:200]}") from exc
+        label = _PHASE_LABELS.get(pid, pid.lower())
+        if receipt.vendor == "local":
+            lines.append(f"  {label}: not applicable (deterministic phase {pid})")
+            continue
+        requested = receipt.model_requested or "default"
+        head = Path(receipt.command[0]).stem.lower()
+        shown = f"copilot/{requested}" if head == "copilot" else requested
+        if receipt.served_model:
+            line = f"  {label}: requested={shown} served={receipt.served_model}"
+        else:
+            line = (f"  {label}: requested={shown} served={requested} UNVERIFIED "
+                    f"(receipt {name} served_model is null)")
+        if receipt.substituted_from:
+            line += (f" VENDOR-FAIL: {label} fallback ran after {receipt.substituted_from} failed "
+                     f"(receipt {name} substituted_from)")
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _primary_root(repo: Path, runner: Callable[..., tuple[int, str]] = _run) -> Path:
+    """The primary checkout of `repo`'s repository (the parent of its git common dir), else `repo`."""
+    code, out = runner(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"], repo)
+    common = Path(out.strip()) if code == 0 and out.strip() else None
+    return common.parent if common is not None and common.name == ".git" and common.is_dir() else Path(repo)
+
+
+def _launch_receipts_dir() -> Optional[str]:
+    return os.environ.get("HARNESS_RECEIPTS_DIR") or None
+
+
+def _batch_from_launch(root: Path, lane: str, receipts_dir: Optional[str]) -> Optional[str]:
+    path = (Path(receipts_dir) if receipts_dir else Path(root) / "logs" / "receipts") / f"LAUNCH-{lane.upper()}.json"
+    try:
+        batch = json.loads(path.read_text(encoding="utf-8")).get("batch")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return batch if isinstance(batch, str) and batch else None
+
+
+def models_block_check(round_dir: Path, session: Path) -> CheckResult:
+    """Leg `models-block`: no earlier `MODELS:` header in the session file (subst_gate reads the FIRST one and
+    the transport is append-only), then `subst_gate.check_models_block` over the synthesised block."""
+    import subst_gate  # noqa: PLC0415 -- organ path only
+
+    try:
+        existing = Path(session).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        existing = ""
+    if any(ln.strip() == "MODELS:" for ln in existing.splitlines()):
+        return CheckResult("models-block", False,
+                           f"{session} already holds a `MODELS:` line; subst_gate reads the FIRST one, so it would "
+                           f"govern instead of the generated block -- remove or relabel that header and retry")
+    try:
+        block = models_block_from_receipts(round_dir)
+    except ModelsBlockError as exc:
+        return CheckResult("models-block", False, str(exc))
+    problems, _subs = subst_gate.check_models_block(block)
+    if problems:
+        return CheckResult("models-block", False, " | ".join(problems))
+    return CheckResult("models-block", True, f"{len(block.splitlines()) - 1} phase line(s) pass check_models_block")
+
+
+def launch_receipt_check(repo: Path, lane: str, batch: Optional[str]) -> tuple[CheckResult, Optional[str]]:
+    """Leg `launch-receipt`: `subst_gate.launch_receipt_problems` as landing runs it. `root` is the PRIMARY
+    checkout and the receipts dir is HARNESS_RECEIPTS_DIR when set, because `dispatch.py launch` writes the
+    LAUNCH receipt under the checkout it ran from. Returns the leg and the batch it judged."""
+    import subst_gate  # noqa: PLC0415 -- organ path only
+
+    root, rdir = _primary_root(repo), _launch_receipts_dir()
+    batch = batch or _batch_from_launch(root, lane, rdir)
+    if not batch:
+        return CheckResult("launch-receipt", False,
+                           f"no --batch given and the LAUNCH receipt for {lane} is absent or carries no batch "
+                           f"(looked under {rdir or root / 'logs' / 'receipts'})"), None
+    problems = subst_gate.launch_receipt_problems(root, lane, batch, rdir)
+    if problems:
+        return CheckResult("launch-receipt", False, " | ".join(problems)), batch
+    return CheckResult("launch-receipt", True, f"LAUNCH receipt for batch {batch} found"), batch
+
+
 # --- the session file -----------------------------------------------------------------------------
 
 def session_path(lane: str, resolve_transport: Callable[[], Path] = _tr.resolve_transport) -> Path:
@@ -333,8 +455,11 @@ def append_session_block(path: Path, block: str) -> None:
 
 
 def render_self_check_block(checks: list[CheckResult], purity: CheckResult,
-                            handback: Optional[HandbackLine], state: Optional[StateLine]) -> str:
-    lines = ["", "## Handback organ self-check", ""]
+                            handback: Optional[HandbackLine], state: Optional[StateLine],
+                            models_block: Optional[str] = None) -> str:
+    """With `models_block` (the receipts mode) the MODELS block comes FIRST, in the same append, so the
+    HANDBACK line stays the last HANDBACK-shaped line `lane_end_guard.last_handback` reads."""
+    lines = ["", *(models_block.splitlines() + [""] if models_block else []), "## Handback organ self-check", ""]
     for c in checks:
         lines.append(f"- [{'ok' if c.ok else 'FAIL'}] {c.name}: {c.detail}")
     lines += ["", "## Purity check", "", f"- [{'ok' if purity.ok else 'FAIL'}] {purity.detail}"]
@@ -395,7 +520,8 @@ def _write_refusal(resolve_transport: Callable[[], Path], lane: str, branch: str
 def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
        reviewer: Optional[str] = None, high: Optional[int] = None, med: Optional[int] = None,
        low: Optional[int] = None,
-       resolve_transport: Callable[[], Path] = _tr.resolve_transport) -> tuple[int, dict]:
+       resolve_transport: Callable[[], Path] = _tr.resolve_transport,
+       receipts_dir: Optional[Path] = None, batch: Optional[str] = None) -> tuple[int, dict]:
     """The whole handback. Returns (exit_code, receipt) -- never raises; an internal error is a
     receipt with `status: FAILED`, the same "never stop the session" posture every organ on
     this path already carries."""
@@ -423,6 +549,10 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
                                    "lane": lane, "reason": f"could not resolve HEAD at {repo}"}
 
         purity, checks = run_self_check(repo, lane, branch, base, resolve_transport)
+        if receipts_dir is not None:   # the two legs appended AFTER the six; a failure takes the refusal path
+            checks = list(checks) + [
+                models_block_check(Path(receipts_dir), session_path(lane, resolve_transport)),
+                launch_receipt_check(repo, lane, batch)[0]]
         failing = [c for c in checks if not c.ok]
 
         if failing:
@@ -469,7 +599,9 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
                                    "lane": lane,
                                    "reason": f"LANE-END report failed schema validation: {report_msg}"}
 
-        block = render_self_check_block(checks, purity, handback, state)
+        block = render_self_check_block(
+            checks, purity, handback, state,
+            models_block_from_receipts(Path(receipts_dir)) if receipts_dir is not None else None)
         append_session_block(session_path(lane, resolve_transport), block)
 
         return EXIT_OK, {"schema": 1, "organ": "handback", "status": "ok", "lane": lane,
@@ -490,9 +622,19 @@ def _git_head(repo: Path) -> str:
 
 # --- CLI --------------------------------------------------------------------------------------
 
+class _RunParser(argparse.ArgumentParser):
+    """The `run` subcommand's parser: `--batch` is meaningful only with `--receipts-dir`."""
+
+    def parse_known_args(self, args=None, namespace=None):
+        ns, rest = super().parse_known_args(args, namespace)
+        if getattr(ns, "batch", None) and not getattr(ns, "receipts_dir", None):
+            self.error("--batch requires --receipts-dir")
+        return ns, rest
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="handback.py", description=__doc__.splitlines()[0])
-    sub = p.add_subparsers(dest="cmd", required=True)
+    sub = p.add_subparsers(dest="cmd", required=True, parser_class=_RunParser)
     r = sub.add_parser("run", help="run the self-check and hand back, or refuse with a receipt")
     r.add_argument("--lane", required=True)
     r.add_argument("--branch", required=True)
@@ -502,6 +644,11 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--med", type=int, default=None)
     r.add_argument("--low", type=int, default=None)
     r.add_argument("--repo", default=None)
+    r.add_argument("--receipts-dir", default=None,
+                   help="a conductor round directory of PhaseReceipts: adds the `models-block` and "
+                        "`launch-receipt` legs and writes the generated MODELS block into the session file")
+    r.add_argument("--batch", default=None,
+                   help="E<major>.<minor>; with --receipts-dir only (default: the LAUNCH receipt's batch)")
     # No `--base` flag: `base` is a real self-check parameter (what "purity"/"ship-gate delta"
     # are measured against) and a lane-controlled override of it would let a caller neutralize
     # both legs outright (`--base HEAD` empties purity and makes every current ship-gate finding
@@ -516,7 +663,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.cmd == "run":
         repo = Path(args.repo) if args.repo else _ROOT
         code, receipt = run(args.lane, args.branch, args.cls, repo, DEFAULT_BASE,
-                            args.reviewer, args.high, args.med, args.low)
+                            args.reviewer, args.high, args.med, args.low,
+                            receipts_dir=Path(args.receipts_dir) if args.receipts_dir else None,
+                            batch=args.batch)
         print(json.dumps(receipt, indent=2, sort_keys=True))
         return code
     return EXIT_INTERNAL  # pragma: no cover -- argparse `required=True` makes this unreachable
