@@ -1,7 +1,7 @@
 ---
 id: "[#1635]"
 title: "MAP-DISPATCH regenerated with the outside-hub entry points"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E10] Batch convergence"
@@ -9,4 +9,5 @@ story: "[S28] File every owed item with in-repo provenance"
 generates: BACKLOG.md
 ---
 
-- [#1635] [P2][S] **MAP-DISPATCH regenerated with the outside-hub entry points** - MAP-DISPATCH is regenerated with the entries outside the hub (win-tooling, lane-boot, lane-integrate, merge_path, conductor). `MAP-DISPATCH.md` (1,844 B, Oct 10) lists registry substrates and `dispatch.py` verbs only. owner: D1 lane. target batch: D1 · Done when: the regenerated map lists every entry point of the AS-IS binding file's P1 and P11 and a test fails when an entry point has no node; real-use witness: the seat's boot reads the map · touches: see the body · kill-candidates: none -- no row regenerates the map · refs `protocols/STANDING_RULINGS.md`, `to-browser/MAP-DISPATCH.md`, the AS-IS model row · decided-by: R131, R129 (retro-ratification, D8) · source: BATCH-D0-PROCESS-2026-10-18 section 0.4 (operator GO 2026-10-18: plan OK, D0)
+- [#1635] [P2][S] **MAP-DISPATCH regenerated with the outside-hub entry points** - MAP-DISPATCH is regenerated with the entries outside the hub (win-tooling, lane-boot, lane-integrate, merge_path, conductor). `MAP-DISPATCH.md` (1,844 B, Oct 10) lists registry substrates and `dispatch.py` verbs only. owner: D1 lane. target batch: D1 · Done when: the regenerated map lists every entry point of the AS-IS binding file's P1 and P11 and a test fails when an entry point has no node; real-use witness: the seat's boot reads the map · touches: see the body · kill-candidates: none -- no row regenerates the map · refs `protocols/STANDING_RULINGS.md`, `to-browser/MAP-DISPATCH.md`, the AS-IS model row · decided-by: R131, R129 (retro-ratification, D8) · source: BATCH-D0-PROCESS-2026-10-18 section 0.4 (operator GO 2026-10-18: plan OK, D0) · **CLOSED 2026-11-03** — evidence 432d0d1a295a4c7a544439c5ad02fac6332b5462
+sweep-close: no-fit · witnesses checked=K1 absent=K1 · The static MAP-DISPATCH surface is superseded by the planned generated AS-IS view.
