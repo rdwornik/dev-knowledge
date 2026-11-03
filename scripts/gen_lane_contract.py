@@ -2158,6 +2158,12 @@ def _row_done_when(text: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def row_phase(text: str) -> Optional[str]:
+    """The value of a row's `· phase:` clause, else None."""
+    match = _PHASE_CLAUSE_RE.search(text)
+    return match.group(1) if match else None
+
+
 def row_clause_problems(text: str) -> list[str]:
     """What a task row lacks to be distilled: ONE string per missing clause, `[]` when it
     qualifies. THE one predicate -- `boot_frontier.pick_distillable_row` and `distill_row_contract`

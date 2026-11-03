@@ -39,10 +39,18 @@ self-planning axis: `docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orc
     [P1..P3] band, never size/effort, so a trivial low-priority row can never crowd out a
     harder unblocked P1 for a batch slot.
   * HUMAN GO -- `BatchProposal` is a PROPOSAL. Nothing in this module or its CLI dispatches
-    anything; AUT-R1 Phase 4: "adjudication stays a human act... nothing merges unattended."
+    anything -- the CLI may also WRITE a contract file (`--pick --distill`) and never launches
+    one; AUT-R1 Phase 4: "adjudication stays a human act... nothing merges unattended."
+
+THE PICK (C07, [#1855]). `pick_distillable_row` walks the scored unblocked frontier and returns the
+first row that `gen_lane_contract.row_clause_problems` accepts (the ONE predicate the distiller
+also refuses on) and that is in the protected set -- a COMMITTED list of task ids
+(`PROTECTED_SET_SOURCE`, shipped empty; adding an id is a data edit). `--pick` prints the pick;
+`--pick --distill` hands it to `gen_lane_contract.distill_row_contract`. No model or provider is
+called on that path, and `gen_lane_contract` / `yaml` are imported INSIDE it only.
 
 READ-ONLY and Layer-2 (ADR-28/36): reads `tasks/` via `gen_task_tree`'s own reassembly, writes
-nothing, drives no state.
+nothing but the contract file `--distill` asks for, drives no state in a child repo.
 """
 
 from __future__ import annotations
@@ -294,6 +302,113 @@ def render_proposal(batch: BatchProposal) -> str:
     return "\n".join(lines)
 
 
+# --- the pick: a distillable, protected row (C07, [#1855]) ----------------------------------------
+
+#: The protected set: a COMMITTED list of task ids (architect ruling Q-B-2, 2026-11-02), relative
+#: to `--repo`. It ships EMPTY; adding an id is a data edit whose reason goes in the commit message.
+PROTECTED_SET_SOURCE = "ecosystem/protected-set.yaml"
+
+
+class ProtectedSetError(ValueError):
+    """The protected-set file is missing, unreadable or malformed."""
+
+
+def load_protected_set(repo_root: Path | None = None) -> frozenset[int]:
+    """The ids in `PROTECTED_SET_SOURCE`. An EMPTY `task_ids` list is valid (no row is protected).
+    Raises `ProtectedSetError` naming the file when it is missing or unreadable, is not a mapping,
+    lacks `task_ids`, or holds a non-integer, boolean, negative or duplicate entry."""
+    import yaml  # noqa: PLC0415 -- imported on the pick path only (fleet_health imports this module)
+
+    root = Path(repo_root) if repo_root is not None else _REPO_ROOT
+    path = root / PROTECTED_SET_SOURCE
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ProtectedSetError(f"{path}: cannot be read: {exc}") from exc
+    if not isinstance(doc, dict) or "task_ids" not in doc:
+        raise ProtectedSetError(f"{path}: must be a mapping with a `task_ids` list")
+    ids = doc["task_ids"]
+    if not isinstance(ids, list):
+        raise ProtectedSetError(f"{path}: `task_ids` must be a list of task ids")
+    seen: set[int] = set()
+    for entry in ids:
+        if isinstance(entry, bool) or not isinstance(entry, int) or entry < 0:
+            raise ProtectedSetError(f"{path}: {entry!r} is not a non-negative integer task id")
+        if entry in seen:
+            raise ProtectedSetError(f"{path}: duplicate task id {entry}")
+        seen.add(entry)
+    return frozenset(seen)
+
+
+def pick_distillable_row(
+    rows: list[_gtt.TaskRow],
+    scorer: ScoreFn = default_score,
+    protected: "frozenset[int] | set[int] | None" = None,
+) -> "_gtt.TaskRow | None":
+    """The best-scored UNBLOCKED row for which `gen_lane_contract.row_clause_problems` is empty
+    and, when `protected` is not None, whose id is in it; else None. The predicate is the
+    distiller's own, so a pick is never a row the distiller refuses for a missing clause."""
+    import gen_lane_contract as _glc  # noqa: PLC0415 -- the pick path only; not at import time
+
+    for row in score_frontier(unblocked_frontier(rows), rows, scorer):
+        if _glc.row_clause_problems(row.raw):
+            continue
+        if protected is not None and row.id not in protected:
+            continue
+        return row
+    return None
+
+
+def _pick_main(args: argparse.Namespace, root: Path, rows: list, frontier: list) -> int:
+    """`--pick` [`--distill`]: exit 0 picked (or distill's code), 3 no pick, 2 a bad set file."""
+    try:
+        protected = load_protected_set(root)
+    except ProtectedSetError as exc:
+        print(f"boot_frontier: {exc}", file=sys.stderr)
+        return 2
+    import gen_lane_contract as glc  # noqa: PLC0415 -- the pick path only
+
+    row = pick_distillable_row(rows, protected=protected)
+    if row is None:
+        distillable = sum(1 for r in frontier if not glc.row_clause_problems(r.raw))
+        print(f"PICK none: {len(frontier)} unblocked, {distillable} distillable, "
+              f"{len(protected)} protected")
+        return 3
+    title = _gtt.derive_title(row.raw)
+    line = f"PICK [#{row.id}] phase={glc.row_phase(row.raw)} {title}"
+    if not args.distill:
+        print(line)
+        return 0
+    print(line, file=sys.stderr)
+    return _distill_pick(args, root, glc, row, title)
+
+
+def _distill_pick(args: argparse.Namespace, root: Path, glc, row, title: str) -> int:
+    """Hand the pick to `distill_row_contract`; the receipt goes where `_emit_receipt` puts it and
+    the one `CONTRACT <path> sha256=<hex>` line goes to stderr. No model or provider is called."""
+    from pydantic import ValidationError  # noqa: PLC0415
+
+    slug = args.slug or glc.row_slug(row.id, title)
+    out_dir = Path(args.out_dir) if args.out_dir else None
+    try:
+        receipt, path, digest = glc.distill_row_contract(root, str(row.id), slug, out_dir=out_dir)
+    except glc.DistillRefused as exc:
+        print(f"boot_frontier: distill refused row [#{row.id}]: {exc}", file=sys.stderr)
+        return 1
+    except glc.DistillInputRequired as exc:
+        print(f"INPUT_REQUIRED: {exc}", file=sys.stderr)
+        return 4
+    except (ValidationError, glc.click.ClickException) as exc:
+        print(f"boot_frontier: distill refused row [#{row.id}]: {exc}", file=sys.stderr)
+        return 1
+    glc._emit_receipt(receipt, Path(args.receipt) if args.receipt else None)
+    if path is None:
+        print(f"INPUT_REQUIRED: row [#{receipt.row}] halts for the operator", file=sys.stderr)
+        return 4
+    print(f"CONTRACT {path} sha256={digest}", file=sys.stderr)
+    return 0
+
+
 def _main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="v7 BOOT-INVERSION: unblocked frontier + scoring + batch proposal "
@@ -301,7 +416,20 @@ def _main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--repo", default=str(_REPO_ROOT), help="repo root (default: this hub)")
     ap.add_argument("--frontier", action="store_true", help="print the raw unblocked frontier, unscored")
+    ap.add_argument("--pick", action="store_true",
+                    help="print the best distillable row in the committed protected set "
+                    f"({PROTECTED_SET_SOURCE}); exit 3 when there is none")
+    ap.add_argument("--distill", action="store_true",
+                    help="with --pick: write the picked row's frozen LANE-<slug>.md "
+                    "(never launches it)")
+    ap.add_argument("--slug", help="with --distill: the lane slug (default: row-<id>-<title words>)")
+    ap.add_argument("--out-dir", help="with --distill: where the contract goes")
+    ap.add_argument("--receipt", help="with --distill: write the DistillReceipt here (default: stdout)")
     args = ap.parse_args(argv)
+    if args.distill and not args.pick:
+        ap.error("--distill needs --pick")
+    if (args.slug or args.out_dir or args.receipt) and not args.distill:
+        ap.error("--slug, --out-dir and --receipt need --distill")
     root = Path(args.repo)
     try:
         rows = load_open_rows(root)
@@ -309,6 +437,8 @@ def _main(argv: list[str] | None = None) -> int:
     except CycleError as exc:
         print(f"boot_frontier: ground truth uncomputable: {exc}", file=sys.stderr)
         return 2
+    if args.pick:
+        return _pick_main(args, root, rows, frontier)
     if args.frontier:
         print(f"boot_frontier: {len(frontier)} unblocked row(s) in {len(rows)} open")
         for row in frontier:
