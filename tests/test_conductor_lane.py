@@ -1091,7 +1091,8 @@ def test_item1g_real_harness_phase_shape_and_phase_row_validation():
     assert rendered_fallback.count("--disallowedTools=AskUserQuestion,advisor") == 1
     assert "model family" in next(row for row in doc["constraints"] if row["id"] == "C-VENDOR")["reuses"]
     # cap 202 -> 204, the same cap as tests/test_dodo.py (Q-PO-1/Q-SV-1 cap rule): P6c ([#1848]) and system_view_full (L13)
-    assert len(lines) < 204
+    # cap 204 -> 205: e30-land-on-handback ([#1859]) adds one fates data row to ecosystem/harness.yaml for scripts/land_on_handback.py (FOOTPRINT-PIN, +1 line; same cap as tests/test_dodo.py)
+    assert len(lines) < 205
     c._validate_phase_rows(phases)
 
 
