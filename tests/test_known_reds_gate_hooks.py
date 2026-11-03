@@ -305,12 +305,14 @@ def test_commit_gate_shell_step_classifies_and_appends_both_verdicts(tmp_path):
     if not git_path:
         pytest.skip("git is not on PATH; commit-gate shell integration cannot run")
 
+    real_lines = json.loads(_REGISTRY.read_text(encoding="utf-8"))["hooks"]["audit-health"]["lines"]
+    real_block = "self-audit:\n" + "".join(f"  {line}\n" for line in real_lines)
     for case, gate_output, expected_exit, expected_tag in (
-        ("pass", _gate_output(_failed_hook("audit-health", AUDIT_BLOCK)), 0, "known"),
+        ("pass", _gate_output(_failed_hook("audit-health", real_block)), 0, "known"),
         (
             "fail",
             _gate_output(_failed_hook(
-                "audit-health", AUDIT_BLOCK + f"  {NEW_DISPATCH_LINE}\n"
+                "audit-health", real_block + f"  {NEW_DISPATCH_LINE}\n"
             )),
             1,
             "REGRESSION",
@@ -346,8 +348,8 @@ def test_commit_gate_shell_step_classifies_and_appends_both_verdicts(tmp_path):
             'while [ "$#" -gt 0 ]; do\n'
             '  if [ "$1" = "scripts/known_reds.py" ]; then\n'
             "    shift\n"
-            '    cd "$REPO_ROOT" || exit 98\n'
-            '    exec "$PYTHON_EXE" "$REPO_ROOT/scripts/known_reds.py" "$@"\n'
+            '    exec "$PYTHON_EXE" "$REPO_ROOT/scripts/known_reds.py"'
+            ' --repo-root "$REPO_ROOT" "$@"\n'
             "  fi\n"
             "  shift\n"
             "done\n"
@@ -376,10 +378,11 @@ def test_commit_gate_shell_step_classifies_and_appends_both_verdicts(tmp_path):
         assert expected_tag in summary
         if case == "pass":
             assert sum(
-                "[!!]" in line and "known" in line
+                "[!!]" in line and line.lstrip().startswith("known")
                 for line in completed.stdout.splitlines()
             ) == 12
-            assert sum("[!!]" in line and "known" in line for line in summary.splitlines()) == 12
+            assert sum("[!!]" in line and line.lstrip().startswith("known")
+                       for line in summary.splitlines()) == 12
         if case == "fail":
             assert any(
                 NEW_DISPATCH_LINE in line and "REGRESSION" in line

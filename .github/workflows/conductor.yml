@@ -922,7 +922,6 @@ jobs:
           uv run --locked python scripts/known_reds.py compare-commit-gate \
             --gate-output commit-gate.out --gate-exit-code "$rc" --out known-reds-gate.out
           gate_rc=$?
-          cat known-reds-gate.out
           {
             echo "## known-reds compare-commit-gate — \`${{ github.sha }}\`"
             echo
