@@ -284,7 +284,8 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
          record_suite_fn: Optional[Callable] = None, no_push: bool = False,
          run_id: Optional[int] = None, handback: Optional[Path] = None,
          operator_act_line: Optional[str] = None,
-         finalize_fn: Optional[Callable[[str], str]] = None) -> LandResult:
+         finalize_fn: Optional[Callable[[str], str]] = None,
+         require_phase_receipts: bool = False) -> LandResult:
     """Integration branch first, then the SAME sha to main. See the module docstring.
 
     For a batch from E2.0 on (`subst_gate.batch_applies`) `handback` is REQUIRED and is read BEFORE
@@ -296,6 +297,12 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
     `origin/main` is no longer `base` (before the integration push AND again before the push to
     main); the push to the integration branch fails; CI's verdict for `sha` is not landable. The
     first refusal wins and nothing after it runs.
+
+    The PHASE-RECEIPTS gate ([#1858]) is active when `require_phase_receipts` is true or when
+    `<receipts home>/LANE-<slug>/` exists (a conductor round ran for this slug). Active, it refuses
+    with `PHASE-RECEIPTS-REFUSED`, before any push, unless the lane's last round left a complete
+    receipt chain bound to the merge's second parent (`round_receipts.landing_problems`); passing,
+    a push-mode landing writes the run's `RUN-COST.json` first. Neither condition: nothing new runs.
 
     `no_push=True` (b2-merge-gate, item 4) is the REPLAY mode: it judges `sha` against `base`
     exactly as a landing would -- the same merge-on-base check, the same ONE verdict -- and then
@@ -334,6 +341,20 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
             receipts_dir=os.environ.get("HARNESS_RECEIPTS_DIR") or None)
         if problems:
             return refuse("SUBST-GATE-REFUSED", " | ".join(problems))
+    gate_active = bool(require_phase_receipts)
+    if not gate_active and not operator_act_line and subst_gate._SLUG_RE.match(slug or ""):
+        round_home = Path(os.environ.get("HARNESS_RECEIPTS_DIR") or Path(root) / "logs" / "receipts")
+        gate_active = (round_home / f"LANE-{slug}").is_dir()   # one stat, no git call
+    if gate_active:
+        if operator_act_line:
+            return refuse("PHASE-RECEIPTS-REFUSED",
+                          "an operator-act landing runs no conductor round, so it has no phase "
+                          "receipts to land on; --require-phase-receipts cannot apply to it")
+        import round_receipts
+        problems = round_receipts.landing_problems(
+            root, slug, parts[2], git=git, receipts_dir=os.environ.get("HARNESS_RECEIPTS_DIR") or None)
+        if problems:
+            return refuse("PHASE-RECEIPTS-REFUSED", " | ".join(problems))
     # ADR-127 AMENDMENT 2: Linux alone judges this merge unless its diff is Windows-sensitive.
     # Read ONCE, here, so the verdict and the receipt's second read of the run judge the same set.
     contexts = required_contexts(windows_required_for(git, base, sha))
@@ -346,6 +367,19 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         return LandResult(False, state, getattr(verdict, "reason", "") or "", sha=sha,
                           branch=branch, verdict=verdict, commands=commands,
                           would_land=is_landable(verdict), substitutions=substitutions)
+
+    if gate_active:
+        # The run's cost record is written by the code that lands, once, before any push; a write
+        # that fails refuses the landing. It lives under the receipts home, never in the worktree.
+        cost_home = round_receipts.receipts_home(root)
+        home_problem = round_receipts.cost_home_problem(root, cost_home)
+        if home_problem:
+            return refuse("PHASE-RECEIPTS-REFUSED", home_problem)
+        try:
+            round_receipts.write_cost_record(slug, cost_home, root=root)
+        except Exception as exc:              # noqa: BLE001 -- recorded in the refusal
+            return refuse("PHASE-RECEIPTS-REFUSED", f"{round_receipts.COST_NAME} could not be "
+                                                    f"written: {exc}")
 
     def origin_main() -> "tuple[bool, str]":
         c, o = git(["ls-remote", "origin", "refs/heads/main"])

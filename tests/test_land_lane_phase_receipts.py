@@ -192,7 +192,7 @@ def _land(
         reason="test verdict",
     )
     return merge_path.land(
-        tmp_path,
+        rig.real_repo or tmp_path,
         slug=SLUG,
         batch=BATCH,
         sha="c" * 40,

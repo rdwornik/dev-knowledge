@@ -152,7 +152,8 @@ def resolve_ratification(act_id: str, ratification: Path) -> Optional[str]:
 
 def plan(slug: str, batch: str, timeout_s: int = DEFAULT_TIMEOUT_S,
          lane_ref: Optional[str] = None, operator_act: Optional[str] = None,
-         ratification_line: Optional[str] = None) -> list[str]:
+         ratification_line: Optional[str] = None,
+         require_phase_receipts: bool = False) -> list[str]:
     """One line per STEP, naming what it would run. Pure: touches nothing."""
     lane_ref = lane_ref or f"origin/worktree-{slug}"
     branch = merge_path.integration_branch(batch)
@@ -174,6 +175,10 @@ def plan(slug: str, batch: str, timeout_s: int = DEFAULT_TIMEOUT_S,
         lines.insert(0, f"operator-act {operator_act}: no model call; the substitution gate read "
                         f"is skipped")
         lines.append(f"ratification: {operator_act} -> {ratification_line}")
+    if require_phase_receipts:
+        lines.insert(0, "phase-receipts: land refuses (PHASE-RECEIPTS-REFUSED) before any push "
+                        "unless the lane's last conductor round left a complete receipt chain "
+                        "bound to the lane tip")
     return lines
 
 
@@ -238,7 +243,8 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
               teardown_fn: Optional[Callable[[Path], None]] = None,
               message: Optional[str] = None, operator_act: Optional[str] = None,
               ratification: Optional[Path] = None,
-              sleep: Callable[[float], None] = time.sleep) -> LandReport:
+              sleep: Callable[[float], None] = time.sleep,
+              require_phase_receipts: bool = False) -> LandReport:
     """Run the lane-integrate sequence for one lane. Never raises for an expected stop: every
     outcome is a LandReport. `sleep` is accepted for the injection contract; the poll itself runs
     inside `land()`'s verdict read."""
@@ -425,6 +431,8 @@ def land_lane(worktree: Path, *, slug: str, batch: str, carry_file: Path,
         kwargs["record_suite_fn"] = record_suite_fn
     if handback is not None:
         kwargs["handback"] = handback
+    if require_phase_receipts:                      # passed only when set: an older land_fn still works
+        kwargs["require_phase_receipts"] = True
     started = time.monotonic()
     try:
         result = land_fn(worktree, **kwargs)
@@ -559,10 +567,14 @@ def _origin_is_remote(url: str) -> bool:
               help="a ratified operator-act id: lands with no model call and no substitution gate")
 @click.option("--ratification", "ratification", default=None, type=click.Path(path_type=Path),
               help="the ratification file whose table row `| <act> |` ratifies --operator-act")
+@click.option("--require-phase-receipts", "require_phase_receipts", is_flag=True, default=False,
+              help="refuse unless the lane's last conductor round left a complete, tip-current, "
+                   "P7-accepted receipt chain (a round directory under the receipts home turns "
+                   "the check on by itself; this flag also refuses a lane with no round at all)")
 def cli(worktree: Path, slug: str, batch: str, lane_ref: Optional[str], carry_file: Optional[Path],
         timeout_s: int, interval_s: int, regen_cmds: tuple, handback: Optional[Path],
         dry_run: bool, integrator: bool, message: Optional[str], operator_act: Optional[str],
-        ratification: Optional[Path]) -> None:
+        ratification: Optional[Path], require_phase_receipts: bool) -> None:
     """Land ONE lane: merge, carry, integration push, CI, main push, receipt. No model call."""
     if operator_act and ratification is None:
         click.echo("land_lane: --operator-act needs --ratification", err=True)
@@ -580,7 +592,8 @@ def cli(worktree: Path, slug: str, batch: str, lane_ref: Optional[str], carry_fi
                 click.echo(f"land_lane: operator-act {operator_act!r} is not ratified in "
                            f"{ratification}", err=True)
                 sys.exit(EXIT_REFUSED)
-        for line in plan(slug, batch, timeout_s, lane_ref, operator_act, row):
+        for line in plan(slug, batch, timeout_s, lane_ref, operator_act, row,
+                         require_phase_receipts=require_phase_receipts):
             click.echo(line)
         sys.exit(EXIT_OK)
     worktree = worktree.resolve()
@@ -598,6 +611,7 @@ def cli(worktree: Path, slug: str, batch: str, lane_ref: Optional[str], carry_fi
     report = land_lane(worktree, slug=slug, batch=batch, carry_file=carry, timeout_s=timeout_s,
                        interval_s=interval_s, lane_ref=lane_ref, handback=handback,
                        message=message, operator_act=operator_act, ratification=ratification,
+                       require_phase_receipts=require_phase_receipts,
                        regen_cmds=[shlex.split(c) for c in regen_cmds] or default_regen_cmds(worktree))
     click.echo(report.message)
     for name, seconds in report.steps:

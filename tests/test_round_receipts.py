@@ -730,7 +730,7 @@ def test_cost_record_reads_claude_copilot_and_codex_fixture_artifacts(tmp_path):
             shutil.copyfile(FIXTURES / fixture, round_dir / "P4-OUTPUT.txt.stderr")
         else:
             shutil.copyfile(FIXTURES / fixture, round_dir / f"{phase}-OUTPUT.txt")
-    for path in round_dir.glob("P*.json"):
+    for path in round_dir.glob("P[0-9].json"):
         phase_receipt.PhaseReceipt.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
     record = rr.cost_record(SLUG, tmp_path / "receipts", root=repo)
