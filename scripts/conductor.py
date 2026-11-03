@@ -1232,6 +1232,387 @@ def render_contract_harness(contract: Path, harness: Path, out: Path) -> tuple[P
     return out, f"contract {contract}"
 
 
+# --- the round loop, the commits and the push ([#1856]; C04 + C62) -----------------------------
+# `run_lane` is `lane --run`: it loops rounds 1..max_rounds, commits after the `red` and `implement`
+# phases, pushes after `constraints`, writes `ROUND-VERDICT.json` after every round and ends any
+# non-ACCEPT run with ONE QUESTION. The commits and the push are made by CODE, never by a model, and
+# run the repo's hooks: a hook refusal HALTS the stage (its output is the stage's OUTPUT file).
+_ROLE_ORDER = ("red", "implement", "constraints")
+_MAX_LOOP_ROUNDS = 2  # PhaseReceipt.round is bounded le=2 (ecosystem/schema/phase_receipt.py)
+_PUSH_REMOTE = "origin"
+_RECOMMENDATION = {
+    "HALTED": "read the OUTPUT file and re-run the same command (receipts resume)",
+    "INPUT_REQUIRED": "read the OUTPUT file and re-run the same command (receipts resume)",
+    "FAILED": "read the judge payload and rule",
+    "REFUSED": "read the judge payload and rule",
+}
+
+
+class LaneRefused(ValueError):
+    """A PRE-FLIGHT refusal: raised before the first phase, nothing ran, no QUESTION is written."""
+
+
+@dataclass
+class LaneRun:
+    verdict: str = ""
+    rounds: list = field(default_factory=list)   # [(round_no, verdict, halted_at)]
+    exit_code: int = 1
+    question_path: Optional[Path] = None
+    # what `_finish` needs to write the QUESTION
+    lane: str = ""
+    refused_by: str = ""
+    round_dir: Optional[Path] = None
+    receipts_base: Optional[Path] = None
+    question_dir: Optional[Path] = None
+    detail: str = ""
+
+
+def _now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _write_json_atomic(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, path)
+
+
+def _git_run(repo_root: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(repo_root), *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=600)
+
+
+def _git_head(repo_root: Path) -> Optional[str]:
+    out = _git_run(repo_root, "rev-parse", "HEAD")
+    return out.stdout.strip() if out.returncode == 0 and out.stdout.strip() else None
+
+
+def _lane_preflight(lane: str, contract: Path, repo_root: Path, rbase: Path) -> tuple[list[dict], int]:
+    """The four PRE-FLIGHT refusals (branch, roles, inputs, round limit); returns the phase rows and
+    the loop's round count. Raises LaneRefused naming every violation found."""
+    try:
+        rows = contract_phases(contract.read_text(encoding="utf-8"))
+    except (ContractPhasesError, OSError) as exc:
+        raise LaneRefused(str(exc)) from exc
+    if rows is None:
+        raise LaneRefused(f"{contract} has no ## Phases section (the lane process runs the contract's own phases)")
+    branch = _git_run(repo_root, "branch", "--show-current").stdout.strip()
+    if branch != f"worktree-{lane}":
+        raise LaneRefused(f"the current branch is {branch!r}, not 'worktree-{lane}' (never switched)")
+    problems: list[str] = []
+    first: dict[str, int] = {}
+    for role in _ROLE_ORDER:
+        at = [i for i, p in enumerate(rows) if p.get("role") == role]
+        if not at:
+            problems.append(f"no phase has role '{role}'")
+        elif len(at) > 1:
+            problems.append(f"{len(at)} phases have role '{role}' ({', '.join(rows[i]['id'] for i in at)}); exactly one")
+        if at:
+            first[role] = at[0]
+    for earlier, later in zip(_ROLE_ORDER, _ROLE_ORDER[1:]):
+        if earlier in first and later in first and first[earlier] > first[later]:
+            problems.append(f"role '{earlier}' must come before role '{later}'")
+    for p in rows:
+        if int(p.get("max_rounds") or _DEFAULT_MAX_ROUNDS) > _MAX_LOOP_ROUNDS:
+            problems.append(f"phase {p['id']} has max_rounds {p['max_rounds']} above the bound {_MAX_LOOP_ROUNDS}"
+                            " (a round-3 receipt could not validate)")
+    problems += _input_problems(rows, lane, contract, repo_root, rbase)
+    if problems:
+        raise LaneRefused("; ".join(problems))
+    return rows, max([int(p.get("max_rounds") or _DEFAULT_MAX_ROUNDS) for p in rows])
+
+
+def _input_problems(rows: list[dict], lane: str, contract: Path, repo_root: Path, rbase: Path) -> list[str]:
+    """The input rule: a phase receipt stays fresh across the commits only if no declared input is a repo file
+    (but the contract itself) and every receipts-base input is a file of an EARLIER phase of the same round."""
+    round_dir = rbase / f"LANE-{lane}" / "r1"
+    subs = {"{contract}": str(contract), "{round_dir}": str(round_dir), "{lane}": lane, "{receipts}": str(rbase),
+            "{round}": "1", "{row}": "", "{base}": ""}
+    out: list[str] = []
+    for i, p in enumerate(rows):
+        earlier = {rows[j]["id"] for j in range(i)}
+        for declared in p.get("inputs") or []:
+            text = str(declared)
+            for key, value in subs.items():
+                text = text.replace(key, value)
+            path = Path(text)
+            path = (path if path.is_absolute() else repo_root / path).resolve()
+            if path == contract:
+                continue
+            if path.is_relative_to(rbase):  # checked FIRST: the default receipts base sits inside the repo tree
+                m = re.fullmatch(r"(.+?)(?:\.payload\.json|\.json|-OUTPUT\.txt)", path.name)
+                if path.parent != round_dir.resolve() or not m or m.group(1) not in earlier:
+                    out.append(f"phase {p['id']} declares input '{declared}' that is not a file of an earlier phase")
+            elif path.is_relative_to(repo_root):
+                out.append(f"phase {p['id']} declares input '{declared}' inside the repo tree ({path}); "
+                           "the commits would change its digest")
+    return out
+
+
+def _round_env(lane: str, round_no: int, row: str, harness: Path, rbase: Path, extra: dict) -> dict:
+    return {**os.environ, **extra, "HARNESS_LANE": lane, "HARNESS_ROUND": str(round_no), "HARNESS_ROW": row,
+            "HARNESS_YAML": str(harness), "HARNESS_RECEIPTS_DIR": str(rbase)}
+
+
+def _doit_tasks(repo_root: Path, task: str, env: dict) -> subprocess.CompletedProcess:
+    """One `doit phase:<id>` run: doit runs the earlier phases of the chain and skips every fresh receipt."""
+    return subprocess.run([sys.executable, "-m", "doit", "-f", str(repo_root / "scripts" / "dodo.py"), f"phase:{task}"],
+                          cwd=repo_root, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+
+def _segment_state(rows: list[dict], upto: str, round_dir: Path) -> tuple[str, Optional[str]]:
+    """('ok' | 'HALTED' | 'INPUT_REQUIRED', phase): the receipts of phases [first .. upto], read like run_round."""
+    rp = _run_phase()
+    for p in rows:
+        try:
+            data = json.loads((round_dir / f"{p['id']}.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        if (data.get("payload") or {}).get("outcome") == "INPUT_REQUIRED":
+            return "INPUT_REQUIRED", p["id"]
+        if not (data and rp.phase_succeeded(data)):
+            return "HALTED", p["id"]
+        if p["id"] == upto:
+            break
+    return "ok", None
+
+
+def _status_paths(repo_root: Path) -> list[str]:
+    out = _git_run(repo_root, "status", "--porcelain", "-z", "-uall").stdout.split("\0")
+    paths, i = [], 0
+    while i < len(out):
+        entry = out[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        paths.append(entry[3:])
+        if entry[0] in "RC" or entry[1] in "RC":
+            i += 1  # the rename/copy source follows as its own entry
+    return paths
+
+
+def _trailer_commit(repo_root: Path, base: str, lane: str, stage: str, round_no: Optional[int]) -> Optional[str]:
+    """The newest commit in base..HEAD carrying this lane's trailers for `stage` (and `round_no`, when given)."""
+    log = _git_run(repo_root, "log", "--format=%H%x1f%B%x1e", f"{base}..HEAD").stdout
+    for entry in log.split("\x1e"):
+        sha, _, body = entry.strip().partition("\x1f")
+        lines = body.splitlines()
+        if (f"Conductor-Lane: {lane}" in lines and f"Conductor-Stage: {stage}" in lines
+                and (round_no is None or f"Conductor-Round: {round_no}" in lines)):
+            return sha
+    return None
+
+
+def _commit_receipt(repo_root: Path, stage: str, sha: Optional[str], round_no: int, **extra) -> dict:
+    parent = _git_run(repo_root, "rev-parse", f"{sha}^").stdout.strip() if sha else ""
+    paths = _git_run(repo_root, "show", "--format=", "--name-only", "-z", sha).stdout.split("\0") if sha else []
+    branch = _git_run(repo_root, "branch", "--show-current").stdout.strip()
+    return {"stage": stage, "sha": sha, "parent": parent or None, "paths": [p for p in paths if p],
+            "branch": branch, "round": round_no, "at": _now(), **extra}
+
+
+def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, repo_root: Path, round_dir: Path,
+                  allowed: list[str], tests_only: bool) -> tuple[Optional[str], str]:
+    """One tests/code commit. Returns (halted_at, detail): (None, "") when the stage is done or skipped."""
+    receipt = round_dir / f"COMMIT-{stage}.json"
+    halt = f"commit:{stage}"
+    try:
+        done = json.loads(receipt.read_text(encoding="utf-8")).get("sha")
+    except (OSError, ValueError):
+        done = None
+    if done and _git_run(repo_root, "merge-base", "--is-ancestor", done, "HEAD").returncode == 0:
+        return None, ""
+    found = _trailer_commit(repo_root, base, lane, stage, round_no)
+    if found:  # a crash between the commit and the receipt write: rebuild the receipt, commit nothing
+        _write_json_atomic(receipt, _commit_receipt(repo_root, stage, found, round_no, recovered=True))
+        return None, ""
+    out_file = round_dir / f"COMMIT-{stage}-OUTPUT.txt"
+    staged = [p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p]
+    if staged:
+        out_file.write_text(f"the index is not empty before the {stage} commit: {', '.join(staged)}\n", encoding="utf-8")
+        return halt, f"staged before the {stage} stage: {', '.join(staged)}"
+    changed = _status_paths(repo_root)
+    if not changed:
+        if round_no == 1:
+            out_file.write_text(f"nothing to commit for the {stage} stage in round 1\n", encoding="utf-8")
+            return halt, f"no {stage} change to commit in round 1"
+        earlier = _trailer_commit(repo_root, base, lane, stage, None)
+        _write_json_atomic(receipt, _commit_receipt(repo_root, stage, earlier, round_no, skipped=True))
+        return None, ""
+    outside = [p for p in changed if (tests_only and not p.startswith("tests/")) or not _in_scope(p, allowed)]
+    if not allowed or outside:
+        why = (f"outside the {'tests/ scope' if tests_only else 'P1 scope'}: {', '.join(outside)}" if allowed
+               else "the allowed scope is empty (fails closed)")
+        out_file.write_text(f"{stage} commit refused, {why}\n", encoding="utf-8")
+        return halt, why
+    added = _git_run(repo_root, "add", "--", *changed)
+    got = sorted(p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p)
+    if added.returncode or got != sorted(changed):
+        out_file.write_text(added.stdout + added.stderr + f"staged {got}, intended {sorted(changed)}\n", encoding="utf-8")
+        _git_run(repo_root, "reset", "-q", "--", *changed)
+        return halt, "the staged set differs from the intended set"
+    kind, what = ("test", "red tests") if stage == "red" else ("feat", "implement")
+    subject = f"{kind}({lane}): {what} for row {row.lstrip('#')} (round {round_no})" if stage == "red" \
+        else f"{kind}({lane}): implement row {row.lstrip('#')} (round {round_no})"
+    trailers = f"Conductor-Lane: {lane}\nConductor-Stage: {stage}\nConductor-Round: {round_no}"
+    done = _git_run(repo_root, "commit", "-m", subject, "-m", trailers)
+    out_file.write_text(done.stdout + done.stderr, encoding="utf-8")
+    if done.returncode:
+        _git_run(repo_root, "reset", "-q", "--", *changed)
+        return halt, f"git commit exited {done.returncode}"
+    _write_json_atomic(receipt, _commit_receipt(repo_root, stage, _git_head(repo_root), round_no))
+    return None, ""
+
+
+def _push_tip(*, lane: str, round_no: int, repo_root: Path, round_dir: Path) -> Optional[str]:
+    """Push HEAD to worktree-<lane> (never forced, never main). Returns the halted_at, None on success."""
+    out = _git_run(repo_root, "push", _PUSH_REMOTE, f"HEAD:refs/heads/worktree-{lane}")
+    (round_dir / "PUSH-OUTPUT.txt").write_text(out.stdout + out.stderr, encoding="utf-8")
+    if out.returncode:
+        return "push"
+    _write_json_atomic(round_dir / "PUSH.json", {"sha": _git_head(repo_root), "branch": f"worktree-{lane}",
+                                                  "remote": _PUSH_REMOTE, "round": round_no, "at": _now()})
+    return None
+
+
+def _scope_allowed(rows: list[dict], base: str, repo_root: Path, round_dir: Path, row: str) -> list[str]:
+    plan = next((p["id"] for p in rows if p.get("role") == "plan"), "P1")
+    ctx = LaneContext(repo_root, base, round_dir, row)
+    p1 = _receipt(ctx, plan)
+    return (list(p1.payload.files_in_scope) if p1 is not None and p1.payload is not None else []) + _row_touches(ctx)
+
+
+def _lane_round(lane: str, round_no: int, rows: list[dict], *, contract: Path, repo_root: Path, harness: Path,
+                rbase: Path, row: str, base: str, push: bool) -> tuple[str, int, Optional[str], str, str]:
+    """One round. Returns (verdict, exit_code, halted_at, refused_by, detail)."""
+    round_dir = rbase / f"LANE-{lane}" / f"r{round_no}"
+    round_dir.mkdir(parents=True, exist_ok=True)
+    run_harness, _label = render_contract_harness(contract, harness, round_dir / "harness.contract.yaml")
+    run_harness = run_harness.resolve()
+    env = _round_env(lane, round_no, row, run_harness, rbase, {"HARNESS_CONTRACT": str(contract), "HARNESS_BASE": base})
+    by_role = {p["role"]: p["id"] for p in rows if p.get("role") in _ROLE_ORDER}
+    for role in _ROLE_ORDER:
+        _doit_tasks(repo_root, by_role[role], env)
+        state, at = _segment_state(rows, by_role[role], round_dir)
+        if state == "INPUT_REQUIRED":
+            return state, _EXIT_INPUT, None, "", f"phase {at} asked for input"
+        if state != "ok":
+            return "HALTED", 1, at, "", ""
+        if role == "constraints":
+            if push:
+                halted = _push_tip(lane=lane, round_no=round_no, repo_root=repo_root, round_dir=round_dir)
+                if halted:
+                    return "HALTED", 1, halted, "", "git push failed"
+        else:
+            halted, detail = _commit_stage(
+                role, lane=lane, row=row, round_no=round_no, base=base, repo_root=repo_root, round_dir=round_dir,
+                allowed=_scope_allowed(rows, base, repo_root, round_dir, row), tests_only=role == "red")
+            if halted:
+                return "HALTED", 1, halted, "", detail
+    res = run_round(lane, round_no, repo_root=repo_root, harness=run_harness, receipts=rbase, row=row,
+                    env={"HARNESS_CONTRACT": str(contract), "HARNESS_BASE": base})
+    return (res.verdict, res.exit_code, getattr(res, "halted_at", None), getattr(res, "refused_by", None) or "", "")
+
+
+def _evidence(run: LaneRun, halted_at: Optional[str]) -> str:
+    rd = run.round_dir
+    if halted_at and halted_at.startswith("commit:"):
+        artifact = f"COMMIT-{halted_at.split(':', 1)[1]}-OUTPUT.txt"
+    elif halted_at == "push":
+        artifact = "PUSH-OUTPUT.txt"
+    elif halted_at:
+        artifact = f"{halted_at}-OUTPUT.txt"
+    else:
+        artifact = "ROUND-VERDICT.json"
+    text = f"{rd} {artifact}"
+    return f"{text} ({run.detail})" if run.detail else text
+
+
+def _prompts_to_browser() -> Optional[Path]:
+    raw = os.environ.get("CLAUDE_PROMPTS_DIR")
+    return Path(raw) / "to-browser" if raw else None
+
+
+def write_question(lane: str, verdict: str, round_no: int, halted_at: Optional[str], refused_by: Optional[str],
+                   evidence: str, question_dir: Optional[Path] = None) -> Path:
+    """Write the ONE `QUESTION-<lane>.md` of a non-ACCEPT end, through `transport.emit("lane", ...)`."""
+    scripts_dir = str(Path(__file__).resolve().parent)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import transport  # noqa: PLC0415
+
+    where = {"FAILED": "the judge verdict", "INPUT_REQUIRED": "a phase payload"}.get(verdict, "the round")
+    stamp = time.strftime("%H:%M")
+    body = (f"by: conductor lane {lane} (code), writer lane\n"
+            f"date: {time.strftime('%Y-%m-%d')}\n"
+            "kind: QUESTION\n\n"
+            f"QUESTION {lane} {stamp}: the lane ended {verdict} in round {round_no} at "
+            f"{halted_at or refused_by or where} | evidence: {evidence} | recommendation: "
+            f"{_RECOMMENDATION.get(verdict, _RECOMMENDATION['HALTED'])}\n")
+    folder = Path(question_dir) if question_dir else _prompts_to_browser()
+    if folder is None:
+        raise ValueError("write_question needs a question_dir or CLAUDE_PROMPTS_DIR")
+    return transport.emit("lane", folder / f"QUESTION-{lane}.md", body)
+
+
+def _finish(run: LaneRun) -> LaneRun:
+    """The single end of `run_lane`: a non-ACCEPT run gets its one QUESTION; the exit code is the verdict's."""
+    if run.verdict != "ACCEPT":
+        at = run.rounds[-1][2] if run.rounds else None
+        folder = run.question_dir or (None if _prompts_to_browser() else run.receipts_base)
+        run.question_path = write_question(run.lane, run.verdict, run.rounds[-1][0] if run.rounds else 0, at,
+                                           run.refused_by, _evidence(run, at), folder)
+    return run
+
+
+def run_lane(lane: str, *, contract: Path, repo_root: Path, harness: Optional[Path] = None,
+             receipts: Optional[Path] = None, row: str = "", base: str = "origin/main",
+             question_dir: Optional[Path] = None, push: bool = True) -> LaneRun:
+    repo_root = Path(repo_root).resolve()
+    contract = Path(contract).resolve()
+    harness = Path(harness) if harness else repo_root / "ecosystem" / "harness.yaml"
+    rbase = Path(receipts or os.environ.get("HARNESS_RECEIPTS_DIR") or repo_root / "logs" / "receipts").resolve()
+    rows, max_rounds = _lane_preflight(lane, contract, repo_root, rbase)
+    run = LaneRun(lane=lane, receipts_base=rbase, question_dir=question_dir)
+    for round_no in range(1, max_rounds + 1):
+        verdict, code, halted_at, refused_by, detail = _lane_round(
+            lane, round_no, rows, contract=contract, repo_root=repo_root, harness=harness, rbase=rbase, row=row,
+            base=base, push=push)
+        run.round_dir = rbase / f"LANE-{lane}" / f"r{round_no}"
+        if verdict == "REFUSE" and round_no == max_rounds:
+            verdict, code = "FAILED", 1
+        _write_json_atomic(run.round_dir / "ROUND-VERDICT.json", {
+            "lane": lane, "round": round_no, "verdict": verdict, "exit_code": code, "halted_at": halted_at,
+            "refused_by": refused_by or None, "head_sha": _git_head(repo_root), "at": _now()})
+        run.rounds.append((round_no, verdict, halted_at))
+        run.verdict, run.exit_code, run.refused_by, run.detail = verdict, code, refused_by, detail
+        if verdict != "REFUSE":
+            break
+    return _finish(run)
+
+
+def _run_main(args, root: Path) -> int:
+    if not args.contract or not args.lane:
+        print("conductor lane: REFUSED -- --run requires --contract and --lane")
+        return 1
+    try:
+        res = run_lane(args.lane, contract=Path(args.contract), repo_root=root,
+                       harness=Path(args.harness) if args.harness else None,
+                       receipts=Path(args.receipts) if args.receipts else None, row=args.row or "",
+                       base=args.base or "origin/main",
+                       question_dir=Path(args.question_dir) if args.question_dir else None)
+    except LaneRefused as exc:
+        print(f"conductor lane: REFUSED -- {exc}")
+        return 1
+    print(f"conductor lane {args.lane} run: {res.verdict} after {len(res.rounds)} round(s)")
+    for round_no, verdict, halted_at in res.rounds:
+        print(f"  r{round_no}: {verdict}" + (f" at {halted_at}" if halted_at else ""))
+    if res.question_path:
+        print(f"  question: {res.question_path}")
+    return res.exit_code
+
+
 def _lane_main(args, root: Path) -> int:
     harness = Path(args.harness) if args.harness else root / "ecosystem" / "harness.yaml"
     if args.select or args.constraints:
@@ -1263,6 +1644,8 @@ def _lane_main(args, root: Path) -> int:
         ok, why = check_constraint(args.constraint, ctx)
         print(f"{args.constraint}: {'PASS' if ok else 'FAIL'} -- {why}")
         return 0 if ok else 1
+    if args.run:
+        return _run_main(args, root)
     if args.lane and args.round is not None:
         run_harness = Path(args.harness) if args.harness else None
         label = str(harness)
@@ -1339,6 +1722,11 @@ def main(argv: list[str] | None = None) -> int:
     lane.add_argument("--row", default=None, help="the backlog row id")
     lane.add_argument("--harness", default=None, help="harness yaml (default: <repo-root>/ecosystem/harness.yaml)")
     lane.add_argument("--receipts", default=None, help="the receipts root (default: HARNESS_RECEIPTS_DIR)")
+    lane.add_argument("--run", action="store_true",
+                      help="[#1856] run the lane's rounds 1..max_rounds with commits, a push and one QUESTION on a stop")
+    lane.add_argument("--question-dir", default=None,
+                      help="with --run: where QUESTION-<lane>.md is written (default <CLAUDE_PROMPTS_DIR>/to-browser, "
+                           "else the receipts base)")
     lane.add_argument("--contract", default=None,
                       help="a lane contract whose `## Phases` section replaces the harness `phases:`")
     args = ap.parse_args(argv)
