@@ -140,11 +140,11 @@ def test_item1d_real_harness_p5_shape_and_phase_pins():
     cv_conductor = __import__("scripts.conductor", fromlist=["_validate_phase_rows"])
     cv_conductor._validate_phase_rows(phases)
 
-    p5_lines = [index for index, line in enumerate(lines) if line.lstrip().startswith("- id: P5,")]
+    p5_lines = [index for index, line in enumerate(lines) if line.lstrip().startswith("- {id: P5,")]
     assert len(p5_lines) == 1
     p5_index = p5_lines[0]
-    assert lines[p5_index - 1].lstrip().startswith("- id: P4,")
-    assert lines[p5_index + 1].lstrip().startswith("- id: P6a,")
+    assert lines[p5_index - 1].lstrip().startswith("- {id: P4,")
+    assert lines[p5_index + 1].lstrip().startswith("- {id: P6a,")
     assert not lines[p5_index - 1].lstrip().startswith("#")
     assert not lines[p5_index + 1].lstrip().startswith("#")
     assert "--landable" in by_id["P6c"]["command"]
