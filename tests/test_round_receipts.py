@@ -1068,18 +1068,15 @@ def test_write_cost_record_refuses_lane_directory_symlink_outside_receipts(tmp_p
     outside.mkdir()
     lane_dir = receipts / f"LANE-{SLUG}"
     link_kind = "symlink"
-    try:
-        os.symlink(outside, lane_dir, target_is_directory=True)
-    except (OSError, NotImplementedError):
-        if sys.platform != "win32":
-            pytest.skip("directory symlinks are unavailable")
+    if sys.platform == "win32":     # a junction needs no privilege, a symlink may
         result = subprocess.run(
-            ["cmd", "/c", f'mklink /J "{lane_dir}" "{outside}"'],
+            ["cmd", "/c", "mklink", "/J", str(lane_dir), str(outside)],
             capture_output=True, text=True, check=False,
         )
-        if result.returncode != 0:
-            pytest.skip("directory junctions are unavailable")
+        assert result.returncode == 0, result.stdout + result.stderr
         link_kind = "junction"
+    else:
+        os.symlink(outside, lane_dir, target_is_directory=True)
 
     target = outside / rr.COST_NAME
     scratch = outside / f"{rr.COST_NAME}.tmp"
@@ -1094,7 +1091,7 @@ def test_write_cost_record_refuses_lane_directory_symlink_outside_receipts(tmp_p
             lane_dir.unlink()
         else:
             subprocess.run(
-                ["cmd", "/c", f'rmdir "{lane_dir}"'],
+                ["cmd", "/c", "rmdir", str(lane_dir)],
                 capture_output=True, text=True, check=True,
             )
 
