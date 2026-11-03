@@ -1678,19 +1678,19 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         raise LaunchIncomplete(f"{slug} was started but the spawn reported no pid. The intent receipts "
                                f"{primary} and {copy_path} remain and hold the slug; nothing was stopped.")
     pid = started.pid
+    try:   # IMMEDIATELY: before anything else, so no interruption leaves a running lane with no pid anywhere
+        _write_json_atomic(pid_path, {"pid": pid, "job_id": f"conductor-{pid}", "launched_at": _stamp()})
+    except OSError as exc:
+        raise LaunchIncomplete(f"{slug} WAS started (job conductor-{pid}, pid {pid}) but its pid record "
+                               f"could not be written ({exc}). It is running; nothing was stopped. The "
+                               f"intent receipts {primary} and {copy_path} remain, without a pid, and "
+                               "hold the slug.") from exc
     job_id, session_id, reported_name = _identify(request, started, "conductor", agents, sleep, began)
     result = LaunchResult(
         slug=slug, provider=request.provider, model_requested=request.model,
         model_reported=NOT_ATTESTABLE, job_id=job_id, worktree=str(lane.tree),
         session_name=request.session_name, session_name_reported=reported_name,
         session_id=session_id, pid=pid, log_path=str(log_path), argv=list(argv))
-    try:
-        _write_json_atomic(pid_path, {"pid": pid, "job_id": job_id, "launched_at": _stamp()})
-    except OSError as exc:
-        raise LaunchIncomplete(f"{slug} WAS started (job {job_id}, pid {pid}) but its pid record could "
-                               f"not be written ({exc}). It is running; nothing was stopped. The intent "
-                               f"receipts {primary} and {copy_path} remain, without a pid, and hold the "
-                               "slug.") from exc
     extra: dict = {"engine": "conductor", "base": lane.sha}
     if prior:
         history = list(prior.get("launches") or [])
@@ -2706,7 +2706,11 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
     live integrator, routing agreement); on a pass spawns `claude --bg -n <slug> ...` (or
     `codex exec ...`) and writes the launch receipt and a job-to-lane record under
     logs/receipts/. On a refusal it spawns nothing, prints the reason and exits 5. Nothing here can
-    stop a lane that is already running."""
+    stop a lane that is already running.
+
+    A contract that declares `**Engine:** conductor` is not a model prompt: this provisions
+    `.claude/worktrees/<slug>` on `worktree-<slug>` and starts `conductor.py lane --run` detached in
+    it (`--dry-run` echoes `"engine": "conductor"` and that argv)."""
     _refuse_malformed_batch(slug or Path(contract).stem, batch or os.environ.get("HARNESS_BATCH", ""))
     path = (Path(contract).resolve() if Path(contract).is_file()
             else resolve_contract(contract, prompts_dir()))
