@@ -216,6 +216,29 @@ def test_a_failed_hook_without_a_usable_exit_code_still_goes_through_compare_hoo
     assert any("not classifiable" in item for item in result["regressions"])
 
 
+def test_a_failed_block_without_a_hook_id_still_goes_through_compare_hook(monkeypatch):
+    import known_reds
+
+    calls = []
+    original = known_reds.compare_hook
+
+    def recording(hook_id, exit_code, passed_registry, hook_output=None):
+        calls.append((hook_id, exit_code))
+        return original(hook_id, exit_code, passed_registry, hook_output=hook_output)
+
+    monkeypatch.setattr(known_reds, "compare_hook", recording)
+    gate = (
+        "Audit self-conformance gate........................................Failed\n"
+        "- exit code: 1\n\n" + AUDIT_BLOCK + "wall_seconds=1 exit=1\n"
+    )
+
+    result = known_reds.compare_commit_gate(gate, 1, _registry(known_reds))
+
+    assert calls == [("(unparseable)", 1)]
+    assert result["verdict"] == "fail"
+    assert any("no hook id" in item for item in result["regressions"])
+
+
 def test_zero_gate_exit_passes_even_without_hook_entries():
     import known_reds
 
