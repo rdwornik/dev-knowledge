@@ -193,6 +193,29 @@ def _question(outcome: LandOutcome, slug: str, evidence: str) -> None:
           f"exit {outcome.exit_code} - {text} | evidence: {evidence}", flush=True)
 
 
+MAX_LOCK_WAIT_S = 86400.0
+_BAD_BATCH_CHARS = "/\\:~^?*[@"                    # the same set land_lane's own CLI refuses a batch slug for
+
+
+def _lock_timeout(seconds) -> float:
+    """filelock reads a negative timeout as 'wait forever'; a landing never waits unbounded or on NaN."""
+    try:
+        value = float(seconds)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(value) or value < 0:
+        return 0.0
+    return min(value, MAX_LOCK_WAIT_S)
+
+
+def _batch_problem(batch: str) -> Optional[str]:
+    """land_lane's CLI refuses an unusable batch slug before it fetches anything; an in-process call must too."""
+    text = (batch or "").strip().lower().replace(" ", "-")
+    if not text or any(c in text for c in _BAD_BATCH_CHARS):
+        return f"{batch!r} is not a usable batch slug"
+    return None
+
+
 def _refuse(state: str, message: str, *, recorded: bool = False, code: int = EXIT_REFUSED) -> LandOutcome:
     return LandOutcome(state, code, message, recorded=recorded)
 
@@ -404,6 +427,9 @@ def land_one(slug: str, closing_line: str, *, batch: str, worktree: Path, transp
     worktree = Path(worktree).resolve()
     closing = (closing_line or "").strip()
     git = _git_runner(worktree)
+    bad_batch = _batch_problem(batch)
+    if bad_batch is not None:
+        return _finish(_refuse("BAD-BATCH", bad_batch), slug, None, dry_run)
     resolved, problem = _resolve_receipts(Path(receipts) if receipts is not None else None, worktree)
     if resolved is None:
         return _finish(_refuse("RECEIPTS-CONFLICT", problem), slug, None, dry_run)
@@ -418,8 +444,7 @@ def land_one(slug: str, closing_line: str, *, batch: str, worktree: Path, transp
     state_dir = Path(state_dir) if state_dir is not None else _default_state_dir()
     try:
         state_dir.mkdir(parents=True, exist_ok=True)
-        # a negative timeout means "wait forever" to filelock; a landing never waits unbounded
-        lock = FileLock(str(state_dir / LOCK_NAME), timeout=max(0.0, float(lock_wait_s)))
+        lock = FileLock(str(state_dir / LOCK_NAME), timeout=_lock_timeout(lock_wait_s))
         lock.acquire()
     except Timeout:
         return _finish(_refuse("LANDER-BUSY", f"another landing holds {state_dir / LOCK_NAME}"),

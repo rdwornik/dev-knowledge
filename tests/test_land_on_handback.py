@@ -739,6 +739,32 @@ def test_x_a_negative_lock_wait_is_busy_at_once_not_a_wait_forever(case):
     assert calls == [] and time.monotonic() - started < 4
 
 
+def test_x_a_non_finite_lock_wait_is_busy_at_once(case):
+    line, _ = _prepare(case)
+    holder = _hold_lock(case.state / land_on_handback.LOCK_NAME, case.tmp_path / "lock-held", seconds=5)
+    calls = []
+    started = time.monotonic()
+    try:
+        outcome = _one(case, SLUG, line, land_lane_fn=_stub(_report(), calls), lock_wait_s=float("inf"))
+    finally:
+        holder.terminate()
+        holder.wait(timeout=3)
+
+    assert outcome.state == "LANDER-BUSY" and outcome.exit_code == 5
+    assert calls == [] and time.monotonic() - started < 4
+
+
+@pytest.mark.parametrize("batch", ["bad/name", "a:b", "x[1]", " "])
+def test_x_an_unusable_batch_slug_is_refused_before_any_land_lane_call(case, batch):
+    line, _ = _prepare(case)
+    calls = []
+
+    outcome = _one(case, SLUG, line, batch=batch, land_lane_fn=_stub(_report(), calls))
+
+    assert outcome.state == "BAD-BATCH" and outcome.exit_code == 5
+    assert calls == [] and not case.clock.exists() and not _stop_path(case).exists()
+
+
 def test_x_an_unremovable_stale_stop_does_not_turn_a_landing_into_a_crash(case, capsys):
     line, _ = _prepare(case)
     _stop_path(case).mkdir(parents=True)          # a directory where the old stop file would be
