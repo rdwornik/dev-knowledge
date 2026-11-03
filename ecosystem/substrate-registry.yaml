@@ -45,8 +45,8 @@ substrates:
 
   interactive:
     # A shape of the local substrate, not a fourth substrate: Ch8 row 3 and
-    # `gen_lane_contract.SHAPE_ENUM` both carry it, and STANDING_RULINGS V5 rules it
-    # unchanged. It is listed so the generator's enum and this registry cannot diverge.
+    # `gen_lane_contract.SHAPE_ENUM` both carry it. STANDING_RULINGS V5 ruled its terminal start;
+    # the Q-H2 ruling moves non-lane seats to a NEW Agent SDK session. It is listed so the generator's enum and this registry cannot diverge.
     family: local
     verbs: [claude]
     aliases: []

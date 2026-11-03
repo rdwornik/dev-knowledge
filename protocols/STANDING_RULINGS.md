@@ -2880,6 +2880,8 @@ command file or a template. It stays documented exactly once, in Ch8, labelled a
 `Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.` as the first message, with the path
 expanded by eye. This is the one shape of the four that the measurement found no conflict in.
 
+**V5a · Non-lane seats start in a NEW Claude Code Agent SDK session** — (operator, 2026-11-01, Q-H2; to-browser/RATIFICATION-2026-11-01.md section 1) the integrator, the dispatcher and the browser-facing seats start by the operator pasting the seat's order into a NEW Claude Code Agent SDK session, model and effort set there. V5's terminal start remains for a lane in the primary checkout.
+
 **V6 · STANDING RULE — every dispatch verb runs Claude with bypass permissions.** No permission
 prompt blocks a lane, on any substrate. Inside a codespace this is sanctioned rather than merely
 tolerated: the blast radius is a disposable isolated machine holding a fresh clone and nothing of
