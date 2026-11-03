@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "caa49051e2cdc8fcebb65ce16eacf2005ac89c7ba13dfc9739cc29306957c565",
+  "generated_sha256": "7f52fd2d9eb991af4ae4c4f36d707f300fe3fbe23f7bb50adf6f6ac679045df5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -912,6 +912,10 @@
     {
       "task": 1015,
       "file": "1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md"
+    },
+    {
+      "task": 1855,
+      "file": "1855-distill-row-writes-the-frozen-lane-contract-by-code-and-boot-frontier-picks-the-row.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -2818,6 +2822,10 @@
     {
       "task": 1864,
       "file": "1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md"
+    },
+    {
+      "task": 1861,
+      "file": "1861-dispatch-launches-a-conductor-engine-contract-as-a-run.md"
     },
     {
       "task": 1510,
