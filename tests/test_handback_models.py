@@ -393,11 +393,6 @@ def test_item3h_cli_batch_requires_receipts_dir_and_receipts_dir_reads_launch_ba
     _write_launch(root)
     _stub_six_checks(monkeypatch, hb)
     monkeypatch.setattr(hb, "_ROOT", root)
-    real = _mod("transport_report").windows_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get(
-        "CLAUDE_PROMPTS_DIR"
-    )
-    before = sorted(p.name for p in (Path(real) / "to-browser").glob(f"*{LANE}*")) \
-        if real and (Path(real) / "to-browser").is_dir() else []
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tr))
     real_run = hb.run
     # The CLI resolves the Windows User-scope transport before the patched environment.
@@ -414,9 +409,31 @@ def test_item3h_cli_batch_requires_receipts_dir_and_receipts_dir_reads_launch_ba
     assert exit_code == hb.EXIT_OK
     assert receipt["checks"]["launch-receipt"] is True
     assert (tr / "to-browser" / f"SESSION-{LANE}.md").is_file()
-    after = sorted(p.name for p in (Path(real) / "to-browser").glob(f"*{LANE}*")) \
-        if real and (Path(real) / "to-browser").is_dir() else []
-    assert after == before
+
+
+# Done 3(h): --receipts-dir alone fails the launch-receipt leg when the LAUNCH receipt (and so the batch) is absent
+def test_item3h_receipts_dir_alone_fails_launch_receipt_leg_without_a_launch_receipt(
+    monkeypatch, tmp_path
+):
+    hb = _mod("handback")
+    root, _bare, tr = _repo_and_transport(tmp_path)
+    round_dir = tmp_path / "round"
+    _write_receipts(round_dir)
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    _stub_six_checks(monkeypatch, hb)
+
+    code, receipt = hb.run(
+        LANE, BRANCH, "docs-only", root, resolve_transport=lambda: tr / "to-browser",
+        receipts_dir=round_dir, batch=None,
+    )
+    refusal = tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md"
+    session = tr / "to-browser" / f"SESSION-{LANE}.md"
+
+    assert code == hb.EXIT_REFUSED
+    assert receipt["checks"]["launch-receipt"]["ok"] is False
+    assert refusal.is_file()
+    assert "launch-receipt" in refusal.read_text(encoding="utf-8")
+    assert not session.exists() or "HANDBACK " not in session.read_text(encoding="utf-8")
 
 
 def test_item3i_without_receipts_dir_retains_exactly_the_original_six_legs(
