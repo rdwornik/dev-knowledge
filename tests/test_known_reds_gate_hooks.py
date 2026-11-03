@@ -483,6 +483,12 @@ def test_registry_is_origin_main_plus_exactly_the_lines_field():
     hooks_without_lines = dict(hooks)
     hooks_without_lines.pop("lines", None)
     working["hooks"]["audit-health"] = hooks_without_lines
+    # Q-1862-R: once the `lines` field is on origin/main, the origin side carries it
+    # too, so pop it from BOTH sides before comparing (the test is lane-scoped, not
+    # a statement about what origin/main must lack).
+    origin_hooks = dict(origin["hooks"]["audit-health"])
+    origin_hooks.pop("lines", None)
+    origin["hooks"]["audit-health"] = origin_hooks
     assert working == origin
     assert len(lines) == 12
     assert all(line.startswith("[!!]") for line in lines)
