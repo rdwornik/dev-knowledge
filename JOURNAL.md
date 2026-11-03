@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (i) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #4 -- files [#1868], the C0 simplification /decide row (architect R1 of Q-L12-1 R6)
+
+**Anchors:** `6cf97da63` (follow-up #3 merge, main head when this one was cut; main push run 41659322474 success), `c2925e130` (the [#1868] filing).
+
+**Did:** filed ONE row, [#1868] "C0 - simplification /decide (census, one ADR, one ratification)", as the dispatcher relayed from architect ruling R1 of Q-L12-1 R6. Re-checked the id at commit: no `tasks/1868-*` on main or on any remote branch. The row file was copied byte-identical from the dispatcher's job tmp (`cmp` clean); its manifest node sits after [#1867] in [S28]; `--emit-source` and `--check` ok. No work on the row in this window.
+
+**Result:** one data commit. The `backlog_reconcile` freeze (Q-SW-4 = B) stands until [#1867] is MERGED.
+
+**Changes:** `tasks/1868-*.md` (new), `tasks/manifest.json`, `BACKLOG.md` (regenerated), `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run for this follow-up; K1 the two follow-up #3 branches (merged); hold for dispatcher forwards ([#1862] after the dispatcher's READY with the condition-3 check, H [#1859], E2 [#1857], G, [#1863], [#1844], [#1846]).
+
 ### 2026-11-03 (h) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #3 -- [#1854] closes on the sweep land and its success main push run [#1854]
 
 **Anchors:** `cd9d05281` (the sweep land merge), `db5692f16` (its receipt commit, main head when this follow-up was cut), `5519396bd` (the [#1854] close).
