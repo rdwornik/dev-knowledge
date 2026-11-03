@@ -22,7 +22,7 @@ carried-by: OPEN
 lands-via: the merge commits it produces and its receipts in to-browser/
 date: <YYYY-MM-DD>
 from: <architect seat slug>
-authorized-by: the operator's paste of this file into a NEW CC session. One GO covers every merge.
+authorized-by: the operator's paste of this file into a NEW Claude Code Agent SDK session, named on the paste's first line. One GO covers every merge.
 plan: <to-cc/PLAN-...md §n>
 
 # INTEGRATOR — batch <BATCH>
@@ -121,7 +121,9 @@ Between merges you wait on an event, with a timer behind it:
    repeats none. The wake is the signal; the lane's `to-browser/SESSION-<slug>.md` stays the
    evidence you merge from.
 2. **Cron fallback.** `CronCreate`, recurring, every 10 min, one foreground check per wake: it
-   catches a handback the Monitor missed (an expired Monitor, a hook that did not fire).
+   catches a handback the Monitor missed (an expired Monitor, a hook that did not fire). A second
+   recurring cron, every 30 min off the :00/:30 marks, resumes this order from the state file after a
+   usage-limit stop; delete it at handover or close.
 3. **Every wake, event or cron, runs the transport sweep.** `uv run --locked python
    scripts/transport_lint.py sweep --since <the previous wake>`: exit 1 prints one
    `<path>: <code>: <reason>` line per non-conforming file. Paste the lines into your receipt as

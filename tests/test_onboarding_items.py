@@ -365,6 +365,7 @@ _BOOT_BODY_SHA256 = {
     2: "81878e9f96b014409b2ee83b37161dac836938ec37e9854e6df867153f76c195",
     3: "105ae4694359d72b2490822406e8eb318a37dd8847c511af39b8cf8b5eb1c2ed",
     4: "1039bd51b5f9e7ab6a6049dcfb2a73a432e95bbc34bed6a6a3af47e2c872f35d",
+    5: "d676ba257215b2c5b8963df3224db76a076d8cc3ca88a873f929ced8ad56cb05",
 }
 
 
@@ -521,7 +522,7 @@ def test_the_reading_path_names_every_item_in_order_with_no_dated_path_or_key():
     for m in re.finditer(r"SEAT-EXAM-RESULT", plain):
         assert re.search(r"\b(not|never)\b", plain[max(0, m.start() - 90):m.start()], re.I), (
             "SEAT-EXAM-RESULT may appear only in a negation (it carries the key)")
-    assert "gen_handoff.py --reading-path" in sec and "gen_handoff.py --dispatch-map --write" in sec
+    assert "gen_handoff.py --reading-path" in sec and "gen_handoff.py --cut" in sec
     assert not re.search(r"(?mi)^\s*(answers?|key|expected)\b", sec)
 
 
@@ -557,7 +558,7 @@ def test_the_three_rulings_are_each_one_line_with_their_id():
 def test_the_boot_is_version_2_with_a_recorded_body_hash_and_reconciled_with_the_live_spec():
     text = _BOOT.read_text(encoding="utf-8")
     front, _body = _split_boot(text)
-    assert re.search(r"(?m)^boot_version:\s*4\s*$", front), front
+    assert re.search(r"(?m)^boot_version:\s*5\s*$", front), front
     assert {1, 2, 3, 4} <= set(_BOOT_BODY_SHA256), "versions 1 and 2 stay (the history); 4's is recorded"
     live = re.search(r"(?m)^Version:\s+v?(\d+\.\d+\.\d+)", _HP.read_text(encoding="utf-8")).group(1)
     assert re.search(rf"(?m)^reconciled_with:\s*handoff-process@{re.escape(live)}\s*$", front), (

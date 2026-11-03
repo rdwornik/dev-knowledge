@@ -258,7 +258,7 @@ kinds:
     pattern: '^QUESTION-[A-Za-z0-9._-]+\.md$'
     folder: to-browser
     class: non-decision
-    writers: [lane]
+    writers: [lane, dispatcher]
     readers: [gen_handoff]
     repo_scope: any
     versioned: false
