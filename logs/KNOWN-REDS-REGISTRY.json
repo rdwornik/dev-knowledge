@@ -584,7 +584,21 @@
         "old_expiry": "2026-10-31",
         "new_expiry": "2026-11-09",
         "date": "2026-10-25"
-      }
+      },
+      "lines": [
+        "[!!] repos registered  (none)",
+        "[!!] hooks_armed: git hooks not armed (RF-2) — SessionStart self-arm should install them: pre-commit absent (run `pre-commit install -t pre-commit`); commit-msg absent (run `pre-commit install -t commit-msg`); pre-push absent (run `pre-commit install -t pre-push`); merge.ours.driver unset — the .gitattributes `merge=ours` pin on docs/audits/README.md is inert ([#590]); run `git config --local merge.ours.driver true`",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'dispatch' (fence) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'claude' (fence) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Dispatch-Codespace' (fence) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Harvest-Codespace' (fence) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Dispatch-Local' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Dispatch-Lane' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Dispatch-Cloud' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Stop-DispatchCodespace' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Harvest-Cloud' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Get-CloudSession' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose"
+      ]
     }
   },
   "members_by_os": {
