@@ -571,6 +571,37 @@ def validate_model(model: str) -> str:
     return raw
 
 
+#: The tiers that name a single registry model. `opusplan` is a MODE layered on two models, so
+#: it has no one explicit id (`provider_registry.claude_alias_ids` renders it as prose).
+_EXPLICIT_ID_TIERS: tuple[str, ...] = ("opus", "sonnet", "haiku")
+
+
+def explicit_model_id(tier: str) -> Optional[str]:
+    """The registry's explicit model id for `tier` (`opus`, `sonnet`, `haiku`), else `None`.
+
+    [#1855] Outcome 3. Read from `provider_registry.claude_alias_ids()` at run time -- no id is
+    written in this script (tests/test_model_id_single_source.py). A contract written by code
+    carries the explicit id because `plan_lint`'s night rule refuses an alias in any contract."""
+    if tier not in _EXPLICIT_ID_TIERS:
+        return None
+    import provider_registry as _preg  # noqa: PLC0415 -- the registry is read at call time
+
+    return _preg.claude_alias_ids()[tier]
+
+
+def model_tier(token: Optional[str]) -> Optional[str]:
+    """The `MODEL_ENUM` tier a model token names: the token itself when it is a tier, the tier
+    whose explicit id equals it, else `None` (a token that resolves to no tier)."""
+    if not token:
+        return None
+    if token in MODEL_ENUM:
+        return token
+    for tier in _EXPLICIT_ID_TIERS:
+        if token == explicit_model_id(tier):
+            return tier
+    return None
+
+
 def validate_shape(shape: str) -> str:
     """Return the dispatch shape, or raise `LaneContractError` naming the enum.
 
@@ -891,6 +922,10 @@ def find_command_line(text: str) -> Optional[str]:
 
 # --- the emitted contract ------------------------------------------------------------------
 
+#: The one engine a row-distilled contract names ([#1855]; lane E1 defines the reader).
+ENGINE_CONDUCTOR = "conductor"
+
+
 @dataclass(frozen=True)
 class LaneSpec:
     """Everything a contract needs that the generator cannot derive."""
@@ -913,6 +948,23 @@ class LaneSpec:
     #: (`test_rendering_is_deterministic`), and a generator whose output depends on the state
     #: of the machine that ran it cannot be diffed.
     needs_base_sync: bool = False
+    #: [#1855] -- the fields a ROW-distilled contract adds. Every one defaults to "absent", and a
+    #: spec that sets none of them renders byte-identically to the pre-[#1855] output.
+    #: `model_id`: the explicit registry id of `model`'s tier, written into the table and the
+    #: launch line instead of the alias (`validated()` refuses an id that is not that tier's).
+    model_id: Optional[str] = None
+    #: Text blocks inserted after the model table (`## Lane entry ...`), before `## Dispatch`.
+    lane_entry: tuple[str, ...] = ()
+    #: Text blocks inserted after `## Roles` (or after `## Dispatch` when there is none): `## Phases`.
+    phases_section: tuple[str, ...] = ()
+    #: Whole numbered Done-contract items (without the number); empty -> the placeholder items.
+    done_items: tuple[str, ...] = ()
+    #: Whole `## Steps` lines; empty -> the placeholder steps.
+    step_lines: tuple[str, ...] = ()
+    #: A flush-left `by:` line written under the title.
+    by_line: str = ""
+    #: `conductor` writes the one `**Engine:** conductor` line under the `**Kind:**` paragraph.
+    engine: Optional[str] = None
 
     def validated(self) -> "LaneSpec":
         """Return a copy with every enum-bearing field checked, AND its routing resolved.
@@ -926,18 +978,33 @@ class LaneSpec:
         refusals = self.routing_refusals()
         if refusals:
             raise LaneContractError("; ".join(refusals))
+        model = validate_model(self.model)
+        if self.model_id is not None and self.model_id != explicit_model_id(model):
+            raise LaneContractError(
+                f"model_id {self.model_id!r} is not the explicit id of model {model!r} "
+                f"(the registry's id for that tier is {explicit_model_id(model)!r})")
+        if self.engine is not None and self.engine != ENGINE_CONDUCTOR:
+            raise LaneContractError(
+                f"engine {self.engine!r} is outside {{{ENGINE_CONDUCTOR}}}")
         return LaneSpec(
             slug=validate_slug(self.slug, strict=self.strict_slug),
             purpose=(self.purpose or "").strip() or "<one sentence — what this lane achieves>",
             repo=(self.repo or "").strip() or ".dev-knowledge",
             task_id=(self.task_id or "").strip() or None,
-            model=validate_model(self.model),
+            model=model,
             kind=validate_kind(self.kind),
             mode=validate_mode(self.mode),
             effort=validate_effort(self.effort),
             shape=validate_shape(self.shape),
             strict_slug=self.strict_slug,
             needs_base_sync=self.needs_base_sync,
+            model_id=self.model_id,
+            lane_entry=tuple(self.lane_entry),
+            phases_section=tuple(self.phases_section),
+            done_items=tuple(self.done_items),
+            step_lines=tuple(self.step_lines),
+            by_line=self.by_line,
+            engine=self.engine,
         )
 
     def routing_refusals(self) -> list[str]:
@@ -1007,15 +1074,23 @@ def render_contract(spec: LaneSpec) -> str:
 
     parts: list[str] = []
     parts.append(f"# LANE {spec.slug} — {spec.purpose}\n")
+    if spec.by_line:
+        parts.append(f"{spec.by_line}\n")
+    # [#1855]: the explicit registry id, when the spec carries one, replaces the alias in BOTH the
+    # table and the launch token; every other prose line keeps the tier name.
+    model_token = spec.model_id or spec.model
     parts.append("| Model | Mode | Effort |")
     parts.append("|---|---|---|")
-    parts.append(f"| {spec.model} | {spec.mode} | {spec.effort} |\n")
+    parts.append(f"| {model_token} | {spec.mode} | {spec.effort} |\n")
+    parts.extend(spec.lane_entry)
 
-    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape, spec.model)
+    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape, model_token)
 
     parts.append("## Dispatch\n")
     parts.append(f"**Shape:** `{spec.shape}` — {SHAPE_GLOSS[spec.shape]}.\n")
     parts.append(f"**Kind:** `{spec.kind}` — {KIND_GLOSS[spec.kind]}.\n")
+    if spec.engine:
+        parts.append(f"**Engine:** {spec.engine}\n")
     parts.append(
         f"The kind is DECLARED, not inferred, and it is what the routing default keys on\n"
         f"(`[#885]` clause 2). A text-only, deletion or read-only-digest lane never starts on\n"
@@ -1099,6 +1174,7 @@ def render_contract(spec: LaneSpec) -> str:
 
     if spec.kind == "code":
         parts.extend(_roles_section())
+    parts.extend(spec.phases_section)
 
     parts.append("## Worktree pairing\n")
     if branch is None:
@@ -1149,15 +1225,19 @@ def render_contract(spec: LaneSpec) -> str:
             "container (created, never rebuilt).\n")
 
     parts.append("## Done-contract (immutable)\n")
-    parts.append(f"1. `<what {ident} delivers — checkable, not aspirational>`")
-    parts.append("2. `<the second done-when, or delete this line>`")
-    parts.append("3. Docs and code in English; hyphen-only names; logging rather than print;\n"
-                 "   Click for a CLI where one is warranted; `pytest` green.")
-    # R59, and `transport_lint`'s `lane-contract-no-r59-proof`: a lane contract written to the
-    # transport names, in its close-out, the served model id and the nonce or content hash of the
-    # review read. The generator's own write goes through that lint, so it carries the item.
-    parts.append("4. **Close-out:** the review record carries the served model id from the tool's\n"
-                 "   own log and the nonce or content hash the reviewer returned (R59).\n")
+    if spec.done_items:
+        parts.extend(f"{n}. {item}" for n, item in enumerate(spec.done_items, start=1))
+        parts[-1] += "\n"
+    else:
+        parts.append(f"1. `<what {ident} delivers — checkable, not aspirational>`")
+        parts.append("2. `<the second done-when, or delete this line>`")
+        parts.append("3. Docs and code in English; hyphen-only names; logging rather than print;\n"
+                     "   Click for a CLI where one is warranted; `pytest` green.")
+        # R59, and `transport_lint`'s `lane-contract-no-r59-proof`: a lane contract written to the
+        # transport names, in its close-out, the served model id and the nonce or content hash of
+        # the review read. The generator's own write goes through that lint, so it carries the item.
+        parts.append("4. **Close-out:** the review record carries the served model id from the tool's\n"
+                     "   own log and the nonce or content hash the reviewer returned (R59).\n")
 
     parts.append("## Decision budget\n")
     parts.append(
@@ -1173,10 +1253,14 @@ def render_contract(spec: LaneSpec) -> str:
         "duty, it does not authorise the deviation.\n")
 
     parts.append("## Steps\n")
-    parts.append("1. `<imperative — what is done>` **COMMIT**")
-    parts.append("2. `<imperative>` **COMMIT**")
-    parts.append("3. Final: `pytest` green, one end-of-lane artifact "
-                 "(what changed · proposed diffs · open items), **COMMIT, then STOP.**\n")
+    if spec.step_lines:
+        parts.extend(spec.step_lines)
+        parts[-1] += "\n"
+    else:
+        parts.append("1. `<imperative — what is done>` **COMMIT**")
+        parts.append("2. `<imperative>` **COMMIT**")
+        parts.append("3. Final: `pytest` green, one end-of-lane artifact "
+                     "(what changed · proposed diffs · open items), **COMMIT, then STOP.**\n")
 
     parts.append("## What NOT to do\n")
     parts.append("- No merges, no pushes to `main`, no touching another lane's branch — "
@@ -1413,7 +1497,7 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
                 "dispatch line states no `--model <m>` — this is the form the generator emits, "
                 "and a launch line that omits the model silently re-decides the most expensive "
                 f"constant on it ([#717]); enum {{{' | '.join(MODEL_ENUM)}}}")
-        if line_model is not None and line_model not in MODEL_ENUM:
+        if line_model is not None and model_tier(line_model) is None:
             problems.append(
                 f"dispatch line carries model {line_model!r}, outside "
                 f"{{{' | '.join(MODEL_ENUM)}}}")
@@ -1459,7 +1543,7 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         # routing-row conjunction the local form's `line_model` already gets below —
         # setting the SAME variable is what makes that check apply for free.
         line_model = codespace_match.group("model")
-        if line_model is not None and line_model not in MODEL_ENUM:
+        if line_model is not None and model_tier(line_model) is None:
             problems.append(
                 f"dispatch line carries model {line_model!r}, outside "
                 f"{{{' | '.join(MODEL_ENUM)}}}")
@@ -1480,10 +1564,12 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             "its lane boots at")
     else:
         model, mode = routing.group("model"), routing.group("mode")
-        if model not in MODEL_ENUM:
+        # [#1855]: an explicit registry id of a tier is the tier; two sources naming DIFFERENT
+        # tiers are still the [#717] disagreement, and a token with no tier is still off-enum.
+        if model_tier(model) is None:
             problems.append(
                 f"routing row carries model {model!r}, outside {{{' | '.join(MODEL_ENUM)}}}")
-        elif line_model is not None and line_model != model:
+        elif line_model is not None and model_tier(line_model) != model_tier(model):
             # `[#717]`, and the conjunction `-Effort` already gets. Widening the regex alone
             # would merely make a CONTRADICTING line parse: a contract declaring `sonnet` whose
             # own launch line says `-Model opus` would go from "silently dispatches at opus" to
@@ -1583,8 +1669,8 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     # until here so it runs against the routing row's model, which is parsed above, and only
     # when all three inputs survived their own enum checks: a refusal computed from a value
     # already reported as off-enum would report the same defect twice under two names.
-    if model is not None and kind is not None and shape is not None and model in MODEL_ENUM:
-        problems.extend(routing_refusals(model=model, kind=kind, shape=shape))
+    if model is not None and kind is not None and shape is not None and model_tier(model):
+        problems.extend(routing_refusals(model=model_tier(model), kind=kind, shape=shape))
 
     for ask_class in ("(a)", "(b)", "(c)"):
         if ask_class not in prose:
