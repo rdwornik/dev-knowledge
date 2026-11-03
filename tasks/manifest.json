@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5f856d065becb6619c44a826fba46db0e36093000f0a35dbe66cefe3774f93b5",
+  "generated_sha256": "1d68568863e2ea2f9613c20c9cf78d8346f5e03044a3727c9e2864980317a3c5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3134,10 +3134,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1854,
-      "file": "1854-backlog-reconcile-apply-legacy-sweep-with-keep-w.md"
     },
     {
       "prose": ""

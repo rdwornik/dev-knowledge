@@ -823,7 +823,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1842] [P2][S] Wire scripts/task_record.py to a real caller or remove it under R56 before 2026-11-23 · tasks/1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md
 - [#1843] [P2][S] Wire scripts/test_census.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md
 - [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
-- [#1854] [P1][M] backlog_reconcile apply: legacy-sweep with KEEP witnesses K1-K3, R-1/R-2 and a byte-identical --revert · tasks/1854-backlog-reconcile-apply-legacy-sweep-with-keep-w.md
 
 ---
 
