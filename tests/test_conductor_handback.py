@@ -16,6 +16,21 @@ for _path in (str(_REPO), str(_REPO / "scripts")):
 
 from scripts import conductor  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _leave_lane_end_guard_import_clock_alone():
+    """`test_lane_end_guard.py` measures `guard_ms` from lane_end_guard.py's first import.
+
+    These tests import it directly and through `conductor.hand_back_on_accept` minutes earlier
+    on the same xdist worker, making `within_hook_limit` fail. Restore `sys.modules` so the
+    measuring test gets the first import.
+    """
+    had = "lane_end_guard" in sys.modules
+    yield
+    if not had:
+        sys.modules.pop("lane_end_guard", None)
+
+
 LANE = "handback-e2"
 BRANCH = f"worktree-{LANE}"
 HAND_BACK = f"HANDBACK {BRANCH} @ "
