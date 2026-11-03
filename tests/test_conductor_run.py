@@ -85,6 +85,25 @@ def _seed_repo_template(tmp_path_factory):
     _SEED_REPO = template
 
 
+def _real_toy_questions(folder: Path | None) -> set[str]:
+    return {p.name for p in folder.glob("QUESTION-toy-*.md")} if folder and folder.is_dir() else set()
+
+
+@pytest.fixture(autouse=True)
+def _no_question_reaches_the_real_transport(tmp_path, monkeypatch):
+    """The conductor writes QUESTION-<lane>.md under $CLAUDE_PROMPTS_DIR/to-browser. Point it at tmp_path for
+    every test (a test that needs its own folder sets it again), and prove the operator's real to-browser
+    folder gained no QUESTION-toy-* file while the test ran."""
+    real = os.environ.get("CLAUDE_PROMPTS_DIR")
+    real_folder = Path(real) / "to-browser" if real else None
+    before = _real_toy_questions(real_folder)
+    guard = tmp_path / "default-transport"
+    (guard / "to-browser").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(guard))
+    yield
+    assert _real_toy_questions(real_folder) == before, "a test wrote a QUESTION into the real transport"
+
+
 def _contract(world: dict, *, changes: dict[str, dict] | None = None,
               roles: list[str] | None = None) -> Path:
     text = _FIXTURE.read_text(encoding="utf-8")

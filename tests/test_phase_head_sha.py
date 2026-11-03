@@ -14,6 +14,7 @@ from ecosystem.schema import phase_receipt  # noqa: E402
 from scripts import run_phase  # noqa: E402
 import test_conductor_run as lane_tests  # noqa: E402
 from test_conductor_run import _seed_repo_template  # noqa: E402,F401  (autouse: seeds the tmp repo template alone or under xdist)
+from test_conductor_run import _no_question_reaches_the_real_transport  # noqa: E402,F401  (autouse: no QUESTION in the real transport)
 
 
 _NOW = "2026-11-02T00:00:00Z"
