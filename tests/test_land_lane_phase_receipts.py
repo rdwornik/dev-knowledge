@@ -561,3 +561,34 @@ def test_cli_plan_without_flag_remains_unchanged():
     assert sum(line.split(":", 1)[0] in ll.STEPS for line in planned.output.splitlines()) == len(
         ll.STEPS
     )
+
+
+def test_operator_act_is_refused_when_receipts_directory_alone_activates_gate(
+    tmp_path, monkeypatch,
+):
+    world = _real_repo(tmp_path)
+    home = tmp_path / "receipts"
+    (home / f"LANE-{SLUG}" / "r1").mkdir(parents=True)
+    rig = Rig(first_parent=world["base"], second_parent=world["tip"], real_repo=world["repo"])
+
+    result = _land(
+        tmp_path, rig, receipts_dir=home, monkeypatch=monkeypatch,
+        operator_act_line="| ACT-1 | ratified |",
+    )
+
+    assert result.state == "PHASE-RECEIPTS-REFUSED"
+    assert rig.pushes() == []
+
+
+def test_operator_act_without_receipts_directory_still_lands(tmp_path, monkeypatch):
+    world = _real_repo(tmp_path)
+    home = tmp_path / "receipts"
+    rig = Rig(first_parent=world["base"], second_parent=world["tip"], real_repo=world["repo"])
+
+    result = _land(
+        tmp_path, rig, receipts_dir=home, monkeypatch=monkeypatch,
+        operator_act_line="| ACT-1 | ratified |",
+    )
+
+    assert result.landed
+    assert rig.pushes()

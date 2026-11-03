@@ -1059,3 +1059,53 @@ def test_round_receipts_main_runs_the_group(verb):
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_write_cost_record_refuses_lane_directory_symlink_outside_receipts(tmp_path):
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    lane_dir = receipts / f"LANE-{SLUG}"
+    link_kind = "symlink"
+    try:
+        os.symlink(outside, lane_dir, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        if sys.platform != "win32":
+            pytest.skip("directory symlinks are unavailable")
+        result = subprocess.run(
+            ["cmd", "/c", f'mklink /J "{lane_dir}" "{outside}"'],
+            capture_output=True, text=True, check=False,
+        )
+        if result.returncode != 0:
+            pytest.skip("directory junctions are unavailable")
+        link_kind = "junction"
+
+    target = outside / rr.COST_NAME
+    scratch = outside / f"{rr.COST_NAME}.tmp"
+    try:
+        with pytest.raises(Exception):
+            rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+        assert not target.exists()
+        assert not scratch.exists()
+    finally:
+        if link_kind == "symlink":
+            lane_dir.unlink()
+        else:
+            subprocess.run(
+                ["cmd", "/c", f'rmdir "{lane_dir}"'],
+                capture_output=True, text=True, check=True,
+            )
+
+
+def test_write_cost_record_writes_under_ordinary_lane_directory(tmp_path):
+    receipts = tmp_path / "receipts"
+    lane_dir = receipts / f"LANE-{SLUG}"
+    lane_dir.mkdir(parents=True)
+
+    target = rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+    assert target == lane_dir / rr.COST_NAME
+    assert target.is_file()
+    assert not target.with_name(f"{rr.COST_NAME}.tmp").exists()
