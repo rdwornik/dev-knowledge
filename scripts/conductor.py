@@ -1430,12 +1430,12 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
     out_file = round_dir / f"COMMIT-{stage}-OUTPUT.txt"
     staged = [p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p]
     if staged:
-        out_file.write_text(f"the index is not empty before the {stage} commit: {', '.join(staged)}\n", encoding="utf-8")
+        out_file.write_text(f"the index is not empty before the {stage} commit: {', '.join(staged)}\n", encoding="utf-8", newline="\n")
         return halt, f"staged before the {stage} stage: {', '.join(staged)}"
     changed = _status_paths(repo_root)
     if not changed:
         if round_no == 1:
-            out_file.write_text(f"nothing to commit for the {stage} stage in round 1\n", encoding="utf-8")
+            out_file.write_text(f"nothing to commit for the {stage} stage in round 1\n", encoding="utf-8", newline="\n")
             return halt, f"no {stage} change to commit in round 1"
         earlier = _trailer_commit(repo_root, base, lane, stage, None)
         _write_json_atomic(receipt, _commit_receipt(repo_root, stage, earlier, round_no, skipped=True))
@@ -1444,12 +1444,12 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
     if not allowed or outside:
         why = (f"outside the {'tests/ scope' if tests_only else 'P1 scope'}: {', '.join(outside)}" if allowed
                else "the allowed scope is empty (fails closed)")
-        out_file.write_text(f"{stage} commit refused, {why}\n", encoding="utf-8")
+        out_file.write_text(f"{stage} commit refused, {why}\n", encoding="utf-8", newline="\n")
         return halt, why
     added = _git_run(repo_root, "add", "--", *changed)
     got = sorted(p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p)
     if added.returncode or got != sorted(changed):
-        out_file.write_text(added.stdout + added.stderr + f"staged {got}, intended {sorted(changed)}\n", encoding="utf-8")
+        out_file.write_text(added.stdout + added.stderr + f"staged {got}, intended {sorted(changed)}\n", encoding="utf-8", newline="\n")
         _git_run(repo_root, "reset", "-q", "--", *changed)
         return halt, "the staged set differs from the intended set"
     kind, what = ("test", "red tests") if stage == "red" else ("feat", "implement")
@@ -1457,7 +1457,7 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
         else f"{kind}({lane}): implement row {row.lstrip('#')} (round {round_no})"
     trailers = f"Conductor-Lane: {lane}\nConductor-Stage: {stage}\nConductor-Round: {round_no}"
     done = _git_run(repo_root, "commit", "-m", subject, "-m", trailers)
-    out_file.write_text(done.stdout + done.stderr, encoding="utf-8")
+    out_file.write_text(done.stdout + done.stderr, encoding="utf-8", newline="\n")
     if done.returncode:
         _git_run(repo_root, "reset", "-q", "--", *changed)
         return halt, f"git commit exited {done.returncode}"
@@ -1468,7 +1468,7 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
 def _push_tip(*, lane: str, round_no: int, repo_root: Path, round_dir: Path) -> Optional[str]:
     """Push HEAD to worktree-<lane> (never forced, never main). Returns the halted_at, None on success."""
     out = _git_run(repo_root, "push", _PUSH_REMOTE, f"HEAD:refs/heads/worktree-{lane}")
-    (round_dir / "PUSH-OUTPUT.txt").write_text(out.stdout + out.stderr, encoding="utf-8")
+    (round_dir / "PUSH-OUTPUT.txt").write_text(out.stdout + out.stderr, encoding="utf-8", newline="\n")
     if out.returncode:
         return "push"
     _write_json_atomic(round_dir / "PUSH.json", {"sha": _git_head(repo_root), "branch": f"worktree-{lane}",
