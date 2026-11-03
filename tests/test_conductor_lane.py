@@ -698,7 +698,9 @@ def _item1_setup(tmp_path, *, same_family=False):
     phases = _item1_target_phases()
     stub = _REPO / "tests" / "fixtures" / "conductor_round_stub.py"
     for phase in phases:
-        if phase["id"] in {"P4", "P6c"}:
+        # C05 of lane e30-round-verdict-handback: P5 is now a live uv ci_verdict.py row, so this fixture stubs it like P4 and P6c
+        # (the stub names no ci_verdict.py, so no T2-STALE:P5 check applies).
+        if phase["id"] in {"P4", "P5", "P6c"}:
             phase["command"] = [sys.executable, str(stub), phase["id"]]
     if same_family:
         p6b = next(phase for phase in phases if phase["id"] == "P6b")
@@ -1369,7 +1371,7 @@ def _p5_round_setup(tmp_path, *, p5_mode="ok", p5_command_is_ci=True, include_p6
     round_dir = receipts / f"LANE-{lane}" / "r1"
     round_dir.mkdir(parents=True)
     if push_state == "matching":
-        push = {"sha": _git(repo, "rev-parse", "HEAD")}
+        push = {"sha": _git(repo, "rev-parse", "HEAD").strip()}
         (round_dir / "PUSH.json").write_text(json.dumps(push) + "\n", encoding="utf-8")
     elif push_state == "mismatch":
         (round_dir / "PUSH.json").write_text(json.dumps({"sha": "1" * 40}) + "\n",

@@ -170,8 +170,9 @@ def test_item3a_all_phases_render_the_exact_checked_block_and_hand_back_cleanly(
     assert code == hb.EXIT_OK
     text = session.read_text(encoding="utf-8")
     assert text.index("MODELS:") < text.index("## Handback organ self-check")
-    assert text.rstrip().splitlines()[-2].startswith("HANDBACK ")
-    assert text.rstrip().splitlines()[-1].startswith("STATE ")
+    lines = [x for x in text.rstrip().splitlines() if x.strip()]
+    assert lines[-2].startswith("HANDBACK ")
+    assert lines[-1].startswith("STATE ")
     assert receipt["checks"]["models-block"] is True
     problems, _subs = _mod("subst_gate").handback_problems(
         root, LANE, "E3.0", session,
@@ -222,7 +223,9 @@ def test_item3d_substitution_is_reported_only_when_receipt_records_fallback(tmp_
     assert ("  implement: requested=claude-sonnet-5-5 served=claude-sonnet-5-5 "
             "VENDOR-FAIL: implement fallback ran after openai failed "
             "(receipt P3.json substituted_from)") in block
-    assert _mod("subst_gate").check_models_block(block) == ([], [])
+    problems, subs = _mod("subst_gate").check_models_block(block)
+    assert problems == []
+    assert len(subs) == 1
 
 
 def test_item3e_silent_codex_substitution_refuses_without_writing_session(
@@ -234,7 +237,7 @@ def test_item3e_silent_codex_substitution_refuses_without_writing_session(
     )
 
     assert code == hb.EXIT_REFUSED
-    assert receipt["checks"]["models-block"] is False
+    assert receipt["checks"]["models-block"]["ok"] is False
     assert "models-block" in (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(
         encoding="utf-8"
     )
@@ -250,7 +253,7 @@ def test_item3f_launch_leg_and_landing_gate_use_the_same_receipt_lookup(
     _write_receipts(round_dir)
     launch_dir = tmp_path / "dispatch-receipts"
     launch_path = _write_launch(launch_dir, lane=LANE)
-    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(launch_dir))
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(launch_path.parent))
     _stub_six_checks(monkeypatch, hb)
 
     code, receipt = hb.run(
@@ -259,7 +262,7 @@ def test_item3f_launch_leg_and_landing_gate_use_the_same_receipt_lookup(
     )
     session = tr / "to-browser" / f"SESSION-{LANE}.md"
     problems, _subs = _mod("subst_gate").handback_problems(
-        root, LANE, "E3.0", session, receipts_dir=launch_dir
+        root, LANE, "E3.0", session, receipts_dir=launch_path.parent
     )
     assert code == hb.EXIT_OK
     assert receipt["checks"]["launch-receipt"] is True
@@ -269,10 +272,7 @@ def test_item3f_launch_leg_and_landing_gate_use_the_same_receipt_lookup(
     worktree = root / ".claude" / "worktrees" / LANE
     worktree.parent.mkdir(parents=True, exist_ok=True)
     _git(root, "worktree", "add", "--detach", str(worktree), "main")
-    (root / "logs" / "receipts" / f"LAUNCH-{LANE.upper()}.json").write_text(
-        json.dumps({"organ": "launch", "batch": "E3.0"}) + "\n",
-        encoding="utf-8", newline="\n",
-    )
+    _write_launch(root)
     monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
     _stub_six_checks(monkeypatch, hb)
     tr2 = tmp_path / "transport-worktree"
@@ -295,7 +295,7 @@ def test_item3f_missing_launch_receipt_refuses(monkeypatch, tmp_path):
     )
 
     assert code == hb.EXIT_REFUSED
-    assert receipt["checks"]["launch-receipt"] is False
+    assert receipt["checks"]["launch-receipt"]["ok"] is False
     assert "launch-receipt" in (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(
         encoding="utf-8"
     )
@@ -333,6 +333,7 @@ def test_item3g_invalid_or_absent_receipts_are_named_in_refusal(
     round_dir.mkdir()
     if bad_receipts == "invalid":
         (round_dir / "P3.json").write_text('{"phase":"P3"}\n', encoding="utf-8", newline="\n")
+    (tmp_path / "second").mkdir()
     root, _bare, tr = _repo_and_transport(tmp_path / "second")
     _write_launch(root)
     _stub_six_checks(monkeypatch, hb)
@@ -342,7 +343,7 @@ def test_item3g_invalid_or_absent_receipts_are_named_in_refusal(
     )
 
     assert code == hb.EXIT_REFUSED
-    assert receipt["checks"]["models-block"] is False
+    assert receipt["checks"]["models-block"]["ok"] is False
     refusal = (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(encoding="utf-8")
     assert "P3.json" in refusal or "no phase receipts" in refusal.lower()
 
@@ -353,7 +354,7 @@ def test_item3g_existing_models_header_refuses_without_appending(monkeypatch, tm
     )
 
     assert code == hb.EXIT_REFUSED
-    assert receipt["checks"]["models-block"] is False
+    assert receipt["checks"]["models-block"]["ok"] is False
     before = "# SESSION\n\nMODELS:\n  old: requested=x served=x\n"
     assert session.read_text(encoding="utf-8") == before
     assert "MODELS:" in (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(
@@ -386,14 +387,30 @@ def test_item3h_cli_batch_requires_receipts_dir_and_receipts_dir_reads_launch_ba
     _write_launch(root)
     _stub_six_checks(monkeypatch, hb)
     monkeypatch.setattr(hb, "_ROOT", root)
+    real = _mod("transport_report").windows_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get(
+        "CLAUDE_PROMPTS_DIR"
+    )
+    before = sorted(p.name for p in (Path(real) / "to-browser").glob(f"*{LANE}*")) \
+        if real and (Path(real) / "to-browser").is_dir() else []
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tr))
+    real_run = hb.run
+    # The CLI resolves the Windows User-scope transport before the patched environment.
+    monkeypatch.setattr(
+        hb, "run",
+        lambda *a, **k: real_run(*a, resolve_transport=lambda: tr / "to-browser", **k),
+    )
     exit_code = hb.main([
         "run", "--lane", LANE, "--branch", BRANCH, "--class", "docs-only",
         "--repo", str(root), "--receipts-dir", str(round_dir),
     ])
-    receipt = json.loads(capsys.readouterr().out)
+    out = capsys.readouterr().out
+    receipt = json.loads(out[out.rindex("\n{") + 1:])
     assert exit_code == hb.EXIT_OK
     assert receipt["checks"]["launch-receipt"] is True
+    assert (tr / "to-browser" / f"SESSION-{LANE}.md").is_file()
+    after = sorted(p.name for p in (Path(real) / "to-browser").glob(f"*{LANE}*")) \
+        if real and (Path(real) / "to-browser").is_dir() else []
+    assert after == before
 
 
 def test_item3i_without_receipts_dir_retains_exactly_the_original_six_legs(

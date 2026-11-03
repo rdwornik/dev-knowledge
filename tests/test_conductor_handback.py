@@ -45,7 +45,8 @@ def _fixture(tmp_path: Path, *, kind: str = "code", verdict: str = "ACCEPT",
         encoding="utf-8", newline="\n",
     )
     contract = tmp_path / "contract.md"
-    contract.write_text(f"**Kind:** {kind}\n", encoding="utf-8", newline="\n")
+    kind_line = f"**Kind:** `{kind}`" if kind else "**Kind:**"
+    contract.write_text(f"{kind_line}\n", encoding="utf-8", newline="\n")
     transport = tmp_path / "transport"
     (transport / "to-browser").mkdir(parents=True)
     (transport / "to-cc").mkdir()
@@ -371,7 +372,7 @@ def test_item4f_g_real_handback_writes_one_matching_wake_and_is_idempotent(
     assert wake_files[0].name == f"WAKE-{LANE}-{lane_end_guard.handback_key(line)}.json"
 
     stub_calls = []
-    repeated = conductor.hand_back_on_accept(
+    repeated = handback_fn(
         LANE, round_dir, repo, contract, env,
         run=_runner(stub_calls, stdout=json.dumps({"handback": line})),
     )
