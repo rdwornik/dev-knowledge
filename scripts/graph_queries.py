@@ -661,6 +661,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
                "template change lands",
         owner="e2-landing-script / ADR-131"),
+    "scripts/land_on_handback.py": Disposition(
+        reason="KEEP -- C11 + C13 of the minimum line: the handback trigger that calls "
+               "`land_lane` in process and writes the merge clock; its only caller is the "
+               "`once --lane <slug>` call site in queue_runner's HANDBACK event, which the W-track "
+               "arming lane adds (architect ruling Q-H-1 H-1), so no caller of a kind the census "
+               "reads exists yet. Delete this row when that call site lands",
+        owner="[#1859]"),
     # ---- [#1800] (lane e30-commit-gate): ten census findings, each given its REAL caller ----
     # These ten are red on main's commit-gate job since 2026-10-17. NONE is retired: every
     # one is a live organ or command whose caller is a class the census does not walk -- an
