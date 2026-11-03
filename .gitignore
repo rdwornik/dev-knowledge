@@ -192,6 +192,7 @@ logs/prompts/
 # sub-directory, gitignored, so it never meets the hermetization gate. Undated names: logs_retention would
 # move a dated one out from under its own doit target.
 logs/receipts/
+logs/MERGE-CLOCK.jsonl
 
 # SYSTEM MAP outputs ([#781] nearest; lane-bw-781-system-map; scripts/system_map.py build, the /map
 # command). Regenerate-on-demand, never committed -- the ecosystem/trends.html precedent above: a

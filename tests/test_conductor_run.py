@@ -882,7 +882,8 @@ def test_item1t_real_harness_moves_red_to_copilot_gpt_6_luna():
     assert conductor.model_family(p2["model"]) == "openai"
     assert conductor.model_family(p3["model"]) == "anthropic"
     assert conductor.model_family(p2["model"]) != conductor.model_family(p3["model"])
-    assert len(lines) < 204
+    # cap 204 -> 205: e30-land-on-handback ([#1859]) adds one fates data row to ecosystem/harness.yaml for scripts/land_on_handback.py (FOOTPRINT-PIN, +1 line; same cap as tests/test_dodo.py and tests/test_conductor_lane.py)
+    assert len(lines) < 205
 
 
 def test_review_input_required_in_a_segment_names_its_phase_and_output_artifact(tmp_path, monkeypatch):
