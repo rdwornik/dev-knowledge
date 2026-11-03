@@ -1798,11 +1798,12 @@ def test_a_contract_the_lint_passes_is_written_through_the_transport_emit(tmp_pa
 
 
 def test_the_distilled_contract_is_written_through_the_same_lint_gate():
-    """The second write site: `cmd_distill` ends in the same transport write as `cmd_emit`, so
-    neither can drift from the lint. Asserted on the source rather than by a second CLI run."""
+    """All writer sites end in the same transport write, so none can drift from the lint.
+    Asserted on the source rather than by a second CLI run."""
     source = (_SCRIPTS / "gen_lane_contract.py").read_text(encoding="utf-8")
     assert source.count("target.write_text(") == 0, "a bare write bypasses the transport lint"
-    assert source.count("_write_contract(target, text)") == 2   # `emit` and `distill`
+    # [#1855]: third caller of the one writer -- emit, distill, and distill --row --slug.
+    assert source.count("_write_contract(target, text)") == 3
     assert source.count("_transport.emit(") == 1                # the one call both go through
 
 

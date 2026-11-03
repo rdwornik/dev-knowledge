@@ -492,7 +492,8 @@ def test_live_distillable_row_is_diagnostic_and_never_tracebacks(tmp_path):
         pytest.skip("the live protected set contains no distillable row")
     try:
         _receipt, path, digest = glc.distill_row_contract(
-            REPO_ROOT, str(row.id), glc.row_slug(row.id, row.title), out_dir=tmp_path,
+            REPO_ROOT, str(row.id),
+            glc.row_slug(row.id, boot_frontier._gtt.derive_title(row.raw)), out_dir=tmp_path,
         )
     except glc.DistillRefused as exc:
         assert not any(clause in str(exc).lower()
@@ -507,7 +508,7 @@ def test_live_distillable_row_is_diagnostic_and_never_tracebacks(tmp_path):
 
         assert plan_lint.lint([plan_lint.parse_lane_contract(path)], REPO_ROOT) == []
         assert subst_gate.contract_problems(
-            text, lane=glc.row_slug(row.id, row.title), batch="E3.0",
+            text, lane=glc.row_slug(row.id, boot_frontier._gtt.derive_title(row.raw)), batch="E3.0",
         )[0] == []
         import conductor
 

@@ -325,7 +325,7 @@ def test_pick_distill_cli_is_the_acceptance_gate_and_shares_receipt_output(
     captured = capsys.readouterr()
     stdout_receipt = json.loads(captured.out)
     picked = boot_frontier.load_open_rows(repo)[0]
-    slug = glc.row_slug(picked.id, picked.title)
+    slug = glc.row_slug(picked.id, boot_frontier._gtt.derive_title(picked.raw))
     contract = out_dir / glc.contract_filename(slug)
     assert contract.is_file()
     assert f"CONTRACT {contract} sha256={hashlib.sha256(contract.read_bytes()).hexdigest()}" in (
