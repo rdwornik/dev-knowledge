@@ -916,6 +916,9 @@ def test_review_an_unstaged_in_scope_rename_is_committed_not_halted(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     _git(repo, "init", "-q", "-b", "main")
+    for key, value in (("user.name", "round-loop-test"), ("user.email", "round-loop@example.invalid"),
+                       ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
+        _git(repo, "config", key, value)  # the conductor runs a plain `git commit`: CI has no global identity
     (repo / "tests").mkdir()
     (repo / "tests" / "old.py").write_text("x = 1\nprint('hello world')\n" * 5, encoding="utf-8")
     _git(repo, "add", "-A")
