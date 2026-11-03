@@ -1186,13 +1186,14 @@ def _classify_hook(parsed: dict, registry: Registry) -> dict:
     hook with a `checks` allowlist and no extractable `[!!]` line fails closed."""
     hook_id, exit_code, output = parsed["hook_id"], parsed["exit_code"], parsed["output"]
     found = _failing_lines(output)
-    if not hook_id or not exit_code:
-        why = ("no hook id" if not hook_id else
-               f"exit code {exit_code!r} on a Failed hook is not classifiable")
-        return {"hook_id": hook_id or "(unparseable)", "exit_code": exit_code,
+    if not hook_id:
+        # Nothing to hand `compare_hook`: a Failed block with no `- hook id:` header.
+        return {"hook_id": "(unparseable)", "exit_code": exit_code,
                 "verdict": "fail", "lines": [{"text": t, "tag": "REGRESSION"} for t in found],
-                "regressions": [f"{hook_id or '(unparseable)'}: {why}"]}
-    cmp = compare_hook(hook_id, exit_code, registry, hook_output=output)
+                "regressions": ["(unparseable): a Failed hook with no hook id is not classifiable"]}
+    # `compare_hook` runs for EVERY failed hook that has an id. A Failed hook whose exit code is
+    # absent or 0 is judged as exit 1 (it did fail) and then forced to fail closed below.
+    cmp = compare_hook(hook_id, exit_code or 1, registry, hook_output=output)
     entry = cmp["registered"]
     registered_lines = entry.get("lines") if entry else None
     allowed = set(entry.get("checks") or ()) if entry else set()
@@ -1212,6 +1213,9 @@ def _classify_hook(parsed: dict, registry: Registry) -> dict:
         regressions = list(cmp["regressions"]) or [hook_id]
     if entry and (allowed or registered_lines is not None) and not found:
         regressions.append(f"{hook_id}: failed with no parseable [!!] finding (fails closed)")
+    if not exit_code:
+        regressions.append(f"{hook_id}: exit code {exit_code!r} on a Failed hook is not "
+                           f"classifiable (fails closed)")
     return {"hook_id": hook_id, "exit_code": exit_code,
             "verdict": "fail" if regressions or cmp["verdict"] != "pass" else "pass",
             "lines": tagged, "regressions": regressions}

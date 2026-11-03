@@ -15,20 +15,10 @@ _REPO = Path(__file__).resolve().parents[1]
 _WORKFLOW = _REPO / ".github" / "workflows" / "conductor.yml"
 _REGISTRY = _REPO / "logs" / "KNOWN-REDS-REGISTRY.json"
 
-REGISTERED_LINES = [
-    "[!!] repos registered  (none)",
-    "[!!] hooks_armed: git hooks not armed (RF-2) — SessionStart self-arm should install them",
-    "[!!] dispatch_drift: PowerShell command 'dispatch' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Dispatch-Cloud' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'claude' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Dispatch-Codespace' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Harvest-Codespace' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Dispatch-Local' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Dispatch-Lane' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Dispatch-CloudV2' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Get-CloudSession' is unavailable",
-    "[!!] dispatch_drift: PowerShell command 'Archive-CloudSession' is unavailable",
-]
+# The 12 authorised findings (Amendment CGG-1), read from the real registry so every classifier
+# fixture exercises the lines the gate is actually judged against.
+REGISTERED_LINES = json.loads(_REGISTRY.read_text(encoding="utf-8"))[
+    "hooks"]["audit-health"]["lines"]
 AUDIT_BLOCK = (
     "operational:\n"
     f"  {REGISTERED_LINES[0]}\n"
@@ -200,6 +190,30 @@ def test_nonzero_gate_exit_without_a_parseable_failed_hook_fails_closed():
 
     assert result["verdict"] == "fail"
     assert result["regressions"]
+
+
+def test_a_failed_hook_without_a_usable_exit_code_still_goes_through_compare_hook(monkeypatch):
+    import known_reds
+
+    calls = []
+    original = known_reds.compare_hook
+
+    def recording(hook_id, exit_code, passed_registry, hook_output=None):
+        calls.append(hook_id)
+        return original(hook_id, exit_code, passed_registry, hook_output=hook_output)
+
+    monkeypatch.setattr(known_reds, "compare_hook", recording)
+    gate = (
+        "Audit self-conformance gate........................................Failed\n"
+        "- hook id: audit-health\n"
+        "- exit code: abc\n\n" + AUDIT_BLOCK + "wall_seconds=1 exit=1\n"
+    )
+
+    result = known_reds.compare_commit_gate(gate, 1, _registry(known_reds))
+
+    assert calls == ["audit-health"]
+    assert result["verdict"] == "fail"
+    assert any("not classifiable" in item for item in result["regressions"])
 
 
 def test_zero_gate_exit_passes_even_without_hook_entries():
