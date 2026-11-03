@@ -481,11 +481,12 @@ def test_boot_frontier_import_and_pick_do_not_load_provider_callers(tmp_path):
 
     repo = build_fixture_repo(tmp_path / "fixture")
     scripts = REPO_ROOT / "scripts"
+    # Q-B-G3 (FOOTPRINT-PIN): gen_task_tree imports yaml at module top, so only boot_frontier's own imports are checked for yaml.
     import_only = (
         "import sys; "
         f"sys.path.insert(0, {str(scripts)!r}); "
         "import boot_frontier; "
-        "unexpected = {'gen_lane_contract', 'yaml'} & sys.modules.keys(); "
+        "unexpected = {'gen_lane_contract'} & sys.modules.keys(); "
         "assert not unexpected, f'unexpected eager imports: {sorted(unexpected)}'"
     )
     imported = subprocess.run(
@@ -493,6 +494,41 @@ def test_boot_frontier_import_and_pick_do_not_load_provider_callers(tmp_path):
         cwd=REPO_ROOT, capture_output=True, text=True, check=False,
     )
     assert imported.returncode == 0, imported.stderr
+
+    import ast
+
+    boot_frontier_tree = ast.parse((scripts / "boot_frontier.py").read_text(encoding="utf-8"))
+
+    def module_scope_yaml_imports(statements):
+        offenders = []
+        for statement in statements:
+            if isinstance(statement, ast.Import):
+                offenders.extend(
+                    f"line {statement.lineno}: import {alias.name}"
+                    for alias in statement.names
+                    if alias.name == "yaml" or alias.name.startswith("yaml.")
+                )
+            elif isinstance(statement, ast.ImportFrom) and statement.module:
+                if statement.module == "yaml" or statement.module.startswith("yaml."):
+                    offenders.append(f"line {statement.lineno}: from {statement.module} import")
+
+            if isinstance(statement, ast.If):
+                nested = [*statement.body, *statement.orelse]
+            elif isinstance(statement, (ast.Try, ast.TryStar)):
+                nested = [
+                    *statement.body,
+                    *(handler_body for handler in statement.handlers for handler_body in handler.body),
+                    *statement.orelse,
+                    *statement.finalbody,
+                ]
+            elif isinstance(statement, ast.With):
+                nested = statement.body
+            else:
+                nested = []
+            offenders.extend(module_scope_yaml_imports(nested))
+        return offenders
+
+    assert not (yaml_imports := module_scope_yaml_imports(boot_frontier_tree.body)), yaml_imports
 
     pick_only = (
         "import sys; "
