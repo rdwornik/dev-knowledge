@@ -1798,11 +1798,12 @@ def test_a_contract_the_lint_passes_is_written_through_the_transport_emit(tmp_pa
 
 
 def test_the_distilled_contract_is_written_through_the_same_lint_gate():
-    """The second write site: `cmd_distill` ends in the same transport write as `cmd_emit`, so
-    neither can drift from the lint. Asserted on the source rather than by a second CLI run."""
+    """All writer sites end in the same transport write, so none can drift from the lint.
+    Asserted on the source rather than by a second CLI run."""
     source = (_SCRIPTS / "gen_lane_contract.py").read_text(encoding="utf-8")
     assert source.count("target.write_text(") == 0, "a bare write bypasses the transport lint"
-    assert source.count("_write_contract(target, text)") == 2   # `emit` and `distill`
+    # [#1855]: third caller of the one writer -- emit, distill, and distill --row --slug.
+    assert source.count("_write_contract(target, text)") == 3
     assert source.count("_transport.emit(") == 1                # the one call both go through
 
 
@@ -1991,3 +1992,125 @@ def test_cl1_parse_refuses_a_retired_dispatch_cloudv2_line(local_contract):
     parsed = glc.parse_contract(contract, expect_shape="local")
     assert not parsed.ok, parsed.problems
     assert any("CL-1" in problem for problem in parsed.problems), parsed.problems
+
+
+# --- E3.0 Outcome 3: explicit model ids reconcile the generator and readers ----------------
+
+def test_explicit_model_id_and_model_tier_share_the_provider_registry():
+    import provider_registry
+
+    ids = provider_registry.claude_alias_ids()
+    for tier in ("opus", "sonnet", "haiku"):
+        assert glc.explicit_model_id(tier) == ids[tier]
+        assert glc.model_tier(tier) == tier
+        assert glc.model_tier(ids[tier]) == tier
+    assert glc.explicit_model_id("opusplan") is None
+    assert glc.model_tier("opusplan") == "opusplan"
+    for unknown in ("gpt", "opus-4", f"{ids['sonnet']}-x", ""):
+        assert glc.model_tier(unknown) is None
+
+
+def test_explicit_model_id_renders_and_passes_plan_lint_in_both_shapes(tmp_path):
+    import provider_registry
+    import plan_lint
+
+    sonnet = provider_registry.claude_alias_ids()["sonnet"]
+    for shape in ("local", "codespace"):
+        text = glc.render_contract(_spec(
+            slug="lane-ab-842-explicit-model",
+            model="sonnet",
+            model_id=sonnet,
+            shape=shape,
+        ))
+        assert f"| {sonnet} |" in text
+        assert glc.parse_contract(text).ok
+        if shape == "local":
+            assert f"--model {sonnet}" in text
+        else:
+            assert f"-Model {sonnet}" in text
+        contract = tmp_path / f"LANE-explicit-{shape}.md"
+        contract.write_text(text, encoding="utf-8", newline="\n")
+        findings = plan_lint.lint([plan_lint.parse_lane_contract(contract)], tmp_path)
+        assert not [finding for finding in findings if finding.category == "model-alias"]
+
+
+def test_parser_compares_model_tiers_and_keeps_unknown_tokens_outside_the_enum():
+    import provider_registry
+
+    ids = provider_registry.claude_alias_ids()
+    sonnet_id = ids["sonnet"]
+    opus_id = ids["opus"]
+    base = glc.render_contract(_spec(
+        slug="lane-ab-843-explicit-model",
+        model="sonnet",
+        model_id=sonnet_id,
+    ))
+    line = glc.find_command_line(base)
+    assert line is not None
+    disagree = base.replace(line, line.replace(sonnet_id, opus_id))
+    assert any("two sources free to disagree" in problem
+               for problem in glc.parse_contract(disagree).problems)
+
+    reverse = base.replace(f"| {sonnet_id} | execute |", f"| {opus_id} | execute |", 1)
+    assert any("two sources free to disagree" in problem
+               for problem in glc.parse_contract(reverse).problems)
+
+    local_unknown = base.replace(line, line.replace(sonnet_id, "gpt"))
+    assert any("outside {opus | opusplan | sonnet | haiku}" in problem and "gpt" in problem
+               for problem in glc.parse_contract(local_unknown).problems)
+    codespace = glc.render_contract(_spec(
+        slug="lane-ab-843-explicit-model",
+        model="sonnet",
+        model_id=sonnet_id,
+        shape="codespace",
+    ))
+    codespace_unknown = codespace.replace(f"-Model {sonnet_id}", "-Model gpt")
+    assert any("outside {opus | opusplan | sonnet | haiku}" in problem and "gpt" in problem
+               for problem in glc.parse_contract(codespace_unknown).problems)
+
+
+def test_lane_spec_refuses_an_explicit_id_that_disagrees_with_its_tier():
+    import provider_registry
+
+    ids = provider_registry.claude_alias_ids()
+    with pytest.raises(glc.LaneContractError, match="model"):
+        _spec(model="sonnet", model_id=ids["opus"]).validated()
+    with pytest.raises(glc.LaneContractError, match="model"):
+        _spec(model="opusplan", model_id=ids["opus"]).validated()
+
+
+def test_emit_and_enums_keep_their_alias_defaults(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(glc.cli, [
+        "emit", "--kind", "code", "--slug", "lane-ab-844-alias-default",
+        "--purpose", "preserve the emitter alias default", "--model", "sonnet",
+        "--out-dir", str(tmp_path),
+    ])
+    assert result.exit_code == 0, result.output
+    text = (tmp_path / "LANE-ab-844-alias-default.md").read_text(encoding="utf-8")
+    assert "| sonnet |" in text
+    assert "--model sonnet" in text
+
+    enums = runner.invoke(glc.cli, ["enums"])
+    assert enums.exit_code == 0, enums.output
+    model_line = next(line for line in enums.output.splitlines() if line.startswith("model:"))
+    assert model_line == (
+        f"model: {' | '.join(glc.MODEL_ENUM)}   default: {glc.DEFAULT_MODEL}"
+    )
+
+
+def test_generator_sources_add_no_provider_registry_model_id_literals(tmp_path):
+    import shutil
+    import test_model_id_single_source as model_id_test
+
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("gen_lane_contract.py", "boot_frontier.py"):
+        shutil.copyfile(_SCRIPTS / name, scripts / name)
+    counts = model_id_test.scan(tmp_path, model_id_test.registry_ids())
+    violations = {
+        key: count for key, count in counts.items()
+        if key[0] in {"scripts/gen_lane_contract.py", "scripts/boot_frontier.py"}
+        and count > model_id_test.BASELINE.get(key, 0)
+    }
+    assert violations == {}

@@ -1,0 +1,81 @@
+{
+  "schema": "distill-receipt/1",
+  "row": "4242",
+  "row_phase": "build",
+  "title": "Widget polish",
+  "reuse_candidates": [],
+  "reuse_threshold": 0.5,
+  "dependencies": [
+    "4100"
+  ],
+  "skills_commands": [],
+  "phases": [
+    {
+      "id": "P1",
+      "model": "claude-opus-5-5",
+      "effort": null,
+      "vendor": "anthropic"
+    },
+    {
+      "id": "P2",
+      "model": "claude-sonnet-5-5",
+      "effort": null,
+      "vendor": "anthropic"
+    },
+    {
+      "id": "P3",
+      "model": "claude-sonnet-5.5",
+      "effort": null,
+      "vendor": "copilot-enterprise"
+    },
+    {
+      "id": "P4",
+      "model": null,
+      "effort": null,
+      "vendor": "local"
+    },
+    {
+      "id": "P5",
+      "model": "claude-sonnet-5.5",
+      "effort": null,
+      "vendor": "copilot-enterprise"
+    },
+    {
+      "id": "P6a",
+      "model": "gpt-5.6-terra",
+      "effort": null,
+      "vendor": "openai"
+    },
+    {
+      "id": "P6b",
+      "model": "gemini-4-argon",
+      "effort": null,
+      "vendor": "copilot-enterprise"
+    },
+    {
+      "id": "P6c",
+      "model": null,
+      "effort": null,
+      "vendor": "local"
+    },
+    {
+      "id": "P7",
+      "model": "gpt-6-sol",
+      "effort": null,
+      "vendor": "openai"
+    }
+  ],
+  "constraints": [
+    "C-TASK",
+    "C-SCOPE",
+    "C-RED",
+    "C-VENDOR",
+    "C-CLEAN"
+  ],
+  "boosted_prompt": "Row [#4242]: Widget polish\nPhase: build\nTouches: scripts/fixture.py, tests/fixture.py\nConstraints: C-TASK, C-SCOPE, C-RED, C-VENDOR, C-CLEAN\nReuse before building new: (no candidates)",
+  "plan_new_paths": [],
+  "new_justified": null,
+  "producer_vendor": "anthropic",
+  "challenge": null,
+  "row_state": "ready"
+}
