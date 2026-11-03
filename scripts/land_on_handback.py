@@ -48,9 +48,17 @@ if str(_SCRIPTS) not in sys.path:                    # dual-import shim, as ever
     sys.path.insert(0, str(_SCRIPTS))
 
 import handback_schema  # noqa: E402
-import lane_end_guard  # noqa: E402
 import land_lane  # noqa: E402
 import subst_gate  # noqa: E402
+
+
+def _guard():
+    """`lane_end_guard`, imported on first use and not at module level: it stamps `_T0` at import
+    and tests/test_lane_end_guard.py asserts its 15 s hook limit against that stamp, so an import
+    at collection time (same xdist worker) would fail that test."""
+    import lane_end_guard  # noqa: PLC0415
+    return lane_end_guard
+
 
 #: the function actually called; `land_one(land_lane_fn=)` is a test seam of the Python function only
 DEFAULT_LAND_FN = land_lane.land_lane
@@ -528,11 +536,11 @@ def _wake_written_at(slug: str, closing: str, wake_home: Optional[Path]) -> Opti
     if not _slug_ok(slug):
         return None
     try:
-        home = Path(wake_home) if wake_home else lane_end_guard.wake_dir(os.environ)
+        home = Path(wake_home) if wake_home else _guard().wake_dir(os.environ)
     except (ValueError, OSError, ImportError):
         return None
-    name = f"{lane_end_guard.WAKE_PREFIX}{slug}-{lane_end_guard.handback_key(closing)}.json"
-    for where in (home, lane_end_guard.fallback_home(home)):
+    name = f"{_guard().WAKE_PREFIX}{slug}-{_guard().handback_key(closing)}.json"
+    for where in (home, _guard().fallback_home(home)):
         try:
             data = json.loads((where / name).read_text(encoding="utf-8"))
         except (OSError, ValueError):
@@ -557,7 +565,7 @@ def once(slug: str, *, batch: str, worktree: Path, transport: Path, receipts: Op
             text = (Path(transport) / "to-browser" / f"SESSION-{slug}.md").read_text(encoding="utf-8")
         except OSError:
             text = ""
-        closing = lane_end_guard.last_handback(text)
+        closing = _guard().last_handback(text)
         if closing is None:
             outcome = _refuse("HANDBACK-FILE", f"no flush-left HANDBACK line in the SESSION file of {slug}")
             _finish(outcome, slug, None, dry_run)
@@ -580,7 +588,7 @@ def cursor_path(wake_home: Path, batch: str) -> Path:
 def watch(*, batch: str, worktree: Path, transport: Path, wake_home: Path,
           receipts: Optional[Path] = None, carry_file: Optional[Path] = None, integrator: bool = False,
           lock_wait_s: float = 0, state_dir: Optional[Path] = None, clock_path: Optional[Path] = None,
-          poll_s: float = lane_end_guard.WATCH_POLL_S, max_wait_s: Optional[float] = None,
+          poll_s: Optional[float] = None, max_wait_s: Optional[float] = None,
           timeout_s: int = land_lane.DEFAULT_TIMEOUT_S, interval_s: int = land_lane.DEFAULT_INTERVAL_S,
           land_lane_fn: Callable = DEFAULT_LAND_FN, now: Callable[[], float] = time.time) -> int:
     """Land each wake, oldest first, once. A stop ends the watch with that stop's exit code and leaves
@@ -603,7 +611,9 @@ def watch(*, batch: str, worktree: Path, transport: Path, wake_home: Path,
             raise LanderStop(outcome.exit_code, outcome.message)
 
     try:
-        lane_end_guard.watch_wakes(home, ledger=cursor, poll_s=poll_s, max_wait_s=max_wait_s, emit=emit)
+        guard = _guard()
+        guard.watch_wakes(home, ledger=cursor, poll_s=guard.WATCH_POLL_S if poll_s is None else poll_s,
+                          max_wait_s=max_wait_s, emit=emit)
     except LanderStop as stop:
         return stop.exit_code
     return EXIT_OK
@@ -701,13 +711,13 @@ def once_cmd(slug, handback_line, handback_at, wake_home, dry_run, batch, worktr
 @cli.command("watch")
 @click.option("--wake-home", "wake_home", default=None, type=click.Path(path_type=Path),
               help="the wake home (default: the per-user state directory's integrator-wake)")
-@click.option("--poll-s", "poll_s", default=lane_end_guard.WATCH_POLL_S, type=float)
+@click.option("--poll-s", "poll_s", default=None, type=float)
 @click.option("--max-wait-s", "max_wait_s", default=None, type=float, help="stop after this long (tests)")
 @_common
 def watch_cmd(wake_home, poll_s, max_wait_s, batch, worktree, transport, receipts, carry_file, clock_path,
               state_dir, lock_wait_s, integrator) -> None:
     """Land each wake file of this batch, once, oldest first; halt at the first stop."""
-    home = wake_home or lane_end_guard.wake_dir(os.environ)
+    home = wake_home or _guard().wake_dir(os.environ)
     sys.exit(watch(batch=batch, worktree=worktree, transport=transport, wake_home=home, receipts=receipts,
                    carry_file=carry_file, integrator=integrator, lock_wait_s=lock_wait_s,
                    state_dir=state_dir, clock_path=clock_path, poll_s=poll_s, max_wait_s=max_wait_s))

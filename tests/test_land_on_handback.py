@@ -18,10 +18,17 @@ import yaml
 from click.testing import CliRunner
 
 import graph_queries as gq
-import lane_end_guard as leg
 import land_lane as ll
 import merge_path
 import land_on_handback
+
+
+def _leg():
+    """lane_end_guard, imported on first use. It stamps `_T0` at import and
+    tests/test_lane_end_guard.py asserts its 15 s hook limit against that stamp, so a
+    module-level import here (collection time, same xdist worker) would fail that test."""
+    import lane_end_guard
+    return lane_end_guard
 
 
 SLUG = "lane-a"
@@ -273,7 +280,7 @@ def _session_models() -> str:
 
 
 def _wake(case, slug: str, line: str) -> Path:
-    return leg.write_wake(case.wake_home, slug, line)
+    return _leg().write_wake(case.wake_home, slug, line)
 
 
 def _real_land_lane(**overrides):
@@ -437,6 +444,7 @@ def test_a2_an_old_wake_with_no_cursor_is_still_landed(case, monkeypatch):
     os.utime(wake, (old, old))
     cursor = land_on_handback.cursor_path(case.wake_home, BATCH)
     assert not cursor.exists()
+    leg = _leg()
     watch_wakes = leg.watch_wakes
 
     def checking_watch_wakes(home, **kwargs):
@@ -1002,8 +1010,8 @@ def test_f_land_seen_cursor_is_independent_of_two_seat_monitors(case):
     first, second = [], []
     seat_ledger_a = case.wake_home.with_name(case.wake_home.name + ".seat-a.watch-seen")
     seat_ledger_b = case.wake_home.with_name(case.wake_home.name + ".seat-b.watch-seen")
-    leg.watch_wakes(case.wake_home, ledger=seat_ledger_a, poll_s=0, max_wait_s=0, emit=first.append)
-    leg.watch_wakes(case.wake_home, ledger=seat_ledger_b, poll_s=0, max_wait_s=0, emit=second.append)
+    _leg().watch_wakes(case.wake_home, ledger=seat_ledger_a, poll_s=0, max_wait_s=0, emit=first.append)
+    _leg().watch_wakes(case.wake_home, ledger=seat_ledger_b, poll_s=0, max_wait_s=0, emit=second.append)
 
     assert result == 0
     assert seen_by_lander == [SLUG]
@@ -1623,3 +1631,16 @@ def test_w_orphan_disposition_fate_and_non_edge_shape_are_pinned():
     assert not gq.is_edge_computation_shape(
         (_REPO / "scripts" / "land_on_handback.py").read_text(encoding="utf-8")
     )
+
+
+# --- x ----------------------------------------------------------------------------------------
+
+def test_x_importing_the_lander_does_not_import_lane_end_guard():
+    """lane_end_guard stamps `_T0` at import and test_lane_end_guard asserts its 15 s hook limit
+    against it; the CI run of this lane failed that test because the lander imported the guard at
+    collection time. The guard is imported on first use instead."""
+    code = ("import sys; sys.path.insert(0, 'scripts'); import land_on_handback; "
+            "assert 'lane_end_guard' not in sys.modules, 'imported at module level'")
+    proc = subprocess.run([sys.executable, "-I", "-c", code], cwd=_REPO, capture_output=True,
+                          text=True)
+    assert proc.returncode == 0, proc.stderr
