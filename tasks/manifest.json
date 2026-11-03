@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f1ea6aa6af78493e473c945f86c683ea11d43c8d57c8f933355e812c4ae0655b",
+  "generated_sha256": "1dc3fa667c49a231721919aecdf8ccee8e8a92ce22f2eb93dc7bd1a90346f60c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2822,6 +2822,10 @@
     {
       "task": 1864,
       "file": "1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md"
+    },
+    {
+      "task": 1861,
+      "file": "1861-dispatch-launches-a-conductor-engine-contract-as-a-run.md"
     },
     {
       "task": 1510,
