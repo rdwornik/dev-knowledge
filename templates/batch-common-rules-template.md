@@ -31,7 +31,8 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 - Do not stop for an answer. Decide by your contract's **Value** line, record it in your session
   file as `DECIDED-BY-LANE: <question> -> <decision> (why)`, and carry on.
 - If a step is impossible, do the rest and hand back **PARTIAL** with the reason.
-- Write a `QUESTION-*.md` only for the morning; do not block on it.
+- A question for the morning is a `QUESTION <slug>: <question>` line in your SESSION file; the
+  dispatcher answers what it can and bundles the rest into ONE `QUESTION-<BATCH>-<date>.md`. Do not block on it.
 - An act that needs the operator (global config, a purchase, a ratification) is recorded as an
   `OPERATOR-ACTION: <act> (why)` line, not waited on.
 
@@ -79,7 +80,8 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 
 - Wait with the Monitor tool, using an until-loop. A background poll can be reaped under memory
   pressure; if yours is, re-arm it yourself and note it.
-- No cron, no scheduled wake-ups, no loops. Nothing of yours outlives your last message.
+- No cron, no scheduled wake-ups, no loops. Nothing of yours outlives your last message. A seat whose
+  order names a cron (the dispatcher's wake cron, a long seat's resume cron) is the one exception.
 - Temporary files go under your job's tmp only.
 - pytest workers: <through the memory gate | `-n <k>`>. The full suite runs once, at integration.
 

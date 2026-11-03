@@ -77,7 +77,7 @@ KIND_CLASSES = ("decision", "non-decision")
 
 #: The writers that are a person or a seat (a registry `writers` entry); every other writer name
 #: is a script. The `by:` rule refuses an unsigned NEW file from a role and only advises a script.
-ROLE_WRITERS = ("operator", "lane", "integrator")
+ROLE_WRITERS = ("operator", "lane", "integrator", "dispatcher")
 #: The generated index, the repository token the attribution rule reads, and the generated data
 #: file that holds the seat-ID map and the landing inventory (LANE-1439-b2w2-transport-index).
 INDEX_NAME = "INDEX.md"
