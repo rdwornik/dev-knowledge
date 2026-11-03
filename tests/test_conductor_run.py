@@ -630,13 +630,28 @@ def test_item1k_contract_and_base_reach_each_toy_phase(tmp_path, monkeypatch):
 def test_item1l_cli_runs_with_default_and_override_repo_root_and_requires_contract(tmp_path):
     assert callable(conductor.run_lane)
     default_root = _world(tmp_path / "default")
+    default_contract = default_root["contract"].read_text(encoding="utf-8")
+    default_root["contract"].write_text(
+        default_contract.replace("**Kind:** `code`", "**Kind:** `review`"),
+        encoding="utf-8",
+        newline="\n",
+    )
     out = _cli(default_root)
-    assert out.returncode == 0, out.stdout + out.stderr
+    # FOOTPRINT-PIN (lane e30-round-verdict-handback, C10 2d): an ACCEPTED lane is now handed back by code; the Kind is review here so the hand-back refuses before running anything. The CODE-lane ACCEPT -> hand_back_on_accept path is covered by tests/test_conductor_handback.py::test_item4a_final_accept_invokes_handback_with_lane_branch_class_and_batch and ::test_item4a_run_mode_calls_handback_once_after_final_accept.
+    assert out.returncode == 5, out.stdout + out.stderr
+    assert "handback: NOT RUN" in out.stdout
     assert f"conductor lane {default_root['lane']} run: ACCEPT after 1 round(s)" in out.stdout
 
     explicit_root = _world(tmp_path / "explicit")
+    explicit_contract = explicit_root["contract"].read_text(encoding="utf-8")
+    explicit_root["contract"].write_text(
+        explicit_contract.replace("**Kind:** `code`", "**Kind:** `review`"),
+        encoding="utf-8",
+        newline="\n",
+    )
     out = _cli(explicit_root, repo_root=True)
-    assert out.returncode == 0, out.stdout + out.stderr
+    assert out.returncode == 5, out.stdout + out.stderr
+    assert "handback: NOT RUN" in out.stdout
     assert f"conductor lane {explicit_root['lane']} run: ACCEPT after 1 round(s)" in out.stdout
 
     missing = _world(tmp_path / "missing")

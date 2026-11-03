@@ -1299,7 +1299,8 @@ def _p5_round_setup(tmp_path, *, p5_mode="ok", p5_command_is_ci=True, include_p6
         if mode == "move-head":
             Path("tip.txt").write_text("new tip\\n", encoding="utf-8")
             subprocess.run(["git", "add", "tip.txt"], check=True)
-            subprocess.run(["git", "commit", "-q", "-m", "move head"], check=True)
+            subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.com",
+                            "commit", "-q", "-m", "move head"], check=True)
         if mode == "invalid":
             print("not json")
             raise SystemExit(0)
