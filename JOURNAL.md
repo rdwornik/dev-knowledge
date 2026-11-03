@@ -21,6 +21,34 @@
 
 ---
 
+### 2026-11-03 (m) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #5 -- [#1859], [#1862] and [#1800] close on their green main push runs [#1859] [#1862] [#1800]
+
+**Anchors:** `c19532e6f` (the close commit this push introduces), `c535c7fbc` (main, GREEN: Q-1862-R fix on main, push run 41730849763), `b19a8d9ac` ([#1862] landing merge), `1a8ead7a1` (H landing merge, push run 41700668961).
+
+**Did:** closed three rows by `gen_task_tree --close-row`, each with its own witness: [#1859] on the H land `1a8ead7a1` and its success main push run 41700668961; [#1862] on the commit-gate land `b19a8d9ac` and the Done 6 witness, main push run 41730849763 (all 12 jobs success after the Q-1862-R fix; the dispatcher read them and sent DONE-6 WITNESS); [#1800] closed by [#1862]'s Done 6 (same sha and run). Then `--emit-source` and `gen_doc_counts --write`; `--check` ok. Licence: the dispatcher's DONE-6 WITNESS message (one tasks-only follow-up).
+
+**Result:** BACKLOG.md 660 -> 657 rows; the three manifest nodes removed; integration ref pushed next, then main after its green integration run and the commit-gate read.
+
+**Changes:** the three task files, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** E2 [#1857], G [#1858], then HAND-STEP A-1 (provider-registry admission), R3 preflight.
+
+### 2026-11-03 (l) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): HAND-STEP Q-1862-R (T1 fix-forward, option D) -- the registry-plus-lines test pops `lines` from both sides, so it survives its own landing [#1862]
+
+**Anchors:** `ef7e47792` (main, RED: pytest ubuntu run 41709663601, 38 failed, one regression), `90b50970d` (the fix commit), `b19a8d9ac` ([#1862] landing merge).
+
+**Did:** main went red on the [#1862] landing because `tests/test_known_reds_gate_hooks.py::test_registry_is_origin_main_plus_exactly_the_lines_field` popped `lines` only from the working registry and asserted equality with `origin/main`'s, which now carries `lines`. Architect ruling Q-1862-R = D (DIGEST-RULING-Q-1862-R-AND-NIGHT-ORDER-2026-11-03, no-stop table T1): ONE test-only commit (6 added lines, that file only; the `len(lines) == 12`, `[!!]` and baseline-id asserts kept; no deletion), run locally `-n0` (1 passed, ruff clean), then ONE cross-family review: Grok rung 3, `grok-4.7` served (modelUsage key), session `01a1a35d-130b-7903-a48f-8a10dcfddf61`, USD 0.055136, verdict APPROVE (diff plus the QUESTION text as input, plan mode, empty cwd).
+
+**Result:** integration ref `worktree-integrate-e3.0-q1862r-int` (origin/main merged `--no-ff` with the fix branch plus this entry), pushed without force; main push follows a green integration run and the dispatcher's known-reds compare (no marker hold: condition 3 was [#1862]'s rule). The main push run is Done 6 for [#1862]; the N2 closes of [#1862], [#1800] and the held [#1859] ride after it.
+
+**Changes:** `tests/test_known_reds_gate_hooks.py` (one comparison), this entry.
+
+**Abandoned:** options A (repair lane), B (no review), C (register as known red); T1 revert of `b19a8d9ac` stays the fallback at 23:29 local.
+
+**Next:** integration run id to the dispatcher; main push; Done 6 witness; N2 closes.
+
 ### 2026-11-03 (k) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-commit-gate-green landing -- the commit-gate job judges its failing hooks by the known-reds classifier, held at Q-CGG-2 condition 3 [#1862]
 
 **Anchors:** `e6ac70fff` (T1 RED, run 41617584859), `6950a332b` (lane tip, T2 7e603898 run 41686158517), `5ee601a35` (main when this landing was cut; the H land receipt).

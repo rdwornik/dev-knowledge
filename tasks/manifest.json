@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ab51d6f4bb748ec67c6148597a8e2238f2e721df4e4b0b149732be7e4a0cd7a9",
+  "generated_sha256": "680329cf27c26497c8af9ab36ac5dc1e605e1d11172498e7c48fc5d29cd5c96c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2388,10 +2388,6 @@
       "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
     },
     {
-      "task": 1859,
-      "file": "1859-landing-by-code-a-handback-runs-land-lane-under-one-lock-and-every-landing-writes-one-merge-clock-line.md"
-    },
-    {
       "task": 1433,
       "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
     },
@@ -3104,10 +3100,6 @@
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
     },
     {
-      "task": 1800,
-      "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
-    },
-    {
       "task": 1811,
       "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
     },
@@ -3142,10 +3134,6 @@
     {
       "task": 1858,
       "file": "1858-landing-land-lane-lands-a-conductor-lane-only-on-a-complete-tip-current-p7-accepted-phase-receipt-chain.md"
-    },
-    {
-      "task": 1862,
-      "file": "1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md"
     },
     {
       "prose": ""
