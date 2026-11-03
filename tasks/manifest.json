@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "931a541f7140bffbb9f54030f54408b5b1af0db4c8584fa959fd018c9e8149e6",
+  "generated_sha256": "85ddf58e107c9d65ca4616499ced9de4c270c8d0b503a1a78afc5d7947821890",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -121,14 +121,6 @@
     {
       "task": 602,
       "file": "602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md"
-    },
-    {
-      "task": 603,
-      "file": "603-an-operator-interface-capability-file-the-facts.md"
-    },
-    {
-      "task": 619,
-      "file": "619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md"
     },
     {
       "task": 641,
@@ -486,10 +478,6 @@
       "file": "811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md"
     },
     {
-      "task": 812,
-      "file": "812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md"
-    },
-    {
       "task": 827,
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
     },
@@ -516,10 +504,6 @@
     {
       "task": 824,
       "file": "824-no-launch-verb-exists-for-a-non-claude-lane.md"
-    },
-    {
-      "task": 825,
-      "file": "825-single-flight-misreports-a-real-push-race-as-an-internal-error.md"
     },
     {
       "task": 826,
@@ -598,28 +582,12 @@
       "file": "931-wave-3-lane-b-lane-launch-adapter-one-command-la.md"
     },
     {
-      "task": 932,
-      "file": "932-wave-3-lane-c-lane-merge-truth-the-merge-gate-re.md"
-    },
-    {
       "task": 933,
       "file": "933-wave-3-lane-d-lane-end-hook-every-finished-lane.md"
     },
     {
-      "task": 934,
-      "file": "934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md"
-    },
-    {
-      "task": 935,
-      "file": "935-wave-3-lane-f-lane-connection-test-prove-the-loo.md"
-    },
-    {
       "task": 936,
       "file": "936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md"
-    },
-    {
-      "task": 937,
-      "file": "937-wave-4a-lane-1-lane-known-reds-one-base-run-per-ba.md"
     },
     {
       "task": 938,
@@ -634,10 +602,6 @@
       "file": "940-wave-4a-lane-4-lane-connection-hygiene-the-connect.md"
     },
     {
-      "task": 941,
-      "file": "941-wave-4a-lane-5-lane-landing-decisions-this-window.md"
-    },
-    {
       "task": 942,
       "file": "942-state-as-data-the-status-surface-the-state-query.md"
     },
@@ -648,10 +612,6 @@
     {
       "task": 944,
       "file": "944-the-secrets-field-a-contracts-dispatch-block.md"
-    },
-    {
-      "task": 945,
-      "file": "945-the-guards-decision-the-operators-build-mode.md"
     },
     {
       "task": 946,
@@ -666,10 +626,6 @@
       "file": "948-the-fair-why-test-measure-the-why-skill-without.md"
     },
     {
-      "task": 949,
-      "file": "949-unbind-verb-for-the-integrator-seat-releasing-a.md"
-    },
-    {
       "task": 950,
       "file": "950-friction-ratio-measure-operator-touches-against.md"
     },
@@ -680,14 +636,6 @@
     {
       "task": 952,
       "file": "952-gemini-routing-pin-a-pinned-model-id-for-the-agy.md"
-    },
-    {
-      "task": 953,
-      "file": "953-events-that-file-rows-some-escalation-events.md"
-    },
-    {
-      "task": 954,
-      "file": "954-install-the-loop-in-a-second-repo-prove-stages.md"
     },
     {
       "task": 955,
@@ -718,10 +666,6 @@
       "file": "962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md"
     },
     {
-      "task": 963,
-      "file": "963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md"
-    },
-    {
       "task": 964,
       "file": "964-one-verification-stage-every-check-runs-once-at-merge.md"
     },
@@ -748,10 +692,6 @@
     {
       "task": 970,
       "file": "970-memory-admission-gate-heavy-runs-wait-for-free-memory-n.md"
-    },
-    {
-      "task": 971,
-      "file": "971-autonomy-pre-authorized-ruling-table-liveness-watchdog.md"
     },
     {
       "task": 972,
@@ -782,10 +722,6 @@
       "file": "978-transport-file-kind-registry-enforced-by-an-adapter-no.md"
     },
     {
-      "task": 979,
-      "file": "979-path-layer-reads-harness-drive-root-harness-prompts.md"
-    },
-    {
       "task": 980,
       "file": "980-portability-a-path-layer-drive-api-adapter-container-ci.md"
     },
@@ -798,24 +734,12 @@
       "file": "982-seat-bind-marks-live-immediately-occupancy-accepts-a.md"
     },
     {
-      "task": 983,
-      "file": "983-decisions-and-audits-land-in-the-repo-every-wave-a.md"
-    },
-    {
       "task": 984,
       "file": "984-a-state-store-adr-121-carries-decisions-across-a.md"
     },
     {
       "task": 985,
       "file": "985-plan-lint-rejects-an-audit-order-that-carries-no-codex.md"
-    },
-    {
-      "task": 986,
-      "file": "986-architecture-level-changes-require-adr-matrix-debate.md"
-    },
-    {
-      "task": 987,
-      "file": "987-batch-close-regenerates-the-ledger-from-the-state-store.md"
     },
     {
       "task": 988,
@@ -834,20 +758,8 @@
       "file": "991-changelog-review-runs-on-a-weekly-conductor-schedule.md"
     },
     {
-      "task": 992,
-      "file": "992-measure-skill-doctor-and-doctors-claude-md-trim.md"
-    },
-    {
       "task": 993,
       "file": "993-build-mode-exit-condition-1-the-connection-walk-is.md"
-    },
-    {
-      "task": 994,
-      "file": "994-build-mode-exit-condition-2-one-real-backlog-row.md"
-    },
-    {
-      "task": 995,
-      "file": "995-build-mode-exit-condition-every-disabled-guard-is-re.md"
     },
     {
       "task": 996,
@@ -874,20 +786,12 @@
       "file": "1001-sessionstart-becomes-one-stdlib-reader-8-interpreters.md"
     },
     {
-      "task": 1002,
-      "file": "1002-re-arm-evidence-must-be-measured-in-session-under-the.md"
-    },
-    {
       "task": 1003,
       "file": "1003-closure-proposals-run-once-per-new-commit-with-a-reader.md"
     },
     {
       "task": 1004,
       "file": "1004-commit-gate-counter-survives-worktree-teardown-0-runs.md"
-    },
-    {
-      "task": 1005,
-      "file": "1005-path-protection-comes-back-as-permissions-deny-rules-no.md"
     },
     {
       "task": 1006,
@@ -912,10 +816,6 @@
     {
       "task": 1015,
       "file": "1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md"
-    },
-    {
-      "task": 1855,
-      "file": "1855-distill-row-writes-the-frozen-lane-contract-by-code-and-boot-frontier-picks-the-row.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1001,10 +901,6 @@
       "file": "477-deployed-version-check-keys-registry-by-basename.md"
     },
     {
-      "task": 654,
-      "file": "654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -1016,10 +912,6 @@
     {
       "task": 218,
       "file": "218-safe-removal-gate-m2-m3-boundary.md"
-    },
-    {
-      "task": 659,
-      "file": "659-orphan-census-names-a-trigger-that-does-not-exist.md"
     },
     {
       "task": 674,
@@ -1053,10 +945,6 @@
     {
       "task": 310,
       "file": "310-define-the-cold-bundle-annotation-surface-annota.md"
-    },
-    {
-      "task": 520,
-      "file": "520-no-sanctioned-way-to-retire-a-committed-bundle-w.md"
     },
     {
       "task": 418,
@@ -1282,10 +1170,6 @@
       "file": "1079-adr-122-step-1-remainder-four-rows-body-grammar-b.md"
     },
     {
-      "task": 1080,
-      "file": "1080-adr-122-step-1-remainder-eliminate-legacy-body-ca.md"
-    },
-    {
       "prose": "### [S12] Close the small ADR cross-reference + registry amendments"
     },
     {
@@ -1330,10 +1214,6 @@
     {
       "task": 300,
       "file": "300-hermetization-residual-d-ii.md"
-    },
-    {
-      "task": 388,
-      "file": "388-the-10-20-repo-fleet-scale-target-is-fabricated.md"
     },
     {
       "task": 526,
@@ -1390,10 +1270,6 @@
     {
       "task": 897,
       "file": "897-architecture-md-is-110-357-b-live-seven-times-its.md"
-    },
-    {
-      "task": 903,
-      "file": "903-the-audit-corpus-has-no-retention-rule-what-is-a.md"
     },
     {
       "prose": "---"
@@ -1493,10 +1369,6 @@
       "file": "609-free-ruff-ratchet-the-zero-cost-python-standard.md"
     },
     {
-      "task": 343,
-      "file": "343-fleet-parity-ship-gate-only-scoping.md"
-    },
-    {
       "task": 342,
       "file": "342-fleet-parity-gate-ahead-max-fidelity-hardening.md"
     },
@@ -1544,10 +1416,6 @@
     {
       "task": 736,
       "file": "736-component-lifecycle-as-data-and-automatic-deprecation.md"
-    },
-    {
-      "task": 745,
-      "file": "745-the-sixteen-unknown-census-items-are-resolved-by-a-second-pass.md"
     },
     {
       "prose": ""
@@ -1646,10 +1514,6 @@
       "file": "588-p-2-build-the-spine-parent-map-in-one-git-proces.md"
     },
     {
-      "task": 598,
-      "file": "598-p-6-a-slow-marker-selector-so-tiered-gating-has.md"
-    },
-    {
       "task": 618,
       "file": "618-the-silently-stale-codespace-clone-detection-and.md"
     },
@@ -1664,18 +1528,6 @@
     {
       "task": 632,
       "file": "632-codespace-is-admitted-for-transport-and-unstable-for-inference.md"
-    },
-    {
-      "task": 634,
-      "file": "634-dispatch-run-accepts-github-token-as-the-anthropic-check.md"
-    },
-    {
-      "task": 646,
-      "file": "646-substantive-commit-share-is-measured-once-by-hand.md"
-    },
-    {
-      "task": 658,
-      "file": "658-fourteen-operator-points-nine-mechanisable-nothing-counts.md"
     },
     {
       "task": 694,
@@ -1782,10 +1634,6 @@
       "file": "913-duplicate-journal-day-letter-2026-09-18-f-is-on-ma.md"
     },
     {
-      "task": 914,
-      "file": "914-the-transport-is-unreachable-whenever-h-is-not-mo.md"
-    },
-    {
       "task": 915,
       "file": "915-am-5-s-premise-is-falsified-a-session-launched-bg.md"
     },
@@ -1875,10 +1723,6 @@
       "file": "123-routine-observability-convention-value-review.md"
     },
     {
-      "task": 387,
-      "file": "387-rewrite-the-buy-vs-build-intake-before-anything.md"
-    },
-    {
       "task": 440,
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
     },
@@ -1897,10 +1741,6 @@
     {
       "task": 753,
       "file": "753-the-supervised-non-claude-producer-trial.md"
-    },
-    {
-      "task": 832,
-      "file": "832-copilot-collections-comparison-rerun.md"
     },
     {
       "task": 885,
@@ -1936,14 +1776,6 @@
     {
       "task": 627,
       "file": "627-agy-route-is-inert-no-row-authorizes-analysis-admission.md"
-    },
-    {
-      "task": 660,
-      "file": "660-s-15-the-aj-tools-and-evals-table-was-never-produced.md"
-    },
-    {
-      "task": 661,
-      "file": "661-sda-1-is-a-complete-benchmark-design-that-never-ran.md"
     },
     {
       "task": 696,
@@ -2037,10 +1869,6 @@
       "file": "723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md"
     },
     {
-      "task": 732,
-      "file": "732-committing-lanes-run-local-overnight-only-ratification-7-honoured.md"
-    },
-    {
       "prose": "## [E8] ARC-5 execution"
     },
     {
@@ -2118,10 +1946,6 @@
       "file": "359-phantom-enforcement-protocols-handoff-process-md.md"
     },
     {
-      "task": 402,
-      "file": "402-intake-naming-clause-deploy-the-yyyy-mm-dd-class.md"
-    },
-    {
       "task": 361,
       "file": "361-adr-immutability-s-real-coverage-is-declared-onl.md"
     },
@@ -2149,14 +1973,6 @@
     {
       "task": 400,
       "file": "400-ownership-model-the-hub-mandated-structure-repo.md"
-    },
-    {
-      "task": 413,
-      "file": "413-colors-semantics-visually-distinguish-global-hub.md"
-    },
-    {
-      "task": 448,
-      "file": "448-a11-staged-diff-guard-cover-every-candidate-bun.md"
     },
     {
       "prose": ""
@@ -2223,14 +2039,6 @@
       "prose": "So that \"the repo learns us\" starts as a cheap descriptive lane on real data, not as an ML platform bought ahead of the evidence."
     },
     {
-      "task": 392,
-      "file": "392-fleet-analytics-rename-alias-loses-history-on-pa.md"
-    },
-    {
-      "task": 393,
-      "file": "393-corp-sca-rot-review-confirm-live-or-retire-3-can.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -2284,10 +2092,6 @@
       "file": "1020-ci-commit-gate-a-ship-gate-rerun-is-owed-and-the-commit.md"
     },
     {
-      "task": 1021,
-      "file": "1021-trial-gh-issues-stage-2-prior-art-scan-has-no-content-r.md"
-    },
-    {
       "task": 1022,
       "file": "1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md"
     },
@@ -2298,10 +2102,6 @@
     {
       "task": 1025,
       "file": "1025-integrator-batch-janitor-py-has-no-per-lane-scope-and-r.md"
-    },
-    {
-      "task": 1026,
-      "file": "1026-integrator-batch-janitor-py-reads-a-removed-job-as-live.md"
     },
     {
       "task": 1027,
@@ -2348,20 +2148,8 @@
       "file": "1037-the-handoff-boot-integrator-section-is-still-not-landed.md"
     },
     {
-      "task": 1038,
-      "file": "1038-digest-handoff-design-2026-09-25-the-handoff-design-res.md"
-    },
-    {
-      "task": 1039,
-      "file": "1039-the-execution-provenance-mechanism-declare-harness-prov.md"
-    },
-    {
       "task": 1040,
       "file": "1040-the-five-operator-judging-rules-declare-operator-feedba.md"
-    },
-    {
-      "task": 1041,
-      "file": "1041-the-seat-knowledge-table-declare-seat-knowledge-2026-09.md"
     },
     {
       "task": 1042,
@@ -2372,16 +2160,8 @@
       "file": "1043-ac-not-closed-residue-r11-re-key-the-stop-hook-exemptio.md"
     },
     {
-      "task": 1044,
-      "file": "1044-census-verdicts-w14-no-keep-or-retire-row-exists-for-th.md"
-    },
-    {
       "task": 1045,
       "file": "1045-census-verdicts-w16-the-17-no-organ-sessions-have-no-ro.md"
-    },
-    {
-      "task": 1046,
-      "file": "1046-census-verdicts-w17-the-class-named-organ-blind-spot-ha.md"
     },
     {
       "task": 1047,
@@ -2396,116 +2176,12 @@
       "file": "1049-aj-c-3-a-responder-observer-rollout-rule-for-future-aut.md"
     },
     {
-      "task": 1050,
-      "file": "1050-aj-c-4-the-5-criteria-task-filter-real-recent-represent.md"
-    },
-    {
-      "task": 1051,
-      "file": "1051-aj-c-5-true-throughput-dxi-is-blocked-flagged-not-built.md"
-    },
-    {
-      "task": 1052,
-      "file": "1052-aj-c-6-the-maister-commit-4151c9c4d-2026-09-22-diff-has.md"
-    },
-    {
-      "task": 1053,
-      "file": "1053-aj-c-7-the-09-21-aj-companion-digests-are-not-landed-or.md"
-    },
-    {
-      "task": 1054,
-      "file": "1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md"
-    },
-    {
       "task": 1101,
       "file": "1101-known-reds-registry-environment-mismatch-attribution-i.md"
     },
     {
-      "task": 1102,
-      "file": "1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md"
-    },
-    {
       "task": 1104,
       "file": "1104-dispose-adr-127-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1105,
-      "file": "1105-dispose-amend-batch-wave5b-n2-queue-2026-09-25-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1106,
-      "file": "1106-dispose-amend-batch-wave5b-n2-queue2-2026-09-25-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1107,
-      "file": "1107-dispose-amend-batch-wave5b-n2-queue3-2026-09-25-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1108,
-      "file": "1108-dispose-amend-batch-wave5b-n2-queue4-2026-09-25-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1109,
-      "file": "1109-dispose-amend-batch-wave5b-n2-queue6-2026-09-25-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1110,
-      "file": "1110-dispose-amend-batch-wave5b-n4-handoff-min-2026-09-27-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1111,
-      "file": "1111-dispose-amend-batch-wave5b-n4-redispatch-2026-09-28-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1112,
-      "file": "1112-dispose-amend-batch-night-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1113,
-      "file": "1113-dispose-amend-dispatch-unblock-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1114,
-      "file": "1114-dispose-amend-handoff-boot-integrator-section-2026-09-20-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1115,
-      "file": "1115-dispose-amend-model-routing-and-scope-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1116,
-      "file": "1116-dispose-amend-night-order-consolidated-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1117,
-      "file": "1117-dispose-amend-night-salvage-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1118,
-      "file": "1118-dispose-amend-organ-use-2026-09-17-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1119,
-      "file": "1119-dispose-declare-census-verdicts-2026-09-18-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1120,
-      "file": "1120-dispose-declare-lane-handback-contract-2026-09-18-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1121,
-      "file": "1121-dispose-declare-operator-feedback-2026-09-24-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1122,
-      "file": "1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md"
-    },
-    {
-      "task": 1125,
-      "file": "1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md"
-    },
-    {
-      "task": 1126,
-      "file": "1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md"
     },
     {
       "task": 1327,
@@ -2534,10 +2210,6 @@
     {
       "task": 1337,
       "file": "1337-no-step-tears-down-the-integrator-s-own-worktree.md"
-    },
-    {
-      "task": 1338,
-      "file": "1338-the-batch-template-says-no-scheduled-wake-ups-th.md"
     },
     {
       "task": 1339,
@@ -2572,14 +2244,6 @@
       "file": "1349-release-lint-the-floor-spec-pin-does-not-match-i.md"
     },
     {
-      "task": 1360,
-      "file": "1360-d1-is-the-first-real-backlog-task-through-the-spin.md"
-    },
-    {
-      "task": 1361,
-      "file": "1361-the-harness-is-one-process-with-one-writer-every-s.md"
-    },
-    {
       "task": 1362,
       "file": "1362-a-removal-engine-finds-what-is-no-longer-current-a.md"
     },
@@ -2606,10 +2270,6 @@
     {
       "task": 1368,
       "file": "1368-every-lane-s-fate-is-computed-and-the-batch-close.md"
-    },
-    {
-      "task": 1369,
-      "file": "1369-the-r66-retire-table-acts-are-executed-one-by-one.md"
     },
     {
       "task": 1370,
@@ -2674,10 +2334,6 @@
     {
       "task": 1423,
       "file": "1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md"
-    },
-    {
-      "task": 1424,
-      "file": "1424-w2-carries-foundation-lane-12-the-commit-time-hooks-r66-moved-to-ci-run-as-ci-jo.md"
     },
     {
       "task": 1425,
@@ -2828,64 +2484,12 @@
       "file": "1866-the-dispatch-queue-racing-launches-test-is-deterministic.md"
     },
     {
-      "task": 1510,
-      "file": "1510-lane-bw-1001-hook-launcher-has-no-consumer.md"
+      "task": 1867,
+      "file": "1867-backlog-reconcile-apply-revert-fail-closed-and-restore-nodes-by-task-id.md"
     },
     {
-      "task": 1511,
-      "file": "1511-lane-bw-1001-sessionstart-one-has-no-consumer.md"
-    },
-    {
-      "task": 1512,
-      "file": "1512-lane-bw-1103-registry-repoint-has-no-consumer.md"
-    },
-    {
-      "task": 1513,
-      "file": "1513-lane-bw-1368-lane-report-rollup-has-no-consumer.md"
-    },
-    {
-      "task": 1514,
-      "file": "1514-lane-bw-1374-lane-controller-has-no-consumer.md"
-    },
-    {
-      "task": 1515,
-      "file": "1515-lane-bw-1378-rulings-landing-has-no-consumer.md"
-    },
-    {
-      "task": 1516,
-      "file": "1516-lane-bw-1439-transport-index-has-no-consumer.md"
-    },
-    {
-      "task": 1517,
-      "file": "1517-lane-bw-1447-distill-kind-fix-has-no-consumer.md"
-    },
-    {
-      "task": 1518,
-      "file": "1518-lane-bw-1450-boot-teaching-has-no-consumer.md"
-    },
-    {
-      "task": 1519,
-      "file": "1519-lane-bw-242-adr-lifecycle-has-no-consumer.md"
-    },
-    {
-      "task": 1520,
-      "file": "1520-lane-bw-670-harness-probes-has-no-consumer.md"
-    },
-    {
-      "task": 1521,
-      "file": "1521-lane-bw-680-handoff-gen-has-no-consumer.md"
-    },
-    {
-      "task": 1522,
-      "file": "1522-lane-bw-735-reuse-gate-has-no-consumer.md"
-    },
-    {
-      "task": 1523,
-      "file": "1523-lane-bw-781-system-map-has-no-consumer.md"
-    },
-    {
-      "task": 1524,
-      "file": "1524-lane-bw-893-b2w3-carry-has-no-consumer.md"
+      "task": 1868,
+      "file": "1868-c0-simplification-decide-census-one-adr-one-ratification.md"
     },
     {
       "task": 1718,
@@ -2894,34 +2498,6 @@
     {
       "task": 1719,
       "file": "1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md"
-    },
-    {
-      "task": 1526,
-      "file": "1526-lane-bw-926-main-red-has-no-consumer.md"
-    },
-    {
-      "task": 1527,
-      "file": "1527-lane-bw-958-required-tools-has-no-consumer.md"
-    },
-    {
-      "task": 1528,
-      "file": "1528-2026-10-10-codex-b2w2-transport-index-has-no-consumer.md"
-    },
-    {
-      "task": 1529,
-      "file": "1529-2026-10-13-codex-bw-1439-transport-index-has-no-consumer.md"
-    },
-    {
-      "task": 1530,
-      "file": "1530-2026-10-13-codex-lane-bw-670-harness-probes-has-no-consumer.md"
-    },
-    {
-      "task": 1531,
-      "file": "1531-2026-10-13-technical-lane-bw-1001-sessionstart-measurement-has-no-consumer.md"
-    },
-    {
-      "task": 1532,
-      "file": "1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md"
     },
     {
       "task": 1533,
@@ -2948,24 +2524,8 @@
       "file": "1619-a-dependency-on-another-sessions-event-is-a-wait-never-a-skip-n1.md"
     },
     {
-      "task": 1620,
-      "file": "1620-a-session-ends-only-when-every-part-is-done-or-blocked-with-owner-n2.md"
-    },
-    {
-      "task": 1621,
-      "file": "1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md"
-    },
-    {
-      "task": 1622,
-      "file": "1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md"
-    },
-    {
       "task": 1623,
       "file": "1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md"
-    },
-    {
-      "task": 1624,
-      "file": "1624-test-manifest-link-route-asserts-equality-not-identity-after-a-module-reload.md"
     },
     {
       "task": 1551,
@@ -3068,20 +2628,8 @@
       "file": "1582-test-every-committed-record-still-proves-out-proves-all-86-archived-row-bodies.md"
     },
     {
-      "task": 1584,
-      "file": "1584-the-863-lane-s-owed-items-are-rows-ci-environment-owner-audit-health-funnel-and-proof-laye.md"
-    },
-    {
       "task": 1585,
       "file": "1585-provider-census-probes-only-providers-that-exist-and-each-probe-answers-or-says-why.md"
-    },
-    {
-      "task": 1586,
-      "file": "1586-the-provider-checker-is-re-run-from-a-writable-seat-and-its-disagrees-are-resolved.md"
-    },
-    {
-      "task": 1587,
-      "file": "1587-the-handoff-digest-checker-is-re-run-from-a-seat-with-a-writable-uv-cache-covering-all-fiv.md"
     },
     {
       "task": 1588,
@@ -3106,10 +2654,6 @@
     {
       "task": 1593,
       "file": "1593-handoff-docs-stop-contradicting-each-other-v5-v6-prose-the-r30-conflict-four-seats-three-q.md"
-    },
-    {
-      "task": 1594,
-      "file": "1594-phase-0-residuals-r48-last-ran-print-lane-report-py-stale-adr-121-adr-125-actions-minutes.md"
     },
     {
       "task": 1595,
@@ -3148,10 +2692,6 @@
       "file": "1603-hook-watchdog-py-kills-a-real-hung-hook-and-logs-it-or-is-removed.md"
     },
     {
-      "task": 1604,
-      "file": "1604-the-ci-job-terra-runs-with-a-credential-or-is-removed.md"
-    },
-    {
       "task": 1605,
       "file": "1605-each-of-the-70-fates-scripts-is-wired-dated-or-removed-the-11-with-expired-dates-first.md"
     },
@@ -3170,10 +2710,6 @@
     {
       "task": 1609,
       "file": "1609-a-release-or-tag-create-update-delete-has-a-process.md"
-    },
-    {
-      "task": 1610,
-      "file": "1610-superseded-means-code-removed-adr-125-is-enforced-when-an-adr-is-superseded-or-a-feature-d.md"
     },
     {
       "task": 1611,
@@ -3248,10 +2784,6 @@
       "file": "1634-hub-dispatch-shim-installed-duplicate-la.md"
     },
     {
-      "task": 1635,
-      "file": "1635-map-dispatch-regenerated-with-the-outsid.md"
-    },
-    {
       "task": 1636,
       "file": "1636-r94-stop-hook-cycle-gate-built-or-withdr.md"
     },
@@ -3292,10 +2824,6 @@
       "file": "1645-r133-consolidation-and-decision-gate.md"
     },
     {
-      "task": 1646,
-      "file": "1646-m1-v2-vendors-measured-in-role.md"
-    },
-    {
       "task": 1647,
       "file": "1647-transport-lint-prompts-dir.md"
     },
@@ -3308,10 +2836,6 @@
       "file": "1649-plan-lint-row-birth-needs-ratifying-act.md"
     },
     {
-      "task": 1650,
-      "file": "1650-aj-module-review-deferred.md"
-    },
-    {
       "task": 1651,
       "file": "1651-agy-recheck-on-pin-bump.md"
     },
@@ -3322,10 +2846,6 @@
     {
       "task": 1653,
       "file": "1653-adr-delta-phasereceipt-contract.md"
-    },
-    {
-      "task": 1654,
-      "file": "1654-hypercare-register.md"
     },
     {
       "task": 1655,
@@ -3424,10 +2944,6 @@
       "file": "1683-r159-teaching-in-the-same-change-not-taught-h30.md"
     },
     {
-      "task": 1684,
-      "file": "1684-plan-r6-has-13-wrong-cells-h35.md"
-    },
-    {
       "task": 1685,
       "file": "1685-hermetization-has-no-home-for-a-phase-receipt-p1.md"
     },
@@ -3498,10 +3014,6 @@
     {
       "task": 1704,
       "file": "1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md"
-    },
-    {
-      "task": 1706,
-      "file": "1706-codespace-receipts-ledger-is-dirty-on-every-seat.md"
     },
     {
       "task": 1710,
@@ -3622,10 +3134,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1856,
-      "file": "1856-conductor-nothing-calls-the-round-engine-it-runs-one-round-and-commits-nothing.md"
     },
     {
       "task": 1857,
