@@ -2130,12 +2130,56 @@ def load_task_row(repo_root: Path, row_id: str) -> TaskRow:
                    phase=phase_m.group(1) if phase_m else None, touches=touches, depends_on=depends)
 
 
+def _phase_problem(row_id: Optional[str], phase: Optional[str]) -> str:
+    """The one wording of an unphased or off-phase refusal (`require_phased` and
+    `row_clause_problems` both speak it, so the two refusals cannot drift)."""
+    ident = f" [#{row_id}]" if row_id else ""
+    if phase is None:
+        return f"unphased row{ident}: no `phase:` clause, so no stage to distill for"
+    return (f"row{ident} is at phase {phase!r}; distill takes "
+            f"{' | '.join(sorted(DISTILL_ROW_PHASES))}")
+
+
 def require_phased(row: TaskRow) -> None:
-    if row.phase is None:
-        raise DistillRefused(f"unphased row [#{row.id}]: no `phase:` clause, so no stage to distill for")
-    if row.phase not in DISTILL_ROW_PHASES:
-        raise DistillRefused(f"row [#{row.id}] is at phase {row.phase!r}; distill takes "
-                             f"{' | '.join(sorted(DISTILL_ROW_PHASES))}")
+    if row.phase is None or row.phase not in DISTILL_ROW_PHASES:
+        raise DistillRefused(_phase_problem(row.id, row.phase))
+
+
+_ROW_ID_RE = re.compile(r"\[#(\d+)\]")
+_DONE_WHEN_RE = re.compile(r"Done when\s*:\s*([^·\n]*)")
+_TASK_PRIORITY_RE = re.compile(r"^priority:\s*(?P<v>P\d)\s*$", re.MULTILINE)
+_TASK_SIZE_RE = re.compile(r"^size:\s*(?P<v>\S+)\s*$", re.MULTILINE)
+
+
+def _row_done_when(text: str) -> str:
+    """The text after `Done when:` up to the next `·` or the end of the line ("" when absent). A
+    Done-when that itself contains `·` is read to that point -- a stated limit."""
+    match = _DONE_WHEN_RE.search(text)
+    return match.group(1).strip() if match else ""
+
+
+def row_clause_problems(text: str) -> list[str]:
+    """What a task row lacks to be distilled: ONE string per missing clause, `[]` when it
+    qualifies. THE one predicate -- `boot_frontier.pick_distillable_row` and `distill_row_contract`
+    both call it, so the picker can never hand the distiller a row the distiller refuses for a
+    missing clause. Reads `· phase:` (value in `DISTILL_ROW_PHASES`), `· touches:` (non-empty) and
+    `Done when:` (non-empty) with the readers `load_task_row` uses."""
+    id_match = _ROW_ID_RE.search(text)
+    row_id = id_match.group(1) if id_match else None
+    ident = f" [#{row_id}]" if row_id else ""
+    problems: list[str] = []
+    phase_match = _PHASE_CLAUSE_RE.search(text)
+    phase = phase_match.group(1) if phase_match else None
+    if phase is None or phase not in DISTILL_ROW_PHASES:
+        problems.append(_phase_problem(row_id, phase))
+    touches_match = _TOUCHES_CLAUSE_RE.search(text)
+    if not (touches_match and any(t.strip().strip("`").strip()
+                                  for t in touches_match.group(1).split(","))):
+        problems.append(f"row{ident} has no `touches:` clause, so its footprint cannot be scoped "
+                        "(C-SCOPE reads it)")
+    if not _row_done_when(text):
+        problems.append(f"row{ident} has no `Done when:` clause, so no done-contract can be written")
+    return problems
 
 
 def organ_index_entries(text: str) -> list[tuple[str, str]]:
@@ -2388,6 +2432,187 @@ def _distill_row(repo_root: Path, row_id: str, *, plan: Optional[Path], idea: Op
             raise DistillInputRequired(
                 f"challenge {chal.verdict} halts row [#{row.id}]: {'; '.join(chal.evidence) or 'no reviewer'}")
         raise
+
+
+# --- `distill --row --slug`: the [#1855] row -> frozen LANE-<slug>.md writer (C06) --------------
+
+_ROW_SLUG_MAX = 60
+_ROW_SLUG_WORDS = 5
+
+
+def row_slug(row_id, title: str) -> str:
+    """The default lane slug of a picked row: `row-<id>-` plus the kebab of the first 5 title words
+    (alphanumeric runs; punctuation such as `—` or backticks is dropped), at most 60 characters,
+    no trailing hyphen. Accepted by `validate_slug(strict=False)`."""
+    words = _TOKEN_RE.findall((title or "").lower())[:_ROW_SLUG_WORDS]
+    return "-".join(["row", str(row_id), *words])[:_ROW_SLUG_MAX].rstrip("-")
+
+
+def _emit_receipt(receipt, receipt_out: Optional[Path]) -> None:
+    """The ONE place a DistillReceipt leaves the process: `receipt_out` (UTF-8, trailing newline)
+    when given, else stdout. `distill --row` (with or without `--slug`) and the `boot_frontier
+    --pick --distill` caller both call it, so the two CLIs cannot diverge on where it goes."""
+    text = receipt.model_dump_json(by_alias=True, indent=2)
+    if receipt_out is not None:
+        receipt_out.write_text(text + "\n", encoding="utf-8", newline="\n")
+    else:
+        click.echo(text)
+
+
+def _row_front_matter(text: str, pattern: "re.Pattern[str]", default: str) -> str:
+    match = pattern.search(text)
+    return match.group("v") if match else default
+
+
+def _row_contract_spec(row: TaskRow, slug: str, phase_rows: list) -> LaneSpec:
+    """The LaneSpec of a row-distilled contract -- every field read from the row and the harness."""
+    priority = _row_front_matter(row.text, _TASK_PRIORITY_RE, "P3")
+    size = _row_front_matter(row.text, _TASK_SIZE_RE, "")
+    kind = "text" if row.touches and all(t.endswith(".md") for t in row.touches) else "code"
+    owned = ", ".join(f"`{t}`" for t in row.touches)
+    depends = ", ".join(f"#{d}" for d in row.depends_on) or "none"
+    lane_entry = (
+        "## Lane entry\n",
+        f"- **Row:** [#{row.id}] ({priority}, size {size or 'unset'})",
+        f"- **Priority:** {priority}",
+        f"- **Phase:** {row.phase}",
+        f"- **Worktree:** `.claude/worktrees/{slug}` on branch `{BRANCH_PREFIX}{slug}`",
+        f"- **depends-on:** {depends}\n",
+        f"**Files you own:** {owned}\n",
+    )
+    table = ["| Id | Name | Role | CLI | Model |", "|---|---|---|---|---|"]
+    table += [f"| {r['id']} | {r['name']} | {r['role']} | {r['cli']} | {r['model'] or 'code'} |"
+              for r in phase_rows]
+    import yaml  # noqa: PLC0415
+
+    block = yaml.safe_dump({"phases": phase_rows}, sort_keys=False, allow_unicode=True,
+                           width=1_000_000)
+    phases_section = ("## Phases\n", *table, "", f"```yaml\n{block}```\n")
+    steps = [f"{n}. {r['id']} {r['name']}: {r['model'] or 'deterministic'}"
+             for n, r in enumerate(phase_rows, start=1)]
+    steps.append("Final: the round verdict; STOP.")
+    return LaneSpec(
+        slug=slug, purpose=row.title, task_id=row.id, model="sonnet",
+        model_id=explicit_model_id("sonnet"), kind=kind, effort=distilled_effort(size),
+        shape="local", strict_slug=False,
+        by_line=f"by: scripts/gen_lane_contract.py distill --row {row.id}",
+        lane_entry=lane_entry, phases_section=phases_section,
+        done_items=(
+            _row_done_when(row.text),
+            "Docs and code in English; hyphen-only names; logging rather than print;\n"
+            "   Click for a CLI where one is warranted; `pytest` green.",
+            "**Close-out:** the review record carries the served model id from the tool's\n"
+            "   own log and the nonce or content hash the reviewer returned (R59).",
+        ),
+        step_lines=tuple(steps), engine=ENGINE_CONDUCTOR)
+
+
+def _row_contract_gates(text: str, slug: str, repo_root: Path, phase_rows: list) -> None:
+    """Every gate a rendered row contract must pass before a byte is written; each refusal is a
+    `DistillRefused` naming its cause."""
+    import tempfile  # noqa: PLC0415
+
+    import conductor  # noqa: PLC0415
+    import plan_lint  # noqa: PLC0415
+
+    parsed = parse_contract(text)
+    if not parsed.ok:
+        raise DistillRefused("the rendered contract fails parse_contract: "
+                             + "; ".join(parsed.problems))
+    # `plan_lint` reads a FILE; the probe lives in a scratch directory under the contract's own
+    # name and is removed whatever the outcome.
+    with tempfile.TemporaryDirectory(prefix="distill-row-") as scratch:
+        probe = Path(scratch) / contract_filename(slug)
+        probe.write_text(text, encoding="utf-8", newline="\n")
+        findings = plan_lint.lint([plan_lint.parse_lane_contract(probe)], repo_root)
+    blocking = [f for f in findings if f.severity == plan_lint.BLOCKING]
+    if blocking:
+        raise DistillRefused("plan_lint refuses the rendered contract: "
+                             + "; ".join(f"{f.category}: {f.detail}" for f in blocking))
+    try:
+        read_back = conductor.contract_phases(text)
+    except conductor.ContractPhasesError as exc:
+        raise DistillRefused(f"the rendered ## Phases section is unreadable: {exc}") from exc
+    if read_back != phase_rows:
+        raise DistillRefused("the rendered ## Phases section does not read back as the harness "
+                             "phases it was rendered from (round trip)")
+
+
+def distill_row_contract(repo_root: Path, row_id: str, slug: str, *, out_dir: Optional[Path] = None,
+                         plan: Optional[Path] = None, idea: Optional[Path] = None,
+                         matrix: Optional[Path] = None, producer_vendor: str = "anthropic",
+                         challenge_file: Optional[Path] = None):
+    """[#1855] C06: a phased `tasks/` row -> its frozen `LANE-<slug>.md`, written by code.
+
+    Builds the DistillReceipt exactly as `_distill_row` does, then -- when the receipt's
+    `row_state` is `ready` -- renders, gates and writes the contract. Returns
+    `(receipt, path, sha256_hex)`; `path` and the digest are `None` when the receipt halts for the
+    operator (`row_state` not `ready`: nothing is written). Raises `DistillRefused` (the cause
+    named, NO file written) or `DistillInputRequired`. An existing `LANE-<slug>.md` is never
+    rewritten (write-freeze): a supersession is a new slug."""
+    import hashlib  # noqa: PLC0415
+
+    import conductor  # noqa: PLC0415
+    import yaml  # noqa: PLC0415
+
+    repo_root = Path(repo_root)
+    row = load_task_row(repo_root, row_id)
+    problems = row_clause_problems(row.text)
+    if problems:
+        raise DistillRefused("; ".join(problems))
+    try:
+        slug = validate_slug(slug, strict=False)
+        root = Path(out_dir) if out_dir is not None else _default_out_dir()
+    except LaneContractError as exc:
+        raise DistillRefused(f"lane slug or out directory refused: {exc}") from exc
+    target = root / contract_filename(slug)
+    if target.exists():
+        raise DistillRefused(f"{target} is frozen: a contract is never rewritten by the distiller "
+                             "(a supersession is a new slug)")
+    receipt = _distill_row(repo_root, row_id, plan=plan, idea=idea, matrix=matrix,
+                           producer_vendor=producer_vendor, challenge_file=challenge_file)
+    if receipt.row_state != "ready":
+        return receipt, None, None
+    phase_rows = yaml.safe_load(
+        (repo_root / "ecosystem" / "harness.yaml").read_text(encoding="utf-8")).get("phases") or []
+    try:
+        conductor._validate_phase_rows(phase_rows)
+    except conductor.ContractPhasesError as exc:
+        raise DistillRefused(f"the harness phases are refused by conductor: {exc}") from exc
+    try:
+        text = render_contract(_row_contract_spec(row, slug, phase_rows))
+    except LaneContractError as exc:
+        raise DistillRefused(f"the row contract cannot be rendered: {exc}") from exc
+    _row_contract_gates(text, slug, repo_root, phase_rows)
+    root.mkdir(parents=True, exist_ok=True)
+    # [#1855] the THIRD caller of the one writer (`emit`, `distill`, and this `distill --row --slug`
+    # site): the transport lint and the registered-writer check run on every contract write.
+    _write_contract(target, text)
+    return receipt, target, hashlib.sha256(target.read_bytes()).hexdigest()
+
+
+def _distill_row_contract_cli(row_id, slug, out_dir, plan, idea, matrix, producer_vendor,
+                              receipt_out, challenge_file) -> None:
+    """The `distill --row --slug` body: exit 0 written, 1 refused, 4 INPUT_REQUIRED; the receipt
+    goes where `_emit_receipt` puts it and ONE stderr line `CONTRACT <path> sha256=<hex>` reports
+    the write."""
+    from pydantic import ValidationError  # noqa: PLC0415
+    try:
+        receipt, path, digest = distill_row_contract(
+            _SCRIPTS.parent, row_id, slug, out_dir=out_dir, plan=plan, idea=idea, matrix=matrix,
+            producer_vendor=producer_vendor, challenge_file=challenge_file)
+    except DistillRefused as exc:
+        raise click.ClickException(str(exc)) from exc
+    except DistillInputRequired as exc:
+        click.echo(f"INPUT_REQUIRED: {exc}", err=True)
+        sys.exit(4)
+    except ValidationError as exc:
+        raise click.ClickException(f"DistillReceipt refused: {exc}") from exc
+    _emit_receipt(receipt, receipt_out)
+    if path is None:
+        click.echo(f"INPUT_REQUIRED: row [#{receipt.row}] halts for the operator", err=True)
+        sys.exit(4)
+    click.echo(f"CONTRACT {path} sha256={digest}", err=True)
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -2668,11 +2893,7 @@ def _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, c
         sys.exit(4)
     except ValidationError as exc:
         raise click.ClickException(f"DistillReceipt refused: {exc}") from exc
-    text = receipt.model_dump_json(by_alias=True, indent=2)
-    if receipt_out is not None:
-        receipt_out.write_text(text + "\n", encoding="utf-8", newline="\n")
-    else:
-        click.echo(text)
+    _emit_receipt(receipt, receipt_out)
     if receipt.row_state == "INPUT_REQUIRED":
         click.echo(f"INPUT_REQUIRED: row [#{receipt.row}] halts for the operator", err=True)
         sys.exit(4)
@@ -2689,6 +2910,10 @@ def _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, c
 @click.option("--row", "row_id", default=None,
               help="distill a phased tasks/ row to a DistillReceipt instead (exit 0 ready, 1 "
                    "refused, 4 INPUT_REQUIRED)")
+@click.option("--slug", default=None,
+              help="--row: ALSO write the frozen LANE-<slug>.md ([#1855]; the receipt still goes "
+                   "to stdout or --receipt, one stderr line CONTRACT <path> sha256=<hex> reports "
+                   "the write). An existing file is never rewritten; --force is refused with it")
 @click.option("--plan", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
               help="--row: PLAN.json {new_paths: [...], new_justified: str|null}")
 @click.option("--idea", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None,
@@ -2711,7 +2936,7 @@ def _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, c
               help="required when --kind disagrees with the row's recorded delta — an explicit "
                    "opt-in, never a silent override (codex b2-lane3-distiller, HIGH)")
 def cmd_distill(delta_kind: Optional[str], subject: Optional[str], row_id: Optional[str],
-                plan: Optional[Path], idea: Optional[Path], matrix: Optional[Path],
+                slug: Optional[str], plan: Optional[Path], idea: Optional[Path], matrix: Optional[Path],
                 producer_vendor: str, receipt_out: Optional[Path], challenge_file: Optional[Path],
                 shape: str, repo: str, out_dir: Optional[Path],
                 to_stdout: bool, force: bool, reclassify: bool) -> None:
@@ -2726,6 +2951,16 @@ def cmd_distill(delta_kind: Optional[str], subject: Optional[str], row_id: Optio
 
     With `--row ID` it instead distills a phased `tasks/` row to a DistillReceipt ([#1535]).
     """
+    if slug is not None and row_id is None:
+        raise click.UsageError("--slug is only meaningful with --row")
+    if row_id is not None and slug is not None:
+        if force:
+            raise click.UsageError(
+                "--force cannot be combined with --row and --slug: a frozen contract is never "
+                "rewritten by the distiller; a supersession is a new slug")
+        _distill_row_contract_cli(row_id, slug, out_dir, plan, idea, matrix, producer_vendor,
+                                  receipt_out, challenge_file)
+        return
     if row_id is not None:
         _distill_row_cli(row_id, plan, idea, matrix, producer_vendor, receipt_out, challenge_file)
         return
