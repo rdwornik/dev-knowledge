@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "45142831a943b763f3784135f07291df6068c6d66fca0e60c7db1a3635c657e5",
+  "generated_sha256": "d91cc1cabfbf8ccec8c15dfa30932a10650275cf03f73340909f34ef91ff8ce5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2388,10 +2388,6 @@
       "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
     },
     {
-      "task": 1859,
-      "file": "1859-landing-by-code-a-handback-runs-land-lane-under-one-lock-and-every-landing-writes-one-merge-clock-line.md"
-    },
-    {
       "task": 1433,
       "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
     },
@@ -3104,10 +3100,6 @@
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
     },
     {
-      "task": 1800,
-      "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
-    },
-    {
       "task": 1811,
       "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
     },
@@ -3138,10 +3130,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1862,
-      "file": "1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md"
     },
     {
       "prose": ""

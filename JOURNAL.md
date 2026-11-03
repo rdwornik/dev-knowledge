@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (m) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #5 -- [#1859], [#1862] and [#1800] close on their green main push runs [#1859] [#1862] [#1800]
+
+**Anchors:** `c535c7fbc` (main, GREEN: Q-1862-R fix on main, push run 41730849763), `b19a8d9ac` ([#1862] landing merge), `1a8ead7a1` (H landing merge, push run 41700668961).
+
+**Did:** closed three rows by `gen_task_tree --close-row`, each with its own witness: [#1859] on the H land `1a8ead7a1` and its success main push run 41700668961; [#1862] on the commit-gate land `b19a8d9ac` and the Done 6 witness, main push run 41730849763 (all 12 jobs success after the Q-1862-R fix; the dispatcher read them and sent DONE-6 WITNESS); [#1800] closed by [#1862]'s Done 6 (same sha and run). Then `--emit-source` and `gen_doc_counts --write`; `--check` ok. Licence: the dispatcher's DONE-6 WITNESS message (one tasks-only follow-up).
+
+**Result:** BACKLOG.md 660 -> 657 rows; the three manifest nodes removed; integration ref pushed next, then main after its green integration run and the commit-gate read.
+
+**Changes:** the three task files, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** E2 [#1857], G [#1858], then HAND-STEP A-1 (provider-registry admission), R3 preflight.
+
 ### 2026-11-03 (l) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): HAND-STEP Q-1862-R (T1 fix-forward, option D) -- the registry-plus-lines test pops `lines` from both sides, so it survives its own landing [#1862]
 
 **Anchors:** `ef7e47792` (main, RED: pytest ubuntu run 41709663601, 38 failed, one regression), `90b50970d` (the fix commit), `b19a8d9ac` ([#1862] landing merge).
