@@ -1067,8 +1067,9 @@ def test_item1g_real_harness_phase_shape_and_phase_row_validation():
         "id": "P6c", "name": "t2-verdict", "row_phase": "build", "role": "qa", "cli": "uv",
         "model": None, "payload_model": "PhasePayload", "gate": "exit", "timeout_s": 1500,
         "budget_usd": 0, "max_rounds": 2, "inputs": ["{contract}"],
+        # C05 of lane e30-round-verdict-handback appends --landable to the P6c command.
         "command": ["uv", "run", "--locked", "python", "scripts/ci_verdict.py", "--ref", "HEAD",
-                    "--timeout", "1200"],
+                    "--timeout", "1200", "--landable"],
     }
     p7 = next(row for row in phases if row["id"] == "P7")
     assert (p7["cli"], p7["model"]) == ("codex", "gpt-6-sol")
