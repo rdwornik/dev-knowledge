@@ -1388,7 +1388,9 @@ def _status_paths(repo_root: Path) -> list[str]:
             continue
         paths.append(entry[3:])
         if entry[0] in "RC" or entry[1] in "RC":
-            i += 1  # the rename/copy source follows as its own entry
+            if i < len(out) and out[i]:
+                paths.append(out[i])  # the rename/copy SOURCE is a changed path too: scope applies to it
+            i += 1
     return paths
 
 
@@ -1496,7 +1498,7 @@ def _lane_round(lane: str, round_no: int, rows: list[dict], *, contract: Path, r
         _doit_tasks(repo_root, by_role[role], env)
         state, at = _segment_state(rows, by_role[role], round_dir)
         if state == "INPUT_REQUIRED":
-            return state, _EXIT_INPUT, None, "", f"phase {at} asked for input"
+            return state, _EXIT_INPUT, at, "", f"phase {at} asked for input"
         if state != "ok":
             return "HALTED", 1, at, "", ""
         if role == "constraints":
@@ -1512,7 +1514,11 @@ def _lane_round(lane: str, round_no: int, rows: list[dict], *, contract: Path, r
                 return "HALTED", 1, halted, "", detail
     res = run_round(lane, round_no, repo_root=repo_root, harness=run_harness, receipts=rbase, row=row,
                     env={"HARNESS_CONTRACT": str(contract), "HARNESS_BASE": base})
-    return (res.verdict, res.exit_code, getattr(res, "halted_at", None), getattr(res, "refused_by", None) or "", "")
+    halted_at = getattr(res, "halted_at", None)
+    if res.verdict == "INPUT_REQUIRED" and not halted_at:  # run_round names no phase: read it from the receipts
+        state, at = _segment_state(rows, rows[-1]["id"], round_dir)
+        halted_at = at if state == "INPUT_REQUIRED" else None
+    return (res.verdict, res.exit_code, halted_at, getattr(res, "refused_by", None) or "", "")
 
 
 def _evidence(run: LaneRun, halted_at: Optional[str]) -> str:

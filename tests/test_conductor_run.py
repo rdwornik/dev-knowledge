@@ -864,3 +864,36 @@ def test_item1t_real_harness_moves_red_to_copilot_gpt_6_luna():
     assert conductor.model_family(p3["model"]) == "anthropic"
     assert conductor.model_family(p2["model"]) != conductor.model_family(p3["model"])
     assert len(lines) < 204
+
+
+def test_review_input_required_in_a_segment_names_its_phase_and_output_artifact(tmp_path, monkeypatch):
+    # terra review finding 1: a phase asking for input BEFORE run_round must still be the halting step
+    world = _world(tmp_path)
+    transport = _transport(monkeypatch, tmp_path)
+    _set_outcomes(monkeypatch, P2="INPUT_REQUIRED")
+
+    result = _run_lane(world)
+
+    assert (result.verdict, result.exit_code, result.rounds[-1][2]) == ("INPUT_REQUIRED", 4, "P2")
+    line = next(
+        ln for ln in (transport / "to-browser" / f"QUESTION-{world['lane']}.md")
+        .read_text(encoding="utf-8").splitlines() if ln.startswith("QUESTION ")
+    )
+    assert "at P2" in line and "P2-OUTPUT.txt" in line
+    verdict = json.loads((_round_dir(world) / "ROUND-VERDICT.json").read_text(encoding="utf-8"))
+    assert verdict["halted_at"] == "P2"
+
+
+def test_review_status_paths_reports_a_rename_source_as_a_changed_path(tmp_path):
+    # terra review finding 2: the source of a staged rename is a changed path for the scope rules too
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "src").mkdir()
+    (repo / "src" / "secret.py").write_text("x = 1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    (repo / "tests").mkdir()
+    _git(repo, "mv", "src/secret.py", "tests/secret.py")
+
+    assert set(conductor._status_paths(repo)) == {"tests/secret.py", "src/secret.py"}
