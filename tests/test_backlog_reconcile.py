@@ -1679,3 +1679,109 @@ def test_sweep_t_row_named_by_an_open_depends_on_is_kept(tmp_path):
     assert _sweep_file(tasks_dir, 1904).read_bytes() == protected_before
     manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
     assert any(node.get("task") == 1904 for node in manifest["nodes"])
+
+
+def test_sweep_u_duplicate_of_a_kept_canonical_is_kept_open(tmp_path):
+    tasks = [
+        {"id": row_id, "add_date": "2026-10-10"}
+        for row_id in (1140, 1141, 1142, 1143, 1144, 1145)
+    ]
+    rows = [
+        _sweep_table_row(
+            tasks[0],
+            decision_class="merge-rewrite",
+            cluster_role="canonical",
+            cluster_members=["1140", "1141"],
+        ),
+        _sweep_table_row(
+            tasks[1],
+            decision_class="close-duplicate",
+            duplicate_of="1140",
+            cluster_role="duplicate",
+        ),
+        _sweep_table_row(
+            tasks[2],
+            decision_class="keep-P2",
+            cluster_role="canonical",
+            cluster_members=["1142", "1143"],
+        ),
+        _sweep_table_row(
+            tasks[3],
+            decision_class="close-duplicate",
+            duplicate_of="1142",
+            cluster_role="duplicate",
+        ),
+        _sweep_table_row(
+            tasks[4],
+            decision_class="close-obsolete",
+            cluster_role="canonical",
+            cluster_members=["1144", "1145"],
+        ),
+        _sweep_table_row(
+            tasks[5],
+            decision_class="close-duplicate",
+            duplicate_of="1144",
+            cluster_role="duplicate",
+        ),
+    ]
+    result, _, tasks_dir, _, _ = _sweep_run(tmp_path, tasks, table_rows=rows)
+
+    assert {row["id"]: row["class"] for row in result.closed} == {
+        "1144": "obsolete",
+        "1145": "obsolete",
+    }
+    assert result.kept.get("duplicate-of-kept") == ["1141", "1143"]
+    assert result.kept["merge-rewrite"] == ["1140"]
+    assert result.kept["keep-class"] == ["1142"]
+    for row_id in (1141, 1143):
+        assert _sweep_file(tasks_dir, row_id).read_bytes() == _sweep_task_text(
+            row_id, f"Sweep row {row_id}", "no evidence references"
+        ).encode("utf-8")
+    assert "[#1141]" in result.scan
+    assert "[#1143]" in result.scan
+
+
+def test_sweep_v_revert_leaves_a_swept_file_that_was_edited_after_the_sweep(tmp_path):
+    tasks = [{"id": row_id, "add_date": "2026-08-01"} for row_id in (1330, 1331)]
+    _, _, tasks_dir, home, _ = _sweep_run(tmp_path, tasks)
+    ledger = json.loads((home / "ledger.json").read_text(encoding="utf-8"))
+    swept_hashes = {
+        str(entry["id"]): hashlib.sha256(
+            _sweep_file(tasks_dir, entry["id"]).read_bytes()
+        ).hexdigest()
+        for entry in ledger["closed"]
+    }
+    assert all(
+        entry.get("post_sha256") == swept_hashes[str(entry["id"])]
+        for entry in ledger["closed"]
+    )
+
+    edited_path = _sweep_file(tasks_dir, 1330)
+    with edited_path.open("a", encoding="utf-8", newline="\n") as edited_file:
+        edited_file.write("\nEdited after the sweep.\n")
+    edited_bytes = edited_path.read_bytes()
+    restored = br.run_revert(tasks_dir=tasks_dir, home=home, spec="all")
+
+    assert restored == ["1331"]
+    assert edited_path.read_bytes().endswith(b"\nEdited after the sweep.\n")
+    assert edited_path.read_bytes() == edited_bytes
+    assert _sweep_file(tasks_dir, 1331).read_bytes() == _sweep_task_text(
+        1331, "Sweep row 1331", "no evidence references"
+    ).encode("utf-8")
+    manifest = json.loads((tasks_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert any(node.get("task") == 1331 for node in manifest["nodes"])
+    assert not any(node.get("task") == 1330 for node in manifest["nodes"])
+
+    before_second_revert = {
+        (root, path.relative_to(root)): path.read_bytes()
+        for root in (tasks_dir, home)
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+    assert br.run_revert(tasks_dir=tasks_dir, home=home, spec="all") == []
+    assert {
+        (root, path.relative_to(root)): path.read_bytes()
+        for root in (tasks_dir, home)
+        for path in root.rglob("*")
+        if path.is_file()
+    } == before_second_revert
