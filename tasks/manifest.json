@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3b3d05fc41361c228e7fa3165a6d9ace140ae12f837d01d54cfdde88180c77ef",
+  "generated_sha256": "0199f2f65319c23871cd1855ad037efab3277f9069cd7f1d1a46baee7d1541f0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3142,6 +3142,10 @@
     {
       "task": 1857,
       "file": "1857-conductor-p5-is-a-model-session-told-to-run-ci-verdict-so-the-reviews-run-before-ci-is-known-an-accepted-round-is-not-handed-back-by-code.md"
+    },
+    {
+      "task": 1862,
+      "file": "1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md"
     },
     {
       "prose": ""
