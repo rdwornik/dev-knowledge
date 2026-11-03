@@ -1,0 +1,12 @@
+---
+id: "[#1834]"
+title: "e31-handoff-v5: the handoff update, HANDOFF_BOOT rev 4 less E13 with V5a carried through it"
+status: open
+priority: P1
+size: M
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1834] [P1][M] **e31-handoff-v5: the handoff update, HANDOFF_BOOT rev 4 less E13 with V5a carried through it** - the boot still describes a terminal start for non-lane seats, `--dispatch-map --write`, `/lane-integrate` and five operator acts, while the system now starts every non-lane seat in a NEW Claude Code Agent SDK session, cuts with `gen_handoff.py --cut` and lands with `land_lane.py` (phase E3.1, lane L12 `e31-handoff-v5`; AMENDMENT-4 D-2) · Done when: RED first: `tests/test_handoff_v5_boot.py` asserts `ROLE_WRITERS` carries `dispatcher`, the QUESTION kind lists it, the V5a ruling sits once between V5 and V6, the boot has no R45 bullet and no VISION line and names six acts, `scripts/land_lane.py` and `gen_handoff.py --cut`/`--land`, and the three order templates carry T1-T8; then `protocols/HANDOFF_BOOT.md` is `boot_version: 5` at most 18,000 bytes with its recorded body hash, the pin tests pass and the lane-branch CI run is green outside known reds; after the landing the dispatcher cuts, the operator re-uploads `protocols/HANDOFF_BOOT.md` to the Project once, and the dispatcher closes this row with that evidence. Evidence: to-browser/DIGEST-HANDOFF-UPDATE-PROPOSAL-2026-11-01.md (revision 4, sections 2-5), to-browser/DIGEST-EQUILIBRIUM-ADR-REVIEW-AMENDMENT-4-2026-11-02.md (D-2), to-browser/RATIFICATION-2026-11-02-EQUILIBRIUM.md. · touches: `protocols/HANDOFF_BOOT.md`, `protocols/STANDING_RULINGS.md`, `templates/dispatcher-order-template.md`, `templates/integrator-order-template.md`, `templates/batch-common-rules-template.md`, `ecosystem/substrate-registry.yaml`, `ecosystem/transport-registry.yaml`, `scripts/transport.py`, `tests/test_onboarding_items.py`, `tests/test_gen_handoff.py`, `tests/test_handoff_v5_boot.py`, `tasks/1834-e31-handoff-v5-the-handoff-update-rev-4-less-e13-with-v5a.md`, `tasks/manifest.json` · kill-candidates: none -- no open row owns the HANDOFF_BOOT rev 4 update or the V5a ruling · refs `protocols/HANDOFF_BOOT.md`, `protocols/STANDING_RULINGS.md` · source: to-browser/DIGEST-E3-1-SIGNOFF-2026-11-01.md lane L12 · decided-by: the operator, 2026-11-02, RATIFICATION-2026-11-02-EQUILIBRIUM D-2

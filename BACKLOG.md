@@ -809,6 +809,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1749] [P2][M] the backlog per-row reconciliation organ (GO-E3.0 R10), after L2 · tasks/1749-the-backlog-per-row-reconciliation-organ.md
 - [#1800] [P2][M] The commit-gate job goes green: the 10 graph-orphan-census findings get true dispositions and ARCHITECTURE.md a real review · tasks/1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md
 - [#1811] [P1][M] E3.1's structural decisions are ADRs at their ratified status · tasks/1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md
+- [#1834] [P1][M] e31-handoff-v5: the handoff update, HANDOFF_BOOT rev 4 less E13 with V5a carried through it · tasks/1834-e31-handoff-v5-the-handoff-update-rev-4-less-e13-with-v5a.md
 - [#1837] [P2][M] /decide independent adjudication as code · tasks/1837-decide-independent-adjudication-as-code.md
 - [#1838] [P2][S] one id, one ruling · tasks/1838-one-id-one-ruling.md
 - [#1841] [P2][S] Wire scripts/startup_probe.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1841-wire-startup-probe-to-a-real-caller-or-remove-it-under-r56.md

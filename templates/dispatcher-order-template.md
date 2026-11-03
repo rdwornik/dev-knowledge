@@ -10,8 +10,8 @@ reconciled_with: handoff-process@7.1.0
   DISTILLED (LANE-5A-9, 2026-09-24) from the dispatcher role and sequence of
   `BATCH-WAVE5A-2026-09-23` (v2). The shared rules are `templates/batch-common-rules-template.md`
   and are not restated. A batch's dated order fills this in: the batch name, its contracts in
-  wave order, its dependencies. The operator's paste of the filled order into a NEW session is
-  the batch GO.
+  wave order, its dependencies. The operator's paste of the filled order into a NEW Claude Code Agent SDK session (model and
+  effort set there, not a terminal line) is the batch GO.
 
   COMMANDS COME FROM CODE (ruling O-5). The launch line is `scripts/dispatch.py queue --watch`,
   ONE call over every local contract of the batch; its options are whatever
@@ -25,7 +25,7 @@ carried-by: RETIRED (R130, [#1633]) - the queue runner (scripts/queue_runner.py)
 lands-via: the lanes it dispatches, and its receipt in to-browser/
 date: <YYYY-MM-DD>
 from: <architect seat slug>
-authorized-by: the operator's paste of this file into a NEW CC session. This paste IS the batch GO.
+authorized-by: the operator's paste of this file into a NEW Claude Code Agent SDK session, named on the paste's first line. This paste IS the batch GO.
 plan: <to-cc/PLAN-...md §n>
 
 # BATCH <BATCH> — dispatcher order
@@ -138,6 +138,14 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
      codespace fire (`<n>` as in the codespace bullet above).
 - On BIND (a successor seat binds after a cycle, `seat_registry.py bind`) re-arm the Monitor and the
   cron; the outgoing seat's are stopped at handover.
+- Arm a resume cron (CronCreate, recurring, every 30 min, off the :00/:30 marks) whose prompt resumes
+  this order from the state file after a usage-limit stop; delete it at handover or close.
+
+## Questions
+
+- A lane's `QUESTION <slug>: <question>` line comes to you, not to the operator. Answer what the
+  contract and the rulings answer; bundle the rest into ONE `to-browser/QUESTION-<BATCH>-<date>.md`.
+- A dispatcher message goes into a dispatcher session only, not into a lane's session.
 
 ## State file
 

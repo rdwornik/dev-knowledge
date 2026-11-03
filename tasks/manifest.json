@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "fb8147fe967ce67855535ef905f5afedc484b46c1453844ea07fefcc9e2a406b",
+  "generated_sha256": "7ea5b61b0693bb7e8c75f5e49b435fcb0d4f9d65341d7919aed9d28f94812157",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3078,6 +3078,10 @@
     {
       "task": 1811,
       "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
+    },
+    {
+      "task": 1834,
+      "file": "1834-e31-handoff-v5-the-handoff-update-rev-4-less-e13-with-v5a.md"
     },
     {
       "task": 1837,
