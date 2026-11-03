@@ -3624,6 +3624,10 @@
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
     },
     {
+      "task": 1862,
+      "file": "1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md"
+    },
+    {
       "prose": ""
     },
     {
