@@ -724,6 +724,30 @@ def test_c_live_lock_returns_busy_without_calling_the_landing_function(case):
     assert len(calls) == 1
 
 
+def test_x_a_negative_lock_wait_is_busy_at_once_not_a_wait_forever(case):
+    line, _ = _prepare(case)
+    holder = _hold_lock(case.state / land_on_handback.LOCK_NAME, case.tmp_path / "lock-held", seconds=5)
+    calls = []
+    started = time.monotonic()
+    try:
+        outcome = _one(case, SLUG, line, land_lane_fn=_stub(_report(), calls), lock_wait_s=-1)
+    finally:
+        holder.terminate()
+        holder.wait(timeout=3)
+
+    assert outcome.state == "LANDER-BUSY" and outcome.exit_code == 5
+    assert calls == [] and time.monotonic() - started < 4
+
+
+def test_x_an_unremovable_stale_stop_does_not_turn_a_landing_into_a_crash(case, capsys):
+    line, _ = _prepare(case)
+    _stop_path(case).mkdir(parents=True)          # a directory where the old stop file would be
+    outcome = _one(case, SLUG, line, land_lane_fn=_stub(_report(), []))
+
+    assert outcome.state == "LANDED" and outcome.exit_code == 0
+    assert "could not be removed after the landing" in capsys.readouterr().err
+
+
 def test_c2_once_waits_for_a_live_lock_then_lands(case):
     line, _ = _prepare(case, "lane-b")
     holder = _hold_lock(

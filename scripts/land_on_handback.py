@@ -418,7 +418,8 @@ def land_one(slug: str, closing_line: str, *, batch: str, worktree: Path, transp
     state_dir = Path(state_dir) if state_dir is not None else _default_state_dir()
     try:
         state_dir.mkdir(parents=True, exist_ok=True)
-        lock = FileLock(str(state_dir / LOCK_NAME), timeout=lock_wait_s)
+        # a negative timeout means "wait forever" to filelock; a landing never waits unbounded
+        lock = FileLock(str(state_dir / LOCK_NAME), timeout=max(0.0, float(lock_wait_s)))
         lock.acquire()
     except Timeout:
         return _finish(_refuse("LANDER-BUSY", f"another landing holds {state_dir / LOCK_NAME}"),
@@ -487,7 +488,11 @@ def _land_locked(ctx: _Ctx, pickup: float, handback_at: Optional[str], carry_fil
     if outcome.exit_code != EXIT_OK:
         evidence = _write_stop(stop, _stop_body(ctx, outcome, report))
         return _finish(outcome, slug, evidence, False)
-    stop.unlink(missing_ok=True)                    # an earlier stop of this lane is resolved by this landing
+    try:
+        stop.unlink(missing_ok=True)                # an earlier stop of this lane is resolved by this landing
+    except OSError as exc:                          # main is already pushed: the landing stands, say so
+        print(f"land-on-handback: stale stop {stop} could not be removed after the landing: {exc}",
+              file=sys.stderr, flush=True)
     return _finish(outcome, slug, None, False)
 
 
