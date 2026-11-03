@@ -1651,11 +1651,11 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
             raise DispatchRefused(f"could not create the worktree of {slug} at {lane.sha}: "
                                   f"{_tail(added.stderr, 300)}")
         created = True
-        try:
-            _seed_conductor_worktree(cwd, lane.tree)
-        except OSError as exc:
-            undo()
-            raise LaunchRefused(f"could not seed the worktree of {slug} ({exc}); nothing was started") from exc
+    try:   # idempotent (only where absent): a worktree whose first launch died before seeding is seeded now
+        _seed_conductor_worktree(cwd, lane.tree)
+    except OSError as exc:
+        undo()
+        raise LaunchRefused(f"could not seed the worktree of {slug} ({exc}); nothing was started") from exc
     intent = {
         "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None, "job_id": "pending",
         "slug": slug, "provider": request.provider, "batch": request.batch,
@@ -1694,7 +1694,9 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
                                f"{primary} and {copy_path} remain and hold the slug; nothing was stopped.")
     pid = started.pid
     try:   # IMMEDIATELY: before anything else, so no interruption leaves a running lane with no pid anywhere
-        _write_json_atomic(pid_path, {"pid": pid, "job_id": f"conductor-{pid}", "launched_at": _stamp()})
+        # `slug` rides along: the system view reads every LAUNCH-*.json and requires slug + launched_at
+        _write_json_atomic(pid_path, {"pid": pid, "job_id": f"conductor-{pid}", "launched_at": _stamp(),
+                                      "slug": slug})
     except OSError as exc:
         raise LaunchIncomplete(f"{slug} WAS started (job conductor-{pid}, pid {pid}) but its pid record "
                                f"could not be written ({exc}). It is running; nothing was stopped. The "
@@ -1717,6 +1719,8 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         failed = getattr(exc, "receipt_path", None)
         left = (f"the worktree copy {copy_path} is still the INTENT receipt (the primary is FINAL): "
                 "reconcile it by deleting it or copying the primary over it" if failed == copy_path
+                else f"both receipts are FINAL and only the job record {failed} is missing"
+                if failed == _job_path(job_id)
                 else f"the intent receipts {primary} and {copy_path} may not be final")
         raise LaunchIncomplete(f"{slug} WAS started (job {job_id}, pid {pid}) but its launch receipt "
                                f"could not be written ({exc}). It is running; nothing was stopped; "

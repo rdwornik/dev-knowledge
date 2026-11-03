@@ -928,6 +928,8 @@ def test_l_real_spawn_process_refuses_conductor_argv_before_popen(
     env = {}
     if guard_case == "pytest":
         env["PYTEST_CURRENT_TEST"] = "test_l_real_spawn_process_refuses_conductor_argv"
+        # a contract path OUTSIDE tests/fixtures/, so only the pytest-marker leg can refuse this case
+        argv[argv.index("--contract") + 1] = str(tmp_path / "LANE-not-a-fixture.md")
     else:
         argv[argv.index("--contract") + 1] = str(CONDUCTOR_CONTRACT.resolve())
 
@@ -1073,3 +1075,31 @@ def test_j_a_standalone_repo_parked_at_the_worktree_path_is_refused(tmp_path, mo
 
     assert spawn.calls == [] and prelaunch_calls == []
     assert list(receipts.iterdir()) == []
+
+
+def test_pid_record_carries_the_slug_so_the_system_view_can_read_every_launch_file(tmp_path, monkeypatch):
+    _require("parse_engine", "_write_json_atomic")
+    root, receipts, _base = _new_repo(tmp_path / ".dev-knowledge", monkeypatch)
+    real_replace = os.replace
+    seen = {}
+
+    def spy(source, destination):
+        if Path(destination) == _pid_path(receipts):
+            seen.update(json.loads(Path(source).read_text(encoding="utf-8")))
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(d.os, "replace", spy)
+    _launch(_request(), root, FakeSpawn(8301), agents=lambda: [])
+    assert seen == {"pid": 8301, "job_id": "conductor-8301", "launched_at": seen["launched_at"], "slug": SLUG}
+
+
+def test_a_resumed_worktree_that_missed_its_seeding_is_seeded_on_reuse(tmp_path, monkeypatch):
+    _require("parse_engine", "_write_json_atomic")
+    root, receipts, base = _new_repo(tmp_path / ".dev-knowledge", monkeypatch)
+    tree = _tree(root)
+    _git(root, "worktree", "add", "-q", "-b", f"worktree-{SLUG}", str(tree), base)   # a first launch died here
+    assert not (tree / "ecosystem" / "x" / "state.yaml").exists()
+
+    _launch(_request(), root, FakeSpawn(8302), agents=lambda: [])
+
+    assert (tree / "ecosystem" / "x" / "state.yaml").read_text(encoding="utf-8") == "fixture: seeded\n"
