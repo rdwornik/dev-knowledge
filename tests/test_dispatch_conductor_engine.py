@@ -1103,3 +1103,25 @@ def test_a_resumed_worktree_that_missed_its_seeding_is_seeded_on_reuse(tmp_path,
     _launch(_request(), root, FakeSpawn(8302), agents=lambda: [])
 
     assert (tree / "ecosystem" / "x" / "state.yaml").read_text(encoding="utf-8") == "fixture: seeded\n"
+
+
+def test_an_interrupted_relaunch_keeps_the_earlier_launch_in_its_intent_receipts(tmp_path, monkeypatch):
+    _require("parse_engine", "_write_json_atomic")
+    root, receipts, _base = _new_repo(tmp_path / ".dev-knowledge", monkeypatch)
+    monkeypatch.setattr(d, "process_alive", lambda _pid: False)
+    _launch(_request(), root, FakeSpawn(8401), agents=lambda: [])      # launch 1 completes: a FINAL receipt
+    real_replace = os.replace
+
+    def fail_pid_record(source, destination):
+        if Path(destination) == _pid_path(receipts):
+            raise OSError("injected pid-record failure")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(d.os, "replace", fail_pid_record)
+    with pytest.raises(d.LaunchIncomplete):                              # relaunch 2 stops at its INTENT
+        _launch(_request(), root, FakeSpawn(8402), agents=lambda: [])
+
+    for body in (json.loads(_receipt_path(receipts).read_text(encoding="utf-8")),
+                 json.loads(_worktree_receipt(root).read_text(encoding="utf-8"))):
+        assert body["job_id"] == "pending"
+        assert [entry["job_id"] for entry in body["launches"]] == ["conductor-8401"]

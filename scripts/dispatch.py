@@ -1630,6 +1630,10 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         except OSError:
             before[path] = None
     prior = read_launch_receipt(slug)
+    launches: list = []     # an earlier launch is never lost: the history rides the INTENT too
+    if prior:
+        latest = {k: v for k, v in prior.items() if k != "launches"}
+        launches = list(prior.get("launches") or []) + [{**latest, "kind": latest.get("kind", "launch")}]
     created = False
 
     def undo() -> None:
@@ -1661,7 +1665,7 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         "slug": slug, "provider": request.provider, "batch": request.batch,
         "contract": str(request.contract), "substrate": "local", "end": None,
         "end_reason": _LOCAL_END_REASON, "engine": "conductor", "base": lane.sha,
-        "worktree": str(lane.tree)}
+        "worktree": str(lane.tree), **({"launches": launches} if launches else {})}
     try:
         _write_json_atomic(primary, intent)
         _write_json_atomic(copy_path, intent)
@@ -1708,11 +1712,7 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         model_reported=NOT_ATTESTABLE, job_id=job_id, worktree=str(lane.tree),
         session_name=request.session_name, session_name_reported=reported_name,
         session_id=session_id, pid=pid, log_path=str(log_path), argv=list(argv))
-    extra: dict = {"engine": "conductor", "base": lane.sha}
-    if prior:
-        history = list(prior.get("launches") or [])
-        latest = {k: v for k, v in prior.items() if k != "launches"}
-        extra["launches"] = history + [{**latest, "kind": latest.get("kind", "launch")}]
+    extra: dict = {"engine": "conductor", "base": lane.sha, **({"launches": launches} if launches else {})}
     try:
         _write_launch_records(request, result, extra=extra)
     except OSError as exc:
