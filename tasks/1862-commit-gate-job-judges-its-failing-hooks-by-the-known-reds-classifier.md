@@ -6,6 +6,7 @@ priority: P1
 size: M
 theme: "[E10] Batch convergence"
 story: "[S28] File every owed item with in-repo provenance"
+implements: "AMEND-CGG-1"
 generates: BACKLOG.md
 ---
 
