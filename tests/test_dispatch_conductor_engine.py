@@ -24,6 +24,15 @@ CONDUCTOR_CONTRACT = FIXTURES / "LANE-round-loop-dispatch-fixture.md"
 MODEL_CONTRACT = FIXTURES / "LANE-model-engine-fixture.md"
 SLUG = "round-loop-dispatch-fixture"
 BATCH = "E3.0"
+#: Lines of scripts/dispatch.py containing each process-binding anchor, measured at this lane's base.
+BASE_ANCHOR_COUNTS = {
+    "def launch_lane(": 1,
+    "outcome = prelaunch(request)": 1,
+    'raise LaunchRefused(f"pre-launch refused': 4,
+    "_identify(request, started, self_identified, agents, sleep, began)": 1,
+    'if result.job_id == "unresolved":': 2,
+    "def run_prelaunch": 1,
+}
 
 
 @pytest.fixture(autouse=True)
@@ -392,7 +401,9 @@ def test_c_process_binding_anchors_rebind_without_missing_or_duplicate_dispatch_
         'if result.job_id == "unresolved":',
         "def run_prelaunch",
     ):
-        assert len(gpd.find_anchor("scripts/dispatch.py", anchor, gpd.REPO)) == 1
+        # the occurrence counts at the base of this lane: the conductor branch adds none (the
+        # `pre-launch refused` text already appears in repair, successor and the codespace path)
+        assert len(gpd.find_anchor("scripts/dispatch.py", anchor, gpd.REPO)) == BASE_ANCHOR_COUNTS[anchor]
 
 
 def test_d_conductor_launch_seeds_worktree_and_writes_valid_atomic_receipts(
@@ -415,7 +426,7 @@ def test_d_conductor_launch_seeds_worktree_and_writes_valid_atomic_receipts(
     ]
     assert prelaunch_calls == [(request, False, False)]
     assert tree.is_dir()
-    assert _git(tree, "rev-parse", "--show-toplevel") == str(tree)
+    assert Path(_git(tree, "rev-parse", "--show-toplevel")) == tree  # git prints `/` on Windows
     assert _git(tree, "rev-parse", "--abbrev-ref", "HEAD") == f"worktree-{SLUG}"
     assert _git(tree, "rev-parse", "HEAD") == base
     assert (tree / "ecosystem" / "x" / "state.yaml").read_text(encoding="utf-8") == "fixture: seeded\n"
@@ -441,7 +452,9 @@ def test_d_conductor_launch_seeds_worktree_and_writes_valid_atomic_receipts(
 
     model_root, model_receipts, _model_base = _new_repo(tmp_path / "model-repo", monkeypatch)
     model_request = d.request_from_contract(MODEL_CONTRACT, batch=BATCH)
-    model_spawn = FakeSpawn(7202)
+    def model_spawn(_argv, _env, _cwd, log_path=None):  # `claude --bg` prints its job id and exits
+        return d.Spawned(returncode=0, stdout="backgrounded abcdef12\n", pid=None)
+
     _launch(model_request, model_root, model_spawn, agents=lambda: [])
     model_body = json.loads(
         _receipt_path(model_receipts, "model-engine-fixture").read_text(encoding="utf-8")
@@ -542,7 +555,8 @@ def test_f_confirmed_spawn_failure_undoes_only_this_call_and_restores_old_receip
     branch = _git(root, "branch", "--list", f"worktree-{SLUG}")
     assert bool(branch) is reuse
     listing = _git(root, "worktree", "list", "--porcelain")
-    assert (str(tree) in listing) is reuse
+    registered = [Path(line.split(" ", 1)[1]) for line in listing.splitlines() if line.startswith("worktree ")]
+    assert (tree in registered) is reuse  # git prints `/` on Windows: compare Paths, not strings
     if reuse:
         assert _receipt_path(receipts).read_bytes() == prior_primary
         if prior_worktree is None:
