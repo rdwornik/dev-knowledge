@@ -28,10 +28,10 @@ from __future__ import annotations
 
 import json
 import os
-import re
+import string
 import sys
 import types
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Callable, Optional, Sequence
 
 import click
@@ -62,12 +62,9 @@ EARLY_PHASES = ("P2", "P3")
 JUDGE_PHASE = "P7"
 CI_PHASE = "P6c"
 
-_PHASE_ID = re.compile(r"^P[0-9]+[a-z]*$")
-_RECEIPT_FILE = re.compile(r"^P[0-9]+[a-z]*\.json$")
-_ROUND_DIR = re.compile(r"^r([0-9]+)$")
-_FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
-_CODEX_TOKENS = re.compile(r"tokens used:?\s*([\d,]+)", re.IGNORECASE)
+_HEX = frozenset("0123456789abcdef")
 _EXTENSIONS = (".exe", ".cmd", ".ps1", ".bat")
+_TOKENS_MARK = "tokens used"
 
 COMPLETE_MEANS = (
     "complete is true when every SURVIVING receipt was measured from its surviving artifact; a "
@@ -85,9 +82,32 @@ def receipts_home(root) -> Path:
     return Path(env) if env else Path(root) / "logs" / "receipts"
 
 
+def _split_phase(name: str) -> "Optional[tuple[int, str]]":
+    """`P<digits><lowercase letters>` -> (number, suffix), else None. ASCII only."""
+    if not name.startswith("P") or not name.isascii():
+        return None
+    body = name[1:]
+    digits = body.rstrip(string.ascii_lowercase)
+    suffix = body[len(digits):]
+    return (int(digits), suffix) if digits.isdigit() else None
+
+
 def _phase_key(phase: str) -> "tuple[int, str]":
-    match = re.match(r"^P([0-9]+)([a-z]*)$", phase)
-    return (int(match.group(1)), match.group(2)) if match else (10**6, phase)
+    split = _split_phase(phase)
+    return split if split else (10**6, phase)
+
+
+def _is_receipt_file(name: str) -> bool:
+    return name.endswith(".json") and _split_phase(name[: -len(".json")]) is not None
+
+
+def _round_number(name: str) -> Optional[int]:
+    body = name[1:]
+    return int(body) if name.startswith("r") and body.isascii() and body.isdigit() else None
+
+
+def _is_full_sha(value) -> bool:
+    return isinstance(value, str) and len(value) == 40 and set(value) <= _HEX
 
 
 def _slug_ok(slug) -> bool:
@@ -126,9 +146,9 @@ def _round_dirs(lane_dir: Path) -> "list[tuple[int, Path]]":
     except OSError:
         return []
     for entry in entries:
-        match = _ROUND_DIR.match(entry.name)
-        if match and entry.is_dir():
-            found.append((int(match.group(1)), entry))
+        number = _round_number(entry.name)
+        if number is not None and entry.is_dir():
+            found.append((number, entry))
     return sorted(found)
 
 
@@ -146,7 +166,7 @@ def _read_harness(path: Path) -> "tuple[Optional[dict], str]":
     gates: dict = {}
     for row in rows:
         phase_id = row.get("id") if isinstance(row, dict) else None
-        if not isinstance(phase_id, str) or not _PHASE_ID.match(phase_id):
+        if not isinstance(phase_id, str) or _split_phase(phase_id) is None:
             return None, f"{ROUND_HARNESS_NAME}: {path} names a phase id {phase_id!r} that is not P<n>"
         gates[phase_id] = row.get("gate")
     return gates, ""
@@ -154,7 +174,7 @@ def _read_harness(path: Path) -> "tuple[Optional[dict], str]":
 
 def _check_sha(phase: str, path: Path, head, tip: str, git: Runner, problems: list) -> None:
     """Rule (d) for one phase after the head field was read."""
-    if not isinstance(head, str) or not _FULL_SHA.match(head.strip().lower()):
+    if not isinstance(head, str) or not _is_full_sha(head.strip().lower()):
         problems.append(f"{phase}: {path} {RECEIPT_HEAD_FIELD} {head!r} is not a full 40-hex sha "
                         f"(the lane tip is {tip})")
         return
@@ -239,7 +259,7 @@ def landing_problems(root, slug: str, lane_tip: str, git: Optional[Runner] = Non
 
     # the receipt set must match the harness the round ran under
     for entry in sorted(round_dir.iterdir()):
-        if _RECEIPT_FILE.match(entry.name):
+        if _is_receipt_file(entry.name):
             phase = entry.stem
             if phase != "P1" and phase not in required:
                 problems.append(f"{phase}: receipt {entry} is not a phase of the round's harness: "
@@ -299,7 +319,7 @@ def landing_problems(root, slug: str, lane_tip: str, git: Optional[Runner] = Non
 
     if "P2" in heads and "P3" in heads:
         (p2, p2_path), (p3, p3_path) = heads["P2"], heads["P3"]
-        if (_FULL_SHA.match(str(p2)) and _FULL_SHA.match(str(p3))):
+        if _is_full_sha(str(p2).strip().lower()) and _is_full_sha(str(p3).strip().lower()):
             verdict, out = _is_ancestor(git, p2, p3)
             if verdict is not True:
                 problems.append(f"P2: receipt {p2_path} {RECEIPT_HEAD_FIELD} {p2} is not an "
@@ -329,7 +349,7 @@ def cost_home_problem(root, home) -> str:
 # --- C24: the cost record ---------------------------------------------------------------------
 
 def _head(command) -> str:
-    name = re.split(r"[\\/]", str(command[0]))[-1].lower() if command else ""
+    name = PureWindowsPath(str(command[0])).name.lower() if command else ""   # both separators
     for ext in _EXTENSIONS:
         if name.endswith(ext):
             return name[: -len(ext)]
@@ -396,17 +416,37 @@ def _read_copilot(round_dir: Path, command, root: Path) -> "tuple[list, str, str
     return measurements, usage.name, ""
 
 
+def _last_token_total(text: str) -> Optional[int]:
+    """The number after the LAST `tokens used` (any case; `tokens used: 7,099` or the number on the
+    next line), or None."""
+    lowered, end = text.lower(), len(text)
+    while True:
+        at = lowered.rfind(_TOKENS_MARK, 0, end)
+        if at < 0:
+            return None
+        rest = text[at + len(_TOKENS_MARK):].lstrip(": \t\r\n")
+        digits = ""
+        for char in rest:
+            if char not in "0123456789,":
+                break
+            digits += char
+        digits = digits.replace(",", "")
+        if digits:
+            return int(digits)
+        end = at
+
+
 def _read_codex(round_dir: Path, phase: str) -> "tuple[list, str, str]":
     path = round_dir / f"{phase}-OUTPUT.txt.stderr"
     if not path.is_file():
         return [], path.name, f"{path.name} is absent"
     try:
-        found = _CODEX_TOKENS.findall(path.read_text(encoding="utf-8", errors="replace"))
+        total = _last_token_total(path.read_text(encoding="utf-8", errors="replace"))
     except OSError:
         return [], path.name, f"{path.name} is unreadable"
-    if not found:
+    if total is None:
         return [], path.name, f"{path.name} reports no `tokens used` total"
-    return [{"unit": "tokens", "amount": int(found[-1].replace(",", ""))}], path.name, ""
+    return [{"unit": "tokens", "amount": total}], path.name, ""
 
 
 def _measure(data: dict, phase: str, round_dir: Path, root: Path) -> "tuple[list, str, str]":
@@ -439,7 +479,7 @@ def cost_record(lane: str, receipts_dir, root=None) -> dict:
     root = Path(root) if root is not None else Path.cwd()
     rows: list = []
     for round_no, round_dir in _round_dirs(lane_dir):
-        files = sorted((p for p in round_dir.iterdir() if _RECEIPT_FILE.match(p.name)),
+        files = sorted((p for p in round_dir.iterdir() if _is_receipt_file(p.name)),
                        key=lambda p: _phase_key(p.stem))
         for path in files:
             phase = path.stem
