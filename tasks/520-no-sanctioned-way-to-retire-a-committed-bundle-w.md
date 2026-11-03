@@ -1,7 +1,7 @@
 ---
 id: "[#520]"
 title: "No sanctioned way to retire a committed bundle whose seal is wrong"
-status: closed
+status: open
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
@@ -10,5 +10,4 @@ serialize-group: handoff
 generates: BACKLOG.md
 ---
 
-- [#520] [P2][S] **No sanctioned way to retire a committed bundle whose seal is wrong** — `docs/handoffs/2026-08-01-dev-knowledge-architect-2` declares its SIBLING's slug (same stem, no `-2`), so `check_seal_identity` FAILs it on every `pre-commit run --all-files` sweep. Because that sibling directory EXISTS, the bundle's own self-references (Slug row, PROBES P0c/P3/P8, the embedded `/handoff-verify`) verify green about the WRONG bundle. Pre-existing at `80dd54d6`, untouched by batch 2. `docs/handoffs/` is immutable, so this is a rule gap in an artifact that cannot be edited; direction ruled — retire via an external dated marker, bundle left byte-unchanged. · Done when: the marker surface is defined, that bundle carries one, and `check_seal_identity` skips a marked-retired bundle, with a test pinning both halves · refs scripts/check_seal_identity.py, protocols/STANDING_RULINGS.md H1, [#475] · kill-candidates: none — [#310] owns annotating a bundle COLD/incomplete, a different state from a structurally wrong seal · serialize-group: handoff · **CLOSED 2026-11-03** — evidence 5f63605ae7efd04f077fdf03b65646187b43aced
-sweep-close: legacy-sweep · witnesses checked=K1,K2,K3 absent=K1,K2,K3 · filed 2026-08-09 before 2026-10-01; no KEEP witness (K1 protected, K2 alive in code, K3 agreed LINE P1/P2) holds
+- [#520] [P2][S] **No sanctioned way to retire a committed bundle whose seal is wrong** — `docs/handoffs/2026-08-01-dev-knowledge-architect-2` declares its SIBLING's slug (same stem, no `-2`), so `check_seal_identity` FAILs it on every `pre-commit run --all-files` sweep. Because that sibling directory EXISTS, the bundle's own self-references (Slug row, PROBES P0c/P3/P8, the embedded `/handoff-verify`) verify green about the WRONG bundle. Pre-existing at `80dd54d6`, untouched by batch 2. `docs/handoffs/` is immutable, so this is a rule gap in an artifact that cannot be edited; direction ruled — retire via an external dated marker, bundle left byte-unchanged. · Done when: the marker surface is defined, that bundle carries one, and `check_seal_identity` skips a marked-retired bundle, with a test pinning both halves · refs scripts/check_seal_identity.py, protocols/STANDING_RULINGS.md H1, [#475] · kill-candidates: none — [#310] owns annotating a bundle COLD/incomplete, a different state from a structurally wrong seal · serialize-group: handoff
