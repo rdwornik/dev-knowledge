@@ -884,6 +884,32 @@ def test_review_input_required_in_a_segment_names_its_phase_and_output_artifact(
     assert verdict["halted_at"] == "P2"
 
 
+def test_review_failed_question_cites_the_judge_output_artifact(tmp_path, monkeypatch):
+    # terra review (round 3) finding: FAILED must cite the judge's OUTPUT artifact, not only ROUND-VERDICT.json
+    world = _world(tmp_path)
+    _transport(monkeypatch, tmp_path)
+    _set_outcomes(monkeypatch, **_outcomes_for_rounds("REFUSE", "REFUSE"))
+
+    result = _run_lane(world)
+
+    assert result.verdict == "FAILED"
+    line = next(ln for ln in result.question_path.read_text(encoding="utf-8").splitlines()
+                if ln.startswith("QUESTION "))
+    assert "P7-OUTPUT.txt" in line
+
+
+def test_review_a_receipts_base_inside_the_repo_is_not_a_change_to_commit(tmp_path):
+    # terra review (round 3) finding: conductor-owned receipts under the repo tree must not halt `commit:red`
+    world = _world(tmp_path)
+    world["receipts"] = world["repo"] / "rcpts"
+
+    result = _run_lane(world)
+
+    assert (result.verdict, result.rounds[-1][2]) == ("ACCEPT", None)
+    committed = _git(world["repo"], "log", "--name-only", "--format=", "origin/main..HEAD").stdout.split()
+    assert not any(p.startswith("rcpts/") for p in committed)
+
+
 def test_review_missing_harness_is_a_preflight_refusal_not_a_traceback(tmp_path):
     # terra review (round 2) finding: an unreadable --harness must refuse before any phase, not crash
     world = _world(tmp_path)

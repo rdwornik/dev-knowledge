@@ -1265,6 +1265,7 @@ class LaneRun:
     receipts_base: Optional[Path] = None
     question_dir: Optional[Path] = None
     detail: str = ""
+    evidence_phase: str = ""
 
 
 def _now() -> str:
@@ -1424,8 +1425,10 @@ def _commit_receipt(repo_root: Path, stage: str, sha: Optional[str], round_no: i
 
 
 def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, repo_root: Path, round_dir: Path,
-                  allowed: list[str], tests_only: bool) -> tuple[Optional[str], str]:
-    """One tests/code commit. Returns (halted_at, detail): (None, "") when the stage is done or skipped."""
+                  allowed: list[str], tests_only: bool, receipts_base: Optional[Path] = None
+                  ) -> tuple[Optional[str], str]:
+    """One tests/code commit. Returns (halted_at, detail): (None, "") when the stage is done or skipped.
+    `receipts_base` is the conductor's own output: a receipts directory inside the repo tree is never a change."""
     receipt = round_dir / f"COMMIT-{stage}.json"
     halt = f"commit:{stage}"
     try:
@@ -1443,7 +1446,8 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
     if staged:
         out_file.write_text(f"the index is not empty before the {stage} commit: {', '.join(staged)}\n", encoding="utf-8", newline="\n")
         return halt, f"staged before the {stage} stage: {', '.join(staged)}"
-    changed = _status_paths(repo_root)
+    changed = [p for p in _status_paths(repo_root)
+               if receipts_base is None or not (repo_root / p).resolve().is_relative_to(receipts_base)]
     if not changed:
         if round_no == 1:
             out_file.write_text(f"nothing to commit for the {stage} stage in round 1\n", encoding="utf-8", newline="\n")
@@ -1518,7 +1522,8 @@ def _lane_round(lane: str, round_no: int, rows: list[dict], *, contract: Path, r
         else:
             halted, detail = _commit_stage(
                 role, lane=lane, row=row, round_no=round_no, base=base, repo_root=repo_root, round_dir=round_dir,
-                allowed=_scope_allowed(rows, base, repo_root, round_dir, row), tests_only=role == "red")
+                allowed=_scope_allowed(rows, base, repo_root, round_dir, row), tests_only=role == "red",
+                receipts_base=rbase)
             if halted:
                 return "HALTED", 1, halted, "", detail
     res = run_round(lane, round_no, repo_root=repo_root, harness=run_harness, receipts=rbase, row=row,
@@ -1538,6 +1543,8 @@ def _evidence(run: LaneRun, halted_at: Optional[str]) -> str:
         artifact = "PUSH-OUTPUT.txt"
     elif halted_at:
         artifact = f"{halted_at}-OUTPUT.txt"
+    elif run.evidence_phase:  # FAILED -> the judge's output; REFUSED -> the phase named in refused_by
+        artifact = f"{run.evidence_phase}-OUTPUT.txt"
     else:
         artifact = "ROUND-VERDICT.json"
     text = f"{rd} {artifact}"
@@ -1602,6 +1609,9 @@ def run_lane(lane: str, *, contract: Path, repo_root: Path, harness: Optional[Pa
             "refused_by": refused_by or None, "head_sha": _git_head(repo_root), "at": _now()})
         run.rounds.append((round_no, verdict, halted_at))
         run.verdict, run.exit_code, run.refused_by, run.detail = verdict, code, refused_by, detail
+        judge = next((p["id"] for p in rows if p.get("role") == "judge"), rows[-1]["id"])
+        run.evidence_phase = (refused_by.rsplit(":", 1)[-1] if refused_by and ":" in refused_by
+                              else judge if verdict == "FAILED" else "")
         if verdict != "REFUSE":
             break
     return _finish(run)
