@@ -1,0 +1,127 @@
+- [#343] fleet_parity ship-gate-only scoping | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#387] Rewrite the buy-vs-build intake BEFORE anything ingests it | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#388] The \"10–20 repo\" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#392] fleet_analytics rename-alias loses history on path-reuse | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#393] corp-sca rot review — confirm-live-or-retire 3 candidates | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#402] Intake naming clause — DEPLOY the `YYYY-MM-DD-<class>-<slug>` half of the enum ruling | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#413] Colors semantics — visually distinguish global/hub-managed vs per-repo content in governed markdown (declared ai-council interim) | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#448] A11 staged-diff guard — cover EVERY candidate bundle, not just the active one | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#520] No sanctioned way to retire a committed bundle whose seal is wrong | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#598] P-6 — a slow-marker selector so tiered gating has something to select on | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#603] An operator-interface capability file — the facts every seat re-derives about how the operator works | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#619] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#634] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#646] The ceremony ratio was measured once, by hand, and nothing computes it | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#654] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#658] Fourteen operator points on the critical path, nine of them mechanisable, and nothing counts them | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#659] The `orphan_census` intake names two triggers and one of them does not exist | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#660] S-15 — the AJ tools-and-evals table is the one deliverable of that arc still owed | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#661] SDA-1 is a complete benchmark design that has never been run | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#732] Ratification #7: a committing lane runs LOCAL overnight only, and during working hours it waits for the night or for conductor E | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#745] The domain census's 16 UNKNOWN items are resolved to a live/non-live verdict by a second pass rather than carried forward | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#812] A figure later falsified inside an immutable artifact has no standing correction path -- the protected file keeps circulating the error | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#825] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#832] Re-run the three-repo comparison against the operator's named repositories | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#903] The audit corpus has no retention rule -- what is an audit for after its arc closes, and what retires it | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#914] The transport is unreachable whenever H: is not mounted -- a post-hook must deliver to-browser artifacts regardless of mount, and refuse loudly instead of reporting success after writing to Downloads | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#932] Wave 3 lane C (lane-merge-truth) -- the merge gate reads the right lane, and the census counts real callers | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#934] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#935] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#937] Wave 4a lane 1 (lane-known-reds) -- one base run per batch, so a merge takes minutes instead of an hour | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#941] Wave 4a lane 5 (lane-landing-decisions) -- this window's decisions leave the transport and enter the repo | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#945] The guards decision -- the operator's build-mode answer on write guards for the loop | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#949] Unbind verb for the integrator seat -- releasing a batch's integrator binding is currently a no-op path | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#953] Events that file rows -- some escalation events should produce a task row automatically, not just a STATUS entry | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#954] Install the loop in a second repo -- prove stages 1-16 are not `.dev-knowledge`-specific | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#963] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#971] Autonomy: pre-authorized ruling table, liveness watchdog, and a deny-and-point guard for root writes | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#979] Path layer reads HARNESS_DRIVE_ROOT/HARNESS_PROMPTS_SUBDIR -- no direct env-var reads outside it | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#983] Decisions and audits land in the repo every wave -- a recurring step, not a one-off catch-up | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#986] Architecture-level changes require ADR + matrix + debate + operator ratification, not a fast browser accept | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#987] Batch close regenerates the ledger from the state store -- it stops going stale for days | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#992] Measure `/skill-doctor` and `/doctor`'s CLAUDE.md-trim proposal; adopt `omitClaudeMd` for bounded roles | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#994] BUILD MODE exit condition 2: one real backlog row travels row-to-merge through the whole loop | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#995] BUILD MODE exit condition: every disabled guard is re-armed with a live pass/fail test | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1002] Re-arm evidence must be measured in-session, under the real concurrent hook set, over 20+ events | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1005] Path protection comes back as `permissions.deny` rules -- no process per PreToolUse call | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1021] trial-gh-issues: stage-2 prior-art scan has no CONTENT_ROOTS entry for decisions/intake | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1026] integrator: batch_janitor.py reads a removed job as live | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1038] DIGEST-HANDOFF-DESIGN-2026-09-25 (the handoff-design research lane) has not landed | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1039] the execution-provenance mechanism (DECLARE-HARNESS-PROVENANCE-2026-09-08) is still LIVE, grandfathered 16+ days | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1041] the seat-knowledge table (DECLARE-SEAT-KNOWLEDGE-2026-09-24) has not landed under docs/audits/ | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1044] CENSUS-VERDICTS W14: no keep-or-retire row exists for the ten uncalled organs | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1046] CENSUS-VERDICTS W17: the class-named-organ blind spot has no row | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1050] AJ C-4: the 5-criteria task filter (real/recent/representative/full/production) has no rubric for seeding frozen contracts | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1051] AJ C-5: \"true throughput\" / DXI is blocked -- flagged, not built, pending the retired trend dashboard | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1052] AJ C-6: the Maister commit 4151c9c4d (2026-09-22) diff has not been read | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1053] AJ C-7: the 09-21 AJ companion digests are not landed or indexed against the current repo | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1054] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1080] ADR-122 step 1 remainder: eliminate legacy_body carriers (671/671 live rows, 86/86 archive records) | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1102] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1105] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1106] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1107] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1108] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1109] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1110] Dispose AMEND-BATCH-WAVE5B-N4-HANDOFF-MIN-2026-09-27: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1111] Dispose AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1112] Dispose AMEND-BATCH-night-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1113] Dispose AMEND-DISPATCH-UNBLOCK-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1114] Dispose AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1115] Dispose AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1116] Dispose AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1117] Dispose AMEND-NIGHT-SALVAGE-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1118] Dispose AMEND-ORGAN-USE-2026-09-17: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1119] Dispose DECLARE-CENSUS-VERDICTS-2026-09-18: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1120] Dispose DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1121] Dispose DECLARE-OPERATOR-FEEDBACK-2026-09-24: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1122] Dispose DECLARE-SEAT-KNOWLEDGE-2026-09-24: carried to WAVE5B-N5 planning | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1125] N5: absorb or retire the claude/conformance-* digest branches | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1126] N5: archive/* tags join R25's allowed set with an owner and an expiry | legacy-sweep | checked=K1,K2,K3 absent=K1,K2,K3
+- [#1338] The batch template says no scheduled wake-ups; the batch practice is CronCreate and never ScheduleWakeup | no-fit | checked=K1 absent=K1
+- [#1360] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial | no-fit | checked=K1 absent=K1
+- [#1361] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work | no-fit | checked=K1 absent=K1
+- [#1369] The R66 retire-table acts are executed one by one, each under R59's dynamic-use check | no-fit | checked=K1 absent=K1
+- [#1377] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness | duplicate | checked=K1 absent=K1
+- [#1379] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds | duplicate | checked=K1 absent=K1
+- [#1424] W2 carries FOUNDATION lane 12: the commit-time hooks R66 moved to CI run as CI jobs | no-fit | checked=K1 absent=K1
+- [#1510] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1511] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1512] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1513] LANE-bw-1368-lane-report-rollup.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1514] LANE-bw-1374-lane-controller.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1515] LANE-bw-1378-rulings-landing.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1516] LANE-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1517] LANE-bw-1447-distill-kind-fix.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1518] LANE-bw-1450-boot-teaching.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1519] LANE-bw-242-adr-lifecycle.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1520] LANE-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1521] LANE-bw-680-handoff-gen.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1522] LANE-bw-735-reuse-gate.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1523] LANE-bw-781-system-map.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1524] LANE-bw-893-b2w3-carry.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1526] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1527] LANE-bw-958-required-tools.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1528] 2026-10-10-codex-b2w2-transport-index.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1529] 2026-10-13-codex-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1530] 2026-10-13-codex-lane-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1531] 2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1532] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned | no-fit | checked=K1 absent=K1
+- [#1584] The `[#863]` lane's owed items are rows: CI-environment owner, audit health, funnel and proof-layer baselines, canonical_docs derived leg | no-fit | checked=K1 absent=K1
+- [#1586] The provider checker is re-run from a writable seat and its DISAGREEs are resolved | no-fit | checked=K1 absent=K1
+- [#1587] The handoff-digest checker is re-run from a seat with a writable uv cache, covering all five bar rows | no-fit | checked=K1 absent=K1
+- [#1594] Phase-0 residuals: R48 last-ran print, `lane_report.py`, stale ADR-121/ADR-125, Actions-minutes gauge and heartbeat timezone label | no-fit | checked=K1 absent=K1
+- [#1604] The CI job `terra` runs with a credential or is removed | no-fit | checked=K1 absent=K1
+- [#1610] 'Superseded means code removed' (ADR-125) is enforced when an ADR is superseded or a feature deleted | no-fit | checked=K1 absent=K1
+- [#1620] A session ends only when every part is DONE or BLOCKED-WITH-OWNER, or its stop condition fires (night contract N2) | no-fit | checked=K1 absent=K1
+- [#1621] END-EARLY is an alarm: first line of the report plus a proactive send to the operator (night contract N3) | no-fit | checked=K1 absent=K1
+- [#1622] A POST-CLOSE list the integrator reads every wake and executes at batch close (night contract N4) | no-fit | checked=K1 absent=K1
+- [#1624] test_manifest_link_route's class-enum assert compares by identity, so a module reload by an earlier test in the same xdist worker reds it | shipped | checked=K1 absent=K1
+- [#1635] MAP-DISPATCH regenerated with the outside-hub entry points | no-fit | checked=K1 absent=K1
+- [#1646] M1 v2: each vendor measured in its role | no-fit | checked=K1 absent=K1
+- [#1650] Architekt Jutra module review (deferred, R137 Q4) | no-fit | checked=K1 absent=K1
+- [#1651] agy official headless route re-check on every agy pin bump (R140) | duplicate | checked=K1 absent=K1
+- [#1654] Hypercare register: a defect found in real use becomes a row (R143) | no-fit | checked=K1 absent=K1
+- [#1684] PLAN r6 carries 13 wrong goal cells (G1, G2, G4-G13, G17, G18; G2 and G8 outright wrong) (H35) | no-fit | checked=K1 absent=K1
+- [#1706] CODESPACE-RECEIPTS.jsonl keeps every seat's tree dirty and the Stop hook says commit it | shipped | checked=K1 absent=K1
+- [#1715] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job | duplicate | checked=K1 absent=K1

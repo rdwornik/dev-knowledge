@@ -34,8 +34,6 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#422] [P2][S] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves · tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md
 - [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
-- [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
-- [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
 - [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
 
 ---
@@ -127,7 +125,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
 - [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
 - [#811] [P1][S] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal · tasks/811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md
-- [#812] [P1][M] A figure later falsified inside an immutable artifact has no standing correction path -- the protected file keeps circulating the error · tasks/812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md
 - [#827] [P1][S] The memory floor's per-seat constant was miscalibrated in BOTH directions -- ~7x too low at first, so admission passed work the box could not run, then ~4x too high after recalibration, so it refused work it could have run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
 - [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
 - [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md
@@ -135,7 +132,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#822] [P1][S] A pipe masks the exit code of the command it wraps — a reported success is not evidence of the effect · tasks/822-a-pipe-masks-the-exit-code-of-the-command-it.md
 - [#823] [P1][S] The dispatch verb still boots a lane with no committed manifest -- only /lane-boot refuses · tasks/823-the-dispatch-verb-still-boots-a-lane-with-no-committed-manifest.md
 - [#824] [P1][M] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path · tasks/824-no-launch-verb-exists-for-a-non-claude-lane.md
-- [#825] [P2][S] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) · tasks/825-single-flight-misreports-a-real-push-race-as-an-internal-error.md
 - [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
 - [#833] [P1][M] A seat is not a registered entity, so a wedged, starved or absent seat is invisible until a human asks · tasks/833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md
 - [#834] [P2][S] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test · tasks/834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md
@@ -155,29 +151,20 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#929] [P1][L] The spine is the whole work loop -- map every organ onto stages 1-16 and run the loop's candidate mechanisms live before anything is built · tasks/929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md
 - [#930] [P1][M] Wave 3 lane A (lane-loop-declaration) -- the one file declares every moment the loop needs · tasks/930-wave-3-lane-a-lane-loop-declaration-the-one-file.md
 - [#931] [P1][M] Wave 3 lane B (lane-launch-adapter) -- one command launches a lane, refuses a collision, never kills a run · tasks/931-wave-3-lane-b-lane-launch-adapter-one-command-la.md
-- [#932] [P1][M] Wave 3 lane C (lane-merge-truth) -- the merge gate reads the right lane, and the census counts real callers · tasks/932-wave-3-lane-c-lane-merge-truth-the-merge-gate-re.md
 - [#933] [P1][M] Wave 3 lane D (lane-end-hook) -- every finished lane reports itself, once, through a real event · tasks/933-wave-3-lane-d-lane-end-hook-every-finished-lane.md
-- [#934] [P1][S] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real · tasks/934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md
-- [#935] [P1][M] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts · tasks/935-wave-3-lane-f-lane-connection-test-prove-the-loo.md
 - [#936] [P2][S] Preflight skips an all-digit short sha -- a merge whose hash is all digits reds the pairing and passes a contract unchecked · tasks/936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md
-- [#937] [P1][M] Wave 4a lane 1 (lane-known-reds) -- one base run per batch, so a merge takes minutes instead of an hour · tasks/937-wave-4a-lane-1-lane-known-reds-one-base-run-per-ba.md
 - [#938] [P1][M] Wave 4a lane 2 (lane-merge-gates-truth) -- the merge gate reads the fates the declaration records · tasks/938-wave-4a-lane-2-lane-merge-gates-truth-the-merge-ga.md
 - [#939] [P1][M] Wave 4a lane 3 (lane-batch-digest) -- the morning digest names the work, written by the machine · tasks/939-wave-4a-lane-3-lane-batch-digest-the-morning-diges.md
 - [#940] [P2][M] Wave 4a lane 4 (lane-connection-hygiene) -- the connection test tells the truth, stably · tasks/940-wave-4a-lane-4-lane-connection-hygiene-the-connect.md
-- [#941] [P2][M] Wave 4a lane 5 (lane-landing-decisions) -- this window's decisions leave the transport and enter the repo · tasks/941-wave-4a-lane-5-lane-landing-decisions-this-window.md
 - [#942] [P2][M] State as data -- the STATUS surface, the state query, and the four escalation events · tasks/942-state-as-data-the-status-surface-the-state-query.md
 - [#943] [P2][M] Contracts generated from rows -- the spine writes the skeleton, the architect writes only Done-when and decision budget · tasks/943-contracts-generated-from-rows-the-spine-writes.md
 - [#944] [P3][S] The secrets field -- a contract's Dispatch block can declare a secret without leaking it to the transport · tasks/944-the-secrets-field-a-contracts-dispatch-block.md
-- [#945] [P2][S] The guards decision -- the operator's build-mode answer on write guards for the loop · tasks/945-the-guards-decision-the-operators-build-mode.md
 - [#946] [P2][M] The tool-trial organ and its first trials -- Caveman skill, RTK, Headroom, import-linter · tasks/946-the-tool-trial-organ-and-its-first-trials-caveman.md
 - [#947] [P2][M] LiteLLM behind the stage-13 adapter -- one provider interface, not four bespoke ones · tasks/947-litellm-behind-the-stage-13-adapter-one-provider.md
 - [#948] [P2][S] The fair `why` test -- measure the `why` skill without the bias its earlier trial carried · tasks/948-the-fair-why-test-measure-the-why-skill-without.md
-- [#949] [P2][S] Unbind verb for the integrator seat -- releasing a batch's integrator binding is currently a no-op path · tasks/949-unbind-verb-for-the-integrator-seat-releasing-a.md
 - [#950] [P3][S] Friction ratio -- measure operator touches against merged work, as a trend, not a per-batch count · tasks/950-friction-ratio-measure-operator-touches-against.md
 - [#951] [P3][M] Root-cause taxonomy -- classify why a lane stops, instead of re-deriving it by hand each time · tasks/951-root-cause-taxonomy-classify-why-a-lane-stops.md
 - [#952] [P3][S] Gemini routing pin -- a pinned model id for the `agy` adversarial/producer role, recorded like the other providers · tasks/952-gemini-routing-pin-a-pinned-model-id-for-the-agy.md
-- [#953] [P3][M] Events that file rows -- some escalation events should produce a task row automatically, not just a STATUS entry · tasks/953-events-that-file-rows-some-escalation-events.md
-- [#954] [P2][M] Install the loop in a second repo -- prove stages 1-16 are not `.dev-knowledge`-specific · tasks/954-install-the-loop-in-a-second-repo-prove-stages.md
 - [#955] [P1][L] Wave 4b -- one merge path, handback as an organ, verification in the lanes (FR1-FR5) · tasks/955-wave-4b-one-merge-path-handback-as-an-organ-verification-in-the-lanes.md
 - [#956] [P1][M] Wave 4b lane 0 (lane-hooks-rearm) -- the eight emergency-disabled session hooks come back on evidence · tasks/956-wave-4b-lane-0-lane-hooks-rearm-the-eight-emergency-disabled-session-hooks-come-back-on-evidence.md
 - [#957] [P1][M] Wave 4b lane 1 (lane-merge-path) -- one merge path: the moment, in an integration worktree, main only when green · tasks/957-wave-4b-lane-1-lane-merge-path-one-merge-path-the-moment-in-an-integration-worktree-main-only-when-green.md
@@ -185,7 +172,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#959] [P1][M] Wave 4b lane 3 (lane-gate-verdicts) -- gates speak data, and the connection test reads it · tasks/959-wave-4b-lane-3-lane-gate-verdicts-gates-speak-data-and-the-connection-test-reads-it.md
 - [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
 - [#962] [P1][M] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it · tasks/962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md
-- [#963] [P1][L] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes · tasks/963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md
 - [#964] [P1][M] One verification stage -- every check runs once at merge, results reused · tasks/964-one-verification-stage-every-check-runs-once-at-merge.md
 - [#965] [P1][M] One known-reds registry, read by CI and local, refreshed at the merge moment · tasks/965-one-known-reds-registry-read-by-ci-and-local-refreshed.md
 - [#966] [P1][M] CI's full-suite verdict becomes the merge gate; local runs only Windows-only tests · tasks/966-cis-full-suite-verdict-becomes-the-merge-gate-local.md
@@ -193,7 +179,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#968] [P1][S] `logs/MERGE-RECEIPTS.jsonl` gets an `impacted_tests.RULES` mapping before it reds every gate · tasks/968-logs-merge-receipts-jsonl-gets-an-impacted-tests-rules.md
 - [#969] [P2][M] Connection walk gets JSON verdicts and a slow-tier split; the 18m59s bar comes down · tasks/969-connection-walk-gets-json-verdicts-and-a-slow-tier.md
 - [#970] [P1][M] Memory admission gate: heavy runs wait for free memory; `-n` is computed, not hand-set · tasks/970-memory-admission-gate-heavy-runs-wait-for-free-memory-n.md
-- [#971] [P1][M] Autonomy: pre-authorized ruling table, liveness watchdog, and a deny-and-point guard for root writes · tasks/971-autonomy-pre-authorized-ruling-table-liveness-watchdog.md
 - [#972] [P2][S] Session janitor stops every poll and wake-up a lane leaves running at batch close · tasks/972-session-janitor-stops-every-poll-and-wake-up-a-lane.md
 - [#973] [P1][S] Handback organ writes `HANDBACK-REFUSED-<lane>.md`, never the integrator's own `REFUSED-<lane>.md` · tasks/973-handback-organ-writes-handback-refused-lane-md-never.md
 - [#974] [P1][S] One comparator: the handback organ's self-check and the integrator's call the same function · tasks/974-one-comparator-the-handback-organs-self-check-and-the.md
@@ -201,33 +186,24 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#976] [P1][M] Merge receipts record the merge sha and timed steps, so batch-close can name the task · tasks/976-merge-receipts-record-the-merge-sha-and-timed-steps-so.md
 - [#977] [P2][S] Provider fallback list: a Sonnet outage no longer stalls every lane · tasks/977-provider-fallback-list-a-sonnet-outage-no-longer-stalls.md
 - [#978] [P1][M] Transport file-kind registry, enforced by an adapter -- no more invented names or collisions · tasks/978-transport-file-kind-registry-enforced-by-an-adapter-no.md
-- [#979] [P2][S] Path layer reads HARNESS_DRIVE_ROOT/HARNESS_PROMPTS_SUBDIR -- no direct env-var reads outside it · tasks/979-path-layer-reads-harness-drive-root-harness-prompts.md
 - [#980] [P2][L] Portability: a path layer + Drive API adapter + container CI job removes the Codespace blocker · tasks/980-portability-a-path-layer-drive-api-adapter-container-ci.md
 - [#981] [P2][L] Compute: an off-box execution host, so the laptop stops being the harness's substrate · tasks/981-compute-an-off-box-execution-host-so-the-laptop-stops.md
 - [#982] [P2][S] Seat bind marks live immediately; occupancy accepts a starting record instead of exit 2 · tasks/982-seat-bind-marks-live-immediately-occupancy-accepts-a.md
-- [#983] [P1][M] Decisions and audits land in the repo every wave -- a recurring step, not a one-off catch-up · tasks/983-decisions-and-audits-land-in-the-repo-every-wave-a.md
 - [#984] [P1][L] A state store (ADR-121) carries decisions across a handoff instead of losing them to prose · tasks/984-a-state-store-adr-121-carries-decisions-across-a.md
 - [#985] [P2][S] Plan lint rejects an audit order that carries no Codex verification step · tasks/985-plan-lint-rejects-an-audit-order-that-carries-no-codex.md
-- [#986] [P1][M] Architecture-level changes require ADR + matrix + debate + operator ratification, not a fast browser accept · tasks/986-architecture-level-changes-require-adr-matrix-debate.md
-- [#987] [P2][M] Batch close regenerates the ledger from the state store -- it stops going stale for days · tasks/987-batch-close-regenerates-the-ledger-from-the-state-store.md
 - [#988] [P1][M] Copilot admission lands in the registry with in-repo evidence -- the router stops blocking a producer that already ran · tasks/988-copilot-admission-lands-in-the-registry-with-in-repo.md
 - [#989] [P1][M] Launcher is wired to the existing provider_router -- routing stops living in prose and hard-coded models · tasks/989-launcher-is-wired-to-the-existing-provider-router.md
 - [#990] [P2][M] Opus 5.5 rate row + admission A/B for the orchestrate/plan role · tasks/990-opus-5-5-rate-row-admission-a-b-for-the-orchestrate.md
 - [#991] [P2][S] `/changelog-review` runs on a weekly conductor schedule instead of an operator-invoked one-off · tasks/991-changelog-review-runs-on-a-weekly-conductor-schedule.md
-- [#992] [P2][S] Measure `/skill-doctor` and `/doctor`'s CLAUDE.md-trim proposal; adopt `omitClaudeMd` for bounded roles · tasks/992-measure-skill-doctor-and-doctors-claude-md-trim.md
 - [#993] [P1][M] BUILD MODE exit condition 1: the connection walk is clean on main, xfail removed · tasks/993-build-mode-exit-condition-1-the-connection-walk-is.md
-- [#994] [P1][L] BUILD MODE exit condition 2: one real backlog row travels row-to-merge through the whole loop · tasks/994-build-mode-exit-condition-2-one-real-backlog-row.md
-- [#995] [P1][M] BUILD MODE exit condition: every disabled guard is re-armed with a live pass/fail test · tasks/995-build-mode-exit-condition-every-disabled-guard-is-re.md
 - [#996] [P2][M] Every operator request becomes a row the same day it is made -- a boot-time count, target 0 · tasks/996-every-operator-request-becomes-a-row-the-same-day-it-is.md
 - [#997] [P2][S] R-09-19-3: ARCHITECTURE.md KEPT ruling gets a STANDING_RULINGS entry, not just a BUILD-LIST line · tasks/997-r-09-19-3-architecture-md-kept-ruling-gets-a-standing.md
 - [#998] [P2][S] R-09-19-7: lane count is by need, not a fixed 6-lane ceiling -- lands in STANDING_RULINGS · tasks/998-r-09-19-7-lane-count-is-by-need-not-a-fixed-6-lane.md
 - [#999] [P2][S] R-09-19-10: 'the dispatcher dispatches' -- lands once DECLARE-NIGHT-AUTONOMY is in STANDING_RULINGS · tasks/999-r-09-19-10-the-dispatcher-dispatches-lands-once-declare.md
 - [#1000] [P1][S] Doctrine 'the backbone is code; prose is intent' lands in STANDING_RULINGS · tasks/1000-doctrine-the-backbone-is-code-prose-is-intent-lands-in.md
 - [#1001] [P1][M] SessionStart becomes one stdlib reader -- 8 interpreters to 1, p90 under 2s · tasks/1001-sessionstart-becomes-one-stdlib-reader-8-interpreters.md
-- [#1002] [P1][S] Re-arm evidence must be measured in-session, under the real concurrent hook set, over 20+ events · tasks/1002-re-arm-evidence-must-be-measured-in-session-under-the.md
 - [#1003] [P1][M] Closure proposals run once per new commit, with a reader, not once per turn · tasks/1003-closure-proposals-run-once-per-new-commit-with-a-reader.md
 - [#1004] [P1][M] Commit-gate counter survives worktree teardown; '0 runs' reads UNMEASURED, not REMOVE · tasks/1004-commit-gate-counter-survives-worktree-teardown-0-runs.md
-- [#1005] [P1][M] Path protection comes back as `permissions.deny` rules -- no process per PreToolUse call · tasks/1005-path-protection-comes-back-as-permissions-deny-rules-no.md
 - [#1006] [P2][S] Boot banner stops printing re-armed hooks as 'DECLARED BROKEN' · tasks/1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md
 - [#1007] [P2][M] SessionEnd writes the seat absent record; lane-start gets its trigger · tasks/1007-sessionend-writes-the-seat-absent-record-lane-start.md
 - [#1008] [P2][S] Stale-statement sweep: reconcile 6 doc claims against live hook/organ state · tasks/1008-stale-statement-sweep-reconcile-6-doc-claims-against.md
@@ -256,12 +232,10 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#241] [P2][S] Undeclared-edge groom · tasks/241-undeclared-edge-groom.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
-- [#654] [P2][M] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed · tasks/654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md
 
 ### [S6] Know what depends on code before removing it (ADR-89 computed edges)
 So that a symbol deletion can't silently break a dependent — the code analog of catching doc/spec drift.
 - [#218] [P1][M] Safe-removal gate M2+M3 boundary · DEFER · tasks/218-safe-removal-gate-m2-m3-boundary.md
-- [#659] [P2][S] The `orphan_census` intake names two triggers and one of them does not exist · tasks/659-orphan-census-names-a-trigger-that-does-not-exist.md
 - [#674] [P2][M] `[#563]`'s no-reader test checks a NAME to prove a RELATIONSHIP; it must assert the absence of a `reads` edge · tasks/674-563-s-no-reader-test-checks-a-name-to-prove-a-rela.md
 - [#675] [P2][M] Manifest tooling reads a heterogeneous node list with a bare `.get` default, so every node of the other shape reads as the default · tasks/675-manifest-tooling-reads-a-heterogeneous-node-list.md
 
@@ -271,7 +245,6 @@ So that session-start/close automation actually runs instead of being wired-but-
 - [#117] [P3][S] Evaluate prompt/agent-based hooks · DEFER · tasks/117-evaluate-prompt-agent-based-hooks.md
 - [#189] [P3][S] Execute in ~/.claude · DEFER · tasks/189-execute-in-claude.md
 - [#310] [P3][S] Define the cold-bundle annotation surface + annotate the 07-05 bundle as-cold · DEFER · tasks/310-define-the-cold-bundle-annotation-surface-annota.md
-- [#520] [P2][S] No sanctioned way to retire a committed bundle whose seal is wrong · tasks/520-no-sanctioned-way-to-retire-a-committed-bundle-w.md
 - [#418] [P2][S] `automation/fleet-audit` records 0–10 baselines a day, not one · tasks/418-automation-fleet-audit-records-0-10-baselines-a.md
 - [#454] [P2][S] `closure_ids` negation defect — the parser reads a negated closure mention as a closure · tasks/454-closure-ids-negation-defect-negated-mention-reads.md
 - [#519] [P1][M] The close path is two edits, and nothing makes a half-done close visible · tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md
@@ -334,7 +307,6 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#1077] [P2][S] R1b: the whole-graph check refuses cycles and dangling ids · tasks/1077-r1b-the-whole-graph-check-refuses-cycles-and-dangl.md
 - [#1078] [P2][S] R1c: a raw-JSON projection of the records is the browser seat's view · tasks/1078-r1c-a-raw-json-projection-of-the-records-is-the-brow.md
 - [#1079] [P3][S] ADR-122 step 1 remainder: 4 rows' non-canonical Done-when separator breaks the converter · tasks/1079-adr-122-step-1-remainder-four-rows-body-grammar-b.md
-- [#1080] [P3][M] ADR-122 step 1 remainder: eliminate legacy_body carriers (671/671 live rows, 86/86 archive records) · tasks/1080-adr-122-step-1-remainder-eliminate-legacy-body-ca.md
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
 - [#19] [P3][M] Complete the ADR-39 register · DEFER · tasks/19-complete-the-adr-39-register.md
@@ -349,7 +321,6 @@ So that the ADR web is internally consistent.
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
 - [#285] [P3][S] Extend hub freshness gating to PLAYBOOK · DEFER · tasks/285-extend-hub-freshness-gating-to-playbook.md
 - [#300] [P1][M] Hermetization residual d.ii · DEFER · tasks/300-hermetization-residual-d-ii.md
-- [#388] [P3][S] The "10–20 repo" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated · tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md
 - [#526] [P3][S] Root-hygiene audit — which root files MUST be root, which are movable · tasks/526-root-hygiene-audit-which-root-files-must-be-root.md
 
 - [#542] [P3][S] `ARCHITECTURE.md` still claims four `doc_rot` sub-detectors; there are five · tasks/542-architecture-md-still-claims-four-doc-rot-sub-dete.md
@@ -365,7 +336,6 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#621] [P2][L] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration · tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md
 - [#622] [P3][M] Promote README.md into the ADR-38 canonical mandatory set · tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md
 - [#897] [P2][S] ARCHITECTURE.md is 110,357 B live, about seven times its 15 KB target -- and its down-22-percent figure pointed the wrong way across five surfaces · tasks/897-architecture-md-is-110-357-b-live-seven-times-its.md
-- [#903] [P2][M] The audit corpus has no retention rule -- what is an audit for after its arc closes, and what retires it · tasks/903-the-audit-corpus-has-no-retention-rule-what-is-a.md
 ---
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
@@ -392,7 +362,6 @@ So that "open any repo, same layout/governance" actually holds.
 - [#331] [P2][S] Consumer BACKLOG schema adoption ruling · DEFER · tasks/331-consumer-backlog-schema-adoption-ruling.md
 - [#332] [P2][M] Fleet dependency-version parity · DEFER · tasks/332-fleet-dependency-version-parity.md
 - [#609] [P2][S] Free ruff ratchet — the zero-cost half of the Python standard · tasks/609-free-ruff-ratchet-the-zero-cost-python-standard.md
-- [#343] [P3][S] fleet_parity ship-gate-only scoping · tasks/343-fleet-parity-ship-gate-only-scoping.md
 - [#342] [P3][S] fleet_parity gate-ahead max-fidelity hardening · tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md
 - [#351] [P3][M] Fleet-Python-upgrade ticket · tasks/351-fleet-python-upgrade-ticket.md
 - [#430] [P2][M] Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject · tasks/430-consumer-template-rejects-root-conftest-py-fleet.md
@@ -406,7 +375,6 @@ So that the consumer-facing live surface reflects CURRENT state — hub-deprecat
 - [#690] [P2][S] The three SUPERSEDED `block-onedrive` hook copies under `~/.claude/hooks/` — removed, and the removal recorded in-repo · tasks/690-three-superseded-l0-hook-copies-removed-batch-w-w5.md
 - [#734] [P1][M] Cleanup is an act, not a note -- the census's 35 non-live items each get DELETE, TRIGGER or KEEP, as one file for one operator GO · tasks/734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md
 - [#736] [P2][M] Component lifecycle is not data, so nothing can deprecate an organ — an item untriggered and unread for 30 days stays `production` forever · tasks/736-component-lifecycle-as-data-and-automatic-deprecation.md
-- [#745] [P1][M] The domain census's 16 UNKNOWN items are resolved to a live/non-live verdict by a second pass rather than carried forward · tasks/745-the-sixteen-unknown-census-items-are-resolved-by-a-second-pass.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
@@ -434,14 +402,10 @@ So that cognitive overhead per session drops.
 - [#581] [P1][L] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) · tasks/581-backlog-vitals-three-flow-instruments-a-committe.md
 - [#582] [P1][L] Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D) · tasks/582-substrate-router-one-gated-enum-a-capability-key.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
-- [#598] [P3][S] P-6 — a slow-marker selector so tiered gating has something to select on · tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md
 - [#618] [P2][M] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild · tasks/618-the-silently-stale-codespace-clone-detection-and.md
 - [#623] [P2][S] Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect · tasks/623-mechanize-the-journal-anchor-record-line.md
 - [#625] [P1][M] The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it · tasks/625-the-rule-adherence-eval-corpus-fresh.md
 - [#632] [P1][L] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on · tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md
-- [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
-- [#646] [P3][S] The ceremony ratio was measured once, by hand, and nothing computes it · tasks/646-substantive-commit-share-is-measured-once-by-hand.md
-- [#658] [P2][M] Fourteen operator points on the critical path, nine of them mechanisable, and nothing counts them · tasks/658-fourteen-operator-points-nine-mechanisable-nothing-counts.md
 - [#694] [P1][M] Four telemetry modules are inventory rather than harness -- each gets a trigger or is deleted, and the roster allows no third state · tasks/694-four-telemetry-modules-are-inventory-each-gets-a-trigger-or-is-deleted.md
 - [#697] [P1][M] A detached codespace lane returns ZERO WORK and returns it quietly -- two nights of it, and nothing decides whether the substrate is repaired or retired · tasks/697-codespace-detached-lane-returns-zero-work-and-nothing-decides-repair-or-retire.md
 - [#703] [P1][S] Impacted-test selection can read an empty selection as "nothing impacted" -- the one reading that turns a selector into a silent skip · tasks/703-impacted-test-selection-empty-selection-must-fail-closed.md
@@ -468,7 +432,6 @@ So that cognitive overhead per session drops.
 - [#911] [P1][S] A gate whose precondition is passing that same gate -- the silent-rule ratchet cannot accept an operator-approved raise until the raise is already pushed · tasks/911-a-gate-whose-precondition-is-passing-that-same-gat.md
 - [#912] [P1][M] main is RED on its own -- 45 live-state tests fail independently of every lane merged in night wave 2, with no owner · tasks/912-main-is-red-on-its-own-45-live-state-tests-fail-i.md
 - [#913] [P2][S] Duplicate JOURNAL day-letter 2026-09-18 (f) is on main -- audit journal_day_letters FAILs · tasks/913-duplicate-journal-day-letter-2026-09-18-f-is-on-ma.md
-- [#914] [P1][M] The transport is unreachable whenever H: is not mounted -- a post-hook must deliver to-browser artifacts regardless of mount, and refuse loudly instead of reporting success after writing to Downloads · tasks/914-the-transport-is-unreachable-whenever-h-is-not-mo.md
 - [#915] [P1][M] AM-5's premise is falsified -- a --bg lane launched from inside a session DOES get its own Agent View row, on the host, twice · tasks/915-am-5-s-premise-is-falsified-a-session-launched-bg.md
 - [#916] [P1][M] A lane deleted another lane's LIVE worktree -- the harness lock refuses remove, and was defeated by an explicit unlock · tasks/916-a-lane-deleted-another-lane-s-live-worktree-the-lo.md
 - [#917] [P2][S] Our own docs are wrong about the worktree lock -- a locked remove is a loud fatal (exit 128), not a silent no-op · tasks/917-our-own-docs-are-wrong-about-the-worktree-lock-rem.md
@@ -492,13 +455,11 @@ So that cognitive overhead per session drops.
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
 - [#123] [P2][S] Routine observability convention + value review · DEFER · tasks/123-routine-observability-convention-value-review.md
-- [#387] [P2][S] Rewrite the buy-vs-build intake BEFORE anything ingests it · tasks/387-rewrite-the-buy-vs-build-intake-before-anything.md
 - [#440] [P2][S] Make the `tasks/` id ledger tamper-evident — a deleted retired record is undetectable · tasks/440-make-the-tasks-id-ledger-tamper-evident-a-delete.md
 - [#523] [P2][M] Executive-index render leg on the generated `BACKLOG.md` · tasks/523-executive-index-render-leg-on-generated-backlog.md
 - [#492] [P3][S] Grok review-lane acceptance — gated ≥ 2026-08-07, measured against terra on the same diffs · DEFER · tasks/492-grok-review-lane-acceptance-gated-2026-08-07-mea.md
 - [#491] [P3][S] Gemini scanning lane — ruling R-G plus an acceptance contract · DEFER · tasks/491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md
 - [#753] [P2][M] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry · tasks/753-the-supervised-non-claude-producer-trial.md
-- [#832] [P3][M] Re-run the three-repo comparison against the operator's named repositories · tasks/832-copilot-collections-comparison-rerun.md
 - [#885] [P1][M] The model a contract declares is the model that RUNS — resolved at freeze, verified off the transcript, refused on the receipt, with the default by lane kind in the generator · tasks/885-the-model-a-contract-declares-is-the-model-that-r.md
 
 - [#570] [P2][L] Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger · tasks/570-consume-the-tech-adoption-ledger-w-wave.md
@@ -508,8 +469,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#567] [P2][M] CX53 daily-driver substrate lane — the every-prompt requirement, carried under `[#561]` · tasks/567-cx53-daily-driver-substrate-lane-the-every-prompt-r.md
 - [#580] [P1][M] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) · tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md
 - [#627] [P2][M] The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates · tasks/627-agy-route-is-inert-no-row-authorizes-analysis-admission.md
-- [#660] [P3][M] S-15 — the AJ tools-and-evals table is the one deliverable of that arc still owed · tasks/660-s-15-the-aj-tools-and-evals-table-was-never-produced.md
-- [#661] [P3][M] SDA-1 is a complete benchmark design that has never been run · tasks/661-sda-1-is-a-complete-benchmark-design-that-never-ran.md
 - [#696] [P2][M] M03 leg 1a ran to captured stdout with UNVERIFIED locators and one silent empty write, so the practices it produced rest on evidence nobody can re-open · tasks/696-m03-leg-1a-re-run-stdout-capture-unverified-locators-silent-empty-write.md
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
@@ -534,7 +493,6 @@ So that unattended routines run only with a named consumer, a survival metric, a
 - [#673] [P2][S] Six batch-V suite REDs are unattributed, and only a same-substrate run on the pre-batch commit can attribute them · tasks/673-six-batch-v-suite-reds-are-unattributed-and-only-a.md
 - [#702] [P1][M] The repo declares zero `cron:` and zero `schedule:`, so the nightly layer `[S20]` exists to revive has nothing to revive · tasks/702-zero-cron-zero-schedule-the-nightly-layer-has-nothing-to-revive.md
 - [#723] [P1][M] Nothing reads the logs, so a model that silently stops delivering costs a whole night before anyone notices -- a log-review routine that files its own anomalies · tasks/723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md
-- [#732] [P1][S] Ratification #7: a committing lane runs LOCAL overnight only, and during working hours it waits for the night or for conductor E · tasks/732-committing-lanes-run-local-overnight-only-ratification-7-honoured.md
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 
@@ -560,7 +518,6 @@ So that the three items carried out of the night-audit cycle stop living only in
 So that the four-state ledger's first measurement produces tickets rather than a report nobody acts on — each finding gets a done-when, and the two findings the four-state model cannot express are named as such.
 - [#357] [P2][M] Silent-rule census run 2 · tasks/357-silent-rule-census-run-2.md
 - [#359] [P1][M] PHANTOM ENFORCEMENT — `protocols/HANDOFF_PROCESS.md` §14a FILE-BOUNDARY claims a mechanism that does not exist. · tasks/359-phantom-enforcement-protocols-handoff-process-md.md
-- [#402] [P3][S] Intake naming clause — DEPLOY the `YYYY-MM-DD-<class>-<slug>` half of the enum ruling · tasks/402-intake-naming-clause-deploy-the-yyyy-mm-dd-class.md
 - [#361] [P3][S] ADR-immutability's real coverage is declared only in code, never in the protocol · tasks/361-adr-immutability-s-real-coverage-is-declared-onl.md
 - [#362] [P2][M] #242 carries a SUBSTANTIVE guard loss, not status hygiene · tasks/362-242-carries-a-substantive-guard-loss-not-status.md
 
@@ -569,8 +526,6 @@ So that the four-state ledger's first measurement produces tickets rather than a
 
 - [#371] [P2][S] Consumer editor-config write-through — declared at v1.4.0, never built, never ticketed · tasks/371-consumer-editor-config-write-through-declared-at.md
 - [#400] [P3][S] Ownership-model: the hub-mandated-STRUCTURE / repo-owned-CONTENT cell (rosters) — same ruling family as [#370] · tasks/400-ownership-model-the-hub-mandated-structure-repo.md
-- [#413] [P2][S] Colors semantics — visually distinguish global/hub-managed vs per-repo content in governed markdown (declared ai-council interim) · tasks/413-colors-semantics-visually-distinguish-global-hub.md
-- [#448] [P2][S] A11 staged-diff guard — cover EVERY candidate bundle, not just the active one · tasks/448-a11-staged-diff-guard-cover-every-candidate-bun.md
 
 ---
 
@@ -592,8 +547,6 @@ So that a wave closes on a report rather than on a claim — the operator stops 
 
 ### [S26] Mine our own history before predicting anything
 So that "the repo learns us" starts as a cheap descriptive lane on real data, not as an ML platform bought ahead of the evidence.
-- [#392] [P3][S] fleet_analytics rename-alias loses history on path-reuse · tasks/392-fleet-analytics-rename-alias-loses-history-on-pa.md
-- [#393] [P3][S] corp-sca rot review — confirm-live-or-retire 3 candidates · tasks/393-corp-sca-rot-review-confirm-live-or-retire-3-can.md
 
 ### [S27] Make tech-currency a distributed rule, not a one-off
 So that a version bump researched once reaches every repo through the deploy channel instead of dying in a session.
@@ -609,11 +562,9 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1018] [P2][M] launcher-fixes: Copilot usage governance has no reader for --usage-output-file / --output-format json · tasks/1018-launcher-fixes-copilot-usage-governance-has-no-reader-f.md
 - [#1019] [P2][M] hooks-port: the flaky test, the slower sentinel, the bounded_hook gap and the 18 [#802] regressions have no landed digest or row · tasks/1019-hooks-port-the-flaky-test-the-slower-sentinel-the-bound.md
 - [#1020] [P2][S] ci-commit-gate: a ship-gate rerun is owed, and the commit-gate job's first live reds need triage · tasks/1020-ci-commit-gate-a-ship-gate-rerun-is-owed-and-the-commit.md
-- [#1021] [P3][S] trial-gh-issues: stage-2 prior-art scan has no CONTENT_ROOTS entry for decisions/intake · tasks/1021-trial-gh-issues-stage-2-prior-art-scan-has-no-content-r.md
 - [#1022] [P2][S] trial-gh-issues: test_citation_regex_strips_only_real_dated_artifact_identifiers is red on base · tasks/1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md
 - [#1024] [P3][S] integrator: merge_receipt.py reports unknown-tier for every explicit model id · tasks/1024-integrator-merge-receipt-py-reports-unknown-tier-for-ev.md
 - [#1025] [P3][S] integrator: batch_janitor.py has no per-lane scope and resolves receipts under its own checkout · tasks/1025-integrator-batch-janitor-py-has-no-per-lane-scope-and-r.md
-- [#1026] [P3][S] integrator: batch_janitor.py reads a removed job as live · tasks/1026-integrator-batch-janitor-py-reads-a-removed-job-as-live.md
 - [#1027] [P2][S] integrator: the watcher self-deadline pattern (an expired Monitor leaves its loop running) needs a harness-level fix, not a per-batch workaround · tasks/1027-integrator-the-watcher-self-deadline-pattern-an-expired.md
 - [#1028] [P3][S] integrator: the moment:batch-close digest organ reads no receipt, treating a whole batch as one lane · tasks/1028-integrator-the-moment-batch-close-digest-organ-reads-no.md
 - [#1029] [P3][S] transport-registry: docs/audits/2026-09-25-codex-transport-registry.md has no consumer · tasks/1029-transport-registry-docs-audits-2026-09-25-codex-transpo.md
@@ -625,46 +576,15 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1035] [P3][S] the 4 never-invoked project entries (preflight, spine, why, conformance-hub) need wiring or removal · tasks/1035-the-4-never-invoked-project-entries-preflight-spine-why.md
 - [#1036] [P3][S] run /doctor interactively once, per STANDING_RULINGS AL-B10 · tasks/1036-run-doctor-interactively-once-per-standing-rulings-al-b.md
 - [#1037] [P2][M] the HANDOFF_BOOT integrator section is still not landed -- needs byte headroom first · tasks/1037-the-handoff-boot-integrator-section-is-still-not-landed.md
-- [#1038] [P3][S] DIGEST-HANDOFF-DESIGN-2026-09-25 (the handoff-design research lane) has not landed · tasks/1038-digest-handoff-design-2026-09-25-the-handoff-design-res.md
-- [#1039] [P2][M] the execution-provenance mechanism (DECLARE-HARNESS-PROVENANCE-2026-09-08) is still LIVE, grandfathered 16+ days · tasks/1039-the-execution-provenance-mechanism-declare-harness-prov.md
 - [#1040] [P2][S] the five operator judging rules (DECLARE-OPERATOR-FEEDBACK-2026-09-24) are not in STANDING_RULINGS · tasks/1040-the-five-operator-judging-rules-declare-operator-feedba.md
-- [#1041] [P3][M] the seat-knowledge table (DECLARE-SEAT-KNOWLEDGE-2026-09-24) has not landed under docs/audits/ · tasks/1041-the-seat-knowledge-table-declare-seat-knowledge-2026-09.md
 - [#1042] [P3][S] AC-NOT-CLOSED residue: the operator ruling on machine time vs operator latency has no home · tasks/1042-ac-not-closed-residue-the-operator-ruling-on-machine-ti.md
 - [#1043] [P3][M] AC-NOT-CLOSED residue R11: re-key the Stop-hook exemption on the seat registry plus a counter · tasks/1043-ac-not-closed-residue-r11-re-key-the-stop-hook-exemptio.md
-- [#1044] [P3][S] CENSUS-VERDICTS W14: no keep-or-retire row exists for the ten uncalled organs · tasks/1044-census-verdicts-w14-no-keep-or-retire-row-exists-for-th.md
 - [#1045] [P3][S] CENSUS-VERDICTS W16: the 17% no-organ sessions have no row · tasks/1045-census-verdicts-w16-the-17-no-organ-sessions-have-no-ro.md
-- [#1046] [P3][S] CENSUS-VERDICTS W17: the class-named-organ blind spot has no row · tasks/1046-census-verdicts-w17-the-class-named-organ-blind-spot-ha.md
 - [#1047] [P3][M] AJ C-1: a closed root-cause enum (9-category agent error taxonomy) belongs beside severity in review_packet.py's verdict schema · tasks/1047-aj-c-1-a-closed-root-cause-enum-9-category-agent-error.md
 - [#1048] [P3][M] AJ C-2: per-lane process efficiency (VSM work over cycle time) is not computed by lane_cost.py · tasks/1048-aj-c-2-per-lane-process-efficiency-vsm-work-over-cycle.md
 - [#1049] [P3][S] AJ C-3: a Responder/Observer rollout rule for future autonomous agents has no PLAYBOOK paragraph · tasks/1049-aj-c-3-a-responder-observer-rollout-rule-for-future-aut.md
-- [#1050] [P3][S] AJ C-4: the 5-criteria task filter (real/recent/representative/full/production) has no rubric for seeding frozen contracts · tasks/1050-aj-c-4-the-5-criteria-task-filter-real-recent-represent.md
-- [#1051] [P3][S] AJ C-5: "true throughput" / DXI is blocked -- flagged, not built, pending the retired trend dashboard · tasks/1051-aj-c-5-true-throughput-dxi-is-blocked-flagged-not-built.md
-- [#1052] [P3][S] AJ C-6: the Maister commit 4151c9c4d (2026-09-22) diff has not been read · tasks/1052-aj-c-6-the-maister-commit-4151c9c4d-2026-09-22-diff-has.md
-- [#1053] [P3][M] AJ C-7: the 09-21 AJ companion digests are not landed or indexed against the current repo · tasks/1053-aj-c-7-the-09-21-aj-companion-digests-are-not-landed-or.md
-- [#1054] [P3][S] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 · tasks/1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md
 - [#1101] [P3][S] logs/KNOWN-REDS-REGISTRY.json: the 4 'environment-mismatch' members no longer reproduce · tasks/1101-known-reds-registry-environment-mismatch-attribution-i.md
-- [#1102] [P3][S] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 · tasks/1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md
 - [#1104] [P2][S] Dispose ADR-127: carried to WAVE5B-N5 planning · tasks/1104-dispose-adr-127-carried-to-wave5b-n5-planning.md
-- [#1105] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25: carried to WAVE5B-N5 planning · tasks/1105-dispose-amend-batch-wave5b-n2-queue-2026-09-25-carried-to-wave5b-n5-planning.md
-- [#1106] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25: carried to WAVE5B-N5 planning · tasks/1106-dispose-amend-batch-wave5b-n2-queue2-2026-09-25-carried-to-wave5b-n5-planning.md
-- [#1107] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25: carried to WAVE5B-N5 planning · tasks/1107-dispose-amend-batch-wave5b-n2-queue3-2026-09-25-carried-to-wave5b-n5-planning.md
-- [#1108] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25: carried to WAVE5B-N5 planning · tasks/1108-dispose-amend-batch-wave5b-n2-queue4-2026-09-25-carried-to-wave5b-n5-planning.md
-- [#1109] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25: carried to WAVE5B-N5 planning · tasks/1109-dispose-amend-batch-wave5b-n2-queue6-2026-09-25-carried-to-wave5b-n5-planning.md
-- [#1110] [P2][S] Dispose AMEND-BATCH-WAVE5B-N4-HANDOFF-MIN-2026-09-27: carried to WAVE5B-N5 planning · tasks/1110-dispose-amend-batch-wave5b-n4-handoff-min-2026-09-27-carried-to-wave5b-n5-planning.md
-- [#1111] [P2][S] Dispose AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28: carried to WAVE5B-N5 planning · tasks/1111-dispose-amend-batch-wave5b-n4-redispatch-2026-09-28-carried-to-wave5b-n5-planning.md
-- [#1112] [P2][S] Dispose AMEND-BATCH-night-2026-09-17: carried to WAVE5B-N5 planning · tasks/1112-dispose-amend-batch-night-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1113] [P2][S] Dispose AMEND-DISPATCH-UNBLOCK-2026-09-17: carried to WAVE5B-N5 planning · tasks/1113-dispose-amend-dispatch-unblock-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1114] [P2][S] Dispose AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20: carried to WAVE5B-N5 planning · tasks/1114-dispose-amend-handoff-boot-integrator-section-2026-09-20-carried-to-wave5b-n5-planning.md
-- [#1115] [P2][S] Dispose AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1115-dispose-amend-model-routing-and-scope-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1116] [P2][S] Dispose AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17: carried to WAVE5B-N5 planning · tasks/1116-dispose-amend-night-order-consolidated-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1117] [P2][S] Dispose AMEND-NIGHT-SALVAGE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1117-dispose-amend-night-salvage-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1118] [P2][S] Dispose AMEND-ORGAN-USE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1118-dispose-amend-organ-use-2026-09-17-carried-to-wave5b-n5-planning.md
-- [#1119] [P2][S] Dispose DECLARE-CENSUS-VERDICTS-2026-09-18: carried to WAVE5B-N5 planning · tasks/1119-dispose-declare-census-verdicts-2026-09-18-carried-to-wave5b-n5-planning.md
-- [#1120] [P2][S] Dispose DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18: carried to WAVE5B-N5 planning · tasks/1120-dispose-declare-lane-handback-contract-2026-09-18-carried-to-wave5b-n5-planning.md
-- [#1121] [P2][S] Dispose DECLARE-OPERATOR-FEEDBACK-2026-09-24: carried to WAVE5B-N5 planning · tasks/1121-dispose-declare-operator-feedback-2026-09-24-carried-to-wave5b-n5-planning.md
-- [#1122] [P2][S] Dispose DECLARE-SEAT-KNOWLEDGE-2026-09-24: carried to WAVE5B-N5 planning · tasks/1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md
-- [#1125] [P2][S] N5: absorb or retire the claude/conformance-* digest branches · tasks/1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md
-- [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 - [#1331] [P1][L] The equilibrium's ruling register and cross-window state move into the repository · tasks/1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md
 - [#1333] [P2][S] logs/QUOTA-READS.jsonl is tracked and dirty in every primary session; its home is per-user state · tasks/1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md
@@ -672,7 +592,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1335] [P2][M] Codespace parity: a lane there works only when one task meets five parity items, and none has been measured · tasks/1335-codespace-parity-a-lane-there-works-only-when-on.md
 - [#1336] [P3][S] The integrator template says "repair N of 2" and "a lane refused twice is FAILED" two lines apart · tasks/1336-the-integrator-template-says-repair-n-of-2-and-a.md
 - [#1337] [P2][S] No step tears down the integrator's own worktree, branch, job and claim · tasks/1337-no-step-tears-down-the-integrator-s-own-worktree.md
-- [#1338] [P2][S] The batch template says no scheduled wake-ups; the batch practice is CronCreate and never ScheduleWakeup · tasks/1338-the-batch-template-says-no-scheduled-wake-ups-th.md
 - [#1339] [P3][S] P8a: a SUPPLEMENT answer cites a ruling, not a path · tasks/1339-p8a-a-supplement-answer-cites-a-ruling-not-a-pat.md
 - [#1340] [P2][S] tests/test_boot_retrieval.py: the tracked boot base is 41,174 B against a 40,000 B ceiling and still growing · tasks/1340-tests-test-boot-retrieval-py-the-tracked-boot-ba.md
 - [#1341] [P2][S] tests/test_generator_newlines.py: 15 text writes in scripts/ inherit platform newline translation, and the count is growing · tasks/1341-tests-test-generator-newlines-py-15-text-writes.md
@@ -681,8 +600,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
-- [#1360] [P1][L] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial · tasks/1360-d1-is-the-first-real-backlog-task-through-the-spin.md
-- [#1361] [P1][L] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work · tasks/1361-the-harness-is-one-process-with-one-writer-every-s.md
 - [#1362] [P1][L] A removal engine finds what is no longer current and brings it to removal, and it outranks new features · tasks/1362-a-removal-engine-finds-what-is-no-longer-current-a.md
 - [#1363] [P1][L] False positives have a mechanism each: detect, diagnose and repair, or stop and leave the operator the decision · tasks/1363-false-positives-have-a-mechanism-each-detect-diagn.md
 - [#1364] [P2][M] HANDOFF_BOOT carries the browser seat's role and the fresh-session default, and SEAT-LESSONS lesson 11 is corrected · tasks/1364-handoff-boot-carries-the-browser-seat-s-role-and-t.md
@@ -690,16 +607,13 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1366] [P1][L] A Codespace lane is production only when the five end-to-end conditions hold on three consecutive runs · tasks/1366-a-codespace-lane-is-production-only-when-the-five.md
 - [#1367] [P1][L] The integrator merges only on a green CI verdict for the exact sha, and main is protected by an enabled ruleset · tasks/1367-the-integrator-merges-only-on-a-green-ci-verdict-f.md
 - [#1368] [P1][M] Every lane's fate is computed and the batch-close report lists them, failures first · tasks/1368-every-lane-s-fate-is-computed-and-the-batch-close.md
-- [#1369] [P2][L] The R66 retire-table acts are executed one by one, each under R59's dynamic-use check · tasks/1369-the-r66-retire-table-acts-are-executed-one-by-one.md
 - [#1370] [P1][L] Volatile facts have one source and every copy is generated, and the handoff boot's version follows its content · tasks/1370-volatile-facts-have-one-source-and-every-copy-is-g.md
 - [#1371] [P1][M] Transport files follow one grammar with one live file per subject, and a generated index and a non-deleting janitor keep it so · tasks/1371-transport-files-follow-one-grammar-with-one-live-f.md
 - [#1372] [P1][L] The CI OS policy runs as accepted and is measured before and after, and reverted if any measure worsens · tasks/1372-the-ci-os-policy-runs-as-accepted-and-is-measured.md
 - [#1373] [P1][L] Every handoff is boot-tested before the cut and teaches: SEAT-LESSONS, the seat exam and the teach-back are part of it · tasks/1373-every-handoff-is-boot-tested-before-the-cut-and-te.md
 - [#1374] [P1][L] All dispatch lives in the hub for local, Codespace and cloud, win-tooling keeps at most a shim, and an ADR amends R11(3) · tasks/1374-all-dispatch-lives-in-the-hub-for-local-codespace.md
 - [#1375] [P2][M] Skills and commands are kept by the problem they solve, and Anthropic's built-ins are reviewed on a routine · tasks/1375-skills-and-commands-are-kept-by-the-problem-they-s.md
-- [#1377] [P1][L] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness · tasks/1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md
 - [#1378] [P1][S] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded · tasks/1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md
-- [#1379] [P2][S] The rclone Drive token expiry row has a named owner, so R57 is carried by a row someone holds · tasks/1379-the-rclone-drive-token-expiry-row-has-a-named-owne.md
 - [#1383] [P2][M] The Linux pytest leg runs in at most 420 s on two consecutive push runs, carried from B2-W1 W1-3's unmet Done item 4 · tasks/1383-the-linux-pytest-leg-runs-in-at-most-420-s-carried-from-b2-w1.md
 - [#1385] [P2][M] decision_coverage recognises an AMEND as carried when every lane it adds has merged · tasks/1385-decision-coverage-recognises-an-amend-carried-by-its-merged-lanes.md
 - [#1386] [P2][M] The cut generator names every OPEN carrier in RESIDUAL.md, and a superseded decision file needs no carrying · tasks/1386-the-cut-generator-names-every-open-carrier-in-residual-md.md
@@ -707,7 +621,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1411] [P2][M] The render refuses a Done-when item that depends on state outside the lane unless the contract names that precondition as a gate · tasks/1411-the-render-refuses-a-done-when-item-whose-outside-precondition-is-not-a-gate.md
 - [#1422] [P1][S] W2 finishes b2-merge-gate's OT-M cases (1) and (3), settles F1, then re-arms the required-checks ruleset · tasks/1422-w2-finishes-ot-m-cases-1-and-3-then-re-arms-the-required-checks-ruleset.md
 - [#1423] [P1][L] W2 resumes lane W1-13 from its archive tag and makes Codespace sign-in match R87 and R88, superseding [#1376] · tasks/1423-w2-resumes-lane-w1-13-from-its-archive-tag-and-makes-codespace-sign-in-match-r87.md
-- [#1424] [P2][M] W2 carries FOUNDATION lane 12: the commit-time hooks R66 moved to CI run as CI jobs · tasks/1424-w2-carries-foundation-lane-12-the-commit-time-hooks-r66-moved-to-ci-run-as-ci-jo.md
 - [#1425] [P1][S] The handoff Dates row takes the cut's declared date, not the local clock · tasks/1425-the-handoff-dates-row-takes-the-cut-s-declared-date-not-the-local-clock.md
 - [#1426] [P2][S] BD-ci gives a different answer for the same sha within twenty minutes · tasks/1426-bd-ci-gives-a-different-answer-for-the-same-sha-within-twenty-minutes.md
 - [#1427] [P2][S] BD-ci counts pre-existing gate-job reds as new reds because it reads CI with no baseline · tasks/1427-bd-ci-counts-pre-existing-gate-job-reds-as-new-reds-because-it-reads-ci-with-no.md
@@ -744,41 +657,15 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1481] [P2][S] test_filled_waiver_refuses_a_malformed_seats_row reads live CI state, so it reds on the windows runner · tasks/1481-filled-waiver-malformed-seats-row-test-reads-live-ci-state.md
 - [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
 - [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
-- [#1510] [P3][S] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned · tasks/1510-lane-bw-1001-hook-launcher-has-no-consumer.md
-- [#1511] [P3][S] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned · tasks/1511-lane-bw-1001-sessionstart-one-has-no-consumer.md
-- [#1512] [P3][S] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned · tasks/1512-lane-bw-1103-registry-repoint-has-no-consumer.md
-- [#1513] [P3][S] LANE-bw-1368-lane-report-rollup.md has no consumer -- its finding is owned or dispositioned · tasks/1513-lane-bw-1368-lane-report-rollup-has-no-consumer.md
-- [#1514] [P3][S] LANE-bw-1374-lane-controller.md has no consumer -- its finding is owned or dispositioned · tasks/1514-lane-bw-1374-lane-controller-has-no-consumer.md
-- [#1515] [P3][S] LANE-bw-1378-rulings-landing.md has no consumer -- its finding is owned or dispositioned · tasks/1515-lane-bw-1378-rulings-landing-has-no-consumer.md
-- [#1516] [P3][S] LANE-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1516-lane-bw-1439-transport-index-has-no-consumer.md
-- [#1517] [P3][S] LANE-bw-1447-distill-kind-fix.md has no consumer -- its finding is owned or dispositioned · tasks/1517-lane-bw-1447-distill-kind-fix-has-no-consumer.md
-- [#1518] [P3][S] LANE-bw-1450-boot-teaching.md has no consumer -- its finding is owned or dispositioned · tasks/1518-lane-bw-1450-boot-teaching-has-no-consumer.md
-- [#1519] [P3][S] LANE-bw-242-adr-lifecycle.md has no consumer -- its finding is owned or dispositioned · tasks/1519-lane-bw-242-adr-lifecycle-has-no-consumer.md
-- [#1520] [P3][S] LANE-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned · tasks/1520-lane-bw-670-harness-probes-has-no-consumer.md
-- [#1521] [P3][S] LANE-bw-680-handoff-gen.md has no consumer -- its finding is owned or dispositioned · tasks/1521-lane-bw-680-handoff-gen-has-no-consumer.md
-- [#1522] [P3][S] LANE-bw-735-reuse-gate.md has no consumer -- its finding is owned or dispositioned · tasks/1522-lane-bw-735-reuse-gate-has-no-consumer.md
-- [#1523] [P3][S] LANE-bw-781-system-map.md has no consumer -- its finding is owned or dispositioned · tasks/1523-lane-bw-781-system-map-has-no-consumer.md
-- [#1524] [P3][S] LANE-bw-893-b2w3-carry.md has no consumer -- its finding is owned or dispositioned · tasks/1524-lane-bw-893-b2w3-carry-has-no-consumer.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
-- [#1526] [P3][S] LANE-bw-926-main-red.md has no consumer -- its finding is owned or dispositioned · tasks/1526-lane-bw-926-main-red-has-no-consumer.md
-- [#1527] [P3][S] LANE-bw-958-required-tools.md has no consumer -- its finding is owned or dispositioned · tasks/1527-lane-bw-958-required-tools-has-no-consumer.md
-- [#1528] [P3][S] 2026-10-10-codex-b2w2-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1528-2026-10-10-codex-b2w2-transport-index-has-no-consumer.md
-- [#1529] [P3][S] 2026-10-13-codex-bw-1439-transport-index.md has no consumer -- its finding is owned or dispositioned · tasks/1529-2026-10-13-codex-bw-1439-transport-index-has-no-consumer.md
-- [#1530] [P3][S] 2026-10-13-codex-lane-bw-670-harness-probes.md has no consumer -- its finding is owned or dispositioned · tasks/1530-2026-10-13-codex-lane-bw-670-harness-probes-has-no-consumer.md
-- [#1531] [P3][S] 2026-10-13-technical-lane-bw-1001-sessionstart-measurement.md has no consumer -- its finding is owned or dispositioned · tasks/1531-2026-10-13-technical-lane-bw-1001-sessionstart-measurement-has-no-consumer.md
-- [#1532] [P3][S] 2026-10-13-verification-harness-probes-receipts.md has no consumer -- its finding is owned or dispositioned · tasks/1532-2026-10-13-verification-harness-probes-receipts-has-no-consumer.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
 - [#1534] [P1][S] ci_verdict's known_reds step window overlaps the retired gate step within one second and reads its REGRESSION lines · tasks/1534-ci-verdicts-known-reds-step-window-overlaps-the-retired-gate-step-within-one-second.md
 - [#1536] [P1][M] Provider routing follows R104: implement Copilot first, red/qa/judge roles, priced 5-5 models, one source for model ids · tasks/1536-provider-routing-follows-r104-copilot-first-priced-5-5-models.md
 - [#1537] [P1][M] The Codespace lane path finishes (the judge's carry-forward 1-6) and agy signs in by an operator link (R110) · tasks/1537-the-codespace-lane-path-finishes-and-agy-signs-in-by-a-link.md
 - [#1540] [P1][S] conductor's concurrency group is keyed by ref only, so a scheduled run on main cancels main's push verdict · tasks/1540-conductors-concurrency-group-lets-a-schedule-run-cancel-mains-push-verdict.md
 - [#1619] [P1][S] A dependency on another session's event is a WAIT, never a skip (night contract N1) · tasks/1619-a-dependency-on-another-sessions-event-is-a-wait-never-a-skip-n1.md
-- [#1620] [P1][S] A session ends only when every part is DONE or BLOCKED-WITH-OWNER, or its stop condition fires (night contract N2) · tasks/1620-a-session-ends-only-when-every-part-is-done-or-blocked-with-owner-n2.md
-- [#1621] [P1][S] END-EARLY is an alarm: first line of the report plus a proactive send to the operator (night contract N3) · tasks/1621-end-early-is-an-alarm-the-report-first-line-and-a-proactive-send-n3.md
-- [#1622] [P1][M] A POST-CLOSE list the integrator reads every wake and executes at batch close (night contract N4) · tasks/1622-a-post-close-list-the-integrator-reads-every-wake-and-executes-at-close-n4.md
 - [#1623] [P1][M] plan_lint refuses a batch or night order whose dependent part names no trigger and no wait mechanism, or says "do not poll" without an armed wake (night contract N5) · tasks/1623-plan-lint-refuses-a-batch-or-night-order-whose-dependent-part-names-no-trigger-n5.md
-- [#1624] [P3][S] test_manifest_link_route's class-enum assert compares by identity, so a module reload by an earlier test in the same xdist worker reds it · tasks/1624-test-manifest-link-route-asserts-equality-not-identity-after-a-module-reload.md
 - [#1551] [P1][L] A Codespace lane carries a per-phase heartbeat, and six injected failures are detected and recovered without the operator · tasks/1551-codespace-heartbeat-and-six-injected-failures.md
 - [#1552] [P2][M] Every Codespace credential has a recorded class, issuer, expiry policy and renewal act, checked at creation · tasks/1552-codespace-credential-lifetime-register.md
 - [#1553] [P2][M] Codespace lanes run two, then six at once, each monitored, inside a declared core-hour cap · tasks/1553-codespace-concurrency-two-then-six.md
@@ -804,17 +691,13 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1580] [P2][S] Explicit model ids (`claude-opus-5-5`, `claude-sonnet-5-5`) resolve in every reader: family, enum, price and receipt · tasks/1580-explicit-model-ids-claude-opus-5-5-claude-sonnet-5-5-resolve-in-every-reader-family-enum-p.md
 - [#1581] [P1][M] CI jobs report what they ran: a not-run job is not success, and the heartbeat, handoff-manifest and commit-gate jobs are green on main · tasks/1581-ci-jobs-report-what-they-ran-a-not-run-job-is-not-success-and-the-heartbeat-handoff-manife.md
 - [#1582] [P2][S] `test_every_committed_record_still_proves_out` proves all 86 archived row bodies · tasks/1582-test-every-committed-record-still-proves-out-proves-all-86-archived-row-bodies.md
-- [#1584] [P2][M] The `[#863]` lane's owed items are rows: CI-environment owner, audit health, funnel and proof-layer baselines, canonical_docs derived leg · tasks/1584-the-863-lane-s-owed-items-are-rows-ci-environment-owner-audit-health-funnel-and-proof-laye.md
 - [#1585] [P3][S] Provider census probes only providers that exist, and each probe answers or says why · tasks/1585-provider-census-probes-only-providers-that-exist-and-each-probe-answers-or-says-why.md
-- [#1586] [P2][S] The provider checker is re-run from a writable seat and its DISAGREEs are resolved · tasks/1586-the-provider-checker-is-re-run-from-a-writable-seat-and-its-disagrees-are-resolved.md
-- [#1587] [P2][S] The handoff-digest checker is re-run from a seat with a writable uv cache, covering all five bar rows · tasks/1587-the-handoff-digest-checker-is-re-run-from-a-seat-with-a-writable-uv-cache-covering-all-fiv.md
 - [#1588] [P1][M] A hook DECLARED BROKEN is disarmed by `bounded_hook.py`, not only reported (R109) · tasks/1588-a-hook-declared-broken-is-disarmed-by-bounded-hook-py-not-only-reported-r109.md
 - [#1589] [P2][M] Hook and gate roster claims match the config: ruff, seal-identity, lane-contract-check, decision-coverage · tasks/1589-hook-and-gate-roster-claims-match-the-config-ruff-seal-identity-lane-contract-check-decisi.md
 - [#1590] [P2][M] Each of the 21 DEAD organs and 11 UNEXPLAINED files is used, wired or removed (R112) · tasks/1590-each-of-the-21-dead-organs-and-11-unexplained-files-is-used-wired-or-removed-r112.md
 - [#1591] [P1][M] The generated handoff carries a branch-fate table, the defect register and the live seat/session map · tasks/1591-the-generated-handoff-carries-a-branch-fate-table-the-defect-register-and-the-live-seat-se.md
 - [#1592] [P3][S] `session_start.py` starts no detached fleet_health producer outside the worktree, and the producer completes a pass · tasks/1592-session-start-py-starts-no-detached-fleet-health-producer-outside-the-worktree-and-the-pro.md
 - [#1593] [P2][M] Handoff docs stop contradicting each other: v5/v6 prose, the R30 conflict, four seats, three queue verbs, dispatcher routing · tasks/1593-handoff-docs-stop-contradicting-each-other-v5-v6-prose-the-r30-conflict-four-seats-three-q.md
-- [#1594] [P3][S] Phase-0 residuals: R48 last-ran print, `lane_report.py`, stale ADR-121/ADR-125, Actions-minutes gauge and heartbeat timezone label · tasks/1594-phase-0-residuals-r48-last-ran-print-lane-report-py-stale-adr-121-adr-125-actions-minutes.md
 - [#1595] [P3][M] The cloud and interactive substrates have a launcher or are removed (R112) · tasks/1595-the-cloud-and-interactive-substrates-have-a-launcher-or-are-removed-r112.md
 - [#1596] [P1][M] The `merge` moment fires on a real merge and leaves a receipt per organ, or is removed · tasks/1596-the-merge-moment-fires-on-a-real-merge-and-leaves-a-receipt-per-organ-or-is-removed.md
 - [#1597] [P2][S] The `lane-start` moment has a caller and fires on a real lane start, or is removed · tasks/1597-the-lane-start-moment-has-a-caller-and-fires-on-a-real-lane-start-or-is-removed.md
@@ -824,13 +707,11 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1601] [P2][S] The three guards that expired 2026-10-08 are each used or removed: `block_immutable_edits.py`, the prompts-guard sweep, `logs_retention.py` · tasks/1601-the-three-guards-that-expired-2026-10-08-are-each-used-or-removed-block-immutable-edits-py.md
 - [#1602] [P3][S] `deny_and_point.py` is wired and fires on a real denied call, or is removed · tasks/1602-deny-and-point-py-is-wired-and-fires-on-a-real-denied-call-or-is-removed.md
 - [#1603] [P3][S] `hook_watchdog.py` kills a real hung hook and logs it, or is removed · tasks/1603-hook-watchdog-py-kills-a-real-hung-hook-and-logs-it-or-is-removed.md
-- [#1604] [P2][S] The CI job `terra` runs with a credential or is removed · tasks/1604-the-ci-job-terra-runs-with-a-credential-or-is-removed.md
 - [#1605] [P2][M] Each of the 70 `fates:` scripts is wired, dated or removed; the 11 with expired dates first · tasks/1605-each-of-the-70-fates-scripts-is-wired-dated-or-removed-the-11-with-expired-dates-first.md
 - [#1606] [P1][M] The CRUD sandbox QA suite (LEDGER v32 lane 22) is built and run once against the process matrix · tasks/1606-the-crud-sandbox-qa-suite-ledger-v32-lane-22-is-built-and-run-once-against-the-process-mat.md
 - [#1607] [P2][M] A `uv.lock` change (create, update, delete a dependency) is gated by a process · tasks/1607-a-uv-lock-change-create-update-delete-a-dependency-is-gated-by-a-process.md
 - [#1608] [P2][M] A CI workflow change (create, update, delete) is gated before it lands · tasks/1608-a-ci-workflow-change-create-update-delete-is-gated-before-it-lands.md
 - [#1609] [P3][M] A release or tag (create, update, delete) has a process · tasks/1609-a-release-or-tag-create-update-delete-has-a-process.md
-- [#1610] [P2][M] 'Superseded means code removed' (ADR-125) is enforced when an ADR is superseded or a feature deleted · tasks/1610-superseded-means-code-removed-adr-125-is-enforced-when-an-adr-is-superseded-or-a-feature-d.md
 - [#1611] [P3][S] Create and delete under `protocols/` are gated like any other doc · tasks/1611-create-and-delete-under-protocols-are-gated-like-any-other-doc.md
 - [#1612] [P1][M] A job in state done or blocked with a handback on the transport is stopped automatically · tasks/1612-a-job-in-state-done-or-blocked-with-a-handback-on-the-transport-is-stopped-automatically.md
 - [#1613] [P1][S] The daemon does not resume a lane that was stopped · tasks/1613-the-daemon-does-not-resume-a-lane-that-was-stopped.md
@@ -849,7 +730,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1632] [P1][L] One Substrate protocol; pre-launch for every substrate · tasks/1632-one-substrate-protocol-pre-launch-for-ev.md
 - [#1633] [P1][M] The code runs the queue; the integrator only integrates (R130) · tasks/1633-the-queue-has-one-owner-in-the-templates.md
 - [#1634] [P2][M] Hub dispatch shim installed; duplicate launchers removed on GO · tasks/1634-hub-dispatch-shim-installed-duplicate-la.md
-- [#1635] [P2][S] MAP-DISPATCH regenerated with the outside-hub entry points · tasks/1635-map-dispatch-regenerated-with-the-outsid.md
 - [#1636] [P2][S] R94 Stop-hook cycle gate built or withdrawn · tasks/1636-r94-stop-hook-cycle-gate-built-or-withdr.md
 - [#1637] [P2][S] row_close runs in the integrator template · tasks/1637-row-close-runs-in-the-integrator-templat.md
 - [#1638] [P2][M] Generated STATUS.md is the one front door · tasks/1638-generated-status-md-is-the-one-front-doo.md
@@ -860,15 +740,11 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1643] [P2][M] CloudSubstrate: a read-only cloud port in the hub · tasks/1643-cloudsubstrate-read-only-port.md
 - [#1644] [P2][S] agy re-check; laptop-only (R140) · tasks/1644-agy-credential-path-in-a-box.md
 - [#1645] [P1][M] R133 consolidation track and plan_lint decision gate · tasks/1645-r133-consolidation-and-decision-gate.md
-- [#1646] [P1][M] M1 v2: each vendor measured in its role · tasks/1646-m1-v2-vendors-measured-in-role.md
 - [#1647] [P2][S] transport_lint wants $CLAUDE_PROMPTS_DIR on transport paths · tasks/1647-transport-lint-prompts-dir.md
 - [#1648] [P1][S] plan_lint: a code lane needs an integrator · tasks/1648-plan-lint-code-lane-needs-integrator.md
 - [#1649] [P1][S] plan_lint: a row birth needs a ratifying act · tasks/1649-plan-lint-row-birth-needs-ratifying-act.md
-- [#1650] [P3][S] Architekt Jutra module review (deferred, R137 Q4) · tasks/1650-aj-module-review-deferred.md
-- [#1651] [P2][S] agy official headless route re-check on every agy pin bump (R140) · tasks/1651-agy-recheck-on-pin-bump.md
 - [#1652] [P2][M] Review-findings scoreboard computed from receipts (R138, P2) · tasks/1652-review-findings-scoreboard.md
 - [#1653] [P1][M] ADR-delta PhaseReceipt contract: role, effort, USD, usage, findings (R141, P3) · tasks/1653-adr-delta-phasereceipt-contract.md
-- [#1654] [P2][S] Hypercare register: a defect found in real use becomes a row (R143) · tasks/1654-hypercare-register.md
 - [#1655] [P2][M] Cost telemetry per vendor in every phase receipt (R144) · tasks/1655-cost-telemetry-per-vendor.md
 - [#1656] [P2][S] TODAY-GLUE count in every close digest (R145) · tasks/1656-today-glue-count-in-close-digest.md
 - [#1660] [P2][M] GROOM: the BACKLOG view returns under 150,000 B by closing done rows (R148) · tasks/1660-groom-view-back-under-150000.md
@@ -893,7 +769,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1681] [P2][S] R143, R147 and R156 (hypercare, the junior rule, a killed run is failed) are not taught in the seat templates (H26) · tasks/1681-r143-r147-r156-isolated-checks-and-junior-rule-not-taught-h26.md
 - [#1682] [P2][S] R158 (REUSE CHECK before building) is not taught in the seat templates or the lane-contract generator (H29) · tasks/1682-r158-reuse-check-not-taught-h29.md
 - [#1683] [P2][S] R159 (update what teaches a process in the SAME change) is not taught in the seat templates or the lane-contract generator (H30) · tasks/1683-r159-teaching-in-the-same-change-not-taught-h30.md
-- [#1684] [P2][S] PLAN r6 carries 13 wrong goal cells (G1, G2, G4-G13, G17, G18; G2 and G8 outright wrong) (H35) · tasks/1684-plan-r6-has-13-wrong-cells-h35.md
 - [#1685] [P2][M] ADR-101 hermetization has no admissible home for a phase receipt, so the chain's own output cannot be committed (P1) · tasks/1685-hermetization-has-no-home-for-a-phase-receipt-p1.md
 - [#1686] [P3][S] `claude --json-schema` rejects the `PhasePayload` schema because `--payload-schema` prints a `$schema` key (P2) · tasks/1686-claude-json-schema-rejects-the-payload-schema-key-p2.md
 - [#1687] [P2][M] `run_phase.py run` never passes `cli_record`/`model_requested`, so `served_model` is always null, and `--stdout` merges stderr into the CLI JSON (P3) · tasks/1687-run-phase-records-no-served-model-and-merges-stderr-p3.md
@@ -912,13 +787,11 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1702] [P2][S] The Codex served model is read from the CLI banner by code, not from the model's own MODEL= line · tasks/1702-codex-served-model-is-read-from-the-banner-by-code.md
 - [#1703] [P2][S] Every lane branch CI shows five main-state reds that hide real regressions · tasks/1703-lane-branch-ci-goes-red-on-five-main-state-tests.md
 - [#1704] [P2][S] The merge receipt reads 'FAILED step(s): suite' on a green run after a crashed first land call · tasks/1704-merge-receipt-reads-suite-failed-after-a-crashed-first-land-call.md
-- [#1706] [P2][S] CODESPACE-RECEIPTS.jsonl keeps every seat's tree dirty and the Stop hook says commit it · tasks/1706-codespace-receipts-ledger-is-dirty-on-every-seat.md
 - [#1710] [P3][S] G-STALE: 14 fates lines name organs that already have a real caller (R149) · tasks/1710-g-stale-fates-lines-name-a-caller-the-census-cannot-see.md
 - [#1711] [P3][M] G-EDGE: organs called only from a command or an order template have no wiring edge (R149) · tasks/1711-g-edge-a-command-or-template-caller-is-a-wiring-edge.md
 - [#1712] [P3][S] G-INSTALL: record setup-fleet-scheduler.ps1 as an installer, not a recurring process (R149) · tasks/1712-g-install-record-the-fleet-scheduler-installer.md
 - [#1713] [P2][S] G-REDAGE: wire ci_red_age into the batch-close digest, or retire it with its flag (R149) · tasks/1713-g-redage-wire-ci-red-age-into-the-batch-close-digest.md
 - [#1714] [P2][S] `Step.stop` counts a continue_on_failure organ's failure as a loop stop, masking the behaviour the harness declares · tasks/1714-step-stop-counts-a-continue-on-failure-organ-as-a-loop-stop.md
-- [#1715] [P2][S] `actions_verdict.py` reads only main's push run, so a red Windows leg is unattributed when that run has no Windows job · tasks/1715-actions-verdict-reads-only-mains-push-run.md
 - [#1724] [P2][S] The claude.ai scheduled (cloud) routines run an unpinned `uv`; no check ties a routine bootstrap to pyproject's `required-version` · tasks/1724-claude-ai-scheduled-routines-run-an-unpinned-uv.md
 - [#1736] [P2][S] The known-reds extend routine and its test file are claimed by an open row (H1-X (a)) · tasks/1736-the-known-reds-extend-routine-and-its-test-file-are-claimed-by-an-open-row.md
 - [#1727] [P1][S] The dispatcher template says dispatch.py queue leaves no receipt, and carries no wake mechanism · tasks/1727-the-dispatcher-template-says-queue-leaves-no-receipt-and-lacks-the-wake-mechanism.md
