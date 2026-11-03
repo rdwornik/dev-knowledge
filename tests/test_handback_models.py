@@ -290,7 +290,7 @@ def test_item3f_launch_leg_and_landing_gate_use_the_same_receipt_lookup(
 
 
 def test_item3f_missing_launch_receipt_refuses(monkeypatch, tmp_path):
-    hb, code, receipt, _root, tr, _rd, session = _run_with_receipts(
+    hb, code, receipt, root, tr, _rd, session = _run_with_receipts(
         monkeypatch, tmp_path, launch=False
     )
 
@@ -300,6 +300,12 @@ def test_item3f_missing_launch_receipt_refuses(monkeypatch, tmp_path):
         encoding="utf-8"
     )
     assert not session.exists() or "HANDBACK " not in session.read_text(encoding="utf-8")
+
+    # Done 3(f): with the receipt absent BOTH the organ leg and the landing gate fail
+    problems, _subs = _mod("subst_gate").handback_problems(
+        root, LANE, "E3.0", session, receipts_dir=None
+    )
+    assert any(p.startswith("REFUSED [launch-receipt]") for p in problems), problems
 
 
 def test_item3g_receipt_selection_ignores_neighboring_round_artifacts(tmp_path):

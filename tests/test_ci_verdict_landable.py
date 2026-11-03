@@ -148,3 +148,24 @@ def test_item1d_real_harness_p5_shape_and_phase_pins():
     assert not lines[p5_index - 1].lstrip().startswith("#")
     assert not lines[p5_index + 1].lstrip().startswith("#")
     assert "--landable" in by_id["P6c"]["command"]
+
+
+# lane e30-round-verdict-handback C05, Done 1(d): P5 is replaced in place and `--landable` is appended to one existing line, so the line count equals the base; a later lane that legitimately adds a harness row bumps this with the other line caps (tests/test_dodo.py, tests/test_conductor_lane.py, tests/test_conductor_run.py)
+def test_item1d_harness_line_count_equals_origin_main():
+    try:
+        base = subprocess.run(
+            ["git", "show", "origin/main:ecosystem/harness.yaml"],
+            cwd=_REPO,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pytest.skip("origin/main is not resolvable here")
+    if base.returncode != 0:
+        pytest.skip("origin/main is not resolvable here")
+
+    assert len(base.stdout.splitlines()) == len(
+        (_REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8").splitlines()
+    ), "lane C05 is in place and must not change the harness line count (Done 1(d))"
