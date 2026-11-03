@@ -328,7 +328,7 @@ def test_b_parse_engine_and_model_engine_argv_remain_unchanged(tmp_path):
     claude = d.request_from_contract(MODEL_CONTRACT, batch=BATCH)
     assert claude.engine == "model"
     assert claude.argv == [
-        "claude", "--bg", "-n", "model-engine-fixture", "--model", "claude-sonnet-5-5",
+        "claude", "--bg", "-n", "model-engine-fixture", "--model", "sonnet",  # the shape gate admits tiers
         "--effort", "high", "--permission-mode", "bypassPermissions", "--worktree",
         "model-engine-fixture", "--disallowedTools=AskUserQuestion,advisor",
         f"Read and execute the frozen contract at {MODEL_CONTRACT.resolve()}",
