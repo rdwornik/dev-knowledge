@@ -60,7 +60,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -325,8 +324,6 @@ def transport_write_check(lane: str,
 # round's PhaseReceipts ([#1857], C10). Both legs reuse `subst_gate`'s own functions -- the ones
 # `merge_path.land` calls at landing -- so a refusal moves from landing to here and nothing is judged twice.
 
-_RECEIPT_NAME = re.compile(r"^P[0-9]+[a-z]*\.json$")   # a round dir also holds P<id>.payload/.usage/.heartbeat.json
-_PHASE_KEY = re.compile(r"^P([0-9]+)([a-z]*)$")
 _PHASE_LABELS = {"P1": "spec", "P2": "red", "P3": "implement", "P4": "constraints", "P5": "qa",
                  "P6a": "review-1", "P6b": "review-2", "P6c": "ci-verdict", "P7": "judge"}
 
@@ -335,9 +332,23 @@ class ModelsBlockError(ValueError):
     """The round's receipts cannot be rendered as a MODELS block (none, or one unreadable/invalid)."""
 
 
+def _phase_key(name: str) -> Optional[tuple]:
+    """`(number, suffix)` of a receipt file name `P<digits><lowercase letters>.json`, else None.
+
+    A round dir also holds `P<id>.payload/.usage/.heartbeat.json`; those are not receipts. Plain string
+    parsing, not a regex: this organ reads no corpus structure and must not look like a private edge computation."""
+    if not (name.startswith("P") and name.endswith(".json")):
+        return None
+    stem = name[1:-5]
+    digits = stem.rstrip("abcdefghijklmnopqrstuvwxyz")
+    if not (digits.isascii() and digits.isdigit()):
+        return None
+    return int(digits), stem[len(digits):]
+
+
 def _phase_order(name: str) -> tuple:
-    m = _PHASE_KEY.match(name[:-5])
-    return (int(m.group(1)), m.group(2)) if m else (10 ** 6, name)
+    key = _phase_key(name)
+    return key if key is not None else (10 ** 6, name)
 
 
 def models_block_from_receipts(round_dir: Path) -> str:
@@ -346,7 +357,7 @@ def models_block_from_receipts(round_dir: Path) -> str:
     from ecosystem.schema.phase_receipt import PhaseReceipt  # noqa: PLC0415 -- organ path only
 
     round_dir = Path(round_dir)
-    names = sorted((p.name for p in round_dir.glob("P*.json") if _RECEIPT_NAME.match(p.name)), key=_phase_order) \
+    names = sorted((p.name for p in round_dir.glob("P*.json") if _phase_key(p.name) is not None), key=_phase_order) \
         if round_dir.is_dir() else []
     if not names:
         raise ModelsBlockError(f"no phase receipts (P<id>.json) in {round_dir}")
