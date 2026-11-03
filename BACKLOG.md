@@ -745,7 +745,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1482] [P2][S] The served model list is a dated snapshot in the provider registry, admitted by a schema version bump · tasks/1482-the-served-model-list-is-a-dated-snapshot-in-the-provider-registry.md
 - [#1483] [P2][S] Carry intake 106 — the B2-W2 session review's unowned findings — to an ADR-111 outcome per item · tasks/1483-carry-intake-106-the-b2w2-session-review-findings.md
 - [#1864] [P2][S] Carry intake 123 — the equilibrium-night CANDIDATEs C-3, C-4, C-5 — to an ADR-111 outcome per item · tasks/1864-carry-intake-123-the-equilibrium-candidates-c3-c5.md
-- [#1861] [P1][M] dispatch: a conductor-engine contract is launched as a model prompt, not as conductor.py lane --run in its own worktree - the launch half of C04 · tasks/1861-dispatch-launches-a-conductor-engine-contract-as-a-run.md
+- [#1866] [P1][S] The dispatch-queue racing-launches test is deterministic - diagnose the race window in `test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once` and make it fail or pass for a reason, not for timing · tasks/1866-the-dispatch-queue-racing-launches-test-is-deterministic.md
 - [#1510] [P3][S] LANE-bw-1001-hook-launcher.md has no consumer -- its finding is owned or dispositioned · tasks/1510-lane-bw-1001-hook-launcher-has-no-consumer.md
 - [#1511] [P3][S] LANE-bw-1001-sessionstart-one.md has no consumer -- its finding is owned or dispositioned · tasks/1511-lane-bw-1001-sessionstart-one-has-no-consumer.md
 - [#1512] [P3][S] LANE-bw-1103-registry-repoint.md has no consumer -- its finding is owned or dispositioned · tasks/1512-lane-bw-1103-registry-repoint-has-no-consumer.md
