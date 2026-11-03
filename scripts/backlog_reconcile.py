@@ -686,7 +686,7 @@ R2_REFUSED_LINE = "R-2 refused: no adjudicated unique-content flag"
 KEPT_CATEGORIES: tuple[str, ...] = (
     "protected", "k2-alive", "k3-agreed", "live-excluded", "r2-refused", "absent-from-table",
     "ungated", "unknown-decision-class", "merge-rewrite", "keep-class", "no-add-date",
-    "archived-body")
+    "archived-body", "duplicate-of-kept")
 DEFAULT_SWEEP_HOME = REPO_ROOT / "docs" / "audits" / "2026-11-02-technical-backlog-night-sweep"
 DEFAULT_TRANSPORT_ROOT = Path(os.environ.get("CLAUDE_PROMPTS_DIR") or "H:/My Drive/CLAUDE PROMPT DIR")
 
@@ -1080,7 +1080,8 @@ def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows:
         if dec.action == "close" and (dec.row.path.parent / "archive" / f"{row_id}.md").exists():
             decisions[row_id] = Decision(dec.row, "keep", "archived-body",
                                          reason="body ends in an archive pointer (row-archive-proof)")
-    ordered = [decisions[r.id] for r in rows]
+    _keep_duplicates_of_kept_canonicals(decisions, table_by_id)
+    ordered =[decisions[r.id] for r in rows]
     return ordered, {"histogram": dict(sorted(histogram.items())), "old": old, "new": new}
 
 
@@ -1111,6 +1112,30 @@ def _apply_r2(decisions: dict[str, Decision], table_by_id: dict[str, dict], add_
                 decisions[dup_id] = Decision(
                     dup.row, "close", "closed", cls=dec.cls, checked=["K1"], absent=["K1"],
                     reason=dec.reason)
+
+
+def _keep_duplicates_of_kept_canonicals(decisions: dict[str, Decision],
+                                        table_by_id: dict[str, dict]) -> None:
+    """A step-2 `close-duplicate` row closes only when its canonical is closed by the SAME run:
+    a canonical that is kept (merge-rewrite, keep-P*, protected, refused, archived, live) has not
+    absorbed the duplicate's content, so closing the duplicate would drop it (Outcome (2) R-2,
+    judge 2026-11-03). Legacy-sweep closes are decided by the cutoff rule and are not touched.
+    Repeated until stable, so a duplicate of a duplicate that was just kept is kept as well."""
+    changed = True
+    while changed:
+        changed = False
+        for row_id, dec in list(decisions.items()):
+            entry = table_by_id.get(row_id) or {}
+            if dec.action != "close" or dec.cls == LEGACY_CLASS \
+                    or entry.get("decision_class") != "close-duplicate":
+                continue
+            canon_id = str(entry.get("duplicate_of"))
+            canon = decisions.get(canon_id)
+            if canon is None or canon.action != "close":
+                decisions[row_id] = Decision(
+                    dec.row, "keep", "duplicate-of-kept",
+                    reason=f"canonical [#{canon_id}] is not closed by this run")
+                changed = True
 
 
 def _sweep_line(dec: Decision) -> str:
@@ -1236,6 +1261,12 @@ def _execute(decisions: Sequence[Decision], *, tasks_dir: Path, home: Path, ruli
             close_with_sweep_line(tasks_dir, int(dec.row.id), evidence_sha, today.isoformat(),
                                   _sweep_line(dec))
             done += 1
+        # The post-sweep bytes of each swept file: `--revert` restores a file only while it still
+        # has these bytes, so a later edit to a closed row is never overwritten (judge, 2026-11-03).
+        for entry in entries:
+            entry["post_sha256"] = _sha((Path(tasks_dir) / entry["file"]).read_bytes())
+        (home / SWEEP_LEDGER).write_text(json.dumps(ledger, indent=1, ensure_ascii=False) + "\n",
+                                         encoding="utf-8", newline="\n")
     except BaseException:
         run_revert(tasks_dir=tasks_dir, home=home, spec=",".join(d.row.id for d in closing[:done]) or "0")
         (home / SWEEP_LEDGER).unlink(missing_ok=True)
@@ -1332,6 +1363,13 @@ def run_revert(*, tasks_dir: Path, home: Path, spec: str) -> list[str]:
         pre = base64.b64decode(entry["pre_b64"])
         if _sha(pre) != entry["pre_sha256"]:
             raise SweepError(f"ledger bytes for [#{entry['id']}] fail their own sha256")
+        current = tasks_dir / entry["file"]
+        post = entry.get("post_sha256")
+        if post and current.is_file() and _sha(current.read_bytes()) != post:
+            # The closed file was edited after the sweep: restoring would overwrite that edit.
+            logging.getLogger(__name__).warning(
+                "revert skipped [#%s]: %s no longer has its post-sweep bytes", entry["id"], entry["file"])
+            continue
         position = _insert_position(pre_nodes, manifest["nodes"], entry["node_index"])
         manifest["nodes"].insert(position, entry["node"])
         writes.append((tasks_dir / entry["file"], pre))
