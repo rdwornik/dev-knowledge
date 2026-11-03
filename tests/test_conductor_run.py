@@ -910,6 +910,31 @@ def test_review_a_receipts_base_inside_the_repo_is_not_a_change_to_commit(tmp_pa
     assert not any(p.startswith("rcpts/") for p in committed)
 
 
+def test_review_an_unstaged_in_scope_rename_is_committed_not_halted(tmp_path):
+    # review (round 4): git reports an unstaged rename as ' D old' + '?? new', and after `git add` the cached
+    # name list collapses it to the new name alone, so the staged set must be read with --no-renames
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "old.py").write_text("x = 1\nprint('hello world')\n" * 5, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    base = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    (repo / "tests" / "old.py").rename(repo / "tests" / "new.py")  # no `git mv`: nothing is staged
+    round_dir = tmp_path / "r1"
+    round_dir.mkdir()
+
+    halted, detail = conductor._commit_stage(
+        "red", lane="rename-lane", row="1856", round_no=1, base=base, repo_root=repo, round_dir=round_dir,
+        allowed=["tests/"], tests_only=True)
+
+    assert (halted, detail) == (None, ""), detail
+    names = _git(repo, "show", "--format=", "--name-only", "--no-renames", "HEAD").stdout.split()
+    assert sorted(names) == ["tests/new.py", "tests/old.py"]
+    assert _git(repo, "status", "--porcelain").stdout == ""
+
+
 def test_review_missing_harness_is_a_preflight_refusal_not_a_traceback(tmp_path):
     # terra review (round 2) finding: an unreadable --harness must refuse before any phase, not crash
     world = _world(tmp_path)

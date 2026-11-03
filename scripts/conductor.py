@@ -1442,7 +1442,7 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
         _write_json_atomic(receipt, _commit_receipt(repo_root, stage, found, round_no, recovered=True))
         return None, ""
     out_file = round_dir / f"COMMIT-{stage}-OUTPUT.txt"
-    staged = [p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p]
+    staged = [p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "--no-renames", "-z").stdout.split("\0") if p]
     if staged:
         out_file.write_text(f"the index is not empty before the {stage} commit: {', '.join(staged)}\n", encoding="utf-8", newline="\n")
         return halt, f"staged before the {stage} stage: {', '.join(staged)}"
@@ -1462,7 +1462,7 @@ def _commit_stage(stage: str, *, lane: str, row: str, round_no: int, base: str, 
         out_file.write_text(f"{stage} commit refused, {why}\n", encoding="utf-8", newline="\n")
         return halt, why
     added = _git_run(repo_root, "add", "--", *changed)
-    got = sorted(p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p)
+    got = sorted(p for p in _git_run(repo_root, "diff", "--cached", "--name-only", "--no-renames", "-z").stdout.split("\0") if p)
     if added.returncode or got != sorted(changed):
         out_file.write_text(added.stdout + added.stderr + f"staged {got}, intended {sorted(changed)}\n", encoding="utf-8", newline="\n")
         _git_run(repo_root, "reset", "-q", "--", *changed)
