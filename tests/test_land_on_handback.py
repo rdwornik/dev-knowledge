@@ -422,7 +422,7 @@ def test_a_watch_lands_a_clean_lane_without_model_calls(case, tmp_path, monkeypa
     )
 
     assert result == 0
-    assert case.env.origin_ref("main") == case.env.origin_ref(f"refs/heads/worktree-{INTEGRATION}")
+    assert case.env.origin_ref("main") == case.env.origin_ref(f"refs/heads/{INTEGRATION}")
     assert sha in _git(case.env.origin, "rev-list", "main").splitlines()
     assert any(SLUG in row for row in case.env.ledger_on_main())
     assert not _stop_path(case).exists()
@@ -674,7 +674,9 @@ def test_c_context_mismatches_refuse_before_landing(case, monkeypatch, context):
 
 def test_c_integrator_flag_does_not_assert_itself_by_default(case):
     line, _ = _prepare(case)
-    _git(case.env.worktree, "remote", "set-url", "origin", "file:///not-a-local-directory")
+    # a file:// URL of the REAL origin: land_lane._origin_is_remote calls it remote, yet the
+    # tip check (iv) can still fetch from it
+    _git(case.env.worktree, "remote", "set-url", "origin", case.env.origin.as_uri())
     calls = []
 
     outcome = _one(
