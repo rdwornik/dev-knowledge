@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (j) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-land-on-handback landing -- a HANDBACK wake runs `land_lane` in process under one lock, with the merge pinned to the validated sha (QH2) [#1859]
+
+**Anchors:** `8c455abba` (T1 RED, run 41550350078), `8df10e445` (lane tip, T2 ee644b05 run 41667354986, verdict PASS), `f1bf64d24` (main when this landing was cut; the [#1868] filing).
+
+**Did:** landed lane H's HANDBACK `8df10e445` (SESSION-e30-land-on-handback.md:143), forwarded READY by the dispatcher. Per-handback path read by me: purity against LANE-e30-land-on-handback.md (sha256 7a7fe14f2591d8d4, Amendment QH2): the lane touches `scripts/land_on_handback.py`, `tests/test_land_on_handback.py`, ONE harness `fates:` entry, ONE `ORPHAN_DISPOSITIONS` row, ONE `.gitignore` line, `tasks/1859-*` and its manifest node, and three FOOTPRINT-PINs (`tests/test_dodo.py`, `tests/test_conductor_lane.py`, `tests/test_conductor_run.py`: a comment line and the harness line cap 204 -> 205, no assertion logic; S-3 N1 pre-authorised) -- the two pins outside the contract's list are recorded in the receipt. T1 run head == red-sha; T2 session != T1; usage JSON `currentModel` gpt-6-luna on both; `check_models_block` returns ([], []); `advisor` is in the LAUNCH argv's `--disallowedTools` (R2). T2 re-derived from the CI logs of run 41667354986: commit-gate failed at `audit-health` known (12 `[!!]`), `doc-counts-pytest-freshness` and `derived-copies-rebind` (stale `ecosystem/doc-counts.md`, regenerated at landing); pytest known-reds compare: 2 failures outside the registry, both `tests/test_check_derived_copies.py` staleness (closed ALLOW list); the four `test_graph_spine_commit_tier` witnesses and the `test_dispatch_launch` husk test are registry members. Note: the report's cited comparison run 41662305177 is an E2-branch run, not a main run; the base I compared against is the registry (baseline 2026-11-03-bc8f569dfcca) and main push run 41659322474 / 41677215697. Terra FAIL (6b953ecb26) read the pre-QH2 text and the judge (Codex gpt-6-sol, nonce 29a84979ec, READY) disposed it NON-BLOCKING. N4 BASE-MOVED-DISJOINT: the base moved 6cf97da63 -> f1bf64d24, only generated `BACKLOG.md` and `tasks/manifest.json` overlap; merged `origin/main` into the lane copy, regenerated, stale manifest nodes 0.
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md. [#1859] stays OPEN on this landing; its close is the N2 hand path on a success main push run.
+
+**Changes:** the lane's files above, `BACKLOG.md` and `ecosystem/doc-counts.md` (regenerated), this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run; N2 close of [#1859]; K1 of the H lane (job fc1987ff, refs, worktree).
+
 ### 2026-11-03 (i) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #4 -- files [#1868], the C0 simplification /decide row (architect R1 of Q-L12-1 R6)
 
 **Anchors:** `6cf97da63` (follow-up #3 merge, main head when this one was cut; main push run 41659322474 success), `b5d66243b` (the [#1868] re-cut filing).
