@@ -67,7 +67,8 @@ def test_harness_yaml_declares_stages_1_to_12_within_caps():
     # E3.0 e30-queue-runner and backlog-reconcile: one fates data row each (shared cap, dispatcher 17:07).
     # cap 200 -> 202 (dispatcher ANSWER to QUESTION backlog-reconcile 15:10: two fates entries of headroom)
     # cap 202 -> 204: P6c ([#1848]) and system_view_full (L13), Q-PO-1/Q-SV-1 cap rule (dispatcher 13:4x)
-    assert len(lines) < 204, f"harness.yaml is {len(lines)} lines; the cap is under 204 (W3-A: fates added)"
+    # cap 204 -> 205: e30-land-on-handback ([#1859]) adds one fates data row for scripts/land_on_handback.py (FOOTPRINT-PIN, +1 line; contract LANE-e30-land-on-handback.md Pinned-table row 1)
+    assert len(lines) < 205, f"harness.yaml is {len(lines)} lines; the cap is under 205 (W3-A: fates added)"
     stages = yaml.safe_load("\n".join(lines))["stages"]
     assert [s["stage"] for s in stages] == list(range(1, 13))
     for s in stages:
