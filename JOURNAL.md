@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (f) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up -- [#1855] and [#1856] close on their success main push runs, [#1867] is filed with the backlog_reconcile freeze [#1855] [#1856] [#1867]
+
+**Anchors:** `429803c52` (files [#1867]), `7208165de` (closes [#1855], evidence `9139aacfe43935d0db1a274b3787340664a9e701`, success main push run 41620417935).
+
+**Did:** the two lanes that landed with their rows open on purpose (CAND-CLOSE-1) get their closes now that each has a success main push run: [#1855] (lane B, e30-distill-contract) on run 41620417935, and [#1856] (lane E1a, e30-round-loop, merge `f4c45f2d462ca9bc2e3c3e291939e435daf481ec`) on run 41630065774, both by `gen_task_tree.py --close-row` then `--emit-source`. Row [#1867] (id reserved by the dispatcher) is filed per architect ruling Q-SW-4 = B: it carries the sweep lane's two round-3 judge blockers verbatim (K2 reads that fail must fail closed; revert must align nodes by `node["task"]`), CAND-SWEEP-LIVE-1, CAND-MERGE-NODE-1, an adversarial pass over apply and revert, and the FREEZE clause: until [#1867] is MERGED `backlog_reconcile.py apply` is not run and `--revert` is not run outside its lane. Prepared locally while E1a's main push run was in flight (architect R1 pipelining, recorded as a HAND-STEP), then merged --no-ff on a fresh integration ref.
+
+**Result:** `[#1855]`, `[#1856]` closed; `[#1861]` and `[#1866]` were handled in 2026-11-03 (d). The sweep [#1854] (`2b151a148`) lands next under N4 and closes by the same hand path after its own success main push run.
+
+**Changes:** `tasks/1855-*.md`, `tasks/1856-*.md`, `tasks/1867-*.md`, `tasks/manifest.json`, `BACKLOG.md` (generated), `ecosystem/doc-counts.md` (generated).
+
+**Abandoned:** nothing.
+
+**Next:** push the integration ref, read its commit-gate under C-3 and pytest, push main, read the main push run, then the sweep [#1854].
+
 ### 2026-11-03 (e) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-round-loop landing -- `conductor.py lane --run` loops rounds and commits after red and implement (E1a, the conductor half of C04) [#1856]
 
 **Anchors:** `c6daaa188` (T1 RED, run 41545791772), `2665166a6` (repair 1: the round_loop fixture contract passes the lane-contract shape gate; no test writes a QUESTION into the real transport), `210fe45ca` (lane tip: merge of origin/main 0e7da82d9; T2 run 41607994721).
