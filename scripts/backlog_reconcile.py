@@ -677,7 +677,7 @@ SWEEP_DECISION_CLASSES: tuple[str, ...] = (
 )
 #: Rows a live lane files, builds or closes (contract Outcome (7)); the sweep never closes them.
 FIXED_LIVE_IDS: frozenset[str] = frozenset(
-    str(n) for n in (1748, 1800, 1811, 1833, 1837, 1838, *range(1844, 1864)))
+    str(n) for n in (1572, 1633, 1748, 1800, 1811, 1833, 1837, 1838, *range(1844, 1864)))
 SWEEP_LEDGER = "ledger.json"
 # A dated name: consumer_at_landing counts a docs/audits file as consumed only when a governance
 # surface cites a DATED name, so a file called index.md could never be consumed (Q-SW-2 (e)).
