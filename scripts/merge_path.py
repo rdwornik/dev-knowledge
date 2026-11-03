@@ -342,7 +342,7 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         if problems:
             return refuse("SUBST-GATE-REFUSED", " | ".join(problems))
     gate_active = bool(require_phase_receipts)
-    if not gate_active and not operator_act_line and subst_gate._SLUG_RE.match(slug or ""):
+    if not gate_active and subst_gate._SLUG_RE.match(slug or ""):
         round_home = Path(os.environ.get("HARNESS_RECEIPTS_DIR") or Path(root) / "logs" / "receipts")
         gate_active = (round_home / f"LANE-{slug}").is_dir()   # one stat, no git call
     if gate_active:

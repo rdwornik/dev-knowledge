@@ -515,8 +515,14 @@ def render_cost(record: dict) -> str:
 
 def write_cost_record(lane: str, receipts_dir, root=None) -> Path:
     """Write `<receipts>/LANE-<lane>/RUN-COST.json` (LF newlines) and return its path."""
+    lane_dir = Path(receipts_dir) / f"LANE-{lane}"
+    try:
+        lane_dir.resolve().relative_to(Path(receipts_dir).resolve())
+    except ValueError:
+        raise ValueError(f"{lane_dir} resolves outside the receipts home {receipts_dir}: "
+                         f"{COST_NAME} is not written through a link") from None
     record = cost_record(lane, receipts_dir, root=root)
-    target = Path(receipts_dir) / f"LANE-{lane}" / COST_NAME
+    target = lane_dir / COST_NAME
     scratch = target.with_name(COST_NAME + ".tmp")
     scratch.write_text(render_cost(record), encoding="utf-8", newline="\n")
     os.replace(scratch, target)
