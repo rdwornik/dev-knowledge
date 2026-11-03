@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "931a541f7140bffbb9f54030f54408b5b1af0db4c8584fa959fd018c9e8149e6",
+  "generated_sha256": "94264b7aca26dd4f58da494453329af90f0625d7de7cbb3bc67a968a32724fa4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -912,10 +912,6 @@
     {
       "task": 1015,
       "file": "1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md"
-    },
-    {
-      "task": 1855,
-      "file": "1855-distill-row-writes-the-frozen-lane-contract-by-code-and-boot-frontier-picks-the-row.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -2828,6 +2824,10 @@
       "file": "1866-the-dispatch-queue-racing-launches-test-is-deterministic.md"
     },
     {
+      "task": 1867,
+      "file": "1867-backlog-reconcile-apply-revert-fail-closed-and-restore-nodes-by-task-id.md"
+    },
+    {
       "task": 1510,
       "file": "1510-lane-bw-1001-hook-launcher-has-no-consumer.md"
     },
@@ -3622,10 +3622,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1856,
-      "file": "1856-conductor-nothing-calls-the-round-engine-it-runs-one-round-and-commits-nothing.md"
     },
     {
       "prose": ""
