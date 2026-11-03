@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (d) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): main push run 41597317199 went red on one test; the architect ruled B plus A, so a one-node ubuntu waiver is registered, the fix row [#1866] is filed and [#1861] is closed [#1866] [#1861]
+
+**Anchors:** `9659fa80d` (registry waiver + row [#1866]), `527a45f54` (close of [#1861], evidence `16c82c879c5506380795f24490b73fe9f7ef9f25`, success main push run 41592738435).
+
+**Did:** main push run 41597317199 on `0e7da82d9` (the e30-distill-contract landing) concluded FAILURE twice (attempt 1 pytest job 125787691298, attempt 2 job 125801578576) on one test outside the known-reds registry, `tests/test_dispatch_queue.py::test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once` (line 1076, a 10 s `Event.wait`); commit-gate failed only at the known audit-health step. I held every landing (night order section 3, global stop), did not rerun a third time and did not revert main (N7). The architect ruled B plus A (DIGEST-RULING-Q-CGG-1-AND-Q-MAIN-RED-1-2026-11-03.md, R2): register exactly that node for ubuntu-latest with attribution `flake (timing under load)`, owner and task `[#1866]`, expiry the earlier of `[#1866]` MERGED or 2026-11-09, and file `[#1866]` to make the test deterministic after first ruling out E1b's held-slug fail-closed change (`a0b909b70`). I did that by the N2 tasks-only hand path.
+
+**Result:** `logs/KNOWN-REDS-REGISTRY.json` gains the one `members_by_os["ubuntu-latest"]` entry; `baseline_id` recomputed with `known_reds.compute_baseline_id` is `2026-11-03-bc8f569dfcca` (the stored `2026-10-04-fdf4f4952211` did not equal the recompute of the pre-change registry, `2026-10-04-7431c01d4c76`, so earlier edits had left the id as it was; flagged to the architect). Row `[#1866]` filed in `[S28]` after `[#1861]`. `[#1861]` closed. 367 tests across the known-reds, ci-verdict and actions-verdict test files pass locally. The landing stop lifts only when this is on main and the next main push run shows no new red outside the registry.
+
+**Changes:** `logs/KNOWN-REDS-REGISTRY.json`, `tasks/1866-the-dispatch-queue-racing-launches-test-is-deterministic.md`, `tasks/1861-*.md`, `tasks/manifest.json`, `BACKLOG.md` (generated).
+
+**Abandoned:** nothing.
+
+**Next:** push this integration branch, read its CI, push main when the verdict allows, then read the main push run. `[#1855]` closes on that run if it is a success. Held READY forward: E1a `e30-round-loop` [#1856] (`210fe45ca`), landed in arrival order after the stop lifts.
+
 ### 2026-11-03 (c) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-distill-contract landing -- the frozen lane contract is written by code (`gen_lane_contract` distill) and `boot_frontier` picks the row (lane B) [#1855]
 
 **Anchors:** `8890f9b8f` (T1 RED, run 41562589291), `7e60822f1` (T1-PIN, test_gen_lane_contract count 2 to 3), `87ea9a0dd` (lane tip: merge of origin/main ac13bf33d; final T2 run 41581311801).

@@ -1,6 +1,6 @@
 {
   "schema": "known-reds-registry/2",
-  "baseline_id": "2026-10-04-fdf4f4952211",
+  "baseline_id": "2026-11-03-bc8f569dfcca",
   "measured_at_sha": "2e7fa5f255fb67305e6964e1649ea1bd53366fff",
   "measured_via": "gh-run:37031390518",
   "workers": 4,
@@ -1180,6 +1180,14 @@
         },
         "signature": "AssertionError: citation regex false-stripped: [<LIST>]",
         "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
+      },
+      "tests/test_dispatch_queue.py::test_racing_launches_reclaim_a_dead_holder_once_and_spawn_once": {
+        "attribution": "flake (timing under load)",
+        "task": "[#1866]",
+        "owner": "[#1866]",
+        "expiry": "2026-11-09",
+        "signature": "AssertionError: the competing launch did not refuse while spawn was blocked",
+        "disposition": "architect ruling R2 of Q-MAIN-RED-1 (DIGEST-RULING-Q-CGG-1-AND-Q-MAIN-RED-1-2026-11-03.md), option B plus A: exactly this node, ubuntu-latest, no wildcard; witnessed on main push run 41597317199 jobs 125787691298 and 125801578576; expiry is [#1866] MERGED or 2026-11-09, whichever comes first, and the fix lane removes the entry."
       }
     },
     "windows-latest": {
