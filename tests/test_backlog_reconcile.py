@@ -1785,3 +1785,39 @@ def test_sweep_v_revert_leaves_a_swept_file_that_was_edited_after_the_sweep(tmp_
         for path in root.rglob("*")
         if path.is_file()
     } == before_second_revert
+
+
+def test_sweep_w_queue_runner_rows_are_in_the_fixed_live_set(tmp_path):
+    tasks = [
+        {"id": row_id, "add_date": "2026-10-10"}
+        for row_id in (1633, 1572, 1206)
+    ]
+    repo, tasks_dir = _sweep_repo(tmp_path, tasks)
+    original_bytes = {
+        str(task["id"]): (tasks_dir / task["file"]).read_bytes()
+        for task in tasks
+        if task["id"] in (1633, 1572)
+    }
+    ruling, transport = _sweep_ruling(tmp_path)
+    table = tmp_path / "step1.json"
+    table.write_text(
+        json.dumps({"rows": [_sweep_table_row(task) for task in tasks]}),
+        encoding="utf-8",
+        newline="\n",
+    )
+    result = br.run_sweep(
+        ruling_path=ruling,
+        table_path=table,
+        tasks_dir=tasks_dir,
+        repo_root=repo,
+        home=tmp_path / "sweep-home",
+        transport_root=transport,
+        today=_SWEEP_TODAY,
+        evidence_sha="a" * 40,
+    )
+
+    assert result.kept.get("live-excluded") == ["1572", "1633"]
+    assert {row["id"] for row in result.closed} == {"1206"}
+    for row_id, contents in original_bytes.items():
+        assert _sweep_file(tasks_dir, row_id).read_bytes() == contents
+    assert {"1572", "1633"} <= br.FIXED_LIVE_IDS
