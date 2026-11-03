@@ -884,6 +884,20 @@ def test_review_input_required_in_a_segment_names_its_phase_and_output_artifact(
     assert verdict["halted_at"] == "P2"
 
 
+def test_review_missing_harness_is_a_preflight_refusal_not_a_traceback(tmp_path):
+    # terra review (round 2) finding: an unreadable --harness must refuse before any phase, not crash
+    world = _world(tmp_path)
+    missing = tmp_path / "no-such-harness.yaml"
+
+    out = _cli(world, repo_root=True, extra=("--harness", str(missing)))
+
+    assert out.returncode == 1, out.stdout + out.stderr
+    assert "conductor lane: REFUSED --" in out.stdout
+    assert "Traceback" not in out.stderr
+    assert not (world["markers"] / "count.txt").exists()
+    assert not _question_files(world["receipts"], world["lane"])
+
+
 def test_review_status_paths_reports_a_rename_source_as_a_changed_path(tmp_path):
     # terra review finding 2: the source of a staged rename is a changed path for the scope rules too
     repo = tmp_path / "repo"

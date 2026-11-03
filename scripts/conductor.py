@@ -1288,12 +1288,18 @@ def _git_head(repo_root: Path) -> Optional[str]:
     return out.stdout.strip() if out.returncode == 0 and out.stdout.strip() else None
 
 
-def _lane_preflight(lane: str, contract: Path, repo_root: Path, rbase: Path) -> tuple[list[dict], int]:
+def _lane_preflight(lane: str, contract: Path, repo_root: Path, rbase: Path,
+                    harness: Optional[Path] = None) -> tuple[list[dict], int]:
     """The four PRE-FLIGHT refusals (branch, roles, inputs, round limit); returns the phase rows and
-    the loop's round count. Raises LaneRefused naming every violation found."""
+    the loop's round count. Raises LaneRefused naming every violation found. An unreadable base harness
+    is refused here too: it is rendered into every round, and a traceback would leave no verdict."""
+    import yaml  # noqa: PLC0415
+
     try:
         rows = contract_phases(contract.read_text(encoding="utf-8"))
-    except (ContractPhasesError, OSError) as exc:
+        if harness is not None:
+            _harness_doc(harness)
+    except (ContractPhasesError, OSError, ValueError, yaml.YAMLError) as exc:
         raise LaneRefused(str(exc)) from exc
     if rows is None:
         raise LaneRefused(f"{contract} has no ## Phases section (the lane process runs the contract's own phases)")
@@ -1388,8 +1394,11 @@ def _status_paths(repo_root: Path) -> list[str]:
             continue
         paths.append(entry[3:])
         if entry[0] in "RC" or entry[1] in "RC":
+            # A rename/copy record needs a STAGED change, and `_commit_stage` halts on a non-empty index BEFORE
+            # it reads this status, so in practice only ' D' / '??' records arrive here. Were one to arrive,
+            # the SOURCE is a changed path too and the scope rules apply to it.
             if i < len(out) and out[i]:
-                paths.append(out[i])  # the rename/copy SOURCE is a changed path too: scope applies to it
+                paths.append(out[i])
             i += 1
     return paths
 
@@ -1579,7 +1588,7 @@ def run_lane(lane: str, *, contract: Path, repo_root: Path, harness: Optional[Pa
     contract = Path(contract).resolve()
     harness = Path(harness) if harness else repo_root / "ecosystem" / "harness.yaml"
     rbase = Path(receipts or os.environ.get("HARNESS_RECEIPTS_DIR") or repo_root / "logs" / "receipts").resolve()
-    rows, max_rounds = _lane_preflight(lane, contract, repo_root, rbase)
+    rows, max_rounds = _lane_preflight(lane, contract, repo_root, rbase, harness)
     run = LaneRun(lane=lane, receipts_base=rbase, question_dir=question_dir)
     for round_no in range(1, max_rounds + 1):
         verdict, code, halted_at, refused_by, detail = _lane_round(
