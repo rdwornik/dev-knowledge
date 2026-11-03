@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0e02e9a4bac318dbe9faebcb54c009a596aedb68b43ff013a3495f8a0daf2904",
+  "generated_sha256": "931a541f7140bffbb9f54030f54408b5b1af0db4c8584fa959fd018c9e8149e6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3622,6 +3622,10 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
+    },
+    {
+      "task": 1856,
+      "file": "1856-conductor-nothing-calls-the-round-engine-it-runs-one-round-and-commits-nothing.md"
     },
     {
       "prose": ""

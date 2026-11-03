@@ -239,7 +239,7 @@ def run_phase(argv, timeout_s, *, cwd=None, env=None, payload_path=None, nonce=N
 
 def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, input_hash, nonce,
                   inputs, model_requested=None, cli_version=None, cli_record=None, usage=None,
-                  substituted_from=None, cli_vendors=None):
+                  substituted_from=None, cli_vendors=None, head_sha=None):
     """The harness-built PhaseReceipt; vendor and served model are derived, never passed in."""
     argv = list(argv)
     vendor = _pr.vendor_for_argv(argv, cli_vendors)
@@ -275,7 +275,7 @@ def build_receipt(run: PhaseRun, *, organ, row, lane, phase, round_no, argv, inp
         "started_at": run.started_at, "inputs": list(inputs), "nonce": nonce, "usage": usage,
         "payload_sha256": _pr.payload_sha256(payload) if payload is not None else None,
         "payload": payload.model_dump() if payload is not None else None,
-        "substituted_from": substituted_from})
+        "substituted_from": substituted_from, "head_sha": head_sha})
 
 
 # --- the phase tasks: `doit -f scripts/dodo.py round` ------------------------------------------
@@ -375,9 +375,21 @@ def _phase_fresh(phase, receipt: Path, previous, ctx, argv_of, file_digests):
     return fresh
 
 
+def _head_sha(root) -> Optional[str]:
+    """`git rev-parse HEAD` in `root`, or None when git cannot answer (not a repo, no commit, no git)."""
+    try:
+        out = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    sha = out.stdout.strip()
+    return sha if out.returncode == 0 and sha else None
+
+
 def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, root):
     def action():
         round_dir = ctx["round_dir"]
+        head_sha = _head_sha(root)  # read BEFORE any process of this attempt is spawned
         round_dir.mkdir(parents=True, exist_ok=True)
         input_hash = _phase_hash(phase, previous, ctx, argv_of, file_digests)
         payload = round_dir / f"{phase['id']}.payload.json" if phase.get("gate") == "payload" else None
@@ -406,7 +418,7 @@ def _phase_action(phase, receipt: Path, previous, ctx, argv_of, file_digests, ro
             run, organ=f"phase:{phase['id']}", row=ctx["row"], lane=ctx["lane"], phase=phase["id"],
             round_no=ctx["round"], argv=argv, input_hash=input_hash, nonce=nonce, inputs=inputs,
             model_requested=_argv_value(argv, "--model") or phase.get("model"),
-            cli_record=_cli_record(argv, out, root), substituted_from=substituted)
+            cli_record=_cli_record(argv, out, root), substituted_from=substituted, head_sha=head_sha)
         data = receipt_model.model_dump(by_alias=True)
         receipt.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         ok = phase_succeeded(data)
