@@ -473,6 +473,34 @@ def test_a2_an_old_wake_with_no_cursor_is_still_landed(case, monkeypatch):
     assert len(_clock_rows(case.clock)) == 1
 
 
+# --- e (Amendment QH2): the merge is pinned to the validated sha ---------------------------------------
+
+def test_e_a_branch_moved_after_the_preflight_cannot_land_unvalidated_work(case):
+    line, sha_a = _prepare(case)
+    real = _real_land_lane()
+    moved = {}
+
+    def moves_the_branch_then_lands(worktree, **kwargs):
+        # the preflight has validated sha A; now the lane pushes B before land_lane's own fetch
+        moved["sha_b"] = case.env.make_lane(SLUG, "lane_b.txt", text="unvalidated\n")
+        return real(worktree, **kwargs)
+
+    outcome = _one(case, SLUG, line, land_lane_fn=moves_the_branch_then_lands)
+
+    sha_b = moved["sha_b"]
+
+    def is_ancestor(ancestor):
+        return subprocess.run(
+            ["git", "-C", str(case.env.origin), "merge-base", "--is-ancestor", ancestor, "main"],
+            capture_output=True,
+        ).returncode
+
+    assert sha_b != sha_a and case.env.origin_ref(f"refs/heads/worktree-{SLUG}") == sha_b
+    assert outcome.state == "LANDED" and outcome.exit_code == 0
+    assert is_ancestor(sha_a) == 0
+    assert is_ancestor(sha_b) != 0
+
+
 # --- b ----------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
@@ -810,7 +838,8 @@ def test_c2_once_waits_for_a_live_lock_then_lands(case):
 # --- d ----------------------------------------------------------------------------------------
 
 def test_d_call_uses_only_the_landing_allowlist_and_default_regeneration(case):
-    line, _ = _prepare(case)
+    """Leg (d'), Amendment QH2: `lane_ref` joins the allowlist and is the validated 40-hex sha."""
+    line, sha = _prepare(case)
     calls = []
     outcome = _one(case, SLUG, line, land_lane_fn=_stub(_report(), calls))
 
@@ -825,8 +854,10 @@ def test_d_call_uses_only_the_landing_allowlist_and_default_regeneration(case):
         "handback",
         "regen_cmds",
         "require_phase_receipts",
+        "lane_ref",
     }
     assert set(call) - {"worktree"} <= allowed
+    assert call["lane_ref"] == sha and re.fullmatch(r"[0-9a-f]{40}", call["lane_ref"])
     assert call["handback"] == case.transport / "to-browser" / f"SESSION-{SLUG}.md"
     assert call["regen_cmds"] == ll.default_regen_cmds(case.env.worktree)
     assert call["timeout_s"] == ll.DEFAULT_TIMEOUT_S
@@ -835,7 +866,6 @@ def test_d_call_uses_only_the_landing_allowlist_and_default_regeneration(case):
         "operator_act",
         "ratification",
         "message",
-        "lane_ref",
         "verdict_fn",
         "record_suite_fn",
         "regenerate_fn",
@@ -856,7 +886,6 @@ def test_d_signature_defaults_match_land_lane_and_have_no_gate_overrides():
         assert parameters[name].default is None
     landing_parameters = inspect.signature(ll.land_lane).parameters
     for name in (
-        "lane_ref",
         "message",
         "operator_act",
         "ratification",

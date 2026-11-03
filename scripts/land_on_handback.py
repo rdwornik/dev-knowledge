@@ -248,6 +248,7 @@ class _Ctx:
     dry_run: bool
     git: Callable
     parsed: Optional[handback_schema.HandbackLine] = None
+    tip: str = ""                                   # the full sha of the lane tip the preflight validated
     engine: str = "model"
 
     @property
@@ -311,7 +312,12 @@ def _check_handback(ctx: _Ctx) -> Optional[LandOutcome]:
         return _refuse("STALE-HANDBACK", f"origin/worktree-{ctx.slug} is {tip[:12] or 'absent'}, the "
                                          f"handback says {parsed.sha[:12]}: the lane pushed after "
                                          f"handing back")
+    ctx.tip = tip
     return None
+
+
+def _full_sha(text: str) -> bool:
+    return len(text) == 40 and all(c in "0123456789abcdef" for c in text)
 
 
 def _check_batch(ctx: _Ctx) -> Optional[LandOutcome]:
@@ -476,6 +482,12 @@ def _land_locked(ctx: _Ctx, pickup: float, handback_at: Optional[str], carry_fil
     kwargs = dict(slug=slug, batch=ctx.batch, carry_file=carry, timeout_s=timeout_s,
                   interval_s=interval_s, handback=ctx.session,
                   regen_cmds=land_lane.default_regen_cmds(ctx.worktree))
+    # Amendment QH2: the merge is pinned to the sha the preflight validated, never to the movable branch
+    # ref (the compare-and-swap of GitHub's merge `sha`). message/operator_act/ratification stay omitted.
+    if not _full_sha(ctx.tip):
+        return _finish(_refuse("TIP-NOT-A-SHA", f"the validated lane tip {ctx.tip!r} is not a 40-hex sha"),
+                       slug, None, False)
+    kwargs["lane_ref"] = ctx.tip
     gated = ctx.engine == _CONDUCTOR
     if gated:
         kwargs[_REQUIRE_GATE] = True
