@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "03489613ca29b16e38bc247a4b0fd481f2a06866c7e9650359f0e1f384af7bd7",
+  "generated_sha256": "45142831a943b763f3784135f07291df6068c6d66fca0e60c7db1a3635c657e5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2386,6 +2386,10 @@
     {
       "task": 1844,
       "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
+    },
+    {
+      "task": 1859,
+      "file": "1859-landing-by-code-a-handback-runs-land-lane-under-one-lock-and-every-landing-writes-one-merge-clock-line.md"
     },
     {
       "task": 1433,

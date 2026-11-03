@@ -636,6 +636,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1846] [P2][M] config-only lane class: a pin/version/config diff lands on three kept checks, enforced by code · tasks/1846-config-only-lane-class-a-pin-version-config-diff-lands-on-three-kept-checks-enforced-by-code.md
 - [#1847] [P1][L] batch close compares the merge clock and the lane clock with their targets; a missed target queues the next line-throughput /decide by code · tasks/1847-batch-close-compares-the-merge-clock-and-the-lane-clock-with-their-targets-a-missed-target-queues.md
 - [#1844] [P1][M] provider_router: S-1 review/judge fallback ends in an isolated Claude session · tasks/1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md
+- [#1859] [P1][L] landing by code: a HANDBACK wake runs land_lane under one lock and a model is called only on conflict, red CI or BASE-MOVED; every landing writes one merge-clock line (C11, C13) · tasks/1859-landing-by-code-a-handback-runs-land-lane-under-one-lock-and-every-landing-writes-one-merge-clock-line.md
 - [#1433] [P2][M] A background seat has no sanctioned way to fill a handoff bundle · tasks/1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md
 - [#1434] [P2][M] ADR-129's 120-second handoff preflight bound does not hold on the operator's laptop · tasks/1434-adr-129-s-120-second-handoff-preflight-bound-does-not-hold-on-the-operator-s-lap.md
 - [#1435] [P1][M] transport_lint checks the seat-written handoff inputs when they are written: PLAN-HANDOFF section 4, the LEDGER token, RATIFICATION names · tasks/1435-transport-lint-checks-the-seat-written-handoff-inputs-when-they-are-written-plan.md
@@ -823,6 +824,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1842] [P2][S] Wire scripts/task_record.py to a real caller or remove it under R56 before 2026-11-23 · tasks/1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md
 - [#1843] [P2][S] Wire scripts/test_census.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md
 - [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
+- [#1862] [P1][M] conductor: the commit-gate JOB step judges its failing hooks by the registered known-reds classifier, so the job concludes success when every red is a registered environment mismatch · tasks/1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md
 
 ---
 
