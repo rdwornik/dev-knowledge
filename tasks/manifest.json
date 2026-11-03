@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d98bbd62aa33a9488f4a45f1064a8fb69bc97e2d126bf878373505d54d1b0d18",
+  "generated_sha256": "03489613ca29b16e38bc247a4b0fd481f2a06866c7e9650359f0e1f384af7bd7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2486,6 +2486,10 @@
     {
       "task": 1867,
       "file": "1867-backlog-reconcile-apply-revert-fail-closed-and-restore-nodes-by-task-id.md"
+    },
+    {
+      "task": 1868,
+      "file": "1868-c0-simplification-decide-census-one-adr-one-ratification.md"
     },
     {
       "task": 1718,
