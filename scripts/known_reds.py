@@ -1131,6 +1131,137 @@ def render_compare_hook(result: dict) -> str:
     return "\n".join(lines)
 
 
+_HOOK_RESULT_SUFFIXES = ("Passed", "Failed", "Skipped")
+_GATE_TRAILER_PREFIX = "wall_seconds="
+
+
+def _is_hook_result_line(line: str) -> bool:
+    """pre-commit's one-line hook result: dotted padding, then Passed/Failed/Skipped."""
+    return "...." in line and line.rstrip().endswith(_HOOK_RESULT_SUFFIXES)
+
+
+def parse_failed_hooks(gate_output: str) -> list[dict]:
+    """Every hook pre-commit reported `Failed` in a `commit-gate.out`: its id, its `- exit code:`
+    (None when absent or not a number) and its output block (the text after the blank line that
+    follows the `- ...` header lines, up to the next hook line or the `wall_seconds=` trailer).
+    String methods only -- a second regex in this module trips the edge-class census."""
+    lines = gate_output.splitlines()
+    hooks: list[dict] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        i += 1
+        if not (_is_hook_result_line(line) and line.rstrip().endswith("Failed")):
+            continue
+        hook_id, exit_code = None, None
+        while i < len(lines) and lines[i].startswith("- "):
+            key, _, value = lines[i][2:].partition(":")
+            if key.strip() == "hook id":
+                hook_id = value.strip()
+            elif key.strip() == "exit code":
+                exit_code = int(value) if value.strip().lstrip("-").isdigit() else None
+            i += 1
+        if i < len(lines) and not lines[i].strip():
+            i += 1
+        block: list[str] = []
+        while (i < len(lines) and not _is_hook_result_line(lines[i])
+               and not lines[i].startswith(_GATE_TRAILER_PREFIX)):
+            block.append(lines[i])
+            i += 1
+        hooks.append({"hook_id": hook_id, "exit_code": exit_code,
+                      "output": "".join(f"{b}\n" for b in block)})
+    return hooks
+
+
+def _failing_lines(hook_output: str) -> list[str]:
+    """The `[!!]` findings of a hook block, normalised by `strip()` (the registry's `lines`
+    field holds the same normalised text)."""
+    return [ln.strip() for ln in hook_output.splitlines() if ln.strip().startswith("[!!]")]
+
+
+def _classify_hook(parsed: dict, registry: Registry) -> dict:
+    """One failed hook through the UNCHANGED `compare_hook`, plus the line-level leg: an entry
+    with a `lines` list (Amendment CGG-1) matches each `[!!]` line against it; an entry with only
+    a `checks` list matches by check name; an entry with neither is known whole-hook. A registered
+    hook with a `checks` allowlist and no extractable `[!!]` line fails closed."""
+    hook_id, exit_code, output = parsed["hook_id"], parsed["exit_code"], parsed["output"]
+    found = _failing_lines(output)
+    # `compare_hook` runs for EVERY failed hook, with no early return. A Failed block with no
+    # `- hook id:` header is handed over under the placeholder id `(unparseable)` (never
+    # registered, so it fails there) and is forced to fail closed below; a Failed hook whose exit
+    # code is absent or 0 is judged as exit 1 (it did fail) and likewise forced to fail closed.
+    label = hook_id or "(unparseable)"
+    cmp = compare_hook(label, exit_code or 1, registry, hook_output=output)
+    hook_id = label
+    entry = cmp["registered"]
+    registered_lines = entry.get("lines") if entry else None
+    allowed = set(entry.get("checks") or ()) if entry else set()
+    tagged = []
+    for text in found:
+        if entry is None:
+            known = False
+        elif registered_lines is not None:
+            known = text in registered_lines
+        elif allowed:
+            known = bool(extract_failing_check_names(text) & allowed)
+        else:
+            known = True
+        tagged.append({"text": text, "tag": "known" if known else "REGRESSION"})
+    regressions = [t["text"] for t in tagged if t["tag"] == "REGRESSION"] if entry else []
+    if entry is None or (cmp["verdict"] == "fail" and not regressions):
+        regressions = list(cmp["regressions"]) or [hook_id]
+    if entry and (allowed or registered_lines is not None) and not found:
+        regressions.append(f"{hook_id}: failed with no parseable [!!] finding (fails closed)")
+    if label == "(unparseable)":
+        regressions.append("(unparseable): a Failed hook with no hook id is not classifiable "
+                           "(fails closed)")
+    if not exit_code:
+        regressions.append(f"{hook_id}: exit code {exit_code!r} on a Failed hook is not "
+                           f"classifiable (fails closed)")
+    return {"hook_id": hook_id, "exit_code": exit_code,
+            "verdict": "fail" if regressions or cmp["verdict"] != "pass" else "pass",
+            "lines": tagged, "regressions": regressions}
+
+
+def compare_commit_gate(gate_output: str, gate_exit_code: int, registry: Registry) -> dict:
+    """Judge a whole `commit-gate.out`: exit 0 passes; otherwise every failed hook goes through
+    `_classify_hook` (-> `compare_hook`, once per hook) and the gate passes only if all pass. A
+    non-zero gate exit with no parseable failed hook fails closed."""
+    base = {"baseline_id": registry.baseline_id, "gate_exit_code": gate_exit_code}
+    if gate_exit_code == 0:
+        return {**base, "verdict": "pass", "reason": "commit gate clean (exit 0)",
+                "hooks": [], "regressions": []}
+    hooks = [_classify_hook(p, registry) for p in parse_failed_hooks(gate_output)]
+    if not hooks:
+        return {**base, "verdict": "fail", "hooks": [],
+                "reason": f"REGRESSION -- gate exited {gate_exit_code} with no parseable failed hook",
+                "regressions": [f"gate exit {gate_exit_code}: no parseable failed hook"]}
+    regressions = [r for h in hooks for r in h["regressions"]]
+    verdict = "pass" if all(h["verdict"] == "pass" for h in hooks) else "fail"
+    reason = (f"every failing hook is a registered known red (baseline {registry.baseline_id})"
+              if verdict == "pass" else
+              f"REGRESSION -- {len(regressions)} unregistered finding(s) (baseline "
+              f"{registry.baseline_id})")
+    return {**base, "verdict": verdict, "reason": reason, "hooks": hooks,
+            "regressions": regressions}
+
+
+def render_compare_commit_gate(result: dict) -> str:
+    """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
+    lines = ["known-reds compare-commit-gate", "", f"baseline id    : {result['baseline_id']}",
+             f"gate exit code : {result['gate_exit_code']}",
+             f"failed hooks   : {len(result['hooks'])}"]
+    for hook in result["hooks"]:
+        lines.append(f"hook {hook['hook_id']} (exit {hook['exit_code']}): {hook['verdict']}")
+        for item in hook["lines"]:
+            lines.append(f"  {item['tag']:<10} {item['text']}")
+    lines.append(f"regressions    : {len(result['regressions'])}")
+    for item in result["regressions"]:
+        lines.append(f"  REGRESSION    {item}")
+    lines += ["", f"verdict        : {result['verdict'].upper()} -- {result['reason']}"]
+    return "\n".join(lines)
+
+
 def render_compare(result: dict) -> str:
     """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
     lines = ["known-reds compare", "", f"baseline id    : {result['baseline_id']}"]
@@ -1353,6 +1484,14 @@ def main(argv: list[str] | None = None) -> int:
                                "registration to the specific failing check names it names, "
                                "instead of the whole hook (Codex terra HIGH, 2026-09-26)")
 
+    cmp_gate = sub.add_parser("compare-commit-gate",
+                              help="judge every failing hook of a commit-gate.out against "
+                                   "the registry's `hooks` section")
+    cmp_gate.add_argument("--gate-output", required=True)
+    cmp_gate.add_argument("--gate-exit-code", required=True, type=int)
+    cmp_gate.add_argument("--registry", default=REGISTRY_PATH)
+    cmp_gate.add_argument("--out", default=None)
+
     attr = sub.add_parser("attribute", help="git bisect run, one test, and name the lane")
     attr.add_argument("--test", required=True)
     attr.add_argument("--good", required=True)
@@ -1479,6 +1618,20 @@ def main(argv: list[str] | None = None) -> int:
                       if args.hook_output else None)
         result = compare_hook(args.hook_id, args.exit_code, registry, hook_output=hook_output)
         report = render_compare_hook(result)
+        if args.out:
+            Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
+        print(report)
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "compare-commit-gate":
+        try:
+            registry = load_registry(root / args.registry)
+        except KnownRedsError as exc:
+            print(str(exc), file=sys.stderr)
+            return EXIT_UNCOMPARABLE
+        text = Path(args.gate_output).read_text(encoding="utf-8", errors="replace")
+        result = compare_commit_gate(text, args.gate_exit_code, registry)
+        report = render_compare_commit_gate(result)
         if args.out:
             Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
         print(report)
