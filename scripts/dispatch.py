@@ -76,6 +76,7 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -129,6 +130,11 @@ try:
     from scripts import provider_registry as _preg
 except ImportError:  # pragma: no cover
     import provider_registry as _preg
+
+try:  # pragma: no cover -- a conductor lane's worktree is seeded from the ONE declared copy list
+    from scripts import worktree_seed as _wseed
+except ImportError:  # pragma: no cover
+    import worktree_seed as _wseed
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
@@ -685,6 +691,11 @@ class LaunchRequest:
     contract: Path
     batch: str = ""
     token_cap: Optional[int] = None
+    #: `model` (a provider session reads the contract) or `conductor` (`conductor.py lane --run`
+    #: runs it in code); `base` and `row` are read only for a conductor lane.
+    engine: str = "model"
+    base: str = ""
+    row: str = ""
 
     @property
     def session_name(self) -> str:
@@ -696,6 +707,12 @@ class LaunchRequest:
 
     @property
     def argv(self) -> list[str]:
+        if self.engine == "conductor":
+            # NOT a model prompt: the conductor command line, and the one interface to lane E1a.
+            argv = ["uv", "run", "--locked", "python", "scripts/conductor.py", "lane", "--run",
+                    "--contract", str(Path(self.contract).resolve()), "--lane", self.slug,
+                    "--base", self.base, "--receipts", str(receipts_dir().resolve())]
+            return argv + ["--row", self.row] if self.row else argv
         return build_plan(self.provider, self.model, self.slug, self.effort, self.prompt,
                           self.permission_mode).argv
 
@@ -751,6 +768,42 @@ def contract_slug(path: Path, line: Optional[DispatchLine], slug: str = "") -> s
     return slug
 
 
+_ENGINE_LINE = re.compile(r"^\*\*Engine:\*\*[ \t]*(.*?)[ \t]*$")
+_ROW_LINE = re.compile(r"(?m)^- \*\*Row:\*\* \[#(\d+)\]")
+_PHASES_HEADING = re.compile(r"(?m)^## Phases[ \t]*$")
+
+
+def parse_engine(text: str) -> str:
+    """The engine a contract declares on its own `**Engine:** conductor` line in `## Dispatch`
+    (outside any fence): `conductor`, or `model` when there is no such line. Any other value, or two
+    Engine lines, is refused naming what was read -- never a quiet pick. A prose line elsewhere in the
+    contract that happens to begin the same way declares nothing."""
+    values: list[str] = []
+    fenced = False
+    in_dispatch = False
+    for raw in text.splitlines():
+        if raw.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if raw.startswith("## "):
+            in_dispatch = raw[3:].strip() == "Dispatch"
+            continue
+        found = _ENGINE_LINE.match(raw) if in_dispatch else None
+        if found:
+            values.append(found.group(1).strip("`").strip())
+    if not values:
+        return "model"
+    if len(values) > 1:
+        raise DispatchRefused("the contract declares more than one `**Engine:**` line "
+                              f"({', '.join(repr(v) for v in values)}); a lane has one engine")
+    if values[0] != "conductor":
+        raise DispatchRefused(f"the contract declares `**Engine:** {values[0]}`; the only declarable "
+                              "engine is `conductor` (no line means the model engine)")
+    return "conductor"
+
+
 def request_from_contract(contract: Path, *, slug: str = "", provider: str = "", model: str = "",
                           effort: str = "", permission_mode: str = "", batch: str = "",
                           token_cap: Optional[int] = None) -> LaunchRequest:
@@ -762,6 +815,15 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
     line = parse_dispatch_block(text)
     slug = contract_slug(path, line, slug)
     provider = provider or (_HEAD_PROVIDER[line.head] if line else "anthropic")
+    engine = parse_engine(text)
+    if engine == "conductor":
+        if not _PHASES_HEADING.search(text):
+            raise DispatchRefused(f"{slug} declares `**Engine:** conductor` but has no `## Phases` "
+                                  "heading line: the conductor has no phases to run")
+        if provider != "anthropic":
+            raise DispatchRefused(f"{slug} declares `**Engine:** conductor` but its provider is "
+                                  f"{provider!r}: a conductor lane runs no model through the Dispatch "
+                                  "head, and another provider's endpoint must not reach it")
     table: Optional[tuple[str, str]] = None
     if not (model and effort) and not (line and line.model and line.effort):
         table = parse_contract_model_effort(text)     # nothing else names them: it must parse
@@ -792,11 +854,15 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
                               f"{', '.join(sorted(PERMISSION_MODES))}")
     if token_cap is not None:
         validate_cap(token_cap)
+    conductor = engine == "conductor"
+    row = _ROW_LINE.search(text) if conductor else None
     return LaunchRequest(
         slug=slug, provider=provider, model=model, effort=EFFORTS[effort.lower()],
         permission_mode=permission_mode or (line.permission_mode if line else "") or "bypassPermissions",
         contract=path.resolve(), batch=batch or os.environ.get("HARNESS_BATCH", ""),
-        token_cap=token_cap)
+        token_cap=token_cap, engine=engine,
+        base=(os.environ.get("HARNESS_BASE") or "origin/main") if conductor else "",
+        row=row.group(1) if row else "")
 
 
 # --- receipts: the launch receipt, the job-to-lane record, the spend rows -------------------------
@@ -826,6 +892,51 @@ def _spend_path(slug: str) -> Path:
 def _write_json(path: Path, body: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+
+def _write_json_atomic(path: Path, body: dict) -> None:
+    """`_write_json`, but by atomic replacement: a sibling tmp file, then `os.replace`. An
+    interruption leaves the old file or the new one, never half of either; a failed replace removes
+    the tmp file it made."""
+    _replace_bytes_atomic(path, (json.dumps(body, indent=2) + "\n").encode("utf-8"))
+
+
+def _replace_bytes_atomic(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp.write_bytes(data)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def _pid_record_path(slug: str) -> Path:
+    return receipts_dir() / f"LAUNCH-PID-{slug.upper()}.json"
+
+
+def _read_json_dict(path: Path) -> Optional[dict]:
+    try:
+        body = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _is_pid(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _conductor_pid(slug: str, receipt: Mapping) -> Optional[int]:
+    """The pid a conductor lane recorded: the receipt's own, else the pid record's; None when neither."""
+    if _is_pid(receipt.get("pid")):
+        return receipt["pid"]
+    record = _read_json_dict(_pid_record_path(slug)) or {}
+    return record["pid"] if _is_pid(record.get("pid")) else None
 
 
 def read_launch_receipt(slug: str) -> Optional[dict]:
@@ -1060,8 +1171,16 @@ def _refuse_test_launch(argv: Sequence[str], env: Mapping[str, str], cwd: Path) 
     `dispatch.py queue`. The one exec point refuses a provider head when (a) the pytest marker is in the
     env the child would inherit (or this process's own), or (b) the argv or the cwd names a
     `tests/fixtures/` path (the contract path rides inside the prompt argument). Nothing is spawned and
-    no worktree is created. A non-provider argv is untouched."""
-    if not argv or Path(str(argv[0])).stem.lower() not in _PROVIDER_HEADS:
+    no worktree is created. A non-provider argv is untouched.
+
+    A conductor lane's argv starts with `uv`, not a provider, yet `uv ... scripts/conductor.py ...
+    --run` starts a REAL conductor: it is guarded exactly like a provider head."""
+    if not argv:
+        return
+    parts = [str(part).replace("\\", "/") for part in argv]
+    conductor = (Path(parts[0]).stem.lower() == "uv" and "--run" in parts
+                 and any(part.endswith("scripts/conductor.py") for part in parts))
+    if Path(str(argv[0])).stem.lower() not in _PROVIDER_HEADS and not conductor:
         return
     if "PYTEST_CURRENT_TEST" in env or "PYTEST_CURRENT_TEST" in os.environ:
         why = "PYTEST_CURRENT_TEST is set: a test must not start a real provider session"
@@ -1205,6 +1324,16 @@ def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]
     receipt = receipt or {}
     job = str(receipt.get("job_id") or "")
     provider = str(receipt.get("provider") or "")
+    if receipt.get("engine") == "conductor":  # self-identified by pid; no pid anywhere HOLDS (fail closed)
+        pid = _conductor_pid(slug, receipt)
+        if pid is None:
+            copy = Path(str(receipt.get("worktree") or repair_worktree_path(Path.cwd(), slug)))
+            return (f"conductor receipts {_receipt_path(slug)} and "
+                    f"{copy / 'logs' / 'receipts' / _receipt_path(slug).name} - "
+                    "held: no recorded pid; the dispatcher resolves this by the recorded-pid check "
+                    "(never a command-line match) and clears the receipt copies only when no "
+                    "recorded process exists")
+        return f"conductor job {job or f'conductor-{pid}'} (pid {pid}) is still running" if process_alive(pid) else ""
     if provider in _DETACHED_HEADS:  # codex, copilot: self-identified by pid, never claude-listed
         pid = receipt.get("pid")
         if isinstance(pid, int):
@@ -1331,14 +1460,18 @@ def launch_lane(request: LaunchRequest, *,
                                 "refusing rather than assuming it is free") from exc
         if holder:
             raise AlreadyLaunched(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
+        # A conductor lane's worktree is classified BEFORE pre-launch (nothing exists yet to undo).
+        lane = _plan_conductor_lane(request, cwd) if request.engine == "conductor" else None
         env = child_env(request.provider, environ if environ is not None else os.environ,
                         read_secrets(secrets_file) if provider.key else None)
         try:
-            outcome = prelaunch(request)
+            outcome = prelaunch(request) if lane is None else prelaunch(request, repair=lane.reuse)
         except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
             raise LaunchRefused(f"pre-launch could not run for {request.slug}: {type(exc).__name__}: {exc}") from exc
         if not outcome.passed:
             raise LaunchRefused(f"pre-launch refused {request.slug}: {outcome.reason}")
+        if lane is not None:
+            return _start_conductor_lane(request, lane, env, spawn, agents, cwd, sleep)
 
         codex = provider.head == "codex"
         # DETACHED (codex, copilot): `Popen` + the platform's detach flags, stdout to a log file,
@@ -1397,6 +1530,232 @@ def launch_lane(request: LaunchRequest, *,
                 f"{request.slug} appeared. Run `claude agents` to find it. The launch receipt says "
                 f"`unresolved` and holds the slug for {LISTING_LAG_SECONDS}s; nothing was stopped.")
         return result
+
+
+# --- the conductor engine: `conductor.py lane --run` detached in the lane's own worktree ----------------
+
+@dataclass(frozen=True)
+class _ConductorLane:
+    """A conductor lane's worktree, classified before anything exists to undo."""
+    sha: str            # the base the conductor is given (40-hex)
+    tree: Path
+    branch: str
+    reuse: bool         # the lane's own worktree already exists on its own branch
+
+
+class _ReceiptWriteError(OSError):
+    """A launch receipt that could not be written; `receipt_path` says which one."""
+
+    def __init__(self, path: Path, cause: BaseException):
+        super().__init__(f"{path}: {cause}")
+        self.receipt_path = path
+
+
+_SHA40 = re.compile(r"[0-9a-f]{40}")
+
+
+def _is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
+    return _git_out(repo, "merge-base", "--is-ancestor", ancestor, descendant).returncode == 0
+
+
+def _plan_conductor_lane(request: LaunchRequest, cwd: Path) -> _ConductorLane:
+    """Resolve the base and classify the lane's worktree exactly as `successor_lane` does, BEFORE
+    pre-launch and before anything is created. A resumed lane keeps the base it was cut at; a base
+    that has moved on is not silently adopted."""
+    resolved = _git_out(cwd, "rev-parse", "--verify", f"{request.base}^{{commit}}")
+    sha = resolved.stdout.strip()
+    if resolved.returncode != 0 or not sha:
+        raise DispatchRefused(f"base {request.base!r} does not resolve to a commit in {cwd}: "
+                              f"{_tail(resolved.stderr, 300)}")
+    tree = repair_worktree_path(cwd, request.slug)
+    branch = f"worktree-{request.slug}"
+    if not tree.exists():
+        if _git_out(cwd, "show-ref", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0:
+            raise DispatchRefused(f"the branch {branch} already exists and the worktree of "
+                                  f"{request.slug} does not: refusing to reuse or delete a branch "
+                                  "this call did not create")
+        return _ConductorLane(sha, tree, branch, False)
+    top = _git_out(tree, "rev-parse", "--show-toplevel")
+    on_branch = _git_out(tree, "symbolic-ref", "--short", "HEAD")
+    listed = _git_out(cwd, "worktree", "list", "--porcelain")
+    try:
+        registered = {Path(line[len("worktree "):].strip()).resolve()
+                      for line in listed.stdout.splitlines() if line.startswith("worktree ")}
+        is_tree = (top.returncode == 0 and Path(top.stdout.strip()).resolve() == tree.resolve()
+                   and tree.resolve() in registered)   # a clone parked at the path is not this repo's worktree
+    except OSError:
+        is_tree = False
+    if not is_tree or on_branch.returncode != 0 or on_branch.stdout.strip() != branch:
+        raise DispatchRefused(f"{tree} is not a worktree of {cwd} on branch {branch}: "
+                              "refusing to reuse it for the conductor lane")
+    head = _git_out(tree, "rev-parse", "HEAD").stdout.strip()
+    previous = (read_launch_receipt(request.slug)
+                or _read_json_dict(tree / "logs" / "receipts" / _receipt_path(request.slug).name) or {})
+    recorded = str(previous.get("base") or "")
+    if _SHA40.fullmatch(recorded) and _is_ancestor(tree, recorded, head):
+        return _ConductorLane(recorded, tree, branch, True)
+    if _is_ancestor(tree, sha, head):
+        return _ConductorLane(sha, tree, branch, True)
+    raise DispatchRefused(f"the worktree of {request.slug} is at {head}, and neither the recorded base "
+                          f"{recorded or '(none)'} nor the resolved base {sha} is an ancestor of it: "
+                          "refusing to resume the lane on a base it was not cut from")
+
+
+def _seed_conductor_worktree(cwd: Path, tree: Path) -> None:
+    """Copy into `tree`, only where absent, the untracked files `worktree_seed` declares for the
+    checkout the launch ran in (the list is read, never restated)."""
+    for pattern in _wseed.copy_patterns(Path(cwd).resolve().name):
+        for source in sorted(Path(cwd).glob(pattern)):
+            target = tree / source.relative_to(cwd)
+            if source.is_file() and not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+
+
+def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Mapping[str, str],
+                          spawn: Callable[..., Spawned], agents: Callable[[], list[dict]], cwd: Path,
+                          sleep: Callable[[float], None]) -> LaunchResult:
+    """Provision, record the INTENT, spawn detached, record the pid, record the FINAL receipts.
+
+    Every receipt write is by atomic replacement. Only a CONFIRMED failure to start (the spawn raised,
+    or returned no pid and a non-zero code) undoes anything; once a pid exists nothing is removed."""
+    slug = request.slug
+    primary = _receipt_path(slug)
+    copy_path = lane.tree / "logs" / "receipts" / primary.name
+    pid_path = _pid_record_path(slug)
+    before = {}
+    for path in (primary, copy_path, pid_path):
+        try:
+            before[path] = path.read_bytes()
+        except OSError:
+            before[path] = None
+    prior = read_launch_receipt(slug)
+    launches: list = []     # an earlier launch is never lost: the history rides the INTENT too
+    if prior:
+        latest = {k: v for k, v in prior.items() if k != "launches"}
+        launches = list(prior.get("launches") or []) + [{**latest, "kind": latest.get("kind", "launch")}]
+    created = False
+
+    def undo() -> str:
+        """Undo what this call did; return "" when everything is undone, else a LEFTOVER text naming
+        each thing that could not be (a failed undo is surfaced in the refusal, never swallowed)."""
+        left: list[str] = []
+        for path, data in before.items():
+            try:
+                if data is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    _replace_bytes_atomic(path, data)   # byte for byte, and never half a receipt
+            except OSError as exc:
+                logger.warning("could not restore %s: %s", path, exc)
+                left.append(f"{path} not restored ({exc})")
+        if created:
+            for step in (("worktree", "remove", "--force", str(lane.tree)), ("branch", "-D", lane.branch)):
+                done = _git_out(cwd, *step)
+                if done.returncode != 0:
+                    left.append(f"`git {' '.join(step)}` failed ({_tail(done.stderr, 200)})")
+        return f" LEFTOVER (clean it by hand): {'; '.join(left)}." if left else ""
+
+    if not lane.reuse:
+        added = _git_out(cwd, "worktree", "add", "-b", lane.branch, str(lane.tree), lane.sha)
+        if added.returncode != 0:
+            raise DispatchRefused(f"could not create the worktree of {slug} at {lane.sha}: "
+                                  f"{_tail(added.stderr, 300)}")
+        created = True
+    try:   # idempotent (only where absent): a worktree whose first launch died before seeding is seeded now
+        _seed_conductor_worktree(cwd, lane.tree)
+    except OSError as exc:
+        left = undo()
+        raise LaunchRefused(f"could not seed the worktree of {slug} ({exc}); nothing was started.{left}") from exc
+    intent = {
+        "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None, "job_id": "pending",
+        "slug": slug, "provider": request.provider, "batch": request.batch,
+        "contract": str(request.contract), "substrate": "local", "end": None,
+        "end_reason": _LOCAL_END_REASON, "engine": "conductor", "base": lane.sha,
+        "worktree": str(lane.tree), **({"launches": launches} if launches else {})}
+    try:
+        _write_json_atomic(primary, intent)
+        _write_json_atomic(copy_path, intent)
+        pid_path.unlink(missing_ok=True)   # only now: both intents exist
+    except OSError as exc:
+        left = undo()
+        raise LaunchRefused(f"cannot write the launch intent receipt for {slug} ({exc}); refusing "
+                            f"to start a lane nothing can record.{left}") from exc
+    argv = replace(request, base=lane.sha).argv
+    child = dict(env)
+    if request.batch:
+        child["HARNESS_BATCH"] = request.batch
+    log_path = receipts_dir() / f"LAUNCH-LOG-{slug.upper()}.jsonl"
+    began = time.time()
+    try:
+        started = spawn(argv, child, lane.tree, log_path)
+    except LaunchRefused as exc:
+        left = undo()
+        if left:
+            raise LaunchRefused(f"{exc}{left}") from exc
+        raise
+    except OSError as exc:
+        left = undo()
+        raise LaunchRefused(f"{argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
+                            f"no lane was started.{left}") from exc
+    if started.pid is None:
+        if started.returncode != 0:
+            left = undo()
+            raise LaunchRefused(f"{argv[0]} exited {started.returncode} -- no lane was started: "
+                                f"{_tail(started.stdout, 300)}{left}")
+        raise LaunchIncomplete(f"{slug} was started but the spawn reported no pid. The intent receipts "
+                               f"{primary} and {copy_path} remain and hold the slug; nothing was stopped.")
+    pid = started.pid
+    try:   # IMMEDIATELY: before anything else, so no interruption leaves a running lane with no pid anywhere
+        # `slug` rides along: the system view reads every LAUNCH-*.json and requires slug + launched_at
+        _write_json_atomic(pid_path, {"pid": pid, "job_id": f"conductor-{pid}", "launched_at": _stamp(),
+                                      "slug": slug})
+    except OSError as exc:
+        raise LaunchIncomplete(f"{slug} WAS started (job conductor-{pid}, pid {pid}) but its pid record "
+                               f"could not be written ({exc}). It is running; nothing was stopped. The "
+                               f"intent receipts {primary} and {copy_path} remain, without a pid, and "
+                               "hold the slug.") from exc
+    job_id, session_id, reported_name = _identify(request, started, "conductor", agents, sleep, began)
+    result = LaunchResult(
+        slug=slug, provider=request.provider, model_requested=request.model,
+        model_reported=NOT_ATTESTABLE, job_id=job_id, worktree=str(lane.tree),
+        session_name=request.session_name, session_name_reported=reported_name,
+        session_id=session_id, pid=pid, log_path=str(log_path), argv=list(argv))
+    extra: dict = {"engine": "conductor", "base": lane.sha, **({"launches": launches} if launches else {})}
+    try:
+        _write_launch_records(request, result, extra=extra)
+    except OSError as exc:
+        failed = getattr(exc, "receipt_path", None)
+        left = (f"the worktree copy {copy_path} is still the INTENT receipt (the primary is FINAL): "
+                "reconcile it by deleting it or copying the primary over it" if failed == copy_path
+                else f"both receipts are FINAL and only the job record {failed} is missing"
+                if failed == _job_path(job_id)
+                else f"the intent receipts {primary} and {copy_path} may not be final")
+        raise LaunchIncomplete(f"{slug} WAS started (job {job_id}, pid {pid}) but its launch receipt "
+                               f"could not be written ({exc}). It is running; nothing was stopped; "
+                               f"{left}. The pid record {pid_path} holds the pid.") from exc
+    try:
+        pid_path.unlink(missing_ok=True)   # only after BOTH final receipts exist
+    except OSError as exc:
+        logger.warning("could not remove the pid record %s: %s", pid_path, exc)
+    return result
+
+
+def conductor_live_slugs(process_alive: Optional[Callable[[int], bool]] = None) -> set:
+    """Every lane with a conductor launch receipt in `receipts_dir()` that is running: its recorded
+    pid is alive, or it has NO pid anywhere (held, fail closed). Not limited to the lanes of one
+    queue call -- the cap of 4 counts every running conductor lane of the repo."""
+    alive = process_alive or globals()["process_alive"]
+    live: set = set()
+    for path in sorted(receipts_dir().glob("LAUNCH-*.json")):
+        body = _read_json_dict(path)
+        if not body or body.get("engine") != "conductor":
+            continue
+        slug = str(body.get("slug") or path.stem[len("LAUNCH-"):].lower())
+        pid = _conductor_pid(slug, body)
+        if pid is None or alive(pid):
+            live.add(slug)
+    return live
 
 
 def _identify(request: LaunchRequest, started: Spawned, self_identified: str,
@@ -1485,13 +1844,28 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult,
         receipt["launches"] = history
         if result.worktree:
             _write_json(Path(result.worktree) / "logs" / "receipts" / _receipt_path(request.slug).name, receipt)
+    job_record = {
+        "schema": 1, "job_id": result.job_id, "session_id": result.session_id, "slug": request.slug,
+        "batch": request.batch, "provider": request.provider, "worktree": result.worktree,
+        "contract": str(request.contract), "launched_at": when}
+    if request.engine == "conductor":
+        # By atomic replacement, the primary first and then the worktree copy the merge gate reads
+        # by default (subst_gate.py:463-470), then the job record; a failure names the file.
+        writes = [(_receipt_path(request.slug), receipt)]
+        if result.worktree:
+            writes.append((Path(result.worktree) / "logs" / "receipts" / _receipt_path(request.slug).name,
+                           receipt))
+        writes.append((_job_path(result.job_id), job_record))
+        for path, body in writes:
+            try:
+                _write_json_atomic(path, body)
+            except OSError as exc:
+                raise _ReceiptWriteError(path, exc) from exc
+        return
     _write_json(_receipt_path(request.slug), receipt)
     if result.job_id == "unresolved":
         return          # one file per job id, and there is none to name
-    _write_json(_job_path(result.job_id), {
-        "schema": 1, "job_id": result.job_id, "session_id": result.session_id, "slug": request.slug,
-        "batch": request.batch, "provider": request.provider, "worktree": result.worktree,
-        "contract": str(request.contract), "launched_at": when})
+    _write_json(_job_path(result.job_id), job_record)
 
 
 # --- govern: a MONITOR ------------------------------------------------------------------------------
@@ -2360,18 +2734,24 @@ def launch_cmd(contract: str, slug: str, provider: str, model: str, effort: str,
     live integrator, routing agreement); on a pass spawns `claude --bg -n <slug> ...` (or
     `codex exec ...`) and writes the launch receipt and a job-to-lane record under
     logs/receipts/. On a refusal it spawns nothing, prints the reason and exits 5. Nothing here can
-    stop a lane that is already running."""
+    stop a lane that is already running.
+
+    A contract that declares `**Engine:** conductor` is not a model prompt: this provisions
+    `.claude/worktrees/<slug>` on `worktree-<slug>` and starts `conductor.py lane --run` detached in
+    it (`--dry-run` echoes `"engine": "conductor"` and that argv)."""
     _refuse_malformed_batch(slug or Path(contract).stem, batch or os.environ.get("HARNESS_BATCH", ""))
     path = (Path(contract).resolve() if Path(contract).is_file()
             else resolve_contract(contract, prompts_dir()))
     request = request_from_contract(path, slug=slug, provider=provider, model=model, effort=effort,
                                     batch=batch, token_cap=token_cap)
     if dry_run:
-        click.echo(json.dumps({"schema": 1, "slug": request.slug, "provider": request.provider,
-                               "model": request.model, "effort": request.effort, "batch": request.batch,
-                               "token_cap": request.token_cap, "session_name": request.session_name,
-                               "contract": str(request.contract), "prompt": request.prompt,
-                               "argv": request.argv}))
+        plan = {"schema": 1, "slug": request.slug, "provider": request.provider,
+                "model": request.model, "effort": request.effort, "batch": request.batch,
+                "token_cap": request.token_cap, "session_name": request.session_name,
+                "contract": str(request.contract), "prompt": request.prompt, "argv": request.argv}
+        if request.engine == "conductor":
+            plan["engine"] = "conductor"
+        click.echo(json.dumps(plan))
         return
     result = launch_lane(request, prelaunch=run_prelaunch, spawn=spawn_process, agents=list_agents,
                          secrets_file=secrets_file)
@@ -4725,14 +5105,20 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
             raise
 
     def live_slugs() -> set:
+        # A running conductor lane is no `claude agents` listing: its leg is the launch receipts'
+        # recorded pids, and it keeps counting when the listing cannot be read.
+        conductor = conductor_live_slugs()
         try:
             agents = list_agents()
         except ListingUnreadable:
-            return set()
-        return {lane.slug for lane in lanes if find_lane_by_slug_in(agents, lane.slug)}
+            return conductor
+        return {lane.slug for lane in lanes if find_lane_by_slug_in(agents, lane.slug)} | conductor
 
     def local_live_count() -> int:
-        return len({s for s in live_slugs() if by_slug[s].substrate == "local"})
+        live = live_slugs()
+        # a live conductor lane no queued contract names occupies a slot too
+        return (len({s for s in live if s in by_slug and by_slug[s].substrate == "local"})
+                + len({s for s in live if s not in by_slug}))
 
     states_fn = lambda: read_lane_states(state_file)  # noqa: E731
 
