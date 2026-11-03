@@ -1246,6 +1246,34 @@ def test_g3_conductor_passes_gate_and_enriches_refusal_with_round_path(case, cap
     assert capsys.readouterr().out.count("QUESTION land-on-handback") == 1
 
 
+def test_x_a_land_lane_exception_still_writes_the_stop_and_one_clock_line(case, capsys):
+    line, _ = _prepare(case)
+
+    def boom(worktree, **kwargs):
+        raise RuntimeError("gate-side failure")
+
+    outcome = _one(case, SLUG, line, land_lane_fn=boom)
+
+    rows = _clock_rows(case.clock)
+    assert outcome.state == "LAND-FN-RAISED" and outcome.exit_code == 5
+    assert len(rows) == 1 and rows[0]["state"] == "LAND-FN-RAISED" and rows[0]["exit_code"] == 5
+    assert json.loads(_stop_path(case).read_text(encoding="utf-8"))["state"] == "LAND-FN-RAISED"
+    assert capsys.readouterr().out.count("QUESTION land-on-handback") == 1
+
+
+def test_x_an_unwritable_stop_file_still_ends_in_the_one_question_line(case, capsys):
+    line, _ = _prepare(case)
+    _stop_path(case).mkdir(parents=True)          # a directory where the stop file goes: the write fails
+    report = _report("REFUSED", 5, "REFUSED: gate said no", sha="a" * 40)
+
+    outcome = _one(case, SLUG, line, land_lane_fn=_stub(report, []))
+
+    out = capsys.readouterr().out
+    assert outcome.exit_code == 5
+    assert out.count("QUESTION land-on-handback") == 1
+    assert "LAND-STOP write failed" in out
+
+
 @pytest.mark.parametrize("stub_kind", ["without-parameter", "kwargs-only"])
 def test_g4_conductor_fails_closed_when_named_gate_parameter_is_missing(
     case, capsys, monkeypatch, stub_kind

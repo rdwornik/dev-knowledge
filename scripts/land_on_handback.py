@@ -202,6 +202,15 @@ def _write_json(path: Path, body: dict) -> None:
     path.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
+def _write_stop(path: Path, body: dict) -> str:
+    """Write LAND-STOP; a write that fails still ends in the one QUESTION line, never a traceback."""
+    try:
+        _write_json(path, body)
+    except OSError as exc:
+        return f"none (LAND-STOP write failed at {path}: {exc})"
+    return str(path)
+
+
 # --- the preflight checks ------------------------------------------------------------------------
 
 @dataclass
@@ -435,8 +444,8 @@ def _land_locked(ctx: _Ctx, pickup: float, handback_at: Optional[str], carry_fil
     gate_missing = _check_engine(ctx, fn)
     if gate_missing is not None:
         stop = _stop_path(ctx.receipts, slug)
-        _write_json(stop, _stop_body(ctx, gate_missing, None))
-        return _finish(gate_missing, slug, stop, False)
+        evidence = _write_stop(stop, _stop_body(ctx, gate_missing, None))
+        return _finish(gate_missing, slug, evidence, False)
     carry = Path(carry_file) if carry_file else ctx.worktree.parent / f"{ctx.worktree.name}-land-carry.jsonl"
     kwargs = dict(slug=slug, batch=ctx.batch, carry_file=carry, timeout_s=timeout_s,
                   interval_s=interval_s, handback=ctx.session,
@@ -453,8 +462,12 @@ def _land_locked(ctx: _Ctx, pickup: float, handback_at: Optional[str], carry_fil
         except Exception as exc:                    # noqa: BLE001 -- a stop, never a crash of the watch
             outcome = _refuse("LAND-FN-RAISED", f"land_lane raised {type(exc).__name__}: {exc}. "
                                                 f"origin/main may already hold {ctx.parsed.sha[:12]}")
-            _write_json(stop, _stop_body(ctx, outcome, None))
-            return _finish(outcome, slug, stop, False)
+            raised = land_lane.LandReport(outcome.state, outcome.exit_code, outcome.message)
+            _append_clock(clock_path, ctx.worktree,
+                          _clock_line(slug, ctx.batch, ctx.parsed.sha, raised,
+                                      _parse_iso(handback_at), pickup, now()))
+            evidence = _write_stop(stop, _stop_body(ctx, outcome, None))
+            return _finish(outcome, slug, evidence, False)
     finally:
         if prior is None:
             os.environ.pop("HARNESS_RECEIPTS_DIR", None)
@@ -472,8 +485,8 @@ def _land_locked(ctx: _Ctx, pickup: float, handback_at: Optional[str], carry_fil
     outcome = LandOutcome(report.state, report.exit_code, report.message, report,
                           recorded=report.exit_code == EXIT_OK)
     if outcome.exit_code != EXIT_OK:
-        _write_json(stop, _stop_body(ctx, outcome, report))
-        return _finish(outcome, slug, stop, False)
+        evidence = _write_stop(stop, _stop_body(ctx, outcome, report))
+        return _finish(outcome, slug, evidence, False)
     stop.unlink(missing_ok=True)                    # an earlier stop of this lane is resolved by this landing
     return _finish(outcome, slug, None, False)
 
