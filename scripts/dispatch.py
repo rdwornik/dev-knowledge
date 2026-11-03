@@ -774,16 +774,23 @@ _PHASES_HEADING = re.compile(r"(?m)^## Phases[ \t]*$")
 
 
 def parse_engine(text: str) -> str:
-    """The engine a contract declares on its own `**Engine:** conductor` line (outside any fence):
-    `conductor`, or `model` when there is no such line. Any other value, or two Engine lines, is
-    refused naming what was read -- never a quiet pick."""
+    """The engine a contract declares on its own `**Engine:** conductor` line in `## Dispatch`
+    (outside any fence): `conductor`, or `model` when there is no such line. Any other value, or two
+    Engine lines, is refused naming what was read -- never a quiet pick. A prose line elsewhere in the
+    contract that happens to begin the same way declares nothing."""
     values: list[str] = []
     fenced = False
+    in_dispatch = False
     for raw in text.splitlines():
         if raw.lstrip().startswith("```"):
             fenced = not fenced
             continue
-        found = None if fenced else _ENGINE_LINE.match(raw)
+        if fenced:
+            continue
+        if raw.startswith("## "):
+            in_dispatch = raw[3:].strip() == "Dispatch"
+            continue
+        found = _ENGINE_LINE.match(raw) if in_dispatch else None
         if found:
             values.append(found.group(1).strip("`").strip())
     if not values:
@@ -891,10 +898,14 @@ def _write_json_atomic(path: Path, body: dict) -> None:
     """`_write_json`, but by atomic replacement: a sibling tmp file, then `os.replace`. An
     interruption leaves the old file or the new one, never half of either; a failed replace removes
     the tmp file it made."""
+    _replace_bytes_atomic(path, (json.dumps(body, indent=2) + "\n").encode("utf-8"))
+
+
+def _replace_bytes_atomic(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
     try:
-        tmp.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n")
+        tmp.write_bytes(data)
         os.replace(tmp, path)
     except BaseException:
         try:
@@ -1566,8 +1577,12 @@ def _plan_conductor_lane(request: LaunchRequest, cwd: Path) -> _ConductorLane:
         return _ConductorLane(sha, tree, branch, False)
     top = _git_out(tree, "rev-parse", "--show-toplevel")
     on_branch = _git_out(tree, "symbolic-ref", "--short", "HEAD")
+    listed = _git_out(cwd, "worktree", "list", "--porcelain")
     try:
-        is_tree = top.returncode == 0 and Path(top.stdout.strip()).resolve() == tree.resolve()
+        registered = {Path(line[len("worktree "):].strip()).resolve()
+                      for line in listed.stdout.splitlines() if line.startswith("worktree ")}
+        is_tree = (top.returncode == 0 and Path(top.stdout.strip()).resolve() == tree.resolve()
+                   and tree.resolve() in registered)   # a clone parked at the path is not this repo's worktree
     except OSError:
         is_tree = False
     if not is_tree or on_branch.returncode != 0 or on_branch.stdout.strip() != branch:
@@ -1623,7 +1638,7 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
                 if data is None:
                     path.unlink(missing_ok=True)
                 else:
-                    path.write_bytes(data)
+                    _replace_bytes_atomic(path, data)   # byte for byte, and never half a receipt
             except OSError as exc:
                 logger.warning("could not restore %s: %s", path, exc)
         if created:

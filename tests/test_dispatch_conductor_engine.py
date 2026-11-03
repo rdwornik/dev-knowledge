@@ -1046,3 +1046,30 @@ def test_n_job_record_atomic_replace_failure_cleans_tmp_and_names_running_pid(
 
     assert "8201" in str(incomplete.value)
     assert not [path for path in receipts.rglob("*") if path.is_file() and ".tmp" in path.name]
+
+
+def test_parse_engine_reads_only_the_dispatch_section():
+    prose_only = "# LANE x\n\n**Engine:** conductor\n\n## Dispatch\n\n```\nclaude --bg\n```\n"
+    assert d.parse_engine(prose_only) == "model"
+    elsewhere = "## Notes\n**Engine:** bogus\n\n## Dispatch\n\n**Engine:** conductor\n\n## Roles\n**Engine:** x\n"
+    assert d.parse_engine(elsewhere) == "conductor"
+
+
+def test_j_a_standalone_repo_parked_at_the_worktree_path_is_refused(tmp_path, monkeypatch):
+    _require("parse_engine")
+    root, receipts, _base = _new_repo(tmp_path / ".dev-knowledge", monkeypatch)
+    tree = _tree(root)
+    tree.mkdir(parents=True)
+    _git(tree, "init", "-q", "-b", f"worktree-{SLUG}")   # its own repo, on the lane branch, NOT a worktree of root
+    spawn = FakeSpawn()
+    prelaunch_calls = []
+
+    def prelaunch(_request, repair=False):
+        prelaunch_calls.append(repair)
+        return d.PreLaunch(True)
+
+    with pytest.raises(d.DispatchRefused):
+        _launch(_request(), root, spawn, prelaunch=prelaunch, agents=lambda: [])
+
+    assert spawn.calls == [] and prelaunch_calls == []
+    assert list(receipts.iterdir()) == []
