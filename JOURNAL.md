@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (k) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-commit-gate-green landing -- the commit-gate job judges its failing hooks by the known-reds classifier, held at Q-CGG-2 condition 3 [#1862]
+
+**Anchors:** `e6ac70fff` (T1 RED, run 41617584859), `6950a332b` (lane tip, T2 7e603898 run 41686158517), `5ee601a35` (main when this landing was cut; the H land receipt).
+
+**Did:** landed lane [#1862]'s HANDBACK `6950a332b` (SESSION-e30-commit-gate-green.md:83), forwarded READY by the dispatcher after H. Per-handback path read by me: purity against LANE-e30-commit-gate-green.md (sha256 c6e57fdfaf6e56fd, Amendment CGG-2): the diff is exactly the six owned files -- `.github/workflows/conductor.yml` (the commit-gate first step's end and the second step's comment lines), `logs/KNOWN-REDS-REGISTRY.json` (ONLY the new `lines` array under `hooks.audit-health`, 12 lines; no baseline key touched), `scripts/known_reds.py`, `tests/test_known_reds_gate_hooks.py` (new), `tasks/1862-*` and its manifest node. T1 run head == red-sha; T2 head == tip, session != T1, base-run 41620417935 is a main push run; usage JSON `currentModel` gpt-6-luna on both; `check_models_block` ([], []); `advisor` in the LAUNCH argv. S-1b ladder: terra CHANGES (1 MED, upload step outside the footprint) REJECTED by the judge, argon APPROVE, judge Codex gpt-6-sol APPROVE; the earlier Grok judge CHANGES on `46e54e16a` is fixed in the final tip. T2 re-derived from the CI logs of run 41686158517: 15 failures outside the registry, all on the closed ALLOW list (test_check_derived_copies x2, test_connection_loop x5, test_dodo spine, test_gen_task_tree x3, test_task_tree_gate x4: stale generated files of the un-regenerated lane tip); the 4 graph_spine_commit_tier witnesses and the dispatch_launch husk test are registry members. N4 BASE-MOVED-DISJOINT: main moved f1bf64d24 -> 5ee601a35 by the H land, whose files are disjoint from this lane's; merged `origin/main` into the lane copy (no conflict), regenerated.
+
+**Result:** CONDITION 3 (Q-CGG-2, binding): the main push is HELD until the dispatcher's READY-TO-PUSH after it reads this landing's integration run commit-gate artifact for classifier green; see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md. [#1862] is closed by the dispatcher's Done 6 witness / the N2 hand path, not in-lane.
+
+**Changes:** the lane's six files, `BACKLOG.md` and `ecosystem/doc-counts.md` (regenerated), this entry.
+
+**Abandoned:** nothing.
+
+**Next:** integration run id to the dispatcher; wait for READY-TO-PUSH; push main; K1 of the [#1862] lane (job 4a29daae).
+
 ### 2026-11-03 (j) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-land-on-handback landing -- a HANDBACK wake runs `land_lane` in process under one lock, with the merge pinned to the validated sha (QH2) [#1859]
 
 **Anchors:** `8c455abba` (T1 RED, run 41550350078), `8df10e445` (lane tip, T2 ee644b05 run 41667354986, verdict PASS), `f1bf64d24` (main when this landing was cut; the [#1868] filing).
