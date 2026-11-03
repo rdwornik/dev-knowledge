@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-03 (h) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #3 -- [#1854] closes on the sweep land and its success main push run [#1854]
+
+**Anchors:** `cd9d05281` (the sweep land merge), `db5692f16` (its receipt commit, main head when this follow-up was cut), `5519396bd` (the [#1854] close).
+
+**Did:** read the main push run 41647371343 for `db5692f16`: conclusion success; the commit-gate job failed only at `audit-health` (the registered environment-mismatch, 12 `[!!]` lines = base) and pytest (ubuntu) passed. Ran the sweep hazard check on a fresh branch off `origin/main`: `gen_task_tree --emit-source` already current, `--check` ok. Then closed [#1854] by the N2 tasks-only hand path (`gen_task_tree --close-row 1854 --evidence cd9d05281bc05c2579789fbb03be6b41e8080cd5 --ci-run 41647371343 --ci-conclusion success`, then `--emit-source`). The lane skips the in-lane close (CAND-CLOSE-1), so the close is the integrator's act on a success main run.
+
+**Result:** one data commit; the `backlog_reconcile` freeze (Q-SW-4 = B) stays until [#1867] is MERGED: no `apply`, no `--revert`.
+
+**Changes:** `tasks/1854-*.md`, `tasks/manifest.json`, `BACKLOG.md` (regenerated), `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run for this follow-up; then hold for dispatcher forwards ([#1862], H [#1859], E2 [#1857], G, [#1863], [#1844], [#1846]).
+
 ### 2026-11-03 (g) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-backlog-legacy-sweep landing -- 123 legacy backlog rows closed by code (`backlog_reconcile`) under architect Q-SW-4 = B [#1854]
 
 **Anchors:** `b209677ae` (T1-W RED, run 41600844460), `284b53954` (FIXED_LIVE_IDS gains 1572 and 1633), `2b151a148` (lane tip: the sweep re-run on the merged tip; T2 run 41613122860).
