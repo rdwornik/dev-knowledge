@@ -34,11 +34,15 @@ and the scratch directory is removed afterwards (no leftovers).
 """
 from __future__ import annotations
 
+import base64
+import collections
 import datetime as dt
+import functools
 import hashlib
 import json
 import logging
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -46,7 +50,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Mapping, Optional, Sequence
 
 import click
 import yaml
@@ -656,6 +660,727 @@ def apply_action(path: Path, action: str) -> bool:
     return True
 
 
+# --- the legacy sweep (GO-E3.0 night sweep, row [#1854]) -----------------------------------------
+#
+# SEPARATE from the five-evidence-class `apply --ruling` above (`EVIDENCE_CLASSES` is unchanged).
+# `apply --sweep` closes OLD rows (git add-date before the cutoff) unless a KEEP witness holds, and
+# takes the step-2 R-1..R-3 rule for newer rows; `apply --revert` reopens any class from the sweep's
+# own ledger, byte for byte. Library-first: the close itself is `gen_task_tree.close_row_plan`
+# (called, never re-implemented); git is the only source of ages and recency.
+
+SWEEP_CUTOFF = dt.date(2026, 10, 1)
+K2_WINDOW_DAYS = 30
+LEGACY_CLASS = "legacy-sweep"
+SWEEP_DECISION_CLASSES: tuple[str, ...] = (
+    "close-shipped", "close-obsolete", "close-duplicate", "close-no-fit", "close-parked",
+    "keep-P1", "keep-P2", "keep-P3", "merge-rewrite",
+)
+#: Rows a live lane files, builds or closes (contract Outcome (7)); the sweep never closes them.
+FIXED_LIVE_IDS: frozenset[str] = frozenset(
+    str(n) for n in (1572, 1633, 1748, 1800, 1811, 1833, 1837, 1838, *range(1844, 1864)))
+SWEEP_LEDGER = "ledger.json"
+# A dated name: consumer_at_landing counts a docs/audits file as consumed only when a governance
+# surface cites a DATED name, so a file called index.md could never be consumed (Q-SW-2 (e)).
+SWEEP_INDEX = "2026-11-02-technical-backlog-night-sweep-index.md"
+R2_REFUSED_LINE = "R-2 refused: no adjudicated unique-content flag"
+KEPT_CATEGORIES: tuple[str, ...] = (
+    "protected", "k2-alive", "k3-agreed", "live-excluded", "r2-refused", "absent-from-table",
+    "ungated", "unknown-decision-class", "merge-rewrite", "keep-class", "no-add-date",
+    "archived-body", "duplicate-of-kept")
+DEFAULT_SWEEP_HOME = REPO_ROOT / "docs" / "audits" / "2026-11-02-technical-backlog-night-sweep"
+DEFAULT_TRANSPORT_ROOT = Path(os.environ.get("CLAUDE_PROMPTS_DIR") or "H:/My Drive/CLAUDE PROMPT DIR")
+
+_CITE_RE = re.compile(r"(?<![\w/&])#(\d+)\b")
+_ADR_ACCEPTED_RE = re.compile(r"(?mi)^[-*\s]*\*{0,2}status:?\*{0,2}:?\s*\*{0,2}\s*accepted")
+
+
+class SweepError(click.ClickException):
+    """A sweep or revert the organ refuses; nothing was written when this is raised."""
+
+
+def _git(repo_root: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", check=False)
+
+
+def _dates_of(proc: subprocess.CompletedProcess) -> list[dt.date]:
+    return [dt.date.fromisoformat(line.strip()[:10])
+            for line in proc.stdout.splitlines() if line.strip()]
+
+
+def task_add_date(repo_root: Path, rel_path: str, ref: str = "HEAD") -> dt.date:
+    """The OLDEST author date among the commits that ADD `rel_path` along its rename history
+    (`git log --follow --diff-filter=A`): a renamed file keeps the age of its first name.
+
+    A file that entered the tree inside a merge commit has no `A` entry under `--follow`; its age
+    is then the oldest commit touching any `<dir>/<id>-*` path (the id prefix survives a rename),
+    which is the contract's "oldest commit touching any of its paths"."""
+    proc = _git(repo_root, "log", "--follow", "--diff-filter=A", "--format=%aI", ref, "--",
+                rel_path)
+    dates = _dates_of(proc)
+    if not dates:
+        rel = rel_path.replace("\\", "/")
+        head, _, name = rel.rpartition("/")
+        found = re.match(r"(\d+)-", name)
+        if found:
+            pattern = f"{head}/{found.group(1)}-*" if head else f"{found.group(1)}-*"
+            dates = _dates_of(_git(repo_root, "log", "--format=%aI", ref, "--", pattern))
+    if not dates:
+        raise SweepError(f"no add-date for {rel_path} on {ref}: {proc.stderr.strip()[:200]}")
+    return min(dates)
+
+
+@functools.lru_cache(maxsize=512)
+def _cited_ids_cached(text: str) -> frozenset[str]:
+    return frozenset(_CITE_RE.findall(text))
+
+
+def cited_ids(text: str) -> set[str]:
+    """Ids cited as `[#123]` or `#123` (digits, as str)."""
+    return set(_cited_ids_cached(text))
+
+
+def k1_protected(row_id: str, *, source_texts: Mapping[str, str],
+                 cited_by_open: Sequence) -> list[str]:
+    """K1 / R-1: the witnesses that protect the row -- each source naming it, plus
+    `cited_by_open` when an open row cites it. Empty = not protected."""
+    held = [name for name, text in source_texts.items() if str(row_id) in _cited_ids_cached(text)]
+    if cited_by_open:
+        held.append("cited_by_open")
+    return held
+
+
+def k2_alive(body: str, *, repo_root: Path, ref: str, today: dt.date,
+             window_days: int = K2_WINDOW_DAYS) -> list[str]:
+    """K2: repo paths the row names that exist on `ref` AND were committed to within the window."""
+    floor = today - dt.timedelta(days=window_days)
+    alive: list[str] = []
+    for path, _planned in referenced_paths(body):
+        if path.startswith(BOOKKEEPING_PREFIXES):
+            continue
+        for cand in ([path] if "/" in path else [path, f"scripts/{path}"]):
+            if _git(repo_root, "cat-file", "-e", f"{ref}:{cand}").returncode != 0:
+                continue
+            stamp = _git(repo_root, "log", "-1", "--format=%cI", ref, "--", cand).stdout.strip()
+            if stamp and dt.date.fromisoformat(stamp[:10]) >= floor:
+                alive.append(cand)
+            break
+    return alive
+
+
+def k3_agreed(table_row: Mapping) -> bool:
+    """K3: both step-1 families say LINE with P1/P2, agreed (never adjudicated)."""
+    if table_row.get("label_basis") != "agreed" or table_row.get("adjudicator_followed"):
+        return False
+    for family in ("sonnet", "gemini"):
+        label = table_row.get(family) or {}
+        if label.get("fit") != "LINE" or label.get("priority") not in ("P1", "P2"):
+            return False
+    return True
+
+
+def live_lane_ids(repo_root: Path, *, transport_root: Path,
+                  main_ref: str = "origin/main") -> dict[str, str]:
+    """id -> reason for every row a live lane files, builds or closes (contract Outcome (7))."""
+    live: dict[str, str] = {i: "fixed live-lane set" for i in FIXED_LIVE_IDS}
+    slugs: set[str] = set()
+    worktrees = _git(repo_root, "worktree", "list", "--porcelain").stdout
+    for match in re.finditer(r"(?m)^worktree (.+)$", worktrees):
+        norm = match.group(1).replace("\\", "/")
+        if "/.claude/worktrees/" in norm:
+            slugs.add(norm.rsplit("/.claude/worktrees/", 1)[1].strip("/"))
+    for prefix in ("refs/remotes/origin/worktree-", "refs/remotes/origin/integrate-"):
+        refs = _git(repo_root, "for-each-ref", "--format=%(refname)", prefix + "*").stdout.split()
+        for ref in refs:
+            diff = _git(repo_root, "diff", "--name-only", f"{main_ref}...{ref}", "--", "tasks/")
+            for name in diff.stdout.splitlines():
+                found = re.match(r"tasks/(\d+)-", name.strip())
+                if found:
+                    live.setdefault(found.group(1), f"task file differs on {ref}")
+            if prefix.endswith("worktree-"):
+                merged = _git(repo_root, "merge-base", "--is-ancestor", ref, main_ref).returncode
+                if merged != 0:
+                    slugs.add(ref[len(prefix):])
+    for slug in sorted(slugs):
+        lane = Path(transport_root) / f"LANE-{slug}.md"
+        if lane.is_file():
+            for found in cited_ids(lane.read_text(encoding="utf-8", errors="replace")):
+                live.setdefault(found, f"cited in the contract of live lane {slug}")
+    return live
+
+
+# --- the sweep ruling and the step-1 table --------------------------------------------------------
+
+
+def load_sweep_ruling(path: Path) -> dict[str, Any]:
+    """The sweep half of a ruling file. `load_ruling` still validates the shared schema; this adds
+    the `sweep:` block and proves `text` is the file `source_sha256` names."""
+    load_ruling(path)
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    text, digest = data.get("text"), data.get("source_sha256")
+    if not isinstance(text, str) or not isinstance(digest, str):
+        raise RulingError("sweep ruling needs `text` and `source_sha256`")
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != digest:
+        raise RulingError("ruling.text does not hash to ruling.source_sha256")
+    sweep = data.get("sweep")
+    if not isinstance(sweep, dict):
+        raise RulingError("ruling.sweep must be a mapping")
+    cutoff = sweep.get("cutoff")
+    if not isinstance(cutoff, dt.date) and not _is_iso_date(cutoff):
+        raise RulingError("ruling.sweep.cutoff must be an ISO date")
+    if isinstance(cutoff, str):
+        cutoff = dt.date.fromisoformat(cutoff)
+    window = sweep.get("k2_window_days", K2_WINDOW_DAYS)
+    if not isinstance(window, int) or window < 0:
+        raise RulingError("ruling.sweep.k2_window_days must be a non-negative integer")
+    sources = sweep.get("k1_sources")
+    if not isinstance(sources, list):
+        raise RulingError("ruling.sweep.k1_sources must be a list")
+    for source in sources:
+        if not isinstance(source, dict) or source.get("root") not in ("repo", "transport") \
+                or not (isinstance(source.get("path"), str) or isinstance(source.get("glob"), str)):
+            raise RulingError(f"bad k1_sources entry: {source!r}")
+    classes = sweep.get("decision_classes")
+    if not isinstance(classes, dict) or not classes:
+        raise RulingError("ruling.sweep.decision_classes must be a non-empty mapping")
+    for key, label in classes.items():
+        if key not in SWEEP_DECISION_CLASSES:
+            raise RulingError(f"ruling names unknown decision class {key!r}")
+        if not isinstance(label, str) or not label:
+            raise RulingError(f"decision class {key!r} needs a class label or 'keep'")
+    return {"cutoff": cutoff, "k2_window_days": window,
+            "legacy_class": sweep.get("legacy_class", LEGACY_CLASS),
+            "k1_sources": [dict(s) for s in sources], "decision_classes": dict(classes),
+            "text": text, "source_sha256": digest}
+
+
+def load_step1_table(path: Path) -> list[dict[str, Any]]:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        raise SweepError(f"step-1 table {path} has no `rows` list")
+    return rows
+
+
+def _read_k1_sources(ruling: dict[str, Any], repo_root: Path, transport_root: Path) -> dict[str, str]:
+    texts: dict[str, str] = {}
+    for source in ruling["k1_sources"]:
+        root = Path(repo_root if source["root"] == "repo" else transport_root)
+        if "glob" in source:
+            paths = sorted(root.glob(source["glob"]))
+            if not paths:
+                raise SweepError(f"k1 source glob matched nothing: {source['glob']}")
+        else:
+            paths = [root / source["path"]]
+        for path in paths:
+            if not path.is_file():
+                raise SweepError(f"k1 source not found (fail closed): {path}")
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if source.get("requires_status") == "Accepted" and not _ADR_ACCEPTED_RE.search(text):
+                continue  # an ADR that is not Accepted protects nothing
+            texts[f"{source['root']}:{path.relative_to(root).as_posix()}"] = text
+    return texts
+
+
+# --- the atomic pair write ------------------------------------------------------------------------
+
+
+def _atomic_write_all(writes: Sequence[tuple[Path, bytes]]) -> None:
+    """Write every (path, bytes) or none: temp files first, then `os.replace` each; a failed
+    replace restores the files already replaced and removes every temp file."""
+    temps: list[Path] = []
+    originals: list[tuple[Path, Optional[bytes]]] = []
+    try:
+        for path, data in writes:
+            tmp = path.with_name(path.name + ".sweep-tmp")
+            tmp.write_bytes(data)
+            temps.append(tmp)
+        for (path, _data), tmp in zip(writes, temps):
+            originals.append((path, path.read_bytes() if path.exists() else None))
+            os.replace(tmp, path)
+    except BaseException:
+        for path, original in reversed(originals):
+            try:
+                if original is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(original)
+            except OSError:
+                LOG.error("ROLLBACK FAILED for %s -- inspect the tree before retrying", path)
+        raise
+    finally:
+        for tmp in temps:
+            tmp.unlink(missing_ok=True)
+
+
+def close_with_sweep_line(tasks_dir: Path, task_id: int, evidence_sha: str, closed_on: str,
+                          sweep_line: str) -> None:
+    """Close one row through `close_row_plan`, append the one `sweep-close:` line to the planned
+    task bytes, and write the task file and tasks/manifest.json together (both or neither)."""
+    import gen_task_tree as gtt  # noqa: PLC0415 -- sibling module, loaded only by the sweep
+    try:
+        plan = gtt.close_row_plan(Path(tasks_dir), int(task_id), evidence_sha, closed_on)
+    except ValueError as exc:
+        raise SweepError(str(exc)) from exc
+    writes: list[tuple[Path, bytes]] = []
+    for path, text in plan:
+        if path.name != "manifest.json":
+            text = text + sweep_line.rstrip("\n") + "\n"
+        writes.append((path, text.encode("utf-8")))
+    _atomic_write_all(writes)
+
+
+# --- planning ---------------------------------------------------------------------------------------
+
+
+@dataclass
+class Decision:
+    row: Row
+    action: str                      # "close" | "keep"
+    category: str                    # kept category, or "closed"
+    cls: Optional[str] = None
+    checked: list[str] = field(default_factory=list)
+    absent: list[str] = field(default_factory=list)
+    reason: str = ""
+    would_close_as: Optional[str] = None   # a protected row's class had R-1/K1 not held
+
+
+@dataclass
+class SweepResult:
+    closed: list[dict[str, Any]] = field(default_factory=list)
+    kept: dict[str, list[str]] = field(default_factory=lambda: collections.defaultdict(list))
+    label_differences: list[dict[str, Any]] = field(default_factory=list)
+    protected_moves: list[dict[str, Any]] = field(default_factory=list)
+    age_histogram: dict[str, int] = field(default_factory=dict)
+    old_count: int = 0
+    new_count: int = 0
+    receipt: str = ""
+    scan: str = ""
+
+
+def _short_witnesses(held: Sequence[str], limit: int = 3) -> str:
+    shown = ", ".join(held[:limit])
+    return shown + (f" (+{len(held) - limit} more)" if len(held) > limit else "")
+
+
+def open_dependency_ids(rows: Sequence[Row]) -> set[str]:
+    """Ids named by the `depends-on:` frontmatter of an open row: closing one of them leaves a
+    dangling dependency, which `validate_backlog` refuses (K1 witness `depends-on of open row`)."""
+    named: set[str] = set()
+    for row in rows:
+        match = _FRONTMATTER_RE.match(row.path.read_text(encoding="utf-8"))
+        value = _frontmatter_value(match.group(1), "depends-on") if match else None
+        if value:
+            named |= set(re.findall(r"\d+", value))
+    return named
+
+
+def _one_line(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def _week_bucket(date: dt.date) -> str:
+    monday = date - dt.timedelta(days=date.weekday())
+    return monday.isoformat()
+
+
+def plan_sweep(*, ruling: dict[str, Any], table: Sequence[dict[str, Any]], rows: Sequence[Row],
+               repo_root: Path, transport_root: Path, today: dt.date,
+               main_ref: str) -> tuple[list[Decision], dict[str, Any]]:
+    """Decide every open row (pure but for git reads): returns the decisions in id order and the
+    side facts (histogram, old/new counts)."""
+    table_by_id = {str(t.get("id")): t for t in table}
+    live = live_lane_ids(repo_root, transport_root=transport_root, main_ref=main_ref)
+    sources = _read_k1_sources(ruling, repo_root, transport_root)
+    mapping = ruling["decision_classes"]
+    cutoff = ruling["cutoff"]
+    depended_on = open_dependency_ids(rows)
+    decisions: dict[str, Decision] = {}
+    histogram: dict[str, int] = {}
+    old = new = 0
+    add_dates: dict[str, dt.date] = {}
+    for row in rows:
+        rel = f"tasks/{row.path.name}"
+        try:
+            add_dates[row.id] = task_add_date(repo_root, rel)
+            histogram[_week_bucket(add_dates[row.id])] = \
+                histogram.get(_week_bucket(add_dates[row.id]), 0) + 1
+        except SweepError:
+            pass
+    for row in rows:
+        entry = table_by_id.get(row.id)
+        rel = f"tasks/{row.path.name}"
+
+        def keep(category: str, reason: str = "") -> Decision:
+            return Decision(row, "keep", category, reason=reason)
+
+        if row.id in live:
+            decisions[row.id] = keep("live-excluded", live[row.id])
+            continue
+        if entry is None or entry.get("file") != rel:
+            decisions[row.id] = keep("absent-from-table")
+            continue
+        if entry.get("quote_verified") is not True:
+            decisions[row.id] = keep("ungated")
+            continue
+        dclass = entry.get("decision_class")
+        if dclass not in SWEEP_DECISION_CLASSES or dclass not in mapping:
+            decisions[row.id] = keep("unknown-decision-class")
+            continue
+        added = add_dates.get(row.id)
+        if added is None:
+            decisions[row.id] = keep("no-add-date")
+            continue
+        k1 = k1_protected(row.id, source_texts=sources, cited_by_open=entry.get("cited_by_open") or [])
+        if row.id in depended_on:
+            k1.append("depends-on of an open row")
+        k1_note = _short_witnesses(k1)
+        mapped = mapping[dclass]
+        if added < cutoff:
+            old += 1
+            would = ruling["legacy_class"]
+            if k1:
+                d = keep("protected", "K1: " + k1_note)
+                d.would_close_as = would
+                decisions[row.id] = d
+                continue
+            alive = k2_alive(row.body, repo_root=repo_root, ref=main_ref, today=today,
+                             window_days=ruling["k2_window_days"])
+            if alive:
+                decisions[row.id] = keep("k2-alive", "K2: " + ", ".join(alive))
+                continue
+            if k3_agreed(entry):
+                decisions[row.id] = keep("k3-agreed", "K3: both families LINE P1/P2, agreed")
+                continue
+            decisions[row.id] = Decision(
+                row, "close", "closed", cls=would, checked=["K1", "K2", "K3"],
+                absent=["K1", "K2", "K3"],
+                reason=f"filed {added.isoformat()} before {cutoff.isoformat()}; no KEEP witness "
+                       f"(K1 protected, K2 alive in code, K3 agreed LINE P1/P2) holds")
+            continue
+        new += 1
+        if k1:
+            d = keep("protected", "K1: " + k1_note)
+            d.would_close_as = mapped if mapped != "keep" else None
+            decisions[row.id] = d
+            continue
+        if dclass == "merge-rewrite":
+            decisions[row.id] = keep("merge-rewrite")
+        elif mapped == "keep" or dclass.startswith("keep-"):
+            decisions[row.id] = keep("keep-class")
+        else:
+            decisions[row.id] = Decision(row, "close", "closed", cls=mapped, checked=["K1"],
+                                         absent=["K1"], reason=_one_line(entry.get("reason")))
+
+    _apply_r2(decisions, table_by_id, add_dates, cutoff)
+    for row_id, dec in list(decisions.items()):
+        # A row whose body ends in an archive pointer cannot take the close marker without
+        # breaking the row-archive-proof gate (leg B: the row must END with the pointer), so the
+        # sweep keeps it open and lists it rather than commit a refused state.
+        if dec.action == "close" and (dec.row.path.parent / "archive" / f"{row_id}.md").exists():
+            decisions[row_id] = Decision(dec.row, "keep", "archived-body",
+                                         reason="body ends in an archive pointer (row-archive-proof)")
+    _keep_duplicates_of_kept_canonicals(decisions, table_by_id)
+    ordered =[decisions[r.id] for r in rows]
+    return ordered, {"histogram": dict(sorted(histogram.items())), "old": old, "new": new}
+
+
+def _apply_r2(decisions: dict[str, Decision], table_by_id: dict[str, dict], add_dates: dict,
+              cutoff: dt.date) -> None:
+    """R-2: a NEW canonical that closes takes its duplicates with it, with its class and reason;
+    a cluster with a `live` duplicate is refused whole (no adjudicated unique-content flag)."""
+    for canon_id, dec in list(decisions.items()):
+        entry = table_by_id.get(canon_id) or {}
+        if dec.action != "close" or entry.get("cluster_role") != "canonical":
+            continue
+        if add_dates.get(canon_id, cutoff) < cutoff or dec.cls == LEGACY_CLASS:
+            continue
+        dup_ids = [i for i, t in table_by_id.items() if str(t.get("duplicate_of")) == canon_id]
+        if any(table_by_id[i].get("evidence_class") == "live" for i in dup_ids):
+            for member in [canon_id, *dup_ids]:
+                if member in decisions:
+                    decisions[member] = Decision(
+                        decisions[member].row, "keep", "r2-refused", reason=R2_REFUSED_LINE)
+            continue
+        for dup_id in dup_ids:
+            dup = decisions.get(dup_id)
+            if dup is None:
+                continue
+            overridable = (dup.action == "close" and dup.cls != LEGACY_CLASS) \
+                or dup.category == "keep-class"
+            if overridable:
+                decisions[dup_id] = Decision(
+                    dup.row, "close", "closed", cls=dec.cls, checked=["K1"], absent=["K1"],
+                    reason=dec.reason)
+
+
+def _keep_duplicates_of_kept_canonicals(decisions: dict[str, Decision],
+                                        table_by_id: dict[str, dict]) -> None:
+    """A step-2 `close-duplicate` row closes only when its canonical is closed by the SAME run:
+    a canonical that is kept (merge-rewrite, keep-P*, protected, refused, archived, live) has not
+    absorbed the duplicate's content, so closing the duplicate would drop it (Outcome (2) R-2,
+    judge 2026-11-03). Legacy-sweep closes are decided by the cutoff rule and are not touched.
+    Repeated until stable, so a duplicate of a duplicate that was just kept is kept as well."""
+    changed = True
+    while changed:
+        changed = False
+        for row_id, dec in list(decisions.items()):
+            entry = table_by_id.get(row_id) or {}
+            if dec.action != "close" or dec.cls == LEGACY_CLASS \
+                    or entry.get("decision_class") != "close-duplicate":
+                continue
+            canon_id = str(entry.get("duplicate_of"))
+            canon = decisions.get(canon_id)
+            if canon is None or canon.action != "close":
+                decisions[row_id] = Decision(
+                    dec.row, "keep", "duplicate-of-kept",
+                    reason=f"canonical [#{canon_id}] is not closed by this run")
+                changed = True
+
+
+def _sweep_line(dec: Decision) -> str:
+    return (f"sweep-close: {dec.cls} · witnesses checked={','.join(dec.checked)} "
+            f"absent={','.join(dec.absent)} · {_one_line(dec.reason)}")
+
+
+def _label_differences(decisions: Sequence[Decision],
+                       table_by_id: dict[str, dict]) -> list[dict[str, Any]]:
+    diffs = []
+    for dec in decisions:
+        if dec.action != "keep":
+            continue
+        entry = table_by_id.get(dec.row.id)
+        if not entry:
+            continue
+        match = _FRONTMATTER_RE.match(dec.row.path.read_text(encoding="utf-8"))
+        filed = _frontmatter_value(match.group(1), "priority") if match else None
+        sonnet = (entry.get("sonnet") or {}).get("priority")
+        gemini = (entry.get("gemini") or {}).get("priority")
+        if sonnet != filed or gemini != filed:
+            diffs.append({"id": dec.row.id, "filed_priority": filed or "none",
+                          "sonnet": sonnet, "gemini": gemini})
+    return diffs
+
+
+def _build_result(decisions: Sequence[Decision], facts: dict[str, Any],
+                  table_by_id: dict[str, dict], revert_check: str) -> SweepResult:
+    result = SweepResult()
+    result.old_count, result.new_count = facts["old"], facts["new"]
+    result.age_histogram = facts["histogram"]
+    for dec in decisions:
+        if dec.action == "close":
+            result.closed.append({
+                "id": dec.row.id, "title": dec.row.title, "class": dec.cls,
+                "witnesses_checked": list(dec.checked), "witnesses_absent": list(dec.absent),
+                "reason": dec.reason})
+        else:
+            result.kept[dec.category].append(dec.row.id)
+            if dec.category == "protected" and dec.would_close_as:
+                result.protected_moves.append({"id": dec.row.id, "would_close_as": dec.would_close_as,
+                                               "witnesses": dec.reason})
+    result.label_differences = _label_differences(decisions, table_by_id)
+    per_class: dict[str, int] = {}
+    for item in result.closed:
+        per_class[item["class"]] = per_class.get(item["class"], 0) + 1
+    result.receipt = (
+        f"SWEEP closed={len(result.closed)} "
+        f"per-class={','.join(f'{k}:{v}' for k, v in sorted(per_class.items())) or 'none'} "
+        f"protected-kept={len(result.kept.get('protected', []))} protected-closed=0 "
+        f"live-excluded={len(result.kept.get('live-excluded', []))} "
+        f"r2-refused={len(result.kept.get('r2-refused', []))} revert-check={revert_check}")
+    result.scan = _render_scan(result, per_class)
+    return result
+
+
+def _render_scan(result: SweepResult, per_class: dict[str, int]) -> str:
+    lines = ["# Backlog sweep scan", "", result.receipt, "",
+             f"Open rows: old (filed before the cutoff) {result.old_count}, "
+             f"new {result.new_count}.", "", "## closed per class", ""]
+    lines += [f"- {k}: {v}" for k, v in sorted(per_class.items())] or ["- none"]
+    lines += ["", "## age histogram (weekly buckets of add-date, Monday)", ""]
+    lines += [f"- {k}: {v}" for k, v in result.age_histogram.items()]
+    lines += ["", "## protected moves (kept by R-1/K1, a class would have closed)", ""]
+    lines += [f"- [#{m['id']}] would close as {m['would_close_as']} ({m['witnesses']})"
+              for m in result.protected_moves] or ["- none"]
+    lines += ["", "## kept lists", ""]
+    for category in KEPT_CATEGORIES:
+        ids = result.kept.get(category, [])
+        if category == "r2-refused" and ids:
+            lines.append(f"{R2_REFUSED_LINE}: " + " ".join(f"[#{i}]" for i in ids))
+        else:
+            lines.append(f"- {category} ({len(ids)}): " + (" ".join(f"[#{i}]" for i in ids) or "none"))
+    lines += ["", "## label differences"]
+    lines += [f"- [#{d['id']}] filed={d['filed_priority']} sonnet={d['sonnet']} gemini={d['gemini']}"
+              for d in result.label_differences] or ["- none"]
+    return "\n".join(lines) + "\n"
+
+
+# --- execution --------------------------------------------------------------------------------------
+
+
+def _b64(data: bytes) -> str:
+    return base64.b64encode(data).decode("ascii")
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _execute(decisions: Sequence[Decision], *, tasks_dir: Path, home: Path, ruling_name: str,
+             evidence_sha: str, today: dt.date) -> None:
+    """Write the ledger and index first (so a crash stays revertible), then close each row."""
+    manifest_path = Path(tasks_dir) / "manifest.json"
+    pre_manifest = manifest_path.read_bytes()
+    nodes = json.loads(pre_manifest.decode("utf-8"))["nodes"]
+    closing = [d for d in decisions if d.action == "close"]
+    entries = []
+    for dec in closing:
+        raw = dec.row.path.read_bytes()
+        index = next((i for i, n in enumerate(nodes) if n.get("task") == int(dec.row.id)), None)
+        if index is None:
+            raise SweepError(f"[#{dec.row.id}] has no node in tasks/manifest.json")
+        entries.append({
+            "id": dec.row.id, "title": dec.row.title, "class": dec.cls,
+            "witnesses_checked": dec.checked, "witnesses_absent": dec.absent,
+            "reason": _one_line(dec.reason), "file": dec.row.path.name,
+            "pre_b64": _b64(raw), "pre_sha256": _sha(raw), "node_index": index,
+            "node": nodes[index]})
+    ledger = {"version": 1, "swept_on": today.isoformat(), "evidence_sha": evidence_sha,
+              "ruling": ruling_name, "manifest_pre_b64": _b64(pre_manifest),
+              "manifest_pre_sha256": _sha(pre_manifest), "closed": entries}
+    index_lines = [f"- [#{e['id']}] {e['title']} | {e['class']} | "
+                    f"checked={','.join(e['witnesses_checked'])} "
+                    f"absent={','.join(e['witnesses_absent'])}" for e in entries]
+    home.mkdir(parents=True, exist_ok=True)
+    (home / SWEEP_LEDGER).write_text(json.dumps(ledger, indent=1, ensure_ascii=False) + "\n",
+                                     encoding="utf-8", newline="\n")
+    (home / SWEEP_INDEX).write_text("\n".join(index_lines) + "\n", encoding="utf-8", newline="\n")
+    done = 0
+    try:
+        for dec in closing:
+            close_with_sweep_line(tasks_dir, int(dec.row.id), evidence_sha, today.isoformat(),
+                                  _sweep_line(dec))
+            done += 1
+        # The post-sweep bytes of each swept file: `--revert` restores a file only while it still
+        # has these bytes, so a later edit to a closed row is never overwritten (judge, 2026-11-03).
+        for entry in entries:
+            entry["post_sha256"] = _sha((Path(tasks_dir) / entry["file"]).read_bytes())
+        (home / SWEEP_LEDGER).write_text(json.dumps(ledger, indent=1, ensure_ascii=False) + "\n",
+                                         encoding="utf-8", newline="\n")
+    except BaseException:
+        run_revert(tasks_dir=tasks_dir, home=home, spec=",".join(d.row.id for d in closing[:done]) or "0")
+        (home / SWEEP_LEDGER).unlink(missing_ok=True)
+        (home / SWEEP_INDEX).unlink(missing_ok=True)
+        raise
+
+
+def _tree_digest(tasks_dir: Path) -> dict[str, str]:
+    return {p.name: _sha(p.read_bytes()) for p in sorted(Path(tasks_dir).iterdir()) if p.is_file()}
+
+
+def run_sweep(*, ruling_path: Path, table_path: Path, tasks_dir: Path, repo_root: Path, home: Path,
+              transport_root: Path, today: dt.date, evidence_sha: str,
+              main_ref: str = "origin/main", dry_run: bool = False) -> SweepResult:
+    """Plan the sweep, prove on a scratch copy that a full revert is byte-identical, then write."""
+    tasks_dir, home, repo_root = Path(tasks_dir), Path(home), Path(repo_root)
+    if (home / SWEEP_LEDGER).exists() and not dry_run:
+        raise SweepError(f"{home / SWEEP_LEDGER} already exists: one sweep per home")
+    ruling = load_sweep_ruling(ruling_path)
+    table = load_step1_table(table_path)
+    table_by_id = {str(t.get("id")): t for t in table}
+    rows = load_open_rows(tasks_dir)
+    decisions, facts = plan_sweep(ruling=ruling, table=table, rows=rows, repo_root=repo_root,
+                                  transport_root=Path(transport_root), today=today,
+                                  main_ref=main_ref)
+    if dry_run:
+        return _build_result(decisions, facts, table_by_id, "not-run")
+    before = _tree_digest(tasks_dir)
+    with tempfile.TemporaryDirectory(prefix="sweep-scratch-") as scratch_name:
+        scratch = Path(scratch_name)
+        shutil.copytree(tasks_dir, scratch / "tasks")
+        scratch_rows = {r.id: r for r in load_open_rows(scratch / "tasks")}
+        scratch_decisions = [
+            Decision(scratch_rows[d.row.id], d.action, d.category, d.cls, d.checked, d.absent,
+                     d.reason) if d.row.id in scratch_rows else d for d in decisions]
+        _execute(scratch_decisions, tasks_dir=scratch / "tasks", home=scratch / "home",
+                 ruling_name=Path(ruling_path).name, evidence_sha=evidence_sha, today=today)
+        run_revert(tasks_dir=scratch / "tasks", home=scratch / "home", spec="all")
+        identical = _tree_digest(scratch / "tasks") == before
+    if not identical:
+        raise SweepError("scratch revert is not byte-identical to the pre-sweep tree: "
+                         "nothing was written")
+    _execute(decisions, tasks_dir=tasks_dir, home=home, ruling_name=Path(ruling_path).name,
+             evidence_sha=evidence_sha, today=today)
+    return _build_result(decisions, facts, table_by_id, "byte-identical")
+
+
+# --- revert -----------------------------------------------------------------------------------------
+
+
+def _insert_position(pre_nodes: list, current: list, pre_index: int) -> int:
+    """Where a reverted node goes: right after the nearest preceding PRE-sweep node that is still
+    present in `current` (0 if none); nodes added since the sweep are never moved."""
+    aligned: dict[int, int] = {}
+    pointer = 0
+    for cur_index, node in enumerate(current):
+        for pre_j in range(pointer, len(pre_nodes)):
+            if pre_nodes[pre_j] == node:
+                aligned[pre_j] = cur_index
+                pointer = pre_j + 1
+                break
+    anchors = [j for j in aligned if j < pre_index]
+    return aligned[max(anchors)] + 1 if anchors else 0
+
+
+def run_revert(*, tasks_dir: Path, home: Path, spec: str) -> list[str]:
+    """Restore the ledgered rows named by `spec` (a class, `all`, or comma-separated ids): the
+    task file byte for byte, its node at its original position. Returns the ids restored."""
+    tasks_dir, home = Path(tasks_dir), Path(home)
+    ledger_path = home / SWEEP_LEDGER
+    if not ledger_path.is_file():
+        raise SweepError(f"no sweep ledger at {ledger_path}")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    entries = ledger["closed"]
+    parts = [p.strip() for p in spec.split(",") if p.strip()]
+    classes = {e["class"] for e in entries}
+    if parts == ["all"]:
+        selected = list(entries)
+    elif len(parts) == 1 and parts[0] in classes:
+        selected = [e for e in entries if e["class"] == parts[0]]
+    elif parts and all(p.isdigit() for p in parts):
+        selected = [e for e in entries if e["id"] in set(parts)]
+    else:
+        raise SweepError(f"revert spec {spec!r} is neither a ledger class ({sorted(classes)}), "
+                         "'all' nor a comma-separated id list")
+    pre_nodes = json.loads(base64.b64decode(ledger["manifest_pre_b64"]).decode("utf-8"))["nodes"]
+    manifest_path = tasks_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    writes: list[tuple[Path, bytes]] = []
+    restored: list[str] = []
+    for entry in sorted(selected, key=lambda e: e["node_index"]):
+        if any(n.get("task") == int(entry["id"]) for n in manifest["nodes"]):
+            continue  # already open: a no-op
+        pre = base64.b64decode(entry["pre_b64"])
+        if _sha(pre) != entry["pre_sha256"]:
+            raise SweepError(f"ledger bytes for [#{entry['id']}] fail their own sha256")
+        current = tasks_dir / entry["file"]
+        post = entry.get("post_sha256")
+        if post and current.is_file() and _sha(current.read_bytes()) != post:
+            # The closed file was edited after the sweep: restoring would overwrite that edit.
+            logging.getLogger(__name__).warning(
+                "revert skipped [#%s]: %s no longer has its post-sweep bytes", entry["id"], entry["file"])
+            continue
+        position = _insert_position(pre_nodes, manifest["nodes"], entry["node_index"])
+        manifest["nodes"].insert(position, entry["node"])
+        writes.append((tasks_dir / entry["file"], pre))
+        restored.append(entry["id"])
+    if writes:
+        writes.append((manifest_path,
+                       (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")))
+        _atomic_write_all(writes)
+    return restored
+
+
 # --- the CLI -------------------------------------------------------------------------------------
 
 
@@ -830,11 +1555,51 @@ def report(tasks_dir: Path, state_dir: Path, out: Path, cost_out: Path) -> None:
 
 
 @cli.command()
-@click.option("--ruling", type=click.Path(path_type=Path), required=True)
+@click.option("--ruling", type=click.Path(path_type=Path), default=None,
+              help="Mode 1: the five-evidence-class ruling (needs report's classification).")
+@click.option("--sweep", "sweep_ruling", type=click.Path(path_type=Path), default=None,
+              help="Mode 2: the legacy-sweep ruling file (needs --step1-table).")
+@click.option("--revert", "revert_spec", default=None,
+              help="Mode 3: reopen a swept class (or `all`, or ids `112,113`) from the ledger.")
+@click.option("--step1-table", type=click.Path(dir_okay=False, path_type=Path), default=None)
+@click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=REPO_ROOT)
+@click.option("--home", type=click.Path(file_okay=False, path_type=Path),
+              default=DEFAULT_SWEEP_HOME, show_default=True)
+@click.option("--transport-root", type=click.Path(file_okay=False, path_type=Path),
+              default=DEFAULT_TRANSPORT_ROOT, show_default=True)
+@click.option("--today", default=None, help="ISO date; default today.")
+@click.option("--evidence-sha", default=None, help="Default: HEAD of --repo-root.")
+@click.option("--main-ref", default="origin/main", show_default=True)
+@click.option("--scan-out", type=click.Path(dir_okay=False, path_type=Path), default=None)
+@click.option("--dry-run", is_flag=True, help="Sweep: plan and print, write nothing.")
 @_tasks_option
 @_state_option
-def apply(ruling: Path, tasks_dir: Path, state_dir: Path) -> None:
-    """Apply an operator ruling: only the classes it names, nothing else."""
+def apply(ruling: Optional[Path], sweep_ruling: Optional[Path], revert_spec: Optional[str],
+          step1_table: Optional[Path], repo_root: Path, home: Path, transport_root: Path,
+          today: Optional[str], evidence_sha: Optional[str], main_ref: str,
+          scan_out: Optional[Path], dry_run: bool, tasks_dir: Path, state_dir: Path) -> None:
+    """Apply an operator ruling (only the classes it names), run the legacy sweep, or revert it."""
+    modes = [m for m in (ruling, sweep_ruling, revert_spec) if m is not None]
+    if len(modes) != 1:
+        raise click.UsageError("choose exactly one of --ruling, --sweep, --revert")
+    if revert_spec is not None:
+        restored = run_revert(tasks_dir=tasks_dir, home=home, spec=revert_spec)
+        click.echo(f"revert: restored {len(restored)} row(s): {','.join(restored)}")
+        return
+    if sweep_ruling is not None:
+        if step1_table is None:
+            raise click.UsageError("--sweep needs --step1-table")
+        sha = evidence_sha or _git(repo_root, "rev-parse", "HEAD").stdout.strip()
+        result = run_sweep(
+            ruling_path=sweep_ruling, table_path=step1_table, tasks_dir=tasks_dir,
+            repo_root=repo_root, home=home, transport_root=transport_root,
+            today=dt.date.fromisoformat(today) if today else dt.date.today(),
+            evidence_sha=sha, main_ref=main_ref, dry_run=dry_run)
+        if scan_out is not None:
+            Path(scan_out).parent.mkdir(parents=True, exist_ok=True)
+            Path(scan_out).write_text(result.scan, encoding="utf-8", newline="\n")
+        click.echo(result.receipt)
+        return
     actions = load_ruling(ruling)
     classification = _read_json(state_dir / "classification.json")
     if classification is None:
