@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0199f2f65319c23871cd1855ad037efab3277f9069cd7f1d1a46baee7d1541f0",
+  "generated_sha256": "a44bf045c4f21841187a624f44583b812dca1bdde9ce58838f00bc62a7521330",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2388,10 +2388,6 @@
       "file": "1844-provider-router-s-1-review-judge-fallback-ends-in-an-isolated-claude-session.md"
     },
     {
-      "task": 1859,
-      "file": "1859-landing-by-code-a-handback-runs-land-lane-under-one-lock-and-every-landing-writes-one-merge-clock-line.md"
-    },
-    {
       "task": 1433,
       "file": "1433-a-background-seat-has-no-sanctioned-way-to-fill-a-handoff-bundle.md"
     },
@@ -3104,10 +3100,6 @@
       "file": "1749-the-backlog-per-row-reconciliation-organ.md"
     },
     {
-      "task": 1800,
-      "file": "1800-the-commit-gate-job-goes-green-orphan-census-and-architecture-review.md"
-    },
-    {
       "task": 1811,
       "file": "1811-e31-structural-decisions-are-adrs-at-their-ratified-status.md"
     },
@@ -3142,10 +3134,6 @@
     {
       "task": 1857,
       "file": "1857-conductor-p5-is-a-model-session-told-to-run-ci-verdict-so-the-reviews-run-before-ci-is-known-an-accepted-round-is-not-handed-back-by-code.md"
-    },
-    {
-      "task": 1862,
-      "file": "1862-commit-gate-job-judges-its-failing-hooks-by-the-known-reds-classifier.md"
     },
     {
       "prose": ""
