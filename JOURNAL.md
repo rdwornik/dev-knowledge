@@ -21,6 +21,34 @@
 
 ---
 
+### 2026-11-02 (j) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the intake landing -- intake 123 (the equilibrium-night CANDIDATEs C-3, C-4, C-5) enters docs/intake/ as a SEED
+
+**Anchors:** `f20039360` (the intake branch's one commit: the SEED doc, README row, manifest node), the landing branch's merge of origin/main (cf7f21ed7) that this landing adds on top.
+
+**Did:** landed the intake branch `docs/intake-equilibrium-c3-c5` @ f20039360 by the one-off hand path of ruling Q-IN-1 = B (`to-browser/DIGEST-RULING-Q-IN-1-2026-11-02.md`): no lane handback exists, so the substitution gate's models-block and launch-receipt legs are waived for f20039360 only. The branch was based on 74715e5b7; origin/main moved, so `docs/intake/README.md` and `docs/intake/manifest.json` conflicted and were resolved by taking main's version and regenerating with `gen_intake_index.py --write` and `gen_intake_tree.py --write` (Q-RG-1 A: the second landing regenerates). [#1864], landed first by the Q-FU-3 follow-up (cf7f21ed7), is the OPEN carrier row that claims the SEED doc, so graph-task-coverage sees it.
+
+**Result:** the integrator receipt (to-browser/SESSION-integrator-E3.1-2026-11-01.md) carries the integration-run verdicts and the waiver record; there is no MERGE-RECEIPTS organ line for a hand landing.
+
+**Changes:** `docs/intake/2026-11-02-tech-equilibrium-candidates-c3-c5.md` (new), `docs/intake/README.md` and `docs/intake/manifest.json` (regenerated).
+
+**Abandoned:** nothing.
+
+**Next:** [#1864] carries the intake to an ADR-111 outcome per item (C-3, C-4, C-5).
+
+### 2026-11-02 (i) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the tasks-only follow-up, rebuilt (Q-FU-2 option A) -- [#1833] closed, carrier row [#1864] filed for intake 123 with its refs clause, [#1811] touches gains tests/boot_retrieval.py
+
+**Anchors:** `123523b09` (the follow-up's tasks commit: the [#1833] close, [#1864], the [#1811] touches fix), `8963b0340` (the e32-provider-billing landing that delivered [#1833]).
+
+**Did:** rebuilt the tasks-only follow-up on origin/main after the first hand-landing attempt (merge 33b50f81b, integration run 41519185215) showed three new pytest reds against the base: `gen_task_tree.py --close-row` for [#1833] (evidence 8963b0340, run 41498079239, success); [#1864] filed as the carrier row for intake 123 (the equilibrium-night CANDIDATEs C-3..C-5) with ` · refs ADR-111, ADR-98` so funnel_lifecycle leg C resolves it; [#1811] touches gains `tests/boot_retrieval.py` (architect Q-L0-3 = A); BACKLOG.md and tasks/manifest.json regenerated. [#1748] is NOT closed here -- its close turned test_go_e30_bootstrap[1748] and test_e30_view_adr red; it waits for [#1846] or a fix lane.
+
+**Result:** see the integrator receipt (to-browser/SESSION-integrator-E3.1-2026-11-01.md) for the integration-run verdicts.
+
+**Changes:** `tasks/1833-*.md`, `tasks/1811-*.md`, `tasks/1864-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`.
+
+**Abandoned:** the [#1748] close (kept open); merge 33b50f81b is superseded.
+
+**Next:** intake f20039360 (Q-IN-1 = B) lands by the hand path once [#1864] is on main.
+
 ### 2026-11-02 (h) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 4, batch E3.1): the e31-decide landing -- ADR-133 ratified (Accepted) and ADR-134..ADR-139 at their ratified status; four ADR-124 carrier intake files [#1811] [#1837] [#1838]
 
 **Anchors:** `36adc79e8` (lane tip: the lane plus origin/main c1f48d243), the merge of origin/main 2bf770e9e (the e32 and e31-system-view landings) that this landing branch adds on top.
