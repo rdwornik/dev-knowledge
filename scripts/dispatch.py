@@ -1636,7 +1636,10 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         launches = list(prior.get("launches") or []) + [{**latest, "kind": latest.get("kind", "launch")}]
     created = False
 
-    def undo() -> None:
+    def undo() -> str:
+        """Undo what this call did; return "" when everything is undone, else a LEFTOVER text naming
+        each thing that could not be (a failed undo is surfaced in the refusal, never swallowed)."""
+        left: list[str] = []
         for path, data in before.items():
             try:
                 if data is None:
@@ -1645,9 +1648,13 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
                     _replace_bytes_atomic(path, data)   # byte for byte, and never half a receipt
             except OSError as exc:
                 logger.warning("could not restore %s: %s", path, exc)
+                left.append(f"{path} not restored ({exc})")
         if created:
-            _git_out(cwd, "worktree", "remove", "--force", str(lane.tree))
-            _git_out(cwd, "branch", "-D", lane.branch)
+            for step in (("worktree", "remove", "--force", str(lane.tree)), ("branch", "-D", lane.branch)):
+                done = _git_out(cwd, *step)
+                if done.returncode != 0:
+                    left.append(f"`git {' '.join(step)}` failed ({_tail(done.stderr, 200)})")
+        return f" LEFTOVER (clean it by hand): {'; '.join(left)}." if left else ""
 
     if not lane.reuse:
         added = _git_out(cwd, "worktree", "add", "-b", lane.branch, str(lane.tree), lane.sha)
@@ -1658,8 +1665,8 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
     try:   # idempotent (only where absent): a worktree whose first launch died before seeding is seeded now
         _seed_conductor_worktree(cwd, lane.tree)
     except OSError as exc:
-        undo()
-        raise LaunchRefused(f"could not seed the worktree of {slug} ({exc}); nothing was started") from exc
+        left = undo()
+        raise LaunchRefused(f"could not seed the worktree of {slug} ({exc}); nothing was started.{left}") from exc
     intent = {
         "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None, "job_id": "pending",
         "slug": slug, "provider": request.provider, "batch": request.batch,
@@ -1671,9 +1678,9 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
         _write_json_atomic(copy_path, intent)
         pid_path.unlink(missing_ok=True)   # only now: both intents exist
     except OSError as exc:
-        undo()
+        left = undo()
         raise LaunchRefused(f"cannot write the launch intent receipt for {slug} ({exc}); refusing "
-                            "to start a lane nothing can record") from exc
+                            f"to start a lane nothing can record.{left}") from exc
     argv = replace(request, base=lane.sha).argv
     child = dict(env)
     if request.batch:
@@ -1682,18 +1689,20 @@ def _start_conductor_lane(request: LaunchRequest, lane: _ConductorLane, env: Map
     began = time.time()
     try:
         started = spawn(argv, child, lane.tree, log_path)
-    except LaunchRefused:
-        undo()
+    except LaunchRefused as exc:
+        left = undo()
+        if left:
+            raise LaunchRefused(f"{exc}{left}") from exc
         raise
     except OSError as exc:
-        undo()
+        left = undo()
         raise LaunchRefused(f"{argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
-                            "no lane was started") from exc
+                            f"no lane was started.{left}") from exc
     if started.pid is None:
         if started.returncode != 0:
-            undo()
+            left = undo()
             raise LaunchRefused(f"{argv[0]} exited {started.returncode} -- no lane was started: "
-                                f"{_tail(started.stdout, 300)}")
+                                f"{_tail(started.stdout, 300)}{left}")
         raise LaunchIncomplete(f"{slug} was started but the spawn reported no pid. The intent receipts "
                                f"{primary} and {copy_path} remain and hold the slug; nothing was stopped.")
     pid = started.pid

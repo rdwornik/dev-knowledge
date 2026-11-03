@@ -1125,3 +1125,23 @@ def test_an_interrupted_relaunch_keeps_the_earlier_launch_in_its_intent_receipts
                  json.loads(_worktree_receipt(root).read_text(encoding="utf-8"))):
         assert body["job_id"] == "pending"
         assert [entry["job_id"] for entry in body["launches"]] == ["conductor-8401"]
+
+
+def test_a_failed_undo_is_named_in_the_refusal_not_swallowed(tmp_path, monkeypatch):
+    _require("parse_engine", "_write_json_atomic")
+    root, _receipts, _base = _new_repo(tmp_path / ".dev-knowledge", monkeypatch)
+    real_git = d._git_out
+
+    def git_out(repo, *args):
+        if args[:2] == ("branch", "-D"):
+            return subprocess.CompletedProcess(args, 1, "", "injected branch-delete failure")
+        return real_git(repo, *args)
+
+    def spawn(*_args, **_kwargs):
+        raise OSError("injected spawn failure")
+
+    monkeypatch.setattr(d, "_git_out", git_out)
+    with pytest.raises(d.LaunchRefused) as raised:
+        _launch(_request(), root, spawn, agents=lambda: [])
+    text = str(raised.value)
+    assert "LEFTOVER" in text and "branch -D" in text and "injected branch-delete failure" in text
