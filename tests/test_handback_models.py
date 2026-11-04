@@ -198,6 +198,7 @@ def test_item3a_all_phases_render_the_exact_checked_block_and_hand_back_cleanly(
 
 
 def test_item3b_copilot_receipt_uses_copilot_model_prefix(tmp_path):
+    _root, _bare, _transport = _repo_and_transport(tmp_path)
     hb = _mod("handback")
     round_dir = tmp_path / "round"
     _write_receipts(round_dir, overrides={
@@ -213,6 +214,7 @@ def test_item3b_copilot_receipt_uses_copilot_model_prefix(tmp_path):
 
 
 def test_item3c_null_served_model_is_marked_unverified_without_fabrication(tmp_path):
+    _root, _bare, _transport = _repo_and_transport(tmp_path)
     hb = _mod("handback")
     round_dir = tmp_path / "round"
     _write_receipts(round_dir, overrides={
@@ -228,6 +230,7 @@ def test_item3c_null_served_model_is_marked_unverified_without_fabrication(tmp_p
 
 
 def test_item3d_substitution_is_reported_only_when_receipt_records_fallback(tmp_path):
+    _root, _bare, _transport = _repo_and_transport(tmp_path)
     hb = _mod("handback")
     round_dir = tmp_path / "round"
     _write_receipts(round_dir, overrides={
@@ -327,6 +330,7 @@ def test_item3f_missing_launch_receipt_refuses(monkeypatch, tmp_path):
 
 
 def test_item3g_receipt_selection_ignores_neighboring_round_artifacts(tmp_path):
+    _root, _bare, _transport = _repo_and_transport(tmp_path)
     hb = _mod("handback")
     round_dir = tmp_path / "round"
     _write_receipts(round_dir, overrides={"P3": {
