@@ -974,7 +974,12 @@ def test_e32_route_under_quota_takes_copilot_immediately_on_codex_window_out(rou
 
 
 def test_e32_judge_admission_and_isolated_claude_fallback(router):
-    """Done-contract C2: shadow admission opens Copilot; otherwise isolated Claude may judge."""
+    """Done-contract C2: an admitted Copilot rung judges; otherwise isolated Claude may judge.
+
+    A-1 (2026-11-03): the operator admitted `gpt-6.1-sol` in the registry, so the Copilot rung is routable on the
+    registry alone. The isolated-Claude fallback is exercised by making Copilot unusable (a quota/state outage),
+    which is the live reason that rung is skipped now that admission no longer is.
+    """
     codex = _e32_codex(
         primary_used_percent=97, primary_resets_at=_E32_NOW + 5 * 3600
     )
@@ -984,7 +989,6 @@ def test_e32_judge_admission_and_isolated_claude_fallback(router):
         now=_E32_NOW,
         codex=codex,
         produced_by="anthropic",
-        admitted_models={"gpt-6.1-sol"},
     )
     assert admitted.action == "ROUTE"
     assert (admitted.candidate.provider, admitted.candidate.model) == (
@@ -997,6 +1001,7 @@ def test_e32_judge_admission_and_isolated_claude_fallback(router):
         now=_E32_NOW,
         codex=codex,
         produced_by="anthropic",
+        states={"copilot-enterprise": router.ProviderState(usable=False)},
     )
     assert fallback.action == "ROUTE"
     assert (fallback.candidate.provider, fallback.candidate.model) == (
