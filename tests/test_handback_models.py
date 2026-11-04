@@ -237,6 +237,7 @@ def test_item3e_silent_codex_substitution_refuses_without_writing_session(
     )
 
     assert code == hb.EXIT_REFUSED
+    assert code == 3
     assert receipt["checks"]["models-block"]["ok"] is False
     assert "models-block" in (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(
         encoding="utf-8"
@@ -295,6 +296,7 @@ def test_item3f_missing_launch_receipt_refuses(monkeypatch, tmp_path):
     )
 
     assert code == hb.EXIT_REFUSED
+    assert code == 3
     assert receipt["checks"]["launch-receipt"]["ok"] is False
     assert "launch-receipt" in (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(
         encoding="utf-8"
@@ -351,7 +353,10 @@ def test_item3g_invalid_or_absent_receipts_are_named_in_refusal(
     assert code == hb.EXIT_REFUSED
     assert receipt["checks"]["models-block"]["ok"] is False
     refusal = (tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").read_text(encoding="utf-8")
-    assert "P3.json" in refusal or "no phase receipts" in refusal.lower()
+    if bad_receipts == "absent":
+        assert "P3.json" in refusal or "P<id>.json" in refusal
+    else:
+        assert "P3.json" in refusal
 
 
 def test_item3g_existing_models_header_refuses_without_appending(monkeypatch, tmp_path):
@@ -390,7 +395,8 @@ def test_item3h_cli_batch_requires_receipts_dir_and_receipts_dir_reads_launch_ba
     root, _bare, tr = _repo_and_transport(tmp_path / "cli")
     round_dir = tmp_path / "cli-round"
     _write_receipts(round_dir)
-    _write_launch(root)
+    launch_path = _write_launch(root)
+    run_kwargs = []
     _stub_six_checks(monkeypatch, hb)
     monkeypatch.setattr(hb, "_ROOT", root)
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tr))
@@ -398,22 +404,27 @@ def test_item3h_cli_batch_requires_receipts_dir_and_receipts_dir_reads_launch_ba
     # The CLI resolves the Windows User-scope transport before the patched environment.
     monkeypatch.setattr(
         hb, "run",
-        lambda *a, **k: real_run(*a, resolve_transport=lambda: tr / "to-browser", **k),
+        lambda *a, **k: (
+            run_kwargs.append(k.copy()),
+            real_run(*a, resolve_transport=lambda: tr / "to-browser", **k),
+        )[1],
     )
     exit_code = hb.main([
         "run", "--lane", LANE, "--branch", BRANCH, "--class", "docs-only",
         "--repo", str(root), "--receipts-dir", str(round_dir),
     ])
     out = capsys.readouterr().out
-    receipt = json.loads(out[out.rindex("\n{") + 1:])
+    receipt = json.loads(out[out.rindex("\n{") + 1:] if "\n{" in out else out)
     assert exit_code == hb.EXIT_OK
+    assert run_kwargs[0]["batch"] is None
     assert receipt["checks"]["launch-receipt"] is True
+    assert json.loads(launch_path.read_text(encoding="utf-8"))["batch"] == "E3.0"
     assert (tr / "to-browser" / f"SESSION-{LANE}.md").is_file()
 
 
 # Done 3(h): --receipts-dir alone fails the launch-receipt leg when the LAUNCH receipt (and so the batch) is absent
 def test_item3h_receipts_dir_alone_fails_launch_receipt_leg_without_a_launch_receipt(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, capsys
 ):
     hb = _mod("handback")
     root, _bare, tr = _repo_and_transport(tmp_path)
@@ -433,6 +444,31 @@ def test_item3h_receipts_dir_alone_fails_launch_receipt_leg_without_a_launch_rec
     assert receipt["checks"]["launch-receipt"]["ok"] is False
     assert refusal.is_file()
     assert "launch-receipt" in refusal.read_text(encoding="utf-8")
+
+    cli_tmp = tmp_path / "cli-no-launch"
+    cli_tmp.mkdir()
+    cli_root, _cli_bare, cli_tr = _repo_and_transport(cli_tmp)
+    cli_round = cli_tmp / "round"
+    _write_receipts(cli_round)
+    monkeypatch.setattr(hb, "_ROOT", cli_root)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(cli_tr))
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    _stub_six_checks(monkeypatch, hb)
+    real_run = hb.run
+    monkeypatch.setattr(
+        hb, "run",
+        lambda *a, **k: real_run(
+            *a, resolve_transport=lambda: cli_tr / "to-browser", **k
+        ),
+    )
+    exit_code = hb.main([
+        "run", "--lane", LANE, "--branch", BRANCH, "--class", "docs-only",
+        "--repo", str(cli_root), "--receipts-dir", str(cli_round),
+    ])
+    out = capsys.readouterr().out
+    receipt = json.loads(out[out.rindex("\n{") + 1:] if "\n{" in out else out)
+    assert exit_code == 3
+    assert receipt["checks"]["launch-receipt"]["ok"] is False
     assert not session.exists() or "HANDBACK " not in session.read_text(encoding="utf-8")
 
 

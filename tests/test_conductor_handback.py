@@ -493,10 +493,29 @@ def test_item4f_e2e_run_lane_over_stub_phases_reaches_accept_then_hands_back(
     assert match.group(1) == line
     wake_files = list(wake_home.glob(f"WAKE-{LANE}-*.json"))
     assert len(wake_files) == 1
+    assert wake_files[0].name == f"WAKE-{LANE}-{lane_end_guard.handback_key(line)}.json"
+    assert f"wake: {wake_files[0]}" in output
     wake = json.loads(wake_files[0].read_text(encoding="utf-8"))
     assert wake["lane"] == LANE
     assert wake["handback"] == line
     assert any("handback.py" in " ".join(argv) for argv in calls)
+
+    orig = lane_end_guard.write_wake
+    wake_calls = []
+
+    def spy(*args, **kwargs):
+        wake_calls.append((args, kwargs))
+        return orig(*args, **kwargs)
+
+    monkeypatch.setattr(lane_end_guard, "write_wake", spy)
+    repeated = conductor.hand_back_on_accept(
+        LANE, round_dir, repo, contract, env,
+        run=_runner([], stdout=json.dumps({"handback": line})),
+    )
+    assert repeated[0] == 0
+    assert len(wake_calls) == 1
+    assert len(list(wake_home.glob(f"WAKE-{LANE}-*.json"))) == 1
+    assert not any("push" in token for argv in calls for token in argv)
 
 
 @pytest.mark.parametrize("bad_path", ["repo", "primary"])
