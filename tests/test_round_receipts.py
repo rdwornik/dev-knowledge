@@ -1227,3 +1227,67 @@ def test_write_cost_record_refuses_preexisting_tmp_link_to_outside_file(tmp_path
 
     assert sentinel.read_text(encoding="utf-8") == "unchanged\n"
     assert not (lane_dir / rr.COST_NAME).exists()
+
+
+def test_write_cost_record_removes_its_scratch_after_replace_failure(tmp_path, monkeypatch):
+    receipts = tmp_path / "receipts"
+    lane_dir = receipts / f"LANE-{SLUG}"
+    lane_dir.mkdir(parents=True)
+    target = lane_dir / rr.COST_NAME
+    target.write_text("sentinel\n", encoding="utf-8", newline="\n")
+    scratch = lane_dir / f"{rr.COST_NAME}.tmp"
+    original_replace = rr.os.replace
+    calls = 0
+
+    def fail_once(source, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise PermissionError("injected replace failure")
+        return original_replace(source, destination)
+
+    monkeypatch.setattr(rr.os, "replace", fail_once)
+
+    with pytest.raises(PermissionError, match="injected replace failure"):
+        rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+    assert target.read_text(encoding="utf-8") == "sentinel\n"
+    assert not scratch.exists()
+
+
+def test_write_cost_record_retry_succeeds_after_replace_failure(tmp_path, monkeypatch):
+    receipts = tmp_path / "receipts"
+    lane_dir = receipts / f"LANE-{SLUG}"
+    lane_dir.mkdir(parents=True)
+    target = lane_dir / rr.COST_NAME
+    scratch = lane_dir / f"{rr.COST_NAME}.tmp"
+
+    def fail_replace(source, destination):
+        raise PermissionError("injected replace failure")
+
+    monkeypatch.setattr(rr.os, "replace", fail_replace)
+    with pytest.raises(PermissionError, match="injected replace failure"):
+        rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+    monkeypatch.undo()
+    assert rr.write_cost_record(SLUG, receipts, root=tmp_path) == target
+
+    content = target.read_bytes()
+    assert json.loads(content)["schema"] == rr.COST_SCHEMA
+    assert content.endswith(b"\n")
+    assert b"\r\n" not in content
+    assert not scratch.exists()
+
+
+def test_write_cost_record_preserves_preexisting_tmp_file(tmp_path):
+    receipts = tmp_path / "receipts"
+    lane_dir = receipts / f"LANE-{SLUG}"
+    lane_dir.mkdir(parents=True)
+    scratch = lane_dir / f"{rr.COST_NAME}.tmp"
+    scratch.write_text("preexisting\n", encoding="utf-8", newline="\n")
+
+    with pytest.raises(FileExistsError):
+        rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+    assert scratch.is_file()
+    assert scratch.read_text(encoding="utf-8") == "preexisting\n"
