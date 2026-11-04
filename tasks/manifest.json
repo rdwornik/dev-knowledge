@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d91cc1cabfbf8ccec8c15dfa30932a10650275cf03f73340909f34ef91ff8ce5",
+  "generated_sha256": "680329cf27c26497c8af9ab36ac5dc1e605e1d11172498e7c48fc5d29cd5c96c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3130,6 +3130,10 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
+    },
+    {
+      "task": 1858,
+      "file": "1858-landing-land-lane-lands-a-conductor-lane-only-on-a-complete-tip-current-p7-accepted-phase-receipt-chain.md"
     },
     {
       "prose": ""

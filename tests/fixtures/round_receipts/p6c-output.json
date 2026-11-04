@@ -1,0 +1,14 @@
+{
+  "ref": "refs/heads/main",
+  "sha": "0000000000000000000000000000000000000000",
+  "verdict": "green",
+  "run_id": 1,
+  "run_url": null,
+  "duration_seconds": 1.0,
+  "baseline_id": null,
+  "new_reds": [],
+  "reason": "",
+  "state": "PASS",
+  "missing_contexts": [],
+  "flagged": []
+}

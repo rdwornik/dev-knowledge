@@ -1,0 +1,13 @@
+{
+  "totalPremiumRequestCost": 1,
+  "totalUserRequests": 1,
+  "totalNanoAiu": 813256000,
+  "tokenDetails": {
+    "input": {"tokenCount": 7400},
+    "cache_read": {"tokenCount": 56448},
+    "cache_write": {"tokenCount": 0},
+    "output": {"tokenCount": 4603}
+  },
+  "totalApiDurationMs": 45483,
+  "sessionStartTime": "2026-09-08T23:55:01.512Z"
+}
