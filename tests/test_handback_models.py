@@ -103,6 +103,22 @@ def _write_receipts(round_dir: Path, *, overrides: dict[str, dict] | None = None
         )
 
 
+def _review_payload_override(phase: str, findings: list[dict]) -> dict:
+    from ecosystem.schema.phase_receipt import PhasePayload, payload_sha256
+
+    receipt = _receipt_data(phase)
+    payload = {
+        "nonce": receipt["nonce"],
+        "input_hash": receipt["input_hash"],
+        "outcome": "PASS",
+        "findings": findings,
+    }
+    return {
+        "payload": payload,
+        "payload_sha256": payload_sha256(PhasePayload.model_validate(payload)),
+    }
+
+
 def _write_launch(root: Path, lane: str = LANE, batch: str = "E3.0") -> Path:
     path = root / "logs" / "receipts" / f"LAUNCH-{lane.upper()}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -486,3 +502,56 @@ def test_item3i_without_receipts_dir_retains_exactly_the_original_six_legs(
 
     assert code == hb.EXIT_OK
     assert set(receipt["checks"]) == set(_CHECKS)
+
+
+def test_code_handback_derives_review_evidence_or_refuses_without_review_payloads(
+    monkeypatch, tmp_path
+):
+    hb = _mod("handback")
+    root, _bare, tr = _repo_and_transport(tmp_path)
+    round_dir = tmp_path / "round"
+    _write_receipts(round_dir)
+    _write_launch(root)
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(root / "logs" / "receipts"))
+    _stub_six_checks(monkeypatch, hb)
+
+    def resolve_transport():
+        return tr / "to-browser"
+
+    code, receipt = hb.run(
+        LANE, BRANCH, "code", root, resolve_transport=resolve_transport,
+        receipts_dir=round_dir, batch="E3.0",
+    )
+    refusal = tr / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md"
+    session = tr / "to-browser" / f"SESSION-{LANE}.md"
+
+    assert code == hb.EXIT_REFUSED == 3
+    assert refusal.is_file()
+    review_check = receipt["checks"]["review-receipts"]
+    assert review_check["ok"] is False
+    assert "no review receipt" in review_check["detail"]
+    assert not session.exists() or not any(
+        line.startswith("HANDBACK ") for line in session.read_text(encoding="utf-8").splitlines()
+    )
+
+    _write_receipts(round_dir, overrides={
+        "P6a": _review_payload_override("P6a", [
+            {"id": "critical", "severity": "CRITICAL",
+             "claim": "A critical review finding", "evidence": "P6a evidence"},
+            {"id": "info", "severity": "INFO",
+             "claim": "An informational review note", "evidence": "P6a note"},
+        ]),
+        "P6b": _review_payload_override("P6b", []),
+    })
+    code, receipt = hb.run(
+        LANE, BRANCH, "code", root, resolve_transport=resolve_transport,
+        receipts_dir=round_dir, batch="E3.0",
+    )
+    expected = (
+        f"HANDBACK {BRANCH} @ {_git(root, 'rev-parse', 'HEAD')} code "
+        "review=gpt-5.6-terra/claude-sonnet-5-5 HIGH:1 MED:0 LOW:0"
+    )
+
+    assert code == hb.EXIT_OK
+    assert receipt["handback"] == expected
+    assert expected in session.read_text(encoding="utf-8").splitlines()

@@ -9,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 _REPO = Path(__file__).resolve().parents[1]
 for _path in (str(_REPO), str(_REPO / "scripts"), str(_REPO / "tests")):
@@ -138,7 +139,7 @@ def test_item4a_final_accept_invokes_handback_with_lane_branch_class_and_batch(
 
 
 def _write_phase_receipts(round_dir: Path) -> None:
-    from ecosystem.schema.phase_receipt import PhaseReceipt
+    from ecosystem.schema.phase_receipt import PhasePayload, PhaseReceipt, payload_sha256
 
     phases = {
         "P1": ("claude", "anthropic", "claude-sonnet-5-5"),
@@ -153,6 +154,19 @@ def _write_phase_receipts(round_dir: Path) -> None:
     }
     round_dir.mkdir(parents=True, exist_ok=True)
     for phase, (head, vendor, model) in phases.items():
+        payload = None
+        payload_hash = None
+        if phase in ("P6a", "P6b"):
+            payload = {
+                "nonce": "n" * 16,
+                "input_hash": "a" * 64,
+                "outcome": "PASS",
+                "findings": ([{
+                    "id": "review-medium", "severity": "MEDIUM",
+                    "claim": "A medium review finding", "evidence": "review receipt evidence",
+                }] if phase == "P6a" else []),
+            }
+            payload_hash = payload_sha256(PhasePayload.model_validate(payload))
         data = {
             "schema": "phase-receipt/1", "organ": f"phase:{phase}", "status": "ok",
             "exit_code": 0, "duration_ms": 1, "input_hash": "a" * 64,
@@ -160,7 +174,8 @@ def _write_phase_receipts(round_dir: Path) -> None:
             "finished_at": "2026-11-03T12:00:00Z", "row": "1857", "lane": LANE,
             "phase": phase, "round": 1, "vendor": vendor, "cli_version": None,
             "served_model": model, "started_at": "2026-11-03T11:59:59Z", "inputs": [],
-            "nonce": "n" * 16, "usage": None, "payload_sha256": None, "payload": None,
+            "nonce": "n" * 16, "usage": None,
+            "payload_sha256": payload_hash, "payload": payload,
             "substituted_from": None, "head_sha": None,
         }
         PhaseReceipt.model_validate(data)
@@ -358,7 +373,7 @@ def test_item4f_g_real_handback_writes_one_matching_wake_and_is_idempotent(
             return subprocess.run(argv, capture_output=True, text=True, check=False,
                                   cwd=kwargs.get("cwd"))
         code, result = hb.run(
-            LANE, BRANCH, "code", repo, reviewer="terra", high=0, med=0, low=0,
+            LANE, BRANCH, "code", repo,
             resolve_transport=lambda: transport / "to-browser",
             receipts_dir=phase_receipts, batch="E3.0",
         )
@@ -378,6 +393,9 @@ def test_item4f_g_real_handback_writes_one_matching_wake_and_is_idempotent(
     line = lane_end_guard.last_handback(session)
     assert first == 0
     assert line is not None
+    assert line.endswith(
+        "code review=gpt-5.6-terra/claude-sonnet-5-5 HIGH:0 MED:1 LOW:0"
+    )
     wake_home = Path(env["HARNESS_WAKE_DIR"])
     wake_files = list(wake_home.glob(f"WAKE-{LANE}-*.json"))
     assert len(wake_files) == 1
@@ -417,6 +435,27 @@ def test_item4f_e2e_run_lane_over_stub_phases_reaches_accept_then_hands_back(
     lane_tests._git(repo, "branch", "-m", BRANCH)
     world["lane"] = LANE
     contract = world["contract"]
+    contract_text = contract.read_text(encoding="utf-8")
+    phases = conductor.contract_phases(contract_text)
+    assert phases is not None
+    next(phase for phase in phases if phase["id"] == "P3")["model"] = "claude-sonnet-5-5"
+    next(phase for phase in phases if phase["id"] == "P7")["model"] = "gpt-6-sol"
+    p5 = next(phase for phase in phases if phase["id"] == "P5")
+    p7_index = next(index for index, phase in enumerate(phases) if phase["id"] == "P7")
+    for phase_id, model in (("P6a", "gpt-5.6-terra"), ("P6b", "gemini-4-argon")):
+        phases.insert(p7_index, {
+            **p5, "id": phase_id, "name": f"review-{phase_id[-1]}", "role": "review",
+            "model": model,
+            "command": [sys.executable.replace("\\", "/"), *stub_phase[1:]],
+        })
+        p7_index += 1
+    phases_block = "```yaml\n" + yaml.safe_dump(
+        {"phases": phases}, sort_keys=False
+    ) + "```"
+    contract.write_text(
+        re.sub(r"(?ms)^```yaml\s*\n.*?^```$", phases_block, contract_text, count=1),
+        encoding="utf-8", newline="\n",
+    )
     (repo / "tests" / "test_x.py").write_text("def test_x():\n    assert True\n",
                                                encoding="utf-8", newline="\n")
     transport = tmp_path / "transport"
@@ -458,7 +497,7 @@ def test_item4f_e2e_run_lane_over_stub_phases_reaches_accept_then_hands_back(
             return subprocess.run(argv, capture_output=True, text=True, check=False,
                                   cwd=kwargs.get("cwd"))
         code, result = hb.run(
-            LANE, BRANCH, "code", repo, reviewer="terra", high=0, med=0, low=0,
+            LANE, BRANCH, "code", repo,
             resolve_transport=lambda: transport / "to-browser",
             receipts_dir=round_dir, batch="E3.0",
         )
@@ -487,6 +526,9 @@ def test_item4f_e2e_run_lane_over_stub_phases_reaches_accept_then_hands_back(
     assert verdict["head_sha"] == head
     assert match is not None, output
     assert match.group(2) == head
+    assert match.group(1).endswith(
+        "code review=gpt-5.6-terra/gemini-4-argon HIGH:0 MED:0 LOW:0"
+    )
 
     session = (transport / "to-browser" / f"SESSION-{LANE}.md").read_text(encoding="utf-8")
     line = lane_end_guard.last_handback(session)
