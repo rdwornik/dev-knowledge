@@ -251,6 +251,10 @@ def landing_problems(root, slug: str, lane_tip: str, git: Optional[Runner] = Non
         return [f"no round directory (r<N>) under {lane_dir}: no conductor round left receipts for "
                 f"lane {slug}"]
     round_no, round_dir = rounds[-1]
+    tied = [str(path) for number, path in rounds if number == round_no]
+    if len(tied) > 1:
+        return [f"round {round_no} has several directories ({', '.join(tied)}): the highest-numbered "
+                f"round is ambiguous and no receipt chain is chosen by name order"]
     gates, why = _read_harness(round_dir / ROUND_HARNESS_NAME)
     if gates is None:
         return [why]
@@ -409,11 +413,11 @@ def _read_copilot(round_dir: Path, command, root: Path) -> "tuple[list, str, str
     premium = _number(data.get("totalPremiumRequestCost")) if isinstance(data, dict) else None
     if premium is None:
         return [], usage.name, f"usage file {usage.name} lacks totalPremiumRequestCost"
-    measurements = [{"unit": "premium_requests", "amount": premium}]
     nano = _number(data.get("totalNanoAiu"))
-    if nano is not None:
-        measurements.append({"unit": "aiu", "amount": nano / 1e9})
-    return measurements, usage.name, ""
+    if nano is None:
+        return [], usage.name, f"usage file {usage.name} lacks a numeric totalNanoAiu"
+    return ([{"unit": "premium_requests", "amount": premium},
+             {"unit": "aiu", "amount": nano / 1e9}], usage.name, "")
 
 
 def _last_token_total(text: str) -> Optional[int]:
@@ -524,7 +528,9 @@ def write_cost_record(lane: str, receipts_dir, root=None) -> Path:
     record = cost_record(lane, receipts_dir, root=root)
     target = lane_dir / COST_NAME
     scratch = target.with_name(COST_NAME + ".tmp")
-    scratch.write_text(render_cost(record), encoding="utf-8", newline="\n")
+    text = render_cost(record)
+    with open(scratch, "x", encoding="utf-8", newline="\n") as out:   # FileExistsError: never over an old entry
+        out.write(text)
     os.replace(scratch, target)
     return target
 
