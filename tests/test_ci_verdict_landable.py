@@ -148,5 +148,3 @@ def test_item1d_real_harness_p5_shape_and_phase_pins():
     assert not lines[p5_index - 1].lstrip().startswith("#")
     assert not lines[p5_index + 1].lstrip().startswith("#")
     assert "--landable" in by_id["P6c"]["command"]
-
-

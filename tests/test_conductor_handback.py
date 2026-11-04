@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -10,11 +11,13 @@ from types import SimpleNamespace
 import pytest
 
 _REPO = Path(__file__).resolve().parents[1]
-for _path in (str(_REPO), str(_REPO / "scripts")):
+for _path in (str(_REPO), str(_REPO / "scripts"), str(_REPO / "tests")):
     if _path not in sys.path:
         sys.path.insert(0, _path)
 
 from scripts import conductor  # noqa: E402
+import test_conductor_run as lane_tests  # noqa: E402
+from test_conductor_run import _seed_repo_template  # noqa: E402,F401
 
 
 @pytest.fixture(autouse=True)
@@ -393,6 +396,107 @@ def test_item4f_g_real_handback_writes_one_matching_wake_and_is_idempotent(
     )
     assert repeated[0] == 0
     assert len(list(wake_home.glob(f"WAKE-{LANE}-*.json"))) == 1
+
+
+# Done 4(f): a REAL run_lane over stub phases reaches ACCEPT end to end, then the real hand-back and wake (no run_lane stub)
+def test_item4f_e2e_run_lane_over_stub_phases_reaches_accept_then_hands_back(
+    monkeypatch, tmp_path, capsys
+):
+    import handback as hb
+    import lane_end_guard
+
+    stub_phase = [
+        "__PYTHON__", str(_REPO / "tests" / "fixtures" / "stub_phase.py").replace("\\", "/"),
+        "{payload}", "{nonce}", "{input_hash}",
+    ]
+    world = lane_tests._world(
+        tmp_path,
+        changes={pid: {"command": stub_phase} for pid in ("P2", "P4", "P5", "P7")},
+    )
+    repo = world["repo"]
+    lane_tests._git(repo, "branch", "-m", BRANCH)
+    world["lane"] = LANE
+    contract = world["contract"]
+    (repo / "tests" / "test_x.py").write_text("def test_x():\n    assert True\n",
+                                               encoding="utf-8", newline="\n")
+    transport = tmp_path / "transport"
+    (transport / "to-browser").mkdir(parents=True)
+    (transport / "to-cc").mkdir()
+    wake_home = tmp_path / "private-wakes"
+    harness_receipts = repo / "logs" / "receipts"
+    launch = harness_receipts / f"LAUNCH-{LANE.upper()}.json"
+    launch.parent.mkdir(parents=True, exist_ok=True)
+    launch.write_text(json.dumps({"organ": "launch", "batch": "E3.0"}) + "\n",
+                      encoding="utf-8", newline="\n")
+
+    env = {
+        "CLAUDE_PROMPTS_DIR": str(transport),
+        "HARNESS_RECEIPTS_DIR": str(harness_receipts),
+        "HARNESS_WAKE_DIR": str(wake_home),
+        "HARNESS_BATCH": "E3.0",
+        "ROUND_LOOP_MARKERS": str(world["markers"]),
+        "ROUND_LOOP_OUTCOMES": "{}",
+        "ROUND_LOOP_EXIT_CODES": "{}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+
+    six = [hb.CheckResult(name, True, "ok") for name in (
+        "branch-purity", "ship-gate", "ratchet", "review-consumer", "branch-naming",
+        "transport-write",
+    )]
+    monkeypatch.setattr(hb, "run_self_check",
+                        lambda *args, **kwargs: (six[0], list(six)))
+    round_dir = world["receipts"] / f"LANE-{LANE}" / "r1"
+    calls = []
+
+    def real_handback_runner(argv, **kwargs):
+        argv = [str(token) for token in argv]
+        calls.append(argv)
+        if argv and argv[0] == "git":
+            return subprocess.run(argv, capture_output=True, text=True, check=False,
+                                  cwd=kwargs.get("cwd"))
+        code, result = hb.run(
+            LANE, BRANCH, "code", repo, reviewer="terra", high=0, med=0, low=0,
+            resolve_transport=lambda: transport / "to-browser",
+            receipts_dir=round_dir, batch="E3.0",
+        )
+        return subprocess.CompletedProcess(argv, code, json.dumps(result), "")
+
+    monkeypatch.setattr(
+        conductor.hand_back_on_accept, "__defaults__", (real_handback_runner,)
+    )
+    args = _round_args(repo, contract, LANE)
+    args.harness = str(world["harness"])
+    args.receipts = str(world["receipts"])
+
+    status = conductor._run_main(args, repo)
+
+    verdict_path = round_dir / "ROUND-VERDICT.json"
+    verdict = json.loads(verdict_path.read_text(encoding="utf-8"))
+    head = _git(repo, "rev-parse", "HEAD")
+    output = capsys.readouterr().out
+    match = re.search(
+        rf"(?m)^handback: ok (HANDBACK {re.escape(BRANCH)} @ ([0-9a-f]{{40}}) "
+        r"code(?: [^\r\n]*)?)$",
+        output,
+    )
+    assert status == 0, output
+    assert verdict["verdict"] == "ACCEPT"
+    assert verdict["head_sha"] == head
+    assert match is not None, output
+    assert match.group(2) == head
+
+    session = (transport / "to-browser" / f"SESSION-{LANE}.md").read_text(encoding="utf-8")
+    line = lane_end_guard.last_handback(session)
+    assert match.group(1) == line
+    wake_files = list(wake_home.glob(f"WAKE-{LANE}-*.json"))
+    assert len(wake_files) == 1
+    wake = json.loads(wake_files[0].read_text(encoding="utf-8"))
+    assert wake["lane"] == LANE
+    assert wake["handback"] == line
+    assert any("handback.py" in " ".join(argv) for argv in calls)
 
 
 @pytest.mark.parametrize("bad_path", ["repo", "primary"])
