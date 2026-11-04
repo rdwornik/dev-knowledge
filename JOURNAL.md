@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-04 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-round-verdict-handback landing -- P5 is a deterministic ci_verdict row, and an accepted code round is handed back by code [#1857]
+
+**Anchors:** `144c166e0` (T1 RED, run 41642612340), `70069f7ae` (the review-evidence fix this push introduces), `529f6549e` (lane tip, T2 cf1cd9e7 run 41808050278, verdict PASS), `64c0c3363` (main when this landing was cut, GREEN).
+
+**Did:** landed lane E2's HANDBACK `529f6549e` (SESSION-e30-round-verdict-handback.md:194), forwarded READY by the dispatcher. Per-handback path read by me: purity against LANE-e30-round-verdict-handback.md line 63 -- the lane touches `scripts/ci_verdict.py`, `scripts/handback.py`, `scripts/conductor.py`, `ecosystem/harness.yaml`, five test files and `tasks/1857-*` with its manifest node; `BACKLOG.md`, `ecosystem/doc-counts.md` and the manifest hash are generated derivatives that land_lane regenerates. T1 run 41642612340 head == red-sha `144c166e0`, conclusion failure; T2 session cf1cd9e7 != every T1 session; usage JSON `currentModel` gpt-6-luna (T2), gpt-5.6-terra, gemini-4-argon and gpt-6.1-sol (judge) match the receipt; the MODELS block is indented and the dispatcher's `check_models_block` returns ([], []). T2 re-derived from the CI logs of run 41808050278: commit-gate failed only at `audit-health`, which the known-reds compare judges PASS (registered environment-mismatch, regressions 0); pytest known-reds compare is 33 known, 4 witnesses, 0 outside the registry; tier1 was cancelled at its 15-minute timeout (infra, carried to [#1868]) and gate is red only as its consequence. The lane's added tests read no `origin/main` (the one `base="origin/main"` token is a tmp-repo fixture argument).
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md. [#1857] stays OPEN on this landing; its close is the N2 hand path on a success main push run.
+
+**Changes:** the lane's files above, `BACKLOG.md` and `ecosystem/doc-counts.md` (regenerated), this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run; N2 close of [#1857]; K1 of the E2 lane (job 0e243ffb, refs, worktree).
+
 ### 2026-11-03 (m) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #5 -- [#1859], [#1862] and [#1800] close on their green main push runs [#1859] [#1862] [#1800]
 
 **Anchors:** `c19532e6f` (the close commit this push introduces), `c535c7fbc` (main, GREEN: Q-1862-R fix on main, push run 41730849763), `b19a8d9ac` ([#1862] landing merge), `1a8ead7a1` (H landing merge, push run 41700668961).
