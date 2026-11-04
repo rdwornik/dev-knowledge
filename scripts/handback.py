@@ -387,6 +387,37 @@ def models_block_from_receipts(round_dir: Path) -> str:
     return "\n".join(lines)
 
 
+def review_evidence_from_receipts(round_dir: Path) -> tuple[str, int, int, int]:
+    """`(reviewer, high, med, low)` of the review-phase receipts (P6a, P6b) in `round_dir` (pure; raises
+    `ModelsBlockError` naming the gap when no review receipt carries a payload). `reviewer` joins the served
+    models with `/` (the one `review=` token a HANDBACK line may carry); HIGH counts CRITICAL and HIGH findings,
+    MED counts MEDIUM, LOW counts LOW (INFO is not a tally)."""
+    from ecosystem.schema.phase_receipt import PhaseReceipt  # noqa: PLC0415 -- organ path only
+
+    round_dir = Path(round_dir)
+    names = sorted((p.name for p in round_dir.glob("P*.json") if _phase_key(p.name) is not None
+                    and _PHASE_LABELS.get(p.name[:-5], "").startswith("review")), key=_phase_order)         if round_dir.is_dir() else []
+    reviewers: list[str] = []
+    high = med = low = 0
+    for name in names:
+        try:
+            receipt = PhaseReceipt.model_validate_json(Path(round_dir / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ModelsBlockError(f"review receipt {name} is unreadable or invalid: "
+                                   f"{str(exc).splitlines()[0][:200]}") from exc
+        if receipt.payload is None:
+            continue
+        reviewers.append(receipt.served_model or receipt.model_requested or name[:-5])
+        for finding in receipt.payload.findings:
+            high += finding.severity in ("CRITICAL", "HIGH")
+            med += finding.severity == "MEDIUM"
+            low += finding.severity == "LOW"
+    if not reviewers:
+        raise ModelsBlockError(f"no review receipt (P6a/P6b with a payload) in {round_dir}: a code branch owes "
+                               f"`review=<reviewer> HIGH:n MED:n LOW:n` and none can be derived")
+    return "/".join(reviewers), high, med, low
+
+
 def _primary_root(repo: Path, runner: Callable[..., tuple[int, str]] = _run) -> Path:
     """The primary checkout of `repo`'s repository (the parent of its git common dir), else `repo`."""
     code, out = runner(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"], repo)
@@ -564,6 +595,11 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
             checks = list(checks) + [
                 models_block_check(Path(receipts_dir), session_path(lane, resolve_transport)),
                 launch_receipt_check(repo, lane, batch)[0]]
+            if cls == "code" and reviewer is None:   # a code HANDBACK owes review=; derive it, else refuse by name
+                try:
+                    reviewer, high, med, low = review_evidence_from_receipts(Path(receipts_dir))
+                except ModelsBlockError as exc:
+                    checks.append(CheckResult("review-receipts", False, str(exc)))
         failing = [c for c in checks if not c.ok]
 
         if failing:
