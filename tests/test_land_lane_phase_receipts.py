@@ -592,3 +592,62 @@ def test_operator_act_without_receipts_directory_still_lands(tmp_path, monkeypat
 
     assert result.landed
     assert rig.pushes()
+
+
+@pytest.mark.parametrize(
+    ("complete_name", "incomplete_name"),
+    [("r2", "r02"), ("r02", "r2")],
+)
+def test_equal_maximum_round_numbers_refuse_landing_before_push(
+    tmp_path, monkeypatch, complete_name, incomplete_name,
+):
+    world = _real_repo(tmp_path)
+    home = tmp_path / "receipts"
+    complete = _receipts(home, world)
+    for path in complete.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["round"] = 2
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+    lane_dir = complete.parent
+    complete_path = lane_dir / complete_name
+    complete.rename(complete_path)
+    incomplete_path = lane_dir / incomplete_name
+    incomplete_path.mkdir()
+    for artifact in complete_path.iterdir():
+        (incomplete_path / artifact.name).write_bytes(artifact.read_bytes())
+    (incomplete_path / "P7.json").unlink()
+    rig = Rig(first_parent=world["base"], second_parent=world["tip"], real_repo=world["repo"])
+
+    result = _land(
+        tmp_path, rig, receipts_dir=home, monkeypatch=monkeypatch,
+        require_phase_receipts=True,
+    )
+
+    assert result.state == "PHASE-RECEIPTS-REFUSED"
+    assert str(complete_path) in result.reason
+    assert str(incomplete_path) in result.reason
+    assert rig.pushes() == []
+
+
+def test_preexisting_tmp_link_refuses_landing_before_push(tmp_path, monkeypatch):
+    world = _real_repo(tmp_path)
+    home = tmp_path / "receipts"
+    round_dir = _receipts(home, world)
+    sentinel = tmp_path / "outside-sentinel.txt"
+    sentinel.write_text("unchanged\n", encoding="utf-8", newline="\n")
+    scratch = round_dir.parent / f"{rr.COST_NAME}.tmp"
+    if sys.platform == "win32":
+        os.link(sentinel, scratch)
+    else:
+        os.symlink(sentinel, scratch)
+    rig = Rig(first_parent=world["base"], second_parent=world["tip"], real_repo=world["repo"])
+
+    result = _land(
+        tmp_path, rig, receipts_dir=home, monkeypatch=monkeypatch,
+        require_phase_receipts=True,
+    )
+
+    assert result.state == "PHASE-RECEIPTS-REFUSED"
+    assert rig.pushes() == []
+    assert sentinel.read_text(encoding="utf-8") == "unchanged\n"
+    assert not (round_dir.parent / rr.COST_NAME).exists()

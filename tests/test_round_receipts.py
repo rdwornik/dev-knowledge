@@ -1106,3 +1106,124 @@ def test_write_cost_record_writes_under_ordinary_lane_directory(tmp_path):
     assert target == lane_dir / rr.COST_NAME
     assert target.is_file()
     assert not target.with_name(f"{rr.COST_NAME}.tmp").exists()
+
+
+@pytest.mark.parametrize(
+    "usage_data",
+    [
+        {"totalPremiumRequestCost": 1},
+        {"totalPremiumRequestCost": 1, "totalNanoAiu": None},
+        {"totalPremiumRequestCost": 1, "totalNanoAiu": "not-numeric"},
+    ],
+    ids=("absent", "null", "non-numeric"),
+)
+def test_copilot_usage_without_numeric_aiu_is_unmeasured(tmp_path, usage_data):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    receipts = tmp_path / "receipts"
+    round_dir = receipts / f"LANE-{SLUG}" / "r1"
+    round_dir.mkdir(parents=True)
+    usage = round_dir / "P2-usage.json"
+    usage.write_text(json.dumps(usage_data) + "\n", encoding="utf-8", newline="\n")
+    _write_receipt(
+        round_dir, "P2",
+        command=["copilot", "--usage-output-file", str(usage)],
+        head_sha="d" * 40,
+    )
+
+    record = rr.cost_record(SLUG, receipts, root=repo)
+    row = record["rows"][0]
+    totals = record["totals_by_provider"]["copilot-enterprise"]
+
+    assert row["measured"] is False
+    assert row["measurements"] == []
+    assert "totalNanoAiu" in row["reason"]
+    assert record["complete"] is False
+    assert totals["unmeasured_attempts"] == 1
+    assert not set(totals).intersection({"premium_requests", "aiu"})
+
+
+def test_copilot_usage_with_both_numeric_fields_is_measured(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    receipts = tmp_path / "receipts"
+    round_dir = receipts / f"LANE-{SLUG}" / "r1"
+    round_dir.mkdir(parents=True)
+    usage = round_dir / "P2-usage.json"
+    usage.write_text(
+        '{"totalPremiumRequestCost":1,"totalNanoAiu":813256000}\n',
+        encoding="utf-8", newline="\n",
+    )
+    _write_receipt(
+        round_dir, "P2",
+        command=["copilot", "--usage-output-file", str(usage)],
+        head_sha="d" * 40,
+    )
+
+    row = rr.cost_record(SLUG, receipts, root=repo)["rows"][0]
+
+    assert row["measured"] is True
+    assert row["measurements"] == [
+        {"unit": "premium_requests", "amount": 1},
+        {"unit": "aiu", "amount": 0.813256},
+    ]
+
+
+@pytest.mark.parametrize(
+    ("complete_name", "incomplete_name"),
+    [("r2", "r02"), ("r02", "r2")],
+)
+def test_equal_maximum_round_numbers_are_refused_with_both_paths(
+    tmp_path, complete_name, incomplete_name,
+):
+    world = _git_world(tmp_path)
+    home = tmp_path / "receipts"
+    complete = _build_round(home, world, round_no=2)
+    for path in complete.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["round"] = 2
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+    lane_dir = complete.parent
+    complete_path = lane_dir / complete_name
+    complete.rename(complete_path)
+    incomplete_path = lane_dir / incomplete_name
+    incomplete_path.mkdir()
+    for artifact in complete_path.iterdir():
+        (incomplete_path / artifact.name).write_bytes(artifact.read_bytes())
+    (incomplete_path / "P7.json").unlink()
+
+    problems = _problems(world, home)
+
+    assert any(
+        str(complete_path) in problem and str(incomplete_path) in problem
+        for problem in problems
+    )
+
+
+def test_single_complete_r2_is_accepted(tmp_path):
+    world = _git_world(tmp_path)
+    home = tmp_path / "receipts"
+    _build_round(home, world, round_no=2)
+
+    assert _problems(world, home) == []
+
+
+def test_write_cost_record_refuses_preexisting_tmp_link_to_outside_file(tmp_path):
+    receipts = tmp_path / "receipts"
+    lane_dir = receipts / f"LANE-{SLUG}"
+    lane_dir.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel.txt"
+    sentinel.write_text("unchanged\n", encoding="utf-8", newline="\n")
+    scratch = lane_dir / f"{rr.COST_NAME}.tmp"
+    if sys.platform == "win32":
+        os.link(sentinel, scratch)
+    else:
+        os.symlink(sentinel, scratch)
+
+    with pytest.raises(OSError):
+        rr.write_cost_record(SLUG, receipts, root=tmp_path)
+
+    assert sentinel.read_text(encoding="utf-8") == "unchanged\n"
+    assert not (lane_dir / rr.COST_NAME).exists()
