@@ -529,9 +529,14 @@ def write_cost_record(lane: str, receipts_dir, root=None) -> Path:
     target = lane_dir / COST_NAME
     scratch = target.with_name(COST_NAME + ".tmp")
     text = render_cost(record)
-    with open(scratch, "x", encoding="utf-8", newline="\n") as out:   # FileExistsError: never over an old entry
-        out.write(text)
-    os.replace(scratch, target)
+    out = open(scratch, "x", encoding="utf-8", newline="\n")   # FileExistsError: never over an old entry
+    try:                                                       # from here the scratch file is ours
+        with out:
+            out.write(text)
+        os.replace(scratch, target)
+    except BaseException:
+        scratch.unlink(missing_ok=True)
+        raise
     return target
 
 
