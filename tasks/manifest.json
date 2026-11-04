@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d91cc1cabfbf8ccec8c15dfa30932a10650275cf03f73340909f34ef91ff8ce5",
+  "generated_sha256": "e8c2c7eb359a8690f44cdab623c99380e9d78a867735fc55b8e8ba252872ad2b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2490,6 +2490,10 @@
     {
       "task": 1868,
       "file": "1868-c0-simplification-decide-census-one-adr-one-ratification.md"
+    },
+    {
+      "task": 1869,
+      "file": "1869-seat-lifecycle-role-workspace-state-home-ref-registry.md"
     },
     {
       "task": 1718,
