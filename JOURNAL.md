@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-04 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #6 -- [#1857] closes on its green main push run [#1857]
+
+**Anchors:** `e1791d1b5` (the close commit this push introduces), `b08826f30` (E2 landing merge), `121487bea` (main, GREEN: E2 receipt merge, push run 41819359842).
+
+**Did:** closed [#1857] by `gen_task_tree --close-row` with the E2 landing merge `b08826f30` as evidence and main push run 41819359842 (success; tier1 skipped) as its witness, then `--emit-source` and `gen_doc_counts --write`; `--check` ok. Licence: the dispatcher's message (CLOSE-DEFERRED, green main run).
+
+**Result:** the [#1857] task file closed, its manifest node removed, BACKLOG.md regenerated; integration ref pushed next, then main after its green integration run and the commit-gate read.
+
+**Changes:** `tasks/1857-*.md`, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** G [#1858] on the dispatcher's FORWARD READY, then HAND-STEP A-1 (provider-registry admission).
+
 ### 2026-11-04 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-round-verdict-handback landing -- P5 is a deterministic ci_verdict row, and an accepted code round is handed back by code [#1857]
 
 **Anchors:** `144c166e0` (T1 RED, run 41642612340), `70069f7ae` (the review-evidence fix this push introduces), `529f6549e` (lane tip, T2 cf1cd9e7 run 41808050278, verdict PASS), `64c0c3363` (main when this landing was cut, GREEN).
