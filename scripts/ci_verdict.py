@@ -7,7 +7,8 @@ makes the verdict readable, and tonight it is recorded next to the local verdict
 then shows how often the two agree, which is the evidence needed before CI can become the gate."
 
 NOT A GATE TONIGHT. `/lane-integrate` records this organ's output beside the local verdict; it
-does not compare, block or feed the merge decision. Wiring it as a gate before the freeze is
+does not compare, block or feed the merge decision. The CLI is a gate only when `--landable` is
+passed, by harness P5. Wiring it as a gate before the freeze is
 honest is exactly the failure `to-browser/DIGEST-AUDIT-CROSSCHECK-2026-09-23.md` measured:
 "the per-batch registry LAUNDERS regressions -- CI regressions rose from 9 to 17 while local said
 clean." A gate that compares against a stale baseline would launder the same disagreement it
@@ -752,12 +753,32 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
 @click.option("--timeout", default=POLL_TIMEOUT_S, type=int,
              help="seconds to wait, in-process, for the matched run to complete")
 @click.option("--interval", default=POLL_INTERVAL_S, type=int, help="seconds between polls")
-def cli(ref: str, repo_root: Optional[str], timeout: int, interval: int) -> None:
+@click.option("--landable", is_flag=True, default=False,
+              help="exit 0 iff the verdict is landable by the landing path's own predicate "
+                   "(merge_path.is_landable: PASS or PRE-EXISTING, no missing contexts)")
+@click.option("--require-clean-tree", is_flag=True, default=False,
+              help="refuse (DIRTY-TREE, exit 1) before any GitHub call when `git status --porcelain` "
+                   "in the repo root is not empty")
+def cli(ref: str, repo_root: Optional[str], timeout: int, interval: int, landable: bool,
+        require_clean_tree: bool) -> None:
     """Read CI's verdict for --ref, waiting for its Actions run. Read-only against GitHub;
-    prints one JSON object and is never a gate -- see the module docstring."""
-    verdict = verdict_for(ref, repo_root=Path(repo_root) if repo_root else None,
-                          timeout_s=timeout, interval_s=interval)
+    prints one JSON object. A gate only with --landable (harness P5) -- see the module docstring."""
+    root = Path(repo_root) if repo_root else None
+    if require_clean_tree:
+        where = root or _REPO_ROOT
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=str(where), capture_output=True,
+                                text=True, encoding="utf-8", errors="replace", timeout=60, check=False)
+        if status.returncode != 0 or status.stdout.strip():
+            why = ("git status failed: " + (status.stderr or "").strip()[:200]) if status.returncode != 0 \
+                else "the working tree is not clean (`git status --porcelain` is not empty)"
+            click.echo(json.dumps({"ref": ref, "sha": resolve_sha("HEAD", repo_root=where),
+                                   "verdict": STATE_NOT_RUN, "state": "DIRTY-TREE", "reason": why}, indent=2))
+            raise SystemExit(1)
+    verdict = verdict_for(ref, repo_root=root, timeout_s=timeout, interval_s=interval)
     click.echo(json.dumps(verdict.to_dict(), indent=2))
+    if landable:
+        import merge_path as _mp  # noqa: PLC0415 -- merge_path imports this module: lazy, not circular
+        raise SystemExit(0 if _mp.is_landable(verdict) else 1)
     raise SystemExit(0 if verdict.verdict == STATE_GREEN else 1)
 
 

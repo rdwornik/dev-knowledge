@@ -1025,6 +1025,33 @@ def _t2_stale(ctx: LaneContext) -> Optional[str]:
     return None
 
 
+def _names_ci_verdict(row: dict) -> bool:
+    return any("ci_verdict.py" in str(arg) for arg in (row.get("command") or []))
+
+
+def _p5_stale(ctx: LaneContext, receipt: dict) -> Optional[str]:
+    """Why P5's verdict (P5-OUTPUT.txt) is not for the tip evaluated, or None ([#1857], C05). The `sha`
+    ci_verdict read must be HEAD, the HEAD recorded before P5 spawned (`head_sha`, when non-null) and the
+    sha of the tip E1 pushed (`PUSH.json`, REQUIRED): so P5 provably read the verdict of the pushed tip."""
+    rc, head = _git_out(ctx, "rev-parse", "HEAD")
+    head = head.strip()
+    try:
+        sha = json.loads((ctx.round_dir / "P5-OUTPUT.txt").read_text(encoding="utf-8")).get("sha")
+    except (OSError, ValueError, AttributeError):
+        sha = None
+    if rc != 0 or not sha or sha != head:
+        return f"P5-OUTPUT.txt sha {sha!r} is not HEAD {head!r}"
+    recorded = receipt.get("head_sha")
+    if recorded and recorded != sha:
+        return f"P5-OUTPUT.txt sha {sha!r} is not the HEAD {recorded!r} P5 spawned at"
+    try:
+        pushed = json.loads((ctx.round_dir / "PUSH.json").read_text(encoding="utf-8")).get("sha")
+    except (OSError, ValueError, AttributeError):
+        return "PUSH.json is missing, unreadable or malformed (P5 must read the tip that was pushed)"
+    if pushed != sha:
+        return f"P5-OUTPUT.txt sha {sha!r} is not the pushed tip {pushed!r} (PUSH.json)"
+    return None
+
 
 def _run_phase():
     try:
@@ -1082,6 +1109,11 @@ def run_round(lane: str, round_no: int, *, repo_root: Path, harness: Optional[Pa
     if declared & {"P6a", "P6b"}:  # a harness with no reviewers makes no independence claim
         ok, why, phase = check_independence(ctx, phases)
         refused = None if ok else f"C-VENDOR:{phase}"
+    p5 = next((p for p in phases if p["id"] == "P5"), None)
+    if refused is None and p5 is not None and _names_ci_verdict(p5):
+        p5_data = next((d for pid, _, d in seen if pid == "P5"), {})
+        if _p5_stale(ctx, p5_data):
+            refused = "T2-STALE:P5"
     if refused is None and "P6c" in declared and _t2_stale(ctx):
         refused = "T2-STALE:P6c"
     if refused:
@@ -1617,6 +1649,102 @@ def run_lane(lane: str, *, contract: Path, repo_root: Path, harness: Optional[Pa
     return _finish(run)
 
 
+# --- the hand-back of an ACCEPTED round ([#1857]; C10) -----------------------------------------------
+# Runs only after `run_lane` returned a final ACCEPT in `lane --run` mode. The conductor never edits the
+# session file and never writes a HANDBACK line itself: `handback.py run --receipts-dir` does, from the
+# round's PhaseReceipts. Exit 5 = the hand-back was refused or could not run; exit 6 = it was written but
+# the integrator's wake could not be; this function never pushes (the push is E1's).
+_EXIT_HANDBACK, _EXIT_WAKE = 5, 6
+_KIND_CLASS = {"code": "code", "text": "docs-only"}
+
+
+def _last_json_object(text: str) -> Optional[dict]:
+    """The last top-level JSON object in `text` that runs to its end (handback prints transport_report's
+    one-line JSON first, then its own indented receipt)."""
+    decoder, found = json.JSONDecoder(), None
+    for m in re.finditer(r"(?m)^\{", text):
+        try:
+            obj, end = decoder.raw_decode(text, m.start())
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and not text[end:].strip():
+            found = obj
+    return found
+
+
+def _handback_stop(message: str) -> tuple[int, str]:
+    message = f"handback: NOT RUN -- {message}"
+    print(message)
+    return _EXIT_HANDBACK, message
+
+
+def hand_back_on_accept(lane: str, round_dir: Path, repo_root: Path, contract: Path, env: dict,
+                        run=subprocess.run) -> tuple[int, str]:
+    """Hand an ACCEPTED lane back by code: `handback.py run --receipts-dir <round_dir>`, then leave the wake
+    the Stop hook would have left. Returns (exit code, message); never raises."""
+    repo_root, round_dir = Path(repo_root), Path(round_dir)
+
+    def git(*args: str) -> tuple[int, str]:
+        done = _git_run(repo_root, *args)   # `run` is for the hand-back process only: nothing runs before the checks
+        return done.returncode, (done.stdout or "").strip()
+
+    try:
+        data = json.loads((round_dir / "ROUND-VERDICT.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return _handback_stop(f"{round_dir / 'ROUND-VERDICT.json'} is missing or unreadable ({exc.__class__.__name__})")
+    rc, head = git("rev-parse", "HEAD")
+    if not isinstance(data, dict) or data.get("verdict") != "ACCEPT" or rc != 0 or data.get("head_sha") != head:
+        return _handback_stop(f"ROUND-VERDICT.json says verdict {data.get('verdict') if isinstance(data, dict) else data!r} "
+                              f"at {data.get('head_sha') if isinstance(data, dict) else None!r}, HEAD is {head!r}: "
+                              "the round that ended the run and the tip handed back must be the same")
+    rc, branch = git("rev-parse", "--abbrev-ref", "HEAD")
+    if rc != 0 or not branch or branch == "HEAD":
+        return _handback_stop("HEAD is detached (or git failed): there is no branch to hand back")
+    try:
+        scripts_dir = str(Path(__file__).resolve().parent)
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import gen_lane_contract  # noqa: PLC0415
+        found = gen_lane_contract._KIND_LINE_RE.search(Path(contract).read_text(encoding="utf-8"))
+    except (OSError, ImportError) as exc:
+        return _handback_stop(f"cannot read the contract's Kind line ({exc.__class__.__name__})")
+    kind = found.group("kind") if found else ""
+    if kind not in _KIND_CLASS:
+        return _handback_stop(f"the contract's Kind is {kind or 'absent'!r}; only 'code' and 'text' are handed back by code")
+    argv = [sys.executable, str(Path(__file__).resolve().parent / "handback.py"), "run", "--lane", lane,
+            "--branch", branch, "--class", _KIND_CLASS[kind], "--repo", str(repo_root),
+            "--receipts-dir", str(round_dir)]
+    if env.get("HARNESS_BATCH"):
+        argv += ["--batch", env["HARNESS_BATCH"]]
+    done = run(argv, cwd=str(repo_root), env=dict(env), capture_output=True, text=True, encoding="utf-8",
+               errors="replace")
+    receipt = _last_json_object(done.stdout or "") or {}
+    if done.returncode != 0:
+        if done.returncode == 3:
+            why = ", ".join(str(r) for r in receipt.get("reasons") or []) or "see HANDBACK-REFUSED-" + lane + ".md"
+            message = f"handback: refused -- {why}"
+        else:
+            message = (f"handback: FAILED (exit {done.returncode}) -- "
+                       f"{receipt.get('reason') or (done.stderr or '').strip()[-300:] or 'no reason in the receipt'}")
+        print(message)
+        return _EXIT_HANDBACK, message
+    line = receipt.get("handback")
+    if not isinstance(line, str) or not line:
+        return _handback_stop("handback exited 0 but its receipt carries no HANDBACK line")
+    print(f"handback: ok {line}")
+    try:   # the wake: what the Stop hook of an interactive lane leaves for the integrator's `watch`
+        import lane_end_guard  # noqa: PLC0415
+        path = lane_end_guard.write_wake(lane_end_guard.wake_dir(env, root=repo_root), lane, line)
+    except Exception as exc:  # noqa: BLE001 -- a lost wake must be named, never raised
+        message = (f"wake: NOT WRITTEN -- {exc}; the lane IS handed back (HANDBACK line in the session file); "
+                   f"recover with land_on_handback.py once --lane {lane} (lane H)")
+        print(message)
+        print(message, file=sys.stderr)
+        return _EXIT_WAKE, message
+    print(f"wake: {path}")
+    return 0, f"handback: ok {line}"
+
+
 def _run_main(args, root: Path) -> int:
     if not args.contract or not args.lane:
         print("conductor lane: REFUSED -- --run requires --contract and --lane")
@@ -1635,6 +1763,9 @@ def _run_main(args, root: Path) -> int:
         print(f"  r{round_no}: {verdict}" + (f" at {halted_at}" if halted_at else ""))
     if res.question_path:
         print(f"  question: {res.question_path}")
+    if res.verdict == "ACCEPT" and res.round_dir is not None:   # once per process, after `_finish` (C10)
+        code, _message = hand_back_on_accept(args.lane, res.round_dir, root, Path(args.contract), dict(os.environ))
+        return code
     return res.exit_code
 
 

@@ -698,7 +698,9 @@ def _item1_setup(tmp_path, *, same_family=False):
     phases = _item1_target_phases()
     stub = _REPO / "tests" / "fixtures" / "conductor_round_stub.py"
     for phase in phases:
-        if phase["id"] in {"P4", "P6c"}:
+        # C05 of lane e30-round-verdict-handback: P5 is now a live uv ci_verdict.py row, so this fixture stubs it like P4 and P6c
+        # (the stub names no ci_verdict.py, so no T2-STALE:P5 check applies).
+        if phase["id"] in {"P4", "P5", "P6c"}:
             phase["command"] = [sys.executable, str(stub), phase["id"]]
     if same_family:
         p6b = next(phase for phase in phases if phase["id"] == "P6b")
@@ -1067,8 +1069,9 @@ def test_item1g_real_harness_phase_shape_and_phase_row_validation():
         "id": "P6c", "name": "t2-verdict", "row_phase": "build", "role": "qa", "cli": "uv",
         "model": None, "payload_model": "PhasePayload", "gate": "exit", "timeout_s": 1500,
         "budget_usd": 0, "max_rounds": 2, "inputs": ["{contract}"],
+        # C05 of lane e30-round-verdict-handback appends --landable to the P6c command.
         "command": ["uv", "run", "--locked", "python", "scripts/ci_verdict.py", "--ref", "HEAD",
-                    "--timeout", "1200"],
+                    "--timeout", "1200", "--landable"],
     }
     p7 = next(row for row in phases if row["id"] == "P7")
     assert (p7["cli"], p7["model"]) == ("codex", "gpt-6-sol")
@@ -1260,3 +1263,203 @@ def test_item2_cli_prints_c_vendor_refusal_and_exits_two(tmp_path):
     )
     assert out.returncode == 2, out.stdout + out.stderr
     assert f"conductor lane {lane} r1: REFUSED by C-VENDOR:P6b" in out.stdout
+
+
+# --- lane e30-round-verdict-handback: P5 verdict binding -----------------------------------------
+
+def _p5_round_setup(tmp_path, *, p5_mode="ok", p5_command_is_ci=True, include_p6a=False,
+                    post_mode="keep", push_state="matching"):
+    import shutil  # noqa: PLC0415
+
+    repo = tmp_path / "round-repo"
+    repo.mkdir()
+    for folder in ("scripts", "ecosystem"):
+        shutil.copytree(_REPO / folder, repo / folder,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                        copy_function=os.link)
+    (repo / ".gitignore").write_text(
+        ".doit.db*\n__pycache__/\n*.pyc\nlogs/receipts/\n", encoding="utf-8", newline="\n"
+    )
+    (repo / "tracked.txt").write_text("committed\n", encoding="utf-8", newline="\n")
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "fixture base")
+
+    p5_script = tmp_path / ("ci_verdict.py" if p5_command_is_ci else "toy_p5.py")
+    p5_script.write_text(textwrap.dedent("""\
+        import json
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        mode = sys.argv[1]
+        if mode == "fail":
+            print("stub P5 failed")
+            raise SystemExit(1)
+        if mode == "move-head":
+            Path("tip.txt").write_text("new tip\\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tip.txt"], check=True)
+            subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.com",
+                            "commit", "-q", "-m", "move head"], check=True)
+        if mode == "invalid":
+            print("not json")
+            raise SystemExit(0)
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        if mode == "wrong-output":
+            sha = "0" * 40
+        round_dir = (Path(os.environ["HARNESS_RECEIPTS_DIR"]) / f"LANE-{os.environ['HARNESS_LANE']}"
+                     / f"r{os.environ['HARNESS_ROUND']}")
+        if mode == "move-head":
+            (round_dir / "PUSH.json").write_text(json.dumps({"sha": sha}) + "\\n",
+                                                  encoding="utf-8")
+        print(json.dumps({"sha": sha}))
+        """), encoding="utf-8", newline="\n")
+    p6a_script = tmp_path / "p6a_stub.py"
+    p6a_script.write_text(
+        "from pathlib import Path\nimport sys\nPath(sys.argv[1]).write_text('launched')\n",
+        encoding="utf-8", newline="\n",
+    )
+    post_script = tmp_path / "post_stub.py"
+    post_script.write_text(textwrap.dedent("""\
+        import json
+        import os
+        import sys
+        from pathlib import Path
+
+        if sys.argv[1] == "remove":
+            path = (Path(os.environ["HARNESS_RECEIPTS_DIR"]) / f"LANE-{os.environ['HARNESS_LANE']}"
+                    / f"r{os.environ['HARNESS_ROUND']}" / "P5-OUTPUT.txt")
+            path.unlink()
+        Path(sys.argv[2]).write_text(json.dumps({
+            "nonce": sys.argv[3], "input_hash": sys.argv[4], "outcome": "ACCEPT"
+        }), encoding="utf-8")
+        """), encoding="utf-8", newline="\n")
+
+    rows = [
+        {"id": "P1", "name": "spec", "row_phase": "build", "role": "toy", "cli": "python",
+         "model": None, "payload_model": "PhasePayload", "gate": "payload", "timeout_s": 60,
+         "budget_usd": 0, "max_rounds": 2, "inputs": [],
+         "command": [sys.executable, str(_REPO / "tests" / "fixtures" / "stub_phase.py"),
+                     "{payload}", "{nonce}", "{input_hash}"]},
+        {"id": "P5", "name": "qa", "row_phase": "build", "role": "qa", "cli": "python",
+         "model": None, "payload_model": "PhasePayload", "gate": "exit", "timeout_s": 60,
+         "budget_usd": 0, "max_rounds": 2, "inputs": [],
+         "command": [sys.executable, str(p5_script), p5_mode]},
+    ]
+    marker = tmp_path / "p6a-started"
+    if include_p6a:
+        rows.append({
+            "id": "P6a", "name": "review", "row_phase": "build", "role": "review",
+            "cli": "python", "model": None, "payload_model": "PhasePayload", "gate": "exit",
+            "timeout_s": 60, "budget_usd": 0, "max_rounds": 2, "inputs": [],
+            "command": [sys.executable, str(p6a_script), str(marker)],
+        })
+    rows.append({
+        "id": "P7", "name": "judge", "row_phase": "build", "role": "toy", "cli": "python",
+        "model": None, "payload_model": "PhasePayload", "gate": "payload", "timeout_s": 60,
+        "budget_usd": 0, "max_rounds": 2, "inputs": [],
+        "command": [sys.executable, str(post_script), post_mode, "{payload}", "{nonce}",
+                    "{input_hash}"]
+        if post_mode != "keep" else
+        [sys.executable, str(_REPO / "tests" / "fixtures" / "stub_phase.py"),
+         "{payload}", "{nonce}", "{input_hash}"],
+    })
+    harness = tmp_path / "harness.yaml"
+    harness.write_text(yaml.safe_dump({"stages": [], "moments": [], "phases": rows},
+                                      sort_keys=False), encoding="utf-8", newline="\n")
+    lane = "p5-" + uuid.uuid4().hex[:10]
+    receipts = tmp_path / "receipts"
+    round_dir = receipts / f"LANE-{lane}" / "r1"
+    round_dir.mkdir(parents=True)
+    if push_state == "matching":
+        push = {"sha": _git(repo, "rev-parse", "HEAD").strip()}
+        (round_dir / "PUSH.json").write_text(json.dumps(push) + "\n", encoding="utf-8")
+    elif push_state == "mismatch":
+        (round_dir / "PUSH.json").write_text(json.dumps({"sha": "1" * 40}) + "\n",
+                                              encoding="utf-8")
+    elif push_state == "malformed":
+        (round_dir / "PUSH.json").write_text("{bad json\n", encoding="utf-8")
+    elif push_state == "directory":
+        (round_dir / "PUSH.json").mkdir()
+    env = {"HARNESS_CONTRACT": str(tmp_path / "contract.md")}
+    return repo, harness, receipts, lane, round_dir, marker, env
+
+
+def _run_p5_round(tmp_path, **kwargs):
+    repo, harness, receipts, lane, round_dir, marker, env = _p5_round_setup(tmp_path, **kwargs)
+    result = _conductor().run_round(
+        lane, 1, repo_root=repo, harness=harness, receipts=receipts, env=env
+    )
+    return result, round_dir, marker, repo
+
+
+def _assert_real_p5_is_landable():
+    phases = yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))["phases"]
+    by_id = {phase["id"]: phase for phase in phases}
+    assert "--landable" in by_id["P5"]["command"]
+    assert "--require-clean-tree" in by_id["P5"]["command"]
+    assert "--landable" in by_id["P6c"]["command"]
+
+
+def test_item2a_failing_p5_halts_before_p6a_stub_launches(tmp_path):
+    _assert_real_p5_is_landable()
+    result, _round_dir, marker, _repo = _run_p5_round(
+        tmp_path, p5_mode="fail", include_p6a=True
+    )
+
+    assert (result.verdict, result.halted_at, result.exit_code) == ("HALTED", "P5", 1)
+    assert not marker.exists()
+
+
+def test_item2b_successful_p5_with_current_head_sha_continues_the_round(tmp_path):
+    _assert_real_p5_is_landable()
+    result, round_dir, _marker, repo = _run_p5_round(tmp_path)
+
+    assert result.verdict == "ACCEPT"
+    assert json.loads((round_dir / "P5-OUTPUT.txt").read_text(encoding="utf-8"))["sha"] == (
+        _git(repo, "rev-parse", "HEAD").strip()
+    )
+
+
+@pytest.mark.parametrize(
+    ("mode", "push_state", "reason"),
+    [
+        ("ok", "mismatch", "PUSH.json sha mismatch"),
+        ("move-head", "matching", "receipt head_sha mismatch"),
+        ("ok", "missing", "missing PUSH.json"),
+        ("ok", "malformed", "malformed PUSH.json"),
+        ("ok", "directory", "unreadable PUSH.json directory"),
+    ],
+)
+def test_item2b_push_and_p5_receipt_sha_mismatches_refuse(tmp_path, mode, push_state, reason):
+    result, _round_dir, _marker, _repo = _run_p5_round(
+        tmp_path, p5_mode=mode, push_state=push_state
+    )
+
+    assert (result.verdict, result.exit_code, result.refused_by) == (
+        "REFUSED", 2, "T2-STALE:P5",
+    ), reason
+
+
+@pytest.mark.parametrize(("mode", "post_mode"), [
+    ("wrong-output", "keep"), ("ok", "remove"), ("invalid", "keep"),
+])
+def test_item2c_wrong_missing_or_unparseable_p5_output_refuses(tmp_path, mode, post_mode):
+    result, _round_dir, _marker, _repo = _run_p5_round(
+        tmp_path, p5_mode=mode, post_mode=post_mode
+    )
+
+    assert (result.verdict, result.exit_code, result.refused_by) == (
+        "REFUSED", 2, "T2-STALE:P5",
+    )
+
+
+def test_item2e_toy_p5_not_using_ci_verdict_is_not_sha_checked(tmp_path):
+    _assert_real_p5_is_landable()
+    result, round_dir, _marker, _repo = _run_p5_round(
+        tmp_path, p5_mode="invalid", p5_command_is_ci=False, push_state="missing"
+    )
+
+    assert result.verdict == "ACCEPT"
+    assert (round_dir / "P5-OUTPUT.txt").is_file()
