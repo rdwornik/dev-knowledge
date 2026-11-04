@@ -196,7 +196,7 @@ def test_the_report_names_every_provider_admission_state(router):
     # `implement` specifically, still NOT ADMITTED on every other role it appears in. Checked
     # separately below rather than folded into the "admitted nowhere" loop, which now excludes it.
     # R104 (operator, 2026-10-14; [#1536]) adds Copilot's `qa` seat and Grok's `review` seat.
-    assert by_provider["copilot-enterprise"].admitted_in == ["implement", "qa", "red"]  # red pinned+admitted shape per F7 data
+    assert by_provider["copilot-enterprise"].admitted_in == ["implement", "judge", "qa", "red"]  # red pinned+admitted shape per F7 data; judge added by A-1 (2026-11-04)
     assert by_provider["xai"].admitted_in == ["review"]
     # GO-E3.0 R11: antigravity is admitted on read and OpenAI is admitted on judge.
     assert set(by_provider["antigravity"].admitted_in) == {"read"}
