@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e8c2c7eb359a8690f44cdab623c99380e9d78a867735fc55b8e8ba252872ad2b",
+  "generated_sha256": "a3a7336d4563e83381acebf5505c3822e1351dea60a597253c16d5b14567947c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2494,6 +2494,18 @@
     {
       "task": 1869,
       "file": "1869-seat-lifecycle-role-workspace-state-home-ref-registry.md"
+    },
+    {
+      "task": 1870,
+      "file": "1870-offline-ledger-names-the-local-main-ref-not-origin-main.md"
+    },
+    {
+      "task": 1871,
+      "file": "1871-transport-write-and-append-refuse-a-relative-dest.md"
+    },
+    {
+      "task": 1872,
+      "file": "1872-a-hook-writes-the-tracked-hook-watchdog-kills-log-in-the-primary.md"
     },
     {
       "task": 1718,
