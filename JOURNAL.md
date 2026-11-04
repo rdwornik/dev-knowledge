@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-04 (e) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): HAND-STEP A-1 -- the operator's admission of Copilot gpt-6.1-sol as judge and evaluator is recorded in the provider registry (N1 of the Q-SEAT-1 night order)
+
+**Anchors:** `6092dc15d` (the registry commit this push introduces), `33005b8c2` (main when this change was cut, GREEN, push run 41872573442).
+
+**Did:** recorded the operator's act A-1 (2026-11-03, DIGEST-ARCHITECT-SELF-REVIEW-NIGHT-PLAN-2026-11-03: "`gpt-6.1-sol` on Copilot is ADMITTED as a review and judge model") in `ecosystem/provider-registry.yaml`: both gpt-6.1-sol rungs (judge order and the top-level evaluation order) keep `requires_admission: true` (two tests pin it) and now carry `admission: verdict admitted, decided_by operator, decided_on 2026-11-03, evidence` the digest, which is what `provider_registry.is_admitted` reads, so the router lifts the gate from the registry alone. Consequence: `tests/test_provider_router.py::test_e32_judge_admission_and_isolated_claude_fallback` asserted the isolated-Claude fallback when the model was merely unadmitted; the fallback is now triggered by a Copilot outage (`ProviderState(usable=False)`), the admitted half no longer passes `admitted_models`. Tests with -n0: `check_provider_registry.py` rc 0; test_provider_router, test_provider_registry, test_provider_registry_schema, test_provider_roles, test_model_routing_gen = 245 passed, 1 skipped. Cross-family review (the model is the subject, so not gpt-6.1-sol): Grok grok-4.7 session 01a1a89a-60b5-76b2-b8a9-09d193a21b8e, cost 0.05637 USD, VERDICT: APPROVE. Not changed: `models.gpt-6.1-sol` still has no `last_verified` (a served-id record is the models row's own step, outside A-1's wording).
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `tests/test_provider_router.py`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** N4 (land ADR-140 Accepted) and N6 on the dispatcher's FORWARD READY.
+
 ### 2026-11-04 (d) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #7 -- [#1858] closes on its green main push run [#1858]
 
 **Anchors:** `1a85b5d60` (the close commit this push introduces), `7355726ed` (G landing merge), `4b42ea3c0` (main, GREEN: G receipt merge, push run 41861855562).
