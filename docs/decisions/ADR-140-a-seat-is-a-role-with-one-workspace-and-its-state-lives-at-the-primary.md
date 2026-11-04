@@ -1,8 +1,8 @@
 # ADR-140: A seat is a role with one workspace, and its state lives at the primary -- rotation creates nothing, every harness ref has a registered exit, and A1-A7 is a permanent check
 
-- **Status:** Proposed
+- **Status:** Accepted (ratified 2026-11-04 night, R1 of `to-browser/DIGEST-RULING-Q-SEAT-1-AND-NIGHT-ORDER-2026-11-04.md`, operator "Q-SEAT-1 RATIFY"; r3 folds the gate re-evaluation)
 - **Date:** 2026-11-04
-- **Revision:** r2 after the evaluator round (SOL1-SOL11, ARGON1-ARGON10; responses in the evidence file).
+- **Revision:** r3. r2 followed the evaluator round (SOL1-SOL11, ARGON1-ARGON10). r3 follows the ratification gate's gpt-6.1-sol re-evaluation (R2S1-R2S10, all direction-preserving, folded under R1 of DIGEST-RULING-Q-SEAT-1-AND-NIGHT-ORDER-2026-11-04). Responses are in the evidence file.
 - **Decision tier:** Path A -- a `/decide` proposal for operator ratification (R13, ADR-108 section A).
 - **Related:**
   - ADR-135, Accepted: batch close carries the pushed batch tag. Its retire step runs at the same moment.
@@ -70,9 +70,18 @@ stateDiagram-v2
 | rotate | `seat_cycle.py cycle` | `scripts/seat_cycle.py` `rotate`: spawns the successor with cwd = the role workspace. It never calls `successor_lane`. | nothing (T6) | nothing |
 | launch lane | dispatcher | `scripts/dispatch.py`: registry admission of the intended slug before ANY provider spawn (I3), cwd = the primary (I1) | a lane worktree and `worktree-<slug>` (made by dispatch or by Claude Code's `--worktree`) | nothing |
 | land | integrator in `integrate-<batch>` | `scripts/land_lane.py` / `scripts/land_on_handback.py`, reading receipts from the home (I2) | a merge on main | the lane worktree and branch (K1) |
-| batch close | integrator command after the last landing (`ecosystem/harness.yaml` batch-close moment) | ADR-135's batch-tag writer | `refs/tags/batch/<id>` (the exit event, git-observable) | nothing |
+| batch close | integrator command after the last landing (`ecosystem/harness.yaml` batch-close moment) | `scripts/batch_tag.py`: ADR-135 D4's writer, built by THIS lane as the LAST batch-close organ, after `trial_cut` (R2S2, R2S10) | `refs/tags/batch/<id>`, annotated, pushed and verified by `ls-remote` (the exit event, git-observable) | nothing |
 | retire | the handoff cut, or the next `open_batch`, run from the PRIMARY checkout once both role seats are stopped and verified | `scripts/seat_workspace.py` `retire(batch)` | `archive/<branch>-<short-sha>` for any unmerged tip, pushed and verified first | role workspaces, `integrate-<batch>` and its branch, landed lane leftovers |
 | cut | operator | `scripts/gen_handoff.py` preflight (`git_hygiene`, `seat_worktree_audit`) | nothing | nothing |
+
+**Batch-close order** (R2S10):
+1. The existing organs run first, including `trial_cut`. Its `git_hygiene` sees the role and integration workspaces before their exit, so they pass as registered instances.
+2. The tag is written last.
+3. The seats stop.
+4. Retire runs from the primary.
+5. The cut preflight runs.
+
+Test T18 runs this whole sequence on a fixture.
 
 **Who runs retire.**
 - Retire never runs inside a workspace it removes, and never while a role seat is live. Its callers are the cut and the next `open_batch`, both from the primary.
@@ -92,9 +101,10 @@ stateDiagram-v2
 - **Read-only to git.** No seat commits, checks out or resets in a role workspace.
   - A seat that must author a commit (such as this ADR) does so in a lane worktree, or in `integrate-<batch>` for the integrator.
   - A pre-commit hook refuses a commit whose worktree is a registered role workspace (test T14).
-- **No refresh during overlap** (SOL1, ARGON3).
-  - A role workspace's HEAD moves only in `rotate`, after the predecessor's stop is verified, and only when `git status --porcelain` is empty and HEAD is an ancestor of origin/main (no unpublished commit).
-  - Seats read current main by `git fetch` plus `git show origin/main:<path>`, not by moving HEAD.
+- **HEAD never moves during the batch** (SOL1, ARGON3, R2S4).
+  - `ensure` creates the role workspace at origin/main. No seat and no rotation moves its HEAD afterwards, so no barrier is needed and T6's byte-identical `git worktree list` holds.
+  - Seats read current main by `git fetch` plus `git show origin/main:<path>`.
+  - The next batch gets a fresh workspace from `ensure`.
 - **Rotation has its own launch path** (ARGON2).
   - `seat_cycle.rotate` spawns `claude --bg` with cwd = the role workspace. It does not call `dispatch.successor_lane`, which requires a branch and refuses a detached tree (`scripts/dispatch.py:2525-2532`).
   - The occupancy check for a role workspace admits exactly one live session besides the successor: the predecessor, named by its job id.
@@ -104,15 +114,27 @@ stateDiagram-v2
 
 ### D2 Invariants as mechanisms
 
-- **I1 Anchor.**
-  - Every harness worktree is created at the primary, resolved from `git rev-parse --path-format=absolute --git-common-dir` (its parent).
+- **I1 Anchor.** The CREATION anchor is separate from the EXECUTION cwd (R2S6).
+  - Every harness worktree is CREATED at the primary, resolved from `git rev-parse --path-format=absolute --git-common-dir` (its parent).
+  - A process runs in the workspace provisioned for it: a conductor lane in `lane.tree` (`scripts/dispatch.py:1691`), a seat in its role workspace.
+  - Primary-cwd spawning applies only where the provider itself creates the worktree (`--worktree <slug>`, `scripts/dispatch.py:636`, `:678-679`).
   - The build reuses the one wrapper, `land_on_handback._primary` (`scripts/land_on_handback.py:148`), moved to `scripts/seat_workspace.py` and imported back.
   - `seat_cycle.py --repo-root` and `dispatch.py`'s `repo_root` / `cwd` defaults resolve through it. An explicit root that is not the primary is refused, naming the primary.
-  - Every launch path spawns with cwd = the primary, so Claude Code's own `--worktree <slug>` lands under the primary too.
+  - The plain and queue `--worktree` launch paths spawn with cwd = the primary, so Claude Code's own `--worktree <slug>` lands under the primary.
 - **I2 One state home.**
-  - Receipts (`logs/receipts/`) and month-bucket logs (`logs/<YYYY-MM>/`) resolve through one function, `seat_workspace.state_home()`.
-  - Precedence: `HARNESS_RECEIPTS_DIR` (the unchanged override), then `<primary>/logs`.
-  - **The caller set is enforced by a census test, not by a list** (SOL4, ARGON4). Test T15 fails on any `scripts/**/*.py` that builds a `logs/receipts` or `logs/<month>` path outside `state_home()`.
+  - Two resolvers in `seat_workspace.py`, one per unit (R2S9):
+    - `receipts_root()` returns `HARNESS_RECEIPTS_DIR` when set. The override keeps its existing meaning, the complete receipts directory (`scripts/dispatch.py:870-873`). Otherwise it returns `<primary>/logs/receipts`.
+    - `logs_root()` returns `<primary>/logs`, with no env override (none exists today). Tests patch the function. Month buckets are `logs_root()/<YYYY-MM>`.
+  - T3 and T4 run with and without the override.
+  - **The plugin entry point is covered** (R2S5). `plugins/tier1-lifecycle/scripts/propose_closures.py` anchors `logs` on `CLAUDE_PROJECT_DIR` (`:63-76`). The enabled Stop hook runs that copy, not the hub's `scripts/propose_closures.py`.
+    - The plugin copy resolves the primary of `CLAUDE_PROJECT_DIR` through git-common-dir when that dir is a linked worktree.
+    - In a consumer repo with no linked worktree, that resolves to the repo itself, so consumers are unchanged.
+    - It uses the same exclusive create.
+  - **Fixed-name MOMENT receipts are namespaced per invocation** (R2S7).
+    - Today `dodo.py` writes `MOMENT-PRE-LAUNCH-*` at fixed names (`scripts/dodo.py:282-288`), and `dispatch.py` re-reads them (`:1121-1126`, `:1150-1160`). With one shared home, two concurrent launches would overwrite each other's gate evidence.
+    - Each moment run writes under `receipts_root()/moments/<moment>-<slug>-<run-id>/`, and dispatch reads exactly the run id it started.
+    - Test T17 runs two concurrent launches.
+  - **The caller set is enforced by a census test, not by a list** (SOL4, ARGON4). Test T15 fails on any `scripts/**/*.py` or `plugins/**/scripts/*.py` that builds a `logs/receipts` or `logs/<month>` path outside the two resolvers.
   - The known set at 33005b8c2 includes `dispatch.receipts_dir`, `dodo._receipts` (`scripts/dodo.py:85-86`), `gates`, `test_pairing`, `handback` (`:432`), `subst_gate`, `merge_path`, `land_lane`, `round_receipts`, `conductor`, `propose_closures`, `audit`, `fleet_health` (receipt only), `lane_end_guard`, `reuse_gate`, `memory_admission_gate`, `backlog_reconcile`, `check_organ_truth`, `test_flow_metrics` and `system_view`. The test, not this list, is the authority.
   - **Shared-home writes are exclusive.** A writer that allocates a name in the home creates it with exclusive create (`open(..., "x")`) and retries on `FileExistsError`. `propose_closures._next_free_dated_path` plus `write_text` (`scripts/propose_closures.py:461-473`) is the known instance (SOL2). T5 runs two writers concurrently.
   - **Rebuildable caches stay per checkout:** top-level `logs/FLEET-HEALTH.md`, `logs/SESSION-START-FULL.txt`, `logs/OPERATOR-LOAD.csv`, `logs/HOOK-*`. A named list in the registry lets the audit classify them as CLEAN-rebuildable (ARGON6).
@@ -161,6 +183,11 @@ stateDiagram-v2
 ### D4 Migration (move, never delete): one per non-CLEAN audit item
 
 `seat_workspace.migrate(worktree)` has these rules:
+- **Disposition manifest** (R2S1).
+  - Every file `migrate` copies is recorded in `logs/migrated/MANIFEST.jsonl` as source worktree, relpath, sha256 and destination.
+  - The audit's A2 and A3 legs treat a source file whose path and sha256 match a manifest row as DISPOSITIONED. That counts as CLEAN, so the cleanliness gate can pass.
+  - `retire` then removes the worktree with `git worktree remove --force` ONLY when every untracked or ignored file is dispositioned or rebuildable and no tracked file is modified. Otherwise it refuses.
+  - This is the one sanctioned `--force`, gated by the manifest. It is never applied to unaccounted content.
 - **Copy, verify, never unlink.** It copies and verifies sha256. Sources are unlinked only by `retire`, after the session is verified stopped (ARGON8). Live seat worktrees are migrated only after their seat rotates out.
 - **Idempotent.** A second run copies nothing (T9).
 - **Conflict rules by class** (SOL8, ARGON8):
@@ -202,14 +229,25 @@ stateDiagram-v2
 | T14 | the pre-commit hook refuses a commit in a registered role workspace | D1 |
 | T15 | census: no `scripts/**/*.py` builds a receipts or month-bucket path outside `state_home()` | I2 |
 | T16 | after migrating two conflicting LAUNCH receipts, landing reads the latest one and selects the same gate as before the migration | D4 |
+| T17 | two concurrent launches each read their own MOMENT-PRE-LAUNCH results (per-invocation namespace), never the other's | I2 |
+| T18 | fixture batch: close organs (trial_cut passes on pre-exit workspaces), then the tag, then the seats stop, then retire from the primary, then the cut preflight: `git_hygiene` PASS | D0 |
+| T19 | `batch_tag.py` writes an annotated `refs/tags/batch/<id>`, pushes it, verifies it with `ls-remote`, and refuses to move an existing tag | D0 |
+| T20 | a file copied by `migrate` is DISPOSITIONED in A2 and A3, and retire removes its worktree; an unmanifested untracked file makes retire refuse | D4 |
 
-**Acceptance (plan P4)** runs the landed code with no hand step:
-1. Migrate.
-2. Rotate both seats into their role workspaces. The first real rotation is the live overlap witness that T6 cannot be (SOL11). If two sessions cannot share a cwd, the flip-condition fires.
-3. Stop the old seats.
-4. Retire from the primary.
+**Acceptance** (R2S3, R2S8). Two separate procedures, both run with the landed code and no hand step:
 
-The pass condition is `seat_worktree_audit` with no blocking item and `git_hygiene` PASS. If a hand step is needed, that is a defect in the lane.
+**Night (N7).** No removal happens tonight.
+1. Migrate (copy, verify, manifest).
+2. `ensure` the role workspaces `orchestrator-e3-0` and `integrator-e3-0`.
+3. Rotate each cycle-5 seat into its role workspace. This is a move into a NEW directory.
+4. Rotate each seat a SECOND time INSIDE its role workspace. This is the real same-cwd overlap witness, and it decides the flip-condition. If the successor does not come up, the predecessor keeps running and the failure becomes a QUESTION.
+
+**Morning (operator).**
+1. Legacy cleanup: retire the pre-ADR-140 worktrees whose exit has passed (stopped seats, landed lanes) from the primary, through `retire --legacy`.
+2. Batch close of E3.0: run the organs, then the tag, then stop the seats, then `retire(E3.0)` from the primary.
+3. The cut.
+
+**Pass condition:** `seat_worktree_audit` shows no blocking item and `git_hygiene` is PASS. If a hand step is needed, that is a defect in the lane.
 
 ### D6 Review chain for the implementing lane (architect under D1; recorded as a measured trial)
 
@@ -238,7 +276,7 @@ The lane's chain, per DIGEST-PLAN P2, is RED (T1-T12), then CI, then a reviewer 
 ## Flip-condition
 
 Any of these sends the decision back:
-- **T6 cannot be made to hold** because Claude Code's `--bg` session for the successor must have a distinct worktree, for example because two sessions in one cwd collide on `.claude/scheduled_tasks.lock`. Then option A2 (teardown per cycle plus the state home) replaces D1, and I1-I3 and D3-D4 stand unchanged.
+- **The second in-place rotation of the night acceptance fails** (T6 holds in a fixture, but the real same-cwd overlap does not), because Claude Code's `--bg` session for the successor must have a distinct worktree, for example because two sessions in one cwd collide on `.claude/scheduled_tasks.lock`. Then option A2 (teardown per cycle plus the state home) replaces D1, and I1-I3 and D3-D4 stand unchanged.
 - **The operator rules sibling worktrees outside the repo**, a reserved act. Then I1's anchor is unchanged but the location moves; this ADR is amended, not superseded.
 - **After two batches the audit still finds LOST-RISK** in a retired workspace. Then I2's scope (receipts + `logs/<month>`) is too narrow, and the next class joins the home by row.
 

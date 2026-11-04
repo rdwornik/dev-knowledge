@@ -210,3 +210,30 @@ Every finding is Accepted. The ADR is revised as r2.
 | ARGON8 | migration unlinks from live worktrees, and LAUNCH conflicts and jsonl collisions are unresolved | **Accepted** -- D4: migrate copies and never unlinks; retire unlinks after a verified stop. A LAUNCH conflict resolves to the latest launch, with the losing copy kept. A jsonl is merged as a line union |
 | ARGON9 | T8 and T7's protected clause already pass on origin/main | **Accepted** -- same answer as SOL11 (T8 re-cut, T7's clause labelled a regression guard) |
 | ARGON10 | the pre-commit role-workspace refusal is untested and the role token is open | **Accepted** -- D1: the role enum is closed (orchestrator, integrator) in the registry. T14 tests the pre-commit refusal |
+
+
+## Ratification-gate re-evaluation (r2 -> r3)
+
+The operator ratified direction B (R1 of DIGEST-RULING-Q-SEAT-1-AND-NIGHT-ORDER-2026-11-04, D1=b of its AMENDMENT-1). The ratification had one gate: a gpt-6.1-sol re-evaluation of r2 with a fresh nonce. Under that gate, direction-preserving findings fold into r3, and a direction-changing finding becomes a QUESTION.
+
+EVAL-sol2.md: served-model: gpt-6.1-sol / attestation-source: copilot usage file currentModel (eval/sol2-usage.json, which reads "currentModel": "gpt-6.1-sol") / nonce 014d5ebb (matches the brief) / VERDICT: DISAGREE -- Direction B survives, but migration/retirement, overlap safety, state isolation and the one-lane acceptance remain incomplete.
+
+All 10 findings are classified DIRECTION-PRESERVING by the evaluator. The producer agrees: none abandons a role workspace, the state at the primary, the observable exits, or retire from the primary. So no QUESTION was raised.
+
+Before answering, the producer checked the scope-changing findings against the code:
+- `ecosystem/harness.yaml:86-92` has no tag organ (R2S2).
+- `plugins/tier1-lifecycle/scripts/propose_closures.py:63-76` anchors on `CLAUDE_PROJECT_DIR` (R2S5).
+- `scripts/dispatch.py:1691` spawns conductor lanes in `lane.tree` (R2S6).
+
+| id | objection (short) | response |
+|---|---|---|
+| R2S1 | migration cannot clear the dirt that blocks retire | **Accepted** -- D4: a disposition manifest (`logs/migrated/MANIFEST.jsonl`). A file whose path and sha256 match a manifest row counts as DISPOSITIONED (CLEAN) for A2 and A3. Retire uses `--force` only when every untracked or ignored file is dispositioned or rebuildable and no tracked file is modified; T20 covers this |
+| R2S2 | the batch-tag exit producer does not exist yet | **Accepted** -- D0: this lane builds `scripts/batch_tag.py`, ADR-135 D4's writer, as the LAST batch-close organ. It writes an annotated tag, pushes it and verifies it with `ls-remote`; T19 covers this |
+| R2S3 | the P4 sequence cannot complete (no close or tag; it retires the workspaces it just started) | **Accepted** -- D5: acceptance is split. The night runs migrate, ensure and two rotations, with no removal. The morning runs legacy retire, then batch close with the tag, seat stop, retire and the cut |
+| R2S4 | a refresh after the stop still moves files under the live successor and breaks T6 | **Accepted** -- D1: HEAD never moves during a batch. The workspace is created at origin/main, seats read main through `git show`, and the next batch gets a fresh workspace |
+| R2S5 | the live Stop hook is the plugin copy of propose_closures | **Accepted** -- D2 I2: the plugin copy resolves the primary of `CLAUDE_PROJECT_DIR` through git-common-dir, with exclusive create. Consumer repos are unchanged. The T15 census covers `plugins/**/scripts` |
+| R2S6 | a primary cwd for every launch breaks the conductor and rotation | **Accepted** -- D2 I1: the creation anchor (the primary) is separate from the execution cwd (the provisioned workspace). Spawning with a primary cwd applies only to provider-created `--worktree` launches |
+| R2S7 | fixed-name MOMENT receipts collide in a shared home | **Accepted** -- D2 I2: per-invocation namespace `moments/<moment>-<slug>-<run-id>/`, and dispatch reads the run id it started; T17 runs two concurrent launches |
+| R2S8 | the first rotations change directory, so they do not witness same-cwd overlap | **Accepted** -- D5: a second rotation INSIDE the role workspace is the overlap witness, and the flip-condition is now keyed to it |
+| R2S9 | `state_home()` mixes the receipts dir and the logs root | **Accepted** -- D2 I2: `receipts_root()` honours `HARNESS_RECEIPTS_DIR` as the full directory, and `logs_root()` is `<primary>/logs`; T3 and T4 run with and without the override |
+| R2S10 | a tag-first close refuses itself at trial_cut | **Accepted** -- D0: order is the existing organs (trial_cut sees pre-exit workspaces as registered), then the tag, then the seats stop, then retire, then the cut; T18 runs the sequence |

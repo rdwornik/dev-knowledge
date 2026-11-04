@@ -8,4 +8,4 @@
 - ADR-137 (Accepted, 2026-11-01): Agent-facing reports are a TSV read projection over records kept as stored, chosen by measured tokens and lookups
 - ADR-138 (Proposed, 2026-11-01): The record is revision-bound and isolation is measured -- one cause enum, the verdict key in the receipt, a hash-frozen contract, and two computed rates
 - ADR-139 (Proposed, 2026-11-01): A task has one state file, an append-only event log written through one module, and a resume verb that validates against git before it projects
-- ADR-140 (Proposed, 2026-11-04): A seat is a role with one workspace, and its state lives at the primary -- rotation creates nothing, every harness ref has a registered exit, and A1-A7 is a permanent check
+- ADR-140 (Accepted, 2026-11-04): A seat is a role with one workspace, and its state lives at the primary -- rotation creates nothing, every harness ref has a registered exit, and A1-A7 is a permanent check
