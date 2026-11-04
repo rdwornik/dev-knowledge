@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-04 (d) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #7 -- [#1858] closes on its green main push run [#1858]
+
+**Anchors:** `1a85b5d60` (the close commit this push introduces), `7355726ed` (G landing merge), `4b42ea3c0` (main, GREEN: G receipt merge, push run 41861855562).
+
+**Did:** closed [#1858] by `gen_task_tree --close-row` with the G landing merge `7355726ed` as evidence and main push run 41861855562 (run conclusion success; `gate` job success; pytest known-reds PASS 33 known, 4 witnesses, 0 outside the registry) as its witness, then `--emit-source` and `gen_doc_counts --write`; `--check` ok. Note: the REST job list still showed three jobs `in_progress` after the run concluded success, a stale API read; the pytest log was complete. Licence: operator GO session close, step 2, relayed by the dispatcher.
+
+**Result:** the [#1858] task file closed, its manifest node removed, BACKLOG.md regenerated; integration ref pushed next, then main after its green integration run and the commit-gate read.
+
+**Changes:** `tasks/1858-*.md`, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** K1 of the N2 prep and integration refs; window close (STATE-E3.0.json, ledger); A-1 stays an operator-owed timing.
+
 ### 2026-11-04 (c) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-landing-stage-receipts landing -- a landing is refused unless the lane's accepted phase-receipt chain is present, consistent and tip-current [#1858]
 
 **Anchors:** `b1fbcbfd8` (T1 RED, run 41644560641), `4fbaa5458` (lane tip, T2 0ddab043 run 41837627121, judge NX-y5t3qf-9172-sol ACCEPT), `bf4730bd4` (the judge fix this push introduces), `5019ce66a` (main when this landing was cut, GREEN).
