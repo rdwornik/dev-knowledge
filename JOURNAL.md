@@ -21,6 +21,48 @@
 
 ---
 
+### 2026-11-04 (c) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-landing-stage-receipts landing -- a landing is refused unless the lane's accepted phase-receipt chain is present, consistent and tip-current [#1858]
+
+**Anchors:** `b1fbcbfd8` (T1 RED, run 41644560641), `4fbaa5458` (lane tip, T2 0ddab043 run 41837627121, judge NX-y5t3qf-9172-sol ACCEPT), `bf4730bd4` (the judge fix this push introduces), `5019ce66a` (main when this landing was cut, GREEN).
+
+**Did:** landed lane G's HANDBACK `4fbaa5458` (SESSION-e30-landing-stage-receipts.md:150), forwarded READY by the dispatcher. Per-handback path read by me: purity against LANE-e30-landing-stage-receipts.md ("Files you own"): the lane touches `scripts/round_receipts.py` (new), `scripts/merge_path.py` (`land()`), `scripts/land_lane.py`, two new test files, the new fixtures and `tasks/1858-*` with its manifest node; `BACKLOG.md` is a generated derivative. T1 run 41644560641 head == red-sha `b1fbcbfd8`, conclusion failure; T2 session 0ddab043 differs from T1 bdd89b68 and the T2-PRE sessions; usage JSON `currentModel` gpt-6-luna (T1 and T2), gemini-4-argon (review 2), gpt-6.1-sol (judge) match the receipt; the MODELS block is indented. The lane tip was BEHIND main (`5019ce66a` not an ancestor; base `64c0c3363`) with no shared changed path (BASE-MOVED-DISJOINT), so the lane copy merged `origin/main` with no conflict and regenerated only the task-tree surfaces. T2 re-derived from the CI logs of run 41837627121: commit-gate failed on `journal_spine_anchor` (spine entries above the floor that main carries), `doc-counts-pytest-freshness` and `derived-copies-rebind` (stale generated files, regenerated at landing); pytest known-reds compare named six failures outside the registry (`test_process_diagrams::test_file_line_anchors_exist_and_match`, `test_onboarding_items` x3, `test_check_derived_copies` x2: all staleness or behind-main) and the frozen-set compare added the four `test_graph_spine_commit_tier` witnesses and the `test_dispatch_launch` husk test, which main's registry carries. The integration run against main's registry is the real verdict. Not verifiable by me: R2 (`advisor` in the LAUNCH argv) because no LAUNCH receipt for this lane exists under `logs/receipts/`; the dispatcher's forward checks do not claim it either. The lane's added tests read no real `origin/main` (the one `rev-parse origin/main` token is a fake git Rig).
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md. [#1858] stays OPEN on this landing; its close is the N2 hand path on a success main push run.
+
+**Changes:** the lane's files above, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md` and the process-diagram bindings (regenerated), this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run; N2 close of [#1858]; K1 of the G lane (job 1da14f10, refs, worktree); A-1 timing to the dispatcher.
+
+### 2026-11-04 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #6 -- [#1857] closes on its green main push run [#1857]
+
+**Anchors:** `e1791d1b5` (the close commit this push introduces), `b08826f30` (E2 landing merge), `121487bea` (main, GREEN: E2 receipt merge, push run 41819359842).
+
+**Did:** closed [#1857] by `gen_task_tree --close-row` with the E2 landing merge `b08826f30` as evidence and main push run 41819359842 (success; tier1 skipped) as its witness, then `--emit-source` and `gen_doc_counts --write`; `--check` ok. Licence: the dispatcher's message (CLOSE-DEFERRED, green main run).
+
+**Result:** the [#1857] task file closed, its manifest node removed, BACKLOG.md regenerated; integration ref pushed next, then main after its green integration run and the commit-gate read.
+
+**Changes:** `tasks/1857-*.md`, `BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`, this entry.
+
+**Abandoned:** nothing.
+
+**Next:** G [#1858] on the dispatcher's FORWARD READY, then HAND-STEP A-1 (provider-registry admission).
+
+### 2026-11-04 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the e30-round-verdict-handback landing -- P5 is a deterministic ci_verdict row, and an accepted code round is handed back by code [#1857]
+
+**Anchors:** `144c166e0` (T1 RED, run 41642612340), `70069f7ae` (the review-evidence fix this push introduces), `529f6549e` (lane tip, T2 cf1cd9e7 run 41808050278, verdict PASS), `64c0c3363` (main when this landing was cut, GREEN).
+
+**Did:** landed lane E2's HANDBACK `529f6549e` (SESSION-e30-round-verdict-handback.md:194), forwarded READY by the dispatcher. Per-handback path read by me: purity against LANE-e30-round-verdict-handback.md line 63 -- the lane touches `scripts/ci_verdict.py`, `scripts/handback.py`, `scripts/conductor.py`, `ecosystem/harness.yaml`, five test files and `tasks/1857-*` with its manifest node; `BACKLOG.md`, `ecosystem/doc-counts.md` and the manifest hash are generated derivatives that land_lane regenerates. T1 run 41642612340 head == red-sha `144c166e0`, conclusion failure; T2 session cf1cd9e7 != every T1 session; usage JSON `currentModel` gpt-6-luna (T2), gpt-5.6-terra, gemini-4-argon and gpt-6.1-sol (judge) match the receipt; the MODELS block is indented and the dispatcher's `check_models_block` returns ([], []). T2 re-derived from the CI logs of run 41808050278: commit-gate failed only at `audit-health`, which the known-reds compare judges PASS (registered environment-mismatch, regressions 0); pytest known-reds compare is 33 known, 4 witnesses, 0 outside the registry; tier1 was cancelled at its 15-minute timeout (infra, carried to [#1868]) and gate is red only as its consequence. The lane's added tests read no `origin/main` (the one `base="origin/main"` token is a tmp-repo fixture argument).
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md. [#1857] stays OPEN on this landing; its close is the N2 hand path on a success main push run.
+
+**Changes:** the lane's files above, `BACKLOG.md` and `ecosystem/doc-counts.md` (regenerated), this entry.
+
+**Abandoned:** nothing.
+
+**Next:** read the main push run; N2 close of [#1857]; K1 of the E2 lane (job 0e243ffb, refs, worktree).
+
 ### 2026-11-03 (m) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N2 tasks-only follow-up #5 -- [#1859], [#1862] and [#1800] close on their green main push runs [#1859] [#1862] [#1800]
 
 **Anchors:** `c19532e6f` (the close commit this push introduces), `c535c7fbc` (main, GREEN: Q-1862-R fix on main, push run 41730849763), `b19a8d9ac` ([#1862] landing merge), `1a8ead7a1` (H landing merge, push run 41700668961).

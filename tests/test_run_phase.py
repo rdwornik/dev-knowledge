@@ -703,11 +703,12 @@ def test_cli_run_copilot_receipt_preserves_model_metrics_evidence(
 
 
 def test_harness_copilot_phases_declare_round_usage_files():
-    """P3 and P5 capture Copilot usage at a round-local .usage.json path."""
+    """P3 captures Copilot usage at a round-local .usage.json path."""
     harness = yaml.safe_load((_REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))
     phases = {phase["id"]: phase for phase in harness["phases"]}
 
-    for phase_id in ("P3", "P5"):
+    # C05 of lane e30-round-verdict-handback: P5 is now a deterministic uv row (ci_verdict.py) with no Copilot usage file.
+    for phase_id in ("P3",):
         command = phases[phase_id]["command"]
         usage_arg = command.index("--usage-output-file")
         usage_path = command[usage_arg + 1]
