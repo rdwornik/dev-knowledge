@@ -1,0 +1,12 @@
+---
+id: "[#1887]"
+title: "handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16)"
+status: open
+priority: P1
+size: S
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1887] [P1][S] **handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16)** - `scripts/audit.py health`'s `handoff_probes` check re-derives the active bundle's BD rows live; in the conductor's `commit-gate` job there is no Drive transport and no authenticated gh, so BD-ci, BD-plan, BD-rulings, BD-capabilities and BD-decisions report `toothless` by construction and audit-health exits 1 (run 42089244162, `commit-gate`). Defect 16 of to-browser/DIGEST-RULING-H5-LAND-INPUTS-ADDENDUM-2-2026-11-05.md. This row OWNS the `handoff_probes` name added to the `hooks[audit-health].checks` allowlist of `logs/KNOWN-REDS-REGISTRY.json` (ADDENDUM-2 item 3, act A5); the fix lane removes that name in the same change. · touches: `scripts/audit.py`, `scripts/verify_handoff_probes.py`, `logs/KNOWN-REDS-REGISTRY.json` (remove the allowlist name) · kill-candidates: none - no open row owns the BD rows' CI behaviour · refs `[#1834]`, `scripts/audit.py`, to-browser/DIGEST-RULING-H5-LAND-INPUTS-ADDENDUM-2-2026-11-05.md (defect 16) · Done when: RED first - a test that runs the handoff_probes check with the transport root unresolved and gh unavailable and expects each BD row that needs them to read n/a (WARN, not FAIL), while a BD row whose inputs ARE present and disagree still FAILs; then the check implements it; the allowlist name is removed; the lane-branch CI run's commit-gate is green outside known reds · decided-by: architect, DIGEST-RULING-H5-LAND-INPUTS-ADDENDUM-2-2026-11-05 option B item 3 · source: conductor run 42089244162 job commit-gate

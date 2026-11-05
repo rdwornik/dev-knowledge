@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "787add4e746b72b01681e8dbe9a054c651b078ee2e2c4d33631d4f477b89ac68",
+  "generated_sha256": "7a5fde78e08f2012687a41b470449df7d6fbbcdb72b51afa05f1f64986013eac",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3202,6 +3202,14 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
+    },
+    {
+      "task": 1886,
+      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
+    },
+    {
+      "task": 1887,
+      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
     },
     {
       "prose": ""

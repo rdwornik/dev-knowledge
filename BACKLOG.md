@@ -840,6 +840,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1842] [P2][S] Wire scripts/task_record.py to a real caller or remove it under R56 before 2026-11-23 · tasks/1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md
 - [#1843] [P2][S] Wire scripts/test_census.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md
 - [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
+- [#1886] [P1][S] test_g applies to lane branches, not to a handoff cut's landing (defect 14) · tasks/1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md
+- [#1887] [P1][S] handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16) · tasks/1887-handoff-probes-bd-rows-read-n-a-in-ci.md
 
 ---
 
