@@ -143,7 +143,45 @@ def test_f_dispatcher_integrator_and_common_templates_have_the_updated_contract(
     assert "the one exception" in common, "common-rules template must name the one exception"
 
 
+_HANDOFFS = "docs/handoffs"
+_BUNDLE_DIR_RE = re.compile(r"\d{4}-\d{2}-\d{2}-.+")
+
+
+def _handoff_landing_violations(repo: Path, base_ref: str = "origin/main") -> list[str]:
+    """Paths under docs/handoffs/ that `base_ref...HEAD` changes illegally.
+
+    Illegal: any modify/delete/rename, or any add inside a bundle directory that EXISTS on
+    `base_ref`, or an add outside a dated `<YYYY-MM-DD>-...` bundle directory. Legal: only ADDING
+    files under a NEW dated bundle directory (a handoff cut's landing). [] = a legal landing.
+    Renames are reported as delete + add (`--no-renames`) so neither half can hide the other.
+    """
+    diff = subprocess.run(
+        ["git", "diff", "--name-status", "--no-renames", "-z", f"{base_ref}...HEAD",
+         "--", _HANDOFFS],
+        cwd=repo, capture_output=True, check=True,
+    ).stdout.decode("utf-8").split("\0")
+    entries = [(diff[i], diff[i + 1]) for i in range(0, len(diff) - 1, 2)]
+    if not entries:
+        return []
+    listing = subprocess.run(
+        ["git", "ls-tree", "--name-only", "-z", base_ref, f"{_HANDOFFS}/"],
+        cwd=repo, capture_output=True, check=True,
+    ).stdout.decode("utf-8").split("\0")
+    existing = {name.rsplit("/", 1)[-1] for name in listing if name}
+    violations: list[str] = []
+    for status, path in entries:
+        parts = path.split("/")
+        bundle = parts[2] if len(parts) > 3 else None
+        legal = (status == "A" and bundle is not None
+                 and bundle not in existing and _BUNDLE_DIR_RE.fullmatch(bundle) is not None)
+        if not legal:
+            violations.append(path)
+    return violations
+
+
 def test_g_handoff_files_are_unchanged_from_origin_main():
+    """A LANE must not edit an existing handoff bundle. A handoff cut's landing, which only ADDS a
+    new dated bundle directory, is legal ([#1886])."""
     resolved = subprocess.run(
         ["git", "rev-parse", "--verify", "origin/main"],
         cwd=_REPO,
@@ -154,15 +192,9 @@ def test_g_handoff_files_are_unchanged_from_origin_main():
     if resolved.returncode:
         pytest.skip("origin/main does not resolve in this checkout")
 
-    diff = subprocess.run(
-        ["git", "diff", "--name-only", "origin/main...HEAD", "--", "docs/handoffs"],
-        cwd=_REPO,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    assert not diff.stdout.strip(), (
-        f"docs/handoffs differs from origin/main: {diff.stdout.strip()!r}"
+    violations = _handoff_landing_violations(_REPO)
+    assert not violations, (
+        f"docs/handoffs differs from origin/main beyond adding a new dated bundle: {violations!r}"
     )
 
 
