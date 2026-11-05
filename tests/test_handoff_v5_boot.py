@@ -164,3 +164,113 @@ def test_g_handoff_files_are_unchanged_from_origin_main():
     assert not diff.stdout.strip(), (
         f"docs/handoffs differs from origin/main: {diff.stdout.strip()!r}"
     )
+
+
+def _landing_git(repo: Path, *args: str):
+    p = subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t",
+         "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", *args],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert p.returncode == 0, f"git {' '.join(args)} failed: {p.stderr.strip()}"
+    return p
+
+
+def _landing_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _landing_git(repo, "init", "-b", "main")
+    existing = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect"
+    existing.mkdir(parents=True)
+    (existing / "HANDOFF_BOOT.md").write_text("# existing boot\n", encoding="utf-8")
+    (existing / "README.md").write_text("# existing readme\n", encoding="utf-8")
+    _landing_git(repo, "add", "--all")
+    _landing_git(repo, "commit", "-m", "base handoff")
+    _landing_git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _landing_git(repo, "checkout", "-b", "lane")
+    return repo
+
+
+def _landing_commit(repo: Path) -> None:
+    _landing_git(repo, "add", "--all")
+    _landing_git(repo, "commit", "-m", "lane change")
+
+
+def test_handoff_landing_allows_files_in_a_new_dated_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    new_bundle = repo / "docs" / "handoffs" / "2026-11-05-dev-knowledge-architect"
+    new_bundle.mkdir(parents=True)
+    (new_bundle / "HANDOFF_BOOT.md").write_text("# new boot\n", encoding="utf-8")
+    (new_bundle / "README.md").write_text("# new readme\n", encoding="utf-8")
+    (new_bundle / "PROBES.md").write_text("# probes\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == []
+
+
+def test_handoff_landing_rejects_modifying_an_existing_bundle_file(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    path.write_text("# modified readme\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md" in violations
+
+
+def test_handoff_landing_rejects_deleting_an_existing_bundle_file(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    path.unlink()
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md" in violations
+
+
+def test_handoff_landing_rejects_adding_inside_an_existing_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "EXTRA.md"
+    path.write_text("# extra\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/EXTRA.md" in violations
+
+
+def test_handoff_landing_ignores_new_bundle_when_existing_bundle_is_modified(tmp_path):
+    repo = _landing_repo(tmp_path)
+    new_bundle = repo / "docs" / "handoffs" / "2026-11-05-dev-knowledge-architect"
+    new_bundle.mkdir(parents=True)
+    (new_bundle / "HANDOFF_BOOT.md").write_text("# new boot\n", encoding="utf-8")
+    changed = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    changed.write_text("# modified readme\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert violations == ["docs/handoffs/2026-10-01-dev-knowledge-architect/README.md"]
+
+
+def test_handoff_landing_allows_changes_outside_handoffs(tmp_path):
+    repo = _landing_repo(tmp_path)
+    (repo / "notes.md").write_text("unrelated change\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == []
+
+
+def test_handoff_landing_rejects_renaming_inside_an_existing_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    existing = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect"
+    (existing / "README.md").rename(existing / "NOTES.md")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert set(violations) & {
+        "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md",
+        "docs/handoffs/2026-10-01-dev-knowledge-architect/NOTES.md",
+    }

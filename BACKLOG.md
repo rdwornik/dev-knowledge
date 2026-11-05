@@ -680,6 +680,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1883] [P1][M] The no-stop table as code/data: one owner and a default per row, unattended seats apply their own written recommendation · tasks/1883-the-no-stop-table-as-code-with-an-owner-and-a-default-per-row.md
 - [#1884] [P2][S] An engine is admitted for critical work only after one non-critical lane passed end to end on it · tasks/1884-an-engine-is-admitted-for-critical-work-after-one-non-critical-lane.md
 - [#1885] [P3][S] Measure gates added and gates that caught something, per window · tasks/1885-gates-added-and-gates-that-caught-per-window.md
+- [#1886] [P1][S] test_g applies to lane branches, not to a handoff cut's landing (defect 14) · tasks/1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md
+- [#1887] [P1][S] handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16) · tasks/1887-handoff-probes-bd-rows-read-n-a-in-ci.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md

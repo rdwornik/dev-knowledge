@@ -2483,6 +2483,170 @@ def test_uncommitted_bundle_still_fails_bd_ci_on_live_drift(tmp_path, monkeypatc
     assert by["BD-ci"].status == "fail", by["BD-ci"].detail
 
 
+def _ci_green_row(repo, monkeypatch):
+    monkeypatch.setattr(
+        hs._civ, "verdict_for",
+        lambda ref, **kwargs: hs._civ.CiVerdict(
+            ref=ref, sha=ref[:7], verdict=hs._civ.STATE_GREEN, run_id=1))
+    return hs.row_ci(repo)
+
+
+def _gh_unavailable_verdict(ref):
+    return hs._civ.CiVerdict(
+        ref=ref, sha=ref[:7], verdict=hs._civ.STATE_NOT_RUN, state="GH-UNAVAILABLE",
+        reason="gh unavailable: gh exited 4: not logged in")
+
+
+def _rulings_transport(tmp_path):
+    transport = tmp_path / "transport"
+    to_browser = transport / "to-browser"
+    to_browser.mkdir(parents=True)
+    (to_browser / "RATIFICATION-2026-11-05.md").write_text(
+        "# Ratifications\n\nR1\nR2\nR3\n", encoding="utf-8")
+    return transport
+
+
+@_needs_git
+def test_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    monkeypatch.setattr(hs._civ, "verdict_for", lambda ref, **kwargs: _gh_unavailable_verdict(ref))
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    result = _bd(vhp.verify(bundle))["BD-ci"]
+    assert result.status == "skipped", result.detail
+    assert "gh" in result.detail.lower()
+
+
+@_needs_git
+def test_bd_ci_skips_when_gh_verdict_raises_gh_unavailable(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    monkeypatch.setattr(
+        hs._civ, "verdict_for",
+        lambda ref, **kwargs: (_ for _ in ()).throw(
+            hs._civ.GhUnavailable("gh exited 4: not logged in")))
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    result = _bd(vhp.verify(bundle))["BD-ci"]
+    assert result.status == "skipped", result.detail
+    assert "gh" in result.detail.lower()
+
+
+@_needs_git
+def test_committed_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    cut_sha = "c758fe2f847238c7f9bc88797ab13ac106453795"
+    monkeypatch.setattr(hs._civ, "verdict_for", lambda ref, **kwargs: _gh_unavailable_verdict(ref))
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(CI=recorded.rendered()),
+        receipt={"manifest": {"source_sha": cut_sha,
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+
+    result = _bd(vhp.verify(bundle))["BD-ci"]
+    assert result.status == "skipped", result.detail
+    assert "gh" in result.detail.lower()
+
+
+@_needs_git
+def test_uncommitted_bd_ci_still_fails_when_gh_is_present_and_verdict_disagrees(
+        tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    monkeypatch.setattr(
+        hs._civ, "verdict_for",
+        lambda ref, **kwargs: hs._civ.CiVerdict(
+            ref=ref, sha="deadbee", verdict=hs._civ.STATE_RED, run_id=2,
+            new_reds=("some_test",)))
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    assert _bd(vhp.verify(bundle))["BD-ci"].status == "fail"
+
+
+@_needs_git
+def test_uncommitted_bd_ci_still_fails_for_non_gh_not_run_verdict(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    monkeypatch.setattr(
+        hs._civ, "verdict_for",
+        lambda ref, **kwargs: hs._civ.CiVerdict(
+            ref=ref, sha=ref[:7], verdict=hs._civ.STATE_NOT_RUN, state="NO-RUN",
+            reason="no Actions run matched the ref"))
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    assert _bd(vhp.verify(bundle))["BD-ci"].status == "fail"
+
+
+def test_bd_rulings_skips_when_transport_is_absent(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    transport = _rulings_transport(tmp_path)
+    recorded = hs.row_rulings(transport, repo_root=repo)
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(Rulings=recorded.rendered()))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    result = _bd(vhp.verify(bundle))["BD-rulings"]
+    assert result.status == "skipped", result.detail
+    assert "transport" in result.detail.lower() or "CLAUDE_PROMPTS_DIR" in result.detail
+
+
+def test_bd_rulings_still_fails_when_present_transport_disagrees(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    transport = _rulings_transport(tmp_path)
+    stale = hs.StateRow("Rulings", "older rendered value", "SLOW", "old transport").rendered()
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(Rulings=stale))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: transport)
+
+    assert _bd(vhp.verify(bundle))["BD-rulings"].status == "fail"
+
+
+@pytest.mark.parametrize("key", ["Plan", "Capabilities", "Decisions"])
+def test_bd_transport_rows_skip_when_transport_is_absent(tmp_path, monkeypatch, key):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(**{
+            key: hs.StateRow(key, "arbitrary non-matching value", "SLOW", "test").rendered()
+        }))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    result = _bd(vhp.verify(bundle))[f"BD-{vhp.boot_data_id(key)}"]
+    assert result.status == "skipped", result.detail
+    assert "transport" in result.detail.lower() or "CLAUDE_PROMPTS_DIR" in result.detail
+
+
+@_needs_git
+def test_committed_bd_rulings_skips_when_transport_is_absent(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    transport = _rulings_transport(tmp_path)
+    recorded = hs.row_rulings(transport, repo_root=repo)
+    cut_sha = "c758fe2f847238c7f9bc88797ab13ac106453795"
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(Rulings=recorded.rendered()),
+        receipt={"manifest": {"source_sha": cut_sha,
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    result = _bd(vhp.verify(bundle))["BD-rulings"]
+    assert result.status == "skipped", result.detail
+    assert "transport" in result.detail.lower() or "CLAUDE_PROMPTS_DIR" in result.detail
+
+
 # --- BW: a COMMITTED bundle's BD-batches drifts every time a batch opens or closes after its
 # cut -- the same historical-row reason [#1330] gives CI/Rulings/Capabilities. Opening a batch
 # must not red the ship-gate on an old bundle; an UNCOMMITTED bundle keeps live FAIL teeth.
