@@ -666,6 +666,20 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1870] [P2][S] Offline LEDGER names the local main ref, not origin/main · tasks/1870-offline-ledger-names-the-local-main-ref-not-origin-main.md
 - [#1871] [P2][S] transport write and append refuse a relative dest · tasks/1871-transport-write-and-append-refuse-a-relative-dest.md
 - [#1872] [P2][S] A hook writes the tracked logs/HOOK-WATCHDOG-KILLS.jsonl in the primary · tasks/1872-a-hook-writes-the-tracked-hook-watchdog-kills-log-in-the-primary.md
+- [#1865] [P2][M] Round-to-round carry-over in the conductor loop (the row reserved as [#1865] and never filed) · tasks/1865-round-to-round-carry-over-in-the-conductor-loop.md
+- [#1873] [P2][M] Arm the land-on-handback connector at its one call site, and fix the lane's three judge nits · tasks/1873-connector-arming-call-site-and-land-on-handback-judge-nits.md
+- [#1874] [P2][S] A reused P6c receipt is invalidated when the remote CI verdict for the same sha changes · tasks/1874-p6c-reused-receipt-is-invalidated-when-the-remote-verdict-changes.md
+- [#1875] [P3][S] Round-verdict handback follow-ons: one CI read for P5 and P6c, exits 5/6 write a QUESTION, `_PHASE_LABELS` limit · tasks/1875-round-verdict-handback-follow-ons-dup-ci-read-exit-5-6-phase-labels.md
+- [#1876] [P3][S] Provider-billing judge nits: to_model_map schema check, haiku long-context tier, budget wiring, judge excludes_producer · tasks/1876-provider-billing-judge-nits.md
+- [#1877] [P3][S] System view LOW limits: live refresh adds new nodes, a truncated receipt is not UNREADABLE-only, empty receipt files are not OK · tasks/1877-system-view-low-limits.md
+- [#1878] [P3][S] Queue-runner optional follow-ups: validate in record(), the dispatch repair codespace finding, and the same-vendor judge note · tasks/1878-queue-runner-optional-follow-ups.md
+- [#1879] [P1][S] Conductor phase prompts state the Finding shape, and run_phase records why a payload was not harvested · tasks/1879-conductor-phase-prompts-state-the-finding-shape-and-run-phase-fails-loud.md
+- [#1880] [P3][S] Provider registry: record last_verified for copilot gpt-6.1-sol from its served records · tasks/1880-provider-registry-gpt-6-1-sol-last-verified-from-its-served-records.md
+- [#1881] [P2][S] A nested seat worktree path is too long for Windows to check out the longest task file · tasks/1881-a-nested-worktree-path-is-too-long-to-check-out-the-longest-task-file.md
+- [#1882] [P1][S] A close plan may not depend on an unlanded row: a preflight row refuses it · tasks/1882-a-close-plan-may-not-depend-on-an-unlanded-row.md
+- [#1883] [P1][M] The no-stop table as code/data: one owner and a default per row, unattended seats apply their own written recommendation · tasks/1883-the-no-stop-table-as-code-with-an-owner-and-a-default-per-row.md
+- [#1884] [P2][S] An engine is admitted for critical work only after one non-critical lane passed end to end on it · tasks/1884-an-engine-is-admitted-for-critical-work-after-one-non-critical-lane.md
+- [#1885] [P3][S] Measure gates added and gates that caught something, per window · tasks/1885-gates-added-and-gates-that-caught-per-window.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
