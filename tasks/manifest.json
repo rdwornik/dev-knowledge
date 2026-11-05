@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a3a7336d4563e83381acebf5505c3822e1351dea60a597253c16d5b14567947c",
+  "generated_sha256": "787add4e746b72b01681e8dbe9a054c651b078ee2e2c4d33631d4f477b89ac68",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2506,6 +2506,62 @@
     {
       "task": 1872,
       "file": "1872-a-hook-writes-the-tracked-hook-watchdog-kills-log-in-the-primary.md"
+    },
+    {
+      "task": 1865,
+      "file": "1865-round-to-round-carry-over-in-the-conductor-loop.md"
+    },
+    {
+      "task": 1873,
+      "file": "1873-connector-arming-call-site-and-land-on-handback-judge-nits.md"
+    },
+    {
+      "task": 1874,
+      "file": "1874-p6c-reused-receipt-is-invalidated-when-the-remote-verdict-changes.md"
+    },
+    {
+      "task": 1875,
+      "file": "1875-round-verdict-handback-follow-ons-dup-ci-read-exit-5-6-phase-labels.md"
+    },
+    {
+      "task": 1876,
+      "file": "1876-provider-billing-judge-nits.md"
+    },
+    {
+      "task": 1877,
+      "file": "1877-system-view-low-limits.md"
+    },
+    {
+      "task": 1878,
+      "file": "1878-queue-runner-optional-follow-ups.md"
+    },
+    {
+      "task": 1879,
+      "file": "1879-conductor-phase-prompts-state-the-finding-shape-and-run-phase-fails-loud.md"
+    },
+    {
+      "task": 1880,
+      "file": "1880-provider-registry-gpt-6-1-sol-last-verified-from-its-served-records.md"
+    },
+    {
+      "task": 1881,
+      "file": "1881-a-nested-worktree-path-is-too-long-to-check-out-the-longest-task-file.md"
+    },
+    {
+      "task": 1882,
+      "file": "1882-a-close-plan-may-not-depend-on-an-unlanded-row.md"
+    },
+    {
+      "task": 1883,
+      "file": "1883-the-no-stop-table-as-code-with-an-owner-and-a-default-per-row.md"
+    },
+    {
+      "task": 1884,
+      "file": "1884-an-engine-is-admitted-for-critical-work-after-one-non-critical-lane.md"
+    },
+    {
+      "task": 1885,
+      "file": "1885-gates-added-and-gates-that-caught-per-window.md"
     },
     {
       "task": 1718,

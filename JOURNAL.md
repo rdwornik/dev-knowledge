@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-11-05 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the S2 landing -- the night's 14 close rows ([#1865], [#1873] to [#1885]) land on main (session close, dispatcher FORWARD READY)
+
+**Anchors:** `229ec8351` (the one commit this push introduces: 14 rows, tasks/BACKLOG only), main when cut: `782be6302` (the N4 landing, GREEN, push run 41944936350).
+
+**Did:** landed the dispatcher's `chore/e30-close-rows-2026-11-05` @ `229ec8351` (forward checks held: origin tip equals the stated tip, main an ancestor, one commit, 16 files all under `tasks/` plus `BACKLOG.md`, flush-left `kill-candidates:` line present) by the hand path: prep branch = the tip + this entry, integration ref = main merged `--no-ff`. The 14 rows are filed only; none is closed or built here.
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md.
+
+**Changes:** this entry; the rows are the dispatcher's content, unchanged.
+
+**Abandoned:** nothing.
+
+**Next:** S4 close of this seat: final receipt, nested worktree clean, then stop; the dispatcher removes the worktrees.
+
 ### 2026-11-05 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N4 landing -- ADR-140 r3 (a seat is a role with one workspace, its state lives at the primary) lands Accepted, with row [#1869] (night order Q-SEAT-1, FORWARD READY from the dispatcher)
 
 **Anchors:** `e8796d071` (ADR-140 r3 with its status line Proposed -> Accepted, ADR-94) and `eedc7fa52` (the branch tip: row [#1869] now carries `phase: build`), both introduced by this push; main when cut: `a093e789f` (the A-1 landing).
