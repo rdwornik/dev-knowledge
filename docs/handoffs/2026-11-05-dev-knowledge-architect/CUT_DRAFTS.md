@@ -14,6 +14,10 @@ Generation-time state, for the JOURNAL entry only (the browser has no file acces
 
 ## Operator decisions
 
-source: to-browser/RATIFICATION-2026-11-05.md
+Ratified on 2026-11-05 and not to be re-opened: RATIFICATION-2026-11-05.md items 1-11.
 
-- none: the newest RATIFICATION file states no ruling id
+1. Handoff option B (continuous handoff: each preflight check moves to the step that can break it; the cut renders current state from a worktree it owns and lands by a defined path; handoff in the process map). Recommendation: adopt B as the direction; /decide read-only now; build after W-1 unless ranked into a slot. Source: DIGEST-HANDOFF-SYSTEMIC-DIAGNOSIS-TA48-2026-11-05.
+2. Line-weight classes (DIGEST-HANDOFF-PACK-3 S2). Recommendation: yes - a light path for operations and admin commits (no full suite for a tasks-only or docs-only commit), decided by code from the changed paths.
+3. corp-monorepo path (STRATEGY 2026-11-02 decision 1). Recommendation: option (b) of that decision, only after W-1 passes and gate E1-E7 is met.
+4. Cost-cap numbers (STRATEGY 2026-11-02 decision 2), if still unset. Recommendation: the strategy's numbers (Anthropic <= USD 20 list per W-1 run; Copilot <= 15 premium requests per run; metered providers 0).
+5. Codespace after its one trial (RATIFICATION-2026-11-05 item 8). Recommendation: decide only on the trial's measured result; delete only if it fails the stated criterion.
