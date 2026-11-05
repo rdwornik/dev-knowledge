@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-11-05 (a) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the N4 landing -- ADR-140 r3 (a seat is a role with one workspace, its state lives at the primary) lands Accepted, with row [#1869] (night order Q-SEAT-1, FORWARD READY from the dispatcher)
+
+**Anchors:** `e8796d071` (ADR-140 r3 with its status line Proposed -> Accepted, ADR-94) and `eedc7fa52` (the branch tip: row [#1869] now carries `phase: build`), both introduced by this push; main when cut: `a093e789f` (the A-1 landing).
+
+**Did:** merged the dispatcher's `docs/adr-140-seat-lifecycle` @ `eedc7fa52` (forward checks held: origin tip equals local tip, main was an ancestor, docs/tasks/generated files only, no script changed) into main with a `--no-ff` merge. The five commits: the ADR (Proposed) + its design evidence + row [#1869] + manifest node + README row + recent-adrs; the audits-index regen; the `ecosystem/seat-ids.yaml` regen (Tech-Architect-48 registered); rows [#1870] [#1871] [#1872]; ADR-140 r3 Accepted; `phase: build` on [#1869]. The landing regen set (doc-counts, task tree emit-source, audit index, process-diagram rebind and write) produced no diff on the branch. [#1869] is the BUILD row and stays open: no N2 close here, it closes at N6.
+
+**Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md.
+
+**Hand-step fix (N4 ruling B, dispatcher):** the first integration run (41937117125, tip 4b9f63885) was RED with 4 failures outside the registry, all caused by landing ADR-140: `tests/test_validate_adr_status.py` live-ADR pin 112 -> 113 and grammar G1 65 -> 66; `tests/boot_retrieval.py` item `recent-adrs` re-pointed from ADR-135 (which left the last-5 roster) to ADR-140 (task, canary `rotation creates nothing`, body_marker `ADR-140 (`). `-n0` on the two test files: 233 passed.
+
+**Changes:** this entry; `tests/test_validate_adr_status.py` and `tests/boot_retrieval.py` (the hand-step fix); everything else is the dispatcher's branch content, merged unchanged.
+
+**Abandoned:** nothing.
+
+**Next:** N6 (land the [#1869] lane, then the N2 close of [#1869]) on the dispatcher's FORWARD READY.
+
 ### 2026-11-04 (e) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): HAND-STEP A-1 -- the operator's admission of Copilot gpt-6.1-sol as judge and evaluator is recorded in the provider registry (N1 of the Q-SEAT-1 night order)
 
 **Anchors:** `6092dc15d` (the registry commit this push introduces), `33005b8c2` (main when this change was cut, GREEN, push run 41872573442).

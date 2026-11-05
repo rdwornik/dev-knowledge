@@ -87,10 +87,10 @@ ITEMS: tuple[Item, ...] = (
     ),
     Item(
         "recent-adrs",
-        "Which ADR decided that the merges on main are the journal, with one writer for the merge trailers, and what is its status?",
+        "Which ADR decided that each seat role keeps one workspace and keeps its state at the primary checkout, and what is its status?",
         (".claude/generated/recent-adrs.md",),
-        "pre-push gate checks it",
-        "ADR-135 (",  # status-free: a ratification must not flip body_form; re-pointed 2026-11-02 from ADR-131 when 131 left the last-5 (GO-E3.1, architect ruling Q-L0-3); re-point again when 135 leaves it
+        "rotation creates nothing",
+        "ADR-140 (",  # status-free: a ratification must not flip body_form; re-pointed 2026-11-05 from ADR-135 when 135 left the last-5 (N4 ruling, orchestrator-e3-0-cycle-5); earlier 2026-11-02 from ADR-131 (GO-E3.1, architect ruling Q-L0-3); re-point again when 140 leaves it
         (".claude/generated/recent-adrs.md",),
     ),
     Item(

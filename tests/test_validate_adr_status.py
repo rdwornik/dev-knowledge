@@ -878,8 +878,9 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # and it is named: ADR-132 (the handoff cut regenerates and byte-checks what it ships), the
     # single cause; no other member moved. `Accepted` (ADR-94; ratified 2026-10-28, AMEND-2).
     # re-measured: ADR-133 added by e30-view-decide [#1748] (orchestrator ruling 2026-11-01)
+    # RE-MEASURED 2026-11-05 (N4 hand step, ADR-140 lands): 112 -> 113; the delta is ADR-140, the single cause.
     # RE-MEASURED 2026-11-01 by lane e31-decide (GO-E3.1): 106 -> 112; the delta is the six ADRs ADR-134..ADR-139, the single cause; no other member moved.
-    assert len(fields) == 112, "live ADR count moved — re-measure the Step-1 baseline"
+    assert len(fields) == 113, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -941,7 +942,7 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # G2/G3/G4 unchanged a thirteenth time, so the delta is one ADR and not grammar drift.
     # re-measured: ADR-133 added by e30-view-decide [#1748] (orchestrator ruling 2026-11-01)
     # RE-MEASURED 2026-11-01 by lane e31-decide (GO-E3.1): 59 -> 65; the delta is the six ADRs ADR-134..ADR-139, the single cause; no other member moved.
-    assert counts == {"G1": 65, "G2": 34, "G3": 12, "G4": 1}
+    assert counts == {"G1": 66, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
