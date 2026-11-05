@@ -21,6 +21,10 @@
 
 ---
 
+### 2026-11-05 (c) - CC (Opus 5.5, dispatcher seat, session close E3.0): Handoff cut 2026-11-05-dev-knowledge-architect (HANDOFF_BOOT v5): bundle docs/handoffs/2026-11-05-dev-knowledge-architect/ landed by operator act H5-LAND (RATIFICATION-2026-11-05.md item 11 as amended); closes batch E3.0.
+
+**Anchors:** `20534c68a`, `5acbaf476`, `332c0773e`, `a75045626`, `f8197a47e`, `acb7ff71e`, `e4d6eeea5`
+
 ### 2026-11-05 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the S2 landing -- the night's 14 close rows ([#1865], [#1873] to [#1885]) land on main (session close, dispatcher FORWARD READY)
 
 **Anchors:** `229ec8351` (the one commit this push introduces: 14 rows, tasks/BACKLOG only), main when cut: `782be6302` (the N4 landing, GREEN, push run 41944936350).
