@@ -1,6 +1,6 @@
 {
   "schema": "known-reds-registry/2",
-  "baseline_id": "2026-11-05-402c7aaa7b43",
+  "baseline_id": "2026-11-03-bc8f569dfcca",
   "measured_at_sha": "2e7fa5f255fb67305e6964e1649ea1bd53366fff",
   "measured_via": "gh-run:37031390518",
   "workers": 4,
@@ -561,13 +561,6 @@
         "date": "2026-10-25"
       },
       "disposition": "re-owned 2026-10-15 from [#912]: [#1022] is this exact red; cause: the test accepts only docs/handoffs/<tok> for a stripped dated token (tests/test_validate_doc_rot.py:676)."
-    },
-    "tests/test_handoff_v5_boot.py::test_g_handoff_files_are_unchanged_from_origin_main": {
-      "attribution": "red by construction (a handoff landing adds docs/handoffs files)",
-      "task": "[#1886]",
-      "owner": "[#1886]",
-      "expiry": "2026-11-12",
-      "disposition": "DIGEST-RULING-H5-LAND-INPUTS-ADDENDUM-2-2026-11-05 option B item 2 (night mission act A5): shared members (any OS), no signature because the message lists the landing bundle's files and changes per cut; witnessed on conductor run 42089244162 (5e4bc68dd); exit is [#1886] (defect 14), whose fix lane removes this entry."
     }
   },
   "hooks": {
@@ -578,7 +571,6 @@
       "since_sha": "da11291b",
       "checks": [
         "dispatch_drift",
-        "handoff_probes",
         "hooks_armed",
         "journal_spine_anchor",
         "repos registered"
@@ -605,14 +597,8 @@
         "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Dispatch-Cloud' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
         "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Stop-DispatchCodespace' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
         "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Harvest-Cloud' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
-        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Get-CloudSession' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose",
-        "[!!] handoff_probes: BD-ci toothless in 2026-11-05-dev-knowledge-architect: CI: cut recorded '`50cbabf` GREEN (run 42016019715) — evidence: ci_verdict.verdict_for(ref, timeout_s=0) [LIVE-DRIFTS]'; live re-derivation now gives '`50cbabf` NOT-RUN (gh unavailable: gh exited 4: gh: To use GitHub CLI in a GitHub Actions workflow,) — evidence: ci_verdict.verdict_for(ref, timeout_s=0) [LIVE-DRIFTS]'",
-        "[!!] handoff_probes: BD-plan toothless in 2026-11-05-dev-knowledge-architect: Plan: cut recorded '`to-cc/PLAN-NEXT-r3-draft2-superseded-2026-10-31.md` — evidence: to-cc/PLAN-*.md (newest non-superseded master plan) [SLOW]'; live re-derivation now gives 'no master plan found on the transport — evidence: to-cc/PLAN-*.md (newest non-superseded master plan) [SLOW]'",
-        "[!!] handoff_probes: BD-rulings toothless in 2026-11-05-dev-knowledge-architect: Rulings: cut recorded 'R1–R23, R26–R28, R41, R42, R49–R52, R55–R57, R59–R101, R116, R119, R120 (81 ruling id(s) in force, from 55 file(s); newest `RATIFICATION-2026-11-05.md`) · not landed: none — evidence: to-browser/RATIFICATION-*.md (non-superseded, non-withdrawn) [SLOW]'; live re-derivation now gives 'no RATIFICATION file found on the transport — evidence: to-browser/RATIFICATION-*.md (non-superseded, non-withdrawn) [SLOW]'",
-        "[!!] handoff_probes: BD-capabilities toothless in 2026-11-05-dev-knowledge-architect: Capabilities: cut recorded '10/20 WORKS (10 qualified) — `DIGEST-CAPABILITY-MAP-2026-09-28.md` — evidence: to-browser/DIGEST-CAPABILITY-MAP-*.md (newest) [SLOW]'; live re-derivation now gives 'no DIGEST-CAPABILITY-MAP file found on the transport — evidence: to-browser/DIGEST-CAPABILITY-MAP-*.md (newest) [SLOW]'",
-        "[!!] handoff_probes: BD-decisions toothless in 2026-11-05-dev-knowledge-architect: Decisions: cut recorded '216 decision file(s): 83 OPEN, 133 resolve on main, 0 unresolved, 0 without a carried-by key — evidence: gen_handoff.carriage_verdicts (DECLARE-/AMEND-/BATCH- files in to-cc/ + to-browser/) [LIVE-DRIFTS]'; live re-derivation now gives 'no transport — decision files cannot be counted — evidence: gen_handoff.carriage_verdicts (DECLARE-/AMEND-/BATCH- files in to-cc/ + to-browser/) [LIVE-DRIFTS]'"
-      ],
-      "handoff_probes_exit": "[#1887] (defect 16): `handoff_probes` joined the allowlist by DIGEST-RULING-H5-LAND-INPUTS-ADDENDUM-2-2026-11-05 option B item 3 (night mission act A5), witnessed on conductor run 42089244162 job commit-gate (BD-ci/plan/rulings/capabilities/decisions toothless without the transport and gh); [#1887]'s fix lane removes the name."
+        "[!!] dispatch_drift: [commands] protocols/PLAYBOOK.md dispatch table names 'Get-CloudSession' (prose) and this host cannot resolve it via Get-Command (MISSING) — a page naming a command the machine does not have is how four rival verbs arose"
+      ]
     }
   },
   "members_by_os": {
