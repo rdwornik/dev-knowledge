@@ -842,6 +842,29 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
 - [#1886] [P1][S] test_g applies to lane branches, not to a handoff cut's landing (defect 14) · tasks/1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md
 - [#1887] [P1][S] handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16) · tasks/1887-handoff-probes-bd-rows-read-n-a-in-ci.md
+- [#1888] [P1][S] The landing judge follows a same-sha reused base run to the run that ran the suite (defect 18) · tasks/1888-the-landing-judge-follows-a-same-sha-reused-base.md
+- [#1889] [P1][S] Known-reds registry pin tests are lane-scoped, so a sanctioned registry entry can land (defect 19) · tasks/1889-known-reds-registry-pin-tests-are-lane-scoped-so.md
+- [#1890] [P1][S] The handoff receipt records observed stops and closes each wait (defect 20) · tasks/1890-the-handoff-receipt-records-observed-stops-and-closes-each.md
+- [#1891] [P1][S] A reachable CLI verb for gen_handoff.restamp_manifest (defect 7) · tasks/1891-a-reachable-cli-verb-for-gen-handoff-restamp-manifest.md
+- [#1892] [P1][S] The LEDGER is regenerate-and-diffed after the cut's own JOURNAL anchor commit (defect 13) · tasks/1892-the-ledger-is-regenerate-and-diffed-after-the-cut.md
+- [#1893] [P1][S] A refused land_lane cleans up its integration branch or the retry replaces it (defect 17) · tasks/1893-a-refused-land-lane-cleans-up-its-integration-branch.md
+- [#1894] [P2][S] The cut names its own implements edge for the bundle files (defect 15) · tasks/1894-the-cut-names-its-own-implements-edge-for-the.md
+- [#1895] [P2][M] One defined landing command for a handoff cut, resolvable for amended act rows (defects 3, 8, 12) · tasks/1895-one-defined-landing-command-for-a-handoff-cut-resolvable.md
+- [#1896] [P2][S] worktree_owners admits the cut's own worktree (defect 1) · tasks/1896-worktree-owners-admits-the-cut-s-own-worktree.md
+- [#1897] [P3][S] Window lessons reach the reading path in its SEAT-LESSONS form (defect 2) · tasks/1897-window-lessons-reach-the-reading-path-in-its-seat.md
+- [#1898] [P3][S] Generated Operator-decisions drafts see ratified items that have no R-id yet (defect 4) · tasks/1898-generated-operator-decisions-drafts-see-ratified-items-that-have.md
+- [#1899] [P2][S] A gap list printed right after --cut: every unfilled hand region and every required transport input (defect 5) · tasks/1899-a-gap-list-printed-right-after-cut-every-unfilled.md
+- [#1900] [P3][S] --cut renders the Carried debt section of RESIDUAL.md (defect 6) · tasks/1900-cut-renders-the-carried-debt-section-of-residual-md.md
+- [#1901] [P3][S] assemble_paste fails clean (defect 9) · tasks/1901-assemble-paste-fails-clean.md
+- [#1902] [P3][S] A QUESTION the cut raised can be dispositioned by the cut (defect 10) · tasks/1902-a-question-the-cut-raised-can-be-dispositioned-by.md
+- [#1903] [P3][S] The hand-written Operator decisions section has one home inside the manifest fill surface (defect 11) · tasks/1903-the-hand-written-operator-decisions-section-has-one-home.md
+- [#1904] [P2][S] HANDOFF_BOOT data carries the landing state: on main, or carried on a branch at a sha (boot-test gap G1) · tasks/1904-handoff-boot-data-carries-the-landing-state-on-main.md
+- [#1905] [P2][S] HANDOFF_BOOT's Models row names model and effort per seat role (boot-test gap G2) · tasks/1905-handoff-boot-s-models-row-names-model-and-effort.md
+- [#1906] [P2][S] HANDOFF_BOOT states the backlog mechanics the browser cannot read in scripts/ (boot-test gap G3) · tasks/1906-handoff-boot-states-the-backlog-mechanics-the-browser-cannot.md
+- [#1907] [P3][S] The process map carries an owner per step (boot-test gap G4) · tasks/1907-the-process-map-carries-an-owner-per-step.md
+- [#1908] [P2][S] HANDOFF_BOOT stops describing a dispatcher seat that R130 retired (boot-test gap G5) · tasks/1908-handoff-boot-stops-describing-a-dispatcher-seat-that-r130.md
+- [#1909] [P3][S] HANDOFF_BOOT states the browser seat's role and limits in one place, after the seat-equilibrium /decide (boot-test gap G6) · tasks/1909-handoff-boot-states-the-browser-seat-s-role-and.md
+- [#1910] [P2][S] dispatch.py launch: --model cures the model mismatch its own refusal names (defect 21) · tasks/1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md
 
 ---
 

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7a5fde78e08f2012687a41b470449df7d6fbbcdb72b51afa05f1f64986013eac",
+  "generated_sha256": "69f7c51f60f016cb0d338278eb86fc4ab9917bb7c3c59aac1e0a9e229f8e090c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3210,6 +3210,98 @@
     {
       "task": 1887,
       "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
+    },
+    {
+      "task": 1888,
+      "file": "1888-the-landing-judge-follows-a-same-sha-reused-base.md"
+    },
+    {
+      "task": 1889,
+      "file": "1889-known-reds-registry-pin-tests-are-lane-scoped-so.md"
+    },
+    {
+      "task": 1890,
+      "file": "1890-the-handoff-receipt-records-observed-stops-and-closes-each.md"
+    },
+    {
+      "task": 1891,
+      "file": "1891-a-reachable-cli-verb-for-gen-handoff-restamp-manifest.md"
+    },
+    {
+      "task": 1892,
+      "file": "1892-the-ledger-is-regenerate-and-diffed-after-the-cut.md"
+    },
+    {
+      "task": 1893,
+      "file": "1893-a-refused-land-lane-cleans-up-its-integration-branch.md"
+    },
+    {
+      "task": 1894,
+      "file": "1894-the-cut-names-its-own-implements-edge-for-the.md"
+    },
+    {
+      "task": 1895,
+      "file": "1895-one-defined-landing-command-for-a-handoff-cut-resolvable.md"
+    },
+    {
+      "task": 1896,
+      "file": "1896-worktree-owners-admits-the-cut-s-own-worktree.md"
+    },
+    {
+      "task": 1897,
+      "file": "1897-window-lessons-reach-the-reading-path-in-its-seat.md"
+    },
+    {
+      "task": 1898,
+      "file": "1898-generated-operator-decisions-drafts-see-ratified-items-that-have.md"
+    },
+    {
+      "task": 1899,
+      "file": "1899-a-gap-list-printed-right-after-cut-every-unfilled.md"
+    },
+    {
+      "task": 1900,
+      "file": "1900-cut-renders-the-carried-debt-section-of-residual-md.md"
+    },
+    {
+      "task": 1901,
+      "file": "1901-assemble-paste-fails-clean.md"
+    },
+    {
+      "task": 1902,
+      "file": "1902-a-question-the-cut-raised-can-be-dispositioned-by.md"
+    },
+    {
+      "task": 1903,
+      "file": "1903-the-hand-written-operator-decisions-section-has-one-home.md"
+    },
+    {
+      "task": 1904,
+      "file": "1904-handoff-boot-data-carries-the-landing-state-on-main.md"
+    },
+    {
+      "task": 1905,
+      "file": "1905-handoff-boot-s-models-row-names-model-and-effort.md"
+    },
+    {
+      "task": 1906,
+      "file": "1906-handoff-boot-states-the-backlog-mechanics-the-browser-cannot.md"
+    },
+    {
+      "task": 1907,
+      "file": "1907-the-process-map-carries-an-owner-per-step.md"
+    },
+    {
+      "task": 1908,
+      "file": "1908-handoff-boot-stops-describing-a-dispatcher-seat-that-r130.md"
+    },
+    {
+      "task": 1909,
+      "file": "1909-handoff-boot-states-the-browser-seat-s-role-and.md"
+    },
+    {
+      "task": 1910,
+      "file": "1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md"
     },
     {
       "prose": ""

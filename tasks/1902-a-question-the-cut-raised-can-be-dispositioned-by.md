@@ -1,0 +1,12 @@
+---
+id: "[#1902]"
+title: "A QUESTION the cut raised can be dispositioned by the cut (defect 10)"
+status: open
+priority: P3
+size: S
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1902] [P3][S] **A QUESTION the cut raised can be dispositioned by the cut (defect 10)** - question_disposition refuses on a QUESTION the cut itself raised during the cut. Defect 10 of the 2026-11-05 cut. · touches: `scripts/gen_handoff.py` · kill-candidates: none - a handoff-repair row from the night census makes no open row redundant · refs `scripts/gen_handoff.py`, `[#1834]`, to-browser/DIGEST-NIGHT-HANDOFF-SELF-REPAIR-2026-11-06.md, to-browser/CLOSE-REPORT-E3.0-2026-11-05-FINAL.md section 6 · Done when: RED first - the cut's own QUESTION, once answered, carries its disposition line by the cut; the lane-branch CI run is green outside known reds · decided-by: night mission act A2 (to-cc/PLAN-NIGHT-HANDOFF-SELF-REPAIR-2026-11-05.md phase 3), filed by the night orchestrator; ranking per AMEND-1 A4 · source: to-browser/DIGEST-NIGHT-HANDOFF-SELF-REPAIR-2026-11-06.md, to-browser/CLOSE-REPORT-E3.0-2026-11-05-FINAL.md section 6
