@@ -29,7 +29,9 @@
 
 **Result:** see the LAND-RESULT line in SESSION-integrator-E3.0-2026-10-31.md.
 
-**Changes:** this entry; everything else is the dispatcher's branch content, merged unchanged.
+**Hand-step fix (N4 ruling B, dispatcher):** the first integration run (41937117125, tip 4b9f63885) was RED with 4 failures outside the registry, all caused by landing ADR-140: `tests/test_validate_adr_status.py` live-ADR pin 112 -> 113 and grammar G1 65 -> 66; `tests/boot_retrieval.py` item `recent-adrs` re-pointed from ADR-135 (which left the last-5 roster) to ADR-140 (task, canary `rotation creates nothing`, body_marker `ADR-140 (`). `-n0` on the two test files: 233 passed.
+
+**Changes:** this entry; `tests/test_validate_adr_status.py` and `tests/boot_retrieval.py` (the hand-step fix); everything else is the dispatcher's branch content, merged unchanged.
 
 **Abandoned:** nothing.
 
