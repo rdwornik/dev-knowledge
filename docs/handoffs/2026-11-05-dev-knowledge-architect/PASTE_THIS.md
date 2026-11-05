@@ -36,8 +36,8 @@
 <!-- BOOT-PROSE:BEGIN (hand-authored — read, not verified; byte budget gen_handoff.BOOT_PROSE_BYTE_BUDGET) -->
 | Prose | Read, not verified |
 |---|---|
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
-| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->Make the line run once end to end (M1 = 1) and build the seat lifecycle, nothing else first. Slot 1: [#1879] then one non-critical row through the conductor, then the W-1 witness, with test dedupe. Slot 2: [#1869] (ADR-140) on the stage0 path. Read SEAT-LESSONS-2026-11-05 and the carry index before the first plan.<!-- FILL-IN:purpose END --> |
+| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->the .dev-knowledge hub only; corp-monorepo waits for gate E1-E7 (0/7).<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->architect mode - the window opens with operator decisions (the Operator decisions list below) and two read-only /decides (handoff option B, line-weight classes) before the two ratified slots (W-1; [#1869]) execute; the priorities, the WIP bound and RATIFICATION-2026-11-05 items 1-11 are ratified and are not re-opened.<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Cut by `scripts/gen_handoff.py` from **committed** state on branch `worktree-handoff-2026-11-05` — no sha, count or verdict; re-derive live (`PROBES.md` P3). |
 <!-- BOOT-PROSE:END -->
 
@@ -80,7 +80,7 @@ verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the
 - `fleet_parity` (reads the parity-surface manifest and the surfaces it names)
 
 <!-- FILL-IN:driftflags START (hand-authored — ONE judgment only: name which NEW flag above is a DECISION rather than a defect. The standing-vs-new attribution is GENERATED directly above; do not restate it. Do NOT state the ship-gate verdict, the WARN count, the [stale] status, or any drifted #id/sha — those are P7/P4's LIVE answer; naming a value here re-inverts the anti-bluff contract.) -->
-_(fill: of the NEW-and-undispositioned organs listed above, name which is a DECISION rather than a defect, and why. Nothing else belongs here — the standing-vs-new split is generated. State no verdict/count/[stale]/sha value; P7/P4 re-derive those.)_
+`fleet_parity` is a DECISION, not a defect: the one surface it reads that this window changed is `.claude/commands/map.md`, added by [#1748] (the ADR-133 system view). `/map` is a hub-local command, the same class as `/decide`, `/spine` and `/why`, and hub-local items carry no deploy-manifest row by design (CLAUDE.md section 9: sections 7-9 hold the hub-LOCAL surface, the items with no manifest entry). Source: CC's state read, `git diff 1004f63f4 origin/main` over the parity surfaces plus `audit.check_fleet_parity` (witnessed).
 <!-- FILL-IN:driftflags END -->
 
 **OPEN decision files this handoff carries** (`carried-by: OPEN` — work, not filing; P11):
@@ -172,4 +172,10 @@ _(fill: of the NEW-and-undispositioned organs listed above, name which is a DECI
 
 ---
 
-=== END OF PASTE — 3 sections · 12042 bytes ===
+=== SUPPLEMENT.md ===
+
+The outgoing architect's ANSWERS are FILLED, in `docs/handoffs/2026-11-05-dev-knowledge-architect/SUPPLEMENT.md` below its divider — not inlined (the paste gate). Ask CC to pull them before the §13(d) operator-context beat, which then NARROWS to *"anything changed since the supplement was written?"*.
+
+---
+
+=== END OF PASTE — 4 sections · 13143 bytes ===
