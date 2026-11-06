@@ -289,11 +289,17 @@ class Verdict:
 
 
 def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
-              workflow: str = WORKFLOW) -> Optional[dict]:
+              workflow: str = WORKFLOW, skip_reused: bool = False) -> Optional[dict]:
     """The Actions run whose head is `sha`, or None when there is none.
 
     Raises `ActionsUnavailable` when `gh` cannot be reached -- never returns None for that,
     because "nothing ran" and "I could not look" are different facts.
+
+    `skip_reused=True` is the BASE read ([#1888], defect 18): a push run whose pytest leg only ran
+    the `Same-sha verdict reused (no suite run)` step carries no failing test ids, so the newest
+    push run for the sha that ran the SUITE is chosen instead. When every push run for the sha
+    reused a verdict, the newest one is returned flagged `reused_without_suite` -- never a silent
+    empty base. The tip is read with the default (`False`) and is never redirected.
     """
     # PUSH RUNS ONLY (item 11, G7): the ruleset's required check-runs belong to the `push` run on
     # the sha, so a `pull_request` or `workflow_dispatch` run for the same sha is not that
@@ -316,11 +322,27 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
     except json.JSONDecodeError as exc:
         raise ActionsUnavailable(f"gh returned unreadable JSON: {exc}") from exc
 
-    match = next((r for r in runs if r.get("event") == "push"
-                  and str(r.get("headSha", "")).startswith(sha)), None)
-    if match is None:
+    candidates = [r for r in runs if r.get("event") == "push"
+                  and str(r.get("headSha", "")).startswith(sha)]
+    if not candidates:
         return None
+    if not skip_reused:
+        return _with_jobs(candidates[0], repo_root=repo_root)
 
+    first_reused: Optional[dict] = None
+    for row in candidates:
+        run = _with_jobs(row, repo_root=repo_root)
+        if not ran_reused_verdict(run):
+            return run                  # newest-first among the runs that RAN the suite
+        if first_reused is None:
+            first_reused = run
+    assert first_reused is not None
+    first_reused["reused_without_suite"] = True
+    return first_reused
+
+
+def _with_jobs(match: dict, *, repo_root: Optional[Path] = None) -> dict:
+    """`match` with its `jobs` attached by `gh run view <id> --json jobs` (steps included)."""
     # `None` MEANS "NOT READ", `[]` MEANS "READ, AND THERE WERE NONE" (`[#742]`). Until
     # 2026-09-13 both were `[]`, so an errored, timed-out or unparseable job-details call
     # produced a run object that `verdict_for` read as "nothing failed" and reported as PASS --
@@ -341,6 +363,24 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
         logger.warning("the job list for run %s could not be read: %s", match["databaseId"], exc)
         match["jobs"] = None
     return match
+
+
+#: The conductor's pytest-leg step that stands in for the suite when CI already judged the same
+#: sha green on another branch (`.github/workflows/conductor.yml`, job `pytest`).
+REUSED_VERDICT_STEP = "Same-sha verdict reused (no suite run)"
+
+
+def ran_reused_verdict(run: dict) -> bool:
+    """True when a pytest leg of `run` EXECUTED the same-sha reuse step (conclusion `success`):
+    that run never ran the suite, so its log names no failing test. A run whose job list was
+    not read, or a hand-built fixture with no `steps`, is False -- the claim needs the step."""
+    for job in run.get("jobs") or []:
+        if not is_pytest_job(job.get("name", "")):
+            continue
+        for step in job.get("steps") or []:
+            if step.get("name") == REUSED_VERDICT_STEP and step.get("conclusion") == "success":
+                return True
+    return False
 
 
 def _jobs_were_read(run: dict) -> bool:
@@ -661,7 +701,24 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
             base_run = None
             base_reason = f"baseline run unavailable ({exc})"
         else:
-            if base_run is None:
+            if base_run is not None and ran_reused_verdict(base_run):
+                # DEFECT 18 ([#1888]): the newest push run for the baseline only echoed a
+                # verdict, so its log has no failing test and every tip red would read NEW.
+                # Look again for the push run that RAN the suite; the TIP is never redirected.
+                reused_id = base_run.get("databaseId")
+                try:
+                    base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW,
+                                     skip_reused=True)
+                except ActionsUnavailable as exc:
+                    base_run = None
+                    base_reason = f"baseline run unavailable ({exc})"
+                else:
+                    if base_run is not None and base_run.get("reused_without_suite"):
+                        base_reason = (f"baseline run {reused_id} reused a same-sha verdict "
+                                       f"(no suite run) and no other push run for {baseline} "
+                                       f"ran the suite")
+                        base_run = None
+            if base_run is None and not base_reason:
                 base_reason = f"baseline run not found for {baseline}"
         # `_jobs_were_read` GUARDS THIS TOO, and it is the same hole with the sign flipped
         # (`[#742]`, found resolving its locator). An unreadable BASELINE job list used to give
