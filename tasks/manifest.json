@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ba09b2be43b49d409eb7833902644fb7487c95f4484832b888f7c16f8a65c653",
+  "generated_sha256": "5b4665f2738235df807798c613d9df0834d10ab8cb70adb90437d8528d4b79c9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2564,6 +2564,14 @@
       "file": "1885-gates-added-and-gates-that-caught-per-window.md"
     },
     {
+      "task": 1886,
+      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
+    },
+    {
+      "task": 1887,
+      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
+    },
+    {
       "task": 1718,
       "file": "1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md"
     },
@@ -3202,14 +3210,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1886,
-      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
-    },
-    {
-      "task": 1887,
-      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
     },
     {
       "task": 1888,

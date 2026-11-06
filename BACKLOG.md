@@ -680,6 +680,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1883] [P1][M] The no-stop table as code/data: one owner and a default per row, unattended seats apply their own written recommendation · tasks/1883-the-no-stop-table-as-code-with-an-owner-and-a-default-per-row.md
 - [#1884] [P2][S] An engine is admitted for critical work only after one non-critical lane passed end to end on it · tasks/1884-an-engine-is-admitted-for-critical-work-after-one-non-critical-lane.md
 - [#1885] [P3][S] Measure gates added and gates that caught something, per window · tasks/1885-gates-added-and-gates-that-caught-per-window.md
+- [#1886] [P1][S] test_g applies to lane branches, not to a handoff cut's landing (defect 14) · tasks/1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md
+- [#1887] [P1][S] handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16) · tasks/1887-handoff-probes-bd-rows-read-n-a-in-ci.md
 - [#1718] [P2][S] CI: the commit-gate job needs a proper fix (R169) · tasks/1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md
 - [#1719] [P2][S] Anchor gate: range-level discharge lets one anchored entry clear a push · tasks/1719-anchor-gate-range-level-discharge-lets-one-anchored-entry-clear-a-push.md
 - [#1533] [P2][S] The system-map refresh is not a closed loop -- it leaves an unmerged branch and a worktree behind · tasks/1533-the-system-map-refresh-is-not-a-closed-loop.md
@@ -840,8 +842,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1842] [P2][S] Wire scripts/task_record.py to a real caller or remove it under R56 before 2026-11-23 · tasks/1842-wire-task-record-to-a-real-caller-or-remove-it-under-r56.md
 - [#1843] [P2][S] Wire scripts/test_census.py to a real caller or remove it under R56 before 2026-11-09 · tasks/1843-wire-test-census-to-a-real-caller-or-remove-it-under-r56.md
 - [#1848] [P1][M] conductor: C-VENDOR at P4 requires receipts of phases not yet run, so every round halts; phase models are not aligned with GO-E3.0 R11 (registry reconciliation is the registry owner's) · tasks/1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md
-- [#1886] [P1][S] test_g applies to lane branches, not to a handoff cut's landing (defect 14) · tasks/1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md
-- [#1887] [P1][S] handoff_probes BD rows read n/a in CI where the transport and gh are absent (defect 16) · tasks/1887-handoff-probes-bd-rows-read-n-a-in-ci.md
 - [#1888] [P1][S] The landing judge follows a same-sha reused base run to the run that ran the suite (defect 18) · tasks/1888-the-landing-judge-follows-a-same-sha-reused-base.md
 - [#1889] [P1][S] Known-reds registry pin tests are lane-scoped, so a sanctioned registry entry can land (defect 19) · tasks/1889-known-reds-registry-pin-tests-are-lane-scoped-so.md
 - [#1890] [P1][S] The handoff receipt records observed stops and closes each wait (defect 20) · tasks/1890-the-handoff-receipt-records-observed-stops-and-closes-each.md
