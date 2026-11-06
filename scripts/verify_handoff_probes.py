@@ -1778,11 +1778,15 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
     return "pass", f"identity+liveness hold ({fresh.freshness}): {fresh.value}"
 
 
-def _rule_plan(base):
+def _rule_plan(base, absent=None):
     """B2-W1 W1-9 repair 1: a Plan row that REFUSES (`handoff_state.NO_MASTER_PLAN_DECLARED`) fails
     outright; the no-transport / no-plan-files degrade ("no master plan found") stays tolerated.
     Cut and live agree on a refusal, so the state comparison alone would pass it; and a committed
-    bundle's WARN downgrade must not turn a refusal into a tolerated row."""
+    bundle's WARN downgrade must not turn a refusal into a tolerated row.
+
+    [#1887]: with the transport ABSENT (`absent`, the same predicate `_rule_state` uses) the
+    refusal cannot be re-confirmed, so it reads `skipped` naming the transport, not `fail`; with
+    the transport PRESENT it still fails exactly as before."""
     def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
         try:
             import handoff_state as _hs  # noqa: PLC0415
@@ -1791,6 +1795,10 @@ def _rule_plan(base):
         m = _RENDERED_TAIL_RE.match(value.strip())
         underlying = m.group("val") if m else value.strip()
         if underlying.startswith(_hs.NO_MASTER_PLAN_DECLARED):
+            missing = absent(None, ctx) if absent is not None else None
+            if missing:
+                return "skipped", (f"not measured: {missing}, so the Plan refusal the cut "
+                                   f"recorded ({underlying!r}) cannot be re-confirmed")
             return "fail", f"the Plan row names no master plan: {underlying}"
         return base(value, ctx)
     return rule
@@ -1822,7 +1830,8 @@ BOOT_DATA_RULES = {
     # _rule_state, FAIL on any mismatch, committed or not. Transport/Seats have own rules.
     **{key: _rule_committed_state(fn, _ABSENT_INPUT.get(key)) for key, fn in _STATE_ROW_FNS.items()
        if key in _COMMITTED_STATE_KEYS},
-    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"], _ABSENT_INPUT["Plan"])),
+    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"], _ABSENT_INPUT["Plan"]),
+                       _ABSENT_INPUT["Plan"]),
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key not in ("Seats", "Transport", *_COMMITTED_STATE_KEYS)},
     # B2-W1 W1-11: Transport compares recorded-kinds-subset-of-live, not the rendered string.

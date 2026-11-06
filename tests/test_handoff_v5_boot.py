@@ -151,8 +151,9 @@ def _handoff_landing_violations(repo: Path, base_ref: str = "origin/main") -> li
     """Paths under docs/handoffs/ that `base_ref...HEAD` changes illegally.
 
     Illegal: any modify/delete/rename, or any add inside a bundle directory that EXISTS on
-    `base_ref`, or an add outside a dated `<YYYY-MM-DD>-...` bundle directory. Legal: only ADDING
-    files under a NEW dated bundle directory (a handoff cut's landing). [] = a legal landing.
+    `base_ref`, or an add outside a dated `<YYYY-MM-DD>-...` bundle directory, or the files of
+    a second (or later) new bundle directory. Legal: only ADDING files under ONE NEW dated
+    bundle directory (a handoff cut's landing). [] = a legal landing.
     Renames are reported as delete + add (`--no-renames`) so neither half can hide the other.
     """
     diff = subprocess.run(
@@ -169,13 +170,20 @@ def _handoff_landing_violations(repo: Path, base_ref: str = "origin/main") -> li
     ).stdout.decode("utf-8").split("\0")
     existing = {name.rsplit("/", 1)[-1] for name in listing if name}
     violations: list[str] = []
+    added: dict[str, list[str]] = {}
     for status, path in entries:
         parts = path.split("/")
         bundle = parts[2] if len(parts) > 3 else None
         legal = (status == "A" and bundle is not None
                  and bundle not in existing and _BUNDLE_DIR_RE.fullmatch(bundle) is not None)
-        if not legal:
+        if legal:
+            added.setdefault(bundle, []).append(path)
+        else:
             violations.append(path)
+    # A cut's landing adds ONE new bundle directory (Done 1): every further new directory is
+    # reported, in sorted order, so the first one is the one the landing is allowed to carry.
+    for bundle in sorted(added)[1:]:
+        violations.extend(added[bundle])
     return violations
 
 
@@ -252,6 +260,18 @@ def test_handoff_landing_rejects_modifying_an_existing_bundle_file(tmp_path):
 
     violations = _handoff_landing_violations(repo)
     assert "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md" in violations
+
+
+def test_handoff_landing_rejects_a_second_new_bundle_directory(tmp_path):
+    repo = _landing_repo(tmp_path)
+    for name in ("2026-11-05-dev-knowledge-architect", "2026-11-06-dev-knowledge-architect"):
+        bundle = repo / "docs" / "handoffs" / name
+        bundle.mkdir(parents=True)
+        (bundle / "HANDOFF_BOOT.md").write_text(f"# {name}\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == [
+        "docs/handoffs/2026-11-06-dev-knowledge-architect/HANDOFF_BOOT.md"]
 
 
 def test_handoff_landing_rejects_deleting_an_existing_bundle_file(tmp_path):
