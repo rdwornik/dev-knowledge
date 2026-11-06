@@ -1372,7 +1372,13 @@ def _rule_receipt(value: str, ctx: _BootCtx) -> tuple[str, str]:
 #: one function from both ends (not a second copy of the read) is what makes "checked live"
 #: true rather than decorative. `state_fn(hs, ctx)` returns the fresh `StateRow`; the small
 #: per-key lambdas below exist only to bind which `handoff_state.row_*` a given key re-derives.
-def _rule_state(state_fn):
+#:
+#: `absent(fresh, ctx)` ([#1887]) names the input the live re-derivation needed and did not
+#: have (the Drive transport, an authenticated `gh`), or returns None. A MISMATCH while that
+#: input is absent is not a finding about the bundle -- the re-derivation read nothing -- so it
+#: is `skipped` (a WARN, the P11-CARRIAGE shape), never `fail`. A mismatch with the input
+#: PRESENT is judged exactly as before.
+def _rule_state(state_fn, absent=None):
     def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
         try:
             import handoff_state as _hs  # noqa: PLC0415
@@ -1384,6 +1390,10 @@ def _rule_state(state_fn):
             return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
         want = fresh.rendered()
         if value.strip() != want.strip():
+            missing = absent(fresh, ctx) if absent is not None else None
+            if missing:
+                return "skipped", (f"not measured: {missing}, so the live re-derivation cannot be "
+                                   f"compared with the cut's record {value!r}")
             return "fail", f"cut recorded {value!r}; live re-derivation now gives {want!r}"
         return "pass", f"matches live re-derivation ({fresh.freshness}): {want}"
     return rule
@@ -1395,7 +1405,7 @@ def _rule_state(state_fn):
 #: plain FAIL there made opening ANY batch red the ship-gate. `_rule_state` itself is UNCHANGED
 #: and stays the live-teeth rule for Substrates (not named by the row) and for every key on an
 #: UNCOMMITTED bundle.
-def _rule_committed_state(state_fn):
+def _rule_committed_state(state_fn, absent=None):
     """`_rule_state`, plus a targeted FAIL->WARN downgrade for a COMMITTED bundle
     (`ctx.cut_sha is not None`) whose anchored re-derivation still disagrees.
 
@@ -1424,7 +1434,7 @@ def _rule_committed_state(state_fn):
     here to the same class). An UNCOMMITTED bundle (`ctx.cut_sha is None`) is unaffected:
     `base` still returns its plain FAIL, live-state teeth exactly as before this lane.
     """
-    base = _rule_state(state_fn)
+    base = _rule_state(state_fn, absent)
 
     def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
         status, detail = base(value, ctx)
@@ -1594,6 +1604,39 @@ _STATE_ROW_FNS = {
     "Decisions": lambda hs, ctx: hs.row_decisions(_transport_for(ctx), ctx.repo_root),
     "Dates": lambda hs, ctx: hs.row_dates(ctx.repo_root, today=ctx.cut_date),
     "Models": lambda hs, ctx: hs.row_models(ctx.repo_root),
+}
+
+#: [#1887] A re-derivation that reads a surface the machine does not have is not a finding about
+#: the bundle. `CI` needs an authenticated `gh`; `Plan`/`Rulings`/`Capabilities`/`Decisions`
+#: need the Drive transport. CI has neither (the conductor's `commit-gate` job), so these five
+#: read `toothless` by construction there. Each returns the absent input's name, or None.
+_GH_ABSENT_MARKERS = ("unavailable — GhUnavailable", "NOT-RUN (gh unavailable",
+                      "a later poll could not read it")
+
+
+def _ci_input_absent(fresh, ctx: _BootCtx) -> "str | None":      # noqa: ARG001 -- ctx unused
+    if any(marker in fresh.value for marker in _GH_ABSENT_MARKERS):
+        return f"gh is unavailable or unauthenticated ({fresh.value[:120]})"
+    return None
+
+
+def _transport_input_absent(fresh, ctx: _BootCtx) -> "str | None":      # noqa: ARG001 -- fresh unused
+    try:
+        transport = _transport_for(ctx)
+    except Exception:                    # noqa: BLE001 -- an unprovable absence is not an absence
+        return None
+    if transport is None:
+        return ("the transport root is unresolved (CLAUDE_PROMPTS_DIR is unset or not a "
+                "directory, and ~/Downloads is not one either)")
+    return None
+
+
+_ABSENT_INPUT = {
+    "CI": _ci_input_absent,
+    "Rulings": _transport_input_absent,
+    "Plan": _transport_input_absent,
+    "Capabilities": _transport_input_absent,
+    "Decisions": _transport_input_absent,
 }
 
 #: The rows judged by `_rule_committed_state` (FAIL -> WARN on a COMMITTED bundle, see its
@@ -1777,9 +1820,9 @@ BOOT_DATA_RULES = {
     # [#1330]: CI/Rulings/Capabilities (+ Batches, batch BW) get the committed-bundle WARN
     # downgrade; the rest of _STATE_ROW_FNS (Substrates — not named by the row) stays plain
     # _rule_state, FAIL on any mismatch, committed or not. Transport/Seats have own rules.
-    **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
+    **{key: _rule_committed_state(fn, _ABSENT_INPUT.get(key)) for key, fn in _STATE_ROW_FNS.items()
        if key in _COMMITTED_STATE_KEYS},
-    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"])),
+    "Plan": _rule_plan(_rule_committed_state(_STATE_ROW_FNS["Plan"], _ABSENT_INPUT["Plan"])),
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
        if key not in ("Seats", "Transport", *_COMMITTED_STATE_KEYS)},
     # B2-W1 W1-11: Transport compares recorded-kinds-subset-of-live, not the rendered string.

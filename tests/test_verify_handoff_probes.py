@@ -2506,7 +2506,6 @@ def _rulings_transport(tmp_path):
     return transport
 
 
-@_needs_git
 def test_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
@@ -2520,7 +2519,6 @@ def test_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatc
     assert "gh" in result.detail.lower()
 
 
-@_needs_git
 def test_bd_ci_skips_when_gh_verdict_raises_gh_unavailable(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
@@ -2537,7 +2535,6 @@ def test_bd_ci_skips_when_gh_verdict_raises_gh_unavailable(tmp_path, monkeypatch
     assert "gh" in result.detail.lower()
 
 
-@_needs_git
 def test_committed_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
@@ -2556,7 +2553,6 @@ def test_committed_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, 
     assert "gh" in result.detail.lower()
 
 
-@_needs_git
 def test_uncommitted_bd_ci_still_fails_when_gh_is_present_and_verdict_disagrees(
         tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
@@ -2573,7 +2569,6 @@ def test_uncommitted_bd_ci_still_fails_when_gh_is_present_and_verdict_disagrees(
     assert _bd(vhp.verify(bundle))["BD-ci"].status == "fail"
 
 
-@_needs_git
 def test_uncommitted_bd_ci_still_fails_for_non_gh_not_run_verdict(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
@@ -2604,9 +2599,8 @@ def test_bd_rulings_skips_when_transport_is_absent(tmp_path, monkeypatch):
 
 def test_bd_rulings_still_fails_when_present_transport_disagrees(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
-    repo = tmp_path / "repo"
     transport = _rulings_transport(tmp_path)
-    stale = hs.StateRow("Rulings", "older rendered value", "SLOW", "old transport").rendered()
+    stale =hs.StateRow("Rulings", "older rendered value", "SLOW", "old transport").rendered()
     bundle = _boot_bundle(tmp_path, rows=_boot_rows(Rulings=stale))
     monkeypatch.setattr(vhp, "_transport_for", lambda ctx: transport)
 
@@ -2627,7 +2621,6 @@ def test_bd_transport_rows_skip_when_transport_is_absent(tmp_path, monkeypatch, 
     assert "transport" in result.detail.lower() or "CLAUDE_PROMPTS_DIR" in result.detail
 
 
-@_needs_git
 def test_committed_bd_rulings_skips_when_transport_is_absent(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"
