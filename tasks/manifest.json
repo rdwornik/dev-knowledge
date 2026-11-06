@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a52c348b1dcf5e312d17326b3c23c30dd55d00bdd923807a5c45650a199cade6",
+  "generated_sha256": "8afd26e7bff8b3058d3b0fd7a198dfaf7db0dc2525b829187488b9446483ab48",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3310,6 +3310,10 @@
     {
       "task": 1912,
       "file": "1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md"
+    },
+    {
+      "task": 1913,
+      "file": "1913-conductor-tier1-s-15-minute-ceiling-fits-the-selection.md"
     },
     {
       "prose": ""

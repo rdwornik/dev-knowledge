@@ -867,6 +867,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1910] [P2][S] dispatch.py launch: --model cures the model mismatch its own refusal names (defect 21) · tasks/1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md
 - [#1911] [P2][S] gen_handoff --trial-cut honours the cut's non-blocking preflight rows (defect 22) · tasks/1911-gen-handoff-trial-cut-honours-the-cut-s-non.md
 - [#1912] [P2][S] gen_handoff --dry-cut renders a bundle outside a cut window (defect 23) · tasks/1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md
+- [#1913] [P2][S] conductor tier1's 15-minute ceiling fits the selection a change to a widely imported script draws (defect 24) · tasks/1913-conductor-tier1-s-15-minute-ceiling-fits-the-selection.md
 
 ---
 
