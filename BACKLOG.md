@@ -869,6 +869,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1912] [P2][S] gen_handoff --dry-cut renders a bundle outside a cut window (defect 23) · tasks/1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md
 - [#1913] [P2][S] conductor tier1's 15-minute ceiling fits the selection a change to a widely imported script draws (defect 24) · tasks/1913-conductor-tier1-s-15-minute-ceiling-fits-the-selection.md
 - [#1914] [P1][S] A base push run counts as having run the suite only if a completed pytest leg shows it (defect 25) · tasks/1914-a-base-push-run-counts-as-having-run-the.md
+- [#1915] [P3][S] test_g admits only a new bundle directory of the full date-repo-mode shape (defect 26, the L-ci judge's follow-up) · tasks/1915-test-g-admits-only-a-new-bundle-directory-of.md
 
 ---
 
