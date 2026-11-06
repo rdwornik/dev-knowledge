@@ -1117,12 +1117,26 @@ def test_as_of_binds_the_supersedes_lineage_not_only_the_candidates(tmp_path):
     assert "PLAN-HARNESS-2026-10-03.md" in row.value, row.value
 
 
-def test_a_committed_bundle_still_fails_bd_plan_on_a_refused_row(tmp_path):
+def test_a_committed_bundle_still_fails_bd_plan_on_a_refused_row(tmp_path, monkeypatch):
+    # [#1887]: pin the transport PRESENT -- with it absent the refusal reads `skipped`
+    # (test_bd_plan_refusal_reads_skipped_when_the_transport_is_absent), and which of the two this
+    # test saw used to depend on whether the machine running it had a transport.
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: tmp_path)
     ctx = vhp._BootCtx(tmp_path, tmp_path, {}, "0" * 40, "2026-10-04")
     refused = ("no master plan declared among the newest: PLAN-A-2026-10-04.md (add `status: MASTER "
                "PLAN` to the head of the master) — evidence: to-cc/PLAN-*.md (x) [SLOW]")
     status, detail = vhp.BOOT_DATA_RULES["Plan"](refused, ctx)
     assert status == "fail", (status, detail)
+
+
+def test_bd_plan_refusal_reads_skipped_when_the_transport_is_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+    ctx = vhp._BootCtx(tmp_path, tmp_path, {}, "0" * 40, "2026-10-04")
+    refused = ("no master plan declared among the newest: PLAN-A-2026-10-04.md (add `status: MASTER "
+               "PLAN` to the head of the master) — evidence: to-cc/PLAN-*.md (x) [SLOW]")
+    status, detail = vhp.BOOT_DATA_RULES["Plan"](refused, ctx)
+    assert status == "skipped", (status, detail)
+    assert "transport" in detail.lower()
 
 
 def test_as_of_rejects_an_undated_lineage_predecessor(tmp_path):

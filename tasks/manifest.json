@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6f4363a2015c18dd57f2b5c38e5a944115cda271e1789044bfda00cc1b6e66c9",
+  "generated_sha256": "d56f50fbf7c2e3b166c012d2e3097db94e2d6fa7721da295346dd4310366c568",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2562,6 +2562,14 @@
     {
       "task": 1885,
       "file": "1885-gates-added-and-gates-that-caught-per-window.md"
+    },
+    {
+      "task": 1886,
+      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
+    },
+    {
+      "task": 1887,
+      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
     },
     {
       "task": 1718,

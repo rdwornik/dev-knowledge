@@ -143,7 +143,53 @@ def test_f_dispatcher_integrator_and_common_templates_have_the_updated_contract(
     assert "the one exception" in common, "common-rules template must name the one exception"
 
 
+_HANDOFFS = "docs/handoffs"
+_BUNDLE_DIR_RE = re.compile(r"\d{4}-\d{2}-\d{2}-.+")
+
+
+def _handoff_landing_violations(repo: Path, base_ref: str = "origin/main") -> list[str]:
+    """Paths under docs/handoffs/ that `base_ref...HEAD` changes illegally.
+
+    Illegal: any modify/delete/rename, or any add inside a bundle directory that EXISTS on
+    `base_ref`, or an add outside a dated `<YYYY-MM-DD>-...` bundle directory, or the files of
+    a second (or later) new bundle directory. Legal: only ADDING files under ONE NEW dated
+    bundle directory (a handoff cut's landing). [] = a legal landing.
+    Renames are reported as delete + add (`--no-renames`) so neither half can hide the other.
+    """
+    diff = subprocess.run(
+        ["git", "diff", "--name-status", "--no-renames", "-z", f"{base_ref}...HEAD",
+         "--", _HANDOFFS],
+        cwd=repo, capture_output=True, check=True,
+    ).stdout.decode("utf-8").split("\0")
+    entries = [(diff[i], diff[i + 1]) for i in range(0, len(diff) - 1, 2)]
+    if not entries:
+        return []
+    listing = subprocess.run(
+        ["git", "ls-tree", "--name-only", "-z", base_ref, f"{_HANDOFFS}/"],
+        cwd=repo, capture_output=True, check=True,
+    ).stdout.decode("utf-8").split("\0")
+    existing = {name.rsplit("/", 1)[-1] for name in listing if name}
+    violations: list[str] = []
+    added: dict[str, list[str]] = {}
+    for status, path in entries:
+        parts = path.split("/")
+        bundle = parts[2] if len(parts) > 3 else None
+        legal = (status == "A" and bundle is not None
+                 and bundle not in existing and _BUNDLE_DIR_RE.fullmatch(bundle) is not None)
+        if legal:
+            added.setdefault(bundle, []).append(path)
+        else:
+            violations.append(path)
+    # A cut's landing adds ONE new bundle directory (Done 1): every further new directory is
+    # reported, in sorted order, so the first one is the one the landing is allowed to carry.
+    for bundle in sorted(added)[1:]:
+        violations.extend(added[bundle])
+    return violations
+
+
 def test_g_handoff_files_are_unchanged_from_origin_main():
+    """A LANE must not edit an existing handoff bundle. A handoff cut's landing, which only ADDS a
+    new dated bundle directory, is legal ([#1886])."""
     resolved = subprocess.run(
         ["git", "rev-parse", "--verify", "origin/main"],
         cwd=_REPO,
@@ -154,13 +200,129 @@ def test_g_handoff_files_are_unchanged_from_origin_main():
     if resolved.returncode:
         pytest.skip("origin/main does not resolve in this checkout")
 
-    diff = subprocess.run(
-        ["git", "diff", "--name-only", "origin/main...HEAD", "--", "docs/handoffs"],
-        cwd=_REPO,
+    violations = _handoff_landing_violations(_REPO)
+    assert not violations, (
+        f"docs/handoffs differs from origin/main beyond adding a new dated bundle: {violations!r}"
+    )
+
+
+def _landing_git(repo: Path, *args: str):
+    p = subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t",
+         "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", *args],
+        cwd=repo,
         capture_output=True,
         text=True,
-        check=True,
+        encoding="utf-8",
+        check=False,
     )
-    assert not diff.stdout.strip(), (
-        f"docs/handoffs differs from origin/main: {diff.stdout.strip()!r}"
-    )
+    assert p.returncode == 0, f"git {' '.join(args)} failed: {p.stderr.strip()}"
+    return p
+
+
+def _landing_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _landing_git(repo, "init", "-b", "main")
+    existing = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect"
+    existing.mkdir(parents=True)
+    (existing / "HANDOFF_BOOT.md").write_text("# existing boot\n", encoding="utf-8")
+    (existing / "README.md").write_text("# existing readme\n", encoding="utf-8")
+    _landing_git(repo, "add", "--all")
+    _landing_git(repo, "commit", "-m", "base handoff")
+    _landing_git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _landing_git(repo, "checkout", "-b", "lane")
+    return repo
+
+
+def _landing_commit(repo: Path) -> None:
+    _landing_git(repo, "add", "--all")
+    _landing_git(repo, "commit", "-m", "lane change")
+
+
+def test_handoff_landing_allows_files_in_a_new_dated_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    new_bundle = repo / "docs" / "handoffs" / "2026-11-05-dev-knowledge-architect"
+    new_bundle.mkdir(parents=True)
+    (new_bundle / "HANDOFF_BOOT.md").write_text("# new boot\n", encoding="utf-8")
+    (new_bundle / "README.md").write_text("# new readme\n", encoding="utf-8")
+    (new_bundle / "PROBES.md").write_text("# probes\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == []
+
+
+def test_handoff_landing_rejects_modifying_an_existing_bundle_file(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    path.write_text("# modified readme\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md" in violations
+
+
+def test_handoff_landing_rejects_a_second_new_bundle_directory(tmp_path):
+    repo = _landing_repo(tmp_path)
+    for name in ("2026-11-05-dev-knowledge-architect", "2026-11-06-dev-knowledge-architect"):
+        bundle = repo / "docs" / "handoffs" / name
+        bundle.mkdir(parents=True)
+        (bundle / "HANDOFF_BOOT.md").write_text(f"# {name}\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == [
+        "docs/handoffs/2026-11-06-dev-knowledge-architect/HANDOFF_BOOT.md"]
+
+
+def test_handoff_landing_rejects_deleting_an_existing_bundle_file(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    path.unlink()
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md" in violations
+
+
+def test_handoff_landing_rejects_adding_inside_an_existing_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    path = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "EXTRA.md"
+    path.write_text("# extra\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert "docs/handoffs/2026-10-01-dev-knowledge-architect/EXTRA.md" in violations
+
+
+def test_handoff_landing_ignores_new_bundle_when_existing_bundle_is_modified(tmp_path):
+    repo = _landing_repo(tmp_path)
+    new_bundle = repo / "docs" / "handoffs" / "2026-11-05-dev-knowledge-architect"
+    new_bundle.mkdir(parents=True)
+    (new_bundle / "HANDOFF_BOOT.md").write_text("# new boot\n", encoding="utf-8")
+    changed = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect" / "README.md"
+    changed.write_text("# modified readme\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert violations == ["docs/handoffs/2026-10-01-dev-knowledge-architect/README.md"]
+
+
+def test_handoff_landing_allows_changes_outside_handoffs(tmp_path):
+    repo = _landing_repo(tmp_path)
+    (repo / "notes.md").write_text("unrelated change\n", encoding="utf-8")
+    _landing_commit(repo)
+
+    assert _handoff_landing_violations(repo) == []
+
+
+def test_handoff_landing_rejects_renaming_inside_an_existing_bundle(tmp_path):
+    repo = _landing_repo(tmp_path)
+    existing = repo / "docs" / "handoffs" / "2026-10-01-dev-knowledge-architect"
+    (existing / "README.md").rename(existing / "NOTES.md")
+    _landing_commit(repo)
+
+    violations = _handoff_landing_violations(repo)
+    assert set(violations) & {
+        "docs/handoffs/2026-10-01-dev-knowledge-architect/README.md",
+        "docs/handoffs/2026-10-01-dev-knowledge-architect/NOTES.md",
+    }
