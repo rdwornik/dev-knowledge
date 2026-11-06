@@ -2519,6 +2519,26 @@ def test_bd_ci_skips_when_gh_verdict_reports_gh_unavailable(tmp_path, monkeypatc
     assert "gh" in result.detail.lower()
 
 
+def test_bd_ci_skips_when_gh_cannot_read_a_completed_runs_job_list(tmp_path, monkeypatch):
+    """`ci_verdict.fetch_jobs` swallows a gh failure into None, so the verdict reads
+    JOBS-UNREADABLE ("...its job list could not be read") -- still an absent gh, not a finding."""
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    recorded = _ci_green_row(repo, monkeypatch)
+    monkeypatch.setattr(
+        hs._civ, "verdict_for",
+        lambda ref, **kwargs: hs._civ.CiVerdict(
+            ref=ref, sha=ref[:7], verdict=hs._civ.STATE_NOT_RUN, run_id=42140618428,
+            state="JOBS-UNREADABLE",
+            reason="run 42140618428 completed but its job list could not be read"))
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    result = _bd(vhp.verify(bundle))["BD-ci"]
+    assert result.status == "skipped", result.detail
+    assert "gh" in result.detail.lower()
+
+
 def test_bd_ci_skips_when_gh_verdict_raises_gh_unavailable(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     repo = tmp_path / "repo"

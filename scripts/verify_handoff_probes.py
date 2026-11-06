@@ -1611,7 +1611,7 @@ _STATE_ROW_FNS = {
 #: need the Drive transport. CI has neither (the conductor's `commit-gate` job), so these five
 #: read `toothless` by construction there. Each returns the absent input's name, or None.
 _GH_ABSENT_MARKERS = ("unavailable — GhUnavailable", "NOT-RUN (gh unavailable",
-                      "a later poll could not read it")
+                      "a later poll could not read it", "its job list could not be read")
 
 
 def _ci_input_absent(fresh, ctx: _BootCtx) -> "str | None":      # noqa: ARG001 -- ctx unused
