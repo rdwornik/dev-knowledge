@@ -706,6 +706,7 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
     base_read = False
     base_run = None
     base_reason = ""        # why a GIVEN baseline gave nothing to compare against ([#1801])
+    base_was_reused = False     # the baseline's newest push run only echoed a verdict ([#1888])
     if baseline:
         try:
             base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW)
@@ -718,6 +719,7 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                 # verdict, so its log has no failing test and every tip red would read NEW.
                 # Look again for the push run that RAN the suite; the TIP is never redirected.
                 reused_id = base_run.get("databaseId")
+                base_was_reused = True
                 try:
                     if not _accepts_skip_reused(fetch):
                         # An injected fetcher of the pre-[#1888] shape cannot be asked for the
@@ -807,6 +809,15 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
             state = STATE_UNATTRIBUTED
             reasons.append("a pytest leg concluded neither success nor failure "
                            f"({', '.join(j['name'] + '=' + str(j.get('conclusion')) for j in pytest_legs)})")
+        elif base_was_reused and not base_read:
+            # DONE 1 ([#1888]): the baseline only echoed a verdict and no readable suite run
+            # replaced it, so this green tip is not a PASS the judge can stand behind -- it is
+            # missing evidence, and the reason (already in `reasons` when the lookup named one)
+            # says which reused run it was.
+            state = STATE_UNATTRIBUTED
+            if not base_reason:
+                reasons.append("the baseline's push run reused a same-sha verdict and the run "
+                               "that ran the suite could not be read")
         else:
             state = STATE_PASS
     elif newly_failing or findings["new_tests"] or non_test:

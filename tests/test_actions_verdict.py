@@ -1773,3 +1773,50 @@ def test_e30_reused_base_whose_suite_run_lookup_is_unavailable_is_unattributed()
     assert verdict.state == av.STATE_UNATTRIBUTED
     assert "baseline run unavailable" in verdict.reason
     assert verdict.new_tests == ()
+
+
+def test_e30_reused_green_tip_over_an_all_reused_base_is_not_a_pass(monkeypatch, tmp_path):
+    # Judge + review round 2: Done 1 says "the result is not a PASS" when no run ran the suite,
+    # and that holds for a GREEN tip too (real fetch_run through a fake gh).
+    tip, base = "a" * 40, "b" * 40
+    rows_by_sha = {tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+                   base: [_e30r_row(200, base, "2026-11-02T09:00:00Z")]}
+    jobs_by_id = {300: [_e30r_pytest_job(301, "success", "Run the suite", "success")],
+                  200: [_e30r_pytest_job(201, "success",
+                                         "Same-sha verdict reused (no suite run)", "success")]}
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, [])
+
+    verdict = av.verdict_for(tip, baseline=base, repo_root=tmp_path)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason and "reused" in verdict.reason
+
+
+def test_e30_reused_green_tip_with_a_legacy_fetch_is_not_a_pass():
+    tip, base = "a" * 40, "b" * 40
+    runs = {tip: _run(tip, "success", {_LEG_U: "success"}), base: _e30r_reused_base_run(base)}
+
+    def legacy_fetch(sha, *, repo_root=None, workflow=None):
+        return runs[sha]
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=legacy_fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason
+
+
+def test_e30_reused_green_tip_over_a_reused_base_with_a_suite_run_still_passes(
+        monkeypatch, tmp_path):
+    tip, base = "a" * 40, "b" * 40
+    rows_by_sha = {tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+                   base: [_e30r_row(200, base, "2026-11-02T09:00:00Z"),
+                          _e30r_row(100, base, "2026-11-01T10:00:00Z")]}
+    jobs_by_id = {300: [_e30r_pytest_job(301, "success", "Run the suite", "success")],
+                  200: [_e30r_pytest_job(201, "success",
+                                         "Same-sha verdict reused (no suite run)", "success")],
+                  100: [_e30r_pytest_job(101, "success", "Run the suite", "success")]}
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, [])
+
+    verdict = av.verdict_for(tip, baseline=base, repo_root=tmp_path)
+
+    assert verdict.state == av.STATE_PASS
