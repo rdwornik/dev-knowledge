@@ -28,7 +28,7 @@
 | **Capabilities** | 10/20 WORKS (10 qualified) — `DIGEST-CAPABILITY-MAP-2026-09-28.md` — evidence: to-browser/DIGEST-CAPABILITY-MAP-*.md (newest) [SLOW] |
 | **Landed** | through R179 (178 ruling id(s) bulleted) — evidence: protocols/STANDING_RULINGS.md bullets `- **R<n>` [SLOW] |
 | **Decisions** | 216 decision file(s): 83 OPEN, 133 resolve on main, 0 unresolved, 0 without a carried-by key — evidence: gen_handoff.carriage_verdicts (DECLARE-/AMEND-/BATCH- files in to-cc/ + to-browser/) [LIVE-DRIFTS] |
-| **Dates** | as of 2026-11-05: next dated fates 2026-11-09 ×26, 2026-11-15 ×1, 2026-11-16 ×1 (+30 later); 26 overdue — evidence: ecosystem/harness.yaml `manual_until:` [LIVE-DRIFTS] |
+| **Dates** | as of 2026-11-06: next dated fates 2026-11-09 ×26, 2026-11-15 ×1, 2026-11-16 ×1 (+30 later); 26 overdue — evidence: ecosystem/harness.yaml `manual_until:` [LIVE-DRIFTS] |
 | **Models** | registry routing order, not live availability (usage limits are recorded nowhere in the repository; dispatch.py reads no registry, the contract's model cell serves): implement claude-sonnet-5-5 → claude-sonnet-5.5 → grok-4.7 · review gpt-5.6-terra → grok-4.7 → gpt-5.6-terra → claude-sonnet-5-5 → gemini-3.8-flash · read antigravity → claude-haiku-5-5 → copilot-enterprise · verify claude-sonnet-5-5 · orchestrate claude-opus-5-5 · plan claude-opus-5-5 · dispatcher claude-sonnet-5 — evidence: ecosystem/provider-registry.yaml roles.*.order, dispatcher [SLOW] |
 <!-- BOOT-DATA:END -->
 
