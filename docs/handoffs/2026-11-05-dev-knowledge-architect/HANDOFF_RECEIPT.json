@@ -1,0 +1,140 @@
+{
+  "schema": "handoff-receipt/1",
+  "generator": "scripts/gen_handoff.py",
+  "slug": "2026-11-05-dev-knowledge-architect",
+  "mode": "architect",
+  "date": "2026-11-05",
+  "cut": "real",
+  "boot_cost": {
+    "metric": "turns to first correct dispatch",
+    "value": null,
+    "status": "unmeasured — no tally recorded at this cut — the browser seat keeps no transcript the repo can read (HANDOFF_PROCESS §5), so the count is the operator's; pass --boot-turns N --boot-dispatch to-cc/<order>.md when cutting",
+    "dispatch": null,
+    "measures": "the seat that booted from the bundle this cut supersedes",
+    "source": null
+  },
+  "paste": {
+    "bytes": 12100,
+    "ceiling_bytes": 20000,
+    "ceiling_source": "scripts/assemble_paste.py::PASTE_BYTE_CEILING",
+    "status": "assembled"
+  },
+  "manifest": {
+    "cut_id": "4b60bc3501ec",
+    "source_sha": "50cbabf1cfe0fa93cf1d12fc1a0a9573bf8222b9",
+    "generation_time": "2026-11-05T14:27:22+00:00",
+    "files": {
+      "CUT_DRAFTS.md": "484ccc8bbc823b1290ac5d2e17d249d30305473cb5badfa8854dee29618367cb",
+      "DECISION_LEDGER.md": "3b7c10ab60ad9427555f22b9203883560b9aff48e0357c28186d2ea413d2c6ef",
+      "DIAGRAM.md": "c908906f19b77d12a0cef896c175bcddf80d413cba90f856f89f04a9067d0559",
+      "FUNNEL_HEALTH.md": "a326889515860d63ea7cf2ed8eca2c4f9a207ca2544d00427ea2220733ca075f",
+      "HANDOFF_BOOT.md": "b3e213d756073595a0ff150a2ecb47ac7de13b7387850743ff4430215459a1d5",
+      "PASTE_THIS.md": "69f41983e803abfcbdb008f78acc3d979a2dda88a3bc379d95efc6d063e3bd69",
+      "PROBES.md": "24a3c3dfcb76c1041d322d50401a1266b801c6cec3c31e9195133e06f3ccd531",
+      "READING_PATH.md": "c11c55f7119806315d82d5d2c142cdf4b239b5b8c0a46ee323854d3bd3c85f62",
+      "RESIDUAL.md": "5da4c8dd73cbe2b9bc76e89260cb27e305057ff485a635c269aa1427b884c581",
+      "SEAT-BOOT-dispatcher.md": "669dba4b4c138ed5fff86ffc35422e5702f6744cb3c597681ca320b402275c2d",
+      "SEAT-BOOT-filings.md": "82bd6e16a1c7080c8390d5451909693ebb043b6b3b5ae4283510226dc6329cdf",
+      "SEAT-BOOT-handoff.md": "7c74be59ea70c14511a6d0db5982691d534b59612b3baa465c992bd4a9e97085",
+      "SEAT-BOOT-integrator.md": "a90dbcecb5372d29cb6f85861fbe9e2acea7b69ee2951ade477c83c4cac99668",
+      "SEAT-BOOT-lane.md": "0dcacd7a63a837b7e5fdf0a7b3ee3423a8e01092cd9ab5e7b4ba909fe69c959c",
+      "SUPPLEMENT.md": "29177b616e6ba05cac74adc9fcd989680fdf9af82a2e9db0feb65068aabe5ce1"
+    },
+    "row_freshness": {
+      "CI": "LIVE-DRIFTS",
+      "Batches": "LIVE-DRIFTS",
+      "Plan": "SLOW",
+      "Seats": "LIVE-DRIFTS",
+      "Substrates": "SLOW",
+      "Transport": "SLOW",
+      "Rulings": "SLOW",
+      "Capabilities": "SLOW",
+      "Landed": "SLOW",
+      "Decisions": "LIVE-DRIFTS",
+      "Dates": "LIVE-DRIFTS",
+      "Models": "SLOW"
+    }
+  },
+  "preflight_notes": [
+    "[FAIL] landed_vs_ratified: ratified-not-landed: none; landed-not-ratified: R0, R24, R25, R29, R30, R31, R32, R33, R34, R35, R36, R37, R38, R39, R40, R43, R44, R45, R46, R47, R48, R53, R54, R58, R102, R104, R105, R106, R107, R108, R109, R110, R111, R112, R113, R114, R115, R117, R118, R121, R122, R123, R124, R125, R126, R127, R128, R129, R130, R131, R132, R133, R134, R135, R136, R137, R138, R139, R140, R141, R142, R143, R144, R145, R146, R147, R148, R149, R150, R151, R152, R153, R154, R155, R156, R157, R158, R159, R160, R161, R162, R163, R164, R165, R166, R167, R168, R169, R170, R171, R172, R173, R174, R175, R176, R177, R178, R179 -- to-browser/RATIFICATION-*.md x protocols/STANDING_RULINGS.md + docs/decisions/ADR-*.md",
+    "[n/a ] operator_decisions_list: [n/a-reason:SUBJECT-ABSENT] no bundle named -- <bundle>/*.md heading `Operator decisions`"
+  ],
+  "whole_repo_verdict": {
+    "source": "CI ship-gate job",
+    "verdict": "not run",
+    "sha": "50cbabf1cfe0fa93cf1d12fc1a0a9573bf8222b9",
+    "run_url": "https://github.com/rdwornik/dev-knowledge/actions/runs/42016019715",
+    "detail": "run 42016019715 carries no 'ship-gate' job"
+  },
+  "refusal_count_since_previous_cut": 0,
+  "stops": [
+    {
+      "step": 5,
+      "name": "SUPPLEMENT-ANSWERS",
+      "actor": "browser"
+    },
+    {
+      "step": 12,
+      "name": "Project upload",
+      "actor": "operator"
+    },
+    {
+      "step": 13,
+      "name": "ROLE PIN paste",
+      "actor": "operator"
+    }
+  ],
+  "waits": [
+    {
+      "step": 5,
+      "actor": "browser",
+      "start": "2026-11-05T14:16:44Z",
+      "end": null
+    },
+    {
+      "step": 12,
+      "actor": "operator",
+      "start": "2026-11-05T14:16:44Z",
+      "end": null
+    },
+    {
+      "step": 13,
+      "actor": "operator",
+      "start": "2026-11-05T14:16:44Z",
+      "end": null
+    }
+  ],
+  "surfaces": {
+    "ledger": {
+      "path": "H:\\My Drive\\CLAUDE PROMPT DIR\\to-browser\\LEDGER-dev-knowledge.md",
+      "sha256": "5a37206e57cf4290cc07a74f2bb2d9b27492ddb044bb7c28b6ab95387a44e098",
+      "changed": false
+    },
+    "seat_ids": {
+      "path": "ecosystem/seat-ids.yaml",
+      "sha256": "8185853240258826220d7b5a8ef9382148e0bb0294a9afc6942137054759e162",
+      "changed": false
+    },
+    "dispatch_map": {
+      "path": "H:\\My Drive\\CLAUDE PROMPT DIR\\to-browser\\MAP-DISPATCH.md",
+      "sha256": "280a9ead722ab081c064dd9373155042067359dc2df34b4908a60914de96f581",
+      "changed": false
+    },
+    "reading_path": {
+      "path": "READING_PATH.md",
+      "sha256": "c11c55f7119806315d82d5d2c142cdf4b239b5b8c0a46ee323854d3bd3c85f62",
+      "changed": true
+    }
+  },
+  "seats": {
+    "outgoing": "Tech-Architect-47",
+    "successor": "Tech-Architect-48"
+  },
+  "previous_time_to_boot": {
+    "status": "measured",
+    "seconds": 180816,
+    "file": "to-cc/PLAN-NEXT-r1-superseded-2026-10-30.md",
+    "bundle": "2026-10-28-dev-knowledge-architect",
+    "successor": "Tech-Architect-48"
+  }
+}

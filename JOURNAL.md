@@ -20,6 +20,22 @@
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
 
 ---
+### 2026-11-06 (c) - CC (Opus 5.5, dispatcher seat session-close-e3-0-cycle-4, morning landings): H5-LAND -- the 2026-11-05 handoff bundle lands on main by operator act, judged by the landed judge
+
+**Anchors:** `828030b78` (the carrier tip, the bundle as cut and repaired), `aee4cfdb6` (origin/main 47e1127fc merged into the carrier), main when cut: CI-LAND's `47e1127fc`.
+
+**Did:** landed worktree-handoff-2026-11-05 by operator act H5-LAND (RATIFICATION-2026-11-05.md item 11 as amended; RATIFICATION-2026-11-06 Item 7 withdrew Item 6's deferral) through main's land_lane.py. Before it: origin/main merged into the carrier (tasks/1887 took main's strict superset; the manifest's duplicate 1886/1887 nodes kept main's placement); the bundle's date-bound Dates row re-rendered for the landing day by `handoff_state.row_dates(today=<UTC date>)`, PASTE_THIS re-assembled by `assemble_paste.py`, the receipt manifest restamped by `gen_handoff.restamp_manifest`; this entry and the carried 2026-11-05 (c) placed above main's entries (validate_prepend_order); rows [#1916] and [#1917] filed under Item 8.
+
+**Result:** see to-browser/DIGEST-MORNING-LANDINGS-2026-11-06.md (main sha, CI run, verdict, the bundle's upload facts).
+
+**Changes:** docs/handoffs/2026-11-05-dev-knowledge-architect/ (the bundle; HANDOFF_BOOT.md Dates row, PASTE_THIS.md, HANDOFF_RECEIPT.json), logs/HANDOFF-RESTAMP-RECEIPTS.jsonl, the carrier's filed rows tasks/1889-* to tasks/1917-*, tasks/manifest.json, BACKLOG.md.
+
+**Next:** teardown (the carrier worktree once the operator has copied PASTE_THIS.md), DIGEST-MORNING-LANDINGS-2026-11-06.
+
+### 2026-11-05 (c) - CC (Opus 5.5, dispatcher seat, session close E3.0): Handoff cut 2026-11-05-dev-knowledge-architect (HANDOFF_BOOT v5): bundle docs/handoffs/2026-11-05-dev-knowledge-architect/ landed by operator act H5-LAND (RATIFICATION-2026-11-05.md item 11 as amended); closes batch E3.0.
+
+**Anchors:** `20534c68a`, `5acbaf476`, `332c0773e`, `a75045626`, `f8197a47e`, `acb7ff71e`, `e4d6eeea5`
+
 ### 2026-11-06 (b) - CC (Opus 5.5, dispatcher seat session-close-e3-0-cycle-4, morning landings): CI-LAND -- [#1886]/[#1887] land on main by operator act, judged by the landed judge
 
 **Anchors:** `a07081e20` (the reviewed lane tip this push introduces), main when cut: JUDGE-LAND's main sha (see to-browser/DIGEST-MORNING-LANDINGS-2026-11-06.md).

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d56f50fbf7c2e3b166c012d2e3097db94e2d6fa7721da295346dd4310366c568",
+  "generated_sha256": "0f8967305ebcc2508054a3383ba0b3c71effef0cbb2c0c7b35a9e21a9140529b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3214,6 +3214,122 @@
     {
       "task": 1888,
       "file": "1888-the-landing-judge-follows-a-same-sha-reused-base.md"
+    },
+    {
+      "task": 1889,
+      "file": "1889-known-reds-registry-pin-tests-are-lane-scoped-so.md"
+    },
+    {
+      "task": 1890,
+      "file": "1890-the-handoff-receipt-records-observed-stops-and-closes-each.md"
+    },
+    {
+      "task": 1891,
+      "file": "1891-a-reachable-cli-verb-for-gen-handoff-restamp-manifest.md"
+    },
+    {
+      "task": 1892,
+      "file": "1892-the-ledger-is-regenerate-and-diffed-after-the-cut.md"
+    },
+    {
+      "task": 1893,
+      "file": "1893-a-refused-land-lane-cleans-up-its-integration-branch.md"
+    },
+    {
+      "task": 1894,
+      "file": "1894-the-cut-names-its-own-implements-edge-for-the.md"
+    },
+    {
+      "task": 1895,
+      "file": "1895-one-defined-landing-command-for-a-handoff-cut-resolvable.md"
+    },
+    {
+      "task": 1896,
+      "file": "1896-worktree-owners-admits-the-cut-s-own-worktree.md"
+    },
+    {
+      "task": 1897,
+      "file": "1897-window-lessons-reach-the-reading-path-in-its-seat.md"
+    },
+    {
+      "task": 1898,
+      "file": "1898-generated-operator-decisions-drafts-see-ratified-items-that-have.md"
+    },
+    {
+      "task": 1899,
+      "file": "1899-a-gap-list-printed-right-after-cut-every-unfilled.md"
+    },
+    {
+      "task": 1900,
+      "file": "1900-cut-renders-the-carried-debt-section-of-residual-md.md"
+    },
+    {
+      "task": 1901,
+      "file": "1901-assemble-paste-fails-clean.md"
+    },
+    {
+      "task": 1902,
+      "file": "1902-a-question-the-cut-raised-can-be-dispositioned-by.md"
+    },
+    {
+      "task": 1903,
+      "file": "1903-the-hand-written-operator-decisions-section-has-one-home.md"
+    },
+    {
+      "task": 1904,
+      "file": "1904-handoff-boot-data-carries-the-landing-state-on-main.md"
+    },
+    {
+      "task": 1905,
+      "file": "1905-handoff-boot-s-models-row-names-model-and-effort.md"
+    },
+    {
+      "task": 1906,
+      "file": "1906-handoff-boot-states-the-backlog-mechanics-the-browser-cannot.md"
+    },
+    {
+      "task": 1907,
+      "file": "1907-the-process-map-carries-an-owner-per-step.md"
+    },
+    {
+      "task": 1908,
+      "file": "1908-handoff-boot-stops-describing-a-dispatcher-seat-that-r130.md"
+    },
+    {
+      "task": 1909,
+      "file": "1909-handoff-boot-states-the-browser-seat-s-role-and.md"
+    },
+    {
+      "task": 1910,
+      "file": "1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md"
+    },
+    {
+      "task": 1911,
+      "file": "1911-gen-handoff-trial-cut-honours-the-cut-s-non.md"
+    },
+    {
+      "task": 1912,
+      "file": "1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md"
+    },
+    {
+      "task": 1913,
+      "file": "1913-conductor-tier1-s-15-minute-ceiling-fits-the-selection.md"
+    },
+    {
+      "task": 1914,
+      "file": "1914-a-base-push-run-counts-as-having-run-the.md"
+    },
+    {
+      "task": 1915,
+      "file": "1915-test-g-admits-only-a-new-bundle-directory-of.md"
+    },
+    {
+      "task": 1916,
+      "file": "1916-land-lane-has-no-resume-path-for-an-already-pushed.md"
+    },
+    {
+      "task": 1917,
+      "file": "1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md"
     },
     {
       "prose": ""
