@@ -1589,3 +1589,234 @@ def test_e30_fetch_run_distinguishes_unreadable_jobs_from_empty_jobs(monkeypatch
     assert empty is not None
     assert empty["jobs"] == []
     assert av._jobs_were_read(empty) is True
+
+
+def _e30r_row(database_id, sha, created_at):
+    return {**_RUN_ROW, "databaseId": database_id, "headSha": sha, "createdAt": created_at}
+
+
+def _e30r_pytest_job(database_id, conclusion, step_name, step_conclusion):
+    steps = [{"name": step_name, "conclusion": step_conclusion,
+              "status": "completed", "number": 1}]
+    if step_name == "Same-sha verdict reused (no suite run)":
+        steps.insert(0, {"name": "Run the suite", "conclusion": "skipped",
+                         "status": "completed", "number": 1})
+        steps[1]["number"] = 2
+    return {"name": _LEG_U, "conclusion": conclusion, "databaseId": database_id,
+            "steps": steps}
+
+
+def _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, viewed):
+    def fake_run(command, **kwargs):
+        if command[1:3] == ["run", "list"]:
+            sha = command[command.index("--commit") + 1]
+            return _ok(command, json.dumps(rows_by_sha.get(sha, [])))
+        if command[1:3] == ["run", "view"]:
+            database_id = int(command[3])
+            viewed.append(database_id)
+            return _ok(command, json.dumps({"jobs": jobs_by_id[database_id]}))
+        raise AssertionError(f"unexpected gh command: {command}")
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+
+def test_e30_reused_base_uses_newest_older_suite_run_for_test_attribution(monkeypatch, tmp_path):
+    tip, base = "d" * 40, "b" * 40
+    rows_by_sha = {
+        tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+        base: [_e30r_row(200, base, "2026-11-02T09:00:00Z"),
+               _e30r_row(100, base, "2026-11-01T10:00:00Z")],
+    }
+    jobs_by_id = {
+        300: [_e30r_pytest_job(301, "failure", "Run the suite", "failure")],
+        200: [_e30r_pytest_job(201, "success",
+                               "Same-sha verdict reused (no suite run)", "success")],
+        100: [_e30r_pytest_job(101, "failure", "Run the suite", "failure")],
+    }
+    viewed = []
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, viewed)
+    requested_base_runs = []
+
+    def fake_logs(run, job, *, repo_root=None):
+        if run["headSha"] == tip:
+            return _gh_log(_LEG_U, {_KNOWN: "AssertionError: known"})
+        requested_base_runs.append(run["databaseId"])
+        if run["databaseId"] == 100:
+            return _gh_log(_LEG_U, {_KNOWN: "AssertionError: known",
+                                    _NEW: "KeyError: existing"})
+        return "pytest (ubuntu-latest)\tRun the suite\t" + _TS + " ===== 9211 passed ====="
+
+    verdict = av.verdict_for(tip, baseline=base, repo_root=tmp_path, fetch_logs=fake_logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN, _NEW)))
+
+    assert 100 in requested_base_runs
+    assert 200 not in requested_base_runs
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.new_tests == ()
+
+
+def test_e30_reused_base_without_suite_run_is_unattributed(monkeypatch, tmp_path):
+    tip, base = "e" * 40, "c" * 40
+    rows_by_sha = {
+        tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+        base: [_e30r_row(200, base, "2026-11-02T09:00:00Z")],
+    }
+    jobs_by_id = {
+        300: [_e30r_pytest_job(301, "failure", "Run the suite", "failure")],
+        200: [_e30r_pytest_job(201, "success",
+                               "Same-sha verdict reused (no suite run)", "success")],
+    }
+    viewed = []
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, viewed)
+    green_log = f"{_LEG_U}\tRun the suite\t{_TS} ===== 9211 passed ====="
+
+    verdict = av.verdict_for(
+        tip, baseline=base, repo_root=tmp_path,
+        fetch_logs=_logs({(tip, _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: known"}),
+                          (base, _LEG_U): green_log}),
+        registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason
+    assert verdict.new_tests == ()
+
+
+def test_e30_reused_tip_keeps_its_newest_run_without_viewing_older_run(monkeypatch, tmp_path):
+    tip = "f" * 40
+    rows_by_sha = {
+        tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z"),
+              _e30r_row(299, tip, "2026-11-01T10:00:00Z")],
+    }
+    jobs_by_id = {
+        300: [_e30r_pytest_job(301, "success",
+                               "Same-sha verdict reused (no suite run)", "success")],
+        299: [_e30r_pytest_job(3001, "success", "Run the suite", "success")],
+    }
+    viewed = []
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, viewed)
+
+    verdict = av.verdict_for(tip, repo_root=tmp_path)
+
+    assert verdict.run_id == 300
+    assert 299 not in viewed
+
+
+def test_e30_reused_base_does_not_skip_older_run_when_newest_ran_suite(monkeypatch, tmp_path):
+    tip, base = "a" * 40, "9" * 40
+    rows_by_sha = {
+        tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+        base: [_e30r_row(200, base, "2026-11-02T09:00:00Z"),
+               _e30r_row(100, base, "2026-11-01T10:00:00Z")],
+    }
+    jobs_by_id = {
+        300: [_e30r_pytest_job(301, "failure", "Run the suite", "failure")],
+        200: [_e30r_pytest_job(201, "failure", "Run the suite", "failure")],
+        100: [_e30r_pytest_job(101, "failure", "Run the suite", "failure")],
+    }
+    viewed = []
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, viewed)
+    requested_base_runs = []
+
+    def fake_logs(run, job, *, repo_root=None):
+        if run["headSha"] == tip:
+            return _gh_log(_LEG_U, {_KNOWN: "AssertionError: known"})
+        requested_base_runs.append(run["databaseId"])
+        return _gh_log(_LEG_U, {_KNOWN: "AssertionError: known"})
+
+    av.verdict_for(tip, baseline=base, repo_root=tmp_path, fetch_logs=fake_logs,
+                   registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert 200 in viewed
+    assert 100 not in viewed
+    assert requested_base_runs == [200]
+
+
+def _e30r_reused_base_run(sha, database_id=200):
+    run = _run(sha, "success", {_LEG_U: "success"})
+    run["databaseId"] = database_id
+    run["jobs"][0]["steps"] = [{"name": av.REUSED_VERDICT_STEP, "conclusion": "success",
+                                "status": "completed", "number": 1}]
+    return run
+
+
+def test_e30_reused_base_with_a_legacy_signature_fetch_is_unattributed_not_a_crash():
+    # Review finding (terra, MAJOR): an injected fetcher shaped (sha, *, repo_root, workflow)
+    # cannot be asked for `skip_reused`; that must read as missing evidence, never a TypeError.
+    tip, base = "a" * 40, "b" * 40
+    runs = {tip: _run(tip, "failure", {_LEG_U: "failure"}), base: _e30r_reused_base_run(base)}
+
+    def legacy_fetch(sha, *, repo_root=None, workflow=None):
+        return runs[sha]
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=legacy_fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason and "reused" in verdict.reason
+    assert verdict.new_tests == ()
+
+
+def test_e30_reused_base_whose_suite_run_lookup_is_unavailable_is_unattributed():
+    tip, base = "a" * 40, "b" * 40
+    calls = []
+
+    def fetch(sha, *, repo_root=None, workflow=None, skip_reused=False):
+        calls.append((sha, skip_reused))
+        if sha == tip:
+            return _run(tip, "failure", {_LEG_U: "failure"})
+        if skip_reused:
+            raise av.ActionsUnavailable("gh went away")
+        return _e30r_reused_base_run(base)
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=fetch)
+
+    assert calls == [(tip, False), (base, False), (base, True)]
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "baseline run unavailable" in verdict.reason
+    assert verdict.new_tests == ()
+
+
+def test_e30_reused_green_tip_over_an_all_reused_base_is_not_a_pass(monkeypatch, tmp_path):
+    # Judge + review round 2: Done 1 says "the result is not a PASS" when no run ran the suite,
+    # and that holds for a GREEN tip too (real fetch_run through a fake gh).
+    tip, base = "a" * 40, "b" * 40
+    rows_by_sha = {tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+                   base: [_e30r_row(200, base, "2026-11-02T09:00:00Z")]}
+    jobs_by_id = {300: [_e30r_pytest_job(301, "success", "Run the suite", "success")],
+                  200: [_e30r_pytest_job(201, "success",
+                                         "Same-sha verdict reused (no suite run)", "success")]}
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, [])
+
+    verdict = av.verdict_for(tip, baseline=base, repo_root=tmp_path)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason and "reused" in verdict.reason
+
+
+def test_e30_reused_green_tip_with_a_legacy_fetch_is_not_a_pass():
+    tip, base = "a" * 40, "b" * 40
+    runs = {tip: _run(tip, "success", {_LEG_U: "success"}), base: _e30r_reused_base_run(base)}
+
+    def legacy_fetch(sha, *, repo_root=None, workflow=None):
+        return runs[sha]
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=legacy_fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason
+
+
+def test_e30_reused_green_tip_over_a_reused_base_with_a_suite_run_still_passes(
+        monkeypatch, tmp_path):
+    tip, base = "a" * 40, "b" * 40
+    rows_by_sha = {tip: [_e30r_row(300, tip, "2026-11-02T10:00:00Z")],
+                   base: [_e30r_row(200, base, "2026-11-02T09:00:00Z"),
+                          _e30r_row(100, base, "2026-11-01T10:00:00Z")]}
+    jobs_by_id = {300: [_e30r_pytest_job(301, "success", "Run the suite", "success")],
+                  200: [_e30r_pytest_job(201, "success",
+                                         "Same-sha verdict reused (no suite run)", "success")],
+                  100: [_e30r_pytest_job(101, "success", "Run the suite", "success")]}
+    _e30r_install_gh(monkeypatch, rows_by_sha, jobs_by_id, [])
+
+    verdict = av.verdict_for(tip, baseline=base, repo_root=tmp_path)
+
+    assert verdict.state == av.STATE_PASS
