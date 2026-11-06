@@ -1389,11 +1389,14 @@ def _rule_state(state_fn, absent=None):
         except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported
             return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
         want = fresh.rendered()
+        # [#1887] Absence is judged BEFORE equality: a re-derivation that read nothing cannot
+        # confirm the record, and a recorded value that happens to equal the degraded rendering
+        # ("no ... found on the transport") is an unmeasured row, not a pass.
+        missing = absent(fresh, ctx) if absent is not None else None
+        if missing:
+            return "skipped", (f"not measured: {missing}, so the live re-derivation cannot be "
+                               f"compared with the cut's record {value!r}")
         if value.strip() != want.strip():
-            missing = absent(fresh, ctx) if absent is not None else None
-            if missing:
-                return "skipped", (f"not measured: {missing}, so the live re-derivation cannot be "
-                                   f"compared with the cut's record {value!r}")
             return "fail", f"cut recorded {value!r}; live re-derivation now gives {want!r}"
         return "pass", f"matches live re-derivation ({fresh.freshness}): {want}"
     return rule

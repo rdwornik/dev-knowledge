@@ -2617,6 +2617,34 @@ def test_bd_rulings_skips_when_transport_is_absent(tmp_path, monkeypatch):
     assert "transport" in result.detail.lower() or "CLAUDE_PROMPTS_DIR" in result.detail
 
 
+def test_bd_rulings_equal_to_the_degraded_rendering_is_skipped_not_a_pass(tmp_path, monkeypatch):
+    """A cut made with no transport records the degraded row; with the transport still absent the
+    live row EQUALS it. That is an unmeasured row, so `skipped` -- never a green `pass`."""
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    recorded = hs.row_rulings(None, repo_root=tmp_path / "repo")
+    assert recorded.value.startswith("no RATIFICATION file found")      # the premise
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(Rulings=recorded.rendered()))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    result = _bd(vhp.verify(bundle))["BD-rulings"]
+    assert result.status == "skipped", result.detail
+    assert "transport" in result.detail.lower()
+
+
+def test_bd_ci_equal_to_the_gh_unavailable_rendering_is_skipped_not_a_pass(tmp_path, monkeypatch):
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    monkeypatch.setattr(hs._civ, "verdict_for", lambda ref, **kwargs: _gh_unavailable_verdict(ref))
+    recorded = hs.row_ci(repo)                       # what a cut made with gh down recorded
+    assert "gh unavailable" in recorded.value        # the premise
+    bundle = _boot_bundle(tmp_path, rows=_boot_rows(CI=recorded.rendered()))
+
+    result = _bd(vhp.verify(bundle))["BD-ci"]
+    assert result.status == "skipped", result.detail
+    assert "gh" in result.detail.lower()
+
+
 def test_bd_rulings_still_fails_when_present_transport_disagrees(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     transport = _rulings_transport(tmp_path)
