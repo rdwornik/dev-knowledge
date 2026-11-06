@@ -69,6 +69,7 @@ HONEST LIMITS:
 """
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import re
@@ -381,6 +382,17 @@ def ran_reused_verdict(run: dict) -> bool:
             if step.get("name") == REUSED_VERDICT_STEP and step.get("conclusion") == "success":
                 return True
     return False
+
+
+def _accepts_skip_reused(fetch: Callable) -> bool:
+    """True when `fetch` takes the `skip_reused` keyword (the production `fetch_run`, or a fake
+    that mirrors it); False for a fetcher still shaped `(sha, *, repo_root, workflow)`."""
+    try:
+        params = inspect.signature(fetch).parameters
+    except (TypeError, ValueError):
+        return False
+    return "skip_reused" in params or any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
 
 
 def _jobs_were_read(run: dict) -> bool:
@@ -707,8 +719,16 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
                 # Look again for the push run that RAN the suite; the TIP is never redirected.
                 reused_id = base_run.get("databaseId")
                 try:
-                    base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW,
-                                     skip_reused=True)
+                    if not _accepts_skip_reused(fetch):
+                        # An injected fetcher of the pre-[#1888] shape cannot be asked for the
+                        # suite run: that is missing evidence, not a crash and not a base.
+                        base_run = None
+                        base_reason = (f"baseline run {reused_id} reused a same-sha verdict "
+                                       f"(no suite run) and this fetcher cannot look for the "
+                                       f"run that ran the suite")
+                    else:
+                        base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW,
+                                         skip_reused=True)
                 except ActionsUnavailable as exc:
                     base_run = None
                     base_reason = f"baseline run unavailable ({exc})"

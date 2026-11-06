@@ -1729,3 +1729,47 @@ def test_e30_reused_base_does_not_skip_older_run_when_newest_ran_suite(monkeypat
     assert 200 in viewed
     assert 100 not in viewed
     assert requested_base_runs == [200]
+
+
+def _e30r_reused_base_run(sha, database_id=200):
+    run = _run(sha, "success", {_LEG_U: "success"})
+    run["databaseId"] = database_id
+    run["jobs"][0]["steps"] = [{"name": av.REUSED_VERDICT_STEP, "conclusion": "success",
+                                "status": "completed", "number": 1}]
+    return run
+
+
+def test_e30_reused_base_with_a_legacy_signature_fetch_is_unattributed_not_a_crash():
+    # Review finding (terra, MAJOR): an injected fetcher shaped (sha, *, repo_root, workflow)
+    # cannot be asked for `skip_reused`; that must read as missing evidence, never a TypeError.
+    tip, base = "a" * 40, "b" * 40
+    runs = {tip: _run(tip, "failure", {_LEG_U: "failure"}), base: _e30r_reused_base_run(base)}
+
+    def legacy_fetch(sha, *, repo_root=None, workflow=None):
+        return runs[sha]
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=legacy_fetch)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "200" in verdict.reason and "reused" in verdict.reason
+    assert verdict.new_tests == ()
+
+
+def test_e30_reused_base_whose_suite_run_lookup_is_unavailable_is_unattributed():
+    tip, base = "a" * 40, "b" * 40
+    calls = []
+
+    def fetch(sha, *, repo_root=None, workflow=None, skip_reused=False):
+        calls.append((sha, skip_reused))
+        if sha == tip:
+            return _run(tip, "failure", {_LEG_U: "failure"})
+        if skip_reused:
+            raise av.ActionsUnavailable("gh went away")
+        return _e30r_reused_base_run(base)
+
+    verdict = av.verdict_for(tip, baseline=base, fetch=fetch)
+
+    assert calls == [(tip, False), (base, False), (base, True)]
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "baseline run unavailable" in verdict.reason
+    assert verdict.new_tests == ()
