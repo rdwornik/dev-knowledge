@@ -865,6 +865,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1908] [P2][S] HANDOFF_BOOT stops describing a dispatcher seat that R130 retired (boot-test gap G5) · tasks/1908-handoff-boot-stops-describing-a-dispatcher-seat-that-r130.md
 - [#1909] [P3][S] HANDOFF_BOOT states the browser seat's role and limits in one place, after the seat-equilibrium /decide (boot-test gap G6) · tasks/1909-handoff-boot-states-the-browser-seat-s-role-and.md
 - [#1910] [P2][S] dispatch.py launch: --model cures the model mismatch its own refusal names (defect 21) · tasks/1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md
+- [#1911] [P2][S] gen_handoff --trial-cut honours the cut's non-blocking preflight rows (defect 22) · tasks/1911-gen-handoff-trial-cut-honours-the-cut-s-non.md
+- [#1912] [P2][S] gen_handoff --dry-cut renders a bundle outside a cut window (defect 23) · tasks/1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md
 
 ---
 

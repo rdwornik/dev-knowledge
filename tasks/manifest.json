@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "69f7c51f60f016cb0d338278eb86fc4ab9917bb7c3c59aac1e0a9e229f8e090c",
+  "generated_sha256": "a52c348b1dcf5e312d17326b3c23c30dd55d00bdd923807a5c45650a199cade6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3302,6 +3302,14 @@
     {
       "task": 1910,
       "file": "1910-dispatch-py-launch-model-cures-the-model-mismatch-its.md"
+    },
+    {
+      "task": 1911,
+      "file": "1911-gen-handoff-trial-cut-honours-the-cut-s-non.md"
+    },
+    {
+      "task": 1912,
+      "file": "1912-gen-handoff-dry-cut-renders-a-bundle-outside-a.md"
     },
     {
       "prose": ""
