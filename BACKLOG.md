@@ -870,6 +870,8 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1913] [P2][S] conductor tier1's 15-minute ceiling fits the selection a change to a widely imported script draws (defect 24) · tasks/1913-conductor-tier1-s-15-minute-ceiling-fits-the-selection.md
 - [#1914] [P1][S] A base push run counts as having run the suite only if a completed pytest leg shows it (defect 25) · tasks/1914-a-base-push-run-counts-as-having-run-the.md
 - [#1915] [P3][S] test_g admits only a new bundle directory of the full date-repo-mode shape (defect 26, the L-ci judge's follow-up) · tasks/1915-test-g-admits-only-a-new-bundle-directory-of.md
+- [#1916] [P1][S] land_lane has no resume path for an already-pushed integration commit and its CI run · tasks/1916-land-lane-has-no-resume-path-for-an-already-pushed.md
+- [#1917] [P1][S] A carried branch's JOURNAL entry breaks prepend order once newer entries land on main first · tasks/1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md
 
 ---
 

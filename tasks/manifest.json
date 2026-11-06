@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5b4665f2738235df807798c613d9df0834d10ab8cb70adb90437d8528d4b79c9",
+  "generated_sha256": "0f8967305ebcc2508054a3383ba0b3c71effef0cbb2c0c7b35a9e21a9140529b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3322,6 +3322,14 @@
     {
       "task": 1915,
       "file": "1915-test-g-admits-only-a-new-bundle-directory-of.md"
+    },
+    {
+      "task": 1916,
+      "file": "1916-land-lane-has-no-resume-path-for-an-already-pushed.md"
+    },
+    {
+      "task": 1917,
+      "file": "1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md"
     },
     {
       "prose": ""
