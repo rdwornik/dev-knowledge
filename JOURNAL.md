@@ -20,6 +20,17 @@
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
 
 ---
+### 2026-11-06 (a) - CC (Opus 5.5, dispatcher seat session-close-e3-0-cycle-4, morning landings): JUDGE-LAND -- the landing-judge fix [#1888] lands on main by operator act
+
+**Anchors:** `964f81510` (the reviewed lane tip this push introduces), main when cut: `50cbabf1c`.
+
+**Did:** landed worktree-e30-judge-reused-base @ `964f81510` by operator act JUDGE-LAND (to-browser/RATIFICATION-2026-11-06.md item 1, option (a)): land_lane.py ran from the lane tip's own scripts/, so its reviewed judge (actions_verdict.py, the only script the lane changed) decided its own landing.
+
+**Result:** see to-browser/DIGEST-MORNING-LANDINGS-2026-11-06.md (main sha, CI run, verdict).
+
+**Changes:** scripts/actions_verdict.py, tests/test_actions_verdict.py, tasks/1888-the-landing-judge-follows-a-same-sha-reused-base.md, tasks/manifest.json, BACKLOG.md, ecosystem/doc-counts.md.
+
+**Next:** CI-LAND ([#1886]/[#1887]), then H5-LAND (the 2026-11-05 bundle).
 
 ### 2026-11-05 (b) - CC (Sonnet 5.5, INTEGRATOR-E3.0 cycle 5, batch E3.0): the S2 landing -- the night's 14 close rows ([#1865], [#1873] to [#1885]) land on main (session close, dispatcher FORWARD READY)
 
