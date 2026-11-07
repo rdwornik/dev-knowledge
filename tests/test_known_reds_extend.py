@@ -17,6 +17,9 @@ _TODAY = dt.date(2026, 10, 24)
 _OLD_EXPIRY = "2026-10-31"
 _NEW_EXPIRY = "2026-11-09"
 _RATIFICATION_ID = "R-1"
+# The old_expiry of each re-date applied to the live registry: KR-1 (RATIFICATION-2026-10-24)
+# and KR-2 (RATIFICATION-2026-11-07 Amendment 2).
+_APPLIED_REDATE_OLD_EXPIRIES = (_OLD_EXPIRY, _NEW_EXPIRY)
 
 
 def _load(name: str, path: Path):
@@ -38,10 +41,10 @@ def _entry(expiry: str = _OLD_EXPIRY) -> dict:
     return {"attribution": "pre-freeze", "task": "[#1]", "owner": "rob", "expiry": expiry}
 
 
-def _registry(kr, *, members=None, hooks=None, members_by_os=None):
+def _registry(kr, *, members=None, hooks=None, members_by_os=None, baseline_id="synthetic"):
     return kr.Registry(
         schema="known-reds-registry/2",
-        baseline_id="synthetic",
+        baseline_id=baseline_id,
         measured_at_sha="synthetic",
         measured_via="test",
         workers=1,
@@ -304,6 +307,34 @@ def test_extend_adds_exact_record_without_mutating_the_input(kr, tmp_path):
     assert result.members["node-a"]["expiry"] == _NEW_EXPIRY
 
 
+def test_extend_restamps_the_baseline_id_over_the_extended_content(kr, tmp_path):
+    registry = _registry(
+        kr,
+        members={"node-a": _entry()},
+        baseline_id="2026-10-24-test",
+    )
+    date = registry.baseline_id.rsplit("-", 1)[0]
+    ratification_file = _ratification_file(
+        tmp_path, "| R-1 | approved through 2026-11-09 |"
+    )
+
+    extended, _ = kr.extend(
+        registry,
+        ids=("members[node-a]",),
+        new_expiry=dt.date(2026, 11, 9),
+        ratification_file=ratification_file,
+        ratification_id=_RATIFICATION_ID,
+        today=_TODAY,
+    )
+
+    assert extended.baseline_id.rsplit("-", 1)[0] == date
+    assert extended.baseline_id == kr.compute_baseline_id(
+        extended.members,
+        date=date,
+        members_by_os=extended.members_by_os,
+    )
+
+
 def test_extend_cli_defaults_to_dry_run_and_write_persists_the_diff(kr, tmp_path, capsys):
     registry_path, _ = _write_registry(
         tmp_path,
@@ -443,8 +474,12 @@ def _rewind_applied_extensions(path):
     for entries in buckets:
         for entry in entries.values():
             record = entry.get("extended")
-            if record and record.get("old_expiry") == _OLD_EXPIRY:
-                entry["expiry"] = record["old_expiry"]
+            # A re-extension REPLACES the prior record (known_reds.extend: "a re-extension
+            # replaces the prior record, never keeps it"), so after KR-2 an entry's record names
+            # 2026-11-09, not KR-1's 2026-10-31. Every applied re-date goes back to the chain's
+            # start, _OLD_EXPIRY, so the input stays the real shape the test was written for.
+            if record and record.get("old_expiry") in _APPLIED_REDATE_OLD_EXPIRIES:
+                entry["expiry"] = _OLD_EXPIRY
                 del entry["extended"]
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -474,7 +509,12 @@ def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
     dry_run_output = capsys.readouterr().out
     assert registry_path.read_bytes() == original_bytes
     assert "--- " in dry_run_output and "+++ " in dry_run_output
+    # `baseline_id` moves too, by rule: `extend` restamps it so the identity
+    # `baseline_id == compute_baseline_id(members, ...)` holds after a recorded re-date
+    # ([#1889]; RATIFICATION-2026-11-07 Amendment 1 D3, "the registry made editable from a lane
+    # through a defined, tested path"). Nothing else outside the expiry records may change.
     allowed_keys = {
+        "baseline_id",
         "expiry",
         "extended",
         "ratification_file",

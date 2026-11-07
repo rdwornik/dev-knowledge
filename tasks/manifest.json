@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0f8967305ebcc2508054a3383ba0b3c71effef0cbb2c0c7b35a9e21a9140529b",
+  "generated_sha256": "3b0fac11b66d5b6a0630b644a5e7cd68ba3a9b2df1d8f7edcb1e6762e6d7cdcb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2564,14 +2564,6 @@
       "file": "1885-gates-added-and-gates-that-caught-per-window.md"
     },
     {
-      "task": 1886,
-      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
-    },
-    {
-      "task": 1887,
-      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
-    },
-    {
       "task": 1718,
       "file": "1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md"
     },
@@ -3212,10 +3204,6 @@
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
     },
     {
-      "task": 1888,
-      "file": "1888-the-landing-judge-follows-a-same-sha-reused-base.md"
-    },
-    {
       "task": 1889,
       "file": "1889-known-reds-registry-pin-tests-are-lane-scoped-so.md"
     },
@@ -3330,6 +3318,22 @@
     {
       "task": 1917,
       "file": "1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md"
+    },
+    {
+      "task": 1918,
+      "file": "1918-the-handoff-plan-row-admits-a-plan-whose-name-says-superseded.md"
+    },
+    {
+      "task": 1919,
+      "file": "1919-the-ledger-shows-a-scored-frontier-not-the-ratified-build-slots.md"
+    },
+    {
+      "task": 1920,
+      "file": "1920-a-handoff-cut-does-not-refresh-map-dispatch-md.md"
+    },
+    {
+      "task": 1921,
+      "file": "1921-each-known-reds-owner-row-carries-its-own-expiry-date.md"
     },
     {
       "prose": ""

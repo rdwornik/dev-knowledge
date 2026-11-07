@@ -1,6 +1,8 @@
 """RED-first contract tests for the moved commit-gate known-reds verdict."""
 from __future__ import annotations
 
+import copy
+import datetime
 import json
 import os
 import shutil
@@ -44,7 +46,10 @@ def _gate_output(*failed_hooks: str, trailer: str = "wall_seconds=72 exit=1") ->
     return "".join(failed_hooks) + trailer + "\n"
 
 
-def _registry(known_reds):
+def _registry(known_reds, source=None):
+    if source is None:
+        source = json.loads(_REGISTRY.read_text(encoding="utf-8"))
+    audit_health = source["hooks"]["audit-health"]
     return known_reds.Registry(
         schema=known_reds.SCHEMA,
         baseline_id="2026-11-03-test-baseline",
@@ -55,15 +60,16 @@ def _registry(known_reds):
         hooks={
             "audit-health": {
                 "attribution": known_reds.ENVIRONMENT_MISMATCH,
-                "checks": [
-                    "dispatch_drift",
-                    "hooks_armed",
-                    "journal_spine_anchor",
-                    "repos registered",
-                ],
-                "lines": REGISTERED_LINES,
+                "checks": audit_health["checks"],
+                "lines": audit_health["lines"],
             }
         },
+    )
+
+
+def _real_registry(known_reds):
+    return known_reds.Registry.from_json(
+        json.loads(_REGISTRY.read_text(encoding="utf-8")), "test"
     )
 
 
@@ -461,7 +467,142 @@ def test_compare_commit_gate_and_cli_leave_registry_bytes_unchanged(tmp_path, ca
     assert real_path.read_bytes() == real_before
 
 
-def test_registry_is_origin_main_plus_exactly_the_lines_field():
+def test_a_lane_adding_one_well_formed_member_entry_has_no_lane_edit_problem():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    head.members["lane-test-entry"] = {
+        "attribution": "test",
+        "task": "[#1889]",
+        "owner": "test",
+        "expiry": "2026-11-23",
+    }
+
+    assert known_reds.lane_edit_problems(base, head, today=today) == []
+
+
+def test_a_lane_removing_an_entry_has_no_lane_edit_problem():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    del head.members[next(iter(head.members))]
+
+    assert known_reds.lane_edit_problems(base, head, today=today) == []
+
+
+def test_a_lane_re_date_recorded_by_extend_has_no_lane_edit_problem(tmp_path):
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    # Derived from the registry itself, never a fixed date: once a real re-date lands, a fixed
+    # target would no longer move past the entries' expiry and `extend` would refuse it.
+    latest = max(datetime.date.fromisoformat(container[key]["expiry"])
+                 for container, key in known_reds._entry_slots(base).values())
+    new_expiry = max(latest, today) + datetime.timedelta(days=7)
+    ratification_file = tmp_path / "ratification.md"
+    ratification_file.write_text(
+        f"| KR-T | test re-date cap={new_expiry.isoformat()} | test |\n", encoding="utf-8"
+    )
+    extended, _ = known_reds.extend(
+        base,
+        ids=tuple(known_reds._entry_slots(base)),
+        new_expiry=new_expiry,
+        ratification_file=ratification_file,
+        ratification_id="KR-T",
+        today=today,
+    )
+
+    assert known_reds.lane_edit_problems(base, extended, today=today) == []
+
+
+def test_a_hand_edited_expiry_is_a_lane_edit_problem():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    entry = next(iter(head.members.values()))
+    # Derived, not fixed: the edit must MOVE the expiry ("an expiry moves only through `extend`,
+    # which records it" -- known_reds.registry_problems), so it is one day past the entry's
+    # current date; a fixed date goes vacuous the moment a recorded re-date (KR-2) reaches it.
+    current = datetime.date.fromisoformat(entry["expiry"])
+    entry["expiry"] = (current + datetime.timedelta(days=1)).isoformat()
+
+    assert known_reds.lane_edit_problems(base, head, today=today)
+
+
+def test_a_malformed_added_entry_is_a_lane_edit_problem():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    head.members["malformed-lane-entry"] = {
+        "attribution": "test",
+        "task": "[#1889]",
+        "expiry": "2026-11-23",
+    }
+
+    assert known_reds.lane_edit_problems(base, head, today=today)
+
+
+def test_changing_an_existing_entrys_task_is_a_lane_edit_problem():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    entry = next(iter(head.members.values()))
+    entry["task"] = "[#1889]" if entry["task"] != "[#1889]" else "[#1]"
+
+    assert known_reds.lane_edit_problems(base, head, today=today)
+
+
+def test_a_changed_lines_field_must_keep_the_marker():
+    import known_reds
+
+    today = datetime.date(2026, 11, 7)
+    base = _real_registry(known_reds)
+    head = copy.deepcopy(base)
+    head.hooks["audit-health"]["lines"] = [
+        *head.hooks["audit-health"]["lines"],
+        "new_probe: degraded",
+    ]
+    assert known_reds.lane_edit_problems(base, head, today=today)
+
+    marked = copy.deepcopy(base)
+    marked.hooks["audit-health"]["lines"] = [
+        *marked.hooks["audit-health"]["lines"],
+        "[!!] x: y",
+    ]
+    assert known_reds.lane_edit_problems(base, marked, today=today) == []
+
+
+def test_the_fixture_reads_the_checks_list_from_the_registry_it_builds():
+    import known_reds
+
+    source = json.loads(_REGISTRY.read_text(encoding="utf-8"))
+    audit_health = source["hooks"]["audit-health"]
+    audit_health["checks"].append("new_probe")
+    audit_health["lines"].append("[!!] new_probe: degraded")
+    registry = _registry(known_reds, source=source)
+    audit_block = "".join(f"  {line}\n" for line in audit_health["lines"])
+
+    result = known_reds.compare_commit_gate(
+        _gate_output(_failed_hook("audit-health", audit_block)),
+        1,
+        registry,
+    )
+
+    assert result["verdict"] == "pass"
+
+
+def test_the_branch_registry_differs_from_origin_main_only_by_sanctioned_edits():
     import known_reds
 
     try:
@@ -476,27 +617,17 @@ def test_registry_is_origin_main_plus_exactly_the_lines_field():
     except (FileNotFoundError, subprocess.CalledProcessError) as exc:
         pytest.skip(f"git or origin/main registry is unavailable: {exc}")
 
-    working = json.loads(_REGISTRY.read_text(encoding="utf-8"))
-    origin = json.loads(origin_text)
-    hooks = working["hooks"]["audit-health"]
-    lines = hooks.get("lines", [])
-    hooks_without_lines = dict(hooks)
-    hooks_without_lines.pop("lines", None)
-    working["hooks"]["audit-health"] = hooks_without_lines
-    # Q-1862-R: once the `lines` field is on origin/main, the origin side carries it
-    # too, so pop it from BOTH sides before comparing (the test is lane-scoped, not
-    # a statement about what origin/main must lack).
-    origin_hooks = dict(origin["hooks"]["audit-health"])
-    origin_hooks.pop("lines", None)
-    origin["hooks"]["audit-health"] = origin_hooks
-    assert working == origin
-    assert len(lines) == 12
-    assert all(line.startswith("[!!]") for line in lines)
+    working = known_reds.Registry.from_json(
+        json.loads(_REGISTRY.read_text(encoding="utf-8")), "working"
+    )
+    origin = known_reds.Registry.from_json(json.loads(origin_text), "origin/main")
+    assert known_reds.lane_edit_problems(
+        origin, working, today=datetime.date.today()
+    ) == []
 
-    registry = known_reds.load_registry(_REGISTRY)
-    date = registry.baseline_id.rsplit("-", 1)[0]
-    assert registry.baseline_id == known_reds.compute_baseline_id(
-        registry.members,
+    date = working.baseline_id.rsplit("-", 1)[0]
+    assert working.baseline_id == known_reds.compute_baseline_id(
+        working.members,
         date=date,
-        members_by_os=registry.members_by_os,
+        members_by_os=working.members_by_os,
     )

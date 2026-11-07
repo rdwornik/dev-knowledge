@@ -32,6 +32,10 @@ seats:
   seat: Tech-Architect-48
   session: 2026-10-28-dev-knowledge-architect
   stated_in: 7
+- provenance: to-cc/INTEGRATOR-E3-3-2026-11-07.md
+  seat: Tech-Architect-49
+  session: 2026-11-05-dev-knowledge-architect
+  stated_in: 1
 
 landing_inventory:
   2026-09-19-technical-wave3-answerable-lane-contract.md: 6c750d5aab590acd1bdffa8679e69a641a4f6f1aaeaddd8331e01004a8128c55

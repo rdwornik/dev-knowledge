@@ -156,16 +156,6 @@ _HOOKS_EMERGENCY_DISABLED = (
     "at 33246c0a and returns when [#863] lands; delete this row in that same act")
 
 ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
-    # ---- population 0: SessionStart/Stop hook targets orphaned by the 2026-09-17 disable ----
-    # These six are orphans only because their settings.json wiring was removed in an
-    # emergency, not because nothing adopted them. A disposition, not a retirement, is the
-    # honest verdict: the wiring is coming back under `[#863]`, which owns removing these rows.
-    "scripts/changelog_sentinel.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
-    "scripts/codespace_regime.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
-    "scripts/logs_retention.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
-    "scripts/resource_lifecycle.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
-    "scripts/session_end_backpressure.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED,
-                                                       owner="[#863]"),
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
     # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
     # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
@@ -219,36 +209,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
-    # SAME SHAPE AS THE ROW ABOVE, and cited as the precedent rather than argued from scratch:
-    # a mechanism whose ADOPTER is the very thing its authoring lane is forbidden to build.
-    #
-    # `scripts/codespace_state.py` is the recovery-container discriminator and the lane-state
-    # cross. What would trigger it is an OBSERVER -- something that polls a codespace's state,
-    # or receives a progress push from inside one, and calls this classifier with the result.
-    # Which of those it is, or whether it is both, is the open architectural question filed as
-    # intake 102 and routed to the decision engine by operator directive on 2026-09-15. The
-    # directive is explicit that the question is not to be settled in a diff, so writing the
-    # observer here would decide it by implementation -- which is the one act this work is
-    # defined by not doing.
-    #
-    # The other two remedies are wrong for reasons worth recording. "Retire it" would delete the
-    # classifier every one of the options A/B/C would call -- it is the part of the design that
-    # does NOT depend on the ruling, which is precisely why it was safe to build first. "Wire it
-    # to a pre-commit hook" is unavailable on its merits rather than on footprint: the organ
-    # needs a LIVE codespace name to classify, and a commit-time gate has none.
-    #
-    # It is not untested: `tests/test_codespace_state.py` holds its RED-first witnesses and two
-    # register trip-tests (QR-OBS-004, QR-OBS-005) run against it and go RED when it is neutered.
-    # A test is not a wiring surface, which is why this row exists rather than the census being
-    # wrong.
-    "scripts/codespace_state.py": Disposition(
-        reason=("the classifier's adopter is an observer whose shape -- poll from outside, push "
-                "from inside, or both -- is the open architectural question filed as intake 102 "
-                "and routed to the decision engine by operator directive, which forbids settling "
-                "it in a diff. Unwired is the directive-required state, not an unadopted one. A "
-                "pre-commit gate is unavailable on merits: classifying needs a live codespace "
-                "name and a commit-time gate has none"),
-        owner="the ratification of intake 102, whose chosen observer adopts it by calling it"),
     # `scripts/gen_trend_dashboard.py` and `scripts/gen_north_star.py` WERE dispositioned here,
     # both on `_LANE_BUILT`. `[#664]`'s ratified DELETE list retired them (2026-09-13, lane
     # `lane-x-664-delete-list-execution`), in that order -- the dashboard imports the north-star
@@ -336,37 +296,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         owner="[#676], which owns the commit-tier provider-invocation check. If that check "
               "lands and consumes these shapes as data, the offline half gains a real trigger "
               "and this row is deleted by [#676]'s lane -- not by this one"),
-    # SAME REASON AS `provider_bench.py` ABOVE FOR A DIFFERENT COST -- no trigger AT ALL, and
-    # none is wanted, because the one hook that would give it one already states, in its own
-    # docstring, why that hook does not scan transcripts: `lane_cost.cost_health_line` reads
-    # ONE precomputed ledger file rather than the session store, specifically because
-    # SessionStart pays for the digest on EVERY boot and a transcript walk would make that cost
-    # grow with the history rather than with the batch. This module's `organ_usage_report()` IS
-    # a transcript walk -- that is the only way AX9-5's metric can exist at all, since nothing
-    # in this repo persists a raw-search-vs-organ-call event -- so wiring it to SessionStart
-    # would reintroduce the exact anti-pattern `cost_health_line` was written to avoid, on the
-    # widest-audience hook in the repo.
-    "scripts/organ_usage_metric.py": Disposition(
-        reason="[#694]'s AX9-5 metric (raw-search vs organ calls per session, organs uncalled "
-               "in 30d). An on-demand operator report over Claude Code's own session "
-               "transcripts, deliberately NOT a SessionStart digest line: `fleet_health.py`'s "
-               "existing cost line reads one precomputed ledger for exactly this reason -- a "
-               "boot-time transcript scan grows with history, not with the batch. Its consumer "
-               "is named rather than invented: tests/test_organ_usage_metric.py proves the "
-               "classifier and the report, and its own CLI (`report` subcommand) is the "
-               "operator's call site",
-        owner="[#709] (the log-review routine AX9-5 names as its regression-flagging "
-              "consumer) or a future on-demand digest command; either adopts it by calling "
-              "it, at which point this row is deleted rather than updated"),
-    # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
-    # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
-    # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
-    # `SessionStart` path in `.claude/settings.json` (2026-09-13, lane
-    # `lane-x-664-delete-list-execution`). SessionStart rather than Stop, deliberately: the
-    # producer of the files it retains is `propose_closures.py` on the plugin's Stop hook, and
-    # a renamer sharing that event with the producer's own `**/PROPOSALS-*.md` read buys
-    # nothing that the next session's start does not. Pinned by
-    # `tests/test_logs_retention.py::test_the_retention_trigger_is_on_SESSION_START_not_STOP`.
     # `scripts/nopack_sandbox.py` and `scripts/trace_writer.py` WERE dispositioned here. Retired
     # by `[#664]`'s ratified DELETE list (2026-09-13, lane
     # `lane-x-664-delete-list-execution`). These two carried NO inbound edge of any kind -- not
@@ -393,11 +322,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "honest. Deleting it REDs that test, so the retire stage's SAFE verdict on it "
                "was a false PASS inside ADR-89's own declared static-only limit",
         owner="none -- retire only WITH the importlib pin in test_membership_agreement.py"),
-    "scripts/gen_ledger.py": Disposition(
-        reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane V-000 and therefore "
-               "absent from its 32. Recorded as a NEW orphan rather than folded into the "
-               "old count: the census is a dated measurement, not a live roster",
-        owner="V+1 retirement-or-wiring list"),
     # ---- population A: tests are not triggers ----
     # `scripts/archive_row_body.py` WAS dispositioned here, on exactly that heading: referenced
     # only by its own test file, and a test proves a module works while scheduling nothing. It
@@ -594,73 +518,17 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "blind spot 4). The module's own docstring states the same posture: "
                "\"DETECT-AND-SURFACE, NOT PREVENT ... wired into no hook\"",
         owner="lane-organ-wirings; manual_until 2026-10-05"),
-    "scripts/ci_red_age.py": Disposition(
-        reason="harness.yaml fates: \"LANE-5B2-17 ruling (a): reads main's own conductor.yml "
-               "run history and reports how long it has been red; its declared consumer is "
-               "lane_digest.py's --ci-red-json flag (data in, no subprocess call), so no "
-               "moment fires this organ itself yet -- a moment declaration (batch-close, "
-               "before the digest renders) is owed once a lane wires it\"",
-        owner="lane-organ-wirings; manual_until 2026-10-15"),
-    "scripts/ci_verdict.py": Disposition(
-        reason="harness.yaml fates: \"records CI's verdict beside the local one at each merge "
-               "(lane-integrate step); not a gate yet -- a moment declaration is owed by wave "
-               "5b (LANE-5A-6)\". Its one call site, `.claude/commands/lane-integrate.md:185`, "
-               "is a command file -- Population C, invisible to the [#664] wiring-surface list",
-        owner="LANE-5A-6 / wave 5b; manual_until 2026-10-05"),
-    "scripts/dodo.py": Disposition(
-        reason="harness.yaml fates: \"the moments' own runner (`doit -f scripts/dodo.py "
-               "moment:<name>`); its callers are the launcher (W3-B) and the Stop hook (W3-D) "
-               "-- a person or the connection test until they land\". The stage/moment ENGINE "
-               "that reads `ecosystem/harness.yaml` is not the same node as the scripts NAMED "
-               "inside it: harness.yaml's admission to `WIRING_SURFACES` (LANE-5A-10) reaches "
-               "the targets its commands name, not the interpreter invoked to run them -- today "
-               "that invocation is `.claude/commands/spine.md` and `.claude/commands/"
-               "lane-integrate.md`, both Population C",
-        owner="W3-B (launcher) / W3-D (Stop hook); manual_until 2026-10-05"),
-    "scripts/handback.py": Disposition(
-        reason="harness.yaml fates: \"called by lanes at handback; a moment declaration is "
-               "owed by the next wave\". A lane invokes it by hand at handback per its own "
-               "docstring (FR2/RC3); no [#664] wiring surface names it yet",
-        owner="the next wave's moment declaration; manual_until 2026-10-05"),
     "scripts/learning_distiller.py": Disposition(
         reason="harness.yaml fates: \"5e v0 (LANE-5B2-13, ruling a): run by hand over a closed "
                "batch's receipts; emits candidate rows and files nothing (ruling h) -- a "
                "moment declaration is owed once a lane wires it into batch close\"",
         owner="the lane that wires it into batch-close (N2 lane 13's successor); manual_until 2026-10-15"),
-    "scripts/ship_gate_diff.py": Disposition(
-        reason="harness.yaml fates: \"LANE-5A-4 (D11): called from inside handback.py's "
-               "ship-gate self-check leg (an import, not a moment `command:`), so the census "
-               "sees no wiring surface for it; a moment declaration is owed if/when it gains "
-               "its own\". `scripts/handback.py:72` imports it directly, but `handback.py` "
-               "itself is this same population (row above) -- an import from an unwired module "
-               "reaches no wiring surface either",
-        owner="LANE-5A-4, jointly with the handback.py row above; manual_until 2026-10-05"),
-    "scripts/transport.py": Disposition(
-        reason="harness.yaml fates: \"lane-transport-registry: an import-only write gate "
-               "(handback.py calls write()/append()) and a report-only CLI (report/derive); no "
-               "moment fires it directly\". Imported by `scripts/handback.py` and "
-               "`scripts/lane_digest.py`; the former is this same population (row above), so "
-               "the import inherits handback.py's own gap rather than closing it",
-        owner="lane-transport-registry, jointly with the handback.py row above; manual_until 2026-10-15"),
     "scripts/decision_carriage.py": Disposition(
         reason="harness.yaml fates: R90 / [#1437], the seed of the batch-close dispositions gate, "
                "run by hand by the integrator at batch close (`evidence`, `propose`, `render`) and "
                "wired to no moment. Row [#1437]'s Done-when wires `propose --batch` into batch "
                "close, after which this row and the fates line are deleted in that same act",
         owner="[#1437]"),
-    "scripts/seat_cycle.py": Disposition(
-        reason="KEEP -- the trigger is the seat itself calling `seat_cycle.py run` from the "
-               "integrator/dispatcher order templates' Cycle sections (R179); the R94 Stop-hook "
-               "gate that would wire it is unbuilt, owned by [#1636]; delete this row when that "
-               "gate lands",
-        owner="[#1636]"),
-    "scripts/land_lane.py": Disposition(
-        reason="KEEP -- the 'land' transition as code (ADR-131, Proposed): the integrator seat "
-               "calls `land_lane.py` instead of typing the lane-integrate chain; no caller of a "
-               "kind the census reads exists until ADR-131 is ratified and the integrator order "
-               "template teaches it (READY-TO-APPLY text, R159). Delete this row when that "
-               "template change lands",
-        owner="e2-landing-script / ADR-131"),
     "scripts/land_on_handback.py": Disposition(
         reason="KEEP -- C11 + C13 of the minimum line: the handback trigger that calls "
                "`land_lane` in process and writes the merge clock; its only caller is the "
@@ -715,12 +583,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/startup_probe.py": Disposition(
         reason="NO-CALLER: manual_until 2026-11-09 [#1841]",
         owner="[#1841]"),
-    "scripts/system_map.py": Disposition(
-        reason="KEEP -- run on demand by the operator through /map: "
-               ".claude/commands/map.md runs `scripts/system_map.py build`, and the "
-               "ecosystem/harness.yaml fates row is `called_by: .claude/commands/map.md`. "
-               "The census does not walk commands",
-        owner="[#1711] (the census learns the command caller class)"),
     "scripts/task_record.py": Disposition(
         reason="NO-CALLER: manual_until 2026-11-23 [#1842]",
         owner="[#1842]"),
