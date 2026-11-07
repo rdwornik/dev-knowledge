@@ -38,10 +38,10 @@ def _entry(expiry: str = _OLD_EXPIRY) -> dict:
     return {"attribution": "pre-freeze", "task": "[#1]", "owner": "rob", "expiry": expiry}
 
 
-def _registry(kr, *, members=None, hooks=None, members_by_os=None):
+def _registry(kr, *, members=None, hooks=None, members_by_os=None, baseline_id="synthetic"):
     return kr.Registry(
         schema="known-reds-registry/2",
-        baseline_id="synthetic",
+        baseline_id=baseline_id,
         measured_at_sha="synthetic",
         measured_via="test",
         workers=1,
@@ -302,6 +302,34 @@ def test_extend_adds_exact_record_without_mutating_the_input(kr, tmp_path):
         if key not in ("extended", "expiry")
     } == {k: v for k, v in before["members"]["node-a"].items() if k != "expiry"}
     assert result.members["node-a"]["expiry"] == _NEW_EXPIRY
+
+
+def test_extend_restamps_the_baseline_id_over_the_extended_content(kr, tmp_path):
+    registry = _registry(
+        kr,
+        members={"node-a": _entry()},
+        baseline_id="2026-10-24-test",
+    )
+    date = registry.baseline_id.rsplit("-", 1)[0]
+    ratification_file = _ratification_file(
+        tmp_path, "| R-1 | approved through 2026-11-09 |"
+    )
+
+    extended, _ = kr.extend(
+        registry,
+        ids=("members[node-a]",),
+        new_expiry=dt.date(2026, 11, 9),
+        ratification_file=ratification_file,
+        ratification_id=_RATIFICATION_ID,
+        today=_TODAY,
+    )
+
+    assert extended.baseline_id.rsplit("-", 1)[0] == date
+    assert extended.baseline_id == kr.compute_baseline_id(
+        extended.members,
+        date=date,
+        members_by_os=extended.members_by_os,
+    )
 
 
 def test_extend_cli_defaults_to_dry_run_and_write_persists_the_diff(kr, tmp_path, capsys):
