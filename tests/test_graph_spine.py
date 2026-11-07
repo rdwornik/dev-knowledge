@@ -922,7 +922,11 @@ def test_each_formerly_orphaned_process_carries_a_disposition_naming_a_real_call
         "scripts/read_gate.py",
         "scripts/row_close.py",
         "scripts/startup_probe.py",
-        "scripts/system_map.py",
+        # scripts/system_map.py left this tuple with its disposition ([#664], 2026-11-07): the live
+        # store reaches it through a `triggers` edge from ecosystem/harness.yaml, so it is no longer
+        # an orphan, and a triggered process may not keep a disposition
+        # (test_a_disposition_register_entry_cannot_manufacture_its_own_trigger; the rule at
+        # test_the_query_finds_every_orphan_the_census_found: removed "WITH the commit that wired it").
         "scripts/task_record.py",
         "scripts/test_census.py",
     )
