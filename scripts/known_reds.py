@@ -100,7 +100,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -337,9 +337,9 @@ def registry_structural_problems(registry: Registry) -> list[str]:
 # --- baseline identity --------------------------------------------------------------------
 
 def compute_baseline_id(members: dict, *, date: str, members_by_os: dict | None = None) -> str:
-    """`<date>-<12 hex chars>`; the hash is over the sorted (id, attribution) pairs, so two
-    registries with the same members and the same attributions always share a baseline id
-    regardless of dict insertion order, and any change to who-is-known or why changes it.
+    """`<date>-<12 hex chars>`; the hash is over the full member dicts, serialized with sorted
+    keys, so identical member content shares a baseline id regardless of dict insertion
+    order, and any change to a member's fields changes the hash.
 
     `members_by_os`, when non-empty, folds the OS-keyed overlay into the same hash (sorted by
     OS key, then by node id within each) so a change confined to one OS's bucket still changes
@@ -487,7 +487,9 @@ def extend(registry: Registry, *, ids, new_expiry: datetime.date, ratification_f
     """`(new_registry, changes)`: `ids` re-dated to `new_expiry` under the ratification row
     `ratification_id` in `ratification_file` (R149). Pure -- no subprocess, no refresh, the input
     is never mutated. Each moved entry carries an `extended` record that
-    `unrecorded_expiry_moves` and `registry_problems` check against its `expiry`."""
+    `unrecorded_expiry_moves` and `registry_problems` check against its `expiry`.
+    Restamps the baseline hash while retaining the prefix before the last hyphen; an id
+    without a hyphen (e.g. `synthetic`) is used whole as the prefix."""
     import land_lane  # lazy: only the extension path needs the ratification row parser
 
     row = land_lane.resolve_ratification(ratification_id, ratification_file)
@@ -547,6 +549,9 @@ def extend(registry: Registry, *, ids, new_expiry: datetime.date, ratification_f
     problems = registry_problems(result, today)
     if problems:
         raise ExtendRefused("the extended registry is not sound:\n  " + "\n  ".join(problems))
+    result = replace(result, baseline_id=compute_baseline_id(
+        result.members, date=registry.baseline_id.rsplit("-", 1)[0],
+        members_by_os=result.members_by_os))
     return result, changes
 
 
@@ -569,6 +574,36 @@ def unrecorded_expiry_moves(base: Registry, head: Registry) -> list[str]:
             moves.append(f"{label}: expiry {old.get('expiry')!r} -> {new.get('expiry')!r} "
                          "with no matching `extended` record")
     return moves
+
+
+def lane_edit_problems(base: Registry, head: Registry, *, today: datetime.date) -> list[str]:
+    """Allow well-formed additions, removals and expiry moves recorded by `extend`.
+
+    Every head entry must pass `registry_problems`; existing entries keep their task,
+    owner and attribution. Hook lines may stay unchanged, or change to a list whose
+    every line starts with `[!!]`. Other entry fields may change. Return one labelled
+    problem per violation, or an empty list for sanctioned lane edits.
+    """
+    problems = registry_problems(head, today) + unrecorded_expiry_moves(base, head)
+    base_slots, head_slots = _entry_slots(base), _entry_slots(head)
+    for label in sorted(head_slots):
+        container, key = head_slots[label]
+        new = container[key]
+        if not isinstance(new, dict):
+            continue  # registry_problems already reports malformed entries
+        old = base_slots[label][0][base_slots[label][1]] if label in base_slots else {}
+        if not isinstance(old, dict):
+            old = {}
+        if label in base_slots:
+            for name in ("task", "owner", "attribution"):
+                if old.get(name) != new.get(name):
+                    problems.append(f"{label}: existing entry's {name} changed")
+        if label.startswith("hooks[") and old.get("lines") != new.get("lines"):
+            lines = new.get("lines")
+            if not isinstance(lines, list) or any(
+                    not isinstance(line, str) or not line.startswith("[!!]") for line in lines):
+                problems.append(f"{label}: changed lines must be a list of `[!!]` lines")
+    return problems
 
 
 # --- refresh: build/update the registry from a run + attribution evidence ------------------

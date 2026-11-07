@@ -502,7 +502,12 @@ def test_real_registry_shape_dry_run_and_write_only_change_expiry_records(
     dry_run_output = capsys.readouterr().out
     assert registry_path.read_bytes() == original_bytes
     assert "--- " in dry_run_output and "+++ " in dry_run_output
+    # `baseline_id` moves too, by rule: `extend` restamps it so the identity
+    # `baseline_id == compute_baseline_id(members, ...)` holds after a recorded re-date
+    # ([#1889]; RATIFICATION-2026-11-07 Amendment 1 D3, "the registry made editable from a lane
+    # through a defined, tested path"). Nothing else outside the expiry records may change.
     allowed_keys = {
+        "baseline_id",
         "expiry",
         "extended",
         "ratification_file",
