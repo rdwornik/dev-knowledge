@@ -20,6 +20,18 @@
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
 
 ---
+### 2026-11-07 (a) - CC (Opus 5.5, orchestrator, lane kr-664-registry): KR-LAND -- [#1889] makes the known-reds registry editable from a lane, KR-2 re-dates it to 2026-11-23, and the narrowed phase B of PLAN-KNOWN-REDS-664-2026-11-07-v3
+
+**Anchors:** `69a4538cd` (RED first, [#1889]), `23757d26f` (lane_edit_problems + extend restamps the baseline id), `ea2a3de72` (17 stale ORPHAN_DISPOSITIONS dropped), `4669b3c5a` ([#1886] [#1887] [#1888] closed), `53e2768d5` ([#1918]-[#1921] filed, [#664] D2 arc), `31f00eb6a` (Tech-Architect-49 registered), `3bf006d3d` (KR-2 re-date, 122 entries).
+
+**Did:** phase A analysis (to-browser/DIGEST-KR-664-ANALYSIS-2026-11-07.md); then, under RATIFICATION-2026-11-07 Amendment 1 D1-D3 and Amendment 2 KR-2: [#1889] (the registry pin is lane-scoped through `known_reds.lane_edit_problems`; `extend` restamps `baseline_id`), the recorded re-date `known_reds.py extend --all-expiring-on 2026-11-09 --new-expiry 2026-11-23 --ratification-id KR-2`, the 17-entry disposition fix, three closes, four filed rows, the [#664] arc clause, the TA-49 seat registration. [#1020] stays open.
+
+**Result:** see to-browser/DIGEST-KR-LAND-2026-11-07.md (main sha, CI run, reviews).
+
+**Changes:** scripts/known_reds.py, scripts/graph_queries.py, logs/KNOWN-REDS-REGISTRY.json, tests/test_known_reds_gate_hooks.py, tests/test_known_reds_extend.py, tests/test_graph_spine.py, tasks/ (1886-1889, 664, 1918-1921, manifest.json), BACKLOG.md, ecosystem/seat-ids.yaml, ecosystem/doc-counts.md.
+
+**Next:** [#1921] (an expiry date per owner row) and [#1445] (warn ahead) before 2026-11-23; [#664]'s D2 arc ([#1422] first).
+
 ### 2026-11-06 (c) - CC (Opus 5.5, dispatcher seat session-close-e3-0-cycle-4, morning landings): H5-LAND -- the 2026-11-05 handoff bundle lands on main by operator act, judged by the landed judge
 
 **Anchors:** `828030b78` (the carrier tip, the bundle as cut and repaired), `aee4cfdb6` (origin/main 47e1127fc merged into the carrier), main when cut: CI-LAND's `47e1127fc`.
