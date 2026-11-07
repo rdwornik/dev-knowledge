@@ -527,7 +527,11 @@ def test_a_hand_edited_expiry_is_a_lane_edit_problem():
     base = _real_registry(known_reds)
     head = copy.deepcopy(base)
     entry = next(iter(head.members.values()))
-    entry["expiry"] = "2026-11-23"
+    # Derived, not fixed: the edit must MOVE the expiry ("an expiry moves only through `extend`,
+    # which records it" -- known_reds.registry_problems), so it is one day past the entry's
+    # current date; a fixed date goes vacuous the moment a recorded re-date (KR-2) reaches it.
+    current = datetime.date.fromisoformat(entry["expiry"])
+    entry["expiry"] = (current + datetime.timedelta(days=1)).isoformat()
 
     assert known_reds.lane_edit_problems(base, head, today=today)
 

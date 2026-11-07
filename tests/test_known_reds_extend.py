@@ -17,6 +17,9 @@ _TODAY = dt.date(2026, 10, 24)
 _OLD_EXPIRY = "2026-10-31"
 _NEW_EXPIRY = "2026-11-09"
 _RATIFICATION_ID = "R-1"
+# The old_expiry of each re-date applied to the live registry: KR-1 (RATIFICATION-2026-10-24)
+# and KR-2 (RATIFICATION-2026-11-07 Amendment 2).
+_APPLIED_REDATE_OLD_EXPIRIES = (_OLD_EXPIRY, _NEW_EXPIRY)
 
 
 def _load(name: str, path: Path):
@@ -471,8 +474,12 @@ def _rewind_applied_extensions(path):
     for entries in buckets:
         for entry in entries.values():
             record = entry.get("extended")
-            if record and record.get("old_expiry") == _OLD_EXPIRY:
-                entry["expiry"] = record["old_expiry"]
+            # A re-extension REPLACES the prior record (known_reds.extend: "a re-extension
+            # replaces the prior record, never keeps it"), so after KR-2 an entry's record names
+            # 2026-11-09, not KR-1's 2026-10-31. Every applied re-date goes back to the chain's
+            # start, _OLD_EXPIRY, so the input stays the real shape the test was written for.
+            if record and record.get("old_expiry") in _APPLIED_REDATE_OLD_EXPIRIES:
+                entry["expiry"] = _OLD_EXPIRY
                 del entry["extended"]
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
