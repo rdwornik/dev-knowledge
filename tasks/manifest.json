@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0f8967305ebcc2508054a3383ba0b3c71effef0cbb2c0c7b35a9e21a9140529b",
+  "generated_sha256": "7ef812860d7f2dda8bdc10a8691fc97ae767303fc3e92b4f959ce95edca050d5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2564,14 +2564,6 @@
       "file": "1885-gates-added-and-gates-that-caught-per-window.md"
     },
     {
-      "task": 1886,
-      "file": "1886-test-g-applies-to-lanes-not-to-a-handoff-cuts-landing.md"
-    },
-    {
-      "task": 1887,
-      "file": "1887-handoff-probes-bd-rows-read-n-a-in-ci.md"
-    },
-    {
       "task": 1718,
       "file": "1718-ci-the-commit-gate-job-needs-a-proper-fix-r169.md"
     },
@@ -3210,10 +3202,6 @@
     {
       "task": 1848,
       "file": "1848-conductor-c-vendor-at-p4-requires-receipts-of-phases-not-yet-run.md"
-    },
-    {
-      "task": 1888,
-      "file": "1888-the-landing-judge-follows-a-same-sha-reused-base.md"
     },
     {
       "task": 1889,
