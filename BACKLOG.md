@@ -869,6 +869,10 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1915] [P3][S] test_g admits only a new bundle directory of the full date-repo-mode shape (defect 26, the L-ci judge's follow-up) · tasks/1915-test-g-admits-only-a-new-bundle-directory-of.md
 - [#1916] [P1][S] land_lane has no resume path for an already-pushed integration commit and its CI run · tasks/1916-land-lane-has-no-resume-path-for-an-already-pushed.md
 - [#1917] [P1][S] A carried branch's JOURNAL entry breaks prepend order once newer entries land on main first · tasks/1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md
+- [#1918] [P2][S] The handoff Plan row admits a plan whose name says superseded before its date · tasks/1918-the-handoff-plan-row-admits-a-plan-whose-name-says-superseded.md
+- [#1919] [P2][S] The LEDGER shows a scored frontier, not the build slots the operator ratified · tasks/1919-the-ledger-shows-a-scored-frontier-not-the-ratified-build-slots.md
+- [#1920] [P2][S] A handoff cut does not refresh to-browser/MAP-DISPATCH.md · tasks/1920-a-handoff-cut-does-not-refresh-map-dispatch-md.md
+- [#1921] [P1][S] Each known-reds owner row carries its own expiry date, so the registry has no single clock · tasks/1921-each-known-reds-owner-row-carries-its-own-expiry-date.md
 
 ---
 

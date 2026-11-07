@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7ef812860d7f2dda8bdc10a8691fc97ae767303fc3e92b4f959ce95edca050d5",
+  "generated_sha256": "3b0fac11b66d5b6a0630b644a5e7cd68ba3a9b2df1d8f7edcb1e6762e6d7cdcb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -3318,6 +3318,22 @@
     {
       "task": 1917,
       "file": "1917-a-carried-branch-s-journal-entry-breaks-prepend-order-after.md"
+    },
+    {
+      "task": 1918,
+      "file": "1918-the-handoff-plan-row-admits-a-plan-whose-name-says-superseded.md"
+    },
+    {
+      "task": 1919,
+      "file": "1919-the-ledger-shows-a-scored-frontier-not-the-ratified-build-slots.md"
+    },
+    {
+      "task": 1920,
+      "file": "1920-a-handoff-cut-does-not-refresh-map-dispatch-md.md"
+    },
+    {
+      "task": 1921,
+      "file": "1921-each-known-reds-owner-row-carries-its-own-expiry-date.md"
     },
     {
       "prose": ""
